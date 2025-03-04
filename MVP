@@ -1,0 +1,50 @@
+MVP for CAPS
+These core features provide the most value while keeping effort manageable.
+
+1. User Registration & Login System
+✅ Secure login for students, faculty, program chairs, and super admins
+✅ Role-Based Access Control (RBAC) – Users have different permissions
+✅ Basic password recovery via email
+
+2. Question Bank Management
+✅ Faculty can add, modify, remove but changes require approval from Program Chair/Dean
+✅ Categorization of questions by subject, difficulty, and coverage
+✅ Search function to quickly find questions
+
+3. Question Approval System
+✅ All added, modified, or removed questions require Program Chair/Dean approval
+✅ Approval requests are logged for transparency
+✅ Approved questions become available for test creation
+
+4. Basic Test Creation & Management (Including Randomization)
+✅ Faculty can create assessments from an approved question bank
+✅ Randomization feature to avoid repetitive test patterns
+✅ Save test drafts for future editing
+
+5. Student Dashboard
+✅ Students can view test history, and performance reports
+✅ Visual indicators (charts/graphs) for strengths and weaknesses
+
+6. Automated Scoring for Objective Questions
+✅ System auto-grades multiple-choice questions
+✅ Students receive immediate feedback
+✅ Scores are stored for performance tracking
+
+7. Question Printing System
+✅ Super Admins can print and authorize exam questions
+✅ Faculty can print school-level exams
+✅ Generates well-formatted PDFs
+
+🔹 Why Prioritize the Approval System?
+✔ Ensures Question Quality – Prevents invalid or duplicate questions
+✔ Maintains Academic Integrity – Faculty cannot bypass the review process
+✔ Regulatory Compliance – Aligns with institutional policies
+✔ High Impact, Moderate Effort – Key for system credibility
+
+🚀 Next Steps After MVP
+Once the MVP is stable, the next priorities will be:
+🔹 Secure Online Testing – Anti-cheating measures (full-screen mode, time tracking)
+🔹 Faculty Assignment & Subject Difficulty Control – Super Admins manage system settings
+🔹 Gamification & UI Enhancements – Boosts student engagement
+
+With these adjustments, CAPS will launch with a strong foundation while ensuring academic integrity. Would you like a detailed task breakdown to ensure smooth development within the given timeline? ✅
