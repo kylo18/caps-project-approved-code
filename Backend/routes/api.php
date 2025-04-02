@@ -51,10 +51,10 @@ Route::middleware(['auth:sanctum', 'role:4'])->group(function () {
     Route::patch('/users/{userID}/approve', [UserController::class, 'approveUser']);
     Route::patch('/users/{userID}/disapprove', [UserController::class, 'disapproveUser']);
 
-    Route::put('users/{id}/deactivate', [UserController::class, 'deactivate'])
+    Route::patch('users/{id}/deactivate', [UserController::class, 'deactivate'])
         ->name('users.deactivate');
 
-    Route::put('users/{id}/activate', [UserController::class, 'activate'])
+    Route::patch('users/{id}/activate', [UserController::class, 'activate'])
         ->name('users.activate');
 
     //add subjects route
