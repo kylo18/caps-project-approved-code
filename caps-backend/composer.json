@@ -1,0 +1,8 @@
+{
+    "name": "caps/caps-backend",
+    "description": "CAPS website backend",
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^10.0"
+    }
+}
