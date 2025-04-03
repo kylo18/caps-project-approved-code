@@ -14,7 +14,6 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
 
   const parsedRoleId = Number(role_id);
 
-  // Set home path based on role
   const homePath =
     parsedRoleId === 1 ? "/student" :
     parsedRoleId === 2 ? "/Instructor" :

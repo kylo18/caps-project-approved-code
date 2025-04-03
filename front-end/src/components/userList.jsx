@@ -12,7 +12,7 @@ const UserList = () => {
   const [sortCategory, setSortCategory] = useState("");
   const [sortOption, setSortOption] = useState("");
   const [sortStatus, setSortStatus] = useState("All");
-  
+
   const [selectedUserID, setSelectedUserID] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState("");
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
@@ -92,69 +92,95 @@ const UserList = () => {
     return matchesSearch && matchesSort && matchesStatus;
   });
 
-  const handleDeactivateUser = async (userID) => {
+  const handleApproveUser = async (userID) => {
+    const token = localStorage.getItem("token");
     try {
-      const response = await fetch(`${apiUrl}/${userID}/deactivate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-  
-      if (response.ok) {
-        setUsers((prevUsers) =>
-          prevUsers.map((user) =>
-            user.userID === userID ? { ...user, isActive: false, status: "unregistered" } : user
-          )
-        );
-      }
+        const response = await fetch(`${apiUrl}/users/${userID}/approve`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Authorization": `Bearer ${token}`,
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to approve user");
+        }
+
+        setUsers(users.map(user =>
+            user.userID === userID ? { ...user, status: "registered" } : user
+        ));
+        setUsers(users.map(user =>
+          user.userID === userID ? { ...user, isActve: true } : user
+      ));
+        
+        alert("User approved successfully!"); 
     } catch (error) {
-      console.error("Error deactivating user:", error);
+      console.error("Error approving user:", error);
+      alert(error.message);
     }
   };
-  
+
   const handleActivateUser = async (userID) => {
+    const token = localStorage.getItem("token");
     try {
-      const response = await fetch(`${apiUrl}/${userID}/activate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-  
-      if (response.ok) {
-        setUsers((prevUsers) =>
-          prevUsers.map((user) =>
-            user.userID === userID ? { ...user, isActive: true, status: "registered" } : user
-          )
-        );
-      }
+        const response = await fetch(`${apiUrl}/users/${userID}/activate`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Authorization": `Bearer ${token}`,
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to activate user");
+        }
+
+        setUsers(users.map(user =>
+            user.userID === userID ? { ...user, isActive: true } : user
+        ));
+
+        alert("User activated successfully!");
     } catch (error) {
-      console.error("Error activating user:", error);
+        console.error("Error activating user:", error);
+        alert(error.message);
     }
   };
   
 
-  const confirmStatusChange = () => {
-    if (!selectedUserID) return;
+  const handleDeactivateUser = async (userID) => {
+    const token = localStorage.getItem("token");
+    try {
+        const response = await fetch(`${apiUrl}/users/${userID}/deactivate`, { // ✅ Fixed URL
+            method: "PATCH", // ✅ Use PUT as per backend
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Authorization": `Bearer ${token}`,
+            }
+        });
 
-    const dbStatus = selectedStatus === "registered" ? "registered" : "unregistered";
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to deactivate user");
+        }
 
-    setUsers((prevUsers) =>
-      prevUsers.map((user) =>
-        user.userID === selectedUserID ? { ...user, status: dbStatus } : user
-      )
-    );
+        // Update UI after deactivation
+        setUsers((prevUsers) => 
+            prevUsers.map(user =>
+                user.userID === userID ? { ...user, isActive: false } : user
+            )
+        );
 
-    fetch(`http://localhost:5000/users/${selectedUserID}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status: dbStatus }),
-    })
-      .then((response) => response.json())
-      .then(() => {
-        setModalOpen(false);
-        setSelectedUserID(null);
-      })
-      .catch((error) => console.error("Error updating status:", error));
+        alert("User deactivated successfully");
+    } catch (error) {
+        console.error("Error deactivating user:", error);
+        alert(error.message);
+    }
   };
 
   const handleDeleteUser = async (userID) => {
@@ -215,7 +241,6 @@ const UserList = () => {
 
   return (
     <div className="font-inter p-2 h-screen mt-12">
-
       <div className="text-[14px] mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 ">
         {/* Delete Selected Button */}
         <div className="relative w-full max-w-full sm:min-w-[180px]">
@@ -306,7 +331,6 @@ const UserList = () => {
         <table className="min-w-full bg-white border border-[rgb(200,200,200)] border-t-0 shadow-md">
           <thead>
             <tr className="bg-white border-b border-[rgb(200,200,200)] text-[rgb(78,78,78)] text-[10px] sm:text-[14px]">
-              {/* Checkbox (Hidden on Small Screens) */}
               <th className="p-3 text-left hidden sm:table-cell">
                   <input
                   className="ml-3"
@@ -330,80 +354,91 @@ const UserList = () => {
             </tr>
           </thead>
           <tbody>
-  {users.length === 0 ? (
-    <tr>
-      <td colSpan="8" className="text-center py-4">No users found.</td>
-    </tr>
-  ) : (
-    filteredUsers.map((user) => (
-      <tr
-        key={user.userID}
-        className="border-b border-[rgb(200,200,200)] text-[rgb(78,78,78)] text-[12px] hover:bg-gray-100"
-      >
-        {/* Checkbox Column (Hidden on Small Screens) */}
-        <td className="p-3 hidden sm:table-cell text-left">
-          <input
-            className="ml-3 mt-1"
-            type="checkbox"
-            checked={selectedUsers.includes(user.userID)}
-            onChange={() => handleCheckboxChange(user.userID)}
-          />
-        </td>
-        <td className="p-3 text-left">{user.userCode}</td>
-        <td className="p-3 text-left sm:hidden">{`${user.firstName} ${user.lastName}`}</td>
-        <td className="p-3 text-left hidden sm:table-cell">{user.firstName}</td>
-        <td className="p-3 text-left hidden sm:table-cell">{user.lastName}</td>
-        <td className="p-3 text-left">{user.email}</td>
-        <td className="p-3 text-left">{user.role}</td>
-        <td className="p-3 text-left">{user.campus}</td>
-        <td className="p-3 text-center font-semibold">
-          <span
-            className={`px-2 py-1 rounded-md text-[12px] 
-              ${user.status === "registered" ? "bg-green-100 text-green-600" : 
-              user.status === "unregistered" ? "bg-red-100 text-red-600" : 
-              "bg-yellow-100 text-yellow-600"}`}
-          >
-            {user.status === "registered" ? "Approved" :
-             user.status === "unregistered" ? "Rejected" : "Pending"}
-          </span>
-        </td>
-        <td className="p-3 text-center">{user.program}</td>
-
-        {/* Active/Inactive Status */}
-        <td className="p-3 text-center">
-          {user.isActive ? (
-            <span className="text-green-500">Active</span>
-          ) : (
-            <span className="text-red-500">Inactive</span>
-          )}
-        </td>
-
-        {/* Action Buttons */}
-        <td className="p-3 text-center">
-          <div className="flex gap-2 justify-center">
-
-            {/* Activate/Deactivate Button */}
-            {user.isActive ? (
-              <button
-                className="text-red-500 hover:text-red-700"
-                onClick={() => handleDeactivateUser(user.userID)}
-              >
-                <i className="bx bx-power-off text-lg"></i> {/* Deactivate Icon */}
-              </button>
+            {users.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="text-center py-4 ">No users found.</td>
+              </tr>
             ) : (
-              <button
-                className="text-green-500 hover:text-green-700"
-                onClick={() => handleActivateUser(user.userID)}
-              >
-                <i className="bx bx-check-circle text-lg"></i> {/* Activate Icon */}
-              </button>
+              filteredUsers.map((user) => (
+                <tr
+                  key={user.userID}
+                  className="border-b border-[rgb(200,200,200)] text-[rgb(78,78,78)] text-[12px] hover:bg-gray-100"
+                >
+                  {/* Checkbox Column (Hidden on Small Screens) */}
+                  <td className="p-3 hidden sm:table-cell text-left">
+                    <input
+                      className="ml-3 mt-1"
+                      type="checkbox"
+                      checked={selectedUsers.includes(user.userID)}
+                      onChange={() => handleCheckboxChange(user.userID)}
+                    />
+                  </td>
+                  <td className="p-3 text-left text-nowrap">{user.userCode}</td>
+                  <td className="p-3 text-left sm:hidden text-nowrap">{`${user.firstName} ${user.lastName}`}</td>
+                  <td className="p-3 text-left hidden sm:table-cell text-nowrap">{user.firstName}</td>
+                  <td className="p-3 text-left hidden sm:table-cell text-nowrap">{user.lastName}</td>
+                  <td className="p-3 text-left">{user.email}</td>
+                  <td className="p-3 text-left text-nowrap">{user.role}</td>
+                  <td className="p-3 text-left">{user.campus}</td>
+                  <td className="p-3 text-center font-semibold">
+                    <span
+                      className={`px-2 py-1 rounded-md text-[12px] 
+                        ${user.status === "registered" ? "bg-green-100 text-green-600" : 
+                        user.status === "unregistered" ? "bg-red-100 text-red-600" : 
+                        "bg-yellow-100 text-yellow-600"}`}
+                    >
+                      {user.status === "registered" ? "Approved" :
+                      user.status === "unregistered" ? "Rejected" : "Pending"}
+                    </span>
+                  </td>
+                  <td className="p-3 text-center">{user.program}</td>
+
+                  {/* Active/Inactive Status */}
+                  <td className="p-3 text-center">
+                    {user.isActive ? (
+                      <span className="text-green-500">Active</span>
+                    ) : (
+                      <span className="text-red-500">Inactive</span>
+                    )}
+                  </td>
+
+                  {/* Action Buttons */}
+                  <td className="p-3 text-center">
+                    <div className="flex gap-2 justify-center">
+                      
+                      {/* Approve Button (for pending users only) */}
+                      {user.status === "pending" && user.isActive === false && (
+                        <button
+                          className="main-text-colors hover:text-orange-700"
+                          onClick={() => handleApproveUser(user.userID)}
+                        >
+                          <i className="cursor-pointer bx bxs-user-check text-lg"></i> {/* Approve Icon */}
+                        </button>
+                      )}
+                      {/* Deactivate Active User */}
+                      {user.status === "registered" && user.isActive === true && (
+                        <button
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => handleDeactivateUser(user.userID)}
+                        >
+                          <i className="cursor-pointer bx bx-log-out bx-flip-horizontal text-lg"></i> {/* Approve Icon */}
+                        </button>
+                      )}
+                      {/* Activate Active User */}
+                      {user.status === "registered" && user.isActive === false && (
+                        <button
+                          className="main-text-colors hover:text-orange-700"
+                          onClick={() => handleActivateUser(user.userID)}
+                        >
+                          <i className="cursor-pointer bx bx-check-double text-lg"></i> {/* Approve Icon */}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
-          </div>
-        </td>
-      </tr>
-    ))
-  )}
-</tbody>
+          </tbody>
 
         </table>
       </div>
