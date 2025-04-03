@@ -1,0 +1,53 @@
+version: '3.8'
+
+networks:
+  caps_network:
+    driver: bridge
+
+services:
+  backend:
+    image: kylo18/caps-backend:latest  # Pull from Docker Hub
+    container_name: caps_backend
+    networks:
+      - caps_network
+    volumes:
+      - ./caps-backend:/var/www/html
+    depends_on:
+      - mysql
+
+  frontend:
+    image: kylo18/caps-frontend:latest  # Pull from Docker Hub
+    container_name: caps_frontend
+    networks:
+      - caps_network
+    ports:
+      - "3000:3000"  # Ensure React runs on port 3000
+    volumes:
+      - ./caps-frontend:/app  # Mount frontend project
+      - /app/node_modules  # Prevent overwriting node_modules
+    working_dir: /app
+    command: ["npm", "start"]  # Start the React app
+    depends_on:
+      - backend
+
+  mysql:
+    image: mysql:8
+    container_name: caps_mysql
+    restart: always
+    networks:
+      - caps_network
+    ports:
+      - "4406:3306"
+  
+    environment:
+      MYSQL_ROOT_PASSWORD: COEwebsite2025
+      MYSQL_DATABASE: caps_db
+      MYSQL_USER: kylo
+      MYSQL_PASSWORD: CAPSwebsite2025
+
+    
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
