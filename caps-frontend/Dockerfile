@@ -1,25 +1,26 @@
-# Use lightweight Node.js image to build React app (Alpine-based OS)
-FROM node:18-alpine as build
+# Use the official Node.js image as the base image
+FROM node:16
 
-# Set working directory
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY package.json package-lock.json ./
+# Copy package.json and package-lock.json to install dependencies
+COPY package*.json ./
+
+# Install dependencies
 RUN npm install
 
-# Copy project files and build
+# Install serve globally
+RUN npm install -g serve
+
+# Copy the rest of the frontend files into the container
 COPY . .
+
+# Expose port 4173 for the frontend
+EXPOSE 4173
+
+# Build the frontend
 RUN npm run build
 
-# Use Nginx to serve built frontend (Debian-based OS)
-FROM nginx:latest
-
-# Copy built files from previous step
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Expose port 80 for Nginx
-EXPOSE 80
-
-# Start Nginx server
-CMD ["nginx", "-g", "daemon off;"]
+# Serve the build folder
+CMD ["serve", "-s", "dist", "-l", "4173"]
