@@ -6,6 +6,11 @@ networks:
 
 services:
   backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    
     image: php:8.2-fpm  # Pull from Docker Hub
     container_name: caps_backend
     networks:
@@ -16,17 +21,21 @@ services:
       - mysql
 
   frontend:
-    image: kylo18/caps-frontend:latest  # Pull from Docker Hub
+
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    #image: kylo18/caps-frontend:latest  # Pull from Docker Hub
     container_name: caps_frontend
     networks:
       - caps_network
     ports:
-      - "3000:3000"  # Ensure React runs on port 3000
-    volumes:
-      - ./Frontend:/app  # Mount frontend project
-      - /app/node_modules  # Prevent overwriting node_modules
-    working_dir: /app
-    command: ["npm", "start"]  # Start the React app
+      - "80:5173"  # Ensure React runs on port 3000
+    #volumes:
+    #  - ./Frontend:/app  # Mount frontend project
+    #  - /app/node_modules  # Prevent overwriting node_modules
+    #working_dir: /app
+    #command: ["npm", "start"]  # Start the React app
     depends_on:
       - backend
 
