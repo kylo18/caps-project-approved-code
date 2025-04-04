@@ -5,20 +5,20 @@ networks:
     driver: bridge
 
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+#   backend:
+#     build:
+#       context: ./backend
+#       dockerfile: Dockerfile
 
     
-    image: php:8.2-fpm  # Pull from Docker Hub
-    container_name: caps_backend
-    networks:
-      - caps_network
-    volumes:
-      - ./Backend:/var/www/html
-    depends_on:
-      - mysql
+#     image: php:8.2-fpm  # Pull from Docker Hub
+#     container_name: caps_backend
+#     networks:
+#       - caps_network
+#     volumes:
+#       - ./Backend:/var/www/html
+#     depends_on:
+#       - mysql
 
   frontend:
 
@@ -36,8 +36,8 @@ services:
     #  - /app/node_modules  # Prevent overwriting node_modules
     #working_dir: /app
     #command: ["npm", "start"]  # Start the React app
-    depends_on:
-      - backend
+    #depends_on:
+    #  - backend
 
   mysql:
     image: mysql:8
