@@ -1,0 +1,89 @@
+✅ Deliverables:
+
+1.) Finalize and present the Problem Statement & Project Scope.
+Ans:
+
+Students currently face challenges in accessing personalized, effective assessment tools that help them identify and improve their weaknesses. Our Comprehensive Assessment & Preparation System aims to fill this gap by offering tailored assessments, adaptive learning tools, and detailed performance analytics in a user-friendly, secure web-based platform.
+
+Statement of the Problem:
+1. What is the Authentication (Log in phase problem) process?
+2. How can the hierarchy of the faculty affects the Questions in terms of
+	a) Adding,
+	b.) Modifying,
+	c.) Removing Question
+3. In what way we can Classify Questions (Subject, Difficulty level, and Coverage) ?
+4. What is the mechanics of the Admin(dean) in Assigning Roles?
+5. How to implement Tagging (Too Easy and Too difficult Question)?
+
+Project Scope:
+The CAP System is limited to JRMSU students in different campuses who are willing to partake and improve their knowledge on specific engineering subject offered in our system. Furthermore, the actual(not for practice) questions that was stored in the databank may be used in examination and Qualifying Exams.
+
+2.) Ensure the Functional & Non-Functional Requirements are complete.
+Ans:
+Functional:
+1. Registration & Login:
+Allow users to register, log in, and manage their profiles.
+2. Authentication & Authorization:
+Implement secure user authentication and role-based access control (students, instructors, administrators).
+3. Test Creation & Administration:
+Enable instructors to create, modify, remove, and publish assessments.
+4. Question Bank:
+Maintain a repository of random questions organized by subject, coverage, and difficulty.
+5. User and Content Management:
+Enable administrators to manage users, monitor system usage, and moderate content.
+6. Time Management (Optional):
+Include features like timers, auto-save, and test resumption options.
+7. Hierarchical Process:
+Enable inheritance in hierarchical manner.
+
+Non-Functional:
+1. User Load:
+Design to support growth, with an initial target of 1000-3000 concurrent users and a roadmap for scaling beyond this range.
+2. Modular Design:
+Use a modular architecture to allow independent scaling of components 
+3. Uptime:
+Aim for 99.9% system availability.
+4. Error Handling:
+Implement robust error detection, logging, and recovery mechanisms to minimize downtime.
+5. Backup & Recovery:
+Regularly backup data and ensure quick recovery in case of system failures.
+6. Data Protection:
+Encrypt sensitive data both in transit and at rest.
+7. User Interface:
+Design a clean, intuitive interface that is accessible to users with varying levels of technical proficiency.
+8. Responsive Design:
+Ensure the system works well on various devices (desktops, tablets, and mobile phones).
+9. Accessibility:
+Comply with accessibility standards to ensure the system is usable by all students.
+
+
+
+3. Oversee and manage the project backlog (tasks must be structured and prioritized).
+Ans:
+Structured Backlog Organization:
+
+Epics & User Stories:
+Break down the project into high-level epics (major features or modules) and further decompose these into user stories and tasks.
+Task Definition:
+Each task will include a clear description, acceptance criteria, estimated effort, and relevant dependencies.
+
+Prioritization:
+
+Value vs. Effort Analysis:
+Assess tasks based on their business value and implementation complexity, ensuring a balanced workload.
+Stakeholder Input:
+Regularly engage with the sponsor and stakeholders to re-assess priorities and align with evolving project goals.
+
+Project Management Tools:
+
+GitHub:
+Use a project management tool to maintain the backlog, allowing for easy tracking, updating, and visualization of task status.
+
+Regular Backlog Grooming:
+
+Scheduled Review Meetings:
+Hold weekly or bi-weekly backlog grooming sessions to refine, re-prioritize, and estimate tasks.
+Sprint Planning:
+At the start of each sprint, select and commit to high-priority tasks, ensuring alignment with project milestones.
+
+Facilitate team coordination through meetings, sprint planning, and check-ins.
