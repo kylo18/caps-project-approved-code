@@ -7,35 +7,27 @@ networks:
 services:
   backend:
     build:
-      context: ./caps-backend
+      context: ./Backend
       dockerfile: Dockerfile
-    image: kylo18/caps-backend:latest
     container_name: caps_backend
     networks:
       - caps_network
-    volumes:
-      - ./caps-backend:/var/www/html
     ports:
-      - "8000:80"
+      - "8000:8000"
+    volumes:
+      - ./backend:/var/www/html
     depends_on:
       - mysql
 
   frontend:
     build:
-      context: ./caps-frontend
+      context: ./Frontend
       dockerfile: Dockerfile
-    tty: true
-    image: kylo18/caps-frontend:latest
     container_name: caps_frontend
     networks:
       - caps_network
     ports:
-      - "4173:4173"
-    volumes:
-      - ./caps-frontend:/app
-      - /app/node_modules
-    working_dir: /app
-    command: ["npx", "serve", "-s", "dist", "-l", "4173"]
+      - "80:5173"  # React app runs on port 5173 by default with Vite
     depends_on:
       - backend
 
@@ -54,6 +46,21 @@ services:
       MYSQL_PASSWORD: CAPSwebsite2025
     volumes:
       - mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin_container
+    restart: always
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: COEwebsite2025
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - caps_network
 
 volumes:
   mysql_data:
