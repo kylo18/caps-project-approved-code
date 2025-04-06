@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\Mailer\Test;
 
+<<<<<<< Updated upstream:Backend/vendor/symfony/mailer/Test/AbstractTransportFactoryTestCase.php
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Exception\UnsupportedSchemeException;
@@ -19,10 +20,25 @@ use Symfony\Component\Mailer\Transport\TransportFactoryInterface;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 
 abstract class AbstractTransportFactoryTestCase extends TestCase
-{
-    protected const USER = 'u$er';
-    protected const PASSWORD = 'pa$s';
+=======
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Mailer\Transport\Dsn;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
+/**
+ * A test case to ease testing Transport Factory.
+ *
+ * @author Konstantin Myakshin <molodchick@gmail.com>
+ *
+ * @deprecated since Symfony 7.2, use AbstractTransportFactoryTestCase instead
+ */
+abstract class TransportFactoryTestCase extends AbstractTransportFactoryTestCase
+>>>>>>> Stashed changes:caps-backend/vendor/symfony/mailer/Test/TransportFactoryTestCase.php
+{
+    use IncompleteDsnTestTrait;
+
+<<<<<<< Updated upstream:Backend/vendor/symfony/mailer/Test/AbstractTransportFactoryTestCase.php
     abstract public function getFactory(): TransportFactoryInterface;
 
     /**
@@ -34,10 +50,16 @@ abstract class AbstractTransportFactoryTestCase extends TestCase
      * @psalm-return iterable<array{0: Dsn, 1: TransportInterface}>
      */
     abstract public static function createProvider(): iterable;
+=======
+    protected EventDispatcherInterface $dispatcher;
+    protected HttpClientInterface $client;
+    protected LoggerInterface $logger;
+>>>>>>> Stashed changes:caps-backend/vendor/symfony/mailer/Test/TransportFactoryTestCase.php
 
     /**
      * @psalm-return iterable<array{0: Dsn, 1?: string|null}>
      */
+<<<<<<< Updated upstream:Backend/vendor/symfony/mailer/Test/AbstractTransportFactoryTestCase.php
     abstract public static function unsupportedSchemeProvider(): iterable;
 
     /**
@@ -79,5 +101,33 @@ abstract class AbstractTransportFactoryTestCase extends TestCase
         }
 
         $factory->create($dsn);
+=======
+    public static function unsupportedSchemeProvider(): iterable
+    {
+        return [];
+    }
+
+    /**
+     * @psalm-return iterable<array{0: Dsn}>
+     */
+    public static function incompleteDsnProvider(): iterable
+    {
+        return [];
+    }
+
+    protected function getDispatcher(): EventDispatcherInterface
+    {
+        return $this->dispatcher ??= $this->createMock(EventDispatcherInterface::class);
+    }
+
+    protected function getClient(): HttpClientInterface
+    {
+        return $this->client ??= $this->createMock(HttpClientInterface::class);
+    }
+
+    protected function getLogger(): LoggerInterface
+    {
+        return $this->logger ??= $this->createMock(LoggerInterface::class);
+>>>>>>> Stashed changes:caps-backend/vendor/symfony/mailer/Test/TransportFactoryTestCase.php
     }
 }

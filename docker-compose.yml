@@ -1,5 +1,8 @@
+<<<<<<< Updated upstream
 version: '3.8'
 
+=======
+>>>>>>> Stashed changes
 networks:
   caps_network:
     driver: bridge
@@ -7,11 +10,16 @@ networks:
 services:
   backend:
     build:
+<<<<<<< Updated upstream
       context: ./Backend
+=======
+      context: ./caps-backend
+>>>>>>> Stashed changes
       dockerfile: Dockerfile
     container_name: caps_backend
     networks:
       - caps_network
+<<<<<<< Updated upstream
     ports:
       - "8000:8000"
     volumes:
@@ -22,14 +30,30 @@ services:
   frontend:
     build:
       context: ./Frontend
+=======
+    volumes:
+      - ./caps-backend:/var/www/html/public
+    depends_on:
+      - mysql
+    ports:
+    - "8000:80"
+
+  frontend:
+    build:
+      context: ./caps-frontend
+>>>>>>> Stashed changes
       dockerfile: Dockerfile
     container_name: caps_frontend
     networks:
       - caps_network
     ports:
+<<<<<<< Updated upstream
       - "80:5173"  # React app runs on port 5173 by default with Vite
     depends_on:
       - backend
+=======
+      - "80:5173"
+>>>>>>> Stashed changes
 
   mysql:
     image: mysql:8

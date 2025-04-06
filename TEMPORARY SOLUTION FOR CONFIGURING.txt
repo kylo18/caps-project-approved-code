@@ -1,0 +1,68 @@
+TEMPORARY SOLUTION FOR CONFIGURING DOCKER FILE:
+
+ERROR: 403 FORBIDDEN/404 NOT FOUND - THE ERROR IS EITHER OF THE TWO
+
+1. NAVIGATE TO CAPS-BACKEND CONTAINER
+2. Install nano for command by typing this:
+
+apt-get update
+apt-get install nano
+
+3. type this:
+nano /etc/apache2/sites-available/000-default.conf
+
+DEFAULT CONTENT INSIDE THAT CONFIGURATION: 
+
+<VirtualHost *:80>
+    # Server Admin Email
+    ServerAdmin webmaster@localhost
+
+    # Document Root Directory
+    DocumentRoot /var/www/html
+
+    # ErrorLog and CustomLog
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+    # Other configurations
+    # If you have SSL setup, it would look something like this
+    #SSLEngine on
+    #SSLCertificateFile /path/to/cert.pem
+    #SSLCertificateKeyFile /path/to/key.pem
+</VirtualHost>
+
+UPDATE IT TO THIS:
+
+<VirtualHost *:80>
+    # Server Admin Email
+    ServerAdmin webmaster@localhost
+
+    # Document Root Directory
+    DocumentRoot /var/www/html/public
+
+    # Directory Settings
+    <Directory /var/www/html/public>
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # ErrorLog and CustomLog
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+    # Other configurations
+    # If you have SSL setup, it would look something like this
+    #SSLEngine on
+    #SSLCertificateFile /path/to/cert.pem
+    #SSLCertificateKeyFile /path/to/key.pem
+</VirtualHost>
+
+4. Type: service apache2 restart
+5. Start backend container
+6. navigate to backend container and type this:
+a2enmod rewrite
+service apache2 restart
+7. Start backend container again and it will work
+
+BUG WILL APPEAR AGAIN IF YOU DOCKER-COMPOSE DOWN
