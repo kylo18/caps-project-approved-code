@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+.text-stroke {
+  text-shadow: rgba(223, 239, 255) 0px 3px 0px, rgba(0, 0, 0, 0.15) 0px 14px 10px, rgba(0, 0, 0, 0.1) 0px 6px 1px, rgba(0, 0, 0, 0.1) 0px 17px 15px;
+  color: rgb(50,93,136);
+  font-family: arial;
+}
+
+.open-sans{
+  font-family: 'Open Sans';
+  font-weight: 500;
+}
+.font-inter{
+  font-family: 'Inter';
+}
+.font-medium{
+  font-weight: 550;
+}
+
+.main-colors{
+  background-color: rgb(254, 105, 2
+  );
+}
+
+.lightbox-bg{
+  background-color: rgba(0, 0, 0, 0.8);
+}
+.main-text-colors{
+  color: rgb(254, 105, 2);
+}
+
+select option:hover {
+  background-color: rgb(254, 105, 2) !important; /* Change to your desired hover color */
+  color: white !important;
+}
+
+.border-color{
+  border-color: rgb(200,200,200);
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar {
+  overflow-y: auto; 
+  scrollbar-width: thin;
+  scrollbar-color: #979797 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  transition: all 0.5s ease-in-out;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #979797;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9f9f9f;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar {
+  display: block;
+}
