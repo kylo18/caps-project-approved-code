@@ -100,7 +100,7 @@ class SubjectController extends Controller
         }
 
         $validated = $request->validate([
-            'subjectCode' => 'required|string|max:50|unique:subjects,subjectCode,' . $subjectID . ',subjectID',
+            'subjectCode' => 'required|string|max:255|unique:subjects,subjectCode,' . $subjectID . ',subjectID',
             'subjectName' => 'required|string|max:255',
         ]);
 

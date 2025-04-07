@@ -33,7 +33,7 @@ class AuthController extends Controller
     {
         // Validate required fields
         $validated = $request->validate([
-            'userCode' => 'required|string|max:10',
+            'userCode' => 'required|string|max:15',
             'firstName' => 'required|string|max:50',
             'lastName' => 'required|string|max:50',
             'email' => 'required|string|email|max:100',
