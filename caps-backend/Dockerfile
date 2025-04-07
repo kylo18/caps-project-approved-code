@@ -4,22 +4,39 @@ FROM php:8.2-apache
 # Install required extensions
 RUN docker-php-ext-install pdo pdo_mysql
 
+# Enable Apache rewrite module (Laravel requires this)
+RUN a2enmod rewrite
+
+# Set Apache's DocumentRoot to Laravel's "public" directory
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+
+# Update Apache config to point to new DocumentRoot
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf
+
 # Set working directory
 WORKDIR /var/www/html
 
 # Copy Laravel project files into the container
 COPY . .
 
-# Install Composer dependencies
-RUN apt-get update && apt-get install -y unzip \
-    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && composer install --no-dev --optimize-autoloader
+# Install Composer
+RUN apt-get update && apt-get install -y unzip curl \
+    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Set file permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Install Laravel dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-# Expose port 80 for Apache
+# Set file permissions (very important for Laravel)
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
+
+# Create storage symlink for Laravel
+RUN php artisan storage:link || true    
+
+# Expose port 80
 EXPOSE 80
 
-# Start Apache server
-CMD ["apache2-foreground"]
+# Start Apache
+CMD php artisan storage:link && apache2-foreground
+
