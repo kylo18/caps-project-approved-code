@@ -49,9 +49,12 @@ class ChoiceController extends Controller
                     }
                 }
 
+                // Encrypt the choiceText before saving it to the database
+                $encryptedChoiceText = $choiceData['choiceText'] ? Crypt::encryptString($choiceData['choiceText']) : null;
+
                 $choice = Choice::create([
                     'questionID' => $validated['questionID'],
-                    'choiceText' => $choiceData['choiceText'] ?? null,
+                    'choiceText' => $encryptedChoiceText,
                     'isCorrect'  => $choiceData['isCorrect'],
                     'image'      => $imagePath
                 ]);

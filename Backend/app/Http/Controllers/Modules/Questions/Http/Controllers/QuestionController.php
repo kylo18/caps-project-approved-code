@@ -217,21 +217,33 @@ class QuestionController extends Controller
             ], 404);
         }
 
-        // Retrieve questions and decrypt the questionText
+        // Retrieve questions and decrypt the questionText and choiceText
         $questions = Question::with(['subject', 'choices'])
             ->where('subjectID', $subjectID)
             ->get()
             ->map(function ($question) {
                 try {
+                    // Decrypt the questionText
                     $question->questionText = Crypt::decryptString($question->questionText);
                 } catch (\Exception $e) {
                     $question->questionText = '[Decryption Error]';
                 }
 
+                // Decrypt the choiceText for each choice
+                $question->choices->map(function ($choice) {
+                    try {
+                        $choice->choiceText = Crypt::decryptString($choice->choiceText);
+                    } catch (\Exception $e) {
+                        $choice->choiceText = '[Decryption Error]';
+                    }
+                    return $choice;
+                });
+
                 // Append full image URL if an image exists
                 if ($question->image && !Str::startsWith($question->image, 'http')) {
                     $question->image = url("storage/{$question->image}");
                 }
+
                 return $question;
             });
 
