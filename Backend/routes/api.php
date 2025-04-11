@@ -30,6 +30,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/subjects', [SubjectController::class, 'index']);
     Route::post('/faculty/assign-subject', action: [FacultySubjectController::class, 'assignSubject']);
     Route::get('/faculty/my-subjects', [FacultySubjectController::class, 'mySubjects']);
+    Route::delete('/faculty/remove-subject', [FacultySubjectController::class, 'removeSubject']);
 
     //question functionalities route
     Route::post('/questions/add', [QuestionController::class, 'store']);
