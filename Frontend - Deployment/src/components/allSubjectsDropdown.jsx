@@ -15,6 +15,7 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [openMenuID, setOpenMenuID] = useState(null);
+  const [subjectLoading, setSubjectLoading] = useState(false);
 
   const [editingSubject, setEditingSubject] = useState(null);
   const [editedSubject, setEditedSubject] = useState({ subjectCode: "", subjectName: "", subjectID: "" });
@@ -88,7 +89,7 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
     const token = localStorage.getItem("token");
   
     try {
-      const response = await fetch(`${apiUrl}/faculty/remove-subject`, {
+      const response = await fetch(`${apiUrl}/subjects/${subjectID}/delete`, {
       
         method: "DELETE",
         headers: {
@@ -115,7 +116,7 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
 
   const fetchSubjects = async () => {
     const token = localStorage.getItem("token");
-    setLoading(true); // Start loading
+    setSubjectLoading(true);
   
     try {
       const response = await fetch(`${apiUrl}/subjects`, {
@@ -142,7 +143,7 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
     } catch (error) {
       console.error("Error fetching subjects:", error);
     } finally {
-      setLoading(false); // End loading
+      setSubjectLoading(false); // End loading
     }
   };
   
@@ -318,8 +319,8 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
           className="ml-[3px] flex-grow overflow-y-auto custom-scrollbar pr-2 transition-all duration-300 ease-in-out
             text-left text-[14px] font-semibold mt-2 w-full mx-auto text-[rgb(78,78,78)]"  onMouseLeave={() => setOpenMenuID(null)} 
         >
-          {loading ? (
-            <li className="p-2 text-gray-500 text-[14px] text-center animate-pulse">
+          {subjectLoading ? (
+            <li className="p-2 text-[rgb(168,168,168)] text-[14px] text-center animate-pulse">
               <div className="flex items-center justify-center">
                 <span>Loading</span>
                 <div className="ml-2 size-4 border-3 border-t-transparent rounded-full animate-spin"></div>
@@ -336,7 +337,7 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
                 }`}
               >
                 <span
-                  className="flex-1 cursor-pointer break-all"
+                    className="flex-1 ml-1 cursor-pointer break-all"
                   onClick={() => {
                     setSelectedSubject(null);
                     handleSelectSubject(subject);
@@ -394,7 +395,23 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
               </li>
             ))
           ) : (
-            <li className="p-2 text-[rgb(168,168,168)] text-[14px] text-center">No subjects found</li>
+          <li className="flex flex-col items-center gap-2 p-4 text-[rgb(168,168,168)] text-[14px] text-center">
+            <span>No assigned subjects found</span>
+            <button
+              onClick={fetchSubjects}
+              className="mt-3 flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 border px-3 py-1 rounded-md shadow-sm"
+              disabled={subjectLoading}
+            >
+              {subjectLoading ? (
+                <span className="animate-spin border-2 border-gray-400 border-t-transparent rounded-full w-4 h-4 mt-3"></span>
+              ) : (
+                <>
+                  <i className="bx bx-refresh text-[16px]"></i>
+                  Refresh
+                </>
+              )}
+            </button>
+          </li>
           )}
         </ul>
       </div>

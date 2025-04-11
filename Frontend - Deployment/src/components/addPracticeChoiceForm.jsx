@@ -10,11 +10,7 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
   
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
+  
 
   const [choices, setChoices] = useState([
     { choiceText: "", isCorrect: false, image: null },
@@ -25,6 +21,11 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
     { choiceText: "", isCorrect: false, image: null },
   ]);
   
+  const [toast, setToast] = useState({
+    message: "",
+    type: "",
+    show: false,
+  });
   useEffect(() => {
     if (toast.message) {
       setToast((prev) => ({ ...prev, show: true }));

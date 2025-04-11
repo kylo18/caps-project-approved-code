@@ -20,6 +20,8 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState(null);
 
+  const [subjectLoading, setSubjectLoading] = useState(false);
+
   const [toast, setToast] = useState({
     message: "",
     type: "",
@@ -95,6 +97,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
 
   const fetchAssignedSubjects = async () => {
     const token = localStorage.getItem("token");
+    setSubjectLoading(true);
     try {
       const response = await fetch(`${apiUrl}/faculty/my-subjects`, {
         method: "GET",
@@ -112,14 +115,23 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       }
     } catch (error) {
       console.error("Error fetching assigned subjects:", error);
+    } finally {
+      setSubjectLoading(false);
     }
   };
   
   useEffect(() => {
-    fetchAssignedSubjects();
+    const timer = setTimeout(() => {
+      fetchAssignedSubjects();
+    }, 300);
+
+    return () => clearTimeout(timer); 
   }, []);
   
-  
+  useEffect(() => {
+    handleDeleteSubject();
+  }, []);
+
   useEffect(() => {
     if (!isExpanded) {
       setIsOpen(false);
@@ -192,7 +204,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
 
   const handleAssignSubject = async (subject) => {
     if (!subject) return;
-    console.log('Assigning subject:', subject);
+    console.log("Assigning subject:", subject);
   
     const token = localStorage.getItem("token");
   
@@ -210,9 +222,17 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
   
       if (response.ok) {
         const result = await response.json();
-        setAssignedSubjects((prev) => [...prev, subject]);
+  
+        // ✅ Re-fetch the assigned subjects to stay in sync
+        await fetchAssignedSubjects();
+  
+        // ✅ Optionally, re-fetch unassigned list if you're managing that too
+        // await fetchUnassignedSubjects();
+  
         setShowAddModal(false);
         setSelectedSubject(null);
+        setSelectedSubjectForAssignment(null); // Clear selected subject in modal if needed
+  
         setToast({
           message: result.message || "Subject assigned successfully",
           type: "success",
@@ -225,6 +245,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       console.error("Error assigning subject:", error);
     }
   };
+  
 
   return (
     <div className="-mt-2">
@@ -288,8 +309,8 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
             text-left text-[14px] font-semibold mt-2 w-full mx-auto text-[rgb(78,78,78)]"
           onMouseLeave={() => setOpenMenuID(null)}
         >
-          {loading ? (
-            <li className="p-2 text-gray-500 text-[14px] text-center animate-pulse">
+          {subjectLoading ? (
+            <li className="p-2 mt-3 text-[rgb(168,168,168)] text-[14px] text-center animate-pulse">
               <div className="flex items-center justify-center">
                 <span>Loading</span>
                 <div className="ml-2 size-4 border-3 border-t-transparent rounded-full animate-spin"></div>
@@ -307,7 +328,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
                 }`}
               >
                 <span
-                  className="flex-1 cursor-pointer break-all"
+                  className="flex-1 ml-1 cursor-pointer break-all"
                   onClick={() => {
                     setSelectedSubject(null);
                     handleSelectSubject(subject);
@@ -354,10 +375,17 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
               <span>No assigned subjects found</span>
               <button
                 onClick={fetchAssignedSubjects}
-                className="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 border px-3 py-1 rounded-md shadow-sm"
+                className="mt-3 flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 border px-3 py-1 rounded-md shadow-sm"
+                disabled={subjectLoading}
               >
-                <i className="bx bx-refresh text-[16px]"></i>
-                Refresh
+                {subjectLoading ? (
+                  <span className="animate-spin border-2 border-gray-400 border-t-transparent rounded-full w-4 h-4 mt-3"></span>
+                ) : (
+                  <>
+                    <i className="bx bx-refresh text-[16px]"></i>
+                    Refresh
+                  </>
+                )}
               </button>
             </li>
 
@@ -392,7 +420,6 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
                     type: "success",
                     show: true,
                   });;
-                  window.location.reload();
                 }}
               />
             </div>
@@ -404,9 +431,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       {showAddModal && (
         <div className="fixed inset-0 flex items-center justify-center lightbox-bg">
           <div className="bg-white rounded-md p-6 w-[90%] max-w-sm shadow-lg">
-
             <h2 className="text-[16px] font-semibold mb-5 text-gray-700">Assign A New Subject</h2>
-
 
             {/* Subject List for Assigning */}
             <div className="mb-3">

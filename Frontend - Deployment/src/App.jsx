@@ -18,7 +18,6 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/testLogin" element={<TestLogin />} />
 
         <Route path="/student" element={<Layout />}>
           <Route index element={<StudentDashboard />} />

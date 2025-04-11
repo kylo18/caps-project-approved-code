@@ -72,7 +72,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
       fetchQuestions();
-      setSubmittedQuestion({ practice: null, exam: null, image: null }); // Reset on subject change
+      setSubmittedQuestion({ practice: null, exam: null, image: null }); 
       setShowChoiceForm(false);
       setSearchQuery(""); 
       setSortOption(""); 
