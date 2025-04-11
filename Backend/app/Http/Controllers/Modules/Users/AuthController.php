@@ -33,7 +33,7 @@ class AuthController extends Controller
     {
         // Validate required fields
         $validated = $request->validate([
-            'userCode' => 'required|string|max:15',
+            'userCode' => 'required|string|max:10',
             'firstName' => 'required|string|max:50',
             'lastName' => 'required|string|max:50',
             'email' => 'required|string|email|max:100',
@@ -110,11 +110,11 @@ class AuthController extends Controller
             return response()->json(['message' => 'Your account is not registered yet. Please wait for administrator approval.'], 403);
         }
 
+        $user->tokens()->delete();
+
         if ($user->tokens()->count() > 0) {
             return response()->json(['message' => 'This user is already logged in.'], 403);
         }
-
-        $user->tokens()->delete();
 
         $tokenResult = $user->createToken('auth_token', ['*'], now()->addHours(3));
         $plainTextToken = $tokenResult->plainTextToken;

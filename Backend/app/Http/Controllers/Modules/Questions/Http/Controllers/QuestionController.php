@@ -234,16 +234,15 @@ class QuestionController extends Controller
                     try {
                         $choice->choiceText = Crypt::decryptString($choice->choiceText);
                     } catch (\Exception $e) {
-                        $choice->choiceText = '[Decryption Error]';
+                        $choice->choiceText = null;
                     }
                     return $choice;
                 });
 
                 // Append full image URL if an image exists
-                if ($question->image && !Str::startsWith($question->image, 'http')) {
-                    $question->image = url("storage/{$question->image}");
+                if ($question->image && !Str::startsWith($question->image, ['http://', 'https://'])) {
+                    $question->image = asset("storage/{$question->image}");
                 }
-
                 return $question;
             });
 
@@ -291,7 +290,6 @@ class QuestionController extends Controller
     {
         $user = Auth::user();
 
-        // Check if the subject exists
         $subject = Subject::find($subjectID);
 
         if (!$subject) {
@@ -300,7 +298,6 @@ class QuestionController extends Controller
             ], 404);
         }
 
-        // Retrieve questions for this subject created by this user
         $questions = Question::with(['subject', 'choices'])
             ->where('subjectID', $subjectID)
             ->where('userID', $user->userID)
@@ -316,6 +313,16 @@ class QuestionController extends Controller
                 if ($question->image && !Str::startsWith($question->image, 'http')) {
                     $question->image = url("storage/{$question->image}");
                 }
+
+                // Decrypt the choiceText for each choice
+                $question->choices->map(function ($choice) {
+                    try {
+                        $choice->choiceText = Crypt::decryptString($choice->choiceText);
+                    } catch (\Exception $e) {
+                        $choice->choiceText = '[Decryption Error]';
+                    }
+                    return $choice;
+                });
 
                 return $question;
             });

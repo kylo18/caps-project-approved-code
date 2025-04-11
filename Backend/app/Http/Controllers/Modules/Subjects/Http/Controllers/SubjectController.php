@@ -54,7 +54,7 @@ class SubjectController extends Controller
                 ], 401);
             }
 
-            // Check if the user has roleID = 4 (Dean)
+            // Check if the user has roleID = 4 (Dean)  or roleID = 2 (Instructor) or roleID = 3 (Program Chair)
             if (!in_array($user->roleID, [2, 3, 4])) {
                 return response()->json([
                     'error' => 'Forbidden',
@@ -100,7 +100,7 @@ class SubjectController extends Controller
         }
 
         $validated = $request->validate([
-            'subjectCode' => 'required|string|max:255|unique:subjects,subjectCode,' . $subjectID . ',subjectID',
+            'subjectCode' => 'required|string|max:50|unique:subjects,subjectCode,' . $subjectID . ',subjectID',
             'subjectName' => 'required|string|max:255',
         ]);
 
