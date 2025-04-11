@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+.text-stroke {
+  text-shadow: rgba(223, 239, 255) 0px 3px 0px, rgba(0, 0, 0, 0.15) 0px 14px 10px, rgba(0, 0, 0, 0.1) 0px 6px 1px, rgba(0, 0, 0, 0.1) 0px 17px 15px;
+  color: rgb(50,93,136);
+  font-family: arial;
+}
+
+.open-sans{
+  font-family: 'Open Sans';
+  font-weight: 500;
+}
+.font-inter{
+  font-family: 'Inter';
+}
+.font-medium{
+  font-weight: 550;
+}
+
+.main-colors{
+  background-color: rgb(254, 105, 2
+  );
+}
+
+.lightbox-bg{
+  background-color: rgba(0, 0, 0, 0.8);
+}
+.main-text-colors{
+  color: rgb(254, 105, 2);
+}
+
+select option:hover {
+  background-color: rgb(254, 105, 2) !important; /* Change to your desired hover color */
+  color: white !important;
+}
+
+.border-color{
+  border-color: rgb(200,200,200);
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Shimmer effect applied to elements */
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 5s infinite linear;
+}
+
+/* Basic skeleton styles */
+.skeleton {
+  background-color: #f0f0f0;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 20px;
+  margin-bottom: 10px;
+}
+
+.skeleton-image {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+.skeleton-button {
+  height: 36px;
+  border-radius: 4px;
+}
+
+@keyframes fade-in-out {
+  0% { opacity: 0; transform: translateY(20px); }
+  10%, 90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(20px); }
+}
+
+.animate-fade-in-out {
+  animation: fade-in-out 3s ease-in-out forwards;
+}
+
+@media (orientation: landscape) {
+  .landscape-hidden {
+    display: none;
+  }
+}
