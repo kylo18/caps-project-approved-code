@@ -7,7 +7,7 @@ networks:
 services:
   backend:
     build:
-      context: ./Backend
+      context: ./caps-backend
       dockerfile: Dockerfile
     container_name: caps_backend
     networks:
@@ -17,11 +17,18 @@ services:
     volumes:
       - ./backend:/var/www/html
     depends_on:
-      - mysql
+      - caps_mysql
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: caps_mysql  # Ensure backend can connect to MySQL by using the service name
+      DB_PORT: 3306
+      DB_DATABASE: caps_db
+      DB_USERNAME: kylo
+      DB_PASSWORD: CAPSwebsite2025
 
   frontend:
     build:
-      context: ./Frontend
+      context: ./caps-frontend
       dockerfile: Dockerfile
     container_name: caps_frontend
     networks:
@@ -31,7 +38,7 @@ services:
     depends_on:
       - backend
 
-  mysql:
+  caps_mysql:
     image: mysql:8
     container_name: caps_mysql
     restart: always
@@ -52,13 +59,13 @@ services:
     container_name: phpmyadmin_container
     restart: always
     environment:
-      PMA_HOST: mysql
+      PMA_HOST: caps_mysql  # Update this to reference the caps_mysql service
       PMA_USER: root
       PMA_PASSWORD: COEwebsite2025
     ports:
       - "8080:80"
     depends_on:
-      - mysql
+      - caps_mysql
     networks:
       - caps_network
 

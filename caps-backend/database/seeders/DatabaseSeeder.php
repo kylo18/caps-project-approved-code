@@ -11,12 +11,12 @@ require_once base_path('Modules/Campuses/Database/Seeders/CampusesTableSeeder.ph
 require_once base_path('Modules/Users/Database/Seeders/UsersTableSeeder.php');
 require_once base_path('Modules/Subjects/Database/Seeders/SubjectsTableSeeder.php');
 require_once base_path('Modules/Questions/Database/Seeders/QuestionsTableSeeder.php');
+require_once base_path('Modules/FacultySubjects/Database/Seeders/FacultySubjectsTableSeeder.php');
 require_once base_path('Modules/Exams/Database/Seeders/ExamsTableSeeder.php');
 require_once base_path('Modules/ExamQuestions/Database/Seeders/ExamQuestionsTableSeeder.php');
 require_once base_path('Modules/Requests/Database/Seeders/RequestsTableSeeder.php');
 require_once base_path('Modules/Questions/Database/Seeders/PurposeSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/ProgramSeeder.php');
-
 
 class DatabaseSeeder extends Seeder
 {
@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
 
         // Truncate the table before seeding (Clears existing data)
         DB::table('users')->truncate();
+        
         $this->call([
             \Modules\Roles\Database\Seeders\RolesTableSeeder::class,
             \Modules\Campuses\Database\Seeders\CampusesTableSeeder::class,

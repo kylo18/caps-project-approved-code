@@ -16,14 +16,14 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy Laravel project files into the container
+# Copy Laravel project files into the container (make sure this is done before installing Composer dependencies)
 COPY . .
 
 # Install Composer
 RUN apt-get update && apt-get install -y unzip curl \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install Laravel dependencies
+# Install Laravel dependencies and will create a vendor file 
 RUN composer install --no-dev --optimize-autoloader
 
 # Set file permissions (very important for Laravel)
@@ -31,12 +31,8 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Create storage symlink for Laravel
-RUN php artisan storage:link || true    
-
 # Expose port 80
 EXPOSE 80
 
-# Start Apache
+# Start Apache and run artisan storage:link
 CMD php artisan storage:link && apache2-foreground
-
