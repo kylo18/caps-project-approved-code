@@ -10,7 +10,7 @@ class FacultySubject extends Model
 {
     protected $table = 'faculty_subjects';
     protected $primaryKey = 'facultySubjectsID';
-    protected $fillable = ['facultyCode', 'subjectCode'];
+    protected $fillable = ['facultyID', 'subjectID'];
 
     public function faculty()
     {
