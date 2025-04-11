@@ -11,7 +11,7 @@ use app\Http\Controllers\Modules\Users\UserController;
 use App\Http\Middleware\TokenExpirationMiddleware;
 
 //User authentication routes
-Route::post('/register', [AuthController::class, 'register']);
+Route::post('/register', action: [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class,])->group(function () {
@@ -30,7 +30,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/subjects', [SubjectController::class, 'index']);
     Route::post('/faculty/assign-subject', action: [FacultySubjectController::class, 'assignSubject']);
     Route::get('/faculty/my-subjects', [FacultySubjectController::class, 'mySubjects']);
-    Route::delete('/faculty/remove-subject', [FacultySubjectController::class, 'removeSubject']);
+    Route::delete('/remove-assigned-subject/{subjectID}', [FacultySubjectController::class, 'removeAssignedSubject']);
 
     //question functionalities route
     Route::post('/questions/add', [QuestionController::class, 'store']);
