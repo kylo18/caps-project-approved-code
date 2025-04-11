@@ -7,7 +7,6 @@ import ExamAddQuestionForm from "../components/addExamQuestionForm";
 import ExamAddChoiceForm from "../components/addExamChoiceForm";
 import ConfirmModal from "../components/confirmModal";
 import Sort from "../components/sort";
-import SearchBar from "../components/searchBar";
 import Button from "../components/button";
 import SortCustomDropdown from "../components/sortCustomDropdown";
 
@@ -288,7 +287,6 @@ const AdminDashboard = () => {
             </div>
             {/*Search bar div here*/}
             <div className="flex flex-col sm:flex-row gap-[5.5px] mt-4 mb-6 justify-end">
-              <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
               <div className="flex justify-end items-center ">
                 {activeTab === 4 && (
                     <SortCustomDropdown
