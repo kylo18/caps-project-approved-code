@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Routing\Controller;
 use App\Models\Modules\Subjects\Models\Subject;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Modules\Users\Models\User;
 
 class SubjectController extends Controller
 {
@@ -54,8 +55,8 @@ class SubjectController extends Controller
                 ], 401);
             }
 
-            // Check if the user has roleID = 4 (Dean)
-            if ($user->roleID != 4) {
+            // Check if the user has roleID = 4 (Dean)  or roleID = 2 (Instructor) or roleID = 3 (Program Chair)
+            if (!in_array($user->roleID, [2, 3, 4])) {
                 return response()->json([
                     'error' => 'Forbidden',
                     'message' => 'Access denied. Only Dean can view the subjects list.'
@@ -138,7 +139,7 @@ class SubjectController extends Controller
         if (!$subject) {
             return response()->json([
                 'message' => 'Subject not found.'
-            ], 404);
+            ], status: 404);
         }
 
         try {

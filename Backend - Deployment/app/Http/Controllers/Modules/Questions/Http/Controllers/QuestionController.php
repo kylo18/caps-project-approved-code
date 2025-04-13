@@ -306,7 +306,7 @@ class QuestionController extends Controller
                 try {
                     $question->questionText = Crypt::decryptString($question->questionText);
                 } catch (\Exception $e) {
-                    $question->questionText = null;
+                    $question->questionText = '[Decryption Error]';
                 }
 
                 // Append full image URL if an image exists
