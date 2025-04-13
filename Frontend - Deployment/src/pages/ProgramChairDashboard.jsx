@@ -10,6 +10,8 @@ import Sort from "../components/sort";
 import SearchBar from "../components/searchBar";
 import Button from "../components/button";
 import SortCustomDropdown from "../components/sortCustomDropdown";
+import ScrollToTopButton from "../components/scrollToTopButton";
+import LoadingOverlay from "../components/loadingOverlay";
 
 const ProgramChairDashboard = () => {
   const [modalImage, setModalImage] = useState(null); 
@@ -41,8 +43,14 @@ const ProgramChairDashboard = () => {
 
   const [areChoicesValid, setAreChoicesValid] = useState(false);
   const handleChoicesValidity = (validity) => {
-    setAreChoicesValid(validity); // Update the state when choices are valid or not
+    setAreChoicesValid(validity); 
   };
+
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [selectedQuestionID, setSelectedQuestionID] = useState(null);
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
 
   const [toast, setToast] = useState({
     message: "",
@@ -121,6 +129,9 @@ const ProgramChairDashboard = () => {
   const handleDeleteQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
+      setShowConfirmModal(false);
+      setIsDeleting(true)
+
       const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
         method: "DELETE",
         headers: {
@@ -131,15 +142,11 @@ const ProgramChairDashboard = () => {
   
       if (!response.ok) {
         throw new Error("Failed to delete question");
-        
       }
-  
-      // Refresh question list after deletion
       setQuestions((prevQuestions) =>
         prevQuestions.filter((question) => question.questionID !== questionID)
       );
-      setShowConfirmModal(false);
-      setDeleteQuestionID(null); // Reset after deletion
+      setDeleteQuestionID(null); 
       setToast({
         message: "Question deleted successfully!",
         type: "success",
@@ -147,6 +154,8 @@ const ProgramChairDashboard = () => {
       });
     } catch (error) {
       console.error("Error deleting question:", error);
+    } finally {
+      setIsDeleting(false)
     }
   };
 
@@ -177,7 +186,6 @@ const ProgramChairDashboard = () => {
       const data = await response.json();
       console.log("Fetched Questions:", data);
   
-      // Ensure the questions are properly set in state
       setQuestions(data.data || []);
     } catch (error) {
       console.error("Error fetching questions:", error);
@@ -243,9 +251,16 @@ const ProgramChairDashboard = () => {
     }, 1000); 
   }, []);
 
+  useEffect(() => {
+    if (showChoiceForm && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [showChoiceForm]);
+
   const approveQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
+      setIsApproving(true)
   
       const response = await fetch(`${apiUrl}/questions/${questionID}/status`, {
         method: "PATCH",
@@ -258,19 +273,22 @@ const ProgramChairDashboard = () => {
       if (!response.ok) {
         throw new Error("Failed to approve the question");
       }
-  
       const data = await response.json();
-      console.log("Question approved:", data);
-  
-      // Optionally refresh the question list
       fetchQuestions();
+      setToast({
+        message: "Question approved successfully!",
+        type: "success",
+        show: true,
+      });
     } catch (error) {
       console.error("Error approving question:", error);
+    } finally {
+      setIsApproving(false)
     }
   };
 
   return (
-    <div className="mt-10 flex flex-col relative flex-1 justify-center min-h-screen w-full sm:p-2">
+    <div className="mt-9 flex flex-col relative flex-1 justify-center min-h-screen w-full sm:p-2">
       <div className="flex-1">
         {selectedSubject ? (
           <div className="py-6 w-full">
@@ -416,7 +434,7 @@ const ProgramChairDashboard = () => {
                           ) : (
                             <p className="text-gray-500 mt-1">No choices added yet.</p>
                           )}
-                          <div className="flex justify-end m-1 mb-1 gap-4">
+                          <div className="flex justify-end m-1 mb-1 gap-2">
                             {question.status === "pending" ? (
                               <>
                                 <Button
@@ -430,7 +448,10 @@ const ProgramChairDashboard = () => {
                                   text="Approve"
                                   textres="Approve"
                                   icon="bx bx-check"
-                                  onClick={() => approveQuestion(question.questionID)}
+                                  onClick={() => {
+                                    setSelectedQuestionID(question.questionID);
+                                    setShowApproveModal(true);
+                                  }}
                                 />
                               </>
                             ) : (
@@ -600,7 +621,21 @@ const ProgramChairDashboard = () => {
           <p className="text-gray-500 text-center">Please select a subject from the sidebar.</p>
         )}
 
-        {/* Confirmation Modal */}
+        {isDeleting && <LoadingOverlay show={isDeleting} />}
+        {isApproving && <LoadingOverlay show={isApproving} />}
+
+
+        {/* Confirmation Modals */}
+        <ConfirmModal
+          isOpen={showApproveModal}
+          onClose={() => setShowApproveModal(false)}
+          onConfirm={() => {
+            approveQuestion(selectedQuestionID);
+            setShowApproveModal(false);
+          }}
+          message="Are you sure you want to approve this question?"
+        />
+
         <ConfirmModal
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
@@ -612,7 +647,7 @@ const ProgramChairDashboard = () => {
           <div
             className={`fixed bottom-5 left-5  px-4 py-2 rounded shadow-lg text-sm text-white z-56
             ${toast.type === "success" ? "bg-green-500" : "bg-red-500"}
-            ${toast.show ? "opacity-100" : "opacity-0"} transition-opacity duration-500 ease-in-out`}
+            ${toast.show ? "opacity-80" : "opacity-0"} transition-opacity duration-900 ease-in-out`}
           >
             {toast.message}
           </div>
@@ -647,6 +682,7 @@ const ProgramChairDashboard = () => {
             </div>
           </div>
         )}
+        <ScrollToTopButton/>
       </div>
     </div>
   );

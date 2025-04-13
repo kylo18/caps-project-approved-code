@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import SortCustomDropdown from './sortCustomDropdown';
 import ConfirmModal from "../components/confirmModal";
+import LoadingOverlay from './loadingOverlay';
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
@@ -13,61 +14,79 @@ const UserList = () => {
   const [sortOption, setSortOption] = useState("");
   const [sortStatus, setSortStatus] = useState("All");
 
-  const [selectedUserID, setSelectedUserID] = useState(null);
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const [isApproving, setIsApproving] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
 
-  const handleChangeUserStatus = (userID, newStatus) => {
-    setSelectedUserID(userID);
-    setSelectedStatus(newStatus);
-    setModalOpen(true);
-  };
+  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  
+  const [toast, setToast] = useState({
+    message: "",
+    type: "",
+    show: false,
+  });
+  
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const token = localStorage.getItem("token");
+    if (toast.message) {
+      setToast((prev) => ({ ...prev, show: true }));
+  
+      const timer = setTimeout(() => {
+        setToast((prev) => ({ ...prev, show: false }));
+        setTimeout(() => {
+          setToast({ message: "", type: "", show: false });
+        }, 500);
+      }, 2500);
+  
+      return () => clearTimeout(timer);
+    }
+  }, [toast.message]);
 
-      if (!token) {
-        setError("No token found, please log in.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(`${apiUrl}/users`, {
-          method: 'GET',
-          headers: {
-            "Content-Type": "application/json",
-            'Authorization': `Bearer ${token}`,
-          }
-        });
-
-        if (response.status === 401) {
-          setError("Session expired, please log in again.");
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch users');
-        }
-
-        const data = await response.json();
-        setUsers(data.users);
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     fetchUsers();
   }, []);
 
+  const fetchUsers = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("No token found, please log in.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiUrl}/users`, {
+        method: 'GET',
+        headers: {
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      if (response.status === 401) {
+        setError("Session expired, please log in again.");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+
+      const data = await response.json();
+      setUsers(data.users);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCheckboxChange = (userID) => {
     setSelectedUsers((prevSelected) =>
-        prevSelected.includes(userID)
-            ? prevSelected.filter((id) => id !== userID)
-            : [...prevSelected, userID]
+      prevSelected.includes(userID)
+      ? prevSelected.filter((id) => id !== userID)
+      : [...prevSelected, userID]
     );
   };
 
@@ -94,37 +113,46 @@ const UserList = () => {
 
   const handleApproveUser = async (userID) => {
     const token = localStorage.getItem("token");
+    setIsApproving(true)
     try {
         const response = await fetch(`${apiUrl}/users/${userID}/approve`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "Authorization": `Bearer ${token}`,
-            }
+          method: "PATCH",
+          headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+              "Authorization": `Bearer ${token}`,
+          }
         });
 
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || "Failed to approve user");
         }
-
+        setToast({
+          message: "User approved successfully!",
+          type: "success",
+          show: true,
+        });
+        
         setUsers(users.map(user =>
             user.userID === userID ? { ...user, status: "registered" } : user
         ));
         setUsers(users.map(user =>
           user.userID === userID ? { ...user, isActve: true } : user
-      ));
-        
-        alert("User approved successfully!"); 
+          
+      
+        ));
+        fetchUsers()
     } catch (error) {
       console.error("Error approving user:", error);
-      alert(error.message);
+    } finally {
+      setIsApproving(false)
     }
   };
 
   const handleActivateUser = async (userID) => {
     const token = localStorage.getItem("token");
+    setIsActivating(true)
     try {
         const response = await fetch(`${apiUrl}/users/${userID}/activate`, {
             method: "PATCH",
@@ -140,23 +168,29 @@ const UserList = () => {
             throw new Error(errorData.message || "Failed to activate user");
         }
 
+        setToast({
+          message: "User activated successfully!",
+          type: "success",
+          show: true,
+        });
+
         setUsers(users.map(user =>
             user.userID === userID ? { ...user, isActive: true } : user
         ));
 
-        alert("User activated successfully!");
     } catch (error) {
-        console.error("Error activating user:", error);
         alert(error.message);
+    } finally {
+      setIsActivating(false)
     }
   };
-  
 
   const handleDeactivateUser = async (userID) => {
     const token = localStorage.getItem("token");
+    setIsDeactivating(true)
     try {
-        const response = await fetch(`${apiUrl}/users/${userID}/deactivate`, { // ✅ Fixed URL
-            method: "PATCH", // ✅ Use PUT as per backend
+        const response = await fetch(`${apiUrl}/users/${userID}/deactivate`, {
+            method: "PATCH", 
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
@@ -168,18 +202,21 @@ const UserList = () => {
             const errorData = await response.json();
             throw new Error(errorData.message || "Failed to deactivate user");
         }
+        setToast({
+          message: "User deactivated successfully!",
+          type: "success",
+          show: true,
+        });
 
-        // Update UI after deactivation
         setUsers((prevUsers) => 
             prevUsers.map(user =>
                 user.userID === userID ? { ...user, isActive: false } : user
             )
         );
-
-        alert("User deactivated successfully");
     } catch (error) {
         console.error("Error deactivating user:", error);
-        alert(error.message);
+    } finally {
+      setIsDeactivating(false)
     }
   };
 
@@ -240,7 +277,7 @@ const UserList = () => {
   }
 
   return (
-    <div className="font-inter p-2 h-screen mt-12">
+    <div className="font-inter p-2 mt-12">
       <div className="text-[14px] mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 ">
         {/* Delete Selected Button */}
         <div className="relative w-full max-w-full sm:min-w-[180px]">
@@ -265,8 +302,8 @@ const UserList = () => {
               options={[
                   { label: "All Status", value: "All" },
                   { label: "Pending", value: "pending" },
-                  { label: "Approved", value: "registered" }, // Matches database
-                  { label: "Rejected", value: "unregistered" } // Matches database
+                  { label: "Active", value: "registered" }, 
+                  { label: "Inactive", value: "unregistered" } 
               ]}
               placeholder="Filter by Status"
           />
@@ -342,8 +379,7 @@ const UserList = () => {
               </th>
               <th className="p-3 text-left font-normal">User Code</th>
               <th className="p-3 text-left font-normal sm:hidden">Full Name</th>
-              <th className="p-3 text-left font-normal hidden sm:table-cell">First Name</th>
-              <th className="p-3 text-left font-normal hidden sm:table-cell ">Last Name</th>
+              <th className="p-3 text-left font-normal hidden sm:table-cell">Name</th>
               <th className="p-3 text-left font-normal">Email</th>
               <th className="p-3 text-left font-normal">Role</th>
               <th className="p-3 text-left font-normal">Campus</th>
@@ -362,7 +398,7 @@ const UserList = () => {
               filteredUsers.map((user) => (
                 <tr
                   key={user.userID}
-                  className="border-b border-[rgb(200,200,200)] text-[rgb(78,78,78)] text-[12px] hover:bg-gray-200"
+                  className="border-b  border-[rgb(200,200,200)] text-[rgb(78,78,78)] text-[12px] hover:bg-gray-200"
                 >
                   {/* Checkbox Column (Hidden on Small Screens) */}
                   <td className="p-3 hidden sm:table-cell text-left">
@@ -374,12 +410,10 @@ const UserList = () => {
                     />
                   </td>
                   <td className="p-3 text-left text-nowrap">{user.userCode}</td>
-                  <td className="p-3 text-left sm:hidden text-nowrap">{`${user.firstName} ${user.lastName}`}</td>
-                  <td className="p-3 text-left hidden sm:table-cell text-nowrap">{user.firstName}</td>
-                  <td className="p-3 text-left hidden sm:table-cell text-nowrap">{user.lastName}</td>
+                  <td className="p-3 text-left text-nowrap">{`${user.firstName} ${user.lastName}`}</td>
                   <td className="p-3 text-left">{user.email}</td>
                   <td className="p-3 text-left text-nowrap">{user.role}</td>
-                  <td className="p-3 text-left">{user.campus}</td>
+                  <td className="p-3 text-left text-nowrap">{user.campus}</td>
                   <td className="p-3 text-center font-semibold">
                     <span
                       className={`px-2 py-1 rounded-md text-[12px] 
@@ -441,6 +475,19 @@ const UserList = () => {
           </tbody>
 
         </table>
+        {isActivating && <LoadingOverlay show={isActivating} />}
+        {isApproving && <LoadingOverlay show={isApproving} />}
+        {isDeactivating && <LoadingOverlay show={isDeactivating}/>}
+
+        {toast.message && (
+            <div
+              className={`fixed bottom-5 left-5  px-4 py-2 rounded shadow-lg text-sm text-white z-56
+              ${toast.type === "success" ? "bg-green-500" : "bg-red-500"}
+              ${toast.show ? "opacity-80" : "opacity-0"} transition-opacity duration-900 ease-in-out`}
+            >
+              {toast.message}
+            </div>
+          )}
       </div>
     </div>
     

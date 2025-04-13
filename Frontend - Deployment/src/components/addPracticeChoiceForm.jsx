@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import ConfirmModal from "./confirmModal"; 
+import ConfirmModal from "./confirmModal";
+import useWarnOnExit from "../hooks/useWarnOnExit"; 
+import LoadingOverlay from "./loadingOverlay";
 
 const PracticeChoicesForm = ({ questionID, onComplete }) => {
   const [focusedChoice, setFocusedChoice] = useState(null);
@@ -9,9 +11,6 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
   const [error, setError] = useState(null);
   
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
-
-  
-
   const [choices, setChoices] = useState([
     { choiceText: "", isCorrect: false, image: null },
     { choiceText: "", isCorrect: false, image: null },
@@ -20,6 +19,11 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
     { choiceText: "", isCorrect: false, image: null },
     { choiceText: "", isCorrect: false, image: null },
   ]);
+  const [isAdding, setIsAdding] = useState(false);
+  
+
+  useWarnOnExit(choices);
+
   
   const [toast, setToast] = useState({
     message: "",
@@ -66,10 +70,11 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
   };
 
   const handleChoiceImageUpload = (index, event) => {
-    const file = event.target.files[0]; // Get the selected file
+    const file = event.target.files[0]; 
     if (file) {
       const updatedChoices = [...choices];
-      updatedChoices[index].image = file; // Store as File object
+      updatedChoices[index].image = file; 
+      updatedChoices[index].choiceText = "";
       setChoices(updatedChoices);
     }
   };
@@ -93,6 +98,8 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
     }
   
     const token = localStorage.getItem("token");
+    setIsAdding(true)
+
     const formData = new FormData();
     formData.append("questionID", questionID);
   
@@ -129,6 +136,8 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
       }
     } catch (error) {
       setError("Request failed. Please try again.");
+    } finally {
+      setIsAdding(false)
     }
   };
   
@@ -253,7 +262,7 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
             {/* Submit Button aligned right */}
             <div className="ml-3 flex flex-1 justify-end mt-7">
               <button
-                onClick={handleSubmitChoices}
+                onClick={handleSubmitClick}
                 className="cursor-pointer flex items-center gap-1 px-4 py-2 mt-4 sm:mt-0 bg-orange-500 text-white rounded-lg hover:bg-orange-600 ml-auto"
               >
                 <i className="bx bx-save text-[18px] hidden sm:inline-block"></i> 
@@ -274,11 +283,16 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
           </div>
           {error && <p className="flex justify-center text-red-500">{error}</p>}
         </div>
+        {isAdding && <LoadingOverlay show={isAdding} />}
+
         {/* Confirmation Modal */}
         <ConfirmModal
             isOpen={showConfirmModal}
             onClose={() => setShowConfirmModal(false)}
-            onConfirm={handleSubmitChoices}
+            onConfirm={() => {
+              setShowConfirmModal(false);
+              handleSubmitChoices(); 
+            }}
             message="Are you sure you want to add this question?"
           />
       </div>

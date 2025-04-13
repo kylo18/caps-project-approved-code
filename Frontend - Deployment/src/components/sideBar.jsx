@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "react-router-dom"; 
 import AllSubjectsDropDown from "./allSubjectsDropdown";
 import AssignedSubjectsDropDown from "./assignedSubjectDropdown";
-import BackupAllSubjectsDropdown from "./allSubjectsDropdown copy";
+import LoadingOverlay from "./loadingOverlay";
 
 const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -71,11 +71,8 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
   return (
     <>
       {/* Loading Overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 lightbox-bg bg-opacity-50 z-56 flex justify-center items-center">
-          <div className="text-white text-lg">Loading...</div>
-        </div>
-      )}
+      <LoadingOverlay show={isLoading}/>
+      
       {isMobile && !isExpanded && (
         <button
           onClick={() => setIsExpanded(true)}
@@ -87,7 +84,7 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className={`z-53 h-screen bg-white text-[rgb(78,78,78)] p-4 transition-all duration-300 ease-in-out border-r border-color fixed top-0 ${
+        className={`z-53 h-screen bg-white text-gray-700 p-4 transition-all duration-300 ease-in-out border-r border-color fixed top-0 ${
           isMobile ? (isExpanded ? "left-0" : "-left-full") : "left-0"
         } ${isExpanded ? "w-[180px]" : "w-[64.5px]"}`}
       >
@@ -207,12 +204,10 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
           </>
         )}
 
-        {/* Focused Subject Dropdown */}
         {parsedRoleId === 2 && (
           <>
             {!isSubjectFocused && (
               <>
-                {/* Focused Subject Dropdown (move to top if focused) */}
                 <div className="w-full h-[1px] bg-[rgb(168,168,168)] mb-7"></div>
               </>
             )}

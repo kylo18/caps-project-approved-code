@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import Button from "./button";
 import { useNavigate } from "react-router-dom";  
+import LoadingOverlay from "./loadingOverlay";
 
 const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, setIsSubjectFocused, homePath }) => {
   const [subjects, setSubjects] = useState([]);
@@ -12,7 +13,6 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
   const [newSubjectCode, setNewSubjectCode] = useState("");
   const [selectedSubject, setLocalSelectedSubject] = useState(null);
   const listRef = useRef(null);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [openMenuID, setOpenMenuID] = useState(null);
   const [subjectLoading, setSubjectLoading] = useState(false);
@@ -22,6 +22,15 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
  
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState(null);
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+
+  const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
+  const [dropdownSubject, setDropdownSubject] = useState(null);
+
+  const [dropdownDirection, setDropdownDirection] = useState("down"); // "down" or "up"
 
   const handleEditClick = (subject) => {
     setEditingSubject(subject.subjectID);
@@ -50,9 +59,11 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
   
   
   const handleSaveEdit = async (subjectID) => {
-    
     const token = localStorage.getItem("token");
 
+    setEditingSubject(null); 
+    setIsEditing(true);
+  
     try {
       const response = await fetch(`${apiUrl}/subjects/${subjectID}/update`, {
         method: "PUT",
@@ -62,8 +73,10 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
         },
         body: JSON.stringify(editedSubject),
       });
-
+  
       if (response.ok) {
+        const result = await response.json();  // Optionally, handle response data if needed
+  
         setSubjects((prevSubjects) =>
           prevSubjects.map((subject) =>
             subject.subjectID === subjectID ? { ...subject, ...editedSubject } : subject
@@ -74,23 +87,28 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
             subject.subjectID === subjectID ? { ...subject, ...editedSubject } : subject
           )
         );
-        setEditingSubject(null); // Exit edit mode
+  
       } else {
         console.error("Failed to update subject");
       }
     } catch (error) {
       console.error("Error updating subject:", error);
+    } finally {
+      setIsEditing(false); 
     }
   };
+  
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   
   const handleDeleteSubject = async (subjectID) => {
     const token = localStorage.getItem("token");
   
+    setShowDeleteModal(false);
+
+    setIsDeleting(true); 
     try {
       const response = await fetch(`${apiUrl}/subjects/${subjectID}/delete`, {
-      
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -102,18 +120,20 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
         if (selectedSubject?.subjectID === subjectID) {
           setSelectedSubject(null);
         }
+  
         await fetchSubjects();
-      
-        toast.success("Subject removed successfully.");
-        setSubjects((prevSubjects) => prevSubjects.filter(subject => subject.subjectID !== subjectID));
-        setFilteredSubjects((prevSubjects) => prevSubjects.filter(subject => subject.subjectID !== subjectID));
+        setSubjects((prevSubjects) => prevSubjects.filter((subject) => subject.subjectID !== subjectID));
+        setFilteredSubjects((prevSubjects) => prevSubjects.filter((subject) => subject.subjectID !== subjectID));
       } else {
         console.error("Failed to delete subject");
       }
     } catch (error) {
       console.error("Error deleting subject:", error);
+    } finally {
+      setIsDeleting(false); 
     }
   };
+  
   
   
   useEffect(() => {
@@ -154,14 +174,17 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
     } catch (error) {
       console.error("Error fetching subjects:", error);
     } finally {
-      setSubjectLoading(false); // End loading
+      setSubjectLoading(false);
     }
   };
 
   const handleAddSubject = async () => {
     if (!newSubjectCode.trim() || !newSubjectName.trim()) return;
-    const token = localStorage.getItem("token"); 
+    const token = localStorage.getItem("token");
 
+    setShowAddModal(false);
+    setIsAdding(true);
+  
     try {
       const response = await fetch(`${apiUrl}/add-subjects`, {
         method: "POST",
@@ -174,61 +197,43 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
           subjectName: newSubjectName,
         }),
       });
-
+  
       const result = await response.json();
-
+  
       if (response.ok) {
         const newSubject = result.subject;
-        setSubjects((prevSubjects) => [...prevSubjects, newSubject]);
-        setFilteredSubjects((prevSubjects) => [...prevSubjects, newSubject]);
-        setNewSubjectCode("");
-        setNewSubjectName("");
-        setShowAddModal(false);
-
-        const handleAddSubject = async () => {
-    if (!newSubjectCode.trim() || !newSubjectName.trim()) return;
-
-    const token = localStorage.getItem("token"); 
-
-    try {
-      const response = await fetch(`${apiUrl}/add-subjects`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          subjectCode: newSubjectCode,
-          subjectName: newSubjectName,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        const newSubject = result.subject;
-        setSubjects((prevSubjects) => [...prevSubjects, newSubject]);
-        setFilteredSubjects((prevSubjects) => [...prevSubjects, newSubject]);
-        setNewSubjectCode("");
-        setNewSubjectName("");
-        setShowAddModal(false);
-
         
+        setSubjects((prevSubjects) => [...prevSubjects, newSubject]);
+        setFilteredSubjects((prevSubjects) => [...prevSubjects, newSubject]);
+  
+        setNewSubjectCode("");
+        setNewSubjectName("");
+  
+        setToast({
+          message: "Subject added successfully",
+          type: "success",
+          show: true,
+        });
       } else {
         console.error("Failed to add subject:", result.message || "Unknown error");
+        setToast({
+          message: "Failed to add subject",
+          type: "error",
+          show: true,
+        });
       }
     } catch (error) {
       console.error("Error adding subject:", error);
+      setToast({
+        message: "An error occurred while adding subject",
+        type: "error",
+        show: true,
+      });
+    } finally {
+      setIsAdding(false);
     }
   };
-      } else {
-        console.error("Failed to add subject:", result.message || "Unknown error");
-      }
-    } catch (error) {
-      console.error("Error adding subject:", error);
-    }
-  };
-
+  
   useEffect(() => {
     if (!isExpanded) {
       setIsOpen(false);
@@ -314,7 +319,7 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
             onChange={(e) => setSearchTerm(e.target.value)}
           />
             <div
-              className="justify-center text-center main-colors text-white px-[9px] py-[3px] rounded-md hover:bg-orange-600 transition-all"
+              className="justify-center text-center bg-orange-500 cursor-pointer text-white px-[9px] py-[3px] rounded-md hover:bg-orange-600 transition-all"
               onClick={() => setShowAddModal(true)}
             >
               <i className="bx bx-plus text-[16px] "></i>
@@ -324,7 +329,7 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
         <ul
           ref={listRef}
           className="ml-[3px] flex-grow overflow-y-auto custom-scrollbar pr-2 transition-all duration-300 ease-in-out
-            text-left text-[14px] font-semibold mt-2 w-full mx-auto text-[rgb(78,78,78)]"  onMouseLeave={() => setOpenMenuID(null)} 
+            text-left text-[14px] font-semibold mt-2 w-full mx-auto text-[rgb(78,78,78)]"
         >
           {subjectLoading ? (
             <li className="p-2 text-[rgb(168,168,168)] text-[14px] text-center animate-pulse">
@@ -365,42 +370,25 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
                       ? "flex"
                       : "hidden group-hover:flex"
                   } flex items-center justify-center rounded-full transition`}
-                  onClick={() =>
-                    setOpenMenuID(subject.subjectID === openMenuID ? null : subject.subjectID)
-                  }
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const menuHeight = 80; // Approximate height of dropdown
+                  
+                    // Check if there's space below, otherwise open upwards
+                    const spaceBelow = window.innerHeight - rect.bottom;
+                    const direction = spaceBelow < menuHeight ? "up" : "down";
+                  
+                    setDropdownDirection(direction);
+                    setDropdownPosition({ x: rect.right, y: rect.bottom });
+                    setDropdownSubject(subject);
+                    setOpenMenuID(subject.subjectID);
+                  }}
                 >
                     <i className="bx bx-dots-vertical-rounded text-[18px] cursor-pointer" ></i>
                   </button>
 
-                  {/* Dropdown menu */}
-                  {openMenuID === subject.subjectID && (
-                    <div className="absolute right-0 z-10 mt-2 w-28 bg-white rounded shadow-md">
-                      <button
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => {
-                          setEditingSubject(subject);
-                          setEditedSubject({
-                            subjectCode: subject.subjectCode,
-                            subjectID: subject.subjectID,
-                            subjectName: subject.subjectName,
-                          });
-                          setOpenMenuID(null);
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-100"
-                        onClick={() => {
-                          setSubjectToDelete(subject);
-                          setShowDeleteModal(true);
-                          setOpenMenuID(null);
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
+                  
                 </div>
               </li>
             ))
@@ -424,6 +412,43 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
           </li>
           )}
         </ul>
+        {openMenuID && dropdownSubject && (
+          <div
+            className="absolute z-50 w-28 bg-white rounded shadow-md"
+            style={{
+              top: dropdownDirection === "down" ? dropdownPosition.y + 4 : dropdownPosition.y - 80,
+              left: dropdownPosition.x - 0, // Align left of button
+            }}
+            onMouseLeave={() => setOpenMenuID(null)}
+          >
+            <button
+              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              onClick={() => {
+                setEditingSubject(dropdownSubject);
+                setEditedSubject({
+                  subjectCode: dropdownSubject.subjectCode,
+                  subjectID: dropdownSubject.subjectID,
+                  subjectName: dropdownSubject.subjectName,
+                });
+                setOpenMenuID(null);
+              }}
+            >
+              Edit
+            </button>
+            <button
+              className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-100"
+              onClick={() => {
+                setSubjectToDelete(dropdownSubject);
+                setShowDeleteModal(true);
+                setOpenMenuID(null);
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        )}
+
+
       </div>
 
       {editingSubject && (
@@ -518,7 +543,7 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
                   setShowDeleteModal(false);
                   setSubjectToDelete(null);
                   setToast({
-                    message: "Subject edited successfully",
+                    message: "Subject deleted successfully",
                     type: "success",
                     show: true,
                   });;
@@ -605,6 +630,9 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
         </div>
       </div>
     )}
+    {isAdding && <LoadingOverlay show={isAdding} />}
+    {isDeleting && <LoadingOverlay show={isDeleting} />}
+    {isEditing && <LoadingOverlay show={isEditing} />}
 
     </div>
   );

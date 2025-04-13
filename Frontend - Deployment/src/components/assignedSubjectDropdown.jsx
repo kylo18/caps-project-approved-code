@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import Button from "./button";
 import { useNavigate } from "react-router-dom";  
+import LoadingOverlay from "./loadingOverlay";
 
 const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, parsedRoleID, isSubjectFocused, setIsSubjectFocused, homePath }) => {
   const [subjects, setSubjects] = useState([]);
@@ -21,6 +22,14 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
   const [subjectToDelete, setSubjectToDelete] = useState(null);
 
   const [subjectLoading, setSubjectLoading] = useState(false);
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
+  const [dropdownSubject, setDropdownSubject] = useState(null);
+
+  const [dropdownDirection, setDropdownDirection] = useState("down"); // "down" or "up"
 
   const [toast, setToast] = useState({
     message: "",
@@ -138,10 +147,6 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
 
     return () => clearTimeout(timer); 
   }, []);
-  
-  useEffect(() => {
-    handleDeleteSubject();
-  }, []);
 
   useEffect(() => {
     if (!isExpanded) {
@@ -191,78 +196,96 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
 
   const handleDeleteSubject = async (subjectID) => {
     const token = localStorage.getItem("token");
-  
+
+    setShowDeleteModal(false);
+    setIsDeleting(true);
+
     try {
       const response = await fetch(`${apiUrl}/remove-assigned-subject/${subjectID}`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-  
+
       const result = await response.json();
-  
+
       if (response.ok) {
         if (selectedSubject?.subjectID === subjectID) {
           setSelectedSubject(null);
         }
+
         await fetchAssignedSubjects();
-      
-        toast.success("Subject removed successfully.");
-      
+
         setSubjects((prevSubjects) =>
           prevSubjects.filter((subject) => subject.subjectID !== subjectID)
         );
         setFilteredSubjects((prevSubjects) =>
           prevSubjects.filter((subject) => subject.subjectID !== subjectID)
         );
-      }
-       else {
+      } else {
         console.error("Failed to delete subject:", result.message);
       }
     } catch (error) {
       console.error("Error deleting subject:", error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
+
   const handleAssignSubject = async (subject) => {
-  if (!subject) return;
-  console.log("Assigning subject:", subject);
+    if (!subject) return;
+    console.log("Assigning subject:", subject);
 
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  try {
-    const response = await fetch(`${apiUrl}/faculty/assign-subject`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        subjectID: subject.subjectID,
-      }),
-    });
+    setShowAddModal(false);
+    setIsAssigning(true);   
+    try {
+      const response = await fetch(`${apiUrl}/faculty/assign-subject`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          subjectID: subject.subjectID,
+        }),
+      });
 
-    if (response.ok) {
-      const result = await response.json();
+      if (response.ok) {
+        const result = await response.json();
 
-      await fetchAssignedSubjects();
+        await fetchAssignedSubjects();
 
-      setShowAddModal(false);
-      setSelectedSubjectForAssignment(null); 
+        setSelectedSubjectForAssignment(null);
 
+        setToast({
+          message: result.message || "Subject assigned successfully",
+          type: "success",
+          show: true,
+        });
+      } else {
+        console.error("Failed to assign subject:", response.status);
+        setToast({
+          message: "Failed to assign subject",
+          type: "error",
+          show: true,
+        });
+      }
+    } catch (error) {
+      console.error("Error assigning subject:", error);
       setToast({
-        message: result.message || "Subject assigned successfully",
-        type: "success",
+        message: "An error occurred while assigning subject",
+        type: "error",
         show: true,
       });
-    } else {
-      console.error("Failed to assign subject:", response.status);
+    } finally {
+      setIsAssigning(false); 
     }
-  } catch (error) {
-    console.error("Error assigning subject:", error);
-  }
-};
+  };
+
 
   return (
     <div className="-mt-2">
@@ -312,7 +335,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <div
-            className="cursor-pointer hover:bg-orange-700 justify-center text-center main-colors text-white px-[9px] py-[3px] rounded-md transition-all"
+            className="cursor-pointer hover:bg-orange-700 justify-center text-center bg-orange-500  text-white px-[9px] py-[3px] rounded-md transition-all"
             onClick={() => setShowAddModal(true)}
           >
             <i className="bx bx-plus text-[16px] "></i>
@@ -323,7 +346,6 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
           ref={listRef}
           className="ml-[3px] flex-grow overflow-y-auto custom-scrollbar pr-2 transition-all duration-300 ease-in-out
             text-left text-[14px] font-semibold mt-2 w-full mx-auto text-[rgb(78,78,78)]"
-          onMouseLeave={() => setOpenMenuID(null)}
         >
           {subjectLoading ? (
             <li className="p-2 mt-3 text-[rgb(168,168,168)] text-[14px] text-center animate-pulse">
@@ -360,27 +382,25 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
                   <button
                     className={`flex items-center justify-center rounded-full transition
                       ${selectedSubject?.subjectID === subject.subjectID ? "visible" : "invisible group-hover:visible"}`}
-                    onClick={() =>
-                      setOpenMenuID(subject.subjectID === openMenuID ? null : subject.subjectID)
-                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const menuHeight = 80; // Approximate height of dropdown
+                    
+                      // Check if there's space below, otherwise open upwards
+                      const spaceBelow = window.innerHeight - rect.bottom;
+                      const direction = spaceBelow < menuHeight ? "up" : "down";
+                    
+                      setDropdownDirection(direction);
+                      setDropdownPosition({ x: rect.right, y: rect.bottom });
+                      setDropdownSubject(subject);
+                      setOpenMenuID(subject.subjectID);
+                    }}
                   >
                     <i className="bx bx-dots-vertical-rounded text-[18px] cursor-pointer"></i>
                   </button>
 
-                  {openMenuID === subject.subjectID && (
-                    <div className="absolute right-0 z-10 mt-2 w-28 bg-white rounded shadow-md">
-                      <button
-                        className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-100"
-                        onClick={() => {
-                          setSubjectToDelete(subject);
-                          setShowDeleteModal(true);
-                          setOpenMenuID(null);
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
+                  
                 </div>
               </li>
             ))
@@ -404,6 +424,27 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
             </li>
           )}
         </ul>
+        {openMenuID && dropdownSubject && (
+          <div
+            className="absolute z-50 w-28 bg-white rounded shadow-md"
+            style={{
+              top: dropdownDirection === "down" ? dropdownPosition.y + 4 : dropdownPosition.y - 50,
+              left: dropdownPosition.x - 0, // Align left of button
+            }}
+            onMouseLeave={() => setOpenMenuID(null)}
+          >
+            <button
+              className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-100"
+              onClick={() => {
+                setSubjectToDelete(dropdownSubject);
+                setShowDeleteModal(true);
+                setOpenMenuID(null);
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        )}
 
       </div>
 
@@ -496,6 +537,8 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
           </div>
         </div>
       )}
+      {isDeleting && <LoadingOverlay show={isDeleting} />}
+      {isAssigning && <LoadingOverlay show={isAssigning} />}
 
     {toast.message && (
       <div
@@ -506,7 +549,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
         {toast.message}
       </div>
     )}
-
+    
     </div>
   );
 };

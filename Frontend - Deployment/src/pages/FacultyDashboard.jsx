@@ -10,10 +10,12 @@ import Sort from "../components/sort";
 import SearchBar from "../components/searchBar";
 import Button from "../components/button";
 import SortCustomDropdown from "../components/sortCustomDropdown";
+import ScrollToTopButton from "../components/scrollToTopButton";
+import LoadingOverlay from "../components/loadingOverlay";
 
 const FacultyDashboard = () => {
   const [modalImage, setModalImage] = useState(null); 
-    const [pendingSort, setPendingSort] = useState(""); 
+  const [pendingSort, setPendingSort] = useState(""); 
   
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false); 
   const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false); 
@@ -41,6 +43,9 @@ const FacultyDashboard = () => {
   
   const [editQuestionID, setEditQuestionID] = useState(null);
   const [editText, setEditText] = useState("");
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
   
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -118,6 +123,8 @@ const FacultyDashboard = () => {
   const handleDeleteQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
+      setShowConfirmModal(false);
+      setIsDeleting(true)
       const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
         method: "DELETE",
         headers: {
@@ -130,12 +137,10 @@ const FacultyDashboard = () => {
         throw new Error("Failed to delete question");
       }
   
-      // Refresh question list after deletion
       setQuestions((prevQuestions) =>
         prevQuestions.filter((question) => question.questionID !== questionID)
       );
-      setShowConfirmModal(false);
-      setDeleteQuestionID(null); // Reset after deletion
+      setDeleteQuestionID(null); 
       setToast({
         message: "Question deleted successfully!",
         type: "success",
@@ -143,6 +148,9 @@ const FacultyDashboard = () => {
       });
     } catch (error) {
       console.error("Error deleting question:", error);
+    } finally {
+      setIsDeleting(false)
+
     }
   };
 
@@ -224,7 +232,7 @@ const FacultyDashboard = () => {
     setShowChoiceForm(false);
     fetchQuestions();
     setToast({
-      message: "Question added successfully!",
+      message: "Question pending approval",
       type: "success",
       show: true,
     });
@@ -238,8 +246,15 @@ const FacultyDashboard = () => {
     }, 1000); 
   }, []);
 
+  useEffect(() => {
+    if (showChoiceForm && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [showChoiceForm]);
+  
+
   return (
-    <div className="mt-10 flex flex-col relative flex-1 justify-center min-h-screen w-full sm:p-2">
+    <div className="mt-9 flex flex-col relative flex-1 justify-center min-h-screen w-full sm:p-2">
       <div className="flex-1">
         {selectedSubject ? (
           <div className="py-6 w-full">
@@ -389,7 +404,6 @@ const FacultyDashboard = () => {
                               textres="Delete"
                               icon="bx bx-trash"
                               onClick={() => confirmDelete(question.questionID)}
-                              className="cursor-pointer"
                             />
                           </div>
                         </div>
@@ -554,6 +568,8 @@ const FacultyDashboard = () => {
           </div>
         )}
 
+        {isDeleting && <LoadingOverlay show={isDeleting} />}
+
         {/* Confirmation Modal */}
         <ConfirmModal
           isOpen={showConfirmModal}
@@ -561,6 +577,16 @@ const FacultyDashboard = () => {
           onConfirm={() => handleDeleteQuestion(deleteQuestionID)}
           message="Are you sure you want to delete this question?"
         />
+
+        {toast.message && (
+          <div
+            className={`fixed bottom-5 left-5  px-4 py-2 rounded shadow-lg text-sm text-white z-56
+            ${toast.type === "success" ? "bg-green-500" : "bg-red-500"}
+            ${toast.show ? "opacity-80" : "opacity-0"} transition-opacity duration-900 ease-in-out`}
+          >
+            {toast.message}
+          </div>
+        )}
 
         {/* Image Modal (Full Size) */}
         {isChoiceModalOpen && (
@@ -577,6 +603,7 @@ const FacultyDashboard = () => {
             </div>
           </div>
         )}
+        <ScrollToTopButton/>
       </div>
     </div>
   );

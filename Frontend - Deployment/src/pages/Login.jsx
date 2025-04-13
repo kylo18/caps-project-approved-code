@@ -4,6 +4,7 @@ import LoginBGSM from "/src/assets/login-bg-sm.png";
 import univLogo from "../assets/univLogo.png"; 
 import collegeLogo from "/src/assets/college-logo.png";
 import { useNavigate } from "react-router-dom";
+import LoadingOverlay from "../components/loadingOverlay";
 
 const Login = () => {
   const [idCode, setIdCode] = useState("");
@@ -15,9 +16,12 @@ const Login = () => {
 
   const [rememberMe, setRememberMe] = useState(false);
 
+  const [isLogIn, setIsLogIn] = useState(false);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLogIn(true)
   
     if (!idCode.trim() || !password.trim()) {
       setError("Please enter both ID Code and Password.");
@@ -70,6 +74,8 @@ const Login = () => {
     } catch (error) {
       console.error("Login error:", error);
       setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLogIn(false)
     }
   };
 
@@ -211,6 +217,8 @@ const Login = () => {
           </div>*/}
         </div>
       </div>
+      {isLogIn && <LoadingOverlay show={isLogIn} />}
+      
     </div>
   );
 };
