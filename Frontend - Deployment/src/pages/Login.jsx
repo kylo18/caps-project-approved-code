@@ -1,6 +1,4 @@
 import { useState } from "react";
-import LoginBG from "/src/assets/login-bg.png";
-import LoginBGSM from "/src/assets/login-bg-sm.png"; 
 import univLogo from "../assets/univLogo.png"; 
 import collegeLogo from "/src/assets/college-logo.png";
 import { useNavigate } from "react-router-dom";
@@ -81,7 +79,7 @@ const Login = () => {
 
   return (
     <div
-      className="sm:bg-[url('/src/assets/login-bg-md.png')] lg:bg-[url('/src/assets/login-bg.png')] bg-[url('/src/assets/login-bg-xs.png')] lg:flex-row  flex-col h-full w-full min-h-screen flex items-center justify-center bg-cover bg-center"
+      className="sm:bg-[url('/src/assets/login-bg-md.png')] lg:bg-[url('/login-bg.png')] bg-[url('/src/assets/login-bg-xs.png')] lg:flex-row  flex-col h-full w-full min-h-screen flex items-center justify-center bg-cover bg-center"
     >
       {/* Logos (Top Left) */}
       <div className="absolute top-3 left-3 flex items-center gap-2">

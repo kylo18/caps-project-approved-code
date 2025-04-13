@@ -1,4 +1,3 @@
-
 import UserList from "../components/userList";
 
 const Users = () => {
