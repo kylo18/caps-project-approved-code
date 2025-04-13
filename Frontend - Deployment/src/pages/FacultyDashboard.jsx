@@ -11,7 +11,7 @@ import SearchBar from "../components/searchBar";
 import Button from "../components/button";
 import SortCustomDropdown from "../components/sortCustomDropdown";
 
-const ProgramChairDashboard = () => {
+const FacultyDashboard = () => {
   const [modalImage, setModalImage] = useState(null); 
     const [pendingSort, setPendingSort] = useState(""); 
   
@@ -182,16 +182,26 @@ const ProgramChairDashboard = () => {
 
   // Filter and Sort Questions
   const filteredQuestions = questions
-    .filter((question) => 
-      question.questionText.toLowerCase().includes(searchQuery.toLowerCase()) &&
+  .filter((question) => {
+    const matchesSearch = question.questionText.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesSort =
       (sortOption === "difficulty" && subSortOption ? question.difficulty === subSortOption : true) &&
-      (sortOption === "coverage" && subSortOption ? question.coverage === subSortOption : true)
-    )
+      (sortOption === "coverage" && subSortOption ? question.coverage === subSortOption : true);
+
+    const matchesTab =
+      (activeTab === 0 && question.purpose === "practiceQuestions" && question.status === "approved") ||
+      (activeTab === 1 && question.purpose === "examQuestions" && question.status === "approved") ||
+      (activeTab === 4 && question.status === "pending" && (pendingSort ? question.purpose === pendingSort : true));
+
+    return matchesSearch && matchesSort && matchesTab;
+    })
     .sort((a, b) => {
-      if (sortOption === "score") return subSortOption === "asc" ? a.score - b.score : b.score - a.score;
+      if (sortOption === "score") {
+        return subSortOption === "asc" ? a.score - b.score : b.score - a.score;
+      }
       return 0;
-    }
-  );
+  });
 
   const confirmDelete = (questionID) => {
     setDeleteQuestionID(questionID);
@@ -249,17 +259,17 @@ const ProgramChairDashboard = () => {
               <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
               <div className="flex justify-end items-center ">
                 {activeTab === 4 && (
-                    <SortCustomDropdown
-                      name="pendingSort"
-                      value={pendingSort}
-                      onChange={(e) => setPendingSort(e.target.value)}
-                      placeholder="Filter by Type"
-                      options={[
-                        { value: "", label: "All Types" },
-                        { value: "practiceQuestions", label: "Practice Questions" },
-                        { value: "examQuestions", label: "Exam Questions" },
-                      ]}
-                    />
+                  <SortCustomDropdown
+                    name="pendingSort"
+                    value={pendingSort}
+                    onChange={(e) => setPendingSort(e.target.value)}
+                    placeholder="Filter by Type"
+                    options={[
+                      { value: "", label: "All Types" },
+                      { value: "practiceQuestions", label: "Practice Questions" },
+                      { value: "examQuestions", label: "Exam Questions" },
+                    ]}
+                  />
                 )}
               </div>
               <Sort 
@@ -322,35 +332,13 @@ const ProgramChairDashboard = () => {
                                   <img
                                     src={question.image}
                                     alt="Question Image"
-                                    className=" max-w-full h-auto rounded-sm shadow-md cursor-pointer object-contain"
+                                    className=" max-w-full h-auto rounded-sm shadow-md cursor-pointer object-contain hover:opacity-80"
                                     onClick={() => setModalImage(question.image)}
                                   />
                                 </div>
                               </div>
                             )}
-
-                            {modalImage && (
-                              <div
-                                className="fixed inset-0 flex items-center justify-center hover:cursor-pointer lightbox-bg bg-opacity-70 z-55"
-                                onClick={() => setModalImage(null)}
-                              >
-                                <div className="relative max-w-full max-h-full">
-                                  <img
-                                    src={modalImage}
-                                    className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
-                                  />
-                                </div>
-                              </div>
-                            )}
                           </div>
-
-                          {/* Confirmation Modal */}
-                          <ConfirmModal
-                            isOpen={showConfirmModal}
-                            onClose={() => setShowConfirmModal(false)}
-                            onConfirm={() => handleDeleteQuestion(deleteQuestionID)}
-                            message="Are you sure you want to delete this question?"
-                          />
 
                           {/* Display Choices */}
                           {question.choices && question.choices.length > 0 ? (
@@ -391,28 +379,18 @@ const ProgramChairDashboard = () => {
                                   )}
                                 </label>
                               ))}
-
-                              {/* Image Modal (Full Size) */}
-                              {isChoiceModalOpen && (
-                                <div
-                                  className="fixed inset-0 lightbox-bg flex items-center justify-center z-55"
-                                  onClick={() => setIsChoiceModalOpen(false)}
-                                >
-                                  <div className="relative max-w-full max-h-full">
-                                    <img
-                                      src={choiceModalImage}
-                                      alt="Full View"
-                                      className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
-                                    />
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           ) : (
                             <p className="text-gray-500 mt-1">No choices added yet.</p>
                           )}
-                          <div className="flex justify-end mr-4 mb-1">
-                            <Button text="Delete" textres="Delete" icon="bx bx-trash" onClick={() => confirmDelete(question.questionID)}/>
+                          <div className="flex justify-end m-1 mb-1 gap-4">
+                            <Button
+                              text="Delete"
+                              textres="Delete"
+                              icon="bx bx-trash"
+                              onClick={() => confirmDelete(question.questionID)}
+                              className="cursor-pointer"
+                            />
                           </div>
                         </div>
                       </div>
@@ -420,7 +398,7 @@ const ProgramChairDashboard = () => {
                   ) : activeTab === 4 ? ( // If no pending questions
                     <p className="text-gray-500 text-center text-[16px]">No pending questions found.</p>
                   ) : (
-                    <p className="text-gray-500 text-center text-[16px]">No questions found.</p>
+                    <p className="text-gray-500 text-center text-[16px] mb-5">No questions found.</p>
                   )}
                   </div>
               </div>
@@ -428,7 +406,7 @@ const ProgramChairDashboard = () => {
 
             {/* Add Question Section */}
             {(activeTab === 0 || activeTab === 1) && (
-              <div className="mt-3 p-4">
+              <div>
                 {/* Show Add Question Button Only If No Active Question */}
                 {!submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"] && (
                   <div className="text-center fixed bottom-0 right-0 p-4">
@@ -486,39 +464,49 @@ const ProgramChairDashboard = () => {
                     )
                   )}
                 </div>
-
+                
                 {showChoiceForm && submittedQuestion?.[activeTab === 0 ? "practiceQuestions" : "examQuestions"]?.questionID && (
-                  <div className="mx-auto max-w-3xl w-full p-4 border border-color rounded-md bg-gray-100 shadow-sm mb-2">
-                    <h3 className="text-[16px] font-semibold mb-2">Question:</h3>
-                    <p className="text-gray-800 break-words whitespace-pre-wrap text-[14px]">
-                      {submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].questionText}
-                    </p>
+                  <div className="flex flex-col"> 
+                    <div className="flex-1">
+                      <div className="font-inter text-[14px] max-w-3xl mx-auto bg-white py-2 pl-4 rounded-t-md border border-b-0 border-color relative text-gray-600 font-medium">
+                        <span>Add Choices</span>
+                      </div>
+                      <div className="mx-auto max-w-3xl w-full p-4 border border-color bg-white shadow-sm border-b-0 rounded-b-none">
+                          <div className="relative hover:cursor-text p-1 bg-gray-100 rounded-md transition-all duration-150">
+                            <div
+                              className=" mt-1 bg-inherit py-2 pl-3 text-[14px] w-full max-w-full border-gray-300  min-h-[40px] overflow-hidden resize-none whitespace-pre-wrap break-words word-break break-word">
+                              <span>{submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].questionText}</span>
+                            </div>
+                          </div>
 
-                    {/*{submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image && (
-                      <div className="hover:opacity-80 mt-3 relative inline-block max-w-[300px]">
-                        <img 
-                          src={submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image}  
-                          alt="Question Image Preview"
-                          className="max-w-full h-auto rounded-sm shadow-md object-contain"
-                          onClick={() => setisQuestionModalOpen(true)}
-                        />
+                        {/* Image Preview */}
+                        {submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image && (
+                          <div className="hover:opacity-80 mt-3 relative inline-block max-w-[300px]">
+                            <img 
+                              src={submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image}  
+                              alt="Question Image Preview"
+                              className="max-w-full h-auto rounded-sm shadow-md object-contain"
+                              onClick={() => setisQuestionModalOpen(true)}
+                            />
+                          </div>
+                        )}
+                        
+                        {isQuestionModalOpen && (
+                          <div
+                            className="fixed inset-0 lightbox-bg flex items-center justify-center z-100"
+                            onClick={() => setisQuestionModalOpen(false)}
+                          >
+                            <div className="relative max-w-full max-h-full">
+                              <img
+                                src={submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image}
+                                alt="Full View"
+                                className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}*/}
-                    
-                    {isQuestionModalOpen && (
-                      <div
-                        className="fixed inset-0 lightbox-bg flex items-center justify-center z-100"
-                        onClick={() => setisQuestionModalOpen(false)}
-                      >
-                        <div className="relative max-w-full max-h-full">
-                          <img
-                            src={submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image}
-                            alt="Full View"
-                            className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
-                          />
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 )}
 
@@ -552,9 +540,46 @@ const ProgramChairDashboard = () => {
         ) : (
           <p className="text-gray-500 text-center">Please select a subject from the sidebar.</p>
         )}
+        {modalImage && (
+          <div
+            className="fixed inset-0 flex items-center justify-center hover:cursor-pointer lightbox-bg bg-opacity-70 z-55"
+            onClick={() => setModalImage(null)}
+          >
+            <div className="relative max-w-full max-h-full">
+              <img
+                src={modalImage}
+                className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Modal */}
+        <ConfirmModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={() => handleDeleteQuestion(deleteQuestionID)}
+          message="Are you sure you want to delete this question?"
+        />
+
+        {/* Image Modal (Full Size) */}
+        {isChoiceModalOpen && (
+          <div
+            className="fixed inset-0 lightbox-bg flex items-center justify-center z-55"
+            onClick={() => setIsChoiceModalOpen(false)}
+          >
+            <div className="relative max-w-full max-h-full">
+              <img
+                src={choiceModalImage}
+                alt="Full View"
+                className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default ProgramChairDashboard;
+export default FacultyDashboard;

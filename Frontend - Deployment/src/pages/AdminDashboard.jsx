@@ -7,9 +7,9 @@ import ExamAddQuestionForm from "../components/addExamQuestionForm";
 import ExamAddChoiceForm from "../components/addExamChoiceForm";
 import ConfirmModal from "../components/confirmModal";
 import Sort from "../components/sort";
+import SearchBar from "../components/searchBar";
 import Button from "../components/button";
 import SortCustomDropdown from "../components/sortCustomDropdown";
-
 
 const AdminDashboard = () => {
   const [modalImage, setModalImage] = useState(null); 
@@ -287,6 +287,7 @@ const AdminDashboard = () => {
             </div>
             {/*Search bar div here*/}
             <div className="flex flex-col sm:flex-row gap-[5.5px] mt-4 mb-6 justify-end">
+              <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
               <div className="flex justify-end items-center ">
                 {activeTab === 4 && (
                     <SortCustomDropdown
@@ -409,8 +410,6 @@ const AdminDashboard = () => {
                                   )}
                                 </label>
                               ))}
-
-                              
                             </div>
                           ) : (
                             <p className="text-gray-500 mt-1">No choices added yet.</p>
@@ -442,14 +441,13 @@ const AdminDashboard = () => {
                               />
                             )}
                           </div>
-
                         </div>
                       </div>
                     ))
                   ) : activeTab === 4 ? ( // If no pending questions
                     <p className="text-gray-500 text-center text-[16px]">No pending questions found.</p>
                   ) : (
-                    <p className="text-gray-500 text-center text-[16px]">No questions found.</p>
+                    <p className="text-gray-500 text-center text-[16px] mb-5">No questions found.</p>
                   )}
                   </div>
               </div>
@@ -457,7 +455,7 @@ const AdminDashboard = () => {
 
             {/* Add Question Section */}
             {(activeTab === 0 || activeTab === 1) && (
-              <div className="mt-3 p-4">
+              <div>
                 {/* Show Add Question Button Only If No Active Question */}
                 {!submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"] && (
                   <div className="text-center fixed bottom-0 right-0 p-4">
@@ -485,13 +483,12 @@ const AdminDashboard = () => {
                   </div>
                 )}
 
-
                 <div ref={formRef}>
                   {/* Show AddQuestionForm based on activeTab */}
                   {submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"] &&
                   !submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].questionID && (
                     <>
-                      <div className="text-right mb-2">
+                      <div className="text-right">
                       </div>
                       {activeTab === 0 ? (
                         <PracticeAddQuestionForm
@@ -523,89 +520,49 @@ const AdminDashboard = () => {
 
                 {/* Preview */}
                 {showChoiceForm && submittedQuestion?.[activeTab === 0 ? "practiceQuestions" : "examQuestions"]?.questionID && (
-                  <div className="mx-auto max-w-3xl w-full p-4 border border-color rounded-md bg-gray-100 shadow-sm mb-2">
-                    <h3 className="text-[16px] font-semibold mb-2">Question:</h3>
-                    <p className="text-gray-800 break-words whitespace-pre-wrap text-[14px]">
-                      {submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].questionText}
-                    </p>
-
-                    {/* Image Preview */}
-                    {submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image && (
-                      <div className="mt-4">
-                        <h4 className="text-[14px] font-semibold mb-2">Preview Image:</h4>
-                        <img
-                          src={submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image}
-                          alt="Question Image"
-                          className="max-w-full h-auto border border-gray-300 rounded-md cursor-pointer"
-                          onClick={() => setisQuestionModalOpen(true)} // Open full view on click
-                        />
+                  <div className="flex flex-col"> 
+                    <div className="flex-1">
+                      <div className="font-inter text-[14px] max-w-3xl mx-auto bg-white py-2 pl-4 rounded-t-md border border-b-0 border-color relative text-gray-600 font-medium">
+                        <span>Add Choices</span>
                       </div>
-                    )}
-                    
-                    {isQuestionModalOpen && (
-                      <div
-                        className="fixed inset-0 lightbox-bg flex items-center justify-center z-100"
-                        onClick={() => setisQuestionModalOpen(false)}
-                      >
-                        <div className="relative max-w-full max-h-full">
-                          <img
-                            src={submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image}
-                            alt="Full View"
-                            className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      <div className="mx-auto max-w-3xl w-full p-4 border border-color bg-white shadow-sm border-b-0 rounded-b-none">
+                          <div className="relative hover:cursor-text p-1 bg-gray-100 rounded-md transition-all duration-150">
+                            <div
+                              className=" mt-1 bg-inherit py-2 pl-3 text-[14px] w-full max-w-full border-gray-300  min-h-[40px] overflow-hidden resize-none whitespace-pre-wrap break-words word-break break-word">
+                              <span>{submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].questionText}</span>
+                            </div>
+                          </div>
 
-                {toast.message && (
-                  <div
-                    className={`fixed bottom-5 left-5  px-4 py-2 rounded shadow-lg text-sm text-white z-56
-                    ${toast.type === "success" ? "bg-green-500" : "bg-red-500"}
-                    ${toast.show ? "opacity-100" : "opacity-0"} transition-opacity duration-500 ease-in-out`}
-                  >
-                    {toast.message}
-                  </div>
-                )}
-
-                {/* Confirmation Modal */}
-                <ConfirmModal
-                  isOpen={showConfirmModal}
-                  onClose={() => setShowConfirmModal(false)}
-                  onConfirm={() => handleDeleteQuestion(deleteQuestionID)}
-                  message="Are you sure you want to delete this question?"
-                />
-
-                {/* Image Modal (Full Size) */}
-                {isChoiceModalOpen && (
-                  <div
-                    className="fixed inset-0 lightbox-bg flex items-center justify-center z-55"
-                    onClick={() => setIsChoiceModalOpen(false)}
-                  >
-                    <div className="relative max-w-full max-h-full">
-                      <img
-                        src={choiceModalImage}
-                        alt="Full View"
-                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {modalImage && (
-                    <div
-                      className="fixed inset-0 flex items-center justify-center hover:cursor-pointer lightbox-bg bg-opacity-70 z-55"
-                      onClick={() => setModalImage(null)}
-                    >
-                      <div className="relative max-w-full max-h-full">
-                        <img
-                          src={modalImage}
-                          className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
-                        />
+                        {/* Image Preview */}
+                        {submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image && (
+                          <div className="hover:opacity-80 mt-3 relative inline-block max-w-[300px]">
+                            <img 
+                              src={submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image}  
+                              alt="Question Image Preview"
+                              className="max-w-full h-auto rounded-sm shadow-md object-contain"
+                              onClick={() => setisQuestionModalOpen(true)}
+                            />
+                          </div>
+                        )}
+                        
+                        {isQuestionModalOpen && (
+                          <div
+                            className="fixed inset-0 lightbox-bg flex items-center justify-center z-100"
+                            onClick={() => setisQuestionModalOpen(false)}
+                          >
+                            <div className="relative max-w-full max-h-full">
+                              <img
+                                src={submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image}
+                                alt="Full View"
+                                className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
                 <div ref={formRef}> 
                   {showChoiceForm &&
@@ -636,6 +593,53 @@ const AdminDashboard = () => {
         ) : (
           <p className="text-gray-500 text-center">Please select a subject from the sidebar.</p>
         )}
+          {/* Confirmation Modal */}
+          <ConfirmModal
+            isOpen={showConfirmModal}
+            onClose={() => setShowConfirmModal(false)}
+            onConfirm={() => handleDeleteQuestion(deleteQuestionID)}
+            message="Are you sure you want to delete this question?"
+          />
+
+          {toast.message && (
+            <div
+              className={`fixed bottom-5 left-5  px-4 py-2 rounded shadow-lg text-sm text-white z-56
+              ${toast.type === "success" ? "bg-green-500" : "bg-red-500"}
+              ${toast.show ? "opacity-100" : "opacity-0"} transition-opacity duration-500 ease-in-out`}
+            >
+              {toast.message}
+            </div>
+          )}
+
+          {/* Image Modal (Full Size) */}
+          {isChoiceModalOpen && (
+            <div
+              className="fixed inset-0 lightbox-bg flex items-center justify-center z-55"
+              onClick={() => setIsChoiceModalOpen(false)}
+            >
+              <div className="relative max-w-full max-h-full">
+                <img
+                  src={choiceModalImage}
+                  alt="Full View"
+                  className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
+                />
+              </div>
+            </div>
+          )}
+
+          {modalImage && (
+            <div
+              className="fixed inset-0 flex items-center justify-center hover:cursor-pointer lightbox-bg bg-opacity-70 z-55"
+              onClick={() => setModalImage(null)}
+            >
+              <div className="relative max-w-full max-h-full">
+                <img
+                  src={modalImage}
+                  className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
+                />
+              </div>
+            </div>
+          )}
       </div>
     </div>
   );

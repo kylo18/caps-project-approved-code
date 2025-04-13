@@ -70,19 +70,20 @@ const PracticeAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCanc
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
-    
-
     setShowConfirmModal(true);
     
   };
 
   const confirmSubmit = async () => {
-    
-
     setShowConfirmModal(false);
-    
-
     const token = localStorage.getItem("token");
+
+    if (questionData.questionText.trim() === "") {
+      setError("Please enter a question before submitting.");
+      return;
+    }
+  
+    setError("");
 
     const formData = new FormData();
     formData.append("subjectID", subjectID);
@@ -377,7 +378,7 @@ const PracticeAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCanc
               </div>
               
             </div>
-            {error && <p className="flex justify-center mt-7 text-red-500">Error: {error}</p>}
+            {error && <p className="flex justify-center mt-7 text-red-500">{error}</p>}
             {successMsg && <p className="text-green-500">{successMsg}</p>}
           </form>
           {/* Confirmation Modal */}

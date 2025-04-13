@@ -86,14 +86,20 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
         return;
       }
   
-      setSubjects(data.subjects);
-      setFilteredSubjects(data.subjects);
+      // Sort subjects alphabetically by subjectCode
+      const sortedSubjects = [...data.subjects].sort((a, b) =>
+        a.subjectCode.localeCompare(b.subjectCode)
+      );
+  
+      setSubjects(sortedSubjects);
+      setFilteredSubjects(sortedSubjects);
     } catch (error) {
       console.error("Error fetching subjects:", error);
     } finally {
       setLoading(false);
     }
-  }
+  };
+  
 
   const fetchAssignedSubjects = async () => {
     const token = localStorage.getItem("token");
@@ -109,7 +115,12 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
   
       if (response.ok) {
         const data = await response.json(); 
-        setAssignedSubjects(data.subjects); 
+        const sortedSubjects = [...data.subjects].sort((a, b) =>
+          a.subjectCode.localeCompare(b.subjectCode)
+        );
+  
+        setAssignedSubjects(sortedSubjects);
+        setFilteredSubjects(sortedSubjects);
       } else {
         console.error("Failed to fetch assigned subjects:", response.status);
       }
@@ -155,6 +166,12 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       setFilteredSubjects(results);
     }
   }, [searchTerm, assignedSubjects]);
+
+  const searchResults = assignedSubjects?.filter((subject) =>
+    `${subject.subjectName} ${subject.subjectCode}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
   
 
   useEffect(() => {
@@ -164,8 +181,8 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
   }, [isOpen]);
 
   const unassignedSubjects = subjects.filter(
-      (subject) => !assignedSubjects.some((assigned) => assigned.subjectID === subject.subjectID)
-    );
+    (subject) => !assignedSubjects.some((assigned) => assigned.subjectID === subject.subjectID)
+  );
 
   const handleSelectSubject = (subject) => {
     setSelectedSubject(subject);
@@ -174,7 +191,6 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
 
   const handleDeleteSubject = async (subjectID) => {
     const token = localStorage.getItem("token");
-    const userID = localStorage.getItem("userID");
   
     try {
       const response = await fetch(`${apiUrl}/remove-assigned-subject/${subjectID}`, {
@@ -187,65 +203,66 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       const result = await response.json();
   
       if (response.ok) {
+        if (selectedSubject?.subjectID === subjectID) {
+          setSelectedSubject(null);
+        }
+        await fetchAssignedSubjects();
+      
+        toast.success("Subject removed successfully.");
+      
         setSubjects((prevSubjects) =>
           prevSubjects.filter((subject) => subject.subjectID !== subjectID)
         );
         setFilteredSubjects((prevSubjects) =>
           prevSubjects.filter((subject) => subject.subjectID !== subjectID)
         );
-      } else {
+      }
+       else {
         console.error("Failed to delete subject:", result.message);
       }
     } catch (error) {
       console.error("Error deleting subject:", error);
     }
   };
-  
 
   const handleAssignSubject = async (subject) => {
-    if (!subject) return;
-    console.log("Assigning subject:", subject);
-  
-    const token = localStorage.getItem("token");
-  
-    try {
-      const response = await fetch(`${apiUrl}/faculty/assign-subject`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          subjectID: subject.subjectID,
-        }),
+  if (!subject) return;
+  console.log("Assigning subject:", subject);
+
+  const token = localStorage.getItem("token");
+
+  try {
+    const response = await fetch(`${apiUrl}/faculty/assign-subject`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        subjectID: subject.subjectID,
+      }),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+
+      await fetchAssignedSubjects();
+
+      setShowAddModal(false);
+      setSelectedSubjectForAssignment(null); 
+
+      setToast({
+        message: result.message || "Subject assigned successfully",
+        type: "success",
+        show: true,
       });
-  
-      if (response.ok) {
-        const result = await response.json();
-  
-        // ✅ Re-fetch the assigned subjects to stay in sync
-        await fetchAssignedSubjects();
-  
-        // ✅ Optionally, re-fetch unassigned list if you're managing that too
-        // await fetchUnassignedSubjects();
-  
-        setShowAddModal(false);
-        setSelectedSubject(null);
-        setSelectedSubjectForAssignment(null); // Clear selected subject in modal if needed
-  
-        setToast({
-          message: result.message || "Subject assigned successfully",
-          type: "success",
-          show: true,
-        });
-      } else {
-        console.error("Failed to assign subject:", response.status);
-      }
-    } catch (error) {
-      console.error("Error assigning subject:", error);
+    } else {
+      console.error("Failed to assign subject:", response.status);
     }
-  };
-  
+  } catch (error) {
+    console.error("Error assigning subject:", error);
+  }
+};
 
   return (
     <div className="-mt-2">
@@ -286,7 +303,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
           isOpen ? "opacity-100" : "max-h-0 opacity-0"
         } overflow-hidden`}
       >
-        <div className="ml-[1.8px] w-full mx-auto mt-2 flex items-center gap-1">
+        <div className=" w-full mx-auto mt-2 flex items-center gap-1">
           <input
             type="text"
             placeholder="Search..."
@@ -295,14 +312,13 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <div
-            className="justify-center text-center main-colors text-white px-[10px] py-[3px] rounded-md hover:bg-orange-600 transition-all"
+            className="cursor-pointer hover:bg-orange-700 justify-center text-center main-colors text-white px-[9px] py-[3px] rounded-md transition-all"
             onClick={() => setShowAddModal(true)}
           >
-            <i className="bx bx-plus text-[13px]"></i>
+            <i className="bx bx-plus text-[16px] "></i>
           </div>
         </div>
         
-        {/*Subject List*/}
         <ul
           ref={listRef}
           className="ml-[3px] flex-grow overflow-y-auto custom-scrollbar pr-2 transition-all duration-300 ease-in-out
@@ -316,9 +332,8 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
                 <div className="ml-2 size-4 border-3 border-t-transparent rounded-full animate-spin"></div>
               </div>
             </li>
-          ) : assignedSubjects && assignedSubjects.length > 0 ? (
-            filteredSubjects.map((subject) => (
-
+          ) : searchResults && searchResults.length > 0 ? (
+            searchResults.map((subject) => (
               <li
                 key={subject.subjectID}
                 className={`relative group cursor-pointer flex justify-between items-center rounded-md mt-2 transition-all duration-100 ease-in-out p-[7px] ${
@@ -326,33 +341,32 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
                     ? "bg-orange-500 text-white"
                     : "hover:bg-[rgb(255,230,214)]"
                 }`}
+                onClick={() => {
+                  setSelectedSubject(null);
+                  handleSelectSubject(subject);
+                  navigate(homePath);
+                }}
               >
                 <span
                   className="flex-1 ml-1 cursor-pointer break-all"
-                  onClick={() => {
-                    setSelectedSubject(null);
-                    handleSelectSubject(subject);
-                    navigate(homePath);
-                  }}
                 >
                   {subject.subjectCode}
                 </span>
 
-                {/* 3-dot menu (shows on hover) */}
-                <div className="relative">
-                <button
-                  className={`items-center justify-center rounded-full transition
-                    ${selectedSubject?.subjectID === subject.subjectID ? "visible" : "invisible group-hover:visible"}
-                  `}
-                  onClick={() =>
-                    setOpenMenuID(subject.subjectID === openMenuID ? null : subject.subjectID)
-                  }
-                >
-                  <i className="bx bx-dots-vertical-rounded text-[18px] mt-[1px] cursor-pointer"></i>
-                </button>
+                {/* 3-dot menu */}
+                <div className="relative"
+                 onClick={(e) => e.stopPropagation()}>
+                  
+                  <button
+                    className={`flex items-center justify-center rounded-full transition
+                      ${selectedSubject?.subjectID === subject.subjectID ? "visible" : "invisible group-hover:visible"}`}
+                    onClick={() =>
+                      setOpenMenuID(subject.subjectID === openMenuID ? null : subject.subjectID)
+                    }
+                  >
+                    <i className="bx bx-dots-vertical-rounded text-[18px] cursor-pointer"></i>
+                  </button>
 
-
-                  {/* Dropdown menu */}
                   {openMenuID === subject.subjectID && (
                     <div className="absolute right-0 z-10 mt-2 w-28 bg-white rounded shadow-md">
                       <button
@@ -388,9 +402,9 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
                 )}
               </button>
             </li>
-
           )}
         </ul>
+
       </div>
 
       {showDeleteModal && subjectToDelete && (

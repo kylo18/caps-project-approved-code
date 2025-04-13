@@ -99,6 +99,12 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
       });
   
       if (response.ok) {
+        if (selectedSubject?.subjectID === subjectID) {
+          setSelectedSubject(null);
+        }
+        await fetchSubjects();
+      
+        toast.success("Subject removed successfully.");
         setSubjects((prevSubjects) => prevSubjects.filter(subject => subject.subjectID !== subjectID));
         setFilteredSubjects((prevSubjects) => prevSubjects.filter(subject => subject.subjectID !== subjectID));
       } else {
@@ -138,19 +144,22 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
         return;
       }
   
-      setSubjects(data.subjects);
-      setFilteredSubjects(data.subjects);
+      // Sort subjects alphabetically by subjectCode
+      const sortedSubjects = [...data.subjects].sort((a, b) =>
+        a.subjectCode.localeCompare(b.subjectCode)
+      );
+  
+      setSubjects(sortedSubjects);
+      setFilteredSubjects(sortedSubjects);
     } catch (error) {
       console.error("Error fetching subjects:", error);
     } finally {
       setSubjectLoading(false); // End loading
     }
   };
-  
 
   const handleAddSubject = async () => {
     if (!newSubjectCode.trim() || !newSubjectName.trim()) return;
-
     const token = localStorage.getItem("token"); 
 
     try {
@@ -296,7 +305,7 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
         } overflow-hidden`}
       >
 
-        <div className="ml-[1.8px] w-full mx-auto mt-2 flex items-center gap-1">
+        <div className="w-full mx-auto mt-2 flex items-center gap-1">
           <input
             type="text"
             placeholder="Search..."
@@ -304,14 +313,12 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          
             <div
-              className="justify-center text-center main-colors text-white px-[10px] py-[3px] rounded-md hover:bg-orange-600 transition-all"
+              className="justify-center text-center main-colors text-white px-[9px] py-[3px] rounded-md hover:bg-orange-600 transition-all"
               onClick={() => setShowAddModal(true)}
             >
-              <i className="bx bx-plus text-[13px]"></i>
+              <i className="bx bx-plus text-[16px] "></i>
             </div>
-          
         </div>
 
         <ul
@@ -335,26 +342,29 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
                     ? "bg-orange-500 text-white"
                     : "hover:bg-[rgb(255,230,214)]"
                 }`}
+                onClick={() => {
+                  setSelectedSubject(null);
+                  handleSelectSubject(subject);
+                  navigate(homePath);
+                }}
               >
                 <span
                     className="flex-1 ml-1 cursor-pointer break-all"
-                  onClick={() => {
-                    setSelectedSubject(null);
-                    handleSelectSubject(subject);
-                    navigate(homePath);
-                  }}
                 >
                   {subject.subjectCode}
                 </span>
 
                 {/* 3-dot menu (visible only on hover) */}
-                <div className="relative">
+                <div className="relative"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  
                 <button
                   className={`${
                     selectedSubject?.subjectID === subject.subjectID
                       ? "flex"
                       : "hidden group-hover:flex"
-                  } items-center justify-center rounded-full transition`}
+                  } flex items-center justify-center rounded-full transition`}
                   onClick={() =>
                     setOpenMenuID(subject.subjectID === openMenuID ? null : subject.subjectID)
                   }
@@ -512,7 +522,6 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
                     type: "success",
                     show: true,
                   });;
-                  window.location.reload();
                 }}
               />
             </div>

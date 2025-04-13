@@ -108,10 +108,6 @@ const ExamChoicesForm = ({ questionID, onComplete }) => {
   return (
     <div className="relative flex">
       <div className="flex-1">
-        <div className="font-inter text-[14px] max-w-3xl mx-auto bg-white py-2 pl-4 shadow-lg rounded-t-md border border-color relative text-gray-600 font-medium">
-          <span>Add Choices</span>
-        </div>
-
         <div className="rounded-b w-full max-w-3xl sm:px-4 mx-auto p-4 bg-white shadow-lg border-color border-t-0 border relative">
           <div className="space-y-3 px-3 py-2">
 

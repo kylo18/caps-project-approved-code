@@ -150,7 +150,7 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
           }`}>
           {/* Header */}
           <div className="flex justify-between items-center text-gray-600 text-[14px]">
-            <span>1. Multiple Choice</span>
+            <span>Multiple Choice</span>
             <div className="flex items-center space-x-2">
               <span className="text-[12px] font-medium">{questionData.score} pt</span>
               <span className={`text-white text-[12px] px-4 py-1 rounded-lg ${
