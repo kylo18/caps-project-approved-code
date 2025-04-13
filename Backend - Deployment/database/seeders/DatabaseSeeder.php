@@ -10,7 +10,6 @@ require_once base_path('Modules/Roles/Database/Seeders/RolesTableSeeder.php');
 require_once base_path('Modules/Campuses/Database/Seeders/CampusesTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/UsersTableSeeder.php');
 require_once base_path('Modules/Subjects/Database/Seeders/SubjectsTableSeeder.php');
-require_once base_path('Modules\FacultySubjects\Database\Seeders\FacultySubjectsTableSeeder.php');
 require_once base_path('Modules/Questions/Database/Seeders/QuestionsTableSeeder.php');
 require_once base_path('Modules/Exams/Database/Seeders/ExamsTableSeeder.php');
 require_once base_path('Modules/ExamQuestions/Database/Seeders/ExamQuestionsTableSeeder.php');
@@ -33,7 +32,6 @@ class DatabaseSeeder extends Seeder
             \Modules\Campuses\Database\Seeders\CampusesTableSeeder::class,
             \Modules\Users\Database\Seeders\UsersTableSeeder::class,
             \Modules\Subjects\Database\Seeders\SubjectsTableSeeder::class,
-            \Modules\FacultySubjects\Database\Seeders\FacultySubjectsTableSeeder::class,
             \Modules\Questions\Database\Seeders\QuestionsTableSeeder::class,
             \Modules\Exams\Database\Seeders\ExamsTableSeeder::class,
             \Modules\ExamQuestions\Database\Seeders\ExamQuestionsTableSeeder::class,

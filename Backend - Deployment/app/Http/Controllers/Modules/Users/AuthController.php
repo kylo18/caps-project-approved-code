@@ -66,7 +66,7 @@ class AuthController extends Controller
         }
 
         // Determine user status based on role
-        $status = in_array($validated['roleID'], [2, 3]) ? 'pending' : 'registered';
+        $status = in_array($validated['roleID'], [1, 2, 3]) ? 'pending' : 'registered';
 
         // Create the user with validated data
         $user = User::create([
@@ -110,11 +110,11 @@ class AuthController extends Controller
             return response()->json(['message' => 'Your account is not registered yet. Please wait for administrator approval.'], 403);
         }
 
+        $user->tokens()->delete();
+
         if ($user->tokens()->count() > 0) {
             return response()->json(['message' => 'This user is already logged in.'], 403);
         }
-
-        $user->tokens()->delete();
 
         $tokenResult = $user->createToken('auth_token', ['*'], now()->addHours(3));
         $plainTextToken = $tokenResult->plainTextToken;
