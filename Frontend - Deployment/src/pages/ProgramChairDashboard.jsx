@@ -7,7 +7,7 @@ import ExamAddQuestionForm from "../components/addExamQuestionForm";
 import ExamAddChoiceForm from "../components/addExamChoiceForm";
 import ConfirmModal from "../components/confirmModal";
 import Sort from "../components/sort";
-import SearchBar from "../components/searchBar";
+import SearchBar from "../components/SearchBar";
 import Button from "../components/button";
 import SortCustomDropdown from "../components/sortCustomDropdown";
 import ScrollToTopButton from "../components/scrollToTopButton";

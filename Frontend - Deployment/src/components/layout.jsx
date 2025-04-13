@@ -18,7 +18,6 @@ const Layout = () => {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
-    console.log("Loaded user:", user); // ✅ See what's stored
     if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
       setRoleId(user.roleID ?? user.roleId);
     }
@@ -33,7 +32,7 @@ const Layout = () => {
   const roleTitle = role_id !== null && roleMap[role_id] ? roleMap[role_id] : "User";
 
   return (
-    <div className="bg-[rgb(238,238,238)] h-full">
+    <div className="bg-[rgb(238,238,238)] min-h-screen">
       <div className="flex">
         <Sidebar
           role_id={role_id}

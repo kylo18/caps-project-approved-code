@@ -7,7 +7,7 @@ import FacultyDashboard from "./pages/FacultyDashboard";
 import ProgramChairDashboard from "./pages/ProgramChairDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ScrollToTop from "./components/scrollToTop";
-import Users from "./pages/users";
+import Users from "./pages/Users";
 
 function App() {
 
