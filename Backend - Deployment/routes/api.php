@@ -1,13 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Modules\Users\AuthController;
-use App\Http\Controllers\Modules\Subjects\Http\Controllers\SubjectController;
-use app\Http\Controllers\Modules\FacultySubjects\Http\Controllers\FacultySubjectController;
-use App\Http\Controllers\Modules\Questions\Http\Controllers\QuestionController;
-use app\Http\Controllers\Modules\PracticeExam\Http\Controllers\PracticeExamController;
-use App\Http\Controllers\Modules\Choices\Http\Controllers\ChoiceController;
-use app\Http\Controllers\Modules\Users\UserController;
+use Modules\Users\Controllers\AuthController;
+use Modules\Subjects\Controllers\SubjectController;
+use Modules\FacultySubjects\Controllers\FacultySubjectController;
+use Modules\Questions\Controllers\QuestionController;
+use Modules\Choices\Controllers\ChoiceController;
+use Modules\Users\Controllers\UserController;
 use App\Http\Middleware\TokenExpirationMiddleware;
 
 //User authentication routes
@@ -38,10 +37,10 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::put('/questions/update/{questionID}', [QuestionController::class, 'update']);
     Route::delete('/questions/delete/{questionID}', [QuestionController::class, 'destroy']);
     Route::get('/faculty/my-questions/{subjectID}', [QuestionController::class, 'mySubjectQuestions']);
+});
 
-
-    //exam functionalities route
-    Route::post('/practice-exams', [PracticeExamController::class, 'store']);
+Route::middleware(['auth:sanctum','role:3'])->group(function () {
+    Route::get('/program/{subjectID}', [QuestionController::class, 'indexQuestionsByProgram']);
 });
 
 Route::middleware(['auth:sanctum','role:3,4'])->group(function () {
@@ -50,17 +49,17 @@ Route::middleware(['auth:sanctum','role:3,4'])->group(function () {
 });
 
 Route::middleware(['auth:sanctum','role:4'])->group(function () {
+    // users route
     Route::get('/users', [UserController::class, 'index']);
     Route::patch('/users/{userID}/approve', [UserController::class, 'approveUser']);
     Route::patch('/users/{userID}/disapprove', [UserController::class, 'disapproveUser']);
+    Route::post('/users/approve-multiple', [UserController::class, 'approveMultipleUsers']);
+    Route::post('/users/activate-multiple', [UserController::class, 'activateMultipleUsers']);
+    Route::post('/users/deactivate-multiple', [UserController::class, 'deactivateMultipleUsers']);
+    Route::patch('users/{id}/deactivate', [UserController::class, 'deactivate']);
+    Route::patch('users/{id}/activate', [UserController::class, 'activate']);
 
-    Route::patch('users/{id}/deactivate', [UserController::class, 'deactivate'])
-        ->name('users.deactivate');
-
-    Route::patch('users/{id}/activate', [UserController::class, 'activate'])
-        ->name('users.activate');
-
-    //add subjects route
+    //subjects route
     Route::post('/add-subjects', [SubjectController::class, 'store']);
     Route::delete('/subjects/{subjectID}/delete', [SubjectController::class, 'destroy']);
     Route::put('/subjects/{subjectID}/update', [SubjectController::class, 'update']);
