@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import ConfirmModal from "./confirmModal"; // Import modal
 import CustomDropdown from "./customDropdown";
 
-const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius }) => {
+const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
@@ -139,18 +139,18 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius }) => {
     <div className='flex'> 
       <div className='flex-1'>
         {/* Header */}
-        <div className="font-inter text-[14px] max-w-3xl mx-auto bg-white py-2 pl-4 shadow-lg rounded-t-md border border-[rgb(168,168,168)] relative text-gray-600 font-medium">
+        <div className="font-inter text-[14px] max-w-3xl mx-auto bg-white py-2 pl-4 shadow-lg rounded-t-md border border-color  relative text-gray-600 font-medium">
           <span>Add Question</span>
         </div>
 
         {/* Question Card */}
         <div
-          className={`w-full max-w-3xl sm:px-4 mx-auto p-4 bg-white shadow-lg border-[rgb(168,168,168)] border-t-0 border relative ${
+          className={`w-full max-w-3xl sm:px-4 mx-auto p-4 bg-white shadow-lg border-color  border-t-0 border relative ${
             topRadius ? "rounded-md" : "rounded-b-md"
           }`}>
           {/* Header */}
           <div className="flex justify-between items-center text-gray-600 text-[14px]">
-            <span>1. Multiple Choice</span>
+            <span>Multiple Choice</span>
             <div className="flex items-center space-x-2">
               <span className="text-[12px] font-medium">{questionData.score} pt</span>
               <span className={`text-white text-[12px] px-4 py-1 rounded-lg ${
@@ -303,7 +303,7 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius }) => {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row px-4 mt-7 mb-1 gap-4">
+            <div className="flex flex-col sm:flex-row px-2 mt-7 mb-1 gap-4">
               {/* Score Input */}
               <div className="flex items-center gap-2 w-[20%] sm:w-auto">
                 <label htmlFor="score" className="text-[14px] text-gray-700">Score:</label>
@@ -314,8 +314,18 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius }) => {
                   max="100"
                   onChange={handleQuestionChange}
                   value={questionData.score}
-                  className="outline-none text-[14px] border-0 border-b border-gray-300 p-1 w-full sm:w-[50px] focus:border-b-2 focus:border-orange-500 transition-all duration-100"
+                  className="outline-none text-[14px] border-0 border-b border-gray-300 p-1 w-10 sm:w-[50px] focus:border-b-2 focus:border-orange-500 transition-all duration-100"
                   required
+                  onInput={(e) => {
+                    // Prevent inputting numbers less than 1
+                    if (parseInt(e.target.value) < 1) {
+                      e.target.value = 1;
+                    }
+                    // Prevent inputting numbers greater than 100
+                    if (parseInt(e.target.value) > 100) {
+                      e.target.value = 100;
+                    }
+                  }}
                 />
               </div>
 
@@ -346,13 +356,23 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius }) => {
               />
 
               {/* Submit Button (Aligned Right) */}
-              <button
-                type="submit"
-                className="cursor-pointer flex items-center gap-1 px-4 py-2 mt-4 sm:mt-0 bg-orange-500 text-white rounded-lg hover:bg-orange-600 ml-auto"
-              >
-                <i className="bx bx-save text-[18px] hidden sm:inline-block"></i> 
-                <span className="text-[14px]">Submit</span>
-              </button>
+              <div className="flex gap-3 ml-auto">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="cursor-pointer flex items-center gap-1 px-4 py-1.5 border rounded-lg text-gray-700 hover:bg-gray-200 ml-auto"
+                >
+                  <span className="text-[14px]">Cancel</span>
+                </button>
+
+                <button
+                  type="submit"
+                  className="cursor-pointer flex items-center gap-1 px-[12px] py-2 mt-4 sm:mt-0 bg-orange-500 text-white rounded-lg hover:bg-orange-600 ml-auto"
+                >
+                  <i className="bx bx-save text-[18px] hidden sm:inline-block"></i> 
+                  <span className="text-[14px]">Submit</span>
+                </button>
+              </div>
             </div>
             {error && <p className="flex justify-center mt-7 text-red-500">Error: {error}</p>}
             {successMsg && <p className="text-green-500">{successMsg}</p>}

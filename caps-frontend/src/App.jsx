@@ -1,26 +1,25 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Layout from "./components/layout"; 
+import Layout from "./components/layout";
 import StudentDashboard from "./pages/StudentDashboard";
 import FacultyDashboard from "./pages/FacultyDashboard";
 import ProgramChairDashboard from "./pages/ProgramChairDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ScrollToTop from "./components/scrollToTop";
-import TestLogin from  "./pages/testLogin";
-import Users from "./pages/users";
+import Users from "./pages/Users";
 
 function App() {
+
   return (
     <Router>
-      <ScrollToTop/>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/testLogin" element={<TestLogin />} />
 
         <Route path="/student" element={<Layout />}>
-          <Route index element={<StudentDashboard />} /> {/* Default for /student */}
+          <Route index element={<StudentDashboard />} />
           <Route path="dashboard" element={<StudentDashboard />} />
         </Route>
 
@@ -43,7 +42,6 @@ function App() {
           <Route index element={<Users />} />
           <Route path="users" element={<Users />} />
         </Route>
-
       </Routes>
     </Router>
   );

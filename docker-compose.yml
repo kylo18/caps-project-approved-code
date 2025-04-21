@@ -9,18 +9,20 @@ services:
     build:
       context: ./caps-backend
       dockerfile: Dockerfile
+    command: php artisan serve --host=0.0.0.0 --port=8000
     container_name: caps_backend
     networks:
       - caps_network
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/var/www/html
+    # Uncomment if you want live syncing of files:
+    # volumes:
+    #   - ./caps-backend:/var/www/html
     depends_on:
       - caps_mysql
     environment:
       DB_CONNECTION: mysql
-      DB_HOST: caps_mysql  # Ensure backend can connect to MySQL by using the service name
+      DB_HOST: caps_mysql
       DB_PORT: 3306
       DB_DATABASE: caps_db
       DB_USERNAME: kylo
@@ -34,7 +36,7 @@ services:
     networks:
       - caps_network
     ports:
-      - "80:5173"  # React app runs on port 5173 by default with Vite
+      - "80:5173"
     depends_on:
       - backend
 
@@ -59,7 +61,7 @@ services:
     container_name: phpmyadmin_container
     restart: always
     environment:
-      PMA_HOST: caps_mysql  # Update this to reference the caps_mysql service
+      PMA_HOST: caps_mysql
       PMA_USER: root
       PMA_PASSWORD: COEwebsite2025
     ports:

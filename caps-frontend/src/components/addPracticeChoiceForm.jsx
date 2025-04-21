@@ -1,5 +1,7 @@
-import React, { useState } from "react";
-import ConfirmModal from "./confirmModal"; 
+import React, { useState, useEffect } from "react";
+import ConfirmModal from "./confirmModal";
+import useWarnOnExit from "../hooks/UseWarnOnExit"; 
+import LoadingOverlay from "./loadingOverlay";
 
 const PracticeChoicesForm = ({ questionID, onComplete }) => {
   const [focusedChoice, setFocusedChoice] = useState(null);
@@ -9,7 +11,6 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
   const [error, setError] = useState(null);
   
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
-
   const [choices, setChoices] = useState([
     { choiceText: "", isCorrect: false, image: null },
     { choiceText: "", isCorrect: false, image: null },
@@ -18,6 +19,32 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
     { choiceText: "", isCorrect: false, image: null },
     { choiceText: "", isCorrect: false, image: null },
   ]);
+  const [isAdding, setIsAdding] = useState(false);
+  
+
+  useWarnOnExit(choices);
+
+  
+  const [toast, setToast] = useState({
+    message: "",
+    type: "",
+    show: false,
+  });
+  useEffect(() => {
+    if (toast.message) {
+      setToast((prev) => ({ ...prev, show: true }));
+  
+      const timer = setTimeout(() => {
+        setToast((prev) => ({ ...prev, show: false }));
+        setTimeout(() => {
+          setToast({ message: "", type: "", show: false });
+        }, 500);
+      }, 2500);
+  
+      return () => clearTimeout(timer);
+    }
+  }, [toast.message]);
+  
   const openImageModal = (imageSrc) => {
     setchoiceModalImage(imageSrc);
     setIsChoiceModalOpen(true);
@@ -43,10 +70,11 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
   };
 
   const handleChoiceImageUpload = (index, event) => {
-    const file = event.target.files[0]; // Get the selected file
+    const file = event.target.files[0]; 
     if (file) {
       const updatedChoices = [...choices];
-      updatedChoices[index].image = file; // Store as File object
+      updatedChoices[index].image = file; 
+      updatedChoices[index].choiceText = "";
       setChoices(updatedChoices);
     }
   };
@@ -70,15 +98,14 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
     }
   
     const token = localStorage.getItem("token");
-  
-    // Use FormData for file uploads
+    setIsAdding(true)
+
     const formData = new FormData();
     formData.append("questionID", questionID);
   
     choices.forEach((choice, index) => {
       formData.append(`choices[${index}][choiceText]`, choice.choiceText.trim());
-      formData.append(`choices[${index}][isCorrect]`, choice.isCorrect ? "1" : "0"); 
-  
+      formData.append(`choices[${index}][isCorrect]`, choice.isCorrect ? "1" : "0");
       if (choice.image instanceof File) {
         formData.append(`choices[${index}][image]`, choice.image);
       }
@@ -88,33 +115,56 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
       const response = await fetch(`${apiUrl}/questions/choices`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`, // Authorization is needed
+          Authorization: `Bearer ${token}`,
         },
-        body: formData, // Do not set Content-Type manually
+        body: formData,
       });
   
       const data = await response.json();
       if (response.ok) {
         console.log("Choices added successfully:", data);
+  
+        setToast({
+          message: "Question added successfully!",
+          type: "success",
+          show: true,
+        });
+  
         onComplete();
       } else {
         setError(data.message || "Failed to submit choices.");
       }
     } catch (error) {
       setError("Request failed. Please try again.");
+    } finally {
+      setIsAdding(false)
     }
   };
   
+  const handleSubmitClick = () => {
+    setError(null);
 
+    if (!questionID) {
+      setError("No question submitted yet.");
+      return;
+    }
+
+    if (!choices.every((choice) => choice.choiceText.trim() !== "" || choice.image)) {
+      setError("Each choice must have either text or an image.");
+      return;
+    }
+
+    if (!choices.some((choice) => choice.isCorrect)) {
+      setError("You must select one correct answer.");
+      return;
+    }
+    setShowConfirmModal(true);
+  };
 
   return (
-    <div className="relative flex">
+    <div className="flex">
       <div className="flex-1">
-        <div className="font-inter text-[14px] max-w-3xl mx-auto bg-white py-2 pl-4 shadow-lg rounded-t-md border border-[rgb(168,168,168)] relative text-gray-600 font-medium">
-          <span>Add Choices</span>
-        </div>
-
-        <div className="rounded-b w-full max-w-3xl sm:px-4 mx-auto p-4 bg-white shadow-lg border-[rgb(168,168,168)] border-t-0 border relative">
+        <div className="rounded-b w-full max-w-3xl sm:px-4 mx-auto p-4 bg-white shadow-lg border-color border-t-0 border relative">
           <div className="space-y-3 px-3 py-2">
 
             {choices.map((choice, index) => (
@@ -212,21 +262,37 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
             {/* Submit Button aligned right */}
             <div className="ml-3 flex flex-1 justify-end mt-7">
               <button
-                onClick={handleSubmitChoices}
+                onClick={handleSubmitClick}
                 className="cursor-pointer flex items-center gap-1 px-4 py-2 mt-4 sm:mt-0 bg-orange-500 text-white rounded-lg hover:bg-orange-600 ml-auto"
               >
                 <i className="bx bx-save text-[18px] hidden sm:inline-block"></i> 
                 <span className="text-[14px]">Submit</span>
               </button>
             </div>
+
+            {toast.message && (
+              <div
+                className={`fixed bottom-5 left-5  px-4 py-2 rounded shadow-lg text-sm text-white z-56
+                ${toast.type === "success" ? "bg-green-500" : "bg-red-500"}
+                ${toast.show ? "opacity-100" : "opacity-0"} transition-opacity duration-500 ease-in-out`}
+              >
+                {toast.message}
+              </div>
+            )}
+
           </div>
           {error && <p className="flex justify-center text-red-500">{error}</p>}
         </div>
+        {isAdding && <LoadingOverlay show={isAdding} />}
+
         {/* Confirmation Modal */}
         <ConfirmModal
             isOpen={showConfirmModal}
             onClose={() => setShowConfirmModal(false)}
-            onConfirm={handleSubmitChoices}
+            onConfirm={() => {
+              setShowConfirmModal(false);
+              handleSubmitChoices(); 
+            }}
             message="Are you sure you want to add this question?"
           />
       </div>

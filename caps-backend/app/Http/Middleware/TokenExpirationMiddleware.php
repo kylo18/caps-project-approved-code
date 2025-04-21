@@ -11,6 +11,10 @@ class TokenExpirationMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
+        if ($request->is('api/logout')) {
+            return $next($request);
+        }
+
         $token = $request->bearerToken();
         if (!$token) {
             return response()->json(['message' => 'Unauthorized'], 401);

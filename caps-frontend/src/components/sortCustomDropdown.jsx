@@ -31,8 +31,8 @@ const SortCustomDropdown = ({ name, value, onChange, options, placeholder }) => 
   };
 
   return (
-    <div className="flex items-center gap-2 text-[14px] w-full"> {/* ✅ Removed overflow-hidden */}
-      <div className="relative w-full max-w-full sm:min-w-[180px]" ref={dropdownRef}> {/* ✅ Ensure relative positioning */}
+    <div className="flex items-center gap-2 text-[14px] w-full">
+      <div className="relative w-full max-w-full sm:min-w-[180px]" ref={dropdownRef}>
         {/* Dropdown Button */}
         <button
           ref={buttonRef}

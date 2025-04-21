@@ -2,7 +2,7 @@ import SortCustomDropdown from "./sortCustomDropdown";
 
 const Sort = ({ sortOption, setSortOption, subSortOption, setSubSortOption }) => {
   const mainSortOptions = [
-    { value: "all", label: "All" },
+    { value: "", label: "All" },
     { value: "difficulty", label: "Difficulty" },
     { value: "coverage", label: "Coverage" },
     { value: "score", label: "Score" },
@@ -40,12 +40,11 @@ const Sort = ({ sortOption, setSortOption, subSortOption, setSubSortOption }) =>
 
       {sortOption && subSortOptions[sortOption] && (
         <SortCustomDropdown
-        
           name="subSortOption"
           value={subSortOption}
           onChange={(e) => setSubSortOption(e.target.value)}
           options={subSortOptions[sortOption]}
-          placeholder="Select"
+          placeholder="Select Option"
         />
       )}
     </div>

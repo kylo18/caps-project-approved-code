@@ -217,20 +217,31 @@ class QuestionController extends Controller
             ], 404);
         }
 
-        // Retrieve questions and decrypt the questionText
+        // Retrieve questions and decrypt the questionText and choiceText
         $questions = Question::with(['subject', 'choices'])
             ->where('subjectID', $subjectID)
             ->get()
             ->map(function ($question) {
                 try {
+                    // Decrypt the questionText
                     $question->questionText = Crypt::decryptString($question->questionText);
                 } catch (\Exception $e) {
                     $question->questionText = '[Decryption Error]';
                 }
 
+                // Decrypt the choiceText for each choice
+                $question->choices->map(function ($choice) {
+                    try {
+                        $choice->choiceText = Crypt::decryptString($choice->choiceText);
+                    } catch (\Exception $e) {
+                        $choice->choiceText = null;
+                    }
+                    return $choice;
+                });
+
                 // Append full image URL if an image exists
-                if ($question->image && !Str::startsWith($question->image, 'http')) {
-                    $question->image = url("storage/{$question->image}");
+                if ($question->image && !Str::startsWith($question->image, ['http://', 'https://'])) {
+                    $question->image = asset("storage/{$question->image}");
                 }
                 return $question;
             });
@@ -272,6 +283,91 @@ class QuestionController extends Controller
 
         return response()->json([
             'message' => 'Question deleted successfully.'
+        ], 200);
+    }
+
+    public function mySubjectQuestions($subjectID)
+    {
+        $user = Auth::user();
+
+        $subject = Subject::find($subjectID);
+
+        if (!$subject) {
+            return response()->json([
+                'message' => 'Subject not found.'
+            ], 404);
+        }
+
+        $questions = Question::with(['subject', 'choices'])
+            ->where('subjectID', $subjectID)
+            ->where('userID', $user->userID)
+            ->get()
+            ->map(function ($question) {
+                try {
+                    $question->questionText = Crypt::decryptString($question->questionText);
+                } catch (\Exception $e) {
+                    $question->questionText = '[Decryption Error]';
+                }
+
+                // Append full image URL if an image exists
+                if ($question->image && !Str::startsWith($question->image, 'http')) {
+                    $question->image = url("storage/{$question->image}");
+                }
+
+                // Decrypt the choiceText for each choice
+                $question->choices->map(function ($choice) {
+                    try {
+                        $choice->choiceText = Crypt::decryptString($choice->choiceText);
+                    } catch (\Exception $e) {
+                        $choice->choiceText = null;
+                    }
+                    return $choice;
+                });
+
+                return $question;
+            });
+
+        return response()->json([
+            'message' => 'Your questions for this subject retrieved successfully!',
+            'subject' => $subject->subjectName,
+            'data'    => $questions
+        ], 200);
+    }
+
+    public function updateStatus($questionID)
+    {
+        $user = Auth::user();
+
+        // Only Dean (roleID 4) and Program Chair (roleID 3) can approve questions
+        if (!in_array($user->roleID, [3, 4])) {
+            return response()->json([
+                'message' => 'Unauthorized. Only the Dean or Program Chair can approve questions.'
+            ], 403);
+        }
+
+        // Find the question
+        $question = Question::find($questionID);
+
+        if (!$question) {
+            return response()->json([
+                'message' => 'Question not found.'
+            ], 404);
+        }
+
+        if ($question->status !== 'pending') {
+            return response()->json([
+                'message' => 'Only questions with pending status can be approved.',
+                'current_status' => $question->status
+            ], 400);
+        }
+
+        // Update the status to "approved"
+        $question->status = 'approved';
+        $question->save();
+
+        return response()->json([
+            'message' => 'Question approved successfully!',
+            'question' => $question
         ], 200);
     }
 }

@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import ConfirmModal from "./confirmModal"; 
+import useWarnOnExit from "../hooks/UseWarnOnExit";
+import LoadingOverlay from "./loadingOverlay";
 
 const ExamChoicesForm = ({ questionID, onComplete }) => {
   const [focusedChoice, setFocusedChoice] = useState(null);
@@ -18,6 +20,11 @@ const ExamChoicesForm = ({ questionID, onComplete }) => {
     { choiceText: "", isCorrect: false, image: null },
     { choiceText: "", isCorrect: false, image: null },
   ]);
+
+  const [isAdding, setIsAdding] = useState(false);
+
+  useWarnOnExit(choices);
+
   const openImageModal = (imageSrc) => {
     setchoiceModalImage(imageSrc);
     setIsChoiceModalOpen(true);
@@ -43,10 +50,11 @@ const ExamChoicesForm = ({ questionID, onComplete }) => {
   };
 
   const handleChoiceImageUpload = (index, event) => {
-    const file = event.target.files[0]; // Get the selected file
+    const file = event.target.files[0];
     if (file) {
       const updatedChoices = [...choices];
-      updatedChoices[index].image = file; // Store as File object
+      updatedChoices[index].image = file; 
+      updatedChoices[index].choiceText = "";
       setChoices(updatedChoices);
     }
   };
@@ -70,6 +78,7 @@ const ExamChoicesForm = ({ questionID, onComplete }) => {
     }
   
     const token = localStorage.getItem("token");
+    setIsAdding(true)
   
     // Use FormData for file uploads
     const formData = new FormData();
@@ -102,17 +111,36 @@ const ExamChoicesForm = ({ questionID, onComplete }) => {
       }
     } catch (error) {
       setError("Request failed. Please try again.");
+    } finally {
+      setIsAdding(false)
     }
   };
+
+  const handleSubmitClick = () => {
+    setError(null);
+
+    if (!questionID) {
+      setError("No question submitted yet.");
+      return;
+    }
+
+    if (!choices.every((choice) => choice.choiceText.trim() !== "" || choice.image)) {
+      setError("Each choice must have either text or an image.");
+      return;
+    }
+
+    if (!choices.some((choice) => choice.isCorrect)) {
+      setError("You must select one correct answer.");
+      return;
+    }
+    setShowConfirmModal(true);
+  };
+
 
   return (
     <div className="relative flex">
       <div className="flex-1">
-        <div className="font-inter text-[14px] max-w-3xl mx-auto bg-white py-2 pl-4 shadow-lg rounded-t-md border border-[rgb(168,168,168)] relative text-gray-600 font-medium">
-          <span>Add Choices</span>
-        </div>
-
-        <div className="rounded-b w-full max-w-3xl sm:px-4 mx-auto p-4 bg-white shadow-lg border-[rgb(168,168,168)] border-t-0 border relative">
+        <div className="rounded-b w-full max-w-3xl sm:px-4 mx-auto p-4 bg-white shadow-lg border-color border-t-0 border relative">
           <div className="space-y-3 px-3 py-2">
 
             {choices.map((choice, index) => (
@@ -210,7 +238,7 @@ const ExamChoicesForm = ({ questionID, onComplete }) => {
             {/* Submit Button aligned right */}
             <div className="ml-3 flex flex-1 justify-end mt-7">
               <button
-                onClick={handleSubmitChoices}
+                onClick={handleSubmitClick}
                 className="cursor-pointer flex items-center gap-1 px-4 py-2 mt-4 sm:mt-0 bg-orange-500 text-white rounded-lg hover:bg-orange-600 ml-auto"
               >
                 <i className="bx bx-save text-[18px] hidden sm:inline-block"></i> 
@@ -220,13 +248,19 @@ const ExamChoicesForm = ({ questionID, onComplete }) => {
           </div>
           {error && <p className="flex justify-center text-red-500">{error}</p>}
         </div>
+
+        {isAdding && <LoadingOverlay show={isAdding} />}
+
         {/* Confirmation Modal */}
         <ConfirmModal
-            isOpen={showConfirmModal}
-            onClose={() => setShowConfirmModal(false)}
-            onConfirm={handleSubmitChoices}
-            message="Are you sure you want to add this question?"
-          />
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={() => {
+            setShowConfirmModal(false);
+            handleSubmitChoices(); 
+          }}
+          message="Are you sure you want to add this question?"
+        />
       </div>
     </div>
   );

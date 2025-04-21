@@ -9,10 +9,17 @@ const Layout = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+  const roleMap = {
+    1: "Student",
+    2: "Faculty",
+    3: "Program Chair",
+    4: "Dean",
+  };
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
-    if (user && user.roleID !== undefined) {
-      setRoleId(user.roleID);
+    if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
+      setRoleId(user.roleID ?? user.roleId);
     }
   }, []);
 
@@ -22,24 +29,23 @@ const Layout = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const roleTitle = role_id !== null && roleMap[role_id] ? roleMap[role_id] : "User";
+
   return (
-    <div className="bg-[rgb(238,238,238)]">
+    <div className="bg-[rgb(238,238,238)] min-h-screen">
       <div className="flex">
-        {/* Sidebar */}
         <Sidebar
           role_id={role_id}
           setSelectedSubject={setSelectedSubject}
           isExpanded={isExpanded}
           setIsExpanded={setIsExpanded}
         />
-
-        {/* Main content area that resizes dynamically */}
         <div
           className={`flex-1 flex flex-col transition-all duration-300 ${
             isMobile ? "ml-0" : isExpanded ? "ml-[180px]" : "ml-[64.5px]"
           }`}
         >
-          <Header title="Admin" />
+          <Header title={roleTitle} />
           <main className="p-4">
             <Outlet context={{ selectedSubject }} />
           </main>

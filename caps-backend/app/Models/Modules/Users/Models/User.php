@@ -71,7 +71,7 @@ class User extends Authenticatable
         return $this->roleID === 4;
     }
 
-    public function subjects(): BelongsToMany
+    public function subjects()
     {
         return $this->belongsToMany(Subject::class, 'faculty_subjects', 'facultyID', 'subjectID');
     }
