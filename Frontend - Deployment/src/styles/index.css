@@ -38,6 +38,10 @@ select option:hover {
   border-color: rgb(200,200,200);
 }
 
+.font-color-gray{
+  color: rgb(106, 118, 128);
+}
+
 /* Shimmer animation */
 @keyframes shimmer {
   0% {

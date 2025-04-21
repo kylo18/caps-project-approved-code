@@ -38,9 +38,9 @@ function App() {
           <Route path="dashboard" element={<AdminDashboard />} />
         </Route>
 
-        <Route path="/Users" element={<Layout />}>
+        <Route path="/users" element={<Layout />}>
           <Route index element={<Users />} />
-          <Route path="Users" element={<Users />} />
+          <Route path="users" element={<Users />} />
         </Route>
       </Routes>
     </Router>

@@ -59,7 +59,7 @@ const CustomDropdown = ({ label, name, value, onChange, options, placeholder }) 
         {isOpen && (
           <ul
             className={`rounded-sm absolute w-full bg-white border border-gray-300 shadow-md z-10 
-                        ${dropdownPosition === "bottom" ? "mt-1 top-full" : "mb-1 bottom-full"}`}
+              ${dropdownPosition === "bottom" ? "mt-1 top-full" : "mb-1 bottom-full"}`}
           >
             {options.map((option) => (
               <li

@@ -1,305 +1,172 @@
 import { useState, useRef, useEffect } from "react";
-import Toolbar from "./toolbar";
-import Button from "./button";
 
-export default function QuestionCard({ topRadius = true, subjectID, }) {
-  const [isFocused, setIsFocused] = useState(false);
-  const [selectedOption, setSelectedOption] = useState("Lemons");
-  const [image, setImage] = useState(null); // Stores uploaded image
-  const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false); // Controls image of choice modal
-  const [questionText, setQuestionText] = useState("");
-  const [choices, setChoices] = useState(
-    Array(6).fill({ text: "", image: null })
-  );
-  const editorRef = useRef(null);
-  const fileInputRef = useRef(null); // Ref for the file input
-  const [focusedChoice, setFocusedChoice] = useState(null);
-  const handleChoiceChange = (index, value) => {
-    const newChoices = [...choices];
-    newChoices[index] = value;
-    setChoices(newChoices);
-  };
-  const [score, setscore] = useState(1);
-  const [difficulty, setDifficulty] = useState("Easy");
-
-  const [choiceModalImage, setchoiceModalImage] = useState(null);
-  const [loading, setLoading] = useState(false);
+const Test = () => {
+  const [subject, setSubject] = useState("Calculus 1");
   const [coverage, setCoverage] = useState("Midterms");
+  const [numItems, setNumItems] = useState(50);
+  const [difficulty, setDifficulty] = useState({
+    easy: 25,
+    moderate: 50,
+    hard: 25,
+  });
 
-  const apiUrl = "http://172.20.10.3:8000/api";
+  const containerRef = useRef();
+  const buttonRef = useRef();
+  const [position, setPosition] = useState({ top: 440, left: 120 });
+  const moveCooldown = useRef(null);
 
+  // Keep difficulty total at 100%
+  const handleSliderChange = (level, value) => {
+    value = parseInt(value);
+    let otherLevels = Object.keys(difficulty).filter((key) => key !== level);
+    let remaining = 100 - value;
+    let newValues = {};
 
-  const openImageModal = (imageSrc) => {
-    setchoiceModalImage(imageSrc);
-    setIsChoiceModalOpen(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-  
-    if (selectedOption === null) {
-      console.error("Please select a correct answer.");
-      return;
+    if (remaining < 0) {
+      value = 100;
+      remaining = 0;
     }
-  
-    setLoading(true);
-  
-    const formData = new FormData();
-    formData.append("subjectID", subjectID);
-    formData.append("status", "pending");
-    formData.append("questionText", questionText);
-    formData.append("score", score);
-    formData.append("difficulty", difficulty.toLowerCase());
-    formData.append("coverage", coverage.toLowerCase()); // Laravel expects lowercase
-  
-    // Attach image file
-    if (image) {
-      // image currently stores Base64 string, we need FILE
-      const imgFile = fileInputRef.current.files[0];
-      if (imgFile) {
-        formData.append("image", imgFile);
-      }
-    }
-  
-    // Prepare choices properly
-    const formattedChoices = choices.map((choice, index) => ({
-      type: choice.image ? "image" : "text",
-      value: choice.image || choice.text, // Base64 or text
-      isCorrect: index === selectedOption,
-    }));
-  
-    formData.append("choices", JSON.stringify(formattedChoices));
-  
-    try {
-      const response = await fetch(`${apiUrl}/question/add`, {
-        method: "POST",
-        body: formData,
-      });
-  
-      if (response.ok) {
-        console.log("✅ Question added successfully!");
-        // Reset the form
-        setQuestionText("");
-        setChoices(Array(6).fill({ text: "", image: null }));
-        setImage(null);
-        setSelectedOption(null);
-        setscore(1);
-        setDifficulty("Easy");
-        setCoverage("Midterms");
-      } else {
-        const errorData = await response.json();
-        console.error("❌ Failed:", errorData);
-      }
-    } catch (error) {
-      console.error("❌ Error adding question:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  
-  // Helper function: Converts image file to Base64
-  const convertImageToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result); // Base64 result
-      reader.onerror = (error) => reject(error);
+
+    const avg = Math.floor(remaining / 2);
+    newValues[otherLevels[0]] = avg;
+    newValues[otherLevels[1]] = remaining - avg;
+
+    setDifficulty({
+      ...newValues,
+      [level]: value,
     });
   };
 
-  // Apply formatting without losing focus
-  const handleFormat = (command, setState) => {
-    document.execCommand(command, false, null);
-    setState(document.queryCommandState(command));
-    editorRef.current.focus(); // Keep focus after applying format
-  };
+  // Runaway Button Logic
+  const runAway = (e) => {
+    if (moveCooldown.current) return;
 
-  // Update formatting state when selection changes
-  const checkFormatting = () => {
-    setTimeout(() => {
-      setIsBold(document.queryCommandState("bold"));
-      setIsItalic(document.queryCommandState("italic"));
-      setIsUnderline(document.queryCommandState("underline"));
-    }, 10); // Small delay to prevent selection loss issues
-  };
+    moveCooldown.current = setTimeout(() => {
+      const button = buttonRef.current;
+      const container = containerRef.current;
 
-  useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.addEventListener("focus", () => setIsFocused(true));
-      editorRef.current.addEventListener("blur", () => setIsFocused(false));
-      editorRef.current.addEventListener("mouseup", checkFormatting);
-      editorRef.current.addEventListener("keyup", checkFormatting);
-    }
-  }, []);
+      if (!button || !container) return;
 
-  // Handle image selection
-  const handleImageUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImage(reader.result); // Set the image preview
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+      const btnRect = button.getBoundingClientRect();
+      const contRect = container.getBoundingClientRect();
 
-  const handleChoiceImageUpload = (event, index) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const newChoices = [...choices];
-        newChoices[index] = { text: "", image: reader.result }; // Set image and clear text
-        setChoices(newChoices);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      const btnCenterX = btnRect.left + btnRect.width / 2;
+      const btnCenterY = btnRect.top + btnRect.height / 2;
 
-  const removeChoiceImage = (index) => {
-    const newChoices = [...choices];
-    newChoices[index] = { text: "", image: null }; // Reset to default
-    setChoices(newChoices);
-  };
-  
-  const validatescore = (value, setscore) => {
-    if (value === '') {
-      setscore('');
-    } else {
-      const num = parseInt(value);
-      if (!isNaN(num)) {
-        setscore(Math.max(1, num));
+      const dx = mouseX - btnCenterX;
+      const dy = mouseY - btnCenterY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < 120) {
+        const moveX = (Math.random() - 0.5) * 200;
+        const moveY = (Math.random() - 0.5) * 100;
+
+        let newLeft = position.left + moveX;
+        let newTop = position.top + moveY;
+
+        const maxLeft = contRect.width - btnRect.width;
+        const maxTop = contRect.height - btnRect.height;
+
+        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+
+        setPosition({ left: newLeft, top: newTop });
       }
-    }
+
+      clearTimeout(moveCooldown.current);
+      moveCooldown.current = null;
+    }, 30);
   };
 
-return (
-  <div className="relative flex">
-    <div className="flex-1">
-      {/* Header */}
-      <div className="font-inter text-[14px] max-w-3xl mx-auto bg-white py-2 pl-4 shadow-lg rounded-t-md border border-[rgb(168,168,168)] relative text-gray-600 font-medium">
-        <span>Questions: 1</span>
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={runAway}
+      className="relative max-w-full mx-auto p-4 bg-white rounded-xl shadow-md h-[550px] overflow-hidden"
+    >
+      <h2 className="text-lg font-semibold text-gray-800 mb-4">Customize Exam</h2>
+
+      {/* Subject Dropdown */}
+      <label className="block text-sm text-gray-700 mb-1">Select Subject</label>
+      <select
+        value={subject}
+        onChange={(e) => setSubject(e.target.value)}
+        className="w-full p-2 border border-gray-300 rounded mb-4"
+      >
+        <option>Calculus 1</option>
+        <option>Physics</option>
+        <option>Chemistry</option>
+      </select>
+
+      {/* Coverage Toggle */}
+      <label className="block text-sm text-gray-700 mb-1">Select Coverage</label>
+      <div className="flex gap-2 mb-4">
+        {["Midterms", "Finals"].map((item) => (
+          <button
+            key={item}
+            onClick={() => setCoverage(item)}
+            className={`flex-1 py-2 rounded text-white font-medium ${
+              coverage === item ? "bg-orange-500" : "bg-orange-200"
+            }`}
+          >
+            {item}
+          </button>
+        ))}
       </div>
 
-      {/* Question Card */}
-      <div
-        className={`w-full max-w-3xl sm:px-4 mx-auto p-4 bg-white shadow-lg border-[rgb(168,168,168)] border-t-0 border relative ${
-          topRadius ? "rounded-md" : "rounded-b-md"
-        }`}>
+      {/* Number of Items */}
+      <label className="block text-sm text-gray-700 mb-1">Number of Items</label>
+      <input
+        type="number"
+        value={numItems}
+        onChange={(e) => setNumItems(parseInt(e.target.value))}
+        className="w-full p-2 border border-gray-300 rounded mb-4"
+        min={1}
+      />
 
-        {/* Answer Options */}
-        <div className="mt-3 space-y-3 p-3">
-          {choices.map((choice, index) => (
-            <div key={index} className="flex items-center space-x-2 relative">
-              {/* Radio Button */}
-              <input
-                type="radio"
-                name="correctAnswer"
-                checked={selectedOption === index}
-                onChange={() => setSelectedOption(index)}
-                className="cursor-pointer size-5 accent-orange-500"
-              />
+      {/* Difficulty Settings */}
+      <label className="block text-sm text-gray-700 mb-1">Difficulty Settings</label>
+      <select className="w-full p-2 border border-gray-300 rounded mb-4">
+        <option>Custom (must equal to 100%)</option>
+      </select>
 
-              {/* Text Input (Hidden when image is present) */}
-              {!choice.image && (
-                <input
-                type="text"
-                value={choice.text}
-                onChange={(e) => handleChoiceChange(index, e.target.value)}
-                placeholder={`Choice ${index + 1}`}
-                className="text-[14px] border-0 hover:border-b border-gray-300 p-2 w-[90%] rounded-none focus:outline-none focus:border-b-2 focus:border-b-orange-500 hover:border-b-gray-500 transition-all duration-100"
-                onFocus={() => setFocusedChoice(index)}
-                onBlur={(e) => {
-                  if (!e.relatedTarget || !e.relatedTarget.classList.contains("image-upload-btn")) {
-                    setFocusedChoice(null);
-                  }
-                }}
-                required
-              />
-              )}
-
-              {/* Image Upload Button (Only visible when input is focused) */}
-              {!choice.image && focusedChoice === index && (
-                <>
-                  <button
-                    onClick={() => document.getElementById(`fileInput-${index}`).click()}
-                    className="text-[24px] text-[rgb(120,120,120)] cursor-pointer px-2 py-1 rounded-md hover:text-gray-900 image-upload-btn"
-                  >
-                    <i className="bx bx-image-alt"></i>
-
-                  </button>
-                  <input
-                    id={`fileInput-${index}`}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleChoiceImageUpload(e, index)}
-                  />
-                </>
-              )}
-              
-
-              {/* Show Image If Added */}
-              {choice.image && (
-                <div className="relative">
-                  <img
-                    src={choice.image}
-                    alt={`Choice ${index + 1}`}
-                    className="size-20 object-cover rounded-md hover:cursor-pointer"
-                    onClick={() => {
-                      setchoiceModalImage(choice.image); 
-                      setIsChoiceModalOpen(true); 
-                    }}
-                />
-                  {/* Remove Image Button */}
-                  <button
-                    onClick={() => {
-                      removeChoiceImage(index);
-                      setFocusedChoice(null); // Ensure focus is reset when removing the image
-                    }}
-                  className="hover:cursor-pointer text-white absolute top-4 right-4 bg-black opacity-70 px-[2px] pt-[2px] rounded-full text-xs transform translate-x-1/2 -translate-y-1/2"
-                  >
-                    <i className="bx bx-x text-[20px]"></i>
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {/* Image Modal (Full Size) */}
-          {isChoiceModalOpen && (
-            <div
-              className="fixed inset-0 bg-black lightbox-bg flex items-center justify-center z-50"
-              onClick={() => setIsChoiceModalOpen(false)}
-            >
-              <div className="relative max-w-full max-h-full">
-                <img
-                  src={choiceModalImage}
-                  alt="Full View"
-                  className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="w-full h-[1px] bg-[rgb(168,168,168)] mt-5"></div>
-        {/* Submit Button aligned right */}
-        <div className="ml-3 flex flex-1 justify-end">
-          <Button
-            text="Submit"
-            textres="Submit"
-            icon="bx bx-save"
-            onClick={handleSubmit}
+      {["easy", "moderate", "hard"].map((level) => (
+        <div key={level} className="flex items-center justify-between mb-3">
+          <span className="capitalize w-20 text-sm text-gray-600">{level}</span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={difficulty[level]}
+            onChange={(e) => handleSliderChange(level, e.target.value)}
+            className="flex-1 mx-2 accent-orange-500"
           />
+          <input
+            type="number"
+            value={difficulty[level]}
+            onChange={(e) => handleSliderChange(level, e.target.value)}
+            className="w-14 p-1 border border-gray-300 rounded text-center"
+          />
+          <span className="ml-1 text-sm">%</span>
         </div>
-      </div>
+      ))}
+
+      {/* Runaway Button */}
+      <button
+        ref={buttonRef}
+        className="absolute py-2 px-4 bg-orange-500 text-white font-semibold rounded hover:bg-orange-600 transition-all duration-300 ease-in-out"
+        style={{
+          top: `${position.top}px`,
+          left: `${position.left}px`,
+          transition: "top 0.3s ease, left 0.3s ease",
+        }}
+      >
+        ✓ Done
+      </button>
     </div>
-  </div>
+  );
+};
 
-);
-}
-
-
+export default Test;

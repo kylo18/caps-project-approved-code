@@ -93,7 +93,7 @@ const Login = () => {
       {/* Left Side (Title + Description at Bottom) */}
       <div className="flex flex-col items-center justify-start h-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 pt-12">
         {/* Horizontal Title for <lg */}
-        <div className="lg:hidden text-center -mt-37 sm:-mt-50 md:-mt-54 min-w-[833px]:-mt-70">
+        <div className="lg:hidden text-center -mt-45 sm:-mt-50 md:-mt-54 min-w-[833px]:-mt-70">
           <h1 className="text-white font-bold text-[22px] sm:text-[30px] leading-snug tracking-wide">
             COMPREHENSIVE ASSESSMENT
             <br />
@@ -130,7 +130,7 @@ const Login = () => {
       </div>
 
       {/* Right Side (Login Form) */}
-      <div className="w-[85%] flex flex-col items-center mt-15 justify-center lg:px-4 lg:w-full lg:max-w-md lg:mr-30">
+      <div className="w-[85%] flex flex-col items-center justify-center lg:px-4 lg:w-full lg:max-w-md lg:mr-30">
         <h2 className="text-xl font-bold">LOG IN ACCOUNT</h2>
         <p className="text-gray-500 text-sm mt-2 justify-center text-center">
           Welcome back! Please enter your ID number and password to access your account.
@@ -191,7 +191,7 @@ const Login = () => {
           </div>
 
           {/* Login Button */}
-          <div className="flex items-center w-1/2 justify-center mx-auto">
+          <div className="flex items-center w-1/3 justify-center mx-auto">
             <button type="submit"
               onClick={handleLogin}
               className="mt-2 w-full bg-orange-500 text-white py-2 rounded hover:bg-orange-600">
@@ -199,13 +199,12 @@ const Login = () => {
             </button>
           </div>
           
-
           {/* Register Link */}
           <p className="mt-4 text-[14px] text-gray-600 justify-center text-center">
             Don’t have an account?{" "}
-            <a href="#" className="text-orange-500 hover:underline">
+            <span onClick={() => navigate("/register")} className="text-orange-500 hover:underline">
               Register here
-            </a>
+            </span>
           </p>
 
           {/*<div className="px-4 text-sm text-gray-600 justify-center text-center absolute bottom-0 left-0 right-0">

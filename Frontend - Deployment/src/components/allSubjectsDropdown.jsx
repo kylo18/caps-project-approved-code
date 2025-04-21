@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import Button from "./button";
 import { useNavigate } from "react-router-dom";  
 import LoadingOverlay from "./loadingOverlay";
+import RegisterDropDown from "./registerDropDown";
 
 const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, setIsSubjectFocused, homePath }) => {
   const [subjects, setSubjects] = useState([]);
@@ -32,6 +33,8 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
 
   const [dropdownDirection, setDropdownDirection] = useState("down"); // "down" or "up"
 
+  const [selectedProgramID, setSelectedProgramID] = useState("");
+
   const handleEditClick = (subject) => {
     setEditingSubject(subject.subjectID);
     setEditedSubject({ subjectCode: subject.subjectCode, subjectName: subject.subjectName});
@@ -60,8 +63,8 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
   
   const handleSaveEdit = async (subjectID) => {
     const token = localStorage.getItem("token");
-
-    setEditingSubject(null); 
+  
+    setEditingSubject(null);
     setIsEditing(true);
   
     try {
@@ -71,33 +74,35 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify(editedSubject),
+        body: JSON.stringify({
+          subjectCode: editedSubject.subjectCode,
+          subjectName: editedSubject.subjectName,
+          programID: editedSubject.programID,
+        }),
       });
   
-      if (response.ok) {
-        const result = await response.json();  // Optionally, handle response data if needed
+      const result = await response.json();
   
+      if (response.ok) {
         setSubjects((prevSubjects) =>
           prevSubjects.map((subject) =>
-            subject.subjectID === subjectID ? { ...subject, ...editedSubject } : subject
+            subject.subjectID === subjectID ? { ...subject, ...result.data } : subject
           )
         );
         setFilteredSubjects((prevSubjects) =>
           prevSubjects.map((subject) =>
-            subject.subjectID === subjectID ? { ...subject, ...editedSubject } : subject
+            subject.subjectID === subjectID ? { ...subject, ...result.data } : subject
           )
         );
-  
       } else {
-        console.error("Failed to update subject");
+        console.error("Failed to update subject:", result.message);
       }
     } catch (error) {
       console.error("Error updating subject:", error);
     } finally {
-      setIsEditing(false); 
+      setIsEditing(false);
     }
   };
-  
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   
@@ -134,8 +139,6 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
     }
   };
   
-  
-  
   useEffect(() => {
     fetchSubjects();
   }, []);
@@ -164,7 +167,6 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
         return;
       }
   
-      // Sort subjects alphabetically by subjectCode
       const sortedSubjects = [...data.subjects].sort((a, b) =>
         a.subjectCode.localeCompare(b.subjectCode)
       );
@@ -269,6 +271,30 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
     setLocalSelectedSubject(subject);
   };
 
+  const [programs, setPrograms] = useState([]);
+
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      const token = localStorage.getItem("token");
+
+      try {
+        const res = await fetch(`${apiUrl}/programs`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setPrograms(data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching programs:", err);
+      }
+    };
+
+    fetchPrograms();
+  }, []);
+
   return (
     <div className="-mt-2">
       <li
@@ -288,8 +314,8 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
       >
         <i className={`bx ${item.icon} text-2xl`}></i>
         <span
-          className={`text-[14px] font-semibold transition-all duration-100 ease-in-out ${
-            isExpanded ? "opacity-100 ml-0" : "opacity-0 -ml-5"
+          className={`text-sm font-semibold transition-all ease-in-out duration-150 ${
+            isExpanded ? "opacity-100 ml-0 visible pointer-events-auto" : "opacity-0 ml-0 invisible pointer-events-none"
           }`}
         >
           Subjects
@@ -298,6 +324,7 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
           <i
             className={`bx ${isOpen ? "bxs-chevron-down" : "bxs-chevron-down"} text-[22px] ml-3 transition-transform duration-300 ease-in-out ${
               isOpen ? "rotate-180" : "rotate-0"
+              
             }`}
           ></i>
         )}
@@ -305,10 +332,11 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
 
       {/* Dropdown Content */}
       <div
-        className={`flex flex-col h-[400px] mt-2 transition-all duration-0 ease-in-out ${
-          isOpen ? "opacity-100" : "max-h-0 opacity-0"
-        } overflow-hidden`}
+        className={`flex flex-col mt-2 overflow-hidden transition-all duration-300 ease-in-out ${
+          isOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
+        }`}
       >
+
 
         <div className="w-full mx-auto mt-2 flex items-center gap-1">
           <input
@@ -326,10 +354,13 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
             </div>
         </div>
 
+
         <ul
           ref={listRef}
-          className="ml-[3px] flex-grow overflow-y-auto custom-scrollbar pr-2 transition-all duration-300 ease-in-out
-            text-left text-[14px] font-semibold mt-2 w-full mx-auto text-[rgb(78,78,78)]"
+          className={`ml-[3px] flex-grow overflow-y-auto custom-scrollbar pr-2 transition-all duration-300 ease-in-out
+            text-left text-[14px] font-semibold mt-2 w-full mx-auto text-[rgb(78,78,78)]
+            ${!isExpanded ? 'hidden' : ''}
+          `}
         >
           {subjectLoading ? (
             <li className="p-2 text-[rgb(168,168,168)] text-[14px] text-center animate-pulse">
@@ -356,7 +387,7 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
                 <span
                     className="flex-1 ml-1 cursor-pointer break-all"
                 >
-                  {subject.subjectCode}
+                  {subject.programName} - {subject.subjectCode}
                 </span>
 
                 {/* 3-dot menu (visible only on hover) */}
@@ -373,9 +404,8 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
                   onClick={(e) => {
                     e.stopPropagation();
                     const rect = e.currentTarget.getBoundingClientRect();
-                    const menuHeight = 80; // Approximate height of dropdown
+                    const menuHeight = 80;
                   
-                    // Check if there's space below, otherwise open upwards
                     const spaceBelow = window.innerHeight - rect.bottom;
                     const direction = spaceBelow < menuHeight ? "up" : "down";
                   
@@ -412,12 +442,13 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
           </li>
           )}
         </ul>
+
         {openMenuID && dropdownSubject && (
           <div
             className="absolute z-50 w-28 bg-white rounded shadow-md"
             style={{
               top: dropdownDirection === "down" ? dropdownPosition.y + 4 : dropdownPosition.y - 80,
-              left: dropdownPosition.x - 0, // Align left of button
+              left: dropdownPosition.x - 0, 
             }}
             onMouseLeave={() => setOpenMenuID(null)}
           >
@@ -454,8 +485,10 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
       {editingSubject && (
         <div className="fixed inset-0 z-56 flex items-center justify-center lightbox-bg">
           <div className="bg-white rounded-md p-6 w-[90%] max-w-sm shadow-lg">
-          <h2 className="text-[16px] font-semibold mb-5 text-gray-700">Edit Subject</h2>
+            <h2 className="text-[16px] font-semibold mb-5 text-gray-700">Edit Subject</h2>
+            
             <div>
+              {/* Subject Name Input */}
               <div>
                 <input
                   type="text"
@@ -467,9 +500,11 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
                   placeholder="Enter subject name"
                 />
                 {!editedSubject.subjectName && (
-                  <p className="text-sm text-red-500 mt-1"> Name is required.</p>
+                  <p className="text-sm text-red-500 mt-1">Name is required.</p>
                 )}
               </div>
+
+              {/* Subject Code Input */}
               <div>
                 <input
                   type="text"
@@ -477,14 +512,37 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
                   onChange={(e) =>
                     setEditedSubject((prev) => ({ ...prev, subjectCode: e.target.value }))
                   }
-                  className="open-sans mt-3 text-[13px] border-0 hover:border-b border-b border-[rgb(168,168,168) py-2 w-full rounded-none focus:outline-none focus:border-b-2 focus:border-b-orange-500 hover:border-b-gray-500 transition-all duration-100"
+                  className="open-sans mt-3 text-[13px] border-0 hover:border-b border-b border-[rgb(168,168,168)] py-2 w-full rounded-none focus:outline-none focus:border-b-2 focus:border-b-orange-500 hover:border-b-gray-500 transition-all duration-100"
                   placeholder="Enter subject code"
                 />
                 {!editedSubject.subjectCode && (
-                  <p className="text-sm text-red-500 mt-1"> Code is required.</p>
+                  <p className="text-sm text-red-500 mt-1">Code is required.</p>
                 )}
                 {editedSubject.subjectCode.length > 20 && (
-                  <p className="text-sm text-red-500 mt-1"> Code must be 20 characters or less.</p>
+                  <p className="text-sm text-red-500 mt-1">Code must be 20 characters or less.</p>
+                )}
+              </div>
+
+              {/* Program Selection Dropdown */}
+              <div className="mt-3">
+                <label className="text-sm text-gray-700">Select Program</label>
+                <select
+                  value={editedSubject.programID}
+                  onChange={(e) =>
+                    setEditedSubject((prev) => ({ ...prev, programID: e.target.value }))
+                  }
+                  className="mt-2 text-[13px] w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">Select a Program</option>
+                  {/* Add the programs dynamically */}
+                  {programs.map((program) => (
+                    <option key={program.programID} value={program.programID}>
+                      {program.programName}
+                    </option>
+                  ))}
+                </select>
+                {!editedSubject.programID && (
+                  <p className="text-sm text-red-500 mt-1">Program is required.</p>
                 )}
               </div>
             </div>
@@ -503,16 +561,18 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
                 onClick={async () => {
                   const isNameValid = editedSubject.subjectName.trim() !== "";
                   const isCodeValid =
-                    editedSubject.subjectCode.trim() !== "" &&
-                    editedSubject.subjectCode.length <= 20;
+                    editedSubject.subjectCode.trim() !== "" && editedSubject.subjectCode.length <= 20;
+                  const isProgramValid = editedSubject.programID !== "";
 
-                  if (!isNameValid || !isCodeValid) return;
+                  if (!isNameValid || !isCodeValid || !isProgramValid) return;
+
                   await handleSaveEdit(editedSubject.subjectID);
                   setToast({
                     message: "Subject edited successfully",
                     type: "success",
                     show: true,
-                  });;
+                  });
+                  setEditingSubject(null); // Optionally close the modal
                 }}
               />
             </div>
@@ -565,14 +625,19 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
     )}
 
     {showAddModal && (
-      <div className="fixed inset-0 flex items-center justify-center lightbox-bg">
-        <div className="bg-white rounded-md p-6 w-[90%] max-w-sm shadow-lg">
-          <h2 className="text-[16px] font-semibold mb-5 text-gray-700">Add A New Subject</h2>
-          <div>
+      <div className="z-100 fixed inset-0 flex flex-col items-center justify-center lightbox-bg">
+        <div className="font-inter text-[14px] w-full max-w-sm mx-auto bg-white py-2 pl-4 rounded-t-md border border-color relative text-gray-700 font-medium">
+          <span>Add a Subject</span>
+        </div>
+
+        <div className="w-full max-w-sm sm:px-4 mx-auto p-2 bg-white border-color border-t-0 border relative rounded-b-md">
+          {/* Subject Name */}
+          <div className="mb-4">
+            <span className="block mb-2 text-[12px] font-color-gray">Name</span>
             <input
               type="text"
-              className="open-sans text-[13px] border-0 hover:border-b border-b border-[rgb(168,168,168)] py-2 w-full rounded-none focus:outline-none focus:border-b-2 focus:border-b-orange-500 hover:border-b-gray-500 transition-all duration-100"
-              placeholder="Enter subject name"
+              className="cursor-text mb-2 rounded-full w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-orange-500"
+              placeholder="Enter Subject Name"
               value={newSubjectName}
               onChange={(e) => setNewSubjectName(e.target.value)}
             />
@@ -580,13 +645,15 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
               <p className="text-sm text-red-500 mt-1">Name is required.</p>
             )}
           </div>
-          <div>
+
+          {/* Subject Code */}
+          <div className="mb-4">
+            <span className="block mb-2 text-[12px] font-color-gray">Code</span>
             <input
               type="text"
-              className="mt-3 open-sans text-[13px] border-0 hover:border-b border-b border-[rgb(168,168,168)]  py-2 w-full rounded-none focus:outline-none focus:border-b-2 focus:border-b-orange-500 hover:border-b-gray-500 transition-all duration-100"
+              className="cursor-text mb-2 rounded-full w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-orange-500"
               placeholder="Enter Subject Code (e.g. CPE112)"
               value={newSubjectCode}
-              
               onChange={(e) => setNewSubjectCode(e.target.value)}
             />
             {!newSubjectCode && (
@@ -597,26 +664,55 @@ const SideBarDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, 
             )}
           </div>
 
+          {/* Program Selection */}
+          <div className="mb-4">
+            <span className="block mb-2 text-[12px] font-color-gray">Program</span>
+            <select
+              className="rounded-full w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-orange-500"
+              value={selectedProgramID}
+              onChange={(e) => setSelectedProgramID(e.target.value)}
+            >
+              <option value="">-- Select Program --</option>
+              {programs.map((program) => (
+                <option key={program.programID} value={program.programID}>
+                  {program.programName}
+                </option>
+              ))}
+            </select>
+            {!selectedProgramID && (
+              <p className="text-sm text-red-500 mt-1">Program selection is required.</p>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="-mx-2 sm:-mx-4 h-[0.5px] bg-[rgb(200,200,200)] mt-6 mb-3" />
+
+          {/* Buttons */}
           <div className="mt-4 flex justify-end gap-2">
             <button 
-              className="cursor-pointer flex items-center gap-1 px-2 py-1.5 border rounded-lg text-gray-700 hover:bg-gray-200"
+              className="cursor-pointer px-2 py-1.5 border rounded-lg text-gray-700 hover:bg-gray-200"
               onClick={() => {
                 setNewSubjectName('');
                 setNewSubjectCode('');
+                setSelectedProgramID('');
                 setShowAddModal(false);
               }}
             >
               <span className="text-[16px] px-1">Cancel</span>
             </button>
-            
+
             <Button 
-              text="Add" 
-              textres="Add" 
-              icon="bx bx-plus"  
+              text="Add"
+              icon="bx bx-plus"
               onClick={async () => {
-                const isNameValid = newSubjectName.trim() !== "";
-                const isCodeValid = newSubjectCode.trim() !== "" && newSubjectCode.length <= 20;
-                if (!isNameValid || !isCodeValid) return;
+                const valid =
+                  newSubjectName.trim() !== "" &&
+                  newSubjectCode.trim() !== "" &&
+                  newSubjectCode.length <= 20 &&
+                  selectedProgramID;
+
+                if (!valid) return;
+
                 await handleAddSubject();
                 setToast({
                   message: "Subject added successfully",

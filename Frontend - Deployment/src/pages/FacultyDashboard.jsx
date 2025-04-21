@@ -260,7 +260,8 @@ const FacultyDashboard = () => {
           <div className="py-6 w-full">
             <div className="w-full">
               <SubjectCard
-                subject={selectedSubject.subjectName}
+                subjectName={selectedSubject.subjectName}
+                subjectID={selectedSubject.subjectID}
                 university="JRMSU"
                 location="Dapitan City"
                 imageUrl={selectedSubject.imageUrl || "https://via.placeholder.com/60"}
@@ -493,7 +494,7 @@ const FacultyDashboard = () => {
                             </div>
                           </div>
 
-                        {/* Image Preview */}
+                        {/* Image Preview 
                         {submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image && (
                           <div className="hover:opacity-80 mt-3 relative inline-block max-w-[300px]">
                             <img 
@@ -503,7 +504,7 @@ const FacultyDashboard = () => {
                               onClick={() => setisQuestionModalOpen(true)}
                             />
                           </div>
-                        )}
+                        )}*/}
                         
                         {isQuestionModalOpen && (
                           <div

@@ -1,9 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
+import PracticeExamConfig from "./practiceExamConfig";
 
-const SubjectCard = ({ subject, location, activeIndex, setActiveIndex, isLoading }) => {
+const SubjectCard = ({subjectName, subjectID, location, activeIndex, setActiveIndex, isLoading }) => {
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const tabRefs = useRef([]);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (tabRefs.current[activeIndex]) {
@@ -14,6 +29,10 @@ const SubjectCard = ({ subject, location, activeIndex, setActiveIndex, isLoading
       });
     }
   }, [activeIndex]);
+
+  const handleAssignClick = () => {
+    setIsFormOpen(true);
+  };
 
   const SkeletonLoader = () => (
     <div className="z-51 h-37 -mt-3 sm:h-40 relative bg-white px-4 pt-4 rounded-sm shadow-sm border border-gray-300 overflow-hidden">
@@ -33,9 +52,31 @@ const SubjectCard = ({ subject, location, activeIndex, setActiveIndex, isLoading
         <SkeletonLoader />
       ) : (
         <div className="z-51 h-37 -mt-3 sm:h-40 relative bg-white px-4 pt-4 rounded-sm shadow-sm border border-gray-300 overflow-hidden">
-          <button className="lg:hidden sm:absolute absolute top-2 right-2 hover:bg-gray-200 cursor-pointer size-8 flex items-center justify-center border border-gray-400 rounded-sm text-2xl">
+          <button ref={dropdownRef}
+            className="lg:hidden sm:absolute absolute top-2 right-2 hover:bg-gray-200 cursor-pointer size-8 flex items-center justify-center border border-gray-400 rounded-sm text-2xl"
+            onClick={() => setShowDropdown(prev => !prev)}
+          >
             <i className="bx bx-dots-horizontal-rounded text-gray-500"></i>
           </button>
+          
+          {showDropdown && (
+            <div className="absolute top-12 right-2 bg-white border border-gray-300 rounded-md shadow-md w-30 z-50">
+              <button
+                onClick={handleAssignClick}
+                className="cursor-pointer text-[14px] block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-200 transition duration-200 ease-in-out rounded-t-md"
+              >
+                Assign
+              </button>
+              <button
+                onClick={() => {
+                  setShowDropdown(false);
+                }}
+                className="cursor-pointer text-[14px] block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-200 transition duration-200 ease-in-out rounded-b-md"
+              >
+                Preview
+              </button>
+            </div>
+          )}
 
           <div className="flex items-center">
             <img
@@ -44,7 +85,7 @@ const SubjectCard = ({ subject, location, activeIndex, setActiveIndex, isLoading
               className="size-16 rounded-md border border-gray-300 object-cover mr-5"
             />
             <div className="flex flex-wrap flex-col">
-              <h1 className="text-[15px] md:text-[21px] font-bold break-words">{subject}</h1>
+              <h1 className="text-[15px] md:text-[21px] font-bold break-words">{subjectName}</h1>
               <div className="flex gap-2 mt-1 text-gray-500">
                 <i className="bx bxs-school text-lg"></i>
                 <p className="text-sm font-semibold">JRMSU • {location}</p>
@@ -93,20 +134,24 @@ const SubjectCard = ({ subject, location, activeIndex, setActiveIndex, isLoading
             </div>
 
             <div className="z-51 flex gap-3 mt-4 md:mt-3 md:relative md:right-0 fixed bottom-5 right-5">
-              <button className="shadow-md cursor-pointer items-center gap-2 px-4 py-2 border border-orange-400 rounded-md text-orange-600 bg-orange-100 hover:bg-orange-200 hidden lg:flex">
-                <i className="bx bxs-time text-lg"></i>
+              <button onClick={handleAssignClick} className="cursor-pointer items-center gap-2 px-4 py-2 border border-orange-400 rounded-md text-orange-600 bg-orange-100 hover:bg-orange-200 hidden lg:flex">
+                <i className="bx bx-cog text-lg"></i>
                 <span className="text-[14px]">Assign</span>
               </button>
-              <button className="shadow-md cursor-pointer items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 hidden lg:flex">
+              <button
+               className=" cursor-pointer items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 hidden lg:flex">
                 <i className="bx bxs-show text-lg"></i>
                 <span className="text-[14px]">Preview</span>
               </button>
             </div>
-
-
           </div>
         </div>
       )}
+      <PracticeExamConfig
+        isFormOpen={isFormOpen}
+        setIsFormOpen={setIsFormOpen}
+        subjectID={subjectID}
+      />
     </div>
   );
 };
