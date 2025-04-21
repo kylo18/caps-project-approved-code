@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ConfirmModal from "./confirmModal";
-import useWarnOnExit from "../hooks/UseWarnOnExit"; 
+import WarnOnExit from "../hooks/WarnOnExit";
 import LoadingOverlay from "./loadingOverlay";
 
 const PracticeChoicesForm = ({ questionID, onComplete }) => {
@@ -22,7 +22,7 @@ const PracticeChoicesForm = ({ questionID, onComplete }) => {
   const [isAdding, setIsAdding] = useState(false);
   
 
-  useWarnOnExit(choices);
+  WarnOnExit(choices);
 
   
   const [toast, setToast] = useState({

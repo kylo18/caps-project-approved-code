@@ -41,7 +41,25 @@ function Register() {
   };
   
 
-  
+  useEffect(() => {
+    if (userCode.trim() !== '') {
+      const delayDebounceFn = setTimeout(() => {
+        checkUserCodeExists();
+      }, 500);
+
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [userCode]);
+
+  useEffect(() => {
+    if (email.trim() !== '') {
+      const delayDebounceFn = setTimeout(() => {
+        checkEmailExists();
+      }, 500);
+
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [email]);
 
   // Handle form submission
   const handleSubmit = async (e) => {
