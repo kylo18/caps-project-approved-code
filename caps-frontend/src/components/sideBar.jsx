@@ -57,13 +57,11 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
 
   const baseMenuItems = [{ icon: "bx-home", label: "Home", path: homePath }];
   const facultyItems = [{ icon: "bx-printer", label: "Print" }];
-  const programChairItems = [{ icon: "bx-bell", label: "Notifications" }];
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
   const classes = [{ icon: "bx-clipboard", label: "Classes" }];
 
   let menuItems = [...baseMenuItems];
   if (parsedRoleId >= 2) menuItems = [...menuItems, ...facultyItems];
-  if (parsedRoleId >= 3) menuItems = [...menuItems, ...programChairItems];
   if (parsedRoleId >= 4) menuItems = [...menuItems, ...adminItems];
 
   const isActive = (path) => location.pathname === path;
@@ -75,7 +73,10 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
       
       {isMobile && !isExpanded && (
         <button
-          onClick={() => setIsExpanded(true)}
+          onClick={() => {setIsExpanded(true);
+            setIsSubjectFocused(false);
+          }}
+          
           className="z-54 hover:text-white fixed top-2 left-3 hover:bg-orange-500 rounded cursor-pointer"
         >
           <i className="bx bx-menu text-3xl"></i>
@@ -105,10 +106,13 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
         {/* Sidebar Toggle Button */}
         {!isMobile && (
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="z-54 p-[2px] mb-4 hover:text-white hover:bg-orange-500 rounded cursor-pointer"
+            onClick={() => {setIsExpanded(!isExpanded);
+              setIsSubjectFocused(false);
+            }}
+            className="hover:text-white flex mb-[22px] items-center gap-3 py-[4px] px-[4px] hover:bg-orange-500 rounded cursor-pointer "
+
           >
-            <i className={`bx ${isExpanded ? "bx-chevron-left" : "bx-menu"} text-[28px]`}></i>
+            <i className={`bx ${isExpanded ? "bx-chevron-left" : "bx-menu"} text-2xl`}></i>
           </button>
         )}
 
@@ -116,7 +120,8 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
         {isMobile && isExpanded && (
           <button
             onClick={() => setIsExpanded(false)}
-            className="z-54 p-[2px] mb-5 hover:text-white hover:bg-orange-500 rounded cursor-pointer"
+            className="hover:text-white flex mb-5 items-center gap-3 py-[4px] px-[4px] hover:bg-orange-500 rounded cursor-pointer "
+
           >
             <i className="bx bx-chevron-left text-3xl"></i>
           </button>
@@ -126,7 +131,7 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
         {!isSubjectFocused && (
           <ul className="space-y-[15px] -mt-2 mb-5">
             {menuItems.map((item, index) => (
-              <li key={index}>
+              <li key={index} title={item.label}>
                 <Link
                   to={item.path}
                   className={`hover:text-white flex items-center gap-3 py-[4px] px-[4px] hover:bg-orange-500 rounded cursor-pointer ${
@@ -135,8 +140,8 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
                 >
                   <i className={`bx ${item.icon} text-2xl`}></i>
                   <span
-                    className={`text-sm font-semibold transition-all ease-in-out ${
-                      isExpanded ? "opacity-100 ml-0" : "opacity-0 ml-[-20px]"
+                    className={`text-sm font-semibold transition-all ease-in-out duration-150 ${
+                      isExpanded ? "opacity-100 ml-0 visible pointer-events-auto" : "opacity-0 ml-0 invisible pointer-events-none"
                     }`}
                   >
                     {item.label}
@@ -152,7 +157,6 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
           <>
             {!isSubjectFocused && (
               <>
-                {/* Focused Subject Dropdown (move to top if focused) */}
                 <div className="w-full h-[1px] bg-[rgb(168,168,168)] mb-7"></div>
               </>
             )}

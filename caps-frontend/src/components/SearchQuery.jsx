@@ -1,6 +1,6 @@
 import { useRef } from "react";
 
-const SearchBar = ({ searchQuery, setSearchQuery, placeholder = "Search questions..." }) => {
+const SearchQuery = ({ searchQuery, setSearchQuery, placeholder = "Search questions..." }) => {
   const inputRef = useRef(null);
 
   return (
@@ -36,4 +36,4 @@ const SearchBar = ({ searchQuery, setSearchQuery, placeholder = "Search question
   );
 };
 
-export default SearchBar;
+export default SearchQuery;

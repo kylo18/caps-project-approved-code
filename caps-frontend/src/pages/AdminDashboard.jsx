@@ -7,11 +7,12 @@ import ExamAddQuestionForm from "../components/addExamQuestionForm";
 import ExamAddChoiceForm from "../components/addExamChoiceForm";
 import ConfirmModal from "../components/confirmModal";
 import Sort from "../components/sort";
-import SearchBar from "../components/SearchBar";
+import SearchQuery from "../components/SearchQuery";
 import Button from "../components/button";
 import SortCustomDropdown from "../components/sortCustomDropdown";
 import ScrollToTopButton from "../components/scrollToTopButton";
 import LoadingOverlay from "../components/loadingOverlay";
+import PracticeExaConfig from "../components/practiceExamConfig";
 
 const AdminDashboard = () => {
   const [modalImage, setModalImage] = useState(null); 
@@ -51,6 +52,8 @@ const AdminDashboard = () => {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);  
+
+
 
   const [toast, setToast] = useState({
     message: "",
@@ -160,38 +163,38 @@ const AdminDashboard = () => {
   };
 
   const fetchQuestions = async () => {
-    try {
-      const token = localStorage.getItem("token");
-  
-      if (!selectedSubject || !selectedSubject.subjectID) {
-        console.error("No subject selected");
-        return;
-      }
-  
-      const response = await fetch(
-        `${apiUrl}/subjects/${selectedSubject.subjectID}/questions`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-  
-      if (!response.ok) {
-        throw new Error("Failed to fetch questions");
-      }
-  
-      const data = await response.json();
-      console.log("Fetched Questions:", data);
-  
-      // Ensure the questions are properly set in state
-      setQuestions(data.data || []);
-    } catch (error) {
-      console.error("Error fetching questions:", error);
+  try {
+    const token = localStorage.getItem("token");
+
+    if (!selectedSubject || !selectedSubject.subjectID) {
+      console.error("No subject selected");
+      return;
     }
-  };
+
+    const response = await fetch(
+      `${apiUrl}/subjects/${selectedSubject.subjectID}/questions`, // ✅ Fixed template literal
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // ✅ Properly wrapped token in backticks
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch questions");
+    }
+
+    const data = await response.json();
+    console.log("Fetched Questions:", data);
+
+    // ✅ Save the questions to state
+    setQuestions(data.data || []);
+  } catch (error) {
+    console.error("Error fetching questions:", error);
+  }
+};
 
   // Filter and Sort Questions
   const filteredQuestions = questions
@@ -225,7 +228,7 @@ const AdminDashboard = () => {
   const handleQuestionAdded = (newQuestion) => {
     setSubmittedQuestion((prev) => ({
       ...prev,
-      [activeTab === 0 ? "practiceQuestions" : "examQuestions"]: newQuestion, // Make sure newQuestion has `image`
+      [activeTab === 0 ? "practiceQuestions" : "examQuestions"]: newQuestion, 
     }));
     setShowChoiceForm(true);
   };
@@ -258,10 +261,22 @@ const AdminDashboard = () => {
     }
   }, [showChoiceForm]);
 
-  const approveQuestion = async (questionID) => {
+  const approveQuestion = async (questionID, createdBy) => {
+    const token = localStorage.getItem("token");
+    const currentUserID = getUserIDFromToken(token);
+  
+    if (String(currentUserID) === String(createdBy)) {
+      setToast({
+        message: "You can't approve your own question.",
+        type: "error",
+        show: true,
+      });
+      return;
+    }
+  
     try {
-      const token = localStorage.getItem("token");
-      setIsApproving(true)
+      setIsApproving(true);
+  
       const response = await fetch(`${apiUrl}/questions/${questionID}/status`, {
         method: "PATCH",
         headers: {
@@ -270,9 +285,7 @@ const AdminDashboard = () => {
         },
       });
   
-      if (!response.ok) {
-        throw new Error("Failed to approve the question");
-      }
+      if (!response.ok) throw new Error("Failed to approve the question");
   
       const data = await response.json();
       console.log("Question approved:", data);
@@ -285,10 +298,27 @@ const AdminDashboard = () => {
       });
     } catch (error) {
       console.error("Error approving question:", error);
+      setToast({
+        message: "You can't approve your own question.",
+        type: "error",
+        show: true,
+      });
     } finally {
-      setIsApproving(false)
+      setIsApproving(false);
     }
   };
+  
+
+  function getUserIDFromToken(token) {
+    try {
+      const payload = token.split('.')[1];
+      const decoded = JSON.parse(atob(payload));
+      return decoded.sub || decoded.userID || decoded.id || decoded.uid; // Depending on backend
+    } catch (err) {
+      console.error("Invalid token:", err);
+      return null;
+    }
+  }
 
   return (
     <div className="mt-9 flex flex-col relative flex-1 justify-center min-h-screen w-full sm:p-2">
@@ -297,7 +327,8 @@ const AdminDashboard = () => {
           <div className="py-6 w-full">
             <div className="w-full">
               <SubjectCard
-                subject={selectedSubject.subjectName}
+                subjectName={selectedSubject.subjectName}
+                subjectID={selectedSubject.subjectID}
                 university="JRMSU"
                 location="Dapitan City"
                 imageUrl={selectedSubject.imageUrl || "https://via.placeholder.com/60"}
@@ -308,7 +339,7 @@ const AdminDashboard = () => {
             </div>
             {/*Search bar div here*/}
             <div className="flex flex-col sm:flex-row gap-[5.5px] mt-4 mb-6 justify-end">
-              <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+              <SearchQuery searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
               <div className="flex justify-end items-center ">
                 {activeTab === 4 && (
                     <SortCustomDropdown
@@ -333,15 +364,14 @@ const AdminDashboard = () => {
             </div>
 
             {/* Questions List */}
-            {(activeTab === 0 || activeTab === 1 || activeTab === 4) && ( // Practice Questions
+            {(activeTab === 0 || activeTab === 1 || activeTab === 4) && ( 
               <div className="flex">
                 <div className="flex-1">
                 
                 {filteredQuestions.length > 0 ? (
                   filteredQuestions
                   .filter((question) => 
-                    // Filter by tab type and question status
-                    (activeTab === 4 && question.status === "pending") || // For Pending Questions Tab
+                    (activeTab === 4 && question.status === "pending") ||
                     (activeTab === 0 && question.purpose === "practiceQuestions" && question.status === "approved") ||
                     (activeTab === 1 && question.purpose === "examQuestions" && question.status === "approved") 
                   )
@@ -353,6 +383,9 @@ const AdminDashboard = () => {
                           <div className="p-2 break-words w-full overflow-hidden max-w-full">
                             <div className="flex justify-between items-center text-gray-600 text-[14px]">
                               <span>{index + 1}. Multiple Choice</span>
+                              <p className="text-sm text-gray-600">
+                                Created by: <strong>{question.creatorName}</strong>
+                              </p>
                               <div className="flex items-center space-x-2">
                                 <span className="text-[12px] font-medium">{question.score} pt</span>
                                 <span className={`text-white text-[12px] px-4 py-1 rounded-lg ${
@@ -559,7 +592,7 @@ const AdminDashboard = () => {
                             </div>
                           </div>
 
-                        {/* Image Preview */}
+                        {/* Image Preview
                         {submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image && (
                           <div className="hover:opacity-80 mt-3 relative inline-block max-w-[300px]">
                             <img 
@@ -569,7 +602,7 @@ const AdminDashboard = () => {
                               onClick={() => setisQuestionModalOpen(true)}
                             />
                           </div>
-                        )}
+                        )}*/}
                         
                         {isQuestionModalOpen && (
                           <div

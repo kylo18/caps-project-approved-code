@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const useWarnOnExit = (choices) => {
+const WarnOnExit = (choices) => {
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       const noChoicesAdded = choices.every(
@@ -21,5 +21,5 @@ const useWarnOnExit = (choices) => {
   }, [choices]);
 };
 
-export default useWarnOnExit;
+export default WarnOnExit;
 

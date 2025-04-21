@@ -18,6 +18,10 @@ const UserList = () => {
   const [isActivating, setIsActivating] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
 
+  const [isApprovingMultiple, setIsApprovingMultiple] = useState(false);
+  const [isActivatingMultiple, setIsActivatingMultiple] = useState(false);
+  const [isDeactivatingMultiple, setIsDeactivatingMultiple] = useState(false);
+
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   
   const [toast, setToast] = useState({
@@ -82,6 +86,9 @@ const UserList = () => {
     }
   };
 
+  
+  
+
   const handleCheckboxChange = (userID) => {
     setSelectedUsers((prevSelected) =>
       prevSelected.includes(userID)
@@ -110,6 +117,9 @@ const UserList = () => {
 
     return matchesSearch && matchesSort && matchesStatus;
   });
+
+  const pendingUsersCount = filteredUsers.filter(user => user.status === 'pending').length;
+
 
   const handleApproveUser = async (userID) => {
     const token = localStorage.getItem("token");
@@ -276,24 +286,173 @@ const UserList = () => {
     return <div>Error: {error}</div>;
   }
 
+  const handleApproveSelectedUsers = async () => {
+    const token = localStorage.getItem("token");
+    setIsApprovingMultiple(true)
+    if (selectedUsers.length === 0) {
+      alert("Please select users to approve.");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`${apiUrl}/users/approve-multiple`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userIDs: selectedUsers }), // assuming backend expects this shape
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to approve selected users.");
+      }
+  
+      setToast({
+        message: "Users approved successfully!",
+        type: "success",
+        show: true,
+      });
+      fetchUsers();
+      setSelectedUsers([]); // clear selection
+    } catch (error) {
+      console.error(error);
+    } finally {
+    setIsApprovingMultiple(false)
+
+    }
+  };
+
+  const handleActivateSelectedUsers = async () => {
+    const token = localStorage.getItem("token");
+    setIsActivatingMultiple(true)
+
+    if (selectedUsers.length === 0) {
+      alert("Please select users to activate.");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`${apiUrl}/users/activate-multiple`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userIDs: selectedUsers }),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to activate selected users.");
+      }
+  
+      fetchUsers();
+      setSelectedUsers([]);
+      setToast({
+        message: "Users activated successfully!",
+        type: "success",
+        show: true,
+      });
+    } catch (error) {
+      console.error(error);
+      alert("Error activating selected users.");
+    } finally {
+      setIsActivatingMultiple(false)
+    }
+  };
+
+  const handleDeactivateSelectedUsers = async () => {
+    const token = localStorage.getItem("token");
+    setIsDeactivatingMultiple(true)
+  
+    if (selectedUsers.length === 0) {
+      alert("Please select users to deactivate.");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`${apiUrl}/users/deactivate-multiple`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userIDs: selectedUsers }),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to deactivate selected users.");
+      }
+      setToast({
+        message: "Users deactivated successfully!",
+        type: "success",
+        show: true,
+      });
+      fetchUsers();
+      setSelectedUsers([]);
+    } catch (error) {
+      console.error(error);
+      alert("Error deactivating selected users.");
+    } finally {
+      setIsDeactivatingMultiple(false)
+
+    }
+  };
+
   return (
     <div className="font-inter p-2 mt-12">
       <div className="text-[14px] mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 ">
-        {/* Delete Selected Button */}
-        <div className="relative w-full max-w-full sm:min-w-[180px]">
-          <button
-            onClick={handleDeleteSelectedUsers}
-            className="shadow-sm rounded-md cursor-pointer w-full flex items-center px-3 py-2 border border-color relative
-            bg-orange-500 text-white hover:bg-orange-600 disabled:bg-gray-400  md:w-auto "
-            disabled={selectedUsers.length === 0}
-          >
-            Delete Selected ({selectedUsers.length})
-          </button>
+        
+        <div className="flex justify-start gap-2 items-center relative w-full max-w-full sm:min-w-[180px]">
+          <div>
+            <button
+              onClick={handleApproveSelectedUsers}
+              disabled={selectedUsers.length === 0}
+              className={`text-sm py-2 px-4 cursor-pointer rounded-md shadow-sm transition-colors duration-200
+                ${selectedUsers.length === 0
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-orange-500 hover:bg-orange-700 text-white"}`}
+            >
+              Approve
+            </button>
+          </div>
+          <div>
+            <button
+              onClick={handleActivateSelectedUsers}
+              disabled={selectedUsers.length === 0}
+              className={`text-sm py-2 px-4 cursor-pointer rounded-md shadow-sm transition-colors duration-200
+                ${selectedUsers.length === 0
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-orange-500 hover:bg-orange-700 text-white"}`}
+            >
+              Activate
+            </button>
+          </div>
+          <div>
+            <button
+              onClick={handleDeactivateSelectedUsers}
+              disabled={selectedUsers.length === 0}
+              className={`text-sm py-2 px-4 cursor-pointer rounded-md shadow-sm transition-colors duration-200
+                ${selectedUsers.length === 0
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-orange-500 hover:bg-orange-700 text-white"}`}
+            >
+              Deactivate
+            </button>
+          </div>
+          <div>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-white hover:bg-gray-200 border-color cursor-pointer text-gray-700 text-sm py-2 px-4 rounded-md shadow-sm"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
       
 
         {/* Sorting Dropdowns */}
-        <div className="relative z-50 flex flex-col sm:flex-row gap-4 w-full md:w-auto overflow-visible">
+        <div className="text-gray-700 relative z-50 flex flex-col sm:flex-row gap-4 w-full md:w-auto overflow-visible">
           {/* Third Dropdown - Status Filter */}
           <SortCustomDropdown
               name="sortStatus"
@@ -302,8 +461,7 @@ const UserList = () => {
               options={[
                   { label: "All Status", value: "All" },
                   { label: "Pending", value: "pending" },
-                  { label: "Active", value: "registered" }, 
-                  { label: "Inactive", value: "unregistered" } 
+                  { label: "Approved", value: "registered" }, 
               ]}
               placeholder="Filter by Status"
           />
@@ -332,7 +490,7 @@ const UserList = () => {
                 options={[
                     { label: `All ${sortCategory}`, value: "All" },
                     ...(sortCategory === "Campus"
-                        ? ["Main Campus", "Tampilisan Campus", "Katipunan Campud"].map((campus) => ({
+                        ? ["Main Campus", "Tampilisan Campus", "Katipunan Campus"].map((campus) => ({
                             label: campus,
                             value: campus,
                         }))
@@ -362,8 +520,11 @@ const UserList = () => {
       </div>
 
       <div className="shadow-sm bg-white py-3 text-[12px] sm:text-[14px] px-5 rounded-t-sm border border-b-0 border-[rgb(200,200,200)]">
-          4 Users Pending
+        {pendingUsersCount > 0 
+          ? `${pendingUsersCount} User${pendingUsersCount !== 1 ? 's' : ''} Pending` 
+          : ' All users approved'}
       </div>
+
       <div className="w-full overflow-x-auto">
         <table className="min-w-full bg-white border border-[rgb(200,200,200)] border-t-0 shadow-md">
           <thead>
@@ -445,6 +606,7 @@ const UserList = () => {
                         <button
                           className="main-text-colors hover:text-orange-700"
                           onClick={() => handleApproveUser(user.userID)}
+                          title='Approve'
                         >
                           <i className="cursor-pointer bx bxs-user-check text-lg"></i> {/* Approve Icon */}
                         </button>
@@ -454,6 +616,7 @@ const UserList = () => {
                         <button
                           className="text-red-500 hover:text-red-700"
                           onClick={() => handleDeactivateUser(user.userID)}
+                          title='Deactivate'
                         >
                           <i className="cursor-pointer bx bx-log-out bx-flip-horizontal text-lg"></i> {/* Approve Icon */}
                         </button>
@@ -463,8 +626,9 @@ const UserList = () => {
                         <button
                           className="main-text-colors hover:text-orange-700"
                           onClick={() => handleActivateUser(user.userID)}
+                          title='Activate'
                         >
-                          <i className="cursor-pointer bx bx-check-double text-lg"></i> {/* Approve Icon */}
+                          <i className="cursor-pointer bx bx-check-double text-lg"></i> 
                         </button>
                       )}
                     </div>
@@ -478,6 +642,10 @@ const UserList = () => {
         {isActivating && <LoadingOverlay show={isActivating} />}
         {isApproving && <LoadingOverlay show={isApproving} />}
         {isDeactivating && <LoadingOverlay show={isDeactivating}/>}
+
+        {isActivatingMultiple && <LoadingOverlay show={isActivatingMultiple} />}
+        {isApprovingMultiple && <LoadingOverlay show={isApprovingMultiple} />}
+        {isDeactivatingMultiple && <LoadingOverlay show={isDeactivatingMultiple}/>}
 
         {toast.message && (
             <div

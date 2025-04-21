@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import ConfirmModal from "./confirmModal"; 
-import useWarnOnExit from "../hooks/UseWarnOnExit";
+import WarnOnExit from "../hooks/WarnOnExit";
 import LoadingOverlay from "./loadingOverlay";
 
 const ExamChoicesForm = ({ questionID, onComplete }) => {
@@ -23,7 +23,7 @@ const ExamChoicesForm = ({ questionID, onComplete }) => {
 
   const [isAdding, setIsAdding] = useState(false);
 
-  useWarnOnExit(choices);
+  WarnOnExit(choices);
 
   const openImageModal = (imageSrc) => {
     setchoiceModalImage(imageSrc);

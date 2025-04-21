@@ -288,7 +288,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
 
 
   return (
-    <div className="-mt-2">
+    <div className="mt-[2px]">
       <li
         className="hover:text-white hover:bg-orange-500 flex items-center gap-3 py-[4px] px-[4px] rounded cursor-pointer relative"
         onClick={() => {
@@ -306,8 +306,8 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       >
         <i className={`bx ${item.icon} text-2xl`}></i>
         <span
-          className={`text-[14px] font-semibold transition-all duration-100 ease-in-out ${
-            isExpanded ? "opacity-100 ml-0" : "opacity-0 -ml-5"
+          className={`text-sm font-semibold transition-all ease-in-out duration-150 ${
+            isExpanded ? "opacity-100 ml-0 visible pointer-events-auto" : "opacity-0 ml-0 invisible pointer-events-none"
           }`}
         >
           Subjects
@@ -344,8 +344,10 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
         
         <ul
           ref={listRef}
-          className="ml-[3px] flex-grow overflow-y-auto custom-scrollbar pr-2 transition-all duration-300 ease-in-out
-            text-left text-[14px] font-semibold mt-2 w-full mx-auto text-[rgb(78,78,78)]"
+          className={`ml-[3px] flex-grow overflow-y-auto custom-scrollbar pr-2 transition-all duration-300 ease-in-out
+            text-left text-[14px] font-semibold mt-2 w-full mx-auto text-[rgb(78,78,78)]
+            ${!isExpanded ? 'hidden' : ''}
+          `}
         >
           {subjectLoading ? (
             <li className="p-2 mt-3 text-[rgb(168,168,168)] text-[14px] text-center animate-pulse">
@@ -372,7 +374,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
                 <span
                   className="flex-1 ml-1 cursor-pointer break-all"
                 >
-                  {subject.subjectCode}
+                  {subject.programName} - {subject.subjectCode}
                 </span>
 
                 {/* 3-dot menu */}

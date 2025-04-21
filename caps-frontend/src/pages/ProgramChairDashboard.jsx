@@ -7,7 +7,7 @@ import ExamAddQuestionForm from "../components/addExamQuestionForm";
 import ExamAddChoiceForm from "../components/addExamChoiceForm";
 import ConfirmModal from "../components/confirmModal";
 import Sort from "../components/sort";
-import SearchBar from "../components/SearchBar";
+import SearchQuery from "../components/SearchQuery";
 import Button from "../components/button";
 import SortCustomDropdown from "../components/sortCustomDropdown";
 import ScrollToTopButton from "../components/scrollToTopButton";
@@ -169,7 +169,7 @@ const ProgramChairDashboard = () => {
       }
   
       const response = await fetch(
-        `${apiUrl}/subjects/${selectedSubject.subjectID}/questions`,
+        `${apiUrl}/program/${selectedSubject.subjectID}`,
         {
           method: "GET",
           headers: {
@@ -294,7 +294,8 @@ const ProgramChairDashboard = () => {
           <div className="py-6 w-full">
             <div className="w-full">
               <SubjectCard
-                subject={selectedSubject.subjectName}
+                subjectName={selectedSubject.subjectName}
+                subjectID={selectedSubject.subjectID}
                 university="JRMSU"
                 location="Dapitan City"
                 imageUrl={selectedSubject.imageUrl || "https://via.placeholder.com/60"}
@@ -305,7 +306,7 @@ const ProgramChairDashboard = () => {
             </div>
             {/*Search bar div here*/}
             <div className="flex flex-col sm:flex-row gap-[5.5px] mt-4 mb-6 justify-end">
-              <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+              <SearchQuery searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
               <div className="flex justify-end items-center ">
                 {activeTab === 4 && (
                     <SortCustomDropdown
@@ -558,7 +559,7 @@ const ProgramChairDashboard = () => {
                             </div>
                           </div>
 
-                        {/* Image Preview */}
+                        {/* Image Preview
                         {submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image && (
                           <div className="hover:opacity-80 mt-3 relative inline-block max-w-[300px]">
                             <img 
@@ -568,7 +569,7 @@ const ProgramChairDashboard = () => {
                               onClick={() => setisQuestionModalOpen(true)}
                             />
                           </div>
-                        )}
+                        )}*/}
                         
                         {isQuestionModalOpen && (
                           <div

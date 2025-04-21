@@ -2,9 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import univLogo from "/src/assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
-import InputField from "../components/inputfield.jsx";
-import TitleCard from "../components/titlecard.jsx";
-import CustomDropdown from "../components/customDropdown.jsx";
+import RegisterDropDown from "../components/registerDropDown.jsx";
+import LoadingOverlay from "../components/loadingOverlay.jsx";
 
 function Register() {
   const [userCode, setUserCode] = useState('');
@@ -21,12 +20,27 @@ function Register() {
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState('');
-
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1); 
   const navigate = useNavigate();
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
-  // Trigger the userCode check when userCode changes
+  const allPrograms = [
+    { id: "1", name: "Bachelor of Science in Computer Engineering" },
+    { id: "2", name: "Bachelor of Science in Electrical Engineering" },
+    { id: "3", name: "Bachelor of Science in Civil Engineering" },
+    { id: "4", name: "Bachelor of Science in Electronics and Communication Engineering" },
+    { id: "5", name: "Bachelor of Science in Agricultural Biosystem Engineering" },
+  ];
+
+  const getFilteredPrograms = () => {
+    if (campusID === "2" || campusID === "3") {
+      return allPrograms.filter(program => program.id === "5");
+    }
+    return allPrograms.filter(program => program.id !== "5");
+  };
+  
+
   useEffect(() => {
     if (userCode.trim() !== '') {
       const delayDebounceFn = setTimeout(() => {
@@ -37,7 +51,6 @@ function Register() {
     }
   }, [userCode]);
 
-  // Trigger the email check when email changes
   useEffect(() => {
     if (email.trim() !== '') {
       const delayDebounceFn = setTimeout(() => {
@@ -51,28 +64,72 @@ function Register() {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     let validationErrors = {};
-
-    if (!userCode.trim()) validationErrors.userCode = 'User code is required';
-    if (!firstName.trim()) validationErrors.firstName = 'First name is required';
-    if (!lastName.trim()) validationErrors.lastName = 'Last name is required';
-    if (!email.trim()) validationErrors.email = 'Email is required';
-    if (!password) validationErrors.password = 'Password is required';
-    if (password !== confirmPassword) validationErrors.confirmPassword = 'Passwords do not match';
-    if (!roleID) validationErrors.roleID = 'Role ID is required';
-    if (!campusID) validationErrors.campusID = 'Campus ID is required';
-    if (!programID) validationErrors.programID = 'Program ID is required'; 
-
-    if (errors.userCode || errors.email) {
-      validationErrors.general = "Fix the errors before submitting.";
+    let nextStep = currentStep; 
+  
+    // Step 1 Validation
+    
+    if (!firstName.trim()) {
+      validationErrors.firstName = 'First name is required';
+      if (nextStep > 1) nextStep = 1; 
+    }
+    if (!lastName.trim()) {
+      validationErrors.lastName = 'Last name is required';
+      if (nextStep > 1) nextStep = 1;
+    }
+  
+    // Step 2 Validation
+    if (!userCode.trim()) {
+      validationErrors.userCode = 'User code is required';
+      if (nextStep > 2) nextStep = 2;
+    } else if (!/^\d{2}-[A-Za-z]-\d{5}$/.test(userCode.trim())) {
+      validationErrors.userCode = 'Invalid user code';
+      if (nextStep > 2) nextStep = 2;
     }
 
+    if (!email.trim()) {
+      validationErrors.email = 'Email is required';
+      if (nextStep > 2) nextStep = 2;
+    } else if (!/^[\w.+-]+@gmail\.com$/.test(email.trim())) {
+      validationErrors.email = 'Invalid email address';
+      if (nextStep > 2) nextStep = 2;
+    }
+    
+     // Step 3 Validation
+     if (!roleID) {
+      validationErrors.roleID = 'Position is required';
+      if (nextStep > 3) nextStep = 3; 
+    }
+    if (!campusID) {
+      validationErrors.campusID = 'Campus is required';
+      if (nextStep > 3) nextStep = 3; 
+    }
+    if (!programID) {
+      validationErrors.programID = 'Program is required';
+      if (nextStep > 3) nextStep = 3; 
+    }
+  
+    // Step 4 Validation
+    if (!password) {
+      validationErrors.password = 'Password is required';
+      if (nextStep < 4) nextStep = 4;
+    } else if (password.length < 8) {
+      validationErrors.password = 'Password must be at least 8 characters long';
+      if (nextStep < 4) nextStep = 4;
+    }
+    
+    if (password !== confirmPassword) {
+      validationErrors.confirmPassword = 'Passwords do not match';
+      if (nextStep > 4) nextStep = 4; 
+    }
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      setCurrentStep(nextStep); 
       return;
     }
 
+    setIsRegistering(true);
     try {
       const res = await fetch(`${apiUrl}/register`, {
         method: 'POST',
@@ -88,12 +145,13 @@ function Register() {
           programID,
         }),
       });
-
+  
       const data = await res.json();
-
+  
       if (res.ok) {
         setMessage('Registration successful!');
         setErrors({});
+        setCurrentStep(1); // Reset to Step 1 after success
         navigate("/");
       } else {
         setErrors(prev => ({
@@ -101,203 +159,372 @@ function Register() {
           general: data.message || 'Registration failed',
         }));
       }
-
+  
     } catch (error) {
       console.error('Error during registration:', error);
       setErrors(prev => ({
         ...prev,
-        general: 'An error occurred. Please try again.',
+        general: 'An error occurred. Please try again later.',
       }));
+    } finally {
+      setIsRegistering(false);
     }
+  };
+  
+  const handleNextStep = () => {
+    setErrors({});
+    setCurrentStep((prevStep) => prevStep + 1);
+  };
+
+  const handlePrevStep = () => {
+    setErrors({});
+    setCurrentStep((prevStep) => prevStep - 1);
   };
 
   return (
-    <div className="bg-fixed bg-[url(/src/assets/bg.jpg)] h-full w-full bg-center flex flex-col items-center justify-center min-h-screen py-[60px]">
-      <TitleCard univLogo={univLogo} collegeLogo={collegeLogo} />
+    <div
+      className="sm:bg-[url('/src/assets/login-bg-md.png')] lg:bg-[url('/login-bg.png')] bg-[url('/src/assets/login-bg-xs.png')] lg:flex-row  flex-col h-full w-full min-h-screen flex items-center justify-center bg-cover bg-center"
+    >
+      {/* Logos */}
+      <div className="absolute top-3 left-3 flex items-center gap-2">
+        <img src={univLogo} alt="Logo 1" className="size-8" />
+        <img src={collegeLogo} alt="Logo 2" className="size-8" />
+        <p className="text-white text-center text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl">
+          JOSE RIZAL MEMORIAL STATE UNIVERSITY
+        </p>
+      </div>
 
-      <div className="border-solid border-[1px] border-[rgb(168,168,168)] bg-white shadow-lg md:rounded-md p-9 w-full max-w-sm md:max-w-md">
-        <div>
-          <h2 className="-mt-2 text-[16px] font-[400] text-center font-inter mb-4">Register Account</h2>
-          <div className="w-full max-w-[380px] h-[1px] bg-[rgb(168,168,168)] mt-5 sm:w-[100%] md:w-[100%] lg:w-[100%]"></div>
+      {/* Left Side (Title + Description at Bottom) */}
+      <div className="flex flex-col items-center justify-start h-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 pt-12">
+        <div className="lg:hidden text-center -mt-45 sm:-mt-50 md:-mt-54 min-w-[833px]:-mt-70">
+          <h1 className="text-white font-bold text-[22px] sm:text-[30px] leading-snug tracking-wide">
+            COMPREHENSIVE ASSESSMENT
+            <br />
+            AND PREPARATION SYSTEM
+          </h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-5">
 
-          <InputField
-            label="First Name"
-            type="text"
-            icon="bxs-user"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            placeholder="Enter"
-          />
-          {errors.firstName && <p className="text-red-500 text-xs">{errors.firstName}</p>}
-
-          <InputField
-            label="Last Name"
-            type="text"
-            icon="bxs-user"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            placeholder="Enter"
-          />
-          {errors.lastName && <p className="text-red-500 text-xs">{errors.lastName}</p>}
-
-          <InputField
-            label="User Code"
-            type="text"
-            icon="bxs-id-card"
-            value={userCode}
-            onChange={(e) => setUserCode(e.target.value)}
-            placeholder="Enter"
-          />
-          {errors.userCode && <p className="text-red-500 text-xs">{errors.userCode}</p>}
-
-          <InputField
-            label="Email"
-            type="text"
-            icon="bx-envelope"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter"
-          />
-          {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
-
-          
-
-          <div className="flex gap-4 mb-4">
-            <div className="w-1/2">
-              <label className="block mb-1">Campus</label>
-              <select
-                value={campusID}
-                onChange={(e) => setCampusID(e.target.value)}
-                className="w-full p-2 border border-[rgb(168,168,168)] rounded-[3px] focus:border-blue-500 focus:ring-2 focus:ring-blue-300 focus:outline-none"
-              >
-                <option value="" disabled>Select</option>
-                <option value="1" >Dapitan</option>
-                <option value="2">Katipunan</option>
-                <option value="3">Tampilisan</option>
-              </select>
-              {errors.campusID && <p className="text-red-500 text-xs">{errors.campusID}</p>}
-            </div>
-
-            <div className="w-1/2">
-              <label className="block mb-1">Role</label>
-              <select
-                value={roleID}
-                onChange={(e) => setRoleID(e.target.value)}
-                className="w-full p-2 border border-[rgb(168,168,168)] rounded-[3px] focus:border-blue-500 focus:ring-2 focus:ring-blue-300 focus:outline-none"
-              >
-                <option value="" disabled>Select</option>
-                <option value="1">Student</option>
-                <option value="2">Instructor</option>
-                <option value="3">Program Chair</option>
-                <option value="4">Dean</option>
-              </select>
-              {errors.roleID && <p className="text-red-500 text-xs">{errors.roleID}</p>}
-            </div>
-          </div>
-
-          {/*<div>
-            <CustomDropdown
-              label="Program"
-              name="program"
-              value={programID}
-              onChange={(e) => setProgramID(e.target.value)}
-              placeholder="Select program..."
-              options={[
-                { value: "1", label: "Bachelor of Science in Computer Engineering" },
-                { value: "2", label: "Bachelor of Science in Electrical Engineering" },
-                { value: "3", label: "Bachelor of Science in Civil Engineering" },
-                { value: "4", label: "Bachelor of Science in Electronics and Communication Engineering" },
-                { value: "5", label: "Bachelor of Science in Agricultural Biosystem Engineering" },
-              ]}
-            />
-          </div>*/}
-
-          <div className="w-full">
-            <label className="block mb-1">Program</label>
-            <select
-              value={programID}
-              onChange={(e) => setProgramID(e.target.value)}
-              className="w-full p-2 border border-[rgb(168,168,168)] rounded-[3px] focus:border-blue-500 focus:ring-2 focus:ring-blue-300 focus:outline-none"
-            >
-              <option value="" disabled>Select</option>
-              <option value="1">Bachelor of Science in Computer Engineering</option>
-              <option value="2">Bachelor of Science in Electrical Engineering</option>
-              <option value="3">Bachelor of Science in Civil Engineering</option>
-              <option value="4">Bachelor of Science in Electronics and Communication Engineering</option>
-              <option value="5">Bachelor of Science in Agricultural Biosystem Engineering</option>
-            </select>
-            {errors.programID && <p className="text-red-500 text-xs">{errors.programID}</p>}
-          </div>
-
-          {/* Password */}
-          <div className="mb-4">
-            <div className="flex flex-col space-y-1">
-              <label className="block">Password</label>
-              <div className="relative flex items-center border border-[rgb(168,168,168)] rounded-[3px] overflow-hidden group focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-300">
-                <div className="p-2 flex items-center justify-center size-10  border-[rgb(168,168,168)]">
-                  <i className="bx bxs-key text-[24px] text-orange-500"></i>
-                </div>
-                <input
-                  type={passwordVisible ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="flex-1 p-2 outline-none border-none"
-                  placeholder="Enter"
-                />
-                <div className="p-2 right-2 top-2 flex items-center cursor-pointer" onClick={() => setPasswordVisible(!passwordVisible)}>
-                  <i className={`bx ${passwordVisible ? "bx-show" : "bx-hide"} text-[24px] text-orange-500`}></i>
-                </div>
-              </div>
-              {errors.password && <p className="text-red-500 text-xs">{errors.password}</p>}
-            </div>
-          </div>
-
-          {/* Confirm Password */}
-          <div className="mb-4">
-            <div className="flex flex-col space-y-1">
-              <label className="block">Confirm Password</label>
-              <div className="relative flex items-center border border-[rgb(168,168,168)] rounded-[3px] overflow-hidden group focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-300">
-                <div className="p-2 flex items-center justify-center size-10 border-[rgb(168,168,168)]">
-                  <i className="bx bxs-key text-[24px] text-orange-500"></i>
-                </div>
-                <input
-                  type={confirmPasswordVisible ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="flex-1 p-2 outline-none border-none"
-                  placeholder="Confirm Password"
-                />
-                <div className="p-2 right-2 top-2 flex items-center cursor-pointer" onClick={() => setConfirmPasswordVisible(!confirmPasswordVisible)}>
-                  <i className={`bx ${confirmPasswordVisible ? "bx-show" : "bx-hide"} text-[24px] text-orange-500`}></i>
-                </div>
-              </div>
-              {errors.confirmPassword && <p className="text-red-500 text-xs">{errors.confirmPassword}</p>}
-            </div>
-          </div>
-
-          {/* Error / Message */}
-          {errors.general && <p className="text-red-500 text-center">{errors.general}</p>}
-          {message && <p className="text-green-500 text-center">{message}</p>}
-
-          <div className="flex items-center justify-center mt-5">
-            <button
-              type="submit"
-              className="mt-3 w-30 px-4 py-2 rounded-md text-white transition bg-green-600 hover:bg-green-800"
-            >
-              Register
-            </button>
-          </div>
-          
-          <p className="mt-2 text-center text-sm">
-            Already have an account?{" "}
-            <span className="text-blue-500 cursor-pointer hover:underline" onClick={() => navigate("/")}>
-              Log-in
+        {/* Stacked Title for lg and above */}
+        <div className="hidden lg:flex flex-col items-start mt-20 lg:mt-0">
+          <h1 className="xl:mr-40 text-4xl mt-25 font-bold text-white tracking-wide leading-snug">
+            <span>
+              <span className="text-orange-500 text-5xl ">C</span>OMPREHENSIVE
             </span>
-          </p>
-        </form>
+            <br />
+            <span>
+              <span className="text-orange-500 text-5xl ">A</span>SSESSMENT &
+            </span>
+            <br />
+            <span>
+              <span className="text-orange-500 text-5xl">P</span>REPARATION
+            </span>
+            <br />
+            <span>
+              <span className="text-orange-500 text-5xl">S</span>YSTEM
+            </span>
+          </h1>
+        </div>
+
+        {/* Description */}
+        <p className="text-center xl:mr-40 text-gray-400 text-sm md:text-base max-w-md mt-25 hidden lg:block">
+          A platform designed to help students practice and prepare for qualifying exams while assessing their knowledge through randomized questions.
+        </p>
+      </div>
+
+      {/* Right Side (Register Form) */}
+      <div className="w-[85%] flex flex-col items-center justify-center lg:px-4 lg:w-full lg:max-w-md lg:mr-30">
+        <h2 className="text-xl font-bold">REGISTER</h2>
+        <p className="text-gray-500 text-sm mt-2 justify-center text-center w-2/3 mb-2">
+          Get started by entering your credentials to register and create your account.
+        </p>
+        <div className="w-full max-w-sm">
+          <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+            <div
+              className={`transition-opacity duration-300 ease-in-out ${
+                currentStep === 1 ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              {/* Step 1 Content */}
+              {currentStep === 1 && (
+                <>
+                  <div className="relative mb-4">
+                    <i className="bx bx-user absolute left-5 top-3 text-gray-500 text-[18px]"></i>
+                    <input
+                      type="text"
+                      placeholder="First Name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="open-sans px-11 w-full py-2 rounded-full
+                        border border-gray-300 hover:border-gray-500
+                        focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:border-transparent
+                        transition-all duration-200"
+                    />
+                    {errors.firstName && (
+                      <p className="text-red-500 text-xs ml-3 mt-1">{errors.firstName}</p>
+                    )}
+                  </div>
+                  
+
+                  <div className="relative mb-4">
+                    <i className="bx bx-user absolute left-5 top-3 text-gray-500 text-[18px]"></i>
+                    <input
+                      type="text"
+                      placeholder="Last Name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="open-sans px-11 w-full py-2 rounded-full
+                        border border-gray-300 hover:border-gray-500
+                        focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:border-transparent
+                        transition-all duration-200"
+                    />
+                    {errors.lastName && <p className="text-red-500 text-xs ml-3 mt-1">{errors.lastName}</p>}
+                  </div>
+
+                  <div className="flex justify-center gap-4 mt-7">
+                    <button
+                      type="submit"
+                      onClick={handleNextStep}
+                      className="bg-orange-500 text-white px-6 py-2 rounded-full  hover:bg-orange-600 flex items-center gap-1"
+                    >
+                      <span className="text-[16px]">Next</span>
+                      <i className="bx bx-right-arrow-alt text-[20px]"></i>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div
+              className={`transition-opacity duration-300 ease-in-out ${
+                currentStep === 2 ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              {/* Step 2 Content */}
+              {currentStep === 2 && (
+                <>
+                  <div className="relative mb-4">
+                    <i className="bx bx-id-card absolute left-5 top-3 text-gray-500 text-[18px]"></i>
+                    <input
+                      type="text"
+                      placeholder="User Code (23-A-XXXXX)"
+                      value={userCode}
+                      onChange={(e) => setUserCode(e.target.value)}
+                      className="open-sans px-11 w-full py-2 rounded-full
+                        border border-gray-300 hover:border-gray-500
+                        focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:border-transparent
+                        transition-all duration-200"
+                    />
+                    {errors.userCode && <p className="text-red-500 text-xs ml-3 mt-1">{errors.userCode}</p>}
+                  </div>
+
+
+                  <div className="relative mb-4">
+                    <i className="bx bx-envelope absolute left-5 top-3 text-gray-500 text-[18px]"></i>
+                    <input
+                      type="text"
+                      placeholder="Email Address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="open-sans px-11 w-full py-2 rounded-full
+                        border border-gray-300 hover:border-gray-500
+                        focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:border-transparent
+                        transition-all duration-200"
+                    />
+                    {errors.email && <p className="text-red-500 text-xs ml-3 mt-1">{errors.email}</p>}
+                  </div>
+
+                  <div className="flex justify-center gap-3 mt-7">
+                    <button
+                      type="button"
+                      onClick={handlePrevStep}
+                      className="bg-white text-gray-700 hover:bg-gray-200 px-6 py-2 rounded-full border flex items-center gap-1"
+                    >
+                      <i className="bx bx-left-arrow-alt text-[20px]"></i>
+                      <span className="text-[16px]">Back</span>
+                    </button>
+
+                    <button
+                      type="submit"
+                      onClick={handleNextStep}
+                      className="bg-orange-500 text-white px-6 py-2 rounded-full hover:bg-orange-600 flex items-center gap-1"
+                    >
+                      <span className="text-[16px]">Next</span>
+                      <i className="bx bx-right-arrow-alt text-[20px]"></i>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+      
+              
+            <div
+              className={`transition-opacity duration-300 ease-in-out ${
+                currentStep === 3 ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              {currentStep === 3 && (
+                <>
+                  <div className="flex gap-4 mb-4">
+                    <div className="w-full">
+                      <RegisterDropDown
+                        name="Campus"
+                        value={campusID}
+                        onChange={(e) => setCampusID(e.target.value)}
+                        placeholder="Select Campus"
+                        options={[
+                          { value: "1", label: "Dapitan" },
+                          { value: "2", label: "Katipunan" },
+                          { value: "3", label: "Tampilisan" },
+                        ]}
+                      />
+                      {errors.campusID && <p className="text-red-500 text-xs ml-3">{errors.campusID}</p>}
+                    </div>
+                    
+                    <div className="w-full">
+                      <RegisterDropDown
+                        name="Role"
+                        value={roleID}
+                        onChange={(e) => setRoleID(e.target.value)}
+                        placeholder="Select Position"
+                        options={[
+                          { value: "1", label: "Student" },
+                          { value: "2", label: "Instructor" },
+                          { value: "3", label: "Program Chair" },
+                          { value: "4", label: "Dean" },
+                        ]}
+                      />
+                      {errors.roleID && <p className="text-red-500 text-xs ml-3">{errors.roleID}</p>}
+                    </div>
+                  </div>
+
+                  <div className="w-full">
+                    <RegisterDropDown
+                      name="programID"
+                      value={programID}
+                      onChange={(e) => setProgramID(e.target.value)}
+                      options={getFilteredPrograms().map((program) => ({
+                        value: program.id,
+                        label: program.name,
+                      }))}
+                      placeholder="Select Program"
+                    />
+                    {errors.programID && <p className="text-red-500 text-xs ml-3">{errors.programID}</p>}
+                  </div>
+
+                  <div className="flex justify-center gap-3 mt-7">
+                    <button
+                      type="button"
+                      onClick={handlePrevStep}
+                      className="bg-white text-gray-700 hover:bg-gray-200 px-6 py-2 rounded-full border flex items-center gap-1"
+                    >
+                      <i className="bx bx-left-arrow-alt text-[20px]"></i>
+                      <span className="text-[16px]">Back</span>
+                    </button>
+
+                    <button
+                      type="submit"
+                      onClick={handleNextStep}
+                      className="bg-orange-500 text-white px-6 py-2 rounded-full hover:bg-orange-600 flex items-center gap-1"
+                    >
+                      <span className="text-[16px]">Next</span>
+                      <i className="bx bx-right-arrow-alt text-[20px]"></i>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div
+              className={`transition-opacity duration-300 ease-in-out ${
+                currentStep === 4 ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              {currentStep === 4 && (
+                <>
+                  {/* Password */}
+                  <div className="mb-4">
+                    <div className="relative mb-4">
+                      <i className="bx bx-key absolute left-5 top-3 text-gray-500 text-[18px]"></i>
+                      <input
+                        type={passwordVisible ? "text" : "password"}
+                        value={password}
+                        placeholder="Password"
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="open-sans px-11 w-full py-2 rounded-full
+                          border border-gray-300 hover:border-gray-500
+                          focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:border-transparent
+                          transition-all duration-200"
+                      />
+                      <div
+                        className="absolute right-5 top-[10px] cursor-pointer"
+                        onClick={() => setPasswordVisible(!passwordVisible)}
+                      >
+                        <i className={`bx ${passwordVisible ? "bx-show" : "bx-hide"} text-[23px] text-orange-500`}></i>
+                      </div>
+                      {errors.password && <p className="text-red-500 text-xs ml-3 mt-1">{errors.password}</p>}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="relative mb-4">
+                      <i className="bx bx-key absolute left-5 top-3 text-gray-500 text-[18px]"></i>
+                      <input
+                        type={confirmPasswordVisible ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm Password"
+                        className="open-sans px-11 w-full py-2 rounded-full
+                          border border-gray-300 hover:border-gray-500
+                          focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:border-transparent
+                          transition-all duration-200"
+                      />
+                      <div
+                        className="absolute right-5 top-[10px] cursor-pointer"
+                        onClick={() => setConfirmPasswordVisible(!confirmPasswordVisible)}
+
+                      >
+                         <i className={`bx ${confirmPasswordVisible ? "bx-show" : "bx-hide"} text-[23px] text-orange-500`}></i>
+                      </div>
+                      {errors.confirmPassword && (
+                        <p className="text-red-500 text-xs ml-3">{errors.confirmPassword}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Error / Message */}
+                  {errors.general && <p className="text-red-500 text-center text-sm">{errors.general}</p>}
+
+                  {/* Buttons */}
+                  <div className="flex justify-center gap-3 mt-7">
+                    <button
+                      type="button"
+                      onClick={handlePrevStep}
+                      className="cursor-pointer bg-white text-gray-700 hover:bg-gray-200 px-6 py-2 rounded-full border flex items-center gap-1"
+                    >
+                      <i className="bx bx-left-arrow-alt text-[20px]"></i>
+                      <span className="text-[16px]">Back</span>
+                    </button>
+                    <button
+                      type="submit"
+                      className="cursor-pointer bg-green-600 text-white hover:bg-green-800 transition px-6 py-2 rounded-full border flex items-center gap-1"
+                    >
+                      <span className="text-[16px]">Register</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+              <p className="mt-5 text-[14px] text-gray-600 justify-center text-center">
+                Already have an account?{" "}
+                <span className="text-orange-500 cursor-pointer hover:underline" onClick={() => navigate("/")}>
+                  Log-in
+                </span>
+              </p>
+            </form>
+          </div>
+          {isRegistering && <LoadingOverlay show={isRegistering} />}
       </div>
     </div>
   );
