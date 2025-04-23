@@ -1,0 +1,64 @@
+Question 1: What is a variable in programming?
+
+A. A fixed number in a program  
+B. A name used to store data in memory  
+C. A function used to display output  
+D. An error in logic  
+E. A reserved keyword in all languages  
+F. A comment in the code  
+
+Correct Answer: B. A name used to store data in memory
+
+
+Question 2: Which of the following is a valid variable name in Python?
+
+A. 123number  
+B. my-variable  
+C. class  
+D. my_variable  
+E. #value  
+F. print()  
+
+Correct Answer: D. my_variable
+
+
+Question 3: What is the purpose of an "if" statement in programming?
+
+A. To repeat code multiple times  
+B. To define a function  
+C. To handle errors  
+D. To make decisions based on conditions  
+E. To define a loop  
+F. To store multiple values  
+
+Correct Answer: D. To make decisions based on conditions
+
+
+Question 4: What will be the output of the following code in Python?
+
+x = 3  
+y = 4  
+print(x * y + 2)
+
+A. 14  
+B. 20  
+C. 9  
+D. 12  
+E. 10  
+F. 7  
+
+Correct Answer: A. 14
+
+
+Question 5: Which of the following is a data type in most programming languages?
+
+A. float  
+B. loop  
+C. while  
+D. integer  
+E. string  
+F. condition  
+
+Correct Answers: A. float, D. integer, E. string
+
+Let me know if you want this in a downloadable format like Word or PDF!
