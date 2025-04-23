@@ -11,6 +11,7 @@ return new class extends Migration {
             $table->id('subjectID');
             $table->string('subjectCode', 20)->unique();
             $table->string('subjectName', 100);
+            $table->foreignId('programID')->constrained('programs', 'programID')->onDelete('cascade');
             $table->timestamps();
         });
     }

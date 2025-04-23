@@ -1,14 +1,16 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Modules\Users\AuthController;
-use App\Http\Controllers\Modules\Subjects\Http\Controllers\SubjectController;
-use app\Http\Controllers\Modules\FacultySubjects\Http\Controllers\FacultySubjectController;
-use App\Http\Controllers\Modules\Questions\Http\Controllers\QuestionController;
-use app\Http\Controllers\Modules\PracticeExam\Http\Controllers\PracticeExamController;
-use App\Http\Controllers\Modules\Choices\Http\Controllers\ChoiceController;
-use app\Http\Controllers\Modules\Users\UserController;
+use Modules\Users\Controllers\AuthController;
+use Modules\Subjects\Controllers\SubjectController;
+use Modules\FacultySubjects\Controllers\FacultySubjectController;
+use Modules\Questions\Controllers\QuestionController;
+use Modules\Choices\Controllers\ChoiceController;
+use Modules\Users\Controllers\UserController;
 use App\Http\Middleware\TokenExpirationMiddleware;
+use Modules\PracticeExams\Controllers\PracticeExamSettingController;
+use Modules\PracticeExams\Controllers\PracticeExamController;
+use Modules\Users\Controllers\ProgramController;
 
 //User authentication routes
 Route::post('/register', action: [AuthController::class, 'register']);
@@ -38,30 +40,44 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::put('/questions/update/{questionID}', [QuestionController::class, 'update']);
     Route::delete('/questions/delete/{questionID}', [QuestionController::class, 'destroy']);
     Route::get('/faculty/my-questions/{subjectID}', [QuestionController::class, 'mySubjectQuestions']);
+});
 
+Route::middleware(['auth:sanctum','role:1'])->group(function () {
+    Route::get('/student/practice-subjects', [SubjectController::class, 'getProgramSubjects']);
+    Route::get('/practice-exam/{subjectID}', [PracticeExamController::class, 'generate']);
+    Route::post('/practice-exam/submit', [PracticeExamController::class, 'submit']);
+});
 
-    //exam functionalities route
-    Route::post('/practice-exams', [PracticeExamController::class, 'store']);
+Route::middleware(['auth:sanctum','role:3'])->group(function () {
+    Route::get('/program/{subjectID}', [QuestionController::class, 'indexQuestionsByProgram']);
 });
 
 Route::middleware(['auth:sanctum','role:3,4'])->group(function () {
     //update question status route
     Route::patch('/questions/{questionID}/status', [QuestionController::class, 'updateStatus']);
+
+    //practice exam settings route
+    Route::post('/practice-settings', [PracticeExamSettingController::class, 'store']); // create settings
+    Route::put('/practice-settings/{subjectID}/edit', [PracticeExamSettingController::class, 'update']); // update settings
+    Route::delete('/practice-settings/{subjectID}/delete', [PracticeExamSettingController::class, 'destroy']); // delete settings
+    Route::get('/programs', [ProgramController::class, 'index']);
 });
 
 Route::middleware(['auth:sanctum','role:4'])->group(function () {
+    // users route
     Route::get('/users', [UserController::class, 'index']);
     Route::patch('/users/{userID}/approve', [UserController::class, 'approveUser']);
     Route::patch('/users/{userID}/disapprove', [UserController::class, 'disapproveUser']);
+    Route::post('/users/approve-multiple', [UserController::class, 'approveMultipleUsers']);
+    Route::post('/users/activate-multiple', [UserController::class, 'activateMultipleUsers']);
+    Route::post('/users/deactivate-multiple', [UserController::class, 'deactivateMultipleUsers']);
+    Route::patch('users/{id}/deactivate', [UserController::class, 'deactivate']);
+    Route::patch('users/{id}/activate', [UserController::class, 'activate']);
 
-    Route::patch('users/{id}/deactivate', [UserController::class, 'deactivate'])
-        ->name('users.deactivate');
-
-    Route::patch('users/{id}/activate', [UserController::class, 'activate'])
-        ->name('users.activate');
-
-    //add subjects route
+    //subjects route
     Route::post('/add-subjects', [SubjectController::class, 'store']);
     Route::delete('/subjects/{subjectID}/delete', [SubjectController::class, 'destroy']);
     Route::put('/subjects/{subjectID}/update', [SubjectController::class, 'update']);
+
+    //programs route
 });

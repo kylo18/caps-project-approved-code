@@ -6,16 +6,11 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-require_once base_path('Modules/Roles/Database/Seeders/RolesTableSeeder.php');
-require_once base_path('Modules/Campuses/Database/Seeders/CampusesTableSeeder.php');
+require_once base_path('Modules/Users/Database/Seeders/RolesTableSeeder.php');
+require_once base_path('Modules/Users/Database/Seeders/CampusesTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/UsersTableSeeder.php');
-require_once base_path('Modules/Subjects/Database/Seeders/SubjectsTableSeeder.php');
-require_once base_path('Modules/Questions/Database/Seeders/QuestionsTableSeeder.php');
-require_once base_path('Modules/Exams/Database/Seeders/ExamsTableSeeder.php');
-require_once base_path('Modules/ExamQuestions/Database/Seeders/ExamQuestionsTableSeeder.php');
-require_once base_path('Modules/Requests/Database/Seeders/RequestsTableSeeder.php');
-require_once base_path('Modules/Questions/Database/Seeders/PurposeSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/ProgramSeeder.php');
+require_once base_path('Modules/Subjects/Database/Seeders/SubjectsTableSeeder.php');
 
 
 class DatabaseSeeder extends Seeder
@@ -28,16 +23,11 @@ class DatabaseSeeder extends Seeder
         // Truncate the table before seeding (Clears existing data)
         DB::table('users')->truncate();
         $this->call([
-            \Modules\Roles\Database\Seeders\RolesTableSeeder::class,
-            \Modules\Campuses\Database\Seeders\CampusesTableSeeder::class,
+            \Modules\Users\Database\Seeders\RolesTableSeeder::class,
+            \Modules\Users\Database\Seeders\CampusesTableSeeder::class,
             \Modules\Users\Database\Seeders\UsersTableSeeder::class,
-            \Modules\Subjects\Database\Seeders\SubjectsTableSeeder::class,
-            \Modules\Questions\Database\Seeders\QuestionsTableSeeder::class,
-            \Modules\Exams\Database\Seeders\ExamsTableSeeder::class,
-            \Modules\ExamQuestions\Database\Seeders\ExamQuestionsTableSeeder::class,
-            \Modules\Requests\Database\Seeders\RequestsTableSeeder::class,
-            \Modules\Questions\Database\Seeders\PurposeSeeder::class,
             \Modules\Users\Database\Seeders\ProgramSeeder::class,
+            \Modules\Subjects\Database\Seeders\SubjectsTableSeeder::class,
         ]);
     }
 }
