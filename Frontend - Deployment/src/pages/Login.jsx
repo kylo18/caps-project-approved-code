@@ -79,7 +79,15 @@ const Login = () => {
 
   return (
     <div
-      className="sm:bg-[url('/src/assets/login-bg-md.png')] lg:bg-[url('/login-bg.png')] bg-[url('/src/assets/login-bg-xs.png')] lg:flex-row  flex-col h-full w-full min-h-screen flex items-center justify-center bg-cover bg-center"
+      className="
+        lg:bg-[url('/src/assets/login-bg.png')]
+        sm:bg-[url('/src/assets/login-bg-md.png')] 
+        bg-[url('/src/assets/login-bg-xs.png')] 
+        flex flex-col lg:flex-row 
+        h-full w-full min-h-screen 
+        items-center justify-center 
+        bg-cover bg-center md:gap-10
+      "
     >
       {/* Logos (Top Left) */}
       <div className="absolute top-3 left-3 flex items-center gap-2">
@@ -91,20 +99,33 @@ const Login = () => {
       </div>
 
       {/* Left Side (Title + Description at Bottom) */}
-      <div className="flex flex-col items-center justify-start h-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 pt-12">
+      <div className=" flex flex-col items-center justify-start h-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 pt-12">
         {/* Horizontal Title for <lg */}
-        <div className="lg:hidden text-center -mt-45 sm:-mt-50 md:-mt-54 min-w-[833px]:-mt-70">
+        <div className="md:hidden text-center -mt-45 sm:-mt-50 md:-mt-54 min-w-[833px]:-mt-70">
           <h1 className="text-white font-bold text-[22px] sm:text-[30px] leading-snug tracking-wide">
-            COMPREHENSIVE ASSESSMENT
+            <span>
+              <span className="text-orange-500 text-3xl ">C</span>OMPREHENSIVE 
+            </span>
+            <span>
+              <span className="text-orange-500 text-3xl "> A</span>SSESSMENT
+            </span>
             <br />
-            AND PREPARATION SYSTEM
+            <span>
+              AND
+            </span>
+            <span>
+              <span className="text-orange-500 text-3xl"> P</span>REPARATION
+            </span>
+            <span>
+              <span className="text-orange-500 text-3xl"> S</span>YSTEM
+            </span>
           </h1>
         </div>
 
 
         {/* Stacked Title for lg and above */}
-        <div className="hidden lg:flex flex-col items-start mt-20 lg:mt-0">
-          <h1 className="xl:mr-40 text-4xl mt-25 font-bold text-white tracking-wide leading-snug">
+        <div className="hidden md:flex flex-col items-start mt-20 md:mt-0 lg:mt-0">
+          <h1 className="xl:mr-40 text-4xl mt-25 md:text-[30px] font-bold text-white tracking-wide leading-snug">
             <span>
               <span className="text-orange-500 text-5xl ">C</span>OMPREHENSIVE
             </span>
@@ -133,7 +154,14 @@ const Login = () => {
       <div className="w-[85%] flex flex-col items-center justify-center lg:px-4 lg:w-full lg:max-w-md lg:mr-30">
         <h2 className="text-xl font-bold">LOG IN ACCOUNT</h2>
         <p className="text-gray-500 text-sm mt-2 justify-center text-center">
-          Welcome back! Please enter your ID number and password to access your account.
+          <span>
+            Welcome! Please enter your ID number and password
+          </span>
+          <br />
+          <span>
+            to access your account.
+          </span>
+           
         </p>
 
         {/* Form */}
