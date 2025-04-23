@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Routing\Controller;
+use Modules\Subjects\Models\Subject;
 
 class FacultySubjectController extends Controller
 {

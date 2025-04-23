@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Routing\Controller;
 use Modules\Subjects\Models\Subject;
 use Illuminate\Support\Facades\Auth;
+use Modules\Users\Models\Program;
 
 class SubjectController extends Controller
 {
@@ -16,31 +17,46 @@ class SubjectController extends Controller
         try {
             // Validate request
             $request->validate([
-                'subjectCode' => 'required|string|unique:subjects',
-                'subjectName' => 'required|string',
+                'programID'    => 'nullable|exists:programs,programID',
+                'subjectCode'  => 'required|string|unique:subjects,subjectCode',
+                'subjectName'  => 'required|string',
             ]);
 
+            $subjectCode = $request->subjectCode;
+
+            // If programID is provided, append program name
+            if ($request->filled('programID')) {
+                $program = Program::find($request->programID);
+
+                if (!$program) {
+                    return response()->json(['message' => 'Program not found.'], 404);
+                }
+
+                $subjectCode = $program->programName . '-' . $subjectCode;
+            }
+
+            // Create the subject (programID can be null for general subjects)
             $subject = Subject::create([
-                'subjectCode' => $request->subjectCode,
+                'programID'   => $request->programID, // will be null for general
+                'subjectCode' => $subjectCode,
                 'subjectName' => $request->subjectName,
             ]);
 
             return response()->json([
-                'message' => 'Subject created successfully',
+                'message' => 'Subject created successfully.',
                 'subject' => $subject
             ], 201);
         } catch (\Exception $e) {
-            // Log the error
             Log::error('Error creating subject: ' . $e->getMessage());
 
             return response()->json([
-                'error' => 'Internal Server Error',
+                'error'   => 'Internal Server Error',
                 'message' => $e->getMessage()
             ], 500);
         }
     }
 
-    // Function to get all subjects
+
     public function index(Request $request)
     {
         try {
@@ -58,12 +74,30 @@ class SubjectController extends Controller
             if (!in_array($user->roleID, [2, 3, 4])) {
                 return response()->json([
                     'error' => 'Forbidden',
-                    'message' => 'Access denied. Only Dean can view the subjects list.'
+                    'message' => 'Access denied. Only Dean or Program Chair can view the subjects list.'
                 ], 403);
             }
 
-            // If authorized, retrieve all subjects
-            $subjects = Subject::all();
+            // If authorized, retrieve all subjects with program name
+            $subjects = Subject::with('program') // Eager load the related program
+                ->get()
+                ->map(function ($subject) {
+                    // Include program name in the response, if program exists
+                    $programName = $subject->program ? $subject->program->programName : null;
+
+                    // Remove the 'BS-' prefix from the program name if it exists
+                    if ($programName && strpos($programName, 'BS-') === 0) {
+                        $programName = substr($programName, 3); // Remove the first 3 characters ('BS-')
+                    }
+
+                    return [
+                        'subjectID'    => $subject->subjectID,
+                        'subjectName'  => $subject->subjectName,
+                        'subjectCode'  => $subject->subjectCode,
+                        'programID'    => $subject->programID,
+                        'programName'  => $programName, // Return modified program name
+                    ];
+                });
 
             return response()->json([
                 'message' => 'Subjects retrieved successfully',
@@ -84,14 +118,14 @@ class SubjectController extends Controller
     {
         $user = Auth::user();
 
-        // Only the Dean (roleID = 4) can modify subjects
+        // Only the Dean can modify subjects
         if ($user->roleID !== 4) {
             return response()->json([
                 'message' => 'Unauthorized. Only the Dean can modify subjects.'
             ], 403);
         }
 
-        $subject = Subject::where('subjectID', $subjectID)->first();
+        $subject = Subject::find($subjectID);
 
         if (!$subject) {
             return response()->json([
@@ -99,15 +133,40 @@ class SubjectController extends Controller
             ], 404);
         }
 
+        // Validate with nullable programID (for general subjects)
         $validated = $request->validate([
-            'subjectCode' => 'required|string|max:50|unique:subjects,subjectCode,' . $subjectID . ',subjectID',
+            'subjectCode' => 'required|string|max:50',
             'subjectName' => 'required|string|max:255',
+            'programID'   => 'nullable|exists:programs,programID',
         ]);
 
         try {
+            $fullSubjectCode = $validated['subjectCode'];
+
+            // If programID is provided, append program name to subject code
+            if (!empty($validated['programID'])) {
+                $program = Program::find($validated['programID']);
+                if (!$program) {
+                    return response()->json(['message' => 'Program not found.'], 404);
+                }
+
+                $fullSubjectCode = $program->programName . '-' . $validated['subjectCode'];
+            }
+
+            // Check for duplicate code excluding current subject
+            $duplicate = Subject::where('subjectCode', $fullSubjectCode)
+                ->where('subjectID', '!=', $subjectID)
+                ->exists();
+
+            if ($duplicate) {
+                return response()->json(['message' => 'Subject code already exists for another subject.'], 422);
+            }
+
+            // Update the subject
             $subject->update([
-                'subjectCode' => $validated['subjectCode'],
+                'subjectCode' => $fullSubjectCode,
                 'subjectName' => $validated['subjectName'],
+                'programID'   => $validated['programID'], // can be null for general
             ]);
 
             return response()->json([
@@ -121,7 +180,6 @@ class SubjectController extends Controller
             ], 500);
         }
     }
-
 
     public function destroy($subjectID)
     {
@@ -153,5 +211,29 @@ class SubjectController extends Controller
                 'error'   => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function getProgramSubjects()
+    {
+        $user = Auth::user();
+
+        if ($user->roleID !== 1) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        // Fetch subjects specific to user's program or those with no programID (global)
+        $subjects = Subject::with('program')
+            ->where(function ($query) use ($user) {
+                $query->where('programID', $user->programID)
+                    ->orWhereNull('programID');
+            })
+            ->whereHas('practiceExamSetting') // Only include those with settings
+            ->select('subjectID', 'subjectName', 'subjectCode', 'programID')
+            ->get();
+
+        return response()->json([
+            'message' => 'Subjects available for practice exam.',
+            'data' => $subjects
+        ], 200);
     }
 }

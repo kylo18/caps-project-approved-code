@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Schema;
 require_once base_path('Modules/Users/Database/Seeders/RolesTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/CampusesTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/UsersTableSeeder.php');
-require_once base_path('Modules/Subjects/Database/Seeders/SubjectsTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/ProgramSeeder.php');
+require_once base_path('Modules/Subjects/Database/Seeders/SubjectsTableSeeder.php');
 
 
 class DatabaseSeeder extends Seeder
@@ -26,8 +26,8 @@ class DatabaseSeeder extends Seeder
             \Modules\Users\Database\Seeders\RolesTableSeeder::class,
             \Modules\Users\Database\Seeders\CampusesTableSeeder::class,
             \Modules\Users\Database\Seeders\UsersTableSeeder::class,
-            \Modules\Subjects\Database\Seeders\SubjectsTableSeeder::class,
             \Modules\Users\Database\Seeders\ProgramSeeder::class,
+            \Modules\Subjects\Database\Seeders\SubjectsTableSeeder::class,
         ]);
     }
 }
