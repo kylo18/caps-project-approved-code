@@ -48,9 +48,9 @@ class QuestionController extends Controller
                 $imagePath = asset('storage/' . $imagePath);
             }
 
-            $status = ($user->roleID === 2) ? 'pending' : 'approved';
-
             $encryptedQuestionText = Crypt::encryptString($validated['questionText']);
+
+            $status = 'pending';
 
             $question = Question::create([
                 'subjectID'     => $validated['subjectID'],
@@ -367,6 +367,12 @@ class QuestionController extends Controller
             ], 400);
         }
 
+        if ($user->id === $question->created_by) {
+            return response()->json([
+                'message' => 'You cannot approve your own question.'
+            ], 403);
+        }
+
         // Update the status to "approved"
         $question->status = 'approved';
         $question->save();
@@ -376,6 +382,7 @@ class QuestionController extends Controller
             'question' => $question
         ], 200);
     }
+
 
     public function indexQuestionsByProgram($subjectID)
     {
@@ -407,6 +414,9 @@ class QuestionController extends Controller
             } catch (\Exception $e) {
                 $question->questionText = '[Decryption Error]';
             }
+
+            // Add creator's name to the question
+            $question->creatorName = $question->user ? $question->user->name : 'Unknown Creator';
 
             $question->choices->map(function ($choice) {
                 try {

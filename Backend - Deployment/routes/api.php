@@ -8,6 +8,9 @@ use Modules\Questions\Controllers\QuestionController;
 use Modules\Choices\Controllers\ChoiceController;
 use Modules\Users\Controllers\UserController;
 use App\Http\Middleware\TokenExpirationMiddleware;
+use Modules\PracticeExams\Controllers\PracticeExamSettingController;
+use Modules\PracticeExams\Controllers\PracticeExamController;
+use Modules\Users\Controllers\ProgramController;
 
 //User authentication routes
 Route::post('/register', action: [AuthController::class, 'register']);
@@ -39,6 +42,12 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/faculty/my-questions/{subjectID}', [QuestionController::class, 'mySubjectQuestions']);
 });
 
+Route::middleware(['auth:sanctum','role:1'])->group(function () {
+    Route::get('/student/practice-subjects', [SubjectController::class, 'getProgramSubjects']);
+    Route::get('/practice-exam/{subjectID}', [PracticeExamController::class, 'generate']);
+    Route::post('/practice-exam/submit', [PracticeExamController::class, 'submit']);
+});
+
 Route::middleware(['auth:sanctum','role:3'])->group(function () {
     Route::get('/program/{subjectID}', [QuestionController::class, 'indexQuestionsByProgram']);
 });
@@ -46,6 +55,12 @@ Route::middleware(['auth:sanctum','role:3'])->group(function () {
 Route::middleware(['auth:sanctum','role:3,4'])->group(function () {
     //update question status route
     Route::patch('/questions/{questionID}/status', [QuestionController::class, 'updateStatus']);
+
+    //practice exam settings route
+    Route::post('/practice-settings', [PracticeExamSettingController::class, 'store']); // create settings
+    Route::put('/practice-settings/{subjectID}/edit', [PracticeExamSettingController::class, 'update']); // update settings
+    Route::delete('/practice-settings/{subjectID}/delete', [PracticeExamSettingController::class, 'destroy']); // delete settings
+    Route::get('/programs', [ProgramController::class, 'index']);
 });
 
 Route::middleware(['auth:sanctum','role:4'])->group(function () {
@@ -63,4 +78,6 @@ Route::middleware(['auth:sanctum','role:4'])->group(function () {
     Route::post('/add-subjects', [SubjectController::class, 'store']);
     Route::delete('/subjects/{subjectID}/delete', [SubjectController::class, 'destroy']);
     Route::put('/subjects/{subjectID}/update', [SubjectController::class, 'update']);
+
+    //programs route
 });

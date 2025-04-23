@@ -5,6 +5,8 @@ namespace Modules\Subjects\Models;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Questions\Models\Question;
 use Modules\Users\Models\User;
+use Modules\PracticeExams\Models\PracticeExamSetting;
+use Modules\Users\Models\Program;
 
 class Subject extends Model
 {
@@ -24,5 +26,14 @@ class Subject extends Model
     public function questions()
     {
         return $this->hasMany(Question::class, 'subjectID');
+    }
+
+    public function practiceExamSetting()
+    {
+        return $this->hasOne(PracticeExamSetting::class, 'subjectID');
+    }
+    public function program()
+    {
+        return $this->belongsTo(Program::class, 'programID');
     }
 }
