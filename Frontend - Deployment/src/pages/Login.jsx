@@ -80,9 +80,8 @@ const Login = () => {
   return (
     <div
       className="
-        lg:bg-[url('/src/assets/login-bg.png')]
-        sm:bg-[url('/src/assets/login-bg-md.png')] 
-        bg-[url('/src/assets/login-bg-xs.png')] 
+        lg:bg-[url('/login-bg.png')]
+        sm:bg-[url('/login-bg-md.png')] bg-[url('/login-bg-xs.png')]
         flex flex-col lg:flex-row 
         h-full w-full min-h-screen 
         items-center justify-center 
