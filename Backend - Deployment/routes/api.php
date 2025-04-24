@@ -11,10 +11,12 @@ use App\Http\Middleware\TokenExpirationMiddleware;
 use Modules\PracticeExams\Controllers\PracticeExamSettingController;
 use Modules\PracticeExams\Controllers\PracticeExamController;
 use Modules\Users\Controllers\ProgramController;
+use Modules\Users\Controllers\RoleController;
 
 //User authentication routes
 Route::post('/register', action: [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/roles', [RoleController::class, 'indexAvailableRoles']);
 
 Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class,])->group(function () {
     //Password change route
@@ -32,6 +34,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/subjects', [SubjectController::class, 'index']);
     Route::post('/faculty/assign-subject', action: [FacultySubjectController::class, 'assignSubject']);
     Route::get('/faculty/my-subjects', [FacultySubjectController::class, 'mySubjects']);
+    Route::get('/faculty/availableSubjects', [FacultySubjectController::class, 'availableSubjects']);
     Route::delete('/remove-assigned-subject/{subjectID}', [FacultySubjectController::class, 'removeAssignedSubject']);
 
     //question functionalities route
@@ -57,7 +60,7 @@ Route::middleware(['auth:sanctum','role:3,4'])->group(function () {
     Route::patch('/questions/{questionID}/status', [QuestionController::class, 'updateStatus']);
 
     //practice exam settings route
-    Route::post('/practice-settings', [PracticeExamSettingController::class, 'store']); // create settings
+    Route::post('/practice-settings/{subjectID}', [PracticeExamSettingController::class, 'store']); // create settings
     Route::put('/practice-settings/{subjectID}/edit', [PracticeExamSettingController::class, 'update']); // update settings
     Route::delete('/practice-settings/{subjectID}/delete', [PracticeExamSettingController::class, 'destroy']); // delete settings
     Route::get('/programs', [ProgramController::class, 'index']);
