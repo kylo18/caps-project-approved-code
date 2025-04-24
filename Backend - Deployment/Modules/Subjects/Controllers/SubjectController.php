@@ -16,35 +16,39 @@ class SubjectController extends Controller
         try {
             // Validate request
             $request->validate([
-                'programID'    => 'nullable|exists:programs,programID',
-                'subjectCode'  => 'required|string|unique:subjects,subjectCode',
+                'programID'    => 'required|exists:programs,programID',
+                'subjectCode'  => 'required|string',
                 'subjectName'  => 'required|string',
             ]);
 
-            $subjectCode = $request->subjectCode;
+            // Check if a subject with the same code, name, and programID already exists
+            $existingSubject = Subject::where('subjectCode', $request->subjectCode)
+                ->where('subjectName', $request->subjectName)
+                ->where('programID', $request->programID)
+                ->first();
 
-            // If programID is provided, append program name
-            if ($request->filled('programID')) {
+            if ($existingSubject) {
+                return response()->json([
+                    'message' => 'Subject already exists for this program.',
+                    'existing_subject' => $existingSubject
+                ], 409);
+            } else {
+                // Optional: Check if the program exists (already covered by validation, but safe to include if needed)
                 $program = Program::find($request->programID);
-
                 if (!$program) {
                     return response()->json(['message' => 'Program not found.'], 404);
                 }
-
-                $subjectCode;
+                // Create the subject
+                $subject = Subject::create([
+                    'programID'   => $request->programID,
+                    'subjectCode' => $request->subjectCode,
+                    'subjectName' => $request->subjectName,
+                ]);
+                return response()->json([
+                    'message' => 'Subject created successfully.',
+                    'subject' => $subject
+                ], 201);
             }
-
-            // Create the subject (programID can be null for general subjects)
-            $subject = Subject::create([
-                'programID'   => $request->programID, // will be null for general
-                'subjectCode' => $subjectCode,
-                'subjectName' => $request->subjectName,
-            ]);
-
-            return response()->json([
-                'message' => 'Subject created successfully.',
-                'subject' => $subject
-            ], 201);
         } catch (\Exception $e) {
             Log::error('Error creating subject: ' . $e->getMessage());
 
@@ -139,32 +143,37 @@ class SubjectController extends Controller
         ]);
 
         try {
-            $fullSubjectCode = $validated['subjectCode'];
+            $subjectCode = $validated['subjectCode'];
+            $subjectName = $validated['subjectName'];
+            $programID = $validated['programID'] ?? null;
 
-            // If programID is provided, append program name to subject code
-            if (!empty($validated['programID'])) {
-                $program = Program::find($validated['programID']);
+            // Check for full duplicate (code, name, programID) excluding current subject
+            $duplicate = Subject::where('subjectCode', $subjectCode)
+                ->where('subjectName', $subjectName)
+                ->where('programID', $programID)
+                ->where('subjectID', '!=', $subjectID)
+                ->first();
+
+            if ($duplicate) {
+                return response()->json([
+                    'message' => 'Another subject with the same code, name, and program already exists.',
+                    'duplicate' => $duplicate
+                ], 409);
+            }
+
+            // Optional: Check if program exists (already validated above)
+            if (!empty($programID)) {
+                $program = Program::find($programID);
                 if (!$program) {
                     return response()->json(['message' => 'Program not found.'], 404);
                 }
-
-                $fullSubjectCode = $validated['subjectCode'];
-            }
-
-            // Check for duplicate code excluding current subject
-            $duplicate = Subject::where('subjectCode', $fullSubjectCode)
-                ->where('subjectID', '!=', $subjectID)
-                ->exists();
-
-            if ($duplicate) {
-                return response()->json(['message' => 'Subject code already exists for another subject.'], 422);
             }
 
             // Update the subject
             $subject->update([
-                'subjectCode' => $fullSubjectCode,
-                'subjectName' => $validated['subjectName'],
-                'programID'   => $validated['programID'], // can be null for general
+                'subjectCode' => $subjectCode,
+                'subjectName' => $subjectName,
+                'programID'   => $programID, // can be null for general
             ]);
 
             return response()->json([
@@ -178,6 +187,7 @@ class SubjectController extends Controller
             ], 500);
         }
     }
+
 
     public function destroy($subjectID)
     {
