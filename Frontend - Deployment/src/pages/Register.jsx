@@ -41,25 +41,6 @@ function Register() {
   };
   
 
-  useEffect(() => {
-    if (userCode.trim() !== '') {
-      const delayDebounceFn = setTimeout(() => {
-        checkUserCodeExists();
-      }, 500);
-
-      return () => clearTimeout(delayDebounceFn);
-    }
-  }, [userCode]);
-
-  useEffect(() => {
-    if (email.trim() !== '') {
-      const delayDebounceFn = setTimeout(() => {
-        checkEmailExists();
-      }, 500);
-
-      return () => clearTimeout(delayDebounceFn);
-    }
-  }, [email]);
 
   // Handle form submission
   const handleSubmit = async (e) => {
@@ -145,13 +126,17 @@ function Register() {
           programID,
         }),
       });
-  
-      const data = await res.json();
-  
+    
+      let data;
+      try {
+        data = await res.json(); // ⚠️ This might fail if response is empty or invalid
+      } catch (jsonErr) {
+        console.warn("JSON parse failed:", jsonErr);
+        data = {}; // fallback if API didn't return JSON
+      }
+    
       if (res.ok) {
-        setMessage('Registration successful!');
         setErrors({});
-        setCurrentStep(1); // Reset to Step 1 after success
         navigate("/");
       } else {
         setErrors(prev => ({
@@ -159,17 +144,17 @@ function Register() {
           general: data.message || 'Registration failed',
         }));
       }
-  
+    
     } catch (error) {
-      console.error('Error during registration:', error);
+      console.error('Network or other error during registration:', error);
       setErrors(prev => ({
         ...prev,
-        general: 'An error occurred. Please try again later.',
+        general: 'An error occurred. Please try again.',
       }));
     } finally {
       setIsRegistering(false);
     }
-  };
+  }    
   
   const handleNextStep = () => {
     setErrors({});
@@ -357,7 +342,6 @@ function Register() {
               )}
             </div>
       
-              
             <div
               className={`transition-opacity duration-300 ease-in-out ${
                 currentStep === 3 ? "opacity-100" : "opacity-0"

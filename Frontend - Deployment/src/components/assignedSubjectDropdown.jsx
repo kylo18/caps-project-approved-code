@@ -30,7 +30,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
   const [dropdownSubject, setDropdownSubject] = useState(null);
 
   const [dropdownDirection, setDropdownDirection] = useState("down"); // "down" or "up"
-
+  const [searchUnassigned, setSearchUnassigned] = useState("");
   const [toast, setToast] = useState({
     message: "",
     type: "",
@@ -66,7 +66,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
     setLoading(true);
   
     try {
-      const response = await fetch(`${apiUrl}/subjects`, {
+      const response = await fetch(`${apiUrl}/faculty/availableSubjects`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -89,6 +89,8 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       }
   
       const data = await response.json();
+      
+
   
       if (!Array.isArray(data.subjects)) {
         console.error("Unexpected subjects data format:", data);
@@ -161,7 +163,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
 
   useEffect(() => {
     if (!searchTerm.trim()) {
-      setFilteredSubjects(assignedSubjects); // 🔁 Fix this line
+      setFilteredSubjects(assignedSubjects); 
     } else {
       const results = assignedSubjects.filter(
         (subject) =>
@@ -213,6 +215,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       if (response.ok) {
         if (selectedSubject?.subjectID === subjectID) {
           setSelectedSubject(null);
+
         }
 
         await fetchAssignedSubjects();
@@ -313,39 +316,50 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
           Subjects
         </span>
         {isExpanded && (
+          <div className="flex justify-center items-center ml-auto mr-1">
           <i
-            className={`bx ${isOpen ? "bxs-chevron-down" : "bxs-chevron-down"} text-[22px] ml-3 transition-transform duration-300 ease-in-out ${
+            className={`bx ${isOpen ? "bxs-chevron-down" : "bxs-chevron-down"} text-[22px]  transition-transform duration-300 ease-in-out ${
               isOpen ? "rotate-180" : "rotate-0"
-            }`}></i>
+              
+            }`}
+          ></i>
+        </div>
         )}
       </li>
   
       {/* Dropdown Content */}
       <div
-        className={`flex flex-col h-[400px] mt-2 transition-all duration-0 ease-in-out ${
-          isOpen ? "opacity-100" : "max-h-0 opacity-0"
-        } overflow-hidden`}
+        className={`flex flex-col mt-2 overflow-hidden transition-all duration-0 ease-in-out ${
+          isOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
+        }`}
       >
-        <div className=" w-full mx-auto mt-2 flex items-center gap-1">
-          <input
-            type="text"
-            placeholder="Search..."
-            className="w-27 px-2 py-1 text-[14px] border border-[rgb(168,168,168)] rounded-md outline-none"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="w-full mx-auto mt-2 flex items-center gap-1">
+          <div className="relative w-full">
+            <i className="bx bx-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-[16px]"></i>
+            <input
+              type="text"
+              placeholder="Search..."
+              className="w-full pl-7 pr-2 py-1 text-[14px] border border-color rounded-sm outline-none"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
           <div
-            className="cursor-pointer hover:bg-orange-700 justify-center text-center bg-orange-500  text-white px-[9px] py-[3px] rounded-md transition-all"
+            className="justify-center text-center bg-orange-500 cursor-pointer text-white px-[7px] py-[3px] rounded-sm hover:bg-orange-600 transition-all"
             onClick={() => setShowAddModal(true)}
           >
             <i className="bx bx-plus text-[16px] "></i>
           </div>
         </div>
         
+        <div className="w-full h-[1px] bg-[rgb(200,200,200)]  mt-4"></div>
+        
         <ul
           ref={listRef}
-          className={`ml-[3px] flex-grow overflow-y-auto custom-scrollbar pr-2 transition-all duration-300 ease-in-out
-            text-left text-[14px] font-semibold mt-2 w-full mx-auto text-[rgb(78,78,78)]
+          className={`flex-grow transition-all duration-100 ease-in-out
+            text-[14px] font-semibold mt-2 w-full mx-auto text-gray-700
+            scrollbar-show-on-hover
             ${!isExpanded ? 'hidden' : ''}
           `}
         >
@@ -360,7 +374,7 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
             searchResults.map((subject) => (
               <li
                 key={subject.subjectID}
-                className={`relative group cursor-pointer flex justify-between items-center rounded-md mt-2 transition-all duration-100 ease-in-out p-[7px] ${
+                className={`mr-1 relative group cursor-pointer flex justify-between items-center rounded-md mt-2 transition-all duration-100 ease-in-out p-[7px] ${
                   selectedSubject && selectedSubject.subjectID === subject.subjectID
                     ? "bg-orange-500 text-white"
                     : "hover:bg-[rgb(255,230,214)]"
@@ -407,8 +421,8 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
               </li>
             ))
           ) : (
-            <li className="flex flex-col items-center gap-2 p-4 text-[rgb(168,168,168)] text-[14px] text-center">
-              <span>No assigned subjects found</span>
+            <li className="flex flex-col items-center gap-2 p-2 text-[rgb(168,168,168)] text-[14px] text-center">
+              <span>No subjects found</span>
               <button
                 onClick={fetchAssignedSubjects}
                 className="mt-3 flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 border px-3 py-1 rounded-md shadow-sm"
@@ -451,44 +465,75 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       </div>
 
       {showDeleteModal && subjectToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center lightbox-bg ">
-          <div className="bg-white rounded-lg p-6 w-[90%] max-w-sm shadow-lg">
-            <h2 className="text-[16px] font-semibold mb-5 text-gray-700">Confirm Delete</h2>
-            <p className="text-[14px] text-gray-700 mb-9 break-words">
-              Are you sure you want to delete <strong>{subjectToDelete.subjectName}</strong>?
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="cursor-pointer flex items-center gap-1 px-4 py-1.5 border rounded-lg text-gray-700 hover:bg-gray-200 ml-auto"
-              >
-                Cancel
-              </button>
-              <Button
-                text="Delete"
-                textres="Delete"
-                icon="bx bx-trash"
-                onClick={async () => {
-                  await handleDeleteSubject(subjectToDelete.subjectID);
-                  setShowDeleteModal(false);
-                  setSubjectToDelete(null);
-                  setToast({
-                    message: "Subject deleted successfully",
-                    type: "success",
-                    show: true,
-                  });;
-                }}
-              />
-            </div>
+        <div className="fixed inset-0 z-56 flex flex-col items-center justify-center lightbox-bg">
+        <div className="font-inter text-[14px] w-full max-w-sm mx-auto bg-white py-2 pl-4 rounded-t-md border border-color relative text-gray-700 font-medium">
+          <span>Delete Subject</span>
+        </div>
+
+        <div className="w-full max-w-sm sm:px-4 mx-auto p-2 bg-white border-color border-t-0 border relative rounded-b-md">
+
+          <p className="text-[14px] text-gray-700 mb-9 break-words mt-2">
+            Are you sure you want to delete <strong>{subjectToDelete.subjectName}</strong>?
+          </p>
+          <div className="flex justify-end gap-2 mb-2">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="cursor-pointer flex items-center gap-1 px-4 py-1.5 border rounded-md text-gray-700 hover:bg-gray-200 ml-auto"
+            >
+              Cancel
+            </button>
+            <Button
+              text="Confirm"
+              textres="Confirm"
+              icon="bx bx-trash"
+              onClick={async () => {
+                await handleDeleteSubject(subjectToDelete.subjectID);
+                setShowDeleteModal(false);
+                setSubjectToDelete(null);
+                setToast({
+                  message: "Subject deleted successfully",
+                  type: "success",
+                  show: true,
+                });;
+              }}
+            />
           </div>
         </div>
+      </div>
       )}
   
       {/* Add Assign Subject Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 flex items-center justify-center lightbox-bg">
-          <div className="bg-white rounded-md p-6 w-[90%] max-w-sm shadow-lg">
-            <h2 className="text-[16px] font-semibold mb-5 text-gray-700">Assign A New Subject</h2>
+        <div className="z-100 fixed inset-0 flex flex-col items-center justify-center lightbox-bg">
+          <div className="font-inter text-[14px] w-full max-w-md mx-auto bg-white py-2 pl-4 rounded-t-md border border-color relative text-gray-700 font-medium">
+            <span>Assign a Subject</span>
+          </div>
+
+          <div className="w-full max-w-md sm:px-4 mx-auto p-2 bg-white border-color border-t-0 border relative rounded-b-md">
+            
+            {/* Refresh Button */}
+            <div className="flex w-full items-center mt-2 gap-2 ">
+              <div className=" w-4/5">
+                <input
+                  type="text"
+                  placeholder="Search subject..."
+                  value={searchUnassigned}
+                  onChange={(e) => setSearchUnassigned(e.target.value)}
+                  className={`cursor-text rounded-md w-full px-4 py-[7px] bg-white relative
+                    transition-all duration-200 ease-in-out outline-none focus:outline-none
+                    hover:border-gray-500 focus:ring-1 focus:ring-orange-500 focus:ring-offset-1
+                    border border-gray-300 focus:border-transparent text-[14px]`}
+                />
+              </div>
+              <button
+                className="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 border px-3 py-[7px] rounded-md"
+                onClick={fetchSubjects}
+              >
+                <i className="bx bx-refresh text-[18px]"></i> Refresh
+              </button>
+            </div>
+            
+            <div className=" sm:-mx-4 h-[0.5px] bg-[rgb(200,200,200)] mt-4 mb-3" />
 
             {/* Subject List for Assigning */}
             <div className="mb-3">
@@ -496,23 +541,28 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
                 {loading ? (
                   <h3 className="text-[14px] font-semibold mb-2">Loading...</h3>
                 ) : unassignedSubjects.length > 0 ? (
-                  unassignedSubjects.map((subject) => (
-                    <li
-                      key={subject.subjectID}
-                      className={`cursor-pointer flex justify-between items-center rounded-md mt-2 mr-[6px] transition-all duration-100 ease-in-out p-[7px] ${
-                        selectedSubjectForAssignment && selectedSubjectForAssignment.subjectID === subject.subjectID
-                          ? "bg-orange-500 text-white" 
-                          : "hover:bg-[rgb(255,230,214)]"
-                      }`}
-                      onClick={() => {
-                        setSelectedSubjectForAssignment(subject);
-                      }}
-                    >
-                      <span className="pl-1 mb-[1px]">
-                        {subject.subjectName} ({subject.subjectCode})
-                      </span>
-                    </li>
-                  ))
+                  [...unassignedSubjects]
+                    .filter((subject) =>
+                      `${subject.programName} ${subject.subjectName} ${subject.subjectCode}`
+                        .toLowerCase()
+                        .includes(searchUnassigned.toLowerCase())
+                    )
+                    .sort((a, b) => a.programName.localeCompare(b.programName))
+                    .map((subject) => (
+                      <li
+                        key={subject.subjectID}
+                        className={`text-[15px] cursor-pointer flex justify-between items-center rounded-md mt-2 mr-[6px] transition-all duration-100 ease-in-out p-[5px] ${
+                          selectedSubjectForAssignment && selectedSubjectForAssignment.subjectID === subject.subjectID
+                            ? "bg-orange-500 text-white" 
+                            : "hover:bg-[rgb(255,230,214)]"
+                        }`}
+                        onClick={() => setSelectedSubjectForAssignment(subject)}
+                      >
+                        <span className="pl-1 mb-[1px] break-words">
+                          {subject.programName} -  ({subject.subjectCode}) {subject.subjectName}
+                        </span>
+                      </li>
+                    ))
                 ) : (
                   <li className="p-2 text-[rgb(168,168,168)] text-[14px] text-center">
                     All subjects already assigned.
@@ -521,9 +571,12 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
               </ul>
             </div>
 
-            <div className="mt-9 flex justify-end gap-2">
+        <div className="-mx-2 sm:-mx-4 h-[0.5px] bg-[rgb(200,200,200)] mt-5 mb-3" />
+
+
+            <div className=" flex justify-end gap-2 mb-1">
               <button
-                className="cursor-pointer flex items-center gap-1 px-2 py-1.5 border rounded-lg text-gray-700 hover:bg-gray-200"
+                className="cursor-pointer flex items-center gap-1 px-2 py-1.5 border rounded-md text-gray-700 hover:bg-gray-200"
                 onClick={() => setShowAddModal(false)}
               >
                 <span className="text-[16px] px-1">Cancel</span>

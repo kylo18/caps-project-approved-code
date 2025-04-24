@@ -14,39 +14,41 @@ import ScrollToTopButton from "../components/scrollToTopButton";
 import LoadingOverlay from "../components/loadingOverlay";
 
 const FacultyDashboard = () => {
-  const [modalImage, setModalImage] = useState(null); 
-  const [pendingSort, setPendingSort] = useState(""); 
-  
-  const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false); 
-  const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false); 
+  const [modalImage, setModalImage] = useState(null);
+  const [pendingSort, setPendingSort] = useState("");
+
+  const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
+  const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false);
   const [choiceModalImage, setchoiceModalImage] = useState(null);
 
   const { selectedSubject } = useOutletContext();
   const [activeTab, setActiveTab] = useState(0);
   const [questions, setQuestions] = useState([]);
   const [submittedQuestion, setSubmittedQuestion] = useState({
-    practiceQuestions: { questionID: null, questionText: '', image: null }, 
-    examQuestions: { questionID: null, questionText: '', image: null }, 
+    practiceQuestions: { questionID: null, questionText: "", image: null },
+    examQuestions: { questionID: null, questionText: "", image: null },
   });
-    const formRef = useRef(null);
-  
-  
+  const formRef = useRef(null);
+
   const [showChoiceForm, setShowChoiceForm] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState(""); 
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const [sortOption, setSortOption] = useState(""); 
-  const [subSortOption, setSubSortOption] = useState(""); 
+  const [sortOption, setSortOption] = useState("");
+  const [subSortOption, setSubSortOption] = useState("");
 
-  const [showConfirmModal, setShowConfirmModal] = useState(false); 
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [deleteQuestionID, setDeleteQuestionID] = useState(null);
-  
+
   const [editQuestionID, setEditQuestionID] = useState(null);
   const [editText, setEditText] = useState("");
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
-  
+
+  const [showChoices, setShowChoices] = useState(true);
+  const [listViewOnly, setListViewOnly] = useState(false);
+
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
   const [toast, setToast] = useState({
@@ -54,19 +56,18 @@ const FacultyDashboard = () => {
     type: "",
     show: false,
   });
-  
 
   useEffect(() => {
     if (toast.message) {
       setToast((prev) => ({ ...prev, show: true }));
-  
+
       const timer = setTimeout(() => {
         setToast((prev) => ({ ...prev, show: false }));
         setTimeout(() => {
           setToast({ message: "", type: "", show: false });
         }, 500);
       }, 2500);
-  
+
       return () => clearTimeout(timer);
     }
   }, [toast.message]);
@@ -76,8 +77,8 @@ const FacultyDashboard = () => {
       fetchQuestions();
       setSubmittedQuestion({ practice: null, exam: null, image: null }); // Reset on subject change
       setShowChoiceForm(false);
-      setSearchQuery(""); 
-      setSortOption(""); 
+      setSearchQuery("");
+      setSortOption("");
       setSubSortOption("");
     }
   }, [selectedSubject]);
@@ -86,12 +87,12 @@ const FacultyDashboard = () => {
     setEditQuestionID(question.questionID);
     setEditText(question.questionText);
   };
-  
+
   const cancelEdit = () => {
     setEditQuestionID(null);
     setEditText("");
   };
-  
+
   const saveEdit = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
@@ -101,30 +102,30 @@ const FacultyDashboard = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({questionText: editText }),
+        body: JSON.stringify({ questionText: editText }),
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to update question");
       }
-  
+
       setQuestions((prevQuestions) =>
         prevQuestions.map((q) =>
-          q.questionID === questionID ? { ...q, questionText: editText } : q
-        )
+          q.questionID === questionID ? { ...q, questionText: editText } : q,
+        ),
       );
-  
-      cancelEdit(); 
+
+      cancelEdit();
     } catch (error) {
       console.error("Error updating question:", error);
     }
   };
-  
+
   const handleDeleteQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
       setShowConfirmModal(false);
-      setIsDeleting(true)
+      setIsDeleting(true);
       const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
         method: "DELETE",
         headers: {
@@ -132,15 +133,15 @@ const FacultyDashboard = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to delete question");
       }
-  
+
       setQuestions((prevQuestions) =>
-        prevQuestions.filter((question) => question.questionID !== questionID)
+        prevQuestions.filter((question) => question.questionID !== questionID),
       );
-      setDeleteQuestionID(null); 
+      setDeleteQuestionID(null);
       setToast({
         message: "Question deleted successfully!",
         type: "success",
@@ -149,38 +150,37 @@ const FacultyDashboard = () => {
     } catch (error) {
       console.error("Error deleting question:", error);
     } finally {
-      setIsDeleting(false)
-
+      setIsDeleting(false);
     }
   };
 
   const fetchQuestions = async () => {
     try {
       const token = localStorage.getItem("token");
-  
+
       if (!selectedSubject || !selectedSubject.subjectID) {
         console.error("No subject selected");
         return;
       }
-  
+
       const response = await fetch(
         `${apiUrl}/faculty/my-questions/${selectedSubject.subjectID}`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token},`
+            Authorization: `Bearer ${token},`,
           },
-        }
+        },
       );
-  
+
       if (!response.ok) {
         throw new Error("Failed to fetch your questions");
       }
-  
+
       const data = await response.json();
       console.log("Fetched Your Questions:", data);
-  
+
       // Set questions to state
       setQuestions(data.data || []);
     } catch (error) {
@@ -190,30 +190,42 @@ const FacultyDashboard = () => {
 
   // Filter and Sort Questions
   const filteredQuestions = questions
-  .filter((question) => {
-    const matchesSearch = question.questionText.toLowerCase().includes(searchQuery.toLowerCase());
+    .filter((question) => {
+      const matchesSearch = question.questionText
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-    const matchesSort =
-      (sortOption === "difficulty" && subSortOption ? question.difficulty === subSortOption : true) &&
-      (sortOption === "coverage" && subSortOption ? question.coverage === subSortOption : true);
+      const matchesSort =
+        (sortOption === "difficulty" && subSortOption
+          ? question.difficulty === subSortOption
+          : true) &&
+        (sortOption === "coverage" && subSortOption
+          ? question.coverage === subSortOption
+          : true);
 
-    const matchesTab =
-      (activeTab === 0 && question.purpose === "practiceQuestions" && question.status === "approved") ||
-      (activeTab === 1 && question.purpose === "examQuestions" && question.status === "approved") ||
-      (activeTab === 4 && question.status === "pending" && (pendingSort ? question.purpose === pendingSort : true));
+      const matchesTab =
+        (activeTab === 0 &&
+          question.purpose === "practiceQuestions" &&
+          question.status === "approved") ||
+        (activeTab === 1 &&
+          question.purpose === "examQuestions" &&
+          question.status === "approved") ||
+        (activeTab === 4 &&
+          question.status === "pending" &&
+          (pendingSort ? question.purpose === pendingSort : true));
 
-    return matchesSearch && matchesSort && matchesTab;
+      return matchesSearch && matchesSort && matchesTab;
     })
     .sort((a, b) => {
       if (sortOption === "score") {
         return subSortOption === "asc" ? a.score - b.score : b.score - a.score;
       }
       return 0;
-  });
+    });
 
   const confirmDelete = (questionID) => {
     setDeleteQuestionID(questionID);
-    setShowConfirmModal(true); 
+    setShowConfirmModal(true);
   };
 
   const handleQuestionAdded = (newQuestion) => {
@@ -243,7 +255,7 @@ const FacultyDashboard = () => {
   useEffect(() => {
     setTimeout(() => {
       setIsLoading(false);
-    }, 1000); 
+    }, 1000);
   }, []);
 
   useEffect(() => {
@@ -251,29 +263,33 @@ const FacultyDashboard = () => {
       formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [showChoiceForm]);
-  
 
   return (
-    <div className="mt-9 flex flex-col relative flex-1 justify-center min-h-screen w-full sm:p-2">
+    <div className="relative mt-9 flex min-h-screen w-full flex-1 flex-col justify-center sm:p-2">
       <div className="flex-1">
         {selectedSubject ? (
-          <div className="py-6 w-full">
+          <div className="w-full py-6">
             <div className="w-full">
               <SubjectCard
                 subjectName={selectedSubject.subjectName}
                 subjectID={selectedSubject.subjectID}
                 university="JRMSU"
                 location="Dapitan City"
-                imageUrl={selectedSubject.imageUrl || "https://via.placeholder.com/60"}
+                imageUrl={
+                  selectedSubject.imageUrl || "https://via.placeholder.com/60"
+                }
                 activeIndex={activeTab}
                 setActiveIndex={setActiveTab}
                 isLoading={isLoading}
               />
             </div>
             {/*Search bar div here*/}
-            <div className="flex flex-col sm:flex-row gap-[5.5px] mt-4 mb-6 justify-end">
-              <SearchQuery searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-              <div className="flex justify-end items-center ">
+            <div className="mt-4 mb-4 flex flex-col justify-end gap-[5.5px] sm:flex-row">
+              <SearchQuery
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+              />
+              <div className="flex items-center justify-end">
                 {activeTab === 4 && (
                   <SortCustomDropdown
                     name="pendingSort"
@@ -282,140 +298,269 @@ const FacultyDashboard = () => {
                     placeholder="Filter by Type"
                     options={[
                       { value: "", label: "All Types" },
-                      { value: "practiceQuestions", label: "Practice Questions" },
+                      {
+                        value: "practiceQuestions",
+                        label: "Practice Questions",
+                      },
                       { value: "examQuestions", label: "Exam Questions" },
                     ]}
                   />
                 )}
               </div>
-              <Sort 
-                sortOption={sortOption} 
-                setSortOption={setSortOption} 
-                subSortOption={subSortOption} 
-                setSubSortOption={setSubSortOption} 
+              <Sort
+                sortOption={sortOption}
+                setSortOption={setSortOption}
+                subSortOption={subSortOption}
+                setSubSortOption={setSubSortOption}
               />
+              {/* List View Button on the right */}
+              <button
+                onClick={() => setListViewOnly(!listViewOnly)}
+                className="border-color flex h-10 w-12 cursor-pointer items-center justify-center rounded-md border bg-white text-gray-700 shadow-sm hover:bg-gray-200"
+                title={listViewOnly ? "Normal View" : "List View"}
+              >
+                <i
+                  className={`bx ${listViewOnly ? "bx-grid-small" : "bx-list-ul"} text-xl`}
+                ></i>
+              </button>
             </div>
 
             {/* Questions List */}
             {(activeTab === 0 || activeTab === 1 || activeTab === 4) && ( // Practice Questions
               <div className="flex">
                 <div className="flex-1">
-                
-                {filteredQuestions.length > 0 ? (
-                  filteredQuestions
-                  .filter((question) => 
-                    // Filter by tab type and question status
-                    (activeTab === 4 && question.status === "pending") || // For Pending Questions Tab
-                    (activeTab === 0 && question.purpose === "practiceQuestions" && question.status === "approved") || // For Approved Practice Questions Tab
-                    (activeTab === 1 && question.purpose === "examQuestions" && question.status === "approved") // For Approved Exam Questions Tab
-                  )
-                    .map((question, index) => (
-                      <div key={`${question.id}-${index}`} >
-                        <div
-                          className="mb-3 w-full max-w-3xl sm:px-4 mx-auto p-4 bg-white shadow-md rounded-sm border-[rgb(200,200,200)] border relative"
+                  {filteredQuestions.length > 0 ? (
+                    <>
+                      <div className="relative mx-auto mb-3 flex w-full max-w-3xl items-center gap-2">
+                        <button
+                          onClick={() => setShowChoices(!showChoices)}
+                          className="border-color flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border bg-white text-gray-700 shadow-sm hover:bg-gray-200"
+                          title={showChoices ? "Hide Choices" : "Show Choices"}
                         >
-                          <div className="p-2 break-words w-full overflow-hidden max-w-full">
-                            <div className="flex justify-between items-center text-gray-600 text-[14px]">
-                              <span>{index + 1}. Multiple Choice</span>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-[12px] font-medium">{question.score} pt</span>
-                                <span className={`text-white text-[12px] px-4 py-1 rounded-lg ${
-                                    question.difficulty === "easy" ? "bg-green-500" : 
-                                    question.difficulty === "moderate" ? "bg-yellow-500" : 
-                                    "bg-red-500"
-                                  }`}>
-                                  {question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1)}
-                                </span>
-
-                                {/* Coverage Badge */}
-                                <span className="text-white text-[12px] px-4 py-1 rounded-lg bg-blue-500">
-                                  {question.coverage.charAt(0).toUpperCase() + question.coverage.slice(1)}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="relative hover:cursor-text mt-4 p-1 bg-gray-100 rounded-sm transition-all duration-150">
-                              <div
-                                className=" mt-1 bg-inherit py-2 pl-3 text-[14px] w-full max-w-full border-gray-300  min-h-[40px] overflow-hidden resize-none whitespace-pre-wrap break-words word-break break-word">
-                                <span>{question.questionText}</span>
-                              </div>
-                            </div>
-
-                            {question.image && (
-                              <div className="mt-3 relative rounded-md inline-block max-w-[300px]">
-                                {/* Ensure the container grows with the image */}
-                                <div className="flex flex-col items-start">
-                                  <img
-                                    src={question.image}
-                                    alt="Question Image"
-                                    className=" max-w-full h-auto rounded-sm shadow-md cursor-pointer object-contain hover:opacity-80"
-                                    onClick={() => setModalImage(question.image)}
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Display Choices */}
-                          {question.choices && question.choices.length > 0 ? (
-                            <div className="mt-3 space-y-3 p-3">
-                              {question.choices.map((choice, index) => (
-                                <label key={index} className="flex items-center space-x-2 relative">
-                                  {/* Disabled Radio Button (Unclickable) */}
-                                  <input
-                                    type="radio"
-                                    name={`question-${question.questionID}`} // Group choices for the same question
-                                    value={choice.choiceText}
-                                    defaultChecked={choice.isCorrect} // Pre-select correct answer
-                                    disabled // Prevent user from clicking
-                                    className={`size-5 focus:ring-0 cursor-not-allowed 
-                                      ${choice.isCorrect ? "text-orange-500 border-orange-500" : "text-gray-500 border-gray-300"}`}
-                                  />
-
-                                  {/* Choice text (display only if valid) */}
-                                  {choice.choiceText?.trim() && (
-                                    <span className={`rounded-md text-[14px] p-2 w-[90%] ${choice.isCorrect ? "text-orange-500 font-semibold" : "text-gray-700"}`}>
-                                      {choice.choiceText}
-                                    </span>
-                                  )}
-
-                                  {/* Show Image If Added */}
-                                  {choice.image && (
-                                    <div className="cursor-pointer hover:opacity-80 relative max-w-[200px]">
-                                      <img
-                                        src={choice.image}
-                                        alt={`Choice ${index + 1}`}
-                                        className="max-w-full h-auto object-cover rounded-md hover:cursor-pointer"
-                                        onClick={() => {
-                                          setchoiceModalImage(choice.image); 
-                                          setIsChoiceModalOpen(true); 
-                                        }}
-                                    />
-                                    </div>
-                                  )}
-                                </label>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-gray-500 mt-1">No choices added yet.</p>
-                          )}
-                          <div className="flex justify-end m-1 mb-1 gap-4">
-                            <Button
-                              text="Delete"
-                              textres="Delete"
-                              icon="bx bx-trash"
-                              onClick={() => confirmDelete(question.questionID)}
-                            />
-                          </div>
+                          <i
+                            className={`bx ${showChoices ? "bx-hide" : "bx-show"} text-xl`}
+                          ></i>
+                        </button>
+                        <div className="text-sm font-medium text-gray-600">
+                          {
+                            filteredQuestions.filter(
+                              (question) =>
+                                (activeTab === 4 &&
+                                  question.status === "pending") ||
+                                (activeTab === 0 &&
+                                  question.purpose === "practiceQuestions" &&
+                                  question.status === "approved") ||
+                                (activeTab === 1 &&
+                                  question.purpose === "examQuestions" &&
+                                  question.status === "approved"),
+                            ).length
+                          }{" "}
+                          Question/s
                         </div>
                       </div>
-                    ))
-                  ) : activeTab === 4 ? ( // If no pending questions
-                    <p className="text-gray-500 text-center text-[16px]">No pending questions found.</p>
+
+                      {filteredQuestions
+                        .filter(
+                          (question) =>
+                            // Filter by tab type and question status
+                            (activeTab === 4 &&
+                              question.status === "pending") || // For Pending Questions Tab
+                            (activeTab === 0 &&
+                              question.purpose === "practiceQuestions" &&
+                              question.status === "approved") || // For Approved Practice Questions Tab
+                            (activeTab === 1 &&
+                              question.purpose === "examQuestions" &&
+                              question.status === "approved"), // For Approved Exam Questions Tab
+                        )
+                        .map((question, index) => (
+                          <div key={`${question.id}-${index}`}>
+                            <div className="relative mx-auto mb-3 w-full max-w-3xl rounded-sm border border-[rgb(200,200,200)] bg-white p-4 shadow-md sm:px-4">
+                              <div
+                                className={`w-full max-w-full overflow-hidden break-words ${listViewOnly ? "p-0" : "p-2"}`}
+                              >
+                                <div className="flex items-center justify-between text-[14px] text-gray-600">
+                                  {!listViewOnly && (
+                                    <>
+                                      <span>{index + 1}. Multiple Choice</span>
+                                      <div className="flex items-center space-x-2">
+                                        <span className="text-[12px] font-medium">
+                                          {question.score} pt
+                                        </span>
+                                        <span
+                                          className={`rounded-lg px-4 py-1 text-[12px] text-white ${
+                                            question.difficulty === "easy"
+                                              ? "bg-green-500"
+                                              : question.difficulty ===
+                                                  "moderate"
+                                                ? "bg-yellow-500"
+                                                : "bg-red-500"
+                                          }`}
+                                        >
+                                          {question.difficulty
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                            question.difficulty.slice(1)}
+                                        </span>
+
+                                        {/* Coverage Badge */}
+                                        <span className="rounded-lg bg-blue-500 px-4 py-1 text-[12px] text-white">
+                                          {question.coverage
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                            question.coverage.slice(1)}
+                                        </span>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+
+                                {listViewOnly ? (
+                                  <div className="word-break break-word border-colors w-full max-w-full resize-none overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
+                                    <span>{question.questionText}</span>
+                                  </div>
+                                ) : (
+                                  <div className="relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-text">
+                                    <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
+                                      <span>{question.questionText}</span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {!listViewOnly && question.image && (
+                                  <div className="relative mt-3 inline-block max-w-[300px] rounded-md">
+                                    {/* Ensure the container grows with the image */}
+                                    <div className="flex flex-col items-start">
+                                      <img
+                                        src={question.image}
+                                        alt="Question Image"
+                                        className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md hover:opacity-80"
+                                        onClick={() =>
+                                          setModalImage(question.image)
+                                        }
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Display Choices */}
+                              {!listViewOnly &&
+                                (showChoices ? (
+                                  question.choices &&
+                                  question.choices.length > 0 ? (
+                                    <div className="mt-3 space-y-3 p-3">
+                                      {question.choices.map((choice, index) => (
+                                        <label
+                                          key={index}
+                                          className="relative flex items-center space-x-2"
+                                        >
+                                          <input
+                                            type="radio"
+                                            name={`question-${question.questionID}`}
+                                            value={choice.choiceText}
+                                            defaultChecked={choice.isCorrect}
+                                            disabled
+                                            className={`size-5 cursor-not-allowed focus:ring-0 ${choice.isCorrect ? "border-orange-500 text-orange-500" : "border-gray-300 text-gray-500"}`}
+                                          />
+                                          {choice.choiceText?.trim() && (
+                                            <span
+                                              className={`w-[90%] rounded-md p-2 text-[14px] ${choice.isCorrect ? "font-semibold text-orange-500" : "text-gray-700"}`}
+                                            >
+                                              {choice.choiceText}
+                                            </span>
+                                          )}
+                                          {choice.image && (
+                                            <div className="relative max-w-[200px] cursor-pointer hover:opacity-80">
+                                              <img
+                                                src={choice.image}
+                                                alt={`Choice ${index + 1}`}
+                                                className="h-auto max-w-full rounded-md object-cover hover:cursor-pointer"
+                                                onClick={() => {
+                                                  setchoiceModalImage(
+                                                    choice.image,
+                                                  );
+                                                  setIsChoiceModalOpen(true);
+                                                }}
+                                              />
+                                            </div>
+                                          )}
+                                        </label>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="mt-1 text-gray-500">
+                                      No choices added yet.
+                                    </p>
+                                  )
+                                ) : null)}
+                              {!listViewOnly && (
+                                <>
+                                  <div className="mx-4 mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+                                  <div className="ml-4 flex flex-col gap-1 text-[12px] text-gray-500">
+                                    <div className="flex">
+                                      <span className="w-[100px]">
+                                        Date Added:
+                                      </span>
+                                      <span>
+                                        {new Date(
+                                          question.created_at,
+                                        ).toLocaleString("en-US", {
+                                          year: "numeric",
+                                          month: "long",
+                                          day: "numeric",
+                                          hour: "numeric",
+                                          minute: "2-digit",
+                                          hour12: true,
+                                        })}
+                                      </span>
+                                    </div>
+                                    <div className="flex">
+                                      <span className="w-[100px]">
+                                        Date Modified:
+                                      </span>
+                                      <span>
+                                        {new Date(
+                                          question.updated_at,
+                                        ).toLocaleString("en-US", {
+                                          year: "numeric",
+                                          month: "long",
+                                          day: "numeric",
+                                          hour: "numeric",
+                                          minute: "2-digit",
+                                          hour12: true,
+                                        })}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+
+                              {!listViewOnly && (
+                                <div className="m-1 mb-1 flex justify-end gap-4">
+                                  <Button
+                                    text="Delete"
+                                    textres="Delete"
+                                    icon="bx bx-trash"
+                                    onClick={() =>
+                                      confirmDelete(question.questionID)
+                                    }
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </>
+                  ) : activeTab === 4 ? (
+                    <p className="text-center text-[16px] text-gray-500">
+                      No pending questions found.
+                    </p>
                   ) : (
-                    <p className="text-gray-500 text-center text-[16px] mb-5">No questions found.</p>
+                    <p className="mb-5 text-center text-[16px] text-gray-500">
+                      No questions found.
+                    </p>
                   )}
-                  </div>
+                </div>
               </div>
             )}
 
@@ -423,38 +568,47 @@ const FacultyDashboard = () => {
             {(activeTab === 0 || activeTab === 1) && (
               <div>
                 {/* Show Add Question Button Only If No Active Question */}
-                {!submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"] && (
-                  <div className="text-center fixed bottom-0 right-0 p-4">
+                {!submittedQuestion[
+                  activeTab === 0 ? "practiceQuestions" : "examQuestions"
+                ] && (
+                  <div className="fixed right-0 bottom-0 p-4 text-center">
                     <button
                       onClick={() => {
                         setSubmittedQuestion((prev) => ({
                           ...prev,
-                          [activeTab === 0 ? "practiceQuestions" : "examQuestions"]: {
+                          [activeTab === 0
+                            ? "practiceQuestions"
+                            : "examQuestions"]: {
                             questionText: "",
                             questionID: null,
                           },
                         }));
-                      
+
                         setTimeout(() => {
-                          formRef.current?.scrollIntoView({ behavior: "smooth" });
+                          formRef.current?.scrollIntoView({
+                            behavior: "smooth",
+                          });
                         }, 100);
                       }}
-                      className="text-[14px] border-[rgb(200,200,200)] hover:bg-gray-200 cursor-pointer border bg-white text-gray-700 font-semibold py-2 px-4 rounded shadow-md"
+                      className="cursor-pointer rounded border border-[rgb(200,200,200)] bg-white px-4 py-2 text-[14px] font-semibold text-gray-700 shadow-md hover:bg-gray-200"
                     >
-                     <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-2">
                         <i className="bx bx-plus text-[20px]"></i>
-                       <span>Add Question</span>
+                        <span>Add Question</span>
                       </div>
                     </button>
-                    
                   </div>
                 )}
 
                 <div ref={formRef}>
                   {/* Show AddQuestionForm based on activeTab */}
-                  {submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"] &&
-                  !submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].questionID && (
-                    activeTab === 0 ? (
+                  {submittedQuestion[
+                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
+                  ] &&
+                    !submittedQuestion[
+                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
+                    ].questionID &&
+                    (activeTab === 0 ? (
                       <PracticeAddQuestionForm
                         subjectID={selectedSubject.subjectID}
                         onQuestionAdded={handleQuestionAdded}
@@ -476,25 +630,34 @@ const FacultyDashboard = () => {
                           }))
                         }
                       />
-                    )
-                  )}
+                    ))}
                 </div>
-                
-                {showChoiceForm && submittedQuestion?.[activeTab === 0 ? "practiceQuestions" : "examQuestions"]?.questionID && (
-                  <div className="flex flex-col"> 
-                    <div className="flex-1">
-                      <div className="font-inter text-[14px] max-w-3xl mx-auto bg-white py-2 pl-4 rounded-t-md border border-b-0 border-color relative text-gray-600 font-medium">
-                        <span>Add Choices</span>
-                      </div>
-                      <div className="mx-auto max-w-3xl w-full p-4 border border-color bg-white shadow-sm border-b-0 rounded-b-none">
-                          <div className="relative hover:cursor-text p-1 bg-gray-100 rounded-md transition-all duration-150">
-                            <div
-                              className=" mt-1 bg-inherit py-2 pl-3 text-[14px] w-full max-w-full border-gray-300  min-h-[40px] overflow-hidden resize-none whitespace-pre-wrap break-words word-break break-word">
-                              <span>{submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].questionText}</span>
+
+                {showChoiceForm &&
+                  submittedQuestion?.[
+                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
+                  ]?.questionID && (
+                    <div className="flex flex-col">
+                      <div className="flex-1">
+                        <div className="font-inter border-color relative mx-auto max-w-3xl rounded-t-md border border-b-0 bg-white py-2 pl-4 text-[14px] font-medium text-gray-600">
+                          <span>Add Choices</span>
+                        </div>
+                        <div className="border-color mx-auto w-full max-w-3xl rounded-b-none border border-b-0 bg-white p-4 shadow-sm">
+                          <div className="relative rounded-md bg-gray-100 p-1 transition-all duration-150 hover:cursor-text">
+                            <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
+                              <span>
+                                {
+                                  submittedQuestion[
+                                    activeTab === 0
+                                      ? "practiceQuestions"
+                                      : "examQuestions"
+                                  ].questionText
+                                }
+                              </span>
                             </div>
                           </div>
 
-                        {/* Image Preview 
+                          {/* Image Preview 
                         {submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image && (
                           <div className="hover:opacity-80 mt-3 relative inline-block max-w-[300px]">
                             <img 
@@ -505,65 +668,76 @@ const FacultyDashboard = () => {
                             />
                           </div>
                         )}*/}
-                        
-                        {isQuestionModalOpen && (
-                          <div
-                            className="fixed inset-0 lightbox-bg flex items-center justify-center z-100"
-                            onClick={() => setisQuestionModalOpen(false)}
-                          >
-                            <div className="relative max-w-full max-h-full">
-                              <img
-                                src={submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"].image}
-                                alt="Full View"
-                                className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
-                              />
+
+                          {isQuestionModalOpen && (
+                            <div
+                              className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center"
+                              onClick={() => setisQuestionModalOpen(false)}
+                            >
+                              <div className="relative max-h-full max-w-full">
+                                <img
+                                  src={
+                                    submittedQuestion[
+                                      activeTab === 0
+                                        ? "practiceQuestions"
+                                        : "examQuestions"
+                                    ].image
+                                  }
+                                  alt="Full View"
+                                  className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
+                                />
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <div ref={formRef}> 
+                <div ref={formRef}>
                   {showChoiceForm &&
-                    submittedQuestion[activeTab === 0 ? "practiceQuestions" : "examQuestions"]?.questionID && (
-                      activeTab === 0 ? (
-                        <PracticeAddChoiceForm
-                          questionID={submittedQuestion["practiceQuestions"]?.questionID} 
-                          onComplete={handleChoicesSubmitted}
-                        />
-                      ) : (
-                        <ExamAddChoiceForm
-                          questionID={submittedQuestion["examQuestions"]?.questionID}
-                          onComplete={handleChoicesSubmitted}
-                        />
-                      )
-                    )}
+                    submittedQuestion[
+                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
+                    ]?.questionID &&
+                    (activeTab === 0 ? (
+                      <PracticeAddChoiceForm
+                        questionID={
+                          submittedQuestion["practiceQuestions"]?.questionID
+                        }
+                        onComplete={handleChoicesSubmitted}
+                      />
+                    ) : (
+                      <ExamAddChoiceForm
+                        questionID={
+                          submittedQuestion["examQuestions"]?.questionID
+                        }
+                        onComplete={handleChoicesSubmitted}
+                      />
+                    ))}
                 </div>
-
               </div>
             )}
             {activeTab === 2 && (
-              <p className="text-gray-500 text-center">Under Development</p>
+              <p className="text-center text-gray-500">Under Development</p>
             )}
             {activeTab === 3 && (
-              <p className="text-gray-500 text-center">Under Development</p>
+              <p className="text-center text-gray-500">Under Development</p>
             )}
-            
           </div>
         ) : (
-          <p className="text-gray-500 text-center">Please select a subject from the sidebar.</p>
+          <p className="text-center text-gray-500">
+            Please select a subject from the sidebar.
+          </p>
         )}
         {modalImage && (
           <div
-            className="fixed inset-0 flex items-center justify-center hover:cursor-pointer lightbox-bg bg-opacity-70 z-55"
+            className="lightbox-bg bg-opacity-70 fixed inset-0 z-55 flex items-center justify-center hover:cursor-pointer"
             onClick={() => setModalImage(null)}
           >
-            <div className="relative max-w-full max-h-full">
+            <div className="relative max-h-full max-w-full">
               <img
                 src={modalImage}
-                className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
+                className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
               />
             </div>
           </div>
@@ -581,9 +755,7 @@ const FacultyDashboard = () => {
 
         {toast.message && (
           <div
-            className={`fixed bottom-5 left-5  px-4 py-2 rounded shadow-lg text-sm text-white z-56
-            ${toast.type === "success" ? "bg-green-500" : "bg-red-500"}
-            ${toast.show ? "opacity-80" : "opacity-0"} transition-opacity duration-900 ease-in-out`}
+            className={`fixed bottom-5 left-5 z-56 rounded px-4 py-2 text-sm text-white shadow-lg ${toast.type === "success" ? "bg-green-500" : "bg-red-500"} ${toast.show ? "opacity-80" : "opacity-0"} transition-opacity duration-900 ease-in-out`}
           >
             {toast.message}
           </div>
@@ -592,19 +764,19 @@ const FacultyDashboard = () => {
         {/* Image Modal (Full Size) */}
         {isChoiceModalOpen && (
           <div
-            className="fixed inset-0 lightbox-bg flex items-center justify-center z-55"
+            className="lightbox-bg fixed inset-0 z-55 flex items-center justify-center"
             onClick={() => setIsChoiceModalOpen(false)}
           >
-            <div className="relative max-w-full max-h-full">
+            <div className="relative max-h-full max-w-full">
               <img
                 src={choiceModalImage}
                 alt="Full View"
-                className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
+                className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
               />
             </div>
           </div>
         )}
-        <ScrollToTopButton/>
+        <ScrollToTopButton />
       </div>
     </div>
   );

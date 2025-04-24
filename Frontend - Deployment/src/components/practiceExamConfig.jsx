@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import RegisterDropDown from "./registerDropDown";
 import Button from "./button";
+import ModalDropdown from "./modalDropdown";
 
 const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
   const [distributionError, setDistributionError] = useState(false);
@@ -88,7 +89,6 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
   
     const token = localStorage.getItem("token");
   
-    // Optional: validate percentage totals before sending
     const totalPercentage =
       settings.easy_percentage +
       settings.moderate_percentage +
@@ -100,7 +100,7 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
     }
   
     try {
-      const res = await fetch(`${apiUrl}/practice-settings`, {
+      const res = await fetch(`${apiUrl}/practice-settings/${subjectID}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -135,7 +135,7 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
       </div>
       <form onSubmit={handleSubmit} className="w-full max-w-md sm:px-4 mx-auto p-2 bg-white border-color border-t-0 border relative rounded-b-md">
         <span className="block mb-2 text-[12px] font-color-gray">Coverage</span>
-        <RegisterDropDown
+        <ModalDropdown
           name="coverage"
           value={settings.coverage}
           onChange={handleChange}
@@ -148,7 +148,7 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
         />
 
         {/* divider */}
-        <div className="-mx-2 sm:-mx-4 h-[0.5px] bg-[rgb(200,200,200)] mt-2 mb-3" />
+        <div className="h-[0.5px] bg-[rgb(200,200,200)] mt-2 mb-3" />
 
         <label className="block mb-2 ml-2 cursor-pointer">
           <input
@@ -162,13 +162,13 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
           <span className="ml-2 text-[14px] font-color-gray">Enable Timer</span>
         </label>
 
-        <div className="-mx-2 sm:-mx-4 h-[0.5px] bg-[rgb(200,200,200)] mt-3 mb-3" />
+        <div className="h-[0.5px] bg-[rgb(200,200,200)] mt-3 mb-3" />
 
 
         {/* Difficulty Selector */}
         <div className="mb-2">
           <label className="block mb-2 text-[12px] font-color-gray">Difficulty Distribution</label>
-          <RegisterDropDown
+          <ModalDropdown
             name="difficultyMode"
             value={settings.difficultyMode}
             onChange={handleChange}
@@ -189,7 +189,7 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
                   type="number"
                   name="percentageEasy"
                   value={settings.percentageEasy}
-                  className="w-full p-2 border rounded text-[12px] border-color focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-200 ease-in-out"
+                  className="w-full px-2 py-[6px] border rounded text-[12px] border-color focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-200 ease-in-out"
                   onChange={handleChange}
                   placeholder="Enter Percentage"
                   onWheel={(e) => e.target.blur()}
@@ -205,7 +205,7 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
                   name="percentageModerate"
                   value={settings.percentageModerate}
                   onChange={handleChange}
-                  className="w-full p-2 border rounded text-[12px] border-color focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-200 ease-in-out"
+                  className="w-full px-2 py-[6px] border rounded text-[12px] border-color focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-200 ease-in-out"
                   placeholder="Enter Percentage"
                   onWheel={(e) => e.target.blur()}
                   min="0"
@@ -219,7 +219,7 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
                   name="percentageHard"
                   value={settings.percentageHard}
                   onChange={handleChange}
-                  className="w-full p-2 border rounded text-[12px] border-color focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-200 ease-in-out"
+                  className="w-full px-2 py-[6px] border rounded text-[12px] border-color focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-200 ease-in-out"
                   placeholder="Enter Percentage"
                   onWheel={(e) => e.target.blur()}
                   max="100"
@@ -234,17 +234,20 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
             Total percentage must equal 100%.
           </p>
         )}
+
+        <div className="-mx-2 sm:-mx-4 h-[0.5px] bg-[rgb(200,200,200)] mt-6 mb-1" />
+
         <div className="flex justify-end gap-2">
           <button 
             onClick={handleCancelClick}
-            className="cursor-pointer mb-2 mt-3 flex items-center gap-1 px-3 py-[7px] bg-white rounded-lg border transition-all duration-150 text-gray-700 hover:bg-gray-200"
+            className="cursor-pointer mb-2 mt-3 flex items-center gap-1 px-3 py-[7px] bg-white rounded-md border transition-all duration-150 text-gray-700 hover:bg-gray-200"
 
             >
             <span className="text-[16px] px-1">Cancel</span>
           </button>
           <button
             type="submit"
-            className="cursor-pointer mb-2 mt-3 flex items-center gap-1 px-3 py-[7px] bg-orange-500 text-white rounded-lg hover:bg-orange-700 transition-all duration-150"
+            className="cursor-pointer mb-2 mt-3 flex items-center gap-1 px-3 py-[7px] bg-orange-500 text-white rounded-md hover:bg-orange-700 transition-all duration-150"
           >
             <i className={`bx bx-check-double text-[20px]`}></i>
             <span className="hidden sm:inline text-[14px] pr-1.5">Done</span>

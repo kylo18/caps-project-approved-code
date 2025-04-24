@@ -87,7 +87,7 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
         ref={sidebarRef}
         className={`z-53 h-screen bg-white text-gray-700 p-4 transition-all duration-300 ease-in-out border-r border-color fixed top-0 ${
           isMobile ? (isExpanded ? "left-0" : "-left-full") : "left-0"
-        } ${isExpanded ? "w-[180px]" : "w-[64.5px]"}`}
+        } ${isExpanded ? "w-[200px]" : "w-[64.5px]"}`}
       >
         {/* Logo & CAPS text */}
         {!isMobile && (
@@ -109,7 +109,7 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
             onClick={() => {setIsExpanded(!isExpanded);
               setIsSubjectFocused(false);
             }}
-            className="hover:text-white flex mb-[22px] items-center gap-3 py-[4px] px-[4px] hover:bg-orange-500 rounded cursor-pointer "
+            className="flex mb-[22px] items-center gap-3 py-[4px] px-[4px] hover:bg-[rgb(255,230,214)] rounded cursor-pointer "
 
           >
             <i className={`bx ${isExpanded ? "bx-chevron-left" : "bx-menu"} text-2xl`}></i>
@@ -120,7 +120,7 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
         {isMobile && isExpanded && (
           <button
             onClick={() => setIsExpanded(false)}
-            className="hover:text-white flex mb-5 items-center gap-3 py-[4px] px-[4px] hover:bg-orange-500 rounded cursor-pointer "
+            className=" flex mb-5 items-center gap-3 py-[4px] px-[4px] hover:bg-[rgb(255,230,214)] rounded cursor-pointer "
 
           >
             <i className="bx bx-chevron-left text-3xl"></i>
@@ -129,24 +129,31 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
 
         {/* Sidebar menu items */}
         {!isSubjectFocused && (
-          <ul className="space-y-[15px] -mt-2 mb-5">
+          <ul className="space-y-[14px] -mt-2 mb-5">
             {menuItems.map((item, index) => (
               <li key={index} title={item.label}>
                 <Link
                   to={item.path}
-                  className={`hover:text-white flex items-center gap-3 py-[4px] px-[4px] hover:bg-orange-500 rounded cursor-pointer ${
-                    isActive(item.path) ? "bg-orange-500 text-white" : ""
-                  }`}
+                  className={`flex items-center gap-3 py-[4px] px-[4px] rounded cursor-pointer
+                    ${
+                      isActive(item.path)
+                        ? "bg-orange-500 text-white" // Active state
+                        : "hover:text-gray-700 hover:bg-[rgb(255,230,214)]" // Hover styles only for non-active
+                    }`
+                  }
                 >
                   <i className={`bx ${item.icon} text-2xl`}></i>
                   <span
                     className={`text-sm font-semibold transition-all ease-in-out duration-150 ${
-                      isExpanded ? "opacity-100 ml-0 visible pointer-events-auto" : "opacity-0 ml-0 invisible pointer-events-none"
+                      isExpanded
+                        ? "opacity-100 ml-0 visible pointer-events-auto"
+                        : "opacity-0 ml-0 invisible pointer-events-none"
                     }`}
                   >
                     {item.label}
                   </span>
                 </Link>
+
               </li>
             ))}
           </ul>
