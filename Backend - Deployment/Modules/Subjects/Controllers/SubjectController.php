@@ -11,7 +11,6 @@ use Modules\Users\Models\Program;
 
 class SubjectController extends Controller
 {
-    // Function to create a new subject
     public function store(Request $request)
     {
         try {
@@ -32,7 +31,7 @@ class SubjectController extends Controller
                     return response()->json(['message' => 'Program not found.'], 404);
                 }
 
-                $subjectCode = $program->programName . '-' . $subjectCode;
+                $subjectCode;
             }
 
             // Create the subject (programID can be null for general subjects)
@@ -55,7 +54,6 @@ class SubjectController extends Controller
             ], 500);
         }
     }
-
 
     public function index(Request $request)
     {
@@ -150,7 +148,7 @@ class SubjectController extends Controller
                     return response()->json(['message' => 'Program not found.'], 404);
                 }
 
-                $fullSubjectCode = $program->programName . '-' . $validated['subjectCode'];
+                $fullSubjectCode = $validated['subjectCode'];
             }
 
             // Check for duplicate code excluding current subject

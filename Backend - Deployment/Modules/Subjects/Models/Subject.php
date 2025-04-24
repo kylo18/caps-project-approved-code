@@ -14,6 +14,7 @@ class Subject extends Model
     protected $primaryKey = 'subjectID';
 
     protected $fillable = [
+        'programID',
         'subjectCode',
         'subjectName'
     ];

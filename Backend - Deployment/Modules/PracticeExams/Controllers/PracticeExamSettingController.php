@@ -11,9 +11,9 @@ class PracticeExamSettingController extends Controller
 {
     public function store(Request $request)
     {
-        $authUser = Auth::user();
+        $user = Auth::user();
 
-        if (!in_array($authUser->roleID, [3, 4])) {
+        if (!in_array($user->roleID, [3, 4])) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
@@ -36,7 +36,7 @@ class PracticeExamSettingController extends Controller
             ['subjectID' => $validated['subjectID']],
             [
                 ...$validated,
-                'createdBy' => $authUser->userID,
+                'createdBy' => $user->userID,
             ]
         );
 

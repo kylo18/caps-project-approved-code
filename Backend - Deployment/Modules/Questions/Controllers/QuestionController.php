@@ -367,13 +367,11 @@ class QuestionController extends Controller
             ], 400);
         }
 
-        if ($user->id === $question->created_by) {
+        if ($user->userID === $question->userID) {
             return response()->json([
                 'message' => 'You cannot approve your own question.'
             ], 403);
         }
-
-        // Update the status to "approved"
         $question->status = 'approved';
         $question->save();
 
@@ -415,8 +413,9 @@ class QuestionController extends Controller
                 $question->questionText = '[Decryption Error]';
             }
 
-            // Add creator's name to the question
-            $question->creatorName = $question->user ? $question->user->name : 'Unknown Creator';
+            $question->creatorName = $question->user
+                    ? $question->user->firstName . ' ' . $question->user->lastName
+                    : 'Unknown';
 
             $question->choices->map(function ($choice) {
                 try {
