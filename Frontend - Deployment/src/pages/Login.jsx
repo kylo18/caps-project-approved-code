@@ -1,10 +1,11 @@
 import { useState } from "react";
-import univLogo from "../assets/univLogo.png"; 
+import univLogo from "../assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "../components/loadingOverlay";
+import { FaUser, FaKey } from "react-icons/fa";
 
-const Login = () => {
+export default function LoginPage() {
   const [idCode, setIdCode] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -18,52 +19,59 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
-    setIsLogIn(true)
-  
+    setError(""); // Clear any previous errors
+    setIsLogIn(true); // Start loading indicator (if any)
+
     if (!idCode.trim() || !password.trim()) {
       setError("Please enter both ID Code and Password.");
+      setIsLogIn(false); // Stop loading if validation fails
       return;
     }
-  
+
     try {
       const response = await fetch(`${apiUrl}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json"
+          Accept: "application/json",
         },
         body: JSON.stringify({
           userCode: idCode,
-          password: password
-        })
+          password: password,
+        }),
       });
-  
+
       const data = await response.json();
-  
+
       if (!response.ok) {
-        setError(data.message || "Login failed.");
+        if (response.status === 401) {
+          // 401 Unauthorized -> wrong userCode or password
+          setError("Incorrect ID Code or Password.");
+        } else {
+          // Other errors
+          setError(data.message || "Login failed. Please try again.");
+        }
         return;
       }
-  
+
       console.log("Login successful!", data);
-  
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-  
+
       const roleId = Number(data.user.roleID);
       switch (roleId) {
         case 1:
           navigate("/student");
           break;
         case 2:
-          navigate("/Instructor");
+          navigate("/faculty-dashboard");
           break;
         case 3:
-          navigate("/Program Chair");
+          navigate("/program-chair-dashboard");
           break;
         case 4:
-          navigate("/Dean");
+          navigate("/admin-dashboard");
           break;
         default:
           setError("Invalid user role.");
@@ -71,180 +79,165 @@ const Login = () => {
       }
     } catch (error) {
       console.error("Login error:", error);
-      setError("Something went wrong. Please try again.");
+      setError("Something went wrong. Please try again later.");
     } finally {
-      setIsLogIn(false)
+      setIsLogIn(false);
     }
   };
 
   return (
-    <div
-      className="
-        lg:bg-[url('/login-bg.png')]
-        sm:bg-[url('/login-bg-md.png')] bg-[url('/login-bg-xs.png')]
-        flex flex-col lg:flex-row 
-        h-full w-full min-h-screen 
-        items-center justify-center 
-        bg-cover bg-center md:gap-10
-      "
-    >
-      {/* Logos (Top Left) */}
-      <div className="absolute top-3 left-3 flex items-center gap-2">
-        <img src={univLogo} alt="Logo 1" className="size-8" />
-        <img src={collegeLogo} alt="Logo 2" className="size-8" />
-        <p className="text-white text-center text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl">
-          JOSE RIZAL MEMORIAL STATE UNIVERSITY
-        </p>
-      </div>
-
-      {/* Left Side (Title + Description at Bottom) */}
-      <div className=" flex flex-col items-center justify-start h-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 pt-12">
-        {/* Horizontal Title for <lg */}
-        <div className="md:hidden text-center -mt-45 sm:-mt-50 md:-mt-54 min-w-[833px]:-mt-70">
-          <h1 className="text-white font-bold text-[22px] sm:text-[30px] leading-snug tracking-wide">
-            <span>
-              <span className="text-orange-500 text-3xl ">C</span>OMPREHENSIVE 
-            </span>
-            <span>
-              <span className="text-orange-500 text-3xl "> A</span>SSESSMENT
-            </span>
-            <br />
-            <span>
-              AND
-            </span>
-            <span>
-              <span className="text-orange-500 text-3xl"> P</span>REPARATION
-            </span>
-            <span>
-              <span className="text-orange-500 text-3xl"> S</span>YSTEM
-            </span>
+    <div className="flex min-h-screen w-full flex-col bg-[url('/src/assets/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/src/assets/login-bg-md.png')] md:bg-[url('/src/assets/login-bg-md.png')] lg:flex-row lg:bg-[url('/src/assets/login-bg.png')]">
+      {/* Left Section */}
+      <div className="mr-10 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
+        {/* Logos */}
+        <div className="absolute top-3 left-3 flex items-center space-x-2">
+          <img src={univLogo} alt="Logo 1" className="size-8" />
+          <img src={collegeLogo} alt="Logo 2" className="size-8" />
+          <h1 className="text-sm lg:text-lg">
+            JOSE RIZAL MEMORIAL STATE UNIVERSITY
           </h1>
         </div>
 
-
-        {/* Stacked Title for lg and above */}
-        <div className="hidden md:flex flex-col items-start mt-20 md:mt-0 lg:mt-0">
-          <h1 className="xl:mr-40 text-4xl mt-25 md:text-[30px] font-bold text-white tracking-wide leading-snug">
-            <span>
-              <span className="text-orange-500 text-5xl ">C</span>OMPREHENSIVE
-            </span>
+        {/* Title */}
+        <div className="mt-20 hidden flex-col items-center justify-center lg:flex">
+          <h1 className="text-3xl leading-snug font-bold lg:text-4xl">
+            <span className="text-5xl text-orange-500">C</span>OMPREHENSIVE
             <br />
-            <span>
-              <span className="text-orange-500 text-5xl ">A</span>SSESSMENT &
-            </span>
+            <span className="text-5xl text-orange-500">A</span>SSESSMENT AND
             <br />
-            <span>
-              <span className="text-orange-500 text-5xl">P</span>REPARATION
-            </span>
+            <span className="text-5xl text-orange-500">P</span>REPARATION
             <br />
-            <span>
-              <span className="text-orange-500 text-5xl">S</span>YSTEM
-            </span>
+            <span className="text-5xl text-orange-500">S</span>YSTEM
           </h1>
-        </div>
-
-        {/* Description */}
-        <p className="text-center xl:mr-40 text-gray-400 text-sm md:text-base max-w-md mt-25 hidden lg:block">
-          A platform designed to help students practice and prepare for qualifying exams while assessing their knowledge through randomized questions.
-        </p>
-      </div>
-
-      {/* Right Side (Login Form) */}
-      <div className="w-[85%] flex flex-col items-center justify-center lg:px-4 lg:w-full lg:max-w-md lg:mr-30">
-        <h2 className="text-xl font-bold">LOG IN ACCOUNT</h2>
-        <p className="text-gray-500 text-sm mt-2 justify-center text-center">
-          <span>
-            Welcome! Please enter your ID number and password
-          </span>
-          <br />
-          <span>
-            to access your account.
-          </span>
-           
-        </p>
-
-        {/* Form */}
-        <div className="mt-6 w-full max-w-sm">
-          {/* ID Number Input */}
-          <div className="relative mb-4">
-            <i className="bx bx-user absolute left-3 top-3 text-gray-500 text-[18px]"></i>
-            <input
-              type="text"
-              placeholder="Enter ID Number"
-              className="open-sans px-10 w-full border-0 hover:border-b border-b border-[rgb(168,168,168) py-2 w-full rounded-none focus:outline-none focus:border-b-2 focus:border-b-orange-500 hover:border-b-gray-500 transition-all duration-100"
-              value={idCode}
-              onChange={(e) => setIdCode(e.target.value)}
-            />
-          </div>
-
-          {/* Password Input */}
-          <div className="relative mb-4">
-            <div className="relative flex items-center overflow-hidden">
-              <i className="bx bx-key absolute left-3 top-3 text-gray-500 text-[18px]"></i>
-              <input
-                type={passwordVisible ? "text" : "password"}
-                placeholder="Enter Password"
-                className="open-sans px-10 w-full border-0 hover:border-b border-b border-[rgb(168,168,168) py-2 w-full rounded-none focus:outline-none focus:border-b-2 focus:border-b-orange-500 hover:border-b-gray-500 transition-all duration-100"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <div className="p-2 right-2 top-2 flex items-center cursor-pointer border-b border-[rgb(168,168,168) " onClick={() => setPasswordVisible(!passwordVisible)}>
-                <i className={`bx ${passwordVisible ? "bx-show" : "bx-hide"} text-[24px] text-orange-500`}></i>
-              </div>
-            </div>
-          </div>
-
-          {/* Remember Me & Links */}
-          <div className="flex items-center justify-between text-sm text-gray-600 mb-4 text-nowrap">
-            <label className="flex items-center text-[13px]">
-              <input
-                type="checkbox"
-                className="mr-2 cursor-pointer "
-                style={{ accentColor: "orange" }}
-                checked={rememberMe}
-                onChange={() => setRememberMe(!rememberMe)}
-              />
-              Remember me
-            </label>
-            <div>
-              <a href="#" className="hover:underline text-[13px]">
-                Change Password
-              </a>{" "}
-              |{" "}
-              <a href="#" className="hover:underline text-[13px]">
-                Forgot Password
-              </a>
-            </div>
-          </div>
-
-          {/* Login Button */}
-          <div className="flex items-center w-1/3 justify-center mx-auto">
-            <button type="submit"
-              onClick={handleLogin}
-              className="mt-2 w-full bg-orange-500 text-white py-2 rounded hover:bg-orange-600">
-              LOG-IN
-            </button>
-          </div>
-          
-          {/* Register Link */}
-          <p className="mt-4 text-[14px] text-gray-600 justify-center text-center">
-            Don’t have an account?{" "}
-            <span onClick={() => navigate("/register")} className="text-orange-500 hover:underline">
-              Register here
-            </span>
+          <p className="mt-20 mr-10 hidden max-w-xs text-center text-sm text-gray-500 lg:block">
+            A platform designed to help students practice and prepare for
+            qualifying exams while assessing their knowledge through randomized
+            questions.
           </p>
+        </div>
 
-          {/*<div className="px-4 text-sm text-gray-600 justify-center text-center absolute bottom-0 left-0 right-0">
+        <div className="mt-10 flex-col items-center justify-center lg:hidden">
+          <h1 className="text-[22px] leading-snug font-bold tracking-wide text-white sm:text-[30px]">
+            <span>
+              <span className="text-3xl text-orange-500">C</span>OMPREHENSIVE
+            </span>
+            <span>
+              <span className="text-3xl text-orange-500"> A</span>SSESSMENT
+            </span>
+            <br />
+            <span>AND</span>
+            <span>
+              <span className="text-3xl text-orange-500"> P</span>REPARATION
+            </span>
+            <span>
+              <span className="text-3xl text-orange-500"> S</span>YSTEM
+            </span>
+          </h1>
+        </div>
+      </div>
+
+      {/* Right Section */}
+      <div className="mt-30 flex w-full items-center justify-center p-6 sm:mt-30 md:mt-30 lg:mt-0 lg:w-1/2">
+        <div className="w-full max-w-xs space-y-6 sm:max-w-md">
+          <div className="text-center">
+            <h2 className="mr-15 text-xl font-bold">LOG IN ACCOUNT</h2>
+            <p className="mt-2 mr-15 justify-center text-center text-sm text-gray-500">
+              <span>Welcome! Please enter your ID number and password</span>
+              <br />
+              <span>to access your account.</span>
+            </p>
+
+            <div className="mt-6 w-full max-w-sm">
+              {/* ID Number Input */}
+              <div className="relative mb-4">
+                <i className="bx bx-user absolute top-3 left-3 text-[18px] text-gray-500"></i>
+                <input
+                  type="text"
+                  placeholder="Enter ID Number"
+                  className="open-sans border-[rgb(168,168,168) w-full rounded-none border-0 border-b px-10 py-2 transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none"
+                  value={idCode}
+                  onChange={(e) => setIdCode(e.target.value)}
+                />
+              </div>
+
+              {/* Password Input */}
+              <div className="relative mb-4">
+                <div className="relative flex items-center overflow-hidden">
+                  <i className="bx bx-key absolute top-3 left-3 text-[18px] text-gray-500"></i>
+                  <input
+                    type={passwordVisible ? "text" : "password"}
+                    placeholder="Enter Password"
+                    className="open-sans border-[rgb(168,168,168) w-full rounded-none border-0 border-b px-10 py-2 transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <div
+                    className="border-[rgb(168,168,168) top-2 right-2 flex cursor-pointer items-center border-b p-2"
+                    onClick={() => setPasswordVisible(!passwordVisible)}
+                  >
+                    <i
+                      className={`bx ${passwordVisible ? "bx-show" : "bx-hide"} text-[24px] text-orange-500`}
+                    ></i>
+                  </div>
+                </div>
+                {error && (
+                  <p className="mt-2 text-center text-sm text-red-600">
+                    {error}
+                  </p>
+                )}
+              </div>
+
+              {/* Remember Me & Links */}
+              <div className="mb-4 flex items-center justify-between text-sm text-nowrap text-gray-600">
+                <label className="flex items-center text-[13px]">
+                  <input
+                    type="checkbox"
+                    className="mr-2 cursor-pointer"
+                    style={{ accentColor: "orange" }}
+                    checked={rememberMe}
+                    onChange={() => setRememberMe(!rememberMe)}
+                  />
+                  Remember me
+                </label>
+                <div>
+                  <a href="#" className="text-[13px] hover:underline">
+                    Forgot Password
+                  </a>
+                </div>
+              </div>
+
+              {/* Login Button */}
+              <div className="mx-auto flex w-1/3 items-center justify-center">
+                <button
+                  type="submit"
+                  onClick={handleLogin}
+                  className="mt-2 w-full rounded bg-orange-500 py-2 text-white hover:bg-orange-600"
+                >
+                  LOG-IN
+                </button>
+              </div>
+
+              {/* Register Link */}
+              <p className="mt-4 justify-center text-center text-[14px] text-gray-600">
+                Don’t have an account?{" "}
+                <span
+                  onClick={() => navigate("/register")}
+                  className="text-orange-500 hover:underline"
+                >
+                  Register here
+                </span>
+              </p>
+
+              {/*<div className="px-4 text-sm text-gray-600 justify-center text-center absolute bottom-0 left-0 right-0">
             <p>
               &copy; 2025 Comprehensive Assessment and Preparation System. All rights reserved.
             </p>
-          </div>*/}
+            </div>*/}
+            </div>
+          </div>
         </div>
       </div>
       {isLogIn && <LoadingOverlay show={isLogIn} />}
-      
     </div>
   );
-};
-
-export default Login;
+}

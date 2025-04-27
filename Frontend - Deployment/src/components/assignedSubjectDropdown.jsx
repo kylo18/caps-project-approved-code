@@ -1,13 +1,22 @@
 import { useEffect, useState, useRef } from "react";
 import Button from "./button";
-import { useNavigate } from "react-router-dom";  
+import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "./loadingOverlay";
 
-const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelectedSubject, parsedRoleID, isSubjectFocused, setIsSubjectFocused, homePath }) => {
+const AssignedSubjectsDropDown = ({
+  item,
+  isExpanded,
+  setIsExpanded,
+  setSelectedSubject,
+  parsedRoleID,
+  isSubjectFocused,
+  setIsSubjectFocused,
+  homePath,
+}) => {
   const [subjects, setSubjects] = useState([]);
   const [filteredSubjects, setFilteredSubjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [assignedSubjects, setAssignedSubjects] = useState([]); 
+  const [assignedSubjects, setAssignedSubjects] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedSubject, setLocalSelectedSubject] = useState(null);
@@ -15,7 +24,8 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
-  const [selectedSubjectForAssignment, setSelectedSubjectForAssignment] = useState(null); 
+  const [selectedSubjectForAssignment, setSelectedSubjectForAssignment] =
+    useState(null);
   const [openMenuID, setOpenMenuID] = useState(null);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -36,25 +46,28 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
     type: "",
     show: false,
   });
-  
+
   useEffect(() => {
     if (toast.message) {
       setToast((prev) => ({ ...prev, show: true }));
-  
+
       const timer = setTimeout(() => {
         setToast((prev) => ({ ...prev, show: false }));
         setTimeout(() => {
           setToast({ message: "", type: "", show: false });
         }, 500);
       }, 2500);
-  
+
       return () => clearTimeout(timer);
     }
   }, [toast.message]);
 
   const handleEditClick = (subject) => {
     setEditingSubject(subject.subjectID);
-    setEditedSubject({ subjectCode: subject.subjectCode, subjectName: subject.subjectName});
+    setEditedSubject({
+      subjectCode: subject.subjectCode,
+      subjectName: subject.subjectName,
+    });
   };
 
   useEffect(() => {
@@ -64,44 +77,42 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
   const fetchSubjects = async () => {
     const token = localStorage.getItem("token");
     setLoading(true);
-  
+
     try {
       const response = await fetch(`${apiUrl}/faculty/availableSubjects`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-  
+
       if (!response.ok) {
         if (response.status === 401) {
           console.error("Unauthorized: Token may be expired or missing.");
           return;
         }
-  
+
         if (response.status === 403) {
           console.error("Forbidden: Only Deans can access subjects.");
           return;
         }
-  
+
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-  
-      const data = await response.json();
-      
 
-  
+      const data = await response.json();
+
       if (!Array.isArray(data.subjects)) {
         console.error("Unexpected subjects data format:", data);
         return;
       }
-  
+
       // Sort subjects alphabetically by subjectCode
       const sortedSubjects = [...data.subjects].sort((a, b) =>
-        a.subjectCode.localeCompare(b.subjectCode)
+        a.subjectCode.localeCompare(b.subjectCode),
       );
-  
+
       setSubjects(sortedSubjects);
       setFilteredSubjects(sortedSubjects);
     } catch (error) {
@@ -110,7 +121,6 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       setLoading(false);
     }
   };
-  
 
   const fetchAssignedSubjects = async () => {
     const token = localStorage.getItem("token");
@@ -120,16 +130,16 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-  
+
       if (response.ok) {
-        const data = await response.json(); 
+        const data = await response.json();
         const sortedSubjects = [...data.subjects].sort((a, b) =>
-          a.subjectCode.localeCompare(b.subjectCode)
+          a.subjectCode.localeCompare(b.subjectCode),
         );
-  
+
         setAssignedSubjects(sortedSubjects);
         setFilteredSubjects(sortedSubjects);
       } else {
@@ -141,13 +151,13 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       setSubjectLoading(false);
     }
   };
-  
+
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchAssignedSubjects();
     }, 300);
 
-    return () => clearTimeout(timer); 
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -163,12 +173,16 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
 
   useEffect(() => {
     if (!searchTerm.trim()) {
-      setFilteredSubjects(assignedSubjects); 
+      setFilteredSubjects(assignedSubjects);
     } else {
       const results = assignedSubjects.filter(
         (subject) =>
-          subject?.subjectName?.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
-          subject?.subjectCode?.toLowerCase().includes(searchTerm.toLowerCase().trim())
+          subject?.subjectName
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase().trim()) ||
+          subject?.subjectCode
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase().trim()),
       );
       setFilteredSubjects(results);
     }
@@ -177,9 +191,8 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
   const searchResults = assignedSubjects?.filter((subject) =>
     `${subject.subjectName} ${subject.subjectCode}`
       .toLowerCase()
-      .includes(searchTerm.toLowerCase())
+      .includes(searchTerm.toLowerCase()),
   );
-  
 
   useEffect(() => {
     if (!isOpen && listRef.current) {
@@ -188,7 +201,10 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
   }, [isOpen]);
 
   const unassignedSubjects = subjects.filter(
-    (subject) => !assignedSubjects.some((assigned) => assigned.subjectID === subject.subjectID)
+    (subject) =>
+      !assignedSubjects.some(
+        (assigned) => assigned.subjectID === subject.subjectID,
+      ),
   );
 
   const handleSelectSubject = (subject) => {
@@ -203,28 +219,30 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`${apiUrl}/remove-assigned-subject/${subjectID}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${apiUrl}/remove-assigned-subject/${subjectID}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       const result = await response.json();
 
       if (response.ok) {
         if (selectedSubject?.subjectID === subjectID) {
           setSelectedSubject(null);
-
         }
 
         await fetchAssignedSubjects();
 
         setSubjects((prevSubjects) =>
-          prevSubjects.filter((subject) => subject.subjectID !== subjectID)
+          prevSubjects.filter((subject) => subject.subjectID !== subjectID),
         );
         setFilteredSubjects((prevSubjects) =>
-          prevSubjects.filter((subject) => subject.subjectID !== subjectID)
+          prevSubjects.filter((subject) => subject.subjectID !== subjectID),
         );
       } else {
         console.error("Failed to delete subject:", result.message);
@@ -236,7 +254,6 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
     }
   };
 
-
   const handleAssignSubject = async (subject) => {
     if (!subject) return;
     console.log("Assigning subject:", subject);
@@ -244,13 +261,13 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
     const token = localStorage.getItem("token");
 
     setShowAddModal(false);
-    setIsAssigning(true);   
+    setIsAssigning(true);
     try {
       const response = await fetch(`${apiUrl}/faculty/assign-subject`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           subjectID: subject.subjectID,
@@ -285,97 +302,94 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
         show: true,
       });
     } finally {
-      setIsAssigning(false); 
+      setIsAssigning(false);
     }
   };
-
 
   return (
     <div className="mt-[2px]">
       <li
-        className="hover:text-white hover:bg-orange-500 flex items-center gap-3 py-[4px] px-[4px] rounded cursor-pointer relative"
+        className="relative flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] hover:bg-orange-500 hover:text-white"
         onClick={() => {
           if (!isExpanded || !isOpen) {
             setIsExpanded(true);
             setTimeout(() => {
-              setIsOpen(true); 
-              setIsSubjectFocused(true); 
+              setIsOpen(true);
+              setIsSubjectFocused(true);
             }, 50);
           } else {
-            setIsOpen(!isOpen); 
-            setIsSubjectFocused(!isOpen); 
+            setIsOpen(!isOpen);
+            setIsSubjectFocused(!isOpen);
           }
         }}
       >
         <i className={`bx ${item.icon} text-2xl`}></i>
         <span
-          className={`text-sm font-semibold transition-all ease-in-out duration-150 ${
-            isExpanded ? "opacity-100 ml-0 visible pointer-events-auto" : "opacity-0 ml-0 invisible pointer-events-none"
+          className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
+            isExpanded
+              ? "pointer-events-auto visible ml-0 opacity-100"
+              : "pointer-events-none invisible ml-0 opacity-0"
           }`}
         >
           Subjects
         </span>
         {isExpanded && (
-          <div className="flex justify-center items-center ml-auto mr-1">
-          <i
-            className={`bx ${isOpen ? "bxs-chevron-down" : "bxs-chevron-down"} text-[22px]  transition-transform duration-300 ease-in-out ${
-              isOpen ? "rotate-180" : "rotate-0"
-              
-            }`}
-          ></i>
-        </div>
+          <div className="mr-1 ml-auto flex items-center justify-center">
+            <i
+              className={`bx ${isOpen ? "bxs-chevron-down" : "bxs-chevron-down"} text-[22px] transition-transform duration-300 ease-in-out ${
+                isOpen ? "rotate-180" : "rotate-0"
+              }`}
+            ></i>
+          </div>
         )}
       </li>
-  
+
       {/* Dropdown Content */}
       <div
-        className={`flex flex-col mt-2 overflow-hidden transition-all duration-0 ease-in-out ${
+        className={`mt-2 flex flex-col overflow-hidden transition-all duration-0 ease-in-out ${
           isOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="w-full mx-auto mt-2 flex items-center gap-1">
+        <div className="mx-auto mt-2 flex w-full items-center gap-1">
           <div className="relative w-full">
-            <i className="bx bx-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-[16px]"></i>
+            <i className="bx bx-search absolute top-1/2 left-2 -translate-y-1/2 text-[16px] text-gray-500"></i>
             <input
               type="text"
               placeholder="Search..."
-              className="w-full pl-7 pr-2 py-1 text-[14px] border border-color rounded-sm outline-none"
+              className="border-color w-full rounded-sm border py-1 pr-2 pl-7 text-[14px] outline-none"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
           <div
-            className="justify-center text-center bg-orange-500 cursor-pointer text-white px-[7px] py-[3px] rounded-sm hover:bg-orange-600 transition-all"
+            className="cursor-pointer justify-center rounded-sm bg-orange-500 px-[7px] py-[3px] text-center text-white transition-all hover:bg-orange-600"
             onClick={() => setShowAddModal(true)}
           >
-            <i className="bx bx-plus text-[16px] "></i>
+            <i className="bx bx-plus text-[16px]"></i>
           </div>
         </div>
-        
-        <div className="w-full h-[1px] bg-[rgb(200,200,200)]  mt-4"></div>
-        
+
+        <div className="mt-4 h-[1px] w-full bg-[rgb(200,200,200)]"></div>
+
         <ul
           ref={listRef}
-          className={`flex-grow transition-all duration-100 ease-in-out
-            text-[14px] font-semibold mt-2 w-full mx-auto text-gray-700
-            scrollbar-show-on-hover
-            ${!isExpanded ? 'hidden' : ''}
-          `}
+          className={`scrollbar-show-on-hover mx-auto mt-2 w-full flex-grow text-[14px] font-semibold text-gray-700 transition-all duration-100 ease-in-out ${!isExpanded ? "hidden" : ""} `}
         >
           {subjectLoading ? (
-            <li className="p-2 mt-3 text-[rgb(168,168,168)] text-[14px] text-center animate-pulse">
+            <li className="mt-3 animate-pulse p-2 text-center text-[14px] text-[rgb(168,168,168)]">
               <div className="flex items-center justify-center">
                 <span>Loading</span>
-                <div className="ml-2 size-4 border-3 border-t-transparent rounded-full animate-spin"></div>
+                <div className="ml-2 size-4 animate-spin rounded-full border-3 border-t-transparent"></div>
               </div>
             </li>
           ) : searchResults && searchResults.length > 0 ? (
             searchResults.map((subject) => (
               <li
                 key={subject.subjectID}
-                className={`mr-1 relative group cursor-pointer flex justify-between items-center rounded-md mt-2 transition-all duration-100 ease-in-out p-[7px] ${
-                  selectedSubject && selectedSubject.subjectID === subject.subjectID
+                className={`group relative mt-2 mr-1 flex cursor-pointer items-center justify-between rounded-md p-[7px] transition-all duration-100 ease-in-out ${
+                  selectedSubject &&
+                  selectedSubject.subjectID === subject.subjectID
                     ? "bg-orange-500 text-white"
                     : "hover:bg-[rgb(255,230,214)]"
                 }`}
@@ -385,51 +399,44 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
                   navigate(homePath);
                 }}
               >
-                <span
-                  className="flex-1 ml-1 cursor-pointer break-all"
-                >
+                <span className="ml-1 flex-1 cursor-pointer break-all">
                   {subject.programName} - {subject.subjectCode}
                 </span>
 
                 {/* 3-dot menu */}
-                <div className="relative"
-                 onClick={(e) => e.stopPropagation()}>
-                  
+                <div className="relative" onClick={(e) => e.stopPropagation()}>
                   <button
-                    className={`flex items-center justify-center rounded-full transition
-                      ${selectedSubject?.subjectID === subject.subjectID ? "visible" : "invisible group-hover:visible"}`}
+                    className={`flex items-center justify-center rounded-full transition ${selectedSubject?.subjectID === subject.subjectID ? "visible" : "invisible group-hover:visible"}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       const rect = e.currentTarget.getBoundingClientRect();
                       const menuHeight = 80; // Approximate height of dropdown
-                    
+
                       // Check if there's space below, otherwise open upwards
                       const spaceBelow = window.innerHeight - rect.bottom;
                       const direction = spaceBelow < menuHeight ? "up" : "down";
-                    
+
                       setDropdownDirection(direction);
                       setDropdownPosition({ x: rect.right, y: rect.bottom });
                       setDropdownSubject(subject);
                       setOpenMenuID(subject.subjectID);
                     }}
                   >
-                    <i className="bx bx-dots-vertical-rounded text-[18px] cursor-pointer"></i>
+                    <i className="bx bx-dots-vertical-rounded cursor-pointer text-[18px]"></i>
                   </button>
-
-                  
                 </div>
               </li>
             ))
           ) : (
-            <li className="flex flex-col items-center gap-2 p-2 text-[rgb(168,168,168)] text-[14px] text-center">
+            <li className="flex flex-col items-center gap-2 p-2 text-center text-[14px] text-[rgb(168,168,168)]">
               <span>No subjects found</span>
               <button
                 onClick={fetchAssignedSubjects}
-                className="mt-3 flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 border px-3 py-1 rounded-md shadow-sm"
+                className="mt-3 flex items-center gap-1 rounded-md border bg-gray-100 px-3 py-1 text-sm shadow-sm hover:bg-gray-200"
                 disabled={subjectLoading}
               >
                 {subjectLoading ? (
-                  <span className="animate-spin border-2 border-gray-400 border-t-transparent rounded-full w-4 h-4 mt-3"></span>
+                  <span className="mt-3 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></span>
                 ) : (
                   <>
                     <i className="bx bx-refresh text-[16px]"></i>
@@ -442,15 +449,18 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
         </ul>
         {openMenuID && dropdownSubject && (
           <div
-            className="absolute z-50 w-28 bg-white rounded shadow-md"
+            className="absolute z-50 w-28 rounded bg-white shadow-md"
             style={{
-              top: dropdownDirection === "down" ? dropdownPosition.y + 4 : dropdownPosition.y - 50,
+              top:
+                dropdownDirection === "down"
+                  ? dropdownPosition.y + 4
+                  : dropdownPosition.y - 50,
               left: dropdownPosition.x - 0, // Align left of button
             }}
             onMouseLeave={() => setOpenMenuID(null)}
           >
             <button
-              className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-100"
+              className="w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
               onClick={() => {
                 setSubjectToDelete(dropdownSubject);
                 setShowDeleteModal(true);
@@ -461,131 +471,130 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
             </button>
           </div>
         )}
-
       </div>
 
       {showDeleteModal && subjectToDelete && (
-        <div className="fixed inset-0 z-56 flex flex-col items-center justify-center lightbox-bg">
-        <div className="font-inter text-[14px] w-full max-w-sm mx-auto bg-white py-2 pl-4 rounded-t-md border border-color relative text-gray-700 font-medium">
-          <span>Delete Subject</span>
-        </div>
+        <div className="lightbox-bg fixed inset-0 z-56 flex flex-col items-center justify-center">
+          <div className="font-inter border-color relative mx-auto w-full max-w-sm rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
+            <span>Delete Subject</span>
+          </div>
 
-        <div className="w-full max-w-sm sm:px-4 mx-auto p-2 bg-white border-color border-t-0 border relative rounded-b-md">
-
-          <p className="text-[14px] text-gray-700 mb-9 break-words mt-2">
-            Are you sure you want to delete <strong>{subjectToDelete.subjectName}</strong>?
-          </p>
-          <div className="flex justify-end gap-2 mb-2">
-            <button
-              onClick={() => setShowDeleteModal(false)}
-              className="cursor-pointer flex items-center gap-1 px-4 py-1.5 border rounded-md text-gray-700 hover:bg-gray-200 ml-auto"
-            >
-              Cancel
-            </button>
-            <Button
-              text="Confirm"
-              textres="Confirm"
-              icon="bx bx-trash"
-              onClick={async () => {
-                await handleDeleteSubject(subjectToDelete.subjectID);
-                setShowDeleteModal(false);
-                setSubjectToDelete(null);
-                setToast({
-                  message: "Subject deleted successfully",
-                  type: "success",
-                  show: true,
-                });;
-              }}
-            />
+          <div className="border-color relative mx-auto w-full max-w-sm rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
+            <p className="mt-2 mb-9 text-[14px] break-words text-gray-700">
+              Are you sure you want to delete{" "}
+              <strong>{subjectToDelete.subjectName}</strong>?
+            </p>
+            <div className="mb-2 flex justify-end gap-2">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="ml-auto flex cursor-pointer items-center gap-1 rounded-md border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <Button
+                text="Confirm"
+                textres="Confirm"
+                icon="bx bx-trash"
+                onClick={async () => {
+                  await handleDeleteSubject(subjectToDelete.subjectID);
+                  setShowDeleteModal(false);
+                  setSubjectToDelete(null);
+                  setToast({
+                    message: "Subject deleted successfully",
+                    type: "success",
+                    show: true,
+                  });
+                }}
+              />
+            </div>
           </div>
         </div>
-      </div>
       )}
-  
+
       {/* Add Assign Subject Modal */}
       {showAddModal && (
-        <div className="z-100 fixed inset-0 flex flex-col items-center justify-center lightbox-bg">
-          <div className="font-inter text-[14px] w-full max-w-md mx-auto bg-white py-2 pl-4 rounded-t-md border border-color relative text-gray-700 font-medium">
+        <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center">
+          <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
             <span>Assign a Subject</span>
           </div>
 
-          <div className="w-full max-w-md sm:px-4 mx-auto p-2 bg-white border-color border-t-0 border relative rounded-b-md">
-            
+          <div className="border-color relative mx-auto w-full max-w-md rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
             {/* Refresh Button */}
-            <div className="flex w-full items-center mt-2 gap-2 ">
-              <div className=" w-4/5">
+            <div className="mt-2 flex w-full items-center gap-2">
+              <div className="w-4/5">
                 <input
                   type="text"
                   placeholder="Search subject..."
                   value={searchUnassigned}
                   onChange={(e) => setSearchUnassigned(e.target.value)}
-                  className={`cursor-text rounded-md w-full px-4 py-[7px] bg-white relative
-                    transition-all duration-200 ease-in-out outline-none focus:outline-none
-                    hover:border-gray-500 focus:ring-1 focus:ring-orange-500 focus:ring-offset-1
-                    border border-gray-300 focus:border-transparent text-[14px]`}
+                  className={`relative w-full cursor-text rounded-md border border-gray-300 bg-white px-4 py-[7px] text-[14px] transition-all duration-200 ease-in-out outline-none hover:border-gray-500 focus:border-transparent focus:ring-1 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none`}
                 />
               </div>
               <button
-                className="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 border px-3 py-[7px] rounded-md"
+                className="flex items-center gap-1 rounded-md border bg-gray-100 px-3 py-[7px] text-sm hover:bg-gray-200"
                 onClick={fetchSubjects}
               >
                 <i className="bx bx-refresh text-[18px]"></i> Refresh
               </button>
             </div>
-            
-            <div className=" sm:-mx-4 h-[0.5px] bg-[rgb(200,200,200)] mt-4 mb-3" />
+
+            <div className="mt-4 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
 
             {/* Subject List for Assigning */}
             <div className="mb-3">
               <ul className="max-h-[200px] overflow-y-auto" ref={listRef}>
                 {loading ? (
-                  <h3 className="text-[14px] font-semibold mb-2">Loading...</h3>
+                  <h3 className="mb-2 text-[14px] font-semibold">Loading...</h3>
                 ) : unassignedSubjects.length > 0 ? (
                   [...unassignedSubjects]
                     .filter((subject) =>
                       `${subject.programName} ${subject.subjectName} ${subject.subjectCode}`
                         .toLowerCase()
-                        .includes(searchUnassigned.toLowerCase())
+                        .includes(searchUnassigned.toLowerCase()),
                     )
                     .sort((a, b) => a.programName.localeCompare(b.programName))
                     .map((subject) => (
                       <li
                         key={subject.subjectID}
-                        className={`text-[15px] cursor-pointer flex justify-between items-center rounded-md mt-2 mr-[6px] transition-all duration-100 ease-in-out p-[5px] ${
-                          selectedSubjectForAssignment && selectedSubjectForAssignment.subjectID === subject.subjectID
-                            ? "bg-orange-500 text-white" 
+                        className={`mt-2 mr-[6px] flex cursor-pointer items-center justify-between rounded-md p-[5px] text-[15px] transition-all duration-100 ease-in-out ${
+                          selectedSubjectForAssignment &&
+                          selectedSubjectForAssignment.subjectID ===
+                            subject.subjectID
+                            ? "bg-orange-500 text-white"
                             : "hover:bg-[rgb(255,230,214)]"
                         }`}
                         onClick={() => setSelectedSubjectForAssignment(subject)}
                       >
-                        <span className="pl-1 mb-[1px] break-words">
-                          {subject.programName} -  ({subject.subjectCode}) {subject.subjectName}
+                        <span className="mb-[1px] pl-1 break-words">
+                          {subject.programName} - ({subject.subjectCode}){" "}
+                          {subject.subjectName}
                         </span>
                       </li>
                     ))
                 ) : (
-                  <li className="p-2 text-[rgb(168,168,168)] text-[14px] text-center">
+                  <li className="p-2 text-center text-[14px] text-[rgb(168,168,168)]">
                     All subjects already assigned.
                   </li>
                 )}
               </ul>
             </div>
 
-        <div className="-mx-2 sm:-mx-4 h-[0.5px] bg-[rgb(200,200,200)] mt-5 mb-3" />
+            <div className="-mx-2 mt-5 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
 
-
-            <div className=" flex justify-end gap-2 mb-1">
+            <div className="mb-1 flex justify-end gap-2">
               <button
-                className="cursor-pointer flex items-center gap-1 px-2 py-1.5 border rounded-md text-gray-700 hover:bg-gray-200"
+                className="flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1.5 text-gray-700 hover:bg-gray-200"
                 onClick={() => setShowAddModal(false)}
               >
-                <span className="text-[16px] px-1">Cancel</span>
+                <span className="px-1 text-[16px]">Cancel</span>
               </button>
               <Button
                 text="Assign"
                 textres="Assign"
                 icon="bx bx-check"
-                onClick={() => handleAssignSubject(selectedSubjectForAssignment)}
+                onClick={() =>
+                  handleAssignSubject(selectedSubjectForAssignment)
+                }
                 disabled={!selectedSubjectForAssignment}
               />
             </div>
@@ -595,16 +604,31 @@ const AssignedSubjectsDropDown = ({ item, isExpanded, setIsExpanded, setSelected
       {isDeleting && <LoadingOverlay show={isDeleting} />}
       {isAssigning && <LoadingOverlay show={isAssigning} />}
 
-    {toast.message && (
-      <div
-        className={`fixed bottom-5 left-5 z-50 px-4 py-2 rounded shadow-lg text-sm text-white
-        ${toast.type === "success" ? "bg-green-500" : "bg-red-500"}
-        ${toast.show ? "opacity-100" : "opacity-0"} transition-opacity duration-500 ease-in-out`}
-      >
-        {toast.message}
-      </div>
-    )}
-    
+      {toast.message && (
+        <div
+          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
+            toast.show ? "opacity-100" : "opacity-0"
+          } ${
+            toast.type === "success" ? "border-green-400" : "border-red-400"
+          }`}
+        >
+          <div className="flex items-center">
+            <i
+              className={`mr-3 text-[24px] ${
+                toast.type === "success"
+                  ? "bx bxs-check-circle text-green-400"
+                  : "bx bxs-error text-red-400"
+              }`}
+            ></i>
+            <div>
+              <p className="font-semibold text-gray-800">
+                {toast.type === "success" ? "Success" : "Error"}
+              </p>
+              <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

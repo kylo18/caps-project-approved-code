@@ -112,12 +112,28 @@ const SideBarDropDown = ({
           ),
         );
 
-        await fetchSubjects();
+        fetchSubjects();
+        setSelectedSubject(null);
+
+        setToast({
+          message: "Subject updated successfully",
+          type: "success",
+          show: true,
+        });
       } else {
-        console.error("Failed to update subject:", result.message);
+        setToast({
+          message: result.message || "Failed to update subject.",
+          type: "error",
+          show: true,
+        });
       }
     } catch (error) {
       console.error("Error updating subject:", error);
+      setToast({
+        message: "An unexpected error occurred.",
+        type: "error",
+        show: true,
+      });
     } finally {
       setIsEditing(false);
     }
@@ -220,7 +236,7 @@ const SideBarDropDown = ({
         body: JSON.stringify({
           subjectCode: newSubjectCode,
           subjectName: newSubjectName,
-          programID: selectedProgramID, // Add this field for programID if it's selected
+          programID: selectedProgramID,
         }),
       });
 
@@ -243,15 +259,25 @@ const SideBarDropDown = ({
           show: true,
         });
       } else {
-        console.error(
-          "Failed to add subject:",
-          result.message || "Unknown error",
-        );
-        setToast({
-          message: "Failed to add subject",
-          type: "error",
-          show: true,
-        });
+        // Handle specific error if subject already exists
+        if (result.message && result.message.includes("already exists")) {
+          setToast({
+            message: "Subject already exists",
+            type: "error",
+            show: true,
+          });
+        } else {
+          // General error case
+          console.error(
+            "Failed to add subject:",
+            result.message || "Unknown error",
+          );
+          setToast({
+            message: "Failed to add subject",
+            type: "error",
+            show: true,
+          });
+        }
       }
     } catch (error) {
       console.error("Error adding subject:", error);
@@ -634,11 +660,6 @@ const SideBarDropDown = ({
                   if (!isNameValid || !isCodeValid || !isProgramValid) return;
 
                   await handleSaveEdit(editedSubject.subjectID);
-                  setToast({
-                    message: "Subject edited successfully",
-                    type: "success",
-                    show: true,
-                  });
                   setEditingSubject(null);
                 }}
               />
@@ -687,9 +708,27 @@ const SideBarDropDown = ({
 
       {toast.message && (
         <div
-          className={`fixed bottom-5 left-5 z-50 rounded px-4 py-2 text-sm text-white shadow-lg ${toast.type === "success" ? "bg-green-500" : "bg-red-500"} ${toast.show ? "opacity-100" : "opacity-0"} transition-opacity duration-500 ease-in-out`}
+          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
+            toast.show ? "opacity-100" : "opacity-0"
+          } ${
+            toast.type === "success" ? "border-green-400" : "border-red-400"
+          }`}
         >
-          {toast.message}
+          <div className="flex items-center">
+            <i
+              className={`mr-3 text-[24px] ${
+                toast.type === "success"
+                  ? "bx bxs-check-circle text-green-400"
+                  : "bx bxs-error text-red-400"
+              }`}
+            ></i>
+            <div>
+              <p className="font-semibold text-gray-800">
+                {toast.type === "success" ? "Success" : "Error"}
+              </p>
+              <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -797,11 +836,7 @@ const SideBarDropDown = ({
                   if (!valid) return;
 
                   await handleAddSubject();
-                  setToast({
-                    message: "Subject added successfully",
-                    type: "success",
-                    show: true,
-                  });
+
                   setShowAddModal(false);
                 }}
               />
