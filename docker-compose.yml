@@ -16,8 +16,8 @@ services:
     ports:
       - "8000:8000"
     # Uncomment if you want live syncing of files:
-    # volumes:
-    #   - ./caps-backend:/var/www/html
+    #volumes:
+       #- ./caps-backend:/var/www/html
     depends_on:
       - caps_mysql
     environment:
