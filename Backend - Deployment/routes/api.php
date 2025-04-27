@@ -24,12 +24,16 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class,])->group(fu
 
     //Logout route
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    //User profile route
+    Route::get('/practice-settings/{subjectID}', [PracticeExamSettingController::class, 'show']);
 });
 
 Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4'])->group(function () {
     //CHOICES FUNCTIONALITIES ROUTE
     Route::post('/questions/choices', [ChoiceController::class, 'store']);
     Route::get('/questions/{questionID}/choices', [ChoiceController::class, 'showChoices']);
+
     //subject functionalities route
     Route::get('/subjects', [SubjectController::class, 'index']);
     Route::post('/faculty/assign-subject', action: [FacultySubjectController::class, 'assignSubject']);
@@ -60,9 +64,7 @@ Route::middleware(['auth:sanctum','role:3,4'])->group(function () {
     Route::patch('/questions/{questionID}/status', [QuestionController::class, 'updateStatus']);
 
     //practice exam settings route
-    Route::post('/practice-settings/{subjectID}', [PracticeExamSettingController::class, 'store']); // create settings
-    Route::put('/practice-settings/{subjectID}/edit', [PracticeExamSettingController::class, 'update']); // update settings
-    Route::delete('/practice-settings/{subjectID}/delete', [PracticeExamSettingController::class, 'destroy']); // delete settings
+    Route::post('/practice-settings', [PracticeExamSettingController::class, 'store']);
     Route::get('/programs', [ProgramController::class, 'index']);
 });
 

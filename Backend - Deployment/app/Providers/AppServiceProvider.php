@@ -30,14 +30,14 @@ class AppServiceProvider extends ServiceProvider
             base_path('Modules/PracticeExams/Database/Migrations'),
         ]);
 
-        if (env('APP_ENV') !== 'local') {
-            URL::forceScheme('https');
-        }
-
         Schema::defaultStringLength(191);
 
         \Illuminate\Support\Facades\Request::macro('maxUploadSize', function () {
             return 20 * 1024 * 1024;
         });
+
+        if (app()->environment('local')) {
+            URL::forceScheme('https');
+        }
     }
 }

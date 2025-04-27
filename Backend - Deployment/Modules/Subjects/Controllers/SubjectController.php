@@ -64,7 +64,6 @@ class SubjectController extends Controller
         try {
             $user = Auth::user(); // Get the authenticated user
 
-            // Check if the user is authenticated
             if (!$user) {
                 return response()->json([
                     'error' => 'Unauthorized',
@@ -72,41 +71,50 @@ class SubjectController extends Controller
                 ], 401);
             }
 
-            // Check if the user has roleID = 4 (Dean)  or roleID = 2 (Instructor) or roleID = 3 (Program Chair)
+            // Allow only Dean, Instructor, or Program Chair to access
             if (!in_array($user->roleID, [2, 3, 4])) {
                 return response()->json([
                     'error' => 'Forbidden',
-                    'message' => 'Access denied. Only Dean or Program Chair can view the subjects list.'
+                    'message' => 'Access denied. Only Dean, Instructor, or Program Chair can view the subjects list.'
                 ], 403);
             }
 
-            // If authorized, retrieve all subjects with program name
-            $subjects = Subject::with('program') // Eager load the related program
-                ->get()
-                ->map(function ($subject) {
-                    // Include program name in the response, if program exists
-                    $programName = $subject->program ? $subject->program->programName : null;
+            // Fetch subjects based on role
+            if ($user->roleID === 3) {
+                // Program Chair: show subjects for their program + general subjects (programID 6)
+                $subjects = Subject::with('program')
+                    ->where(function ($query) use ($user) {
+                        $query->where('programID', $user->programID)
+                              ->orWhere('programID', 6); // General subjects
+                    })
+                    ->get();
+            } else {
+                // Dean or Instructor: show all subjects
+                $subjects = Subject::with('program')->get();
+            }
 
-                    // Remove the 'BS-' prefix from the program name if it exists
-                    if ($programName && strpos($programName, 'BS-') === 0) {
-                        $programName = substr($programName, 3); // Remove the first 3 characters ('BS-')
-                    }
+            // Format the result with optional program name
+            $formattedSubjects = $subjects->map(function ($subject) {
+                $programName = $subject->program ? $subject->program->programName : null;
 
-                    return [
-                        'subjectID'    => $subject->subjectID,
-                        'subjectName'  => $subject->subjectName,
-                        'subjectCode'  => $subject->subjectCode,
-                        'programID'    => $subject->programID,
-                        'programName'  => $programName, // Return modified program name
-                    ];
-                });
+                if ($programName && strpos($programName, 'BS-') === 0) {
+                    $programName = substr($programName, 3);
+                }
+
+                return [
+                    'subjectID'    => $subject->subjectID,
+                    'subjectName'  => $subject->subjectName,
+                    'subjectCode'  => $subject->subjectCode,
+                    'programID'    => $subject->programID,
+                    'programName'  => $programName,
+                ];
+            });
 
             return response()->json([
                 'message' => 'Subjects retrieved successfully',
-                'subjects' => $subjects
+                'subjects' => $formattedSubjects
             ], 200);
         } catch (\Exception $e) {
-            // Log the error
             Log::error('Error retrieving subjects: ' . $e->getMessage());
 
             return response()->json([
@@ -115,6 +123,7 @@ class SubjectController extends Controller
             ], 500);
         }
     }
+
 
     public function update(Request $request, $subjectID)
     {
