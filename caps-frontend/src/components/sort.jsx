@@ -1,11 +1,16 @@
 import SortCustomDropdown from "./sortCustomDropdown";
 
-const Sort = ({ sortOption, setSortOption, subSortOption, setSubSortOption }) => {
+const Sort = ({
+  sortOption,
+  setSortOption,
+  subSortOption,
+  setSubSortOption,
+}) => {
   const mainSortOptions = [
     { value: "", label: "All" },
-    { value: "difficulty", label: "Difficulty" },
-    { value: "coverage", label: "Coverage" },
-    { value: "score", label: "Score" },
+    { value: "difficulty", label: "Sort by Difficulty" },
+    { value: "coverage", label: "Sort by Coverage" },
+    { value: "score", label: "Sort by Score" },
   ];
 
   const subSortOptions = {

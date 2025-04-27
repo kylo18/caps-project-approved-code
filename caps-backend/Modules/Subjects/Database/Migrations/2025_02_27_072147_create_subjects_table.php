@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::create('subjects', function (Blueprint $table) {
             $table->id('subjectID');
-            $table->string('subjectCode', 20)->unique();
+            $table->string('subjectCode', 20);
             $table->string('subjectName', 100);
             $table->foreignId('programID')->constrained('programs', 'programID')->onDelete('cascade');
             $table->timestamps();

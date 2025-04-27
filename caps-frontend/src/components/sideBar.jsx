@@ -1,27 +1,33 @@
 import { useEffect, useState, useRef } from "react";
-import { Link, useLocation } from "react-router-dom"; 
+import { Link, useLocation } from "react-router-dom";
 import AllSubjectsDropDown from "./allSubjectsDropdown";
 import AssignedSubjectsDropDown from "./assignedSubjectDropdown";
 import LoadingOverlay from "./loadingOverlay";
 
-const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => {
+const Sidebar = ({
+  role_id,
+  setSelectedSubject,
+  isExpanded,
+  setIsExpanded,
+}) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const collegeLogo = new URL("../assets/college-logo.png", import.meta.url).href;
+  const collegeLogo = new URL("../assets/college-logo.png", import.meta.url)
+    .href;
   const [isSubjectFocused, setIsSubjectFocused] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); 
+  const [isLoading, setIsLoading] = useState(false);
   const sidebarRef = useRef();
-  
+
   const location = useLocation();
 
   useEffect(() => {
     setIsLoading(true);
-    
+
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 1000); 
-    
+    }, 1000);
+
     return () => clearTimeout(timer);
-  }, [location]); 
+  }, [location]);
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -49,16 +55,22 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
   const parsedRoleId = Number(role_id);
 
   const homePath =
-    parsedRoleId === 1 ? "/student" :
-    parsedRoleId === 2 ? "/Instructor" :
-    parsedRoleId === 3 ? "/Program Chair" :
-    parsedRoleId === 4 ? "/Dean" :
-    "/";
+    parsedRoleId === 1
+      ? "/student"
+      : parsedRoleId === 2
+        ? "/faculty-dashboard"
+        : parsedRoleId === 3
+          ? "/program-chair-dashboard"
+          : parsedRoleId === 4
+            ? "/admin-dashboard"
+            : "/";
 
-  const baseMenuItems = [{ icon: "bx-home", label: "Home", path: homePath }];
+  const baseMenuItems = [
+    { icon: "bx-bar-chart-alt-2", label: "Dashboard", path: homePath },
+  ];
   const facultyItems = [{ icon: "bx-printer", label: "Print" }];
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
-  const classes = [{ icon: "bx-clipboard", label: "Classes" }];
+  const classes = [{ icon: "bx-book-bookmark", label: "Classes" }];
 
   let menuItems = [...baseMenuItems];
   if (parsedRoleId >= 2) menuItems = [...menuItems, ...facultyItems];
@@ -69,15 +81,15 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
   return (
     <>
       {/* Loading Overlay */}
-      <LoadingOverlay show={isLoading}/>
-      
+      <LoadingOverlay show={isLoading} />
+
       {isMobile && !isExpanded && (
         <button
-          onClick={() => {setIsExpanded(true);
+          onClick={() => {
+            setIsExpanded(true);
             setIsSubjectFocused(false);
           }}
-          
-          className="z-54 hover:text-white fixed top-2 left-3 hover:bg-orange-500 rounded cursor-pointer"
+          className="fixed top-2 left-3 z-54 cursor-pointer rounded hover:bg-orange-500 hover:text-white"
         >
           <i className="bx bx-menu text-3xl"></i>
         </button>
@@ -85,17 +97,22 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className={`z-53 h-screen bg-white text-gray-700 p-4 transition-all duration-300 ease-in-out border-r border-color fixed top-0 ${
+        className={`border-color fixed top-0 z-53 h-screen border-r bg-white p-4 text-gray-700 transition-all duration-300 ease-in-out ${
           isMobile ? (isExpanded ? "left-0" : "-left-full") : "left-0"
-        } ${isExpanded ? "w-[180px]" : "w-[64.5px]"}`}
+        } ${isExpanded ? "w-[200px]" : "w-[64.5px]"}`}
       >
         {/* Logo & CAPS text */}
         {!isMobile && (
           <div className="flex gap-4">
-            <img key={role_id} src={collegeLogo} alt="College Logo" className="size-[32px] -mt-1.5 mb-5" />
+            <img
+              key={role_id}
+              src={collegeLogo}
+              alt="College Logo"
+              className="-mt-1.5 mb-5 size-[32px]"
+            />
             <span
-              className={`text-black text-lg -mt-[5px] font-semibold transition-all duration-200 ease-in-out ${
-                isExpanded ? "opacity-100 ml-0" : "opacity-0 ml-[-20px]"
+              className={`-mt-[5px] text-lg font-semibold text-black transition-all duration-200 ease-in-out ${
+                isExpanded ? "ml-0 opacity-100" : "ml-[-20px] opacity-0"
               }`}
             >
               CAPS
@@ -106,13 +123,15 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
         {/* Sidebar Toggle Button */}
         {!isMobile && (
           <button
-            onClick={() => {setIsExpanded(!isExpanded);
+            onClick={() => {
+              setIsExpanded(!isExpanded);
               setIsSubjectFocused(false);
             }}
-            className="hover:text-white flex mb-[22px] items-center gap-3 py-[4px] px-[4px] hover:bg-orange-500 rounded cursor-pointer "
-
+            className="mb-[22px] flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] hover:bg-[rgb(255,230,214)]"
           >
-            <i className={`bx ${isExpanded ? "bx-chevron-left" : "bx-menu"} text-2xl`}></i>
+            <i
+              className={`bx ${isExpanded ? "bx-chevron-left" : "bx-menu"} text-2xl`}
+            ></i>
           </button>
         )}
 
@@ -120,8 +139,7 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
         {isMobile && isExpanded && (
           <button
             onClick={() => setIsExpanded(false)}
-            className="hover:text-white flex mb-5 items-center gap-3 py-[4px] px-[4px] hover:bg-orange-500 rounded cursor-pointer "
-
+            className="mb-5 flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] hover:bg-[rgb(255,230,214)]"
           >
             <i className="bx bx-chevron-left text-3xl"></i>
           </button>
@@ -129,19 +147,23 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
 
         {/* Sidebar menu items */}
         {!isSubjectFocused && (
-          <ul className="space-y-[15px] -mt-2 mb-5">
+          <ul className="-mt-2 mb-5 space-y-[14px]">
             {menuItems.map((item, index) => (
               <li key={index} title={item.label}>
                 <Link
                   to={item.path}
-                  className={`hover:text-white flex items-center gap-3 py-[4px] px-[4px] hover:bg-orange-500 rounded cursor-pointer ${
-                    isActive(item.path) ? "bg-orange-500 text-white" : ""
+                  className={`flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] ${
+                    isActive(item.path)
+                      ? "bg-orange-500 text-white" // Active state
+                      : "hover:bg-[rgb(255,230,214)] hover:text-gray-700" // Hover styles only for non-active
                   }`}
                 >
                   <i className={`bx ${item.icon} text-2xl`}></i>
                   <span
-                    className={`text-sm font-semibold transition-all ease-in-out duration-150 ${
-                      isExpanded ? "opacity-100 ml-0 visible pointer-events-auto" : "opacity-0 ml-0 invisible pointer-events-none"
+                    className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
+                      isExpanded
+                        ? "pointer-events-auto visible ml-0 opacity-100"
+                        : "pointer-events-none invisible ml-0 opacity-0"
                     }`}
                   >
                     {item.label}
@@ -153,14 +175,16 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
         )}
 
         {/* Focused Subject Dropdown */}
-        {parsedRoleId === 4 &&(
+        {parsedRoleId === 4 && (
           <>
             {!isSubjectFocused && (
               <>
-                <div className="w-full h-[1px] bg-[rgb(168,168,168)] mb-7"></div>
+                <div className="mb-7 h-[1px] w-full bg-[rgb(168,168,168)]"></div>
               </>
             )}
-            <div className={`${isSubjectFocused ? "top-[75px] w-full z-50" : ""}`}>
+            <div
+              className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
+            >
               <ul className="space-y-[10px]">
                 {classes.map((item, index) => (
                   <AllSubjectsDropDown
@@ -172,7 +196,7 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
                     setSelectedSubject={setSelectedSubject}
                     isSubjectFocused={isSubjectFocused}
                     setIsSubjectFocused={setIsSubjectFocused}
-                    homePath={homePath}
+                    homePath={"/Dean/subjects"}
                   />
                 ))}
               </ul>
@@ -185,10 +209,12 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
             {!isSubjectFocused && (
               <>
                 {/* Focused Subject Dropdown (move to top if focused) */}
-                <div className="w-full h-[1px] bg-[rgb(168,168,168)] mb-7"></div>
+                <div className="mb-7 h-[1px] w-full bg-[rgb(168,168,168)]"></div>
               </>
             )}
-            <div className={`${isSubjectFocused ? "top-[75px] w-full z-50" : ""}`}>
+            <div
+              className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
+            >
               <ul className="space-y-[10px]">
                 {classes.map((item, index) => (
                   <AllSubjectsDropDown
@@ -200,7 +226,7 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
                     setSelectedSubject={setSelectedSubject}
                     isSubjectFocused={isSubjectFocused}
                     setIsSubjectFocused={setIsSubjectFocused}
-                    homePath={homePath}
+                    homePath={"/program-chair/subjects"}
                   />
                 ))}
               </ul>
@@ -212,10 +238,12 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
           <>
             {!isSubjectFocused && (
               <>
-                <div className="w-full h-[1px] bg-[rgb(168,168,168)] mb-7"></div>
+                <div className="mb-7 h-[1px] w-full bg-[rgb(168,168,168)]"></div>
               </>
             )}
-            <div className={`${isSubjectFocused ? "top-[75px] w-full z-50" : ""}`}>
+            <div
+              className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
+            >
               <ul className="space-y-[10px]">
                 {classes.map((item, index) => (
                   <AssignedSubjectsDropDown
@@ -227,7 +255,7 @@ const Sidebar = ({ role_id, setSelectedSubject, isExpanded, setIsExpanded }) => 
                     setSelectedSubject={setSelectedSubject}
                     isSubjectFocused={isSubjectFocused}
                     setIsSubjectFocused={setIsSubjectFocused}
-                    homePath={homePath}
+                    homePath={"/faculty/subjects"}
                   />
                 ))}
               </ul>

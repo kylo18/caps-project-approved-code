@@ -8,9 +8,11 @@ import ProgramChairDashboard from "./pages/ProgramChairDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ScrollToTop from "./components/scrollToTop";
 import Users from "./pages/Users";
+import AdminContent from "./pages/AdminContent";
+import ProgramChairContent from "./pages/ProgramChairContent";
+import FacultyContent from "./pages/FacultyContent";
 
 function App() {
-
   return (
     <Router>
       <ScrollToTop />
@@ -23,17 +25,32 @@ function App() {
           <Route path="dashboard" element={<StudentDashboard />} />
         </Route>
 
-        <Route path="/Instructor" element={<Layout />}>
+        <Route path="/faculty/subjects" element={<Layout />}>
+          <Route index element={<FacultyContent />} />
+          <Route path="content" element={<FacultyContent />} />
+        </Route>
+
+        <Route path="/faculty-dashboard" element={<Layout />}>
           <Route index element={<FacultyDashboard />} />
           <Route path="dashboard" element={<FacultyDashboard />} />
         </Route>
 
-        <Route path="/Program Chair" element={<Layout />}>
+        <Route path="/program-chair/subjects" element={<Layout />}>
+          <Route index element={<ProgramChairContent />} />
+          <Route path="content" element={<ProgramChairContent />} />
+        </Route>
+
+        <Route path="/program-chair-dashboard" element={<Layout />}>
           <Route index element={<ProgramChairDashboard />} />
           <Route path="dashboard" element={<ProgramChairDashboard />} />
         </Route>
 
-        <Route path="/Dean" element={<Layout />}>
+        <Route path="/Dean/subjects" element={<Layout />}>
+          <Route index element={<AdminContent />} />
+          <Route path="content" element={<AdminContent />} />
+        </Route>
+
+        <Route path="/admin-dashboard" element={<Layout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="dashboard" element={<AdminDashboard />} />
         </Route>

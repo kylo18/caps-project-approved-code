@@ -42,7 +42,7 @@ const Layout = () => {
         />
         <div
           className={`flex-1 flex flex-col transition-all duration-300 ${
-            isMobile ? "ml-0" : isExpanded ? "ml-[180px]" : "ml-[64.5px]"
+            isMobile ? "ml-0" : isExpanded ? "ml-[200px]" : "ml-[64.5px]"
           }`}
         >
           <Header title={roleTitle} />
