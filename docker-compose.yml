@@ -16,8 +16,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      #- ./caps-backend:/var/www/html
-      - /c/Users/Carlos Miguel/OneDrive/Desktop/caps-project-approved-code/caps-backend/storage/app/public:/var/www/html/storage/app/public
+      # - ./caps-backend:/var/www/html   # <-- still commented
+      - ./docker-data/backend_pictures:/var/www/html/storage/app/public
     depends_on:
       - caps_mysql
     environment:
@@ -54,7 +54,7 @@ services:
       MYSQL_USER: kylo
       MYSQL_PASSWORD: CAPSwebsite2025
     volumes:
-      - mysql_data:/var/lib/mysql
+      - ./docker-data/mysql_data:/var/lib/mysql
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -71,5 +71,5 @@ services:
     networks:
       - caps_network
 
-volumes:
-  mysql_data:
+# No named volumes anymore — you use host bind mounts (cleaner for backups)
+#volumes: {}
