@@ -452,7 +452,7 @@ const UserList = () => {
         </div>
 
         {/* Sorting Dropdowns */}
-        <div className="relative z-50 flex w-full flex-col gap-4 overflow-visible text-gray-700 sm:flex-row md:w-auto">
+        <div className="relative z-50 flex w-full flex-col gap-2 overflow-visible text-gray-700 sm:flex-row md:w-auto">
           {/* Third Dropdown - Status Filter */}
           <SortCustomDropdown
             name="sortStatus"
@@ -511,7 +511,7 @@ const UserList = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="border-color flex w-full cursor-pointer items-center rounded-md border bg-white px-2 text-gray-700 shadow-sm sm:max-w-[300px]">
+        <div className="border-color flex w-[50%] cursor-pointer items-center rounded-md border bg-white px-2 text-gray-700 shadow-sm sm:max-w-[300px]">
           <i className="bx bx-search text-[20px] text-gray-500"></i>
           <div className="flex flex-1">
             <input

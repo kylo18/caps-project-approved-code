@@ -170,7 +170,7 @@ export default function Register() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-[url('/src/assets/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/src/assets/login-bg-md.png')] md:bg-[url('/src/assets/login-bg-md.png')] lg:flex-row lg:bg-[url('/src/assets/login-bg.png')]">
+    <div className="flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-md.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
       {/* Left Section */}
       <div className="mr-10 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
         {/* Logos */}
@@ -200,8 +200,8 @@ export default function Register() {
           </p>
         </div>
 
-        <div className="mt-10 flex-col items-center justify-center lg:hidden">
-          <h1 className="text-[22px] leading-snug font-bold tracking-wide text-white sm:text-[30px]">
+        <div className="mt-10 flex flex-col items-center justify-center lg:hidden">
+          <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
             <span>
               <span className="text-3xl text-orange-500">C</span>OMPREHENSIVE
             </span>
@@ -223,14 +223,14 @@ export default function Register() {
       {/* Right Section */}
       <div className="mt-30 flex w-full items-center justify-center p-6 sm:mt-30 md:mt-30 lg:mt-0 lg:w-1/2">
         <div className="w-full max-w-xs space-y-6 sm:max-w-md">
-          <div className="">
-            <h2 className="mr-15 text-center text-xl font-bold">
-              LOG IN ACCOUNT
-            </h2>
-            <p className="mt-2 mr-15 justify-center text-center text-gray-500 **:text-sm">
-              <span>Welcome! Please enter your ID number and password</span>
+          <div className="text-center sm:ml-10 lg:ml-0">
+            <h2 className="text-xl font-bold lg:mr-15">REGISTER ACCOUNT</h2>
+            <p className="mt-2 justify-center text-center text-sm text-gray-500 lg:mr-15">
+              <span>
+                Get started by entering your credentials to register and create
+                your account.
+              </span>
               <br />
-              <span>to access your account.</span>
             </p>
             <div className="w-full max-w-sm">
               <form onSubmit={handleSubmit} className="mt-6 space-y-4">
