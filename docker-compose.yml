@@ -15,9 +15,9 @@ services:
       - caps_network
     ports:
       - "8000:8000"
-    # Uncomment if you want live syncing of files:
-    #volumes:
-       #- ./caps-backend:/var/www/html
+    volumes:
+      #- ./caps-backend:/var/www/html
+      - /c/Users/Carlos Miguel/OneDrive/Desktop/caps-project-approved-code/caps-backend/storage/app/public:/var/www/html/storage/app/public
     depends_on:
       - caps_mysql
     environment:
