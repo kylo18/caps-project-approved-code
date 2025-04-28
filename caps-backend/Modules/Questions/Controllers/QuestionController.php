@@ -226,6 +226,14 @@ class QuestionController extends Controller
         $questions = Question::with(['subject', 'choices', 'user'])
             ->where('subjectID', $subjectID)
             ->get()
+            ->filter(function ($question) {
+                // If a question has no choices, delete it and do not include it
+                if ($question->choices->isEmpty()) {
+                    $question->delete();
+                    return false;
+                }
+                return true;
+            })
             ->map(function ($question) {
                 try {
                     // Decrypt question text
@@ -249,13 +257,14 @@ class QuestionController extends Controller
                     $question->image = asset("storage/{$question->image}");
                 }
 
-                // Add creator full name (from user relation)
+                // Add creator full name
                 $question->creatorName = $question->user
                     ? $question->user->firstName . ' ' . $question->user->lastName
                     : 'Unknown';
 
                 return $question;
-            });
+            })
+            ->values(); // Re-index the collection after filtering
 
         return response()->json([
             'message' => 'Questions for subject retrieved successfully!',

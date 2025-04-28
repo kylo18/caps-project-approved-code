@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import AllSubjectsDropDown from "./allSubjectsDropdown";
+import AllSubjectsDropDownProgramChair from "./allSubjectsDropdownProgramChair";
 import AssignedSubjectsDropDown from "./assignedSubjectDropdown";
 import LoadingOverlay from "./loadingOverlay";
 
@@ -217,7 +218,7 @@ const Sidebar = ({
             >
               <ul className="space-y-[10px]">
                 {classes.map((item, index) => (
-                  <AllSubjectsDropDown
+                  <AllSubjectsDropDownProgramChair
                     key={index}
                     item={item}
                     isExpanded={isExpanded}

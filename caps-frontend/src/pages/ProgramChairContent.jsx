@@ -909,13 +909,13 @@ const ProgramChairContent = () => {
                             >
                               <div className="relative max-h-full max-w-full">
                                 <img
-                                  src={
+                                  src={fixImageUrl(
                                     submittedQuestion[
                                       activeTab === 0
                                         ? "practiceQuestions"
                                         : "examQuestions"
-                                    ].image
-                                  }
+                                    ].image,
+                                  )}
                                   alt="Full View"
                                   className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
                                 />
