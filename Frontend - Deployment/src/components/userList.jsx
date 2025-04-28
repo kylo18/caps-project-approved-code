@@ -406,7 +406,7 @@ const UserList = () => {
             <button
               onClick={handleApproveSelectedUsers}
               disabled={selectedUsers.length === 0}
-              className={`cursor-pointer rounded-md px-4 py-2 text-sm shadow-sm transition-colors duration-200 ${
+              className={`cursor-pointer rounded-md px-3 py-2 text-sm shadow-sm transition-colors duration-200 ${
                 selectedUsers.length === 0
                   ? "cursor-not-allowed bg-gray-400 text-white"
                   : "bg-orange-500 text-white hover:bg-orange-700"
@@ -419,7 +419,7 @@ const UserList = () => {
             <button
               onClick={handleActivateSelectedUsers}
               disabled={selectedUsers.length === 0}
-              className={`cursor-pointer rounded-md px-4 py-2 text-sm shadow-sm transition-colors duration-200 ${
+              className={`cursor-pointer rounded-md px-3 py-2 text-sm shadow-sm transition-colors duration-200 ${
                 selectedUsers.length === 0
                   ? "cursor-not-allowed bg-gray-400 text-white"
                   : "bg-orange-500 text-white hover:bg-orange-700"
@@ -432,7 +432,7 @@ const UserList = () => {
             <button
               onClick={handleDeactivateSelectedUsers}
               disabled={selectedUsers.length === 0}
-              className={`cursor-pointer rounded-md px-4 py-2 text-sm shadow-sm transition-colors duration-200 ${
+              className={`cursor-pointer rounded-md px-3 py-2 text-sm shadow-sm transition-colors duration-200 ${
                 selectedUsers.length === 0
                   ? "cursor-not-allowed bg-gray-400 text-white"
                   : "bg-orange-500 text-white hover:bg-orange-700"
@@ -444,9 +444,12 @@ const UserList = () => {
           <div>
             <button
               onClick={() => window.location.reload()}
-              className="border-color cursor-pointer rounded-md bg-white px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-200"
+              className="border-color flex items-center gap-1 rounded-md border bg-gray-100 px-3 py-2 text-sm shadow-sm hover:bg-gray-200"
             >
-              Refresh
+              <>
+                <i className="bx bx-refresh text-[16px]"></i>
+                Refresh
+              </>
             </button>
           </div>
         </div>
@@ -568,94 +571,99 @@ const UserList = () => {
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((user) => (
-                <tr
-                  key={user.userID}
-                  className="border-b border-[rgb(200,200,200)] text-[12px] text-[rgb(78,78,78)] hover:bg-gray-200"
-                >
-                  {/* Checkbox Column (Hidden on Small Screens) */}
-                  <td className="hidden p-3 text-left sm:table-cell">
-                    <input
-                      className="mt-1 ml-3"
-                      type="checkbox"
-                      checked={selectedUsers.includes(user.userID)}
-                      onChange={() => handleCheckboxChange(user.userID)}
-                    />
-                  </td>
-                  <td className="p-3 text-left text-nowrap">{user.userCode}</td>
-                  <td className="p-3 text-left text-nowrap">{`${user.firstName} ${user.lastName}`}</td>
-                  <td className="p-3 text-left">{user.email}</td>
-                  <td className="p-3 text-left text-nowrap">{user.role}</td>
-                  <td className="p-3 text-left text-nowrap">{user.campus}</td>
-                  <td className="p-3 text-center font-semibold">
-                    <span
-                      className={`rounded-md px-2 py-1 text-[12px] ${
-                        user.status === "registered"
-                          ? "text-green-600"
+              [...filteredUsers]
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                .map((user) => (
+                  <tr
+                    key={user.userID}
+                    className="border-b border-[rgb(200,200,200)] text-[12px] text-[rgb(78,78,78)] hover:bg-gray-200"
+                  >
+                    {/* Checkbox Column (Hidden on Small Screens) */}
+                    <td className="hidden p-3 text-left sm:table-cell">
+                      <input
+                        className="mt-1 ml-3"
+                        type="checkbox"
+                        checked={selectedUsers.includes(user.userID)}
+                        onChange={() => handleCheckboxChange(user.userID)}
+                      />
+                    </td>
+                    <td className="p-3 text-left text-nowrap">
+                      {user.userCode}
+                    </td>
+                    <td className="p-3 text-left text-nowrap">{`${user.firstName} ${user.lastName}`}</td>
+                    <td className="p-3 text-left">{user.email}</td>
+                    <td className="p-3 text-left text-nowrap">{user.role}</td>
+                    <td className="p-3 text-left text-nowrap">{user.campus}</td>
+                    <td className="p-3 text-center font-semibold">
+                      <span
+                        className={`rounded-md px-2 py-1 text-[12px] ${
+                          user.status === "registered"
+                            ? "text-green-600"
+                            : user.status === "unregistered"
+                              ? "text-red-600"
+                              : "text-yellow-600"
+                        }`}
+                      >
+                        {user.status === "registered"
+                          ? "Approved"
                           : user.status === "unregistered"
-                            ? "text-red-600"
-                            : "text-yellow-600"
-                      }`}
-                    >
-                      {user.status === "registered"
-                        ? "Approved"
-                        : user.status === "unregistered"
-                          ? "Rejected"
-                          : "Pending"}
-                    </span>
-                  </td>
-                  <td className="p-3 text-center">{user.program}</td>
+                            ? "Rejected"
+                            : "Pending"}
+                      </span>
+                    </td>
+                    <td className="p-3 text-center">{user.program}</td>
 
-                  {/* Active/Inactive Status */}
-                  <td className="p-3 text-center">
-                    {user.isActive ? (
-                      <span className="text-green-500">Active</span>
-                    ) : (
-                      <span className="text-red-500">Inactive</span>
-                    )}
-                  </td>
-
-                  {/* Action Buttons */}
-                  <td className="p-3 text-center">
-                    <div className="flex justify-center gap-2">
-                      {/* Approve Button (for pending users only) */}
-                      {user.status === "pending" && user.isActive === false && (
-                        <button
-                          className="main-text-colors hover:text-orange-700"
-                          onClick={() => handleApproveUser(user.userID)}
-                          title="Approve"
-                        >
-                          <i className="bx bxs-user-check cursor-pointer text-lg"></i>{" "}
-                          {/* Approve Icon */}
-                        </button>
+                    {/* Active/Inactive Status */}
+                    <td className="p-3 text-center">
+                      {user.isActive ? (
+                        <span className="text-green-500">Active</span>
+                      ) : (
+                        <span className="text-red-500">Inactive</span>
                       )}
-                      {/* Deactivate Active User */}
-                      {user.status === "registered" &&
-                        user.isActive === true && (
-                          <button
-                            className="text-red-500 hover:text-red-700"
-                            onClick={() => handleDeactivateUser(user.userID)}
-                            title="Deactivate"
-                          >
-                            <i className="bx bx-log-out bx-flip-horizontal cursor-pointer text-lg"></i>{" "}
-                            {/* Approve Icon */}
-                          </button>
-                        )}
-                      {/* Activate Active User */}
-                      {user.status === "registered" &&
-                        user.isActive === false && (
-                          <button
-                            className="main-text-colors hover:text-orange-700"
-                            onClick={() => handleActivateUser(user.userID)}
-                            title="Activate"
-                          >
-                            <i className="bx bx-check-double cursor-pointer text-lg"></i>
-                          </button>
-                        )}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    </td>
+
+                    {/* Action Buttons */}
+                    <td className="p-3 text-center">
+                      <div className="flex justify-center gap-2">
+                        {/* Approve Button (for pending users only) */}
+                        {user.status === "pending" &&
+                          user.isActive === false && (
+                            <button
+                              className="main-text-colors hover:text-orange-700"
+                              onClick={() => handleApproveUser(user.userID)}
+                              title="Approve"
+                            >
+                              <i className="bx bxs-user-check cursor-pointer text-lg"></i>{" "}
+                              {/* Approve Icon */}
+                            </button>
+                          )}
+                        {/* Deactivate Active User */}
+                        {user.status === "registered" &&
+                          user.isActive === true && (
+                            <button
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => handleDeactivateUser(user.userID)}
+                              title="Deactivate"
+                            >
+                              <i className="bx bx-log-out bx-flip-horizontal cursor-pointer text-lg"></i>{" "}
+                              {/* Approve Icon */}
+                            </button>
+                          )}
+                        {/* Activate Active User */}
+                        {user.status === "registered" &&
+                          user.isActive === false && (
+                            <button
+                              className="main-text-colors hover:text-orange-700"
+                              onClick={() => handleActivateUser(user.userID)}
+                              title="Activate"
+                            >
+                              <i className="bx bx-check-double cursor-pointer text-lg"></i>
+                            </button>
+                          )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
             )}
           </tbody>
         </table>

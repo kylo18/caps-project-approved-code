@@ -223,8 +223,10 @@ export default function Register() {
       {/* Right Section */}
       <div className="mt-30 flex w-full items-center justify-center p-6 sm:mt-30 md:mt-30 lg:mt-0 lg:w-1/2">
         <div className="w-full max-w-xs space-y-6 sm:max-w-md">
-          <div className="text-center sm:ml-10 lg:ml-0">
-            <h2 className="text-xl font-bold lg:mr-15">REGISTER ACCOUNT</h2>
+          <div className="sm:ml-10 lg:ml-0">
+            <h2 className="text-center text-xl font-bold lg:mr-15">
+              REGISTER ACCOUNT
+            </h2>
             <p className="mt-2 justify-center text-center text-sm text-gray-500 lg:mr-15">
               <span>
                 Get started by entering your credentials to register and create

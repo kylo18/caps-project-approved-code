@@ -395,7 +395,7 @@ const PracticeAddQuestionForm = ({
             isOpen={showConfirmModal}
             onClose={() => setShowConfirmModal(false)}
             onConfirm={confirmSubmit}
-            message="Are you sure you want to add this question?"
+            message="Are you sure you want to add this question? Please note that you will not be able to modify it afterward at this time."
           />
         </div>
       </div>

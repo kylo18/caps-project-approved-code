@@ -980,7 +980,6 @@ const AdminContent = () => {
                               </div>
                             </div>
                           )}
-                          <div className="mt-6 h-[0.5px] bg-[rgb(200,200,200)]" />
                         </div>
                       </div>
                     </div>
