@@ -2,7 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import ConfirmModal from "./confirmModal"; // Import modal
 import CustomDropdown from "./customDropdown";
 
-const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }) => {
+const ExamAddQuestionForm = ({
+  subjectID,
+  onQuestionAdded,
+  topRadius,
+  onCancel,
+}) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
@@ -13,7 +18,7 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
   const [isUnderline, setIsUnderline] = useState(false);
   const fileInputRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false); 
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const [questionData, setQuestionData] = useState({
     subjectID,
@@ -136,57 +141,58 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
   };
 
   return (
-    <div className='flex'> 
-      <div className='flex-1'>
+    <div className="flex">
+      <div className="flex-1">
         {/* Header */}
-        <div className="font-inter text-[14px] max-w-3xl mx-auto bg-white py-2 pl-4 shadow-lg rounded-t-md border border-color  relative text-gray-600 font-medium">
+        <div className="font-inter border-color relative mx-auto max-w-3xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
           <span>Add Question</span>
         </div>
 
         {/* Question Card */}
         <div
-          className={`w-full max-w-3xl sm:px-4 mx-auto p-4 bg-white shadow-lg border-color  border-t-0 border relative ${
+          className={`border-color relative mx-auto w-full max-w-3xl border border-t-0 bg-white p-4 shadow-lg sm:px-4 ${
             topRadius ? "rounded-md" : "rounded-b-md"
-          }`}>
+          }`}
+        >
           {/* Header */}
-          <div className="flex justify-between items-center text-gray-600 text-[14px]">
+          <div className="flex items-center justify-between text-[14px] text-gray-600">
             <span>Multiple Choice</span>
-            <div className="flex items-center space-x-2">
-              <span className="text-[12px] font-medium">{questionData.score} pt</span>
-              <span className={`text-white text-[12px] px-4 py-1 rounded-lg ${
-                questionData.difficulty === "easy" ? "bg-green-500" : 
-                questionData.difficulty === "moderate" ? "bg-yellow-500" : 
-                "bg-red-500"
-              }`}>
-                {questionData.difficulty.charAt(0).toUpperCase() + questionData.difficulty.slice(1)}
+            <div className="flex items-center">
+              <span className="rounded-lg px-2 py-1 text-[13px] font-medium">
+                {questionData.difficulty.charAt(0).toUpperCase() +
+                  questionData.difficulty.slice(1)}
               </span>
-
+              <span> •</span>
               {/* Coverage Badge */}
-              <span className="text-white text-[12px] px-4 py-1 rounded-lg bg-blue-500">
-                {questionData.coverage.charAt(0).toUpperCase() + questionData.coverage.slice(1)}
+              <span className="rounded-lg px-2 py-1 text-[13px] font-medium">
+                {questionData.coverage.charAt(0).toUpperCase() +
+                  questionData.coverage.slice(1)}
+              </span>
+              <span className="border-color ml-2 rounded-full border px-3 py-1 text-[13px] font-medium">
+                {questionData.score} pt
               </span>
             </div>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Question Input */}
             <div
-              className={`relative hover:cursor-text hover:bg-gray-200 mt-4 p-1 bg-gray-100 rounded-sm transition-all duration-150 ${
+              className={`relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-text hover:bg-gray-200 ${
                 isFocused ? "bg-gray-200" : ""
               }`}
               onClick={() => editorRef.current.focus()}
             >
               {/* Animated Left Border */}
               <div
-                className={`absolute left-0 top-1/2 bg-orange-500 transition-all duration-200 rounded-l-sm ${
-                  isFocused ? "h-full animate-expand-border" : "h-0"
+                className={`absolute top-1/2 left-0 rounded-l-sm bg-orange-500 transition-all duration-200 ${
+                  isFocused ? "animate-expand-border h-full" : "h-0"
                 }`}
                 style={{ width: "4px", transform: "translateY(-50%)" }}
               ></div>
 
               {/* Placeholder */}
-              {(!isFocused && questionData.questionText.trim() === "") && (
-                <span className="absolute top-[14px] left-4 text-gray-400 text-[14px] pointer-events-none">
+              {!isFocused && questionData.questionText.trim() === "" && (
+                <span className="pointer-events-none absolute top-[14px] left-4 text-[14px] text-gray-400">
                   Type question here...
                 </span>
               )}
@@ -195,29 +201,31 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
               <div
                 ref={editorRef}
                 contentEditable
-                className="mt-1 bg-inherit py-2 pl-3 text-[14px] w-full max-w-full border-gray-300 focus:outline-none focus:border-orange-500 min-h-[40px] overflow-hidden resize-none whitespace-pre-wrap break-words break-all"
+                className="mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words break-all whitespace-pre-wrap focus:border-orange-500 focus:outline-none"
                 suppressContentEditableWarning={true}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 onInput={(e) => {
-                  setQuestionData({ ...questionData, questionText: e.target.innerText });
+                  setQuestionData({
+                    ...questionData,
+                    questionText: e.target.innerText,
+                  });
                   // Auto-expand height
                   e.target.style.height = "auto";
                   e.target.style.height = `${e.target.scrollHeight}px`;
                 }}
-              >
-              </div>
+              ></div>
             </div>
 
             {/* Text Formatting Options */}
-            <div className="text-[24px] flex gap-2 sm:gap-6 mt-2 text-[rgb(120,120,120)]">
+            <div className="mt-2 flex gap-2 text-[24px] text-[rgb(120,120,120)] sm:gap-6">
               <button
                 type="button"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   handleFormat("bold", setIsBold);
                 }}
-                className={`cursor-pointer hover:text-gray-900 ${isBold ? "text-orange-500 font-bold" : ""}`}
+                className={`cursor-pointer hover:text-gray-900 ${isBold ? "font-bold text-orange-500" : ""}`}
               >
                 <i className="bx bx-bold"></i>
               </button>
@@ -227,7 +235,7 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
                   e.preventDefault();
                   handleFormat("italic", setIsItalic);
                 }}
-                className={`cursor-pointer  hover:text-gray-900 ${isItalic ? "text-orange-500 italic" : ""}`}
+                className={`cursor-pointer hover:text-gray-900 ${isItalic ? "text-orange-500 italic" : ""}`}
               >
                 <i className="bx bx-italic"></i>
               </button>
@@ -237,7 +245,7 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
                   e.preventDefault();
                   handleFormat("underline", setIsUnderline);
                 }}
-                className={`cursor-pointer hover:text-gray-900  ${isUnderline ? "text-orange-500 underline" : ""}`}
+                className={`cursor-pointer hover:text-gray-900 ${isUnderline ? "text-orange-500 underline" : ""}`}
               >
                 <i className="bx bx-underline"></i>
               </button>
@@ -250,7 +258,7 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
               >
                 <i className="bx bx-image-alt"></i>
               </button>
-                
+
               <input
                 type="file"
                 name="image"
@@ -259,16 +267,15 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
                 className="hidden"
                 onChange={handleQuestionChange}
               />
-              
             </div>
 
             {imagePreview && (
-              <div className="mt-3 relative inline-block max-w-[300px]">
+              <div className="relative mt-3 inline-block max-w-[300px]">
                 <div className="flex flex-col items-start">
                   <img
                     src={imagePreview}
                     alt="Uploaded"
-                    className="max-w-full h-auto rounded-sm shadow-md cursor-pointer object-contain"
+                    className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md"
                     onClick={() => setisQuestionModalOpen(true)}
                   />
 
@@ -279,7 +286,7 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
                       setQuestionData({ ...questionData, image: null });
                       setImagePreview(null);
                     }}
-                    className="hover:cursor-pointer text-white absolute top-4 right-4 bg-black opacity-70 px-[2px] pt-[2px] rounded-full text-xs transform translate-x-1/2 -translate-y-1/2"
+                    className="absolute top-4 right-4 translate-x-1/2 -translate-y-1/2 transform rounded-full bg-black px-[2px] pt-[2px] text-xs text-white opacity-70 hover:cursor-pointer"
                   >
                     <i className="bx bx-x text-[20px]"></i>
                   </button>
@@ -290,23 +297,25 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
             {/* Image Modal (Full Size) */}
             {isQuestionModalOpen && imagePreview && (
               <div
-                className="fixed inset-0 lightbox-bg flex items-center justify-center z-55 h-full bg-black bg-opacity-70"
+                className="lightbox-bg bg-opacity-70 fixed inset-0 z-55 flex h-full items-center justify-center bg-black"
                 onClick={() => setisQuestionModalOpen(false)}
               >
-                <div className="relative max-w-full max-h-full">
+                <div className="relative max-h-full max-w-full">
                   <img
                     src={imagePreview}
                     alt="Full View"
-                    className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
+                    className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
                   />
                 </div>
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row px-2 mt-7 mb-1 gap-4">
+            <div className="mt-7 mb-1 flex flex-col gap-4 px-2 sm:flex-row">
               {/* Score Input */}
-              <div className="flex items-center gap-2 w-[20%] sm:w-auto">
-                <label htmlFor="score" className="text-[14px] text-gray-700">Score:</label>
+              <div className="flex w-[20%] items-center gap-2 sm:w-auto">
+                <label htmlFor="score" className="text-[14px] text-gray-700">
+                  Score:
+                </label>
                 <input
                   name="score"
                   type="number"
@@ -314,7 +323,7 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
                   max="100"
                   onChange={handleQuestionChange}
                   value={questionData.score}
-                  className="outline-none text-[14px] border-0 border-b border-gray-300 p-1 w-10 sm:w-[50px] focus:border-b-2 focus:border-orange-500 transition-all duration-100"
+                  className="w-10 border-0 border-b border-gray-300 p-1 text-[14px] transition-all duration-100 outline-none focus:border-b-2 focus:border-orange-500 sm:w-[50px]"
                   required
                   onInput={(e) => {
                     // Prevent inputting numbers less than 1
@@ -341,7 +350,6 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
                   { value: "moderate", label: "Moderate" },
                   { value: "hard", label: "Hard" },
                 ]}
-                
               />
               {/* Coverage Dropdown */}
               <CustomDropdown
@@ -356,25 +364,29 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
               />
 
               {/* Submit Button (Aligned Right) */}
-              <div className="flex gap-3 ml-auto">
+              <div className="ml-auto flex gap-3">
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="cursor-pointer flex items-center gap-1 px-4 py-1.5 border rounded-lg text-gray-700 hover:bg-gray-200 ml-auto"
+                  className="ml-auto flex cursor-pointer items-center gap-1 rounded-lg border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
                 >
                   <span className="text-[14px]">Cancel</span>
                 </button>
 
                 <button
                   type="submit"
-                  className="cursor-pointer flex items-center gap-1 px-[12px] py-2 mt-4 sm:mt-0 bg-orange-500 text-white rounded-lg hover:bg-orange-600 ml-auto"
+                  className="mt-4 ml-auto flex cursor-pointer items-center gap-1 rounded-lg bg-orange-500 px-[12px] py-2 text-white hover:bg-orange-600 sm:mt-0"
                 >
-                  <i className="bx bx-save text-[18px] hidden sm:inline-block"></i> 
+                  <i className="bx bx-save hidden text-[18px] sm:inline-block"></i>
                   <span className="text-[14px]">Submit</span>
                 </button>
               </div>
             </div>
-            {error && <p className="flex justify-center mt-7 text-red-500">Error: {error}</p>}
+            {error && (
+              <p className="mt-7 flex justify-center text-red-500">
+                Error: {error}
+              </p>
+            )}
             {successMsg && <p className="text-green-500">{successMsg}</p>}
           </form>
           {/* Confirmation Modal */}
@@ -385,10 +397,8 @@ const ExamAddQuestionForm = ({ subjectID, onQuestionAdded, topRadius, onCancel }
             message="Are you sure you want to add this question?"
           />
         </div>
-        
       </div>
     </div>
-    
   );
 };
 

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
-import PracticeExamConfig from "./practiceExamConfig";
 
-const SubjectCard = ({
+const SubjectCardLower = ({
   subjectName,
   subjectID,
   location,
@@ -15,7 +14,17 @@ const SubjectCard = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const tabRefs = useRef([]);
   const dropdownRef = useRef(null);
-  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (tabRefs.current[activeIndex]) {
@@ -30,27 +39,6 @@ const SubjectCard = ({
   const handleAssignClick = () => {
     setIsFormOpen(true);
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      // Check if the click is outside the dropdown and button
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target) &&
-        !buttonRef.current.contains(event.target)
-      ) {
-        setShowDropdown(false);
-      }
-    };
-
-    // Add the event listener for clicks
-    document.addEventListener("mousedown", handleClickOutside);
-
-    // Clean up the event listener
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
 
   const SkeletonLoader = () => (
     <div className="relative z-51 -mt-3 h-37 overflow-hidden rounded-sm border border-gray-300 bg-white px-4 pt-4 shadow-sm sm:h-40">
@@ -71,7 +59,7 @@ const SubjectCard = ({
       ) : (
         <div className="relative z-51 -mt-3 h-37 overflow-hidden rounded-sm border border-gray-300 bg-white px-4 pt-4 shadow-sm sm:h-40">
           <button
-            ref={buttonRef}
+            ref={dropdownRef}
             className="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-2xl hover:bg-gray-200 sm:absolute lg:hidden"
             onClick={() => setShowDropdown((prev) => !prev)}
           >
@@ -79,15 +67,20 @@ const SubjectCard = ({
           </button>
 
           {showDropdown && (
-            <div
-              ref={dropdownRef}
-              className="absolute top-12 right-2 z-51 w-30 rounded-md border border-gray-300 bg-white shadow-md"
-            >
+            <div className="absolute top-12 right-2 z-50 w-30 rounded-md border border-gray-300 bg-white shadow-md">
               <button
                 onClick={handleAssignClick}
                 className="block w-full cursor-pointer rounded-t-md px-4 py-2 text-left text-[14px] text-gray-700 transition duration-200 ease-in-out hover:bg-gray-200"
               >
                 Assign
+              </button>
+              <button
+                onClick={() => {
+                  setShowDropdown(false);
+                }}
+                className="block w-full cursor-pointer rounded-b-md px-4 py-2 text-left text-[14px] text-gray-700 transition duration-200 ease-in-out hover:bg-gray-200"
+              >
+                Preview
               </button>
             </div>
           )}
@@ -162,13 +155,6 @@ const SubjectCard = ({
             </div>
 
             <div className="fixed right-5 bottom-5 z-51 mt-4 flex gap-3 md:relative md:right-0 md:mt-3">
-              <button
-                onClick={handleAssignClick}
-                className="hidden cursor-pointer items-center gap-2 rounded-md border border-orange-400 bg-orange-100 px-4 py-2 text-orange-600 hover:bg-orange-200 lg:flex"
-              >
-                <i className="bx bx-cog text-lg"></i>
-                <span className="text-[14px]">Assign</span>
-              </button>
               <button className="hidden cursor-pointer items-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 lg:flex">
                 <i className="bx bxs-show text-lg"></i>
                 <span className="text-[14px]">Preview</span>
@@ -177,16 +163,8 @@ const SubjectCard = ({
           </div>
         </div>
       )}
-
-      {isFormOpen && (
-        <PracticeExamConfig
-          isFormOpen={isFormOpen}
-          setIsFormOpen={setIsFormOpen}
-          subjectID={subjectID}
-        />
-      )}
     </div>
   );
 };
 
-export default SubjectCard;
+export default SubjectCardLower;

@@ -99,43 +99,49 @@ class QuestionController extends Controller
             ], 403);
         }
 
-            $validated = $request->validate([
-                'subjectID'     => 'required|exists:subjects,subjectID',
-                'coverage'      => 'required|in:midterm,finals',
-                'questionText'  => 'required|string',
-                'image'         => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-                'score'         => 'required|integer|min:1',
-                'difficulty'    => 'required|in:easy,moderate,hard',
-                'choices'       => 'required|array|min:2|max:6',
-                'choices.*.choiceID'   => 'nullable|exists:choices,choiceID',
-                'choices.*.choiceText' => 'nullable|string',
-                'choices.*.isCorrect'  => 'required|boolean',
-                'choices.*.image'      => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-            ]);
+        $validated = $request->validate([
+            'subjectID'     => 'required|exists:subjects,subjectID',
+            'coverage'      => 'required|in:midterm,finals',
+            'questionText'  => 'required|string',
+            'image'         => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+            'score'         => 'required|integer|min:1',
+            'difficulty'    => 'required|in:easy,moderate,hard',
+            'choices'       => 'required|array|min:2|max:6',
+            'choices.*.choiceID'   => 'nullable|exists:choices,choiceID',
+            'choices.*.choiceText' => 'nullable|string',
+            'choices.*.isCorrect'  => 'required|boolean',
+            'choices.*.image'      => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+        ]);
+
+        // Ensure at least one correct choice
+        $hasCorrect = collect($validated['choices'])->contains('isCorrect', true);
+        if (!$hasCorrect) {
+            return response()->json(['message' => 'At least one correct choice is required.'], 422);
+        }
 
         DB::beginTransaction();
-
         try {
             $question = Question::findOrFail($questionID);
 
+            // Handle question image
             if ($request->hasFile('image')) {
                 if ($question->image) {
                     Storage::disk('public')->delete($question->image);
                 }
                 $imagePath = $request->file('image')->store('questions', 'public');
-                $validated['image'] = asset('storage/' . $imagePath);
+                $validated['image'] = $imagePath;
             } else {
                 $validated['image'] = $question->image;
             }
 
             $validated['status'] = ($user->roleID === 2) ? 'pending' : 'approved';
 
-            $encryptedQuestionText = Crypt::encryptString($validated['questionText']);
+            $encryptedText = Crypt::encryptString($validated['questionText']);
 
             $question->update([
                 'subjectID'    => $validated['subjectID'],
                 'coverage'     => $validated['coverage'],
-                'questionText' => $encryptedQuestionText,
+                'questionText' => $encryptedText,
                 'image'        => $validated['image'],
                 'score'        => $validated['score'],
                 'difficulty'   => $validated['difficulty'],
@@ -150,8 +156,8 @@ class QuestionController extends Controller
                         if ($choice->image) {
                             Storage::disk('public')->delete($choice->image);
                         }
-                        $imagePath = $request->file("choices.$index.image")->store('choices', 'public');
-                        $choiceData['image'] = asset('storage/' . $imagePath);
+                        $choiceImage = $request->file("choices.$index.image")->store('choices', 'public');
+                        $choiceData['image'] = $choiceImage;
                     } else {
                         $choiceData['image'] = $choice->image;
                     }
@@ -166,14 +172,12 @@ class QuestionController extends Controller
                         'image'      => $choiceData['image'],
                     ]);
                 } else {
-                    // Create new choice
-                    $imagePath = null;
+                    // New choice
+                    $newChoiceImage = null;
                     if ($request->hasFile("choices.$index.image")) {
-                        $imagePath = $request->file("choices.$index.image")->store('choices', 'public');
-                        $imagePath = asset('storage/' . $imagePath); // Convert to full URL
+                        $newChoiceImage = $request->file("choices.$index.image")->store('choices', 'public');
                     }
 
-                    // Encrypt new choice text before saving
                     $encryptedChoiceText = $choiceData['choiceText']
                         ? Crypt::encryptString($choiceData['choiceText'])
                         : null;
@@ -182,7 +186,7 @@ class QuestionController extends Controller
                         'questionID' => $question->questionID,
                         'choiceText' => $encryptedChoiceText,
                         'isCorrect'  => $choiceData['isCorrect'],
-                        'image'      => $imagePath
+                        'image'      => $newChoiceImage,
                     ]);
                 }
             }
@@ -191,7 +195,7 @@ class QuestionController extends Controller
 
             return response()->json([
                 'message'  => 'Question updated successfully.',
-                'question' => $question->load('choices') // Include choices in response
+                'question' => $question->load('choices') // Includes updated choices
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -202,6 +206,7 @@ class QuestionController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * Get all questions
@@ -367,13 +372,11 @@ class QuestionController extends Controller
             ], 400);
         }
 
-        if ($user->id === $question->created_by) {
+        if ($user->userID === $question->userID) {
             return response()->json([
                 'message' => 'You cannot approve your own question.'
             ], 403);
         }
-
-        // Update the status to "approved"
         $question->status = 'approved';
         $question->save();
 
@@ -415,8 +418,9 @@ class QuestionController extends Controller
                 $question->questionText = '[Decryption Error]';
             }
 
-            // Add creator's name to the question
-            $question->creatorName = $question->user ? $question->user->name : 'Unknown Creator';
+            $question->creatorName = $question->user
+                    ? $question->user->firstName . ' ' . $question->user->lastName
+                    : 'Unknown';
 
             $question->choices->map(function ($choice) {
                 try {

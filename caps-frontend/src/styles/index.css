@@ -42,6 +42,10 @@ select option:hover {
   color: rgb(106, 118, 128);
 }
 
+.font-label{
+  color: rgb(36, 36, 36);
+}
+
 /* Shimmer animation */
 @keyframes shimmer {
   0% {
@@ -51,6 +55,35 @@ select option:hover {
     background-position: 200% 0;
   }
 }
+
+.scrollbar-show-on-hover {
+  overflow-y: hidden;
+  padding-right: 0; /* No padding when hidden */
+  transition: padding-right 0.2s ease;
+}
+
+.scrollbar-show-on-hover:hover {
+  overflow-y: auto;
+  padding-right: 0; /* Add padding when scrolling is enabled */
+}
+
+/* Scrollbar style for WebKit browsers */
+.scrollbar-show-on-hover::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-show-on-hover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-show-on-hover::-webkit-scrollbar-thumb {
+  background-color: #c4c4c4;
+  border-radius: 4px;
+}
+
+
+
+
 
 /* Shimmer effect applied to elements */
 .shimmer {
