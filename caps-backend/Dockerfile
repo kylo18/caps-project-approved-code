@@ -1,8 +1,14 @@
 # Use an official PHP image with Apache (Debian-based OS)
 FROM php:8.2-apache
 
-# Install required extensions
-RUN docker-php-ext-install pdo pdo_mysql
+# Install required PHP extensions and dependencies
+RUN apt-get update && apt-get install -y \
+    unzip \
+    curl \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    && docker-php-ext-install pdo pdo_mysql gd
 
 # Enable Apache rewrite module (Laravel requires this)
 RUN a2enmod rewrite
@@ -10,29 +16,28 @@ RUN a2enmod rewrite
 # Set Apache's DocumentRoot to Laravel's "public" directory
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
-# Update Apache config to point to new DocumentRoot
+# Update Apache config to point to the new DocumentRoot
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy Laravel project files into the container (make sure this is done before installing Composer dependencies)
+# Copy Laravel project files into the container
 COPY . .
 
 # Install Composer
-RUN apt-get update && apt-get install -y unzip curl \
-    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install Laravel dependencies and will create a vendor file 
+# Install Laravel PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set file permissions (very important for Laravel)
+# Set correct permissions for storage and cache
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
+
+# Smart startup: Create storage symlink if missing, then start Apache
+CMD ["sh", "-c", "php artisan storage:link || true && apache2-foreground"]
 
 # Expose port 80
 EXPOSE 80
-
-# Start Apache and run artisan storage:link
-CMD php artisan storage:link && apache2-foreground
