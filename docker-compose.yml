@@ -72,8 +72,8 @@ services:
     networks:
       - caps_network
 
-volumes:
-  ./docker-data/mysql_data:/var/lib/mysql:
+#volumes:
+  # ./docker-data/mysql_data:/var/lib/mysql:
   
 
 
