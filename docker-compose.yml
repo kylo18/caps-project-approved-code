@@ -54,7 +54,7 @@ services:
       MYSQL_USER: kylo
       MYSQL_PASSWORD: CAPSwebsite2025
     volumes:
-      - caps-project-approved-code_mysql_data:/var/lib/mysql
+      - ./docker-data/mysql_data:/var/lib/mysql
 
 
   phpmyadmin:
@@ -73,7 +73,7 @@ services:
       - caps_network
 
 volumes:
-  caps-project-approved-code_mysql_data:
+  ./docker-data/mysql_data:/var/lib/mysql:
   
 
 
