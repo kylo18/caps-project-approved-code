@@ -36,8 +36,12 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage \
     && chmod -R 775 /var/www/html/bootstrap/cache
 
-# Smart startup: Create storage symlink if missing, then start Apache
-CMD ["sh", "-c", "php artisan storage:link || true && apache2-foreground"]
+# Copy custom entrypoint script
+COPY docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Set entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Expose port 80
 EXPOSE 80
