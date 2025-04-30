@@ -54,7 +54,8 @@ services:
       MYSQL_USER: kylo
       MYSQL_PASSWORD: CAPSwebsite2025
     volumes:
-      - ./docker-data/mysql_data:/var/lib/mysql
+      - caps-project-approved-code_mysql_data:/var/lib/mysql
+
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -71,5 +72,8 @@ services:
     networks:
       - caps_network
 
-# No named volumes anymore — you use host bind mounts (cleaner for backups)
-#volumes: {}
+volumes:
+  caps-project-approved-code_mysql_data:
+  
+
+
