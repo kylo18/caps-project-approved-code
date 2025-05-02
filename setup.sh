@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Run this during first time clone of the repo
+
 # Prompt user for Git URL
 read -p "Enter the Git repository URL: " GIT_URL
 
