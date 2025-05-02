@@ -48,6 +48,20 @@ const PracticeAddQuestionForm = ({
     }
   };
 
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      setIsBold(document.queryCommandState("bold"));
+      setIsItalic(document.queryCommandState("italic"));
+      setIsUnderline(document.queryCommandState("underline"));
+    };
+
+    document.addEventListener("selectionchange", handleSelectionChange);
+
+    return () => {
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
+  }, []);
+
   const handleFormat = (command, setState) => {
     document.execCommand(command, false, null);
     setState(document.queryCommandState(command));
@@ -83,7 +97,13 @@ const PracticeAddQuestionForm = ({
     setShowConfirmModal(false);
     const token = localStorage.getItem("token");
 
-    if (questionData.questionText.trim() === "") {
+    // Instead of using questionData.questionText, get from editor
+    const formattedQuestionText = editorRef.current?.innerHTML || "";
+
+    if (
+      formattedQuestionText.trim() === "" ||
+      formattedQuestionText.trim() === "<br>"
+    ) {
       setError("Please enter a question before submitting.");
       return;
     }
@@ -93,11 +113,11 @@ const PracticeAddQuestionForm = ({
     const formData = new FormData();
     formData.append("subjectID", subjectID);
     formData.append("coverage", questionData.coverage);
-    formData.append("questionText", questionData.questionText);
+    formData.append("questionText", formattedQuestionText); // <-- use formatted HTML
     formData.append("score", questionData.score);
     formData.append("difficulty", questionData.difficulty);
     formData.append("status", questionData.status);
-    formData.append("purpose", questionData.purpose); // Append the purposeID
+    formData.append("purpose", questionData.purpose);
 
     if (questionData.image) {
       formData.append("image", questionData.image);
@@ -137,6 +157,11 @@ const PracticeAddQuestionForm = ({
         });
 
         setImagePreview(null);
+
+        // Optionally clear editor
+        if (editorRef.current) {
+          editorRef.current.innerHTML = "";
+        }
       }
     } catch (err) {
       console.error("Error submitting:", err);
@@ -212,7 +237,7 @@ const PracticeAddQuestionForm = ({
                 onInput={(e) => {
                   setQuestionData({
                     ...questionData,
-                    questionText: e.target.innerText,
+                    questionText: e.target.innerHTML, // <-- HERE
                   });
                   // Auto-expand height
                   e.target.style.height = "auto";
@@ -371,17 +396,17 @@ const PracticeAddQuestionForm = ({
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="mt-4 ml-auto cursor-pointer rounded-lg border px-4 py-1 text-gray-700 hover:bg-gray-200 sm:mt-0"
+                  className="border-color mt-4 ml-auto cursor-pointer rounded-lg border px-4 py-1 text-gray-700 hover:bg-gray-200 sm:mt-0"
                 >
                   <span className="text-[14px]">Cancel</span>
                 </button>
 
                 <button
                   type="submit"
-                  className="mt-4 ml-auto flex cursor-pointer items-center gap-1 rounded-lg bg-orange-500 px-[12px] py-2 text-white hover:bg-orange-600 sm:mt-0"
+                  className="mt-4 ml-auto flex cursor-pointer items-center justify-center gap-[5px] rounded-lg bg-orange-500 px-[12px] py-[6px] text-white hover:bg-orange-600 sm:mt-0"
                 >
-                  <i className="bx bx-save hidden text-[18px] sm:inline-block"></i>
-                  <span className="text-[14px]">Submit</span>
+                  <span className="text-[14px]">Next</span>
+                  <i className="bx bx-right-arrow-alt hidden text-[16px] sm:inline-block"></i>
                 </button>
               </div>
             </div>

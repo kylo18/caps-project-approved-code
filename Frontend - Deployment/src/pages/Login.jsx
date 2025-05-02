@@ -62,7 +62,7 @@ export default function LoginPage() {
       const roleId = Number(data.user.roleID);
       switch (roleId) {
         case 1:
-          navigate("/student");
+          navigate("/student-dashboard");
           break;
         case 2:
           navigate("/faculty-dashboard");
@@ -86,7 +86,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-md.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
+    <div className="flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-sm.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
       {/* Left Section */}
       <div className="mr-10 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
         {/* Logos */}
@@ -228,11 +228,15 @@ export default function LoginPage() {
                 </span>
               </p>
 
-              {/*<div className="px-4 text-sm text-gray-600 justify-center text-center absolute bottom-0 left-0 right-0">
-            <p>
-              &copy; 2025 Comprehensive Assessment and Preparation System. All rights reserved.
-            </p>
-            </div>*/}
+              <div className="mt-20 justify-center px-4 text-center text-sm text-gray-600">
+                <p>
+                  &copy; 2025 Comprehensive Assessment and Preparation System.
+                  <br />
+                  <span className="text-orange-500">
+                    Developed by BScPE 2-A
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
         </div>

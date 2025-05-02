@@ -9,9 +9,9 @@ import ConfirmModal from "../components/confirmModal";
 import Sort from "../components/sort";
 import SearchQuery from "../components/SearchQuery";
 import Button from "../components/button";
-import SortCustomDropdown from "../components/sortCustomDropdown";
 import ScrollToTopButton from "../components/scrollToTopButton";
 import LoadingOverlay from "../components/loadingOverlay";
+import SortCustomDropdown from "../components/sortCustomDropdown";
 
 const AdminContent = () => {
   const [modalImage, setModalImage] = useState(null);
@@ -26,6 +26,7 @@ const AdminContent = () => {
     practiceQuestions: { questionID: null, questionText: "", image: null },
     examQuestions: { questionID: null, questionText: "", image: null },
   });
+
   const formRef = useRef(null);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,7 +37,6 @@ const AdminContent = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [deleteQuestionID, setDeleteQuestionID] = useState(null);
 
-  const [editQuestionID, setEditQuestionID] = useState(null);
   const [editText, setEditText] = useState("");
 
   const [areChoicesValid, setAreChoicesValid] = useState(false);
@@ -58,9 +58,10 @@ const AdminContent = () => {
 
   const dropdownRef = useRef(null);
 
-  const [showChoiceForm, setShowChoiceForm] = useState(false);
   const [showPracticeChoiceForm, setShowPracticeChoiceForm] = useState(false);
   const [showExamChoiceForm, setShowExamChoiceForm] = useState(false);
+
+  const [isAddingQuestion, setIsAddingQuestion] = useState(false);
 
   const [toast, setToast] = useState({
     message: "",
@@ -168,11 +169,6 @@ const AdminContent = () => {
     setEditText(question.questionText);
   };
 
-  const cancelEdit = () => {
-    setEditQuestionID(null);
-    setEditText("");
-  };
-
   const saveEdit = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
@@ -235,6 +231,10 @@ const AdminContent = () => {
   };
 
   const fetchQuestions = async () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setIsLoading(true);
+    setQuestions([]); // 👈 Temporarily hide questions
+
     try {
       const token = localStorage.getItem("token");
 
@@ -264,6 +264,8 @@ const AdminContent = () => {
       setQuestions(data.data || []);
     } catch (error) {
       console.error("Error fetching questions:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -273,14 +275,6 @@ const AdminContent = () => {
       const matchesSearch = question.questionText
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
-
-      const matchesSort =
-        (sortOption === "difficulty" && subSortOption
-          ? question.difficulty === subSortOption
-          : true) &&
-        (sortOption === "coverage" && subSortOption
-          ? question.coverage === subSortOption
-          : true);
 
       const matchesTab =
         (activeTab === 0 &&
@@ -293,12 +287,22 @@ const AdminContent = () => {
           question.status === "pending" &&
           (pendingSort ? question.purpose === pendingSort : true));
 
-      return matchesSearch && matchesSort && matchesTab;
+      return matchesSearch && matchesTab;
     })
     .sort((a, b) => {
       if (sortOption === "score") {
-        return subSortOption === "asc" ? a.score - b.score : b.score - a.score;
+        return (a.score || 0) - (b.score || 0);
       }
+
+      if (sortOption === "difficulty") {
+        const order = { easy: 1, moderate: 2, hard: 3 };
+        return (order[a.difficulty] || 0) - (order[b.difficulty] || 0);
+      }
+
+      if (sortOption === "coverage") {
+        return (a.coverage || "").localeCompare(b.coverage || "");
+      }
+
       return 0;
     });
 
@@ -404,6 +408,7 @@ const AdminContent = () => {
                 activeIndex={activeTab}
                 setActiveIndex={setActiveTab}
                 isLoading={isLoading}
+                onFetchQuestions={fetchQuestions}
               />
             </div>
             {/*Search bar div here*/}
@@ -430,67 +435,71 @@ const AdminContent = () => {
                   />
                 )}
               </div>
-              <Sort
-                sortOption={sortOption}
-                setSortOption={setSortOption}
-                subSortOption={subSortOption}
-                setSubSortOption={setSubSortOption}
-              />
 
-              {/* List View Button on the right */}
-              <div
-                ref={dropdownRef}
-                className="relative inline-block rounded-md text-left"
-              >
-                {/* Dropdown toggle button */}
-                <button
-                  onClick={() => setDropdownOpen((prev) => !prev)}
-                  className="border-color flex cursor-pointer items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100"
-                >
-                  <i className="bx bx-slider text-[18px]" />
-                  <span>View</span>
-                  <i
-                    className={`bx text-[16px] ${
-                      dropdownOpen ? "bx-chevron-up" : "bx-chevron-down"
-                    }`}
+              <div className="flex flex-row items-center justify-center gap-[5.5px]">
+                {/* Sort - takes 1/2 width on small screens */}
+                <div className="w-full sm:w-auto sm:flex-1">
+                  <Sort
+                    sortOption={sortOption}
+                    setSortOption={setSortOption}
+                    subSortOption={subSortOption}
+                    setSubSortOption={setSubSortOption}
                   />
-                </button>
+                </div>
 
-                {/* Dropdown menu */}
-                {dropdownOpen && (
-                  <div className="absolute right-0 z-10 mt-2 w-44 origin-top-right rounded-md border border-gray-300 bg-white shadow-md">
-                    <button
-                      onClick={() => {
-                        setListViewOnly(true);
-                        setExpandedQuestionId(null);
-                        setDropdownOpen(false);
-                      }}
-                      className={`flex w-full cursor-pointer items-center gap-2 rounded-t-md px-4 py-2 text-left text-sm transition ${
-                        listViewOnly
-                          ? "bg-gray-100 font-semibold text-orange-600"
-                          : "text-gray-700 hover:bg-gray-100"
+                {/* View Button - takes 1/2 width on small screens */}
+                <div
+                  ref={dropdownRef}
+                  className="relative w-full text-left sm:w-auto sm:flex-1"
+                >
+                  <button
+                    onClick={() => setDropdownOpen((prev) => !prev)}
+                    className="border-color flex w-full items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100 sm:w-auto"
+                  >
+                    <i className="bx bx-slider text-[18px]" />
+                    <span className="text-[14px]">View</span>
+                    <i
+                      className={`bx absolute right-[9px] text-[18px] ${
+                        dropdownOpen ? "bx-chevron-up" : "bx-chevron-down"
                       }`}
-                    >
-                      <i className="bx bx-list-ul text-[18px]" />
-                      <span>List View</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setListViewOnly(false);
-                        setExpandedQuestionId(null);
-                        setDropdownOpen(false);
-                      }}
-                      className={`flex w-full cursor-pointer items-center gap-2 rounded-b-md px-4 py-2 text-left text-sm transition ${
-                        !listViewOnly
-                          ? "bg-gray-100 font-semibold text-orange-600"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <i className="bx bx-detail text-[18px]" />
-                      <span>Detailed View</span>
-                    </button>
-                  </div>
-                )}
+                    />
+                  </button>
+
+                  {dropdownOpen && (
+                    <div className="open-sans border-color absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm">
+                      <button
+                        onClick={() => {
+                          setListViewOnly(true);
+                          setExpandedQuestionId(null);
+                          setDropdownOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
+                          listViewOnly
+                            ? "text-orange-500 hover:bg-gray-200"
+                            : "text-black hover:bg-gray-200"
+                        }`}
+                      >
+                        <i className="bx bx-list-ul text-[18px]" />
+                        <span>List View</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setListViewOnly(false);
+                          setExpandedQuestionId(null);
+                          setDropdownOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
+                          !listViewOnly
+                            ? "text-orange-500 hover:bg-gray-200"
+                            : "text-black hover:bg-gray-200"
+                        }`}
+                      >
+                        <i className="bx bx-detail text-[18px]" />
+                        <span>Detailed View</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -611,20 +620,31 @@ const AdminContent = () => {
                                       className="relative mt-4 cursor-pointer rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:bg-gray-200"
                                     >
                                       <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
-                                        <span>{question.questionText}</span>
+                                        <span
+                                          dangerouslySetInnerHTML={{
+                                            __html: question.questionText,
+                                          }}
+                                        ></span>
                                       </div>
                                     </div>
                                   ) : (
                                     <div className="word-break break-word mt-4 w-full max-w-full cursor-pointer overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
-                                      <span className="ml-2 font-semibold">
-                                        {question.questionText}
-                                      </span>
+                                      <span
+                                        className="ml-2 font-semibold"
+                                        dangerouslySetInnerHTML={{
+                                          __html: question.questionText,
+                                        }}
+                                      ></span>
                                     </div>
                                   )
                                 ) : (
                                   <div className="relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-pointer">
                                     <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
-                                      <span>{question.questionText}</span>
+                                      <span
+                                        dangerouslySetInnerHTML={{
+                                          __html: question.questionText,
+                                        }}
+                                      ></span>
                                     </div>
                                   </div>
                                 )}
@@ -703,12 +723,17 @@ const AdminContent = () => {
                                             {choice.choiceText}
                                           </span>
                                         )}
+
                                         {choice.image && (
-                                          <div className="relative max-w-[200px] cursor-pointer hover:opacity-80">
+                                          <div className="relative max-w-[200px] cursor-pointer rounded-md hover:opacity-80">
                                             <img
                                               src={choice.image}
                                               alt={`Choice ${index + 1}`}
-                                              className="h-auto max-w-full rounded-md object-cover hover:cursor-pointer"
+                                              className={`h-auto max-w-full rounded-md border-2 object-cover hover:cursor-pointer ${
+                                                choice.isCorrect
+                                                  ? "border-orange-500"
+                                                  : "border-transparent"
+                                              }`}
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setchoiceModalImage(
@@ -783,12 +808,12 @@ const AdminContent = () => {
                                 (listViewOnly &&
                                   expandedQuestionId ===
                                     question.questionID)) && (
-                                <div className="m-1 mb-1 flex justify-end gap-2">
+                                <div className="mt-5 mb-1 flex justify-end gap-2">
                                   {question.status === "pending" ? (
                                     <>
                                       <Button
-                                        text="Delete"
-                                        textres="Delete"
+                                        text="Remove"
+                                        textres="Remove"
                                         icon="bx bx-trash"
                                         onClick={() =>
                                           confirmDelete(question.questionID)
@@ -809,8 +834,8 @@ const AdminContent = () => {
                                     </>
                                   ) : (
                                     <Button
-                                      text="Delete"
-                                      textres="Delete"
+                                      text="Remove"
+                                      textres="Remove"
                                       icon="bx bx-trash"
                                       onClick={() =>
                                         confirmDelete(question.questionID)
@@ -824,15 +849,17 @@ const AdminContent = () => {
                           </div>
                         ))}
                     </>
-                  ) : activeTab === 4 ? ( // If no pending questions
-                    <p className="text-center text-[16px] text-gray-500">
-                      No pending questions found.
-                    </p>
-                  ) : (
-                    <p className="mb-5 text-center text-[16px] text-gray-500">
-                      No questions found.
-                    </p>
-                  )}
+                  ) : !isLoading ? (
+                    activeTab === 4 ? (
+                      <p className="text-center text-[16px] text-gray-500">
+                        No pending questions found.
+                      </p>
+                    ) : (
+                      <p className="mb-5 text-center text-[16px] text-gray-500">
+                        No questions found.
+                      </p>
+                    )
+                  ) : null}
                 </div>
               </div>
             )}
@@ -856,7 +883,7 @@ const AdminContent = () => {
                             questionID: null,
                           },
                         }));
-
+                        setIsAddingQuestion(true);
                         setTimeout(() => {
                           formRef.current?.scrollIntoView({
                             behavior: "smooth",
@@ -927,13 +954,16 @@ const AdminContent = () => {
                           <div className="relative rounded-md bg-gray-100 p-1 transition-all duration-150 hover:cursor-text">
                             <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
                               <span>
-                                {
-                                  submittedQuestion[
-                                    activeTab === 0
-                                      ? "practiceQuestions"
-                                      : "examQuestions"
-                                  ].questionText
-                                }
+                                <div
+                                  dangerouslySetInnerHTML={{
+                                    __html:
+                                      submittedQuestion[
+                                        activeTab === 0
+                                          ? "practiceQuestions"
+                                          : "examQuestions"
+                                      ].questionText,
+                                  }}
+                                ></div>
                               </span>
                             </div>
                           </div>

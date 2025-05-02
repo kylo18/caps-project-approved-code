@@ -2,15 +2,22 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Layout from "./components/layout";
+import ProtectedRoute from "./components/protectRoute"; // Import ProtectedRoute
+
 import StudentDashboard from "./pages/StudentDashboard";
 import FacultyDashboard from "./pages/FacultyDashboard";
 import ProgramChairDashboard from "./pages/ProgramChairDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+
 import ScrollToTop from "./components/scrollToTop";
 import Users from "./pages/Users";
+
 import AdminContent from "./pages/AdminContent";
 import ProgramChairContent from "./pages/ProgramChairContent";
 import FacultyContent from "./pages/FacultyContent";
+import StudentContent from "./pages/StudentContent";
+import PracticeTestResult from "./pages/PracticeTestResult";
+import PracticeExam from "./pages/PracticeExam";
 
 function App() {
   return (
@@ -20,42 +27,85 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        <Route path="/student" element={<Layout />}>
+        {/* Protected Routes */}
+        <Route
+          path="/practice-exam-result"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<PracticeTestResult />} />
+          <Route path="content" element={<PracticeTestResult />} />
+        </Route>
+
+        <Route
+          path="/practice-exam"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<PracticeExam />} />
+          <Route path="content" element={<PracticeExam />} />
+        </Route>
+
+        {/* Student Dashboard Route */}
+        <Route
+          path="/student-dashboard"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
           <Route index element={<StudentDashboard />} />
           <Route path="dashboard" element={<StudentDashboard />} />
         </Route>
 
-        <Route path="/faculty/subjects" element={<Layout />}>
+        {/* Faculty Routes */}
+        <Route
+          path="/faculty/subjects"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
           <Route index element={<FacultyContent />} />
           <Route path="content" element={<FacultyContent />} />
         </Route>
 
-        <Route path="/faculty-dashboard" element={<Layout />}>
+        <Route
+          path="/faculty-dashboard"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
           <Route index element={<FacultyDashboard />} />
           <Route path="dashboard" element={<FacultyDashboard />} />
         </Route>
 
-        <Route path="/program-chair/subjects" element={<Layout />}>
+        {/* Program Chair Routes */}
+        <Route
+          path="/program-chair/subjects"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
           <Route index element={<ProgramChairContent />} />
           <Route path="content" element={<ProgramChairContent />} />
         </Route>
 
-        <Route path="/program-chair-dashboard" element={<Layout />}>
+        <Route
+          path="/program-chair-dashboard"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
           <Route index element={<ProgramChairDashboard />} />
           <Route path="dashboard" element={<ProgramChairDashboard />} />
         </Route>
 
-        <Route path="/Dean/subjects" element={<Layout />}>
+        {/* Admin Routes */}
+        <Route
+          path="/dean/subjects"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
           <Route index element={<AdminContent />} />
           <Route path="content" element={<AdminContent />} />
         </Route>
 
-        <Route path="/admin-dashboard" element={<Layout />}>
+        <Route
+          path="/admin-dashboard"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
           <Route index element={<AdminDashboard />} />
           <Route path="dashboard" element={<AdminDashboard />} />
         </Route>
 
-        <Route path="/users" element={<Layout />}>
+        {/* Users Route */}
+        <Route path="/users" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<Users />} />
           <Route path="users" element={<Users />} />
         </Route>

@@ -4,6 +4,7 @@ import AllSubjectsDropDown from "./allSubjectsDropdown";
 import AllSubjectsDropDownProgramChair from "./allSubjectsDropdownProgramChair";
 import AssignedSubjectsDropDown from "./assignedSubjectDropdown";
 import LoadingOverlay from "./loadingOverlay";
+import SideBarToolTip from "./sidebarTooltip";
 
 const Sidebar = ({
   role_id,
@@ -22,13 +23,13 @@ const Sidebar = ({
 
   useEffect(() => {
     setIsLoading(true);
-
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1000);
 
     return () => clearTimeout(timer);
   }, [location]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -73,16 +74,22 @@ const Sidebar = ({
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
   const classes = [{ icon: "bx-book-bookmark", label: "Classes" }];
 
-  let menuItems = [...baseMenuItems];
-  if (parsedRoleId >= 2) menuItems = [...menuItems, ...facultyItems];
-  if (parsedRoleId >= 4) menuItems = [...menuItems, ...adminItems];
+  let menuItems = [];
+
+  if (parsedRoleId !== 1) {
+    // if NOT student
+    menuItems = [...baseMenuItems];
+
+    if (parsedRoleId >= 2) menuItems = [...menuItems, ...facultyItems];
+    if (parsedRoleId >= 4) menuItems = [...menuItems, ...adminItems];
+  }
 
   const isActive = (path) => location.pathname === path;
 
   return (
     <>
       {/* Loading Overlay */}
-      <LoadingOverlay show={isLoading} />
+      {isLoading && !isSubjectFocused && <LoadingOverlay show={true} />}
 
       {isMobile && !isExpanded && (
         <button
@@ -150,26 +157,28 @@ const Sidebar = ({
         {!isSubjectFocused && (
           <ul className="-mt-2 mb-5 space-y-[14px]">
             {menuItems.map((item, index) => (
-              <li key={index} title={item.label}>
-                <Link
-                  to={item.path}
-                  className={`flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] ${
-                    isActive(item.path)
-                      ? "bg-orange-500 text-white" // Active state
-                      : "hover:bg-[rgb(255,230,214)] hover:text-gray-700" // Hover styles only for non-active
-                  }`}
-                >
-                  <i className={`bx ${item.icon} text-2xl`}></i>
-                  <span
-                    className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
-                      isExpanded
-                        ? "pointer-events-auto visible ml-0 opacity-100"
-                        : "pointer-events-none invisible ml-0 opacity-0"
+              <li key={index}>
+                <SideBarToolTip label={item.label} isExpanded={isExpanded}>
+                  <Link
+                    to={item.path}
+                    className={`flex items-center gap-3 rounded px-[4px] py-[4px] transition-colors ${
+                      isActive(item.path)
+                        ? "bg-orange-500 text-white"
+                        : "hover:bg-[rgb(255,230,214)] hover:text-gray-700"
                     }`}
                   >
-                    {item.label}
-                  </span>
-                </Link>
+                    <i className={`bx ${item.icon} text-2xl`}></i>
+                    <span
+                      className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
+                        isExpanded
+                          ? "pointer-events-auto visible ml-0 opacity-100"
+                          : "pointer-events-none invisible ml-0 opacity-0"
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </Link>
+                </SideBarToolTip>
               </li>
             ))}
           </ul>

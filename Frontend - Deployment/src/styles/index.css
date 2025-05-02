@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@plugin "flowbite-react/plugin/tailwindcss";
+@source "../../.flowbite-react/class-list.json";
 
 .text-stroke {
   text-shadow: rgba(223, 239, 255) 0px 3px 0px, rgba(0, 0, 0, 0.15) 0px 14px 10px, rgba(0, 0, 0, 0.1) 0px 6px 1px, rgba(0, 0, 0, 0.1) 0px 17px 15px;

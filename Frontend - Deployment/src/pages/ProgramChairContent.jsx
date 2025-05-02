@@ -29,8 +29,6 @@ const ProgramChairContent = () => {
   });
   const formRef = useRef(null);
 
-  const [showChoiceForm, setShowChoiceForm] = useState(false);
-
   const [searchQuery, setSearchQuery] = useState("");
 
   const [sortOption, setSortOption] = useState("");
@@ -60,6 +58,9 @@ const ProgramChairContent = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const dropdownRef = useRef(null);
+
+  const [showPracticeChoiceForm, setShowPracticeChoiceForm] = useState(false);
+  const [showExamChoiceForm, setShowExamChoiceForm] = useState(false);
 
   const [toast, setToast] = useState({
     message: "",
@@ -91,7 +92,8 @@ const ProgramChairContent = () => {
         practiceQuestions: null,
         examQuestions: null,
       });
-      setShowChoiceForm(false);
+      setShowPracticeChoiceForm(false);
+      setShowExamChoiceForm(false);
       setSearchQuery("");
       setSortOption("");
       setSubSortOption("");
@@ -185,6 +187,9 @@ const ProgramChairContent = () => {
   };
 
   const fetchQuestions = async () => {
+    setIsLoading(true);
+    setQuestions([]); // 👈 Temporarily hide questions
+
     try {
       const token = localStorage.getItem("token");
 
@@ -194,7 +199,7 @@ const ProgramChairContent = () => {
       }
 
       const response = await fetch(
-        `${apiUrl}/program/${selectedSubject.subjectID}`,
+        `${apiUrl}/subjects/${selectedSubject.subjectID}/questions`,
         {
           method: "GET",
           headers: {
@@ -214,6 +219,8 @@ const ProgramChairContent = () => {
       setQuestions(data.data || []);
     } catch (error) {
       console.error("Error fetching questions:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -223,14 +230,6 @@ const ProgramChairContent = () => {
       const matchesSearch = question.questionText
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
-
-      const matchesSort =
-        (sortOption === "difficulty" && subSortOption
-          ? question.difficulty === subSortOption
-          : true) &&
-        (sortOption === "coverage" && subSortOption
-          ? question.coverage === subSortOption
-          : true);
 
       const matchesTab =
         (activeTab === 0 &&
@@ -243,12 +242,22 @@ const ProgramChairContent = () => {
           question.status === "pending" &&
           (pendingSort ? question.purpose === pendingSort : true));
 
-      return matchesSearch && matchesSort && matchesTab;
+      return matchesSearch && matchesTab;
     })
     .sort((a, b) => {
       if (sortOption === "score") {
-        return subSortOption === "asc" ? a.score - b.score : b.score - a.score;
+        return (a.score || 0) - (b.score || 0);
       }
+
+      if (sortOption === "difficulty") {
+        const order = { easy: 1, moderate: 2, hard: 3 };
+        return (order[a.difficulty] || 0) - (order[b.difficulty] || 0);
+      }
+
+      if (sortOption === "coverage") {
+        return (a.coverage || "").localeCompare(b.coverage || "");
+      }
+
       return 0;
     });
 
@@ -258,22 +267,47 @@ const ProgramChairContent = () => {
   };
 
   const handleQuestionAdded = (newQuestion) => {
-    setSubmittedQuestion((prev) => ({
-      ...prev,
-      [activeTab === 0 ? "practiceQuestions" : "examQuestions"]: newQuestion, // Make sure newQuestion has `image`
-    }));
-    setShowChoiceForm(true);
+    if (activeTab === 0) {
+      // Practice tab
+      setSubmittedQuestion((prev) => ({
+        ...prev,
+        practiceQuestions: newQuestion,
+      }));
+      setShowPracticeChoiceForm(true);
+    } else {
+      // Exam tab
+      setSubmittedQuestion((prev) => ({
+        ...prev,
+        examQuestions: newQuestion,
+      }));
+      setShowExamChoiceForm(true);
+    }
   };
 
-  const handleChoicesSubmitted = () => {
+  const handlePracticeChoicesSubmitted = () => {
     setSubmittedQuestion((prev) => ({
       ...prev,
-      [activeTab === 0 ? "practiceQuestions" : "examQuestions"]: null,
+      practiceQuestions: null,
     }));
-    setShowChoiceForm(false);
+    setShowPracticeChoiceForm(false);
     fetchQuestions();
     setToast({
-      message: "Question is now pending for approval!",
+      message: "Practice question is now pending for approval!",
+      type: "success",
+      show: true,
+    });
+  };
+
+  // For Exam Choices
+  const handleExamChoicesSubmitted = () => {
+    setSubmittedQuestion((prev) => ({
+      ...prev,
+      examQuestions: null,
+    }));
+    setShowExamChoiceForm(false);
+    fetchQuestions();
+    setToast({
+      message: "Exam question is now pending for approval!",
       type: "success",
       show: true,
     });
@@ -288,10 +322,16 @@ const ProgramChairContent = () => {
   }, []);
 
   useEffect(() => {
-    if (showChoiceForm && formRef.current) {
+    if (showPracticeChoiceForm && formRef.current) {
       formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [showChoiceForm]);
+  }, [showPracticeChoiceForm]);
+
+  useEffect(() => {
+    if (showExamChoiceForm && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [showExamChoiceForm]);
 
   const approveQuestion = async (questionID) => {
     try {
@@ -349,6 +389,7 @@ const ProgramChairContent = () => {
                 activeIndex={activeTab}
                 setActiveIndex={setActiveTab}
                 isLoading={isLoading}
+                onFetchQuestions={fetchQuestions}
               />
             </div>
             {/*Search bar div here*/}
@@ -381,7 +422,7 @@ const ProgramChairContent = () => {
                 subSortOption={subSortOption}
                 setSubSortOption={setSubSortOption}
               />
-              {/* List View Button on the right */}
+
               {/* List View Button on the right */}
               <div
                 ref={dropdownRef}
@@ -403,17 +444,17 @@ const ProgramChairContent = () => {
 
                 {/* Dropdown menu */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 z-10 mt-2 w-44 origin-top-right rounded-md border border-gray-300 bg-white shadow-md">
+                  <div className="open-sans border-color absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm">
                     <button
                       onClick={() => {
                         setListViewOnly(true);
                         setExpandedQuestionId(null);
                         setDropdownOpen(false);
                       }}
-                      className={`flex w-full cursor-pointer items-center gap-2 rounded-t-md px-4 py-2 text-left text-sm transition ${
+                      className={`flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
                         listViewOnly
-                          ? "bg-gray-100 font-semibold text-orange-600"
-                          : "text-gray-700 hover:bg-gray-100"
+                          ? "rounded-sm text-orange-500"
+                          : "text-black hover:bg-gray-200"
                       }`}
                     >
                       <i className="bx bx-list-ul text-[18px]" />
@@ -425,10 +466,10 @@ const ProgramChairContent = () => {
                         setExpandedQuestionId(null);
                         setDropdownOpen(false);
                       }}
-                      className={`flex w-full cursor-pointer items-center gap-2 rounded-b-md px-4 py-2 text-left text-sm transition ${
+                      className={`flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
                         !listViewOnly
-                          ? "bg-gray-100 font-semibold text-orange-600"
-                          : "text-gray-700 hover:bg-gray-100"
+                          ? "rounded-sm text-orange-500"
+                          : "text-black hover:bg-gray-200"
                       }`}
                     >
                       <i className="bx bx-detail text-[18px]" />
@@ -556,20 +597,31 @@ const ProgramChairContent = () => {
                                       className="relative mt-4 cursor-pointer rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:bg-gray-200"
                                     >
                                       <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
-                                        <span>{question.questionText}</span>
+                                        <span
+                                          dangerouslySetInnerHTML={{
+                                            __html: question.questionText,
+                                          }}
+                                        ></span>
                                       </div>
                                     </div>
                                   ) : (
                                     <div className="word-break break-word mt-4 w-full max-w-full cursor-pointer overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
-                                      <span className="ml-2 font-semibold">
-                                        {question.questionText}
-                                      </span>
+                                      <span
+                                        className="ml-2 font-semibold"
+                                        dangerouslySetInnerHTML={{
+                                          __html: question.questionText,
+                                        }}
+                                      ></span>
                                     </div>
                                   )
                                 ) : (
                                   <div className="relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-pointer">
                                     <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
-                                      <span>{question.questionText}</span>
+                                      <span
+                                        dangerouslySetInnerHTML={{
+                                          __html: question.questionText,
+                                        }}
+                                      ></span>
                                     </div>
                                   </div>
                                 )}
@@ -649,11 +701,15 @@ const ProgramChairContent = () => {
                                           </span>
                                         )}
                                         {choice.image && (
-                                          <div className="relative max-w-[200px] cursor-pointer hover:opacity-80">
+                                          <div className="relative max-w-[200px] cursor-pointer rounded-md hover:opacity-80">
                                             <img
                                               src={choice.image}
                                               alt={`Choice ${index + 1}`}
-                                              className="h-auto max-w-full rounded-md object-cover hover:cursor-pointer"
+                                              className={`h-auto max-w-full rounded-md border-2 object-cover hover:cursor-pointer ${
+                                                choice.isCorrect
+                                                  ? "border-orange-500"
+                                                  : "border-transparent"
+                                              }`}
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setchoiceModalImage(
@@ -728,12 +784,12 @@ const ProgramChairContent = () => {
                                 (listViewOnly &&
                                   expandedQuestionId ===
                                     question.questionID)) && (
-                                <div className="m-1 mb-1 flex justify-end gap-2">
+                                <div className="mt-5 mb-1 flex justify-end gap-2">
                                   {question.status === "pending" ? (
                                     <>
                                       <Button
-                                        text="Delete"
-                                        textres="Delete"
+                                        text="Remove"
+                                        textres="Remove"
                                         icon="bx bx-trash"
                                         onClick={() =>
                                           confirmDelete(question.questionID)
@@ -754,8 +810,8 @@ const ProgramChairContent = () => {
                                     </>
                                   ) : (
                                     <Button
-                                      text="Delete"
-                                      textres="Delete"
+                                      text="Remove"
+                                      textres="Remove"
                                       icon="bx bx-trash"
                                       onClick={() =>
                                         confirmDelete(question.questionID)
@@ -769,15 +825,17 @@ const ProgramChairContent = () => {
                           </div>
                         ))}
                     </>
-                  ) : activeTab === 4 ? ( // If no pending questions
-                    <p className="text-center text-[16px] text-gray-500">
-                      No pending questions found.
-                    </p>
-                  ) : (
-                    <p className="mb-5 text-center text-[16px] text-gray-500">
-                      No questions found.
-                    </p>
-                  )}
+                  ) : !isLoading ? (
+                    activeTab === 4 ? (
+                      <p className="text-center text-[16px] text-gray-500">
+                        No pending questions found.
+                      </p>
+                    ) : (
+                      <p className="mb-5 text-center text-[16px] text-gray-500">
+                        No questions found.
+                      </p>
+                    )
+                  ) : null}
                 </div>
               </div>
             )}
@@ -857,7 +915,9 @@ const ProgramChairContent = () => {
                 </div>
 
                 {/* Preview */}
-                {showChoiceForm &&
+                {(activeTab === 0
+                  ? showPracticeChoiceForm
+                  : showExamChoiceForm) &&
                   submittedQuestion?.[
                     activeTab === 0 ? "practiceQuestions" : "examQuestions"
                   ]?.questionID && (
@@ -870,17 +930,21 @@ const ProgramChairContent = () => {
                           <div className="relative rounded-md bg-gray-100 p-1 transition-all duration-150 hover:cursor-text">
                             <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
                               <span>
-                                {
-                                  submittedQuestion[
-                                    activeTab === 0
-                                      ? "practiceQuestions"
-                                      : "examQuestions"
-                                  ].questionText
-                                }
+                                <div
+                                  dangerouslySetInnerHTML={{
+                                    __html:
+                                      submittedQuestion[
+                                        activeTab === 0
+                                          ? "practiceQuestions"
+                                          : "examQuestions"
+                                      ].questionText,
+                                  }}
+                                ></div>
                               </span>
                             </div>
                           </div>
 
+                          {/* image preview */}
                           {submittedQuestion[
                             activeTab === 0
                               ? "practiceQuestions"
@@ -896,7 +960,7 @@ const ProgramChairContent = () => {
                                   ].image,
                                 )}
                                 alt="Question Image Preview"
-                                className="h-auto max-w-full rounded-sm object-contain shadow-md"
+                                className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md"
                                 onClick={() => setisQuestionModalOpen(true)}
                               />
                             </div>
@@ -928,25 +992,42 @@ const ProgramChairContent = () => {
                   )}
 
                 <div ref={formRef}>
-                  {showChoiceForm &&
-                    submittedQuestion[
+                  {(activeTab === 0
+                    ? showPracticeChoiceForm
+                    : showExamChoiceForm) &&
+                    submittedQuestion?.[
                       activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                    ]?.questionID &&
-                    (activeTab === 0 ? (
-                      <PracticeAddChoiceForm
-                        questionID={
-                          submittedQuestion["practiceQuestions"]?.questionID
-                        }
-                        onComplete={handleChoicesSubmitted}
-                      />
-                    ) : (
-                      <ExamAddChoiceForm
-                        questionID={
-                          submittedQuestion["examQuestions"]?.questionID
-                        }
-                        onComplete={handleChoicesSubmitted}
-                      />
-                    ))}
+                    ]?.questionID && (
+                      <>
+                        {activeTab === 0 ? (
+                          <PracticeAddChoiceForm
+                            questionID={
+                              submittedQuestion["practiceQuestions"]?.questionID
+                            }
+                            onComplete={handlePracticeChoicesSubmitted}
+                            onCancel={() =>
+                              setSubmittedQuestion((prev) => ({
+                                ...prev,
+                                practiceQuestions: null,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <ExamAddChoiceForm
+                            questionID={
+                              submittedQuestion["examQuestions"]?.questionID
+                            }
+                            onComplete={handleExamChoicesSubmitted}
+                            onCancel={() =>
+                              setSubmittedQuestion((prev) => ({
+                                ...prev,
+                                examQuestions: null,
+                              }))
+                            }
+                          />
+                        )}
+                      </>
+                    )}
                 </div>
               </div>
             )}

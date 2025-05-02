@@ -3,7 +3,8 @@ import Button from "./button";
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "./loadingOverlay";
 import ModalDropdown from "./modalDropdown";
-
+import SideBarToolTip from "./sidebarTooltip";
+import { Tooltip } from "flowbite-react";
 const SideBarDropDown = ({
   item,
   isExpanded,
@@ -53,6 +54,7 @@ const SideBarDropDown = ({
       subjectName: subject.subjectName,
     });
   };
+
   const [toast, setToast] = useState({
     message: "",
     type: "",
@@ -357,7 +359,7 @@ const SideBarDropDown = ({
   return (
     <div className="-mt-2">
       <li
-        className="relative flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] hover:bg-orange-500 hover:text-white"
+        className="relative flex cursor-pointer items-center gap-3 rounded px-[4px] py-[1px] hover:bg-[rgb(255,230,214)] hover:text-gray-700"
         onClick={() => {
           if (!isExpanded || !isOpen) {
             setIsExpanded(true);
@@ -371,7 +373,10 @@ const SideBarDropDown = ({
           }
         }}
       >
-        <i className={`bx ${item.icon} text-2xl`}></i>
+        <SideBarToolTip label="Subjects" isExpanded={isExpanded}>
+          <i className={`bx ${item.icon} mt-1 text-2xl`}></i>
+        </SideBarToolTip>
+
         <span
           className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
             isExpanded
@@ -410,12 +415,17 @@ const SideBarDropDown = ({
             />
           </div>
 
-          <div
-            className="cursor-pointer justify-center rounded-sm bg-orange-500 px-[7px] py-[3px] text-center text-white transition-all hover:bg-orange-600"
-            onClick={() => setShowAddModal(true)}
+          <Tooltip
+            content={<span className="whitespace-nowrap">Add Subject</span>}
+            placement="right"
           >
-            <i className="bx bx-plus text-[16px]"></i>
-          </div>
+            <div
+              className="cursor-pointer justify-center rounded-sm bg-orange-500 px-[7px] py-[3px] text-center text-white transition-all hover:bg-orange-600"
+              onClick={() => setShowAddModal(true)}
+            >
+              <i className="bx bx-plus text-[16px]"></i>
+            </div>
+          </Tooltip>
         </div>
 
         <div className="mt-4 h-[1px] w-full bg-[rgb(200,200,200)]"></div>
@@ -508,7 +518,7 @@ const SideBarDropDown = ({
 
         {openMenuID && dropdownSubject && (
           <div
-            className="absolute z-50 w-28 rounded bg-white shadow-md"
+            className="absolute z-50 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm"
             style={{
               top:
                 dropdownDirection === "down"
@@ -519,7 +529,7 @@ const SideBarDropDown = ({
             onMouseLeave={() => setOpenMenuID(null)}
           >
             <button
-              className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              className="w-full rounded-sm px-3 py-2 text-left text-sm text-black hover:bg-gray-200"
               onClick={() => {
                 setEditingSubject(dropdownSubject);
                 setEditedSubject({
@@ -531,17 +541,17 @@ const SideBarDropDown = ({
                 setOpenMenuID(null);
               }}
             >
-              Edit
+              <i className="bx bx-edit-alt mr-2 text-[16px]"></i>Edit
             </button>
             <button
-              className="w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
+              className="w-full rounded-sm px-3 py-2 text-left text-sm text-black hover:bg-gray-200"
               onClick={() => {
                 setSubjectToDelete(dropdownSubject);
                 setShowDeleteModal(true);
                 setOpenMenuID(null);
               }}
             >
-              Delete
+              <i className="bx bxs-trash-alt mr-2 text-[16px]"></i>Remove
             </button>
           </div>
         )}
@@ -812,7 +822,7 @@ const SideBarDropDown = ({
             {/* Buttons */}
             <div className="mb-1 flex justify-end gap-2">
               <button
-                className="cursor-pointer rounded-md border px-2 py-1.5 text-gray-700 hover:bg-gray-200"
+                className="cursor-pointer rounded-md border px-[12px] py-[6px] text-gray-700 hover:bg-gray-200"
                 onClick={() => {
                   setNewSubjectName("");
                   setNewSubjectCode("");
@@ -820,7 +830,7 @@ const SideBarDropDown = ({
                   setShowAddModal(false);
                 }}
               >
-                <span className="px-1 text-[16px]">Cancel</span>
+                <span className="text-[14px]">Cancel</span>
               </button>
 
               <Button

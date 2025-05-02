@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
 import PracticeExamConfig from "./practiceExamConfig";
+import { Tooltip } from "flowbite-react";
 
 const SubjectCard = ({
   subjectName,
@@ -9,6 +10,7 @@ const SubjectCard = ({
   activeIndex,
   setActiveIndex,
   isLoading,
+  onFetchQuestions,
 }) => {
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -16,6 +18,31 @@ const SubjectCard = ({
   const tabRefs = useRef([]);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
+
+  const handleRefresh = () => {
+    onFetchQuestions();
+  };
+
+  const [toast, setToast] = useState({
+    message: "",
+    type: "",
+    show: false,
+  });
+
+  useEffect(() => {
+    if (toast.message) {
+      setToast((prev) => ({ ...prev, show: true }));
+
+      const timer = setTimeout(() => {
+        setToast((prev) => ({ ...prev, show: false }));
+        setTimeout(() => {
+          setToast({ message: "", type: "", show: false });
+        }, 500);
+      }, 2500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [toast.message]);
 
   useEffect(() => {
     if (tabRefs.current[activeIndex]) {
@@ -33,7 +60,6 @@ const SubjectCard = ({
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Check if the click is outside the dropdown and button
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target) &&
@@ -42,15 +68,20 @@ const SubjectCard = ({
         setShowDropdown(false);
       }
     };
-
-    // Add the event listener for clicks
     document.addEventListener("mousedown", handleClickOutside);
-
-    // Clean up the event listener
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const handleFormSuccess = () => {
+    setIsFormOpen(false);
+    setToast({
+      message: "Exam successfully configured!",
+      type: "success",
+      show: false,
+    });
+  };
 
   const SkeletonLoader = () => (
     <div className="relative z-51 -mt-3 h-37 overflow-hidden rounded-sm border border-gray-300 bg-white px-4 pt-4 shadow-sm sm:h-40">
@@ -70,27 +101,41 @@ const SubjectCard = ({
         <SkeletonLoader />
       ) : (
         <div className="relative z-51 -mt-3 h-37 overflow-hidden rounded-sm border border-gray-300 bg-white px-4 pt-4 shadow-sm sm:h-40">
-          <button
-            ref={buttonRef}
-            className="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-2xl hover:bg-gray-200 sm:absolute lg:hidden"
-            onClick={() => setShowDropdown((prev) => !prev)}
-          >
-            <i className="bx bx-dots-horizontal-rounded text-gray-500"></i>
-          </button>
-
-          {showDropdown && (
-            <div
-              ref={dropdownRef}
-              className="absolute top-12 right-2 z-51 w-30 rounded-md border border-gray-300 bg-white shadow-md"
+          <div className="flex">
+            <button
+              onClick={handleRefresh}
+              className="absolute top-2 right-12 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-2xl hover:bg-gray-200 sm:absolute lg:right-2"
             >
-              <button
-                onClick={handleAssignClick}
-                className="block w-full cursor-pointer rounded-t-md px-4 py-2 text-left text-[14px] text-gray-700 transition duration-200 ease-in-out hover:bg-gray-200"
+              <i className="bx bx-refresh text-gray-500"></i>
+            </button>
+
+            <button
+              ref={buttonRef}
+              className="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-2xl hover:bg-gray-200 sm:absolute lg:hidden"
+              onClick={() => setShowDropdown((prev) => !prev)}
+            >
+              <i className="bx bx-dots-horizontal-rounded text-gray-500"></i>
+            </button>
+
+            {showDropdown && (
+              <div
+                ref={dropdownRef}
+                className="open-sans border-color absolute right-2 z-50 mt-8 w-40 origin-top-right rounded-md border bg-white p-1 shadow-sm"
               >
-                Assign
-              </button>
-            </div>
-          )}
+                <button
+                  onClick={handleAssignClick}
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition"
+                >
+                  <i className="bx bx-cog text-[18px]" />
+                  Configure
+                </button>
+                <button className="mt-2 flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition">
+                  <i className="bx bx-show text-[18px]" />
+                  Preview
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center">
             <img
@@ -167,7 +212,7 @@ const SubjectCard = ({
                 className="hidden cursor-pointer items-center gap-2 rounded-md border border-orange-400 bg-orange-100 px-4 py-2 text-orange-600 hover:bg-orange-200 lg:flex"
               >
                 <i className="bx bx-cog text-lg"></i>
-                <span className="text-[14px]">Assign</span>
+                <span className="text-[14px]">Configure</span>
               </button>
               <button className="hidden cursor-pointer items-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 lg:flex">
                 <i className="bx bxs-show text-lg"></i>
@@ -183,7 +228,32 @@ const SubjectCard = ({
           isFormOpen={isFormOpen}
           setIsFormOpen={setIsFormOpen}
           subjectID={subjectID}
+          onSuccess={handleFormSuccess}
         />
+      )}
+
+      {toast.message && (
+        <div
+          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md ${
+            toast.type === "success" ? "border-green-400" : "border-red-400"
+          }`}
+        >
+          <div className="flex items-center">
+            <i
+              className={`mr-3 text-[24px] ${
+                toast.type === "success"
+                  ? "bx bxs-check-circle text-green-400"
+                  : "bx bxs-error text-red-400"
+              }`}
+            ></i>
+            <div>
+              <p className="font-semibold text-gray-800">
+                {toast.type === "success" ? "Success" : "Error"}
+              </p>
+              <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

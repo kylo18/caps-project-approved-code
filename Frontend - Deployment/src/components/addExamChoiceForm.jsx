@@ -260,16 +260,16 @@ const ExamChoicesForm = ({ questionID, onComplete, onCancel }) => {
               <button
                 type="button"
                 onClick={onCancel}
-                className="flex cursor-pointer items-center rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-200"
+                className="border-color flex cursor-pointer items-center rounded-lg border px-[12px] py-[6px] text-gray-700 hover:bg-gray-200"
               >
                 <span className="text-[14px]">Cancel</span>
               </button>
               <button
                 onClick={handleSubmitClick}
-                className="flex cursor-pointer items-center gap-1 rounded-lg bg-orange-500 px-4 py-2 text-white hover:bg-orange-600"
+                className="flex cursor-pointer items-center gap-1 rounded-lg bg-orange-500 px-[12px] py-[6px] text-white hover:bg-orange-600"
               >
-                <i className="bx bx-save hidden text-[18px] sm:inline-block"></i>
                 <span className="text-[14px]">Submit</span>
+                <i className="bx bx-right-arrow-alt hidden text-[16px] sm:inline-block"></i>
               </button>
             </div>
           </div>

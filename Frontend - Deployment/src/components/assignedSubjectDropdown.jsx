@@ -309,7 +309,7 @@ const AssignedSubjectsDropDown = ({
   return (
     <div className="mt-[2px]">
       <li
-        className="relative flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] hover:bg-orange-500 hover:text-white"
+        className="relative flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] hover:bg-[rgb(255,230,214)] hover:text-gray-700"
         onClick={() => {
           if (!isExpanded || !isOpen) {
             setIsExpanded(true);
@@ -449,7 +449,7 @@ const AssignedSubjectsDropDown = ({
         </ul>
         {openMenuID && dropdownSubject && (
           <div
-            className="absolute z-50 w-28 rounded bg-white shadow-md"
+            className="absolute z-50 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm"
             style={{
               top:
                 dropdownDirection === "down"
@@ -460,14 +460,14 @@ const AssignedSubjectsDropDown = ({
             onMouseLeave={() => setOpenMenuID(null)}
           >
             <button
-              className="w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
+              className="w-full rounded-sm px-3 py-2 text-left text-sm text-black hover:bg-gray-200"
               onClick={() => {
                 setSubjectToDelete(dropdownSubject);
                 setShowDeleteModal(true);
                 setOpenMenuID(null);
               }}
             >
-              Remove
+              <i className="bx bxs-trash-alt mr-2 text-[16px]"></i>Remove
             </button>
           </div>
         )}
@@ -519,7 +519,6 @@ const AssignedSubjectsDropDown = ({
           </div>
 
           <div className="border-color relative mx-auto w-full max-w-md rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
-            {/* Refresh Button */}
             <div className="mt-2 flex w-full items-center gap-2">
               <div className="w-4/5">
                 <input
@@ -544,7 +543,10 @@ const AssignedSubjectsDropDown = ({
             <div className="mb-3">
               <ul className="max-h-[200px] overflow-y-auto" ref={listRef}>
                 {loading ? (
-                  <h3 className="mb-2 text-[14px] font-semibold">Loading...</h3>
+                  <div className="flex items-center justify-center text-[rgb(168,168,168)]">
+                    <span>Loading</span>
+                    <div className="ml-2 size-4 animate-spin rounded-full border-3 border-t-transparent"></div>
+                  </div>
                 ) : unassignedSubjects.length > 0 ? (
                   [...unassignedSubjects]
                     .filter((subject) =>

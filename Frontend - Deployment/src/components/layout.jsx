@@ -29,19 +29,22 @@ const Layout = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const roleTitle = role_id !== null && roleMap[role_id] ? roleMap[role_id] : "User";
+  const roleTitle =
+    role_id !== null && roleMap[role_id] ? roleMap[role_id] : "User";
 
   return (
-    <div className="bg-[rgb(238,238,238)] min-h-screen">
+    <div className="min-h-screen bg-[rgb(240,240,240)]">
       <div className="flex">
-        <Sidebar
-          role_id={role_id}
-          setSelectedSubject={setSelectedSubject}
-          isExpanded={isExpanded}
-          setIsExpanded={setIsExpanded}
-        />
+        {Number(role_id) !== 1 && ( // Only show Sidebar if NOT student
+          <Sidebar
+            role_id={role_id}
+            setSelectedSubject={setSelectedSubject}
+            isExpanded={isExpanded}
+            setIsExpanded={setIsExpanded}
+          />
+        )}
         <div
-          className={`flex-1 flex flex-col transition-all duration-300 ${
+          className={`flex flex-1 flex-col transition-all duration-300 ${
             isMobile ? "ml-0" : isExpanded ? "ml-[200px]" : "ml-[64.5px]"
           }`}
         >

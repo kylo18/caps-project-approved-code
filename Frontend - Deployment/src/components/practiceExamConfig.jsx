@@ -2,7 +2,12 @@ import React, { useState, useEffect } from "react";
 import ModalDropdown from "./modalDropdown";
 import LoadingOverlay from "./loadingOverlay";
 
-const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
+const PracticeExamConfig = ({
+  subjectID,
+  isFormOpen,
+  setIsFormOpen,
+  onSuccess,
+}) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [mode, setMode] = useState("default");
   const [isEditing, setIsEditing] = useState(false);
@@ -16,26 +21,6 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
     moderate_percentage: 50,
     hard_percentage: 20,
   });
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
-
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -57,14 +42,12 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
       settings.moderate_percentage +
       settings.hard_percentage;
 
-    // Check if percentages add up to 100
     if (total !== 100) {
       setErrorMessage("Total percentage must equal 100%.");
       setIsEditing(false);
       return;
     }
 
-    // Clear error message when percentages are valid
     setErrorMessage("");
 
     try {
@@ -92,17 +75,9 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
         });
         setMode("default");
 
-        // Hide the form if needed
+        if (onSuccess) onSuccess();
         setIsFormOpen(false);
 
-        // Show success toast
-        setToast({
-          message: "Settings changed successfully!",
-          type: "success",
-          show: true,
-        });
-
-        // Optionally reset the error message here in case it was showing
         setErrorMessage("");
       } else {
         setErrorMessage(`${data.message}`);
@@ -121,33 +96,6 @@ const PracticeExamConfig = ({ subjectID, isFormOpen, setIsFormOpen }) => {
 
   return (
     <>
-      {/* Toast Display - Outside of the form */}
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-            toast.show ? "opacity-100" : "opacity-0"
-          } ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-error text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Form Display - Inside isFormOpen condition */}
       {isFormOpen && (
         <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center">

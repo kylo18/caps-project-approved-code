@@ -8,12 +8,17 @@ const SubjectCardLower = ({
   activeIndex,
   setActiveIndex,
   isLoading,
+  onFetchQuestions,
 }) => {
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const tabRefs = useRef([]);
   const dropdownRef = useRef(null);
+
+  const handleRefresh = () => {
+    onFetchQuestions();
+  };
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -58,6 +63,12 @@ const SubjectCardLower = ({
         <SkeletonLoader />
       ) : (
         <div className="relative z-51 -mt-3 h-37 overflow-hidden rounded-sm border border-gray-300 bg-white px-4 pt-4 shadow-sm sm:h-40">
+          <button
+            onClick={handleRefresh}
+            className="absolute top-2 right-12 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-2xl hover:bg-gray-200 sm:absolute lg:right-2"
+          >
+            <i className="bx bx-refresh text-gray-500"></i>
+          </button>
           <button
             ref={dropdownRef}
             className="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-2xl hover:bg-gray-200 sm:absolute lg:hidden"
