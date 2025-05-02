@@ -131,3 +131,4 @@ dist
 
 # Ignore Docker volumes
 docker-data/mysql_data/
+docker-data
