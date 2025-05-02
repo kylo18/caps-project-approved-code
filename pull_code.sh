@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # Run this to get updated code from repo
+# make sure to grant appropriate run privilege by running the command below
+# chmod u+x pull_code.sh
 
 # Get current directory (where script is run from)
 PROJECT_DIR=$(pwd)
