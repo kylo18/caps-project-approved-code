@@ -370,66 +370,70 @@ const FacultyContent = () => {
                   />
                 )}
               </div>
-              <Sort
-                sortOption={sortOption}
-                setSortOption={setSortOption}
-                subSortOption={subSortOption}
-                setSubSortOption={setSubSortOption}
-              />
-              {/* List View Button on the right */}
-              <div
-                ref={dropdownRef}
-                className="relative inline-block rounded-md text-left"
-              >
-                {/* Dropdown toggle button */}
-                <button
-                  onClick={() => setDropdownOpen((prev) => !prev)}
-                  className="border-color flex cursor-pointer items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100"
-                >
-                  <i className="bx bx-slider text-[18px]" />
-                  <span>View</span>
-                  <i
-                    className={`bx text-[16px] ${
-                      dropdownOpen ? "bx-chevron-up" : "bx-chevron-down"
-                    }`}
+              <div className="flex flex-row items-center justify-center gap-[5.5px]">
+                {/* Sort - takes 1/2 width on small screens */}
+                <div className="w-full sm:w-auto sm:flex-1">
+                  <Sort
+                    sortOption={sortOption}
+                    setSortOption={setSortOption}
+                    subSortOption={subSortOption}
+                    setSubSortOption={setSubSortOption}
                   />
-                </button>
+                </div>
 
-                {/* Dropdown menu */}
-                {dropdownOpen && (
-                  <div className="open-sans border-color absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm">
-                    <button
-                      onClick={() => {
-                        setListViewOnly(true);
-                        setExpandedQuestionId(null);
-                        setDropdownOpen(false);
-                      }}
-                      className={`flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
-                        listViewOnly
-                          ? "rounded-sm text-orange-500"
-                          : "text-black hover:bg-gray-200"
+                {/* View Button - takes 1/2 width on small screens */}
+                <div
+                  ref={dropdownRef}
+                  className="relative w-full text-left sm:w-auto sm:flex-1"
+                >
+                  <button
+                    onClick={() => setDropdownOpen((prev) => !prev)}
+                    className="border-color flex w-full items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100 sm:w-auto"
+                  >
+                    <i className="bx bx-slider text-[18px]" />
+                    <span className="text-[14px]">View</span>
+                    <i
+                      className={`bx absolute right-[9px] text-[18px] ${
+                        dropdownOpen ? "bx-chevron-up" : "bx-chevron-down"
                       }`}
-                    >
-                      <i className="bx bx-list-ul text-[18px]" />
-                      <span>List View</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setListViewOnly(false);
-                        setExpandedQuestionId(null);
-                        setDropdownOpen(false);
-                      }}
-                      className={`flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
-                        !listViewOnly
-                          ? "rounded-sm text-orange-500"
-                          : "text-black hover:bg-gray-200"
-                      }`}
-                    >
-                      <i className="bx bx-detail text-[18px]" />
-                      <span>Detailed View</span>
-                    </button>
-                  </div>
-                )}
+                    />
+                  </button>
+
+                  {dropdownOpen && (
+                    <div className="open-sans border-color absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm">
+                      <button
+                        onClick={() => {
+                          setListViewOnly(true);
+                          setExpandedQuestionId(null);
+                          setDropdownOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
+                          listViewOnly
+                            ? "text-orange-500 hover:bg-gray-200"
+                            : "text-black hover:bg-gray-200"
+                        }`}
+                      >
+                        <i className="bx bx-list-ul text-[18px]" />
+                        <span>List View</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setListViewOnly(false);
+                          setExpandedQuestionId(null);
+                          setDropdownOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
+                          !listViewOnly
+                            ? "text-orange-500 hover:bg-gray-200"
+                            : "text-black hover:bg-gray-200"
+                        }`}
+                      >
+                        <i className="bx bx-detail text-[18px]" />
+                        <span>Detailed View</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
