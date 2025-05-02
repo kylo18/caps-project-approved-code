@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens;
 use Modules\Users\Models\Role;
 use Modules\FacultySubjects\Models\FacultySubject;
+use Modules\PracticeExams\Models\PracticeExamResult;
 
 class User extends Authenticatable
 {
@@ -97,5 +98,10 @@ class User extends Authenticatable
     public function program()
     {
         return $this->belongsTo(Program::class, 'programID', 'programID');
+    }
+
+    public function practiceExamResults()
+    {
+        return $this->hasMany(PracticeExamResult::class, 'userID', 'userID');
     }
 }

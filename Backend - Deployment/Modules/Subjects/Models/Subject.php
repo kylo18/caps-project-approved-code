@@ -7,6 +7,7 @@ use Modules\Questions\Models\Question;
 use Modules\Users\Models\User;
 use Modules\PracticeExams\Models\PracticeExamSetting;
 use Modules\Users\Models\Program;
+use Modules\PracticeExams\Models\PracticeExamResult;
 
 class Subject extends Model
 {
@@ -36,5 +37,10 @@ class Subject extends Model
     public function program()
     {
         return $this->belongsTo(Program::class, 'programID');
+    }
+
+    public function practiceExamResults()
+    {
+        return $this->hasMany(PracticeExamResult::class, 'subjectID');
     }
 }

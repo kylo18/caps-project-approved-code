@@ -51,8 +51,9 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
 
 Route::middleware(['auth:sanctum','role:1'])->group(function () {
     Route::get('/student/practice-subjects', [SubjectController::class, 'getProgramSubjects']);
-    Route::get('/practice-exam/{subjectID}', [PracticeExamController::class, 'generate']);
+    Route::get('/practice-exam/generate/{subjectID}', [PracticeExamController::class, 'generate']);
     Route::post('/practice-exam/submit', [PracticeExamController::class, 'submit']);
+    Route::get('/practice-exam/history', [PracticeExamController::class, 'history']);
 });
 
 Route::middleware(['auth:sanctum','role:3'])->group(function () {

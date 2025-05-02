@@ -22,7 +22,6 @@ class ChoiceController extends Controller
                 'message' => 'Unauthorized. You do not have permission to add choices.'
             ], 403);
         }
-
         $validated = $request->validate([
             'questionID' => 'required|exists:questions,questionID',
             'choices' => 'required|array|min:6|max:6',
@@ -32,10 +31,8 @@ class ChoiceController extends Controller
         ]);
 
         DB::beginTransaction();
-
         try {
             $choices = [];
-
             foreach ($validated['choices'] as $index => $choiceData) {
                 $imagePath = null;
 
@@ -44,12 +41,12 @@ class ChoiceController extends Controller
                         $imagePath = $choiceData['image'];
                     } elseif ($request->hasFile("choices.$index.image")) {
                         $storedPath = $request->file("choices.$index.image")->store('choices', 'public');
-                        $imagePath = asset('storage/' . $storedPath);
+                        $imagePath = $storedPath; // Store only relative path
                     }
                 }
-
-                // Encrypt the choiceText before saving it to the database
-                $encryptedChoiceText = $choiceData['choiceText'] ? Crypt::encryptString($choiceData['choiceText']) : null;
+                $encryptedChoiceText = $choiceData['choiceText']
+                    ? Crypt::encryptString($choiceData['choiceText'])
+                    : null;
 
                 $choice = Choice::create([
                     'questionID' => $validated['questionID'],
@@ -76,6 +73,7 @@ class ChoiceController extends Controller
             ], 500);
         }
     }
+
 
     // Show a specific choice
     public function show($id)

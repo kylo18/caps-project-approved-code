@@ -233,21 +233,22 @@ class SubjectController extends Controller
     public function getProgramSubjects()
     {
         $user = Auth::user();
-
         if ($user->roleID !== 1) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        // Fetch subjects specific to user's program or those with no programID (global)
+        // Fetch program-specific subjects AND GE subjects
         $subjects = Subject::with('program')
             ->where(function ($query) use ($user) {
                 $query->where('programID', $user->programID)
-                    ->orWhereNull('programID');
+                    ->orWhereNull('programID') // global subjects (GE)
+                    ->orWhereHas('program', function ($subQuery) {
+                        $subQuery->where('programName', 'LIKE', '%General Education%');
+                    });
             })
-            ->whereHas('practiceExamSetting') // Only include those with settings
+            ->whereHas('practiceExamSetting') // Only include subjects with practice exam settings configured
             ->select('subjectID', 'subjectName', 'subjectCode', 'programID')
             ->get();
-
         return response()->json([
             'message' => 'Subjects available for practice exam.',
             'data' => $subjects
