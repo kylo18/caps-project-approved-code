@@ -11,6 +11,7 @@ const PracticeAddQuestionForm = ({
 }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [isFocused, setIsFocused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const editorRef = useRef(null);
   const [image, setImage] = useState(null);
   const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false);
@@ -94,17 +95,15 @@ const PracticeAddQuestionForm = ({
   };
 
   const confirmSubmit = async () => {
+    setIsLoading(true);
     setShowConfirmModal(false);
     const token = localStorage.getItem("token");
 
-    // Instead of using questionData.questionText, get from editor
-    const formattedQuestionText = editorRef.current?.innerHTML || "";
+    const formattedQuestionText = editorRef.current?.innerHTML?.trim() || "";
 
-    if (
-      formattedQuestionText.trim() === "" ||
-      formattedQuestionText.trim() === "<br>"
-    ) {
+    if (!formattedQuestionText || formattedQuestionText === "<br>") {
       setError("Please enter a question before submitting.");
+      setIsLoading(false);
       return;
     }
 
@@ -113,7 +112,7 @@ const PracticeAddQuestionForm = ({
     const formData = new FormData();
     formData.append("subjectID", subjectID);
     formData.append("coverage", questionData.coverage);
-    formData.append("questionText", formattedQuestionText); // <-- use formatted HTML
+    formData.append("questionText", formattedQuestionText);
     formData.append("score", questionData.score);
     formData.append("difficulty", questionData.difficulty);
     formData.append("status", questionData.status);
@@ -135,37 +134,37 @@ const PracticeAddQuestionForm = ({
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.message || "Failed to add question.");
         console.error("Validation errors:", result.errors);
-      } else {
-        setSuccessMsg("Question added successfully!");
-        console.log("Success:", result.data);
-
-        if (onQuestionAdded) {
-          onQuestionAdded(result.data);
-        }
-
-        setQuestionData({
-          subjectID,
-          coverage: "midterm",
-          questionText: "",
-          image: null,
-          score: 1,
-          difficulty: "easy",
-          status: "pending",
-          purpose: "practiceQuestions",
-        });
-
-        setImagePreview(null);
-
-        // Optionally clear editor
-        if (editorRef.current) {
-          editorRef.current.innerHTML = "";
-        }
+        setError(result.message || "Failed to add question.");
+        return;
       }
+
+      setSuccessMsg("Question added successfully!");
+      console.log("Success:", result.data);
+
+      if (onQuestionAdded) {
+        onQuestionAdded(result.data);
+      }
+
+      setQuestionData({
+        subjectID,
+        coverage: "midterm",
+        questionText: "",
+        image: null,
+        score: 1,
+        difficulty: "easy",
+        status: "pending",
+        purpose: "practiceQuestions",
+      });
+
+      setImagePreview(null);
+      if (editorRef.current) editorRef.current.innerHTML = "";
     } catch (err) {
       console.error("Error submitting:", err);
-      setError("Something went wrong.");
+      setError("Something went wrong while submitting the question.");
+    } finally {
+      // Optional: UX delay so spinner is noticeable
+      setTimeout(() => setIsLoading(false), 300);
     }
   };
 
@@ -174,12 +173,12 @@ const PracticeAddQuestionForm = ({
       <div className="flex-1">
         {/* Header */}
         <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
-          <span>Add Question</span>
+          <span>ADD A QUESTION</span>
         </div>
 
         {/* Question Card */}
         <div
-          className={`border-color relative mx-auto w-full max-w-3xl border border-t-0 bg-white p-4 shadow-lg sm:px-4 ${
+          className={`border-color relative mx-auto mb-3 w-full max-w-3xl border border-t-0 bg-white p-4 shadow-lg sm:px-4 ${
             topRadius ? "rounded-md" : "rounded-b-md"
           }`}
         >
@@ -402,11 +401,45 @@ const PracticeAddQuestionForm = ({
                 </button>
 
                 <button
-                  type="submit"
-                  className="mt-4 ml-auto flex cursor-pointer items-center justify-center gap-[5px] rounded-lg bg-orange-500 px-[12px] py-[6px] text-white hover:bg-orange-600 sm:mt-0"
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className={`mt-4 ml-auto flex items-center justify-center gap-[5px] rounded-lg px-[12px] py-[6px] text-white sm:mt-0 ${
+                    isLoading
+                      ? "cursor-not-allowed bg-orange-300"
+                      : "bg-orange-500 hover:bg-orange-600"
+                  }`}
                 >
-                  <span className="text-[14px]">Next</span>
-                  <i className="bx bx-right-arrow-alt hidden text-[16px] sm:inline-block"></i>
+                  {isLoading ? (
+                    <>
+                      <svg
+                        className="h-4 w-4 animate-spin text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 000 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
+                        ></path>
+                      </svg>
+                      <span className="text-[14px]">Loading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[14px]">Next</span>
+                      <i className="bx bx-right-arrow-alt hidden text-[16px] sm:inline-block"></i>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
