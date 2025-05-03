@@ -37,9 +37,11 @@ read -rp $'\n🔧 Rebuild Docker containers? This will stop and start the system
 if [[ "$REBUILD" =~ ^[Yy]$ ]]; then
   echo -e "\nRebuilding containers..."
   if command -v docker-compose &> /dev/null; then
+    docker-compose down
     docker-compose up -d --build
   else
     echo "⚠️ docker-compose not found. Using 'docker compose' instead."
+    docker compose down
     docker compose up -d --build
   fi
 fi
