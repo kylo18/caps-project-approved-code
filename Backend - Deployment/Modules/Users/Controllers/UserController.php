@@ -54,20 +54,6 @@ class UserController extends Controller
         }
     }
 
-
-    /**
-     * Show a single user by ID (Only Admins or the user themselves).
-     */
-    public function show($id)
-    {
-        $authUser = Auth::user();
-        if ($authUser->roleID < 3 && $authUser->userID != $id) {
-            return response()->json(['message' => 'Unauthorized: You can only view your own profile'], 403);
-        }
-
-        $user = User::findOrFail($id);
-        return response()->json($user, 200);
-    }
     /**
      * Update user details (Only Admins or the user themselves).
      */
@@ -84,6 +70,21 @@ class UserController extends Controller
         $user->update($request->only(['firstName', 'lastName', 'email']));
         return response()->json(['message' => 'User updated successfully', 'user' => $user], 200);
     }
+
+    public function getProfile()
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        return response()->json([
+            'email' => $user->email,
+            'fullName' => $user->firstName . ' ' . $user->lastName,
+        ], 200);
+    }
+
 
     /**
      * Deactivate user instead of deleting (Only Dean can do this).

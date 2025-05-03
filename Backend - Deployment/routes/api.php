@@ -27,6 +27,8 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class,])->group(fu
 
     //User profile route
     Route::get('/practice-settings/{subjectID}', [PracticeExamSettingController::class, 'show']);
+
+    Route::get('/user/profile', [UserController::class, 'getProfile']);
 });
 
 Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4'])->group(function () {
