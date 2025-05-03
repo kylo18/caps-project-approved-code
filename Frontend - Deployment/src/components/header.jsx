@@ -113,10 +113,10 @@ const AdminHeader = ({ title }) => {
                   </div>
                   <div className="flex w-full flex-col overflow-hidden text-sm">
                     <span className="font-inter overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-gray-800">
-                      {userInfo.fullName || "placeholder"}
+                      {userInfo.fullName}
                     </span>
                     <span className="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-gray-500">
-                      {userInfo.email || "placeholder"}
+                      {userInfo.email}
                     </span>
                   </div>
                 </div>
