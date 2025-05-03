@@ -339,6 +339,4 @@ class QuestionController extends Controller
     {
         return $path && !Str::startsWith($path, ['http://', 'https://']) ? url("storage/$path") : $path;
     }
-
-    //yes
 }
