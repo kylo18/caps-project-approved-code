@@ -143,6 +143,63 @@ class QuestionController extends Controller
         return response()->json(['message' => 'Question deleted successfully.']);
     }
 
+    public function mySubjectQuestions($subjectID)
+    {
+        $user = Auth::user();
+
+        // Find the subject by ID
+        $subject = Subject::find($subjectID);
+
+        if (!$subject) {
+            return response()->json([
+                'message' => 'Subject not found.'
+            ], 404);
+        }
+
+        // Get the questions added by the specific user for the given subject
+        $questions = Question::with(['subject', 'choices'])
+            ->where('subjectID', $subjectID)
+            ->where('userID', $user->userID) // Ensure the questions belong to the authenticated user
+            ->get()
+            ->map(function ($question) {
+                try {
+                    // Decrypt the question text
+                    $question->questionText = Crypt::decryptString($question->questionText);
+                } catch (\Exception $e) {
+                    $question->questionText = '[Decryption Error]';
+                }
+
+                // Format image URL if exists
+                if ($question->image && !Str::startsWith($question->image, ['http://', 'https://'])) {
+                    $question->image = url("storage/{$question->image}");
+                }
+
+                // Decrypt each choice and format its image URL
+                $question->choices->map(function ($choice) {
+                    try {
+                        $choice->choiceText = Crypt::decryptString($choice->choiceText);
+                    } catch (\Exception $e) {
+                        $choice->choiceText = null;
+                    }
+
+                    if ($choice->image && !Str::startsWith($choice->image, ['http://', 'https://'])) {
+                        $choice->image = url("storage/{$choice->image}");
+                    }
+
+                    return $choice;
+                });
+
+                return $question;
+            });
+
+        return response()->json([
+            'message' => 'Your questions for this subject retrieved successfully!',
+            'subject' => $subject->subjectName,
+            'data'    => $questions
+        ], 200);
+    }
+
+
     public function updateStatus($questionID)
     {
         $this->authorizeRoles([3, 4]);
