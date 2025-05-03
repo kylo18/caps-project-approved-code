@@ -541,14 +541,10 @@ export default function Register() {
                     Log-in
                   </span>
                 </p>
-                <div className="mt-20 justify-center px-4 text-center text-sm text-gray-600">
-                  <p>
-                    &copy; 2025 Comprehensive Assessment and Preparation System.
-                    <br />
-                    <span className="text-orange-500">
-                      Developed by BScPE 2-A
-                    </span>
-                  </p>
+                <div className="mt-20 justify-center px-4 text-center text-sm text-gray-600 sm:hidden">
+                  <span className="text-orange-500">
+                    Developed by BScPE 2-A
+                  </span>
                 </div>
               </form>
             </div>

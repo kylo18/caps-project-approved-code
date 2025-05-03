@@ -5,11 +5,39 @@ import { Tooltip } from "flowbite-react";
 
 const AdminHeader = ({ title }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const dropdownRef = useRef(null);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${apiUrl}/user/profile`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch user info");
+        }
+
+        const data = await response.json();
+        setUserInfo(data);
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    };
+
+    fetchUserInfo();
+  }, [apiUrl]);
+
+  // Handle the logout process
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -29,10 +57,10 @@ const AdminHeader = ({ title }) => {
       }
     } catch (error) {
       console.error("Error logging out:", error);
-    } finally {
     }
   };
 
+  // Close the dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -75,28 +103,45 @@ const AdminHeader = ({ title }) => {
               <div className="absolute top-[44px] right-[-10px] w-60 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
                 <div className="flex items-center gap-3 border-gray-200 px-2 py-3">
                   <div className="flex h-8 w-10 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
-                    {/* Initials */}
-                    PH
+                    {/* Display User Initials */}
+                    {userInfo.fullName
+                      ? userInfo.fullName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                      : "NN"}
                   </div>
                   <div className="flex w-full flex-col overflow-hidden text-sm">
                     <span className="font-inter overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-gray-800">
-                      Place Holder
+                      {userInfo.fullName || "placeholder"}
                     </span>
                     <span className="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-gray-500">
-                      placeholder@gmail.com
+                      {userInfo.email || "placeholder"}
                     </span>
                   </div>
                 </div>
 
                 <div className="mx-1 h-[1px] bg-[rgb(200,200,200)]" />
 
-                <button className="mt-1 flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200">
+                <button
+                  onClick={() =>
+                    alert(
+                      "The profile view feature is still under development.",
+                    )
+                  }
+                  className="mt-1 flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                >
                   <i className="bx bx-user-circle mr-2 text-[16px]"></i> View
                   Profile
                 </button>
 
-                <button className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200">
-                  <i className="bx bx-moon mr-2 text-[16px]"></i>Dark Mode
+                <button
+                  onClick={() =>
+                    alert("The dark mode feature is still under development.")
+                  }
+                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                >
+                  <i className="bx bx-moon mr-2 text-[16px]"></i> Dark Mode
                 </button>
 
                 <button

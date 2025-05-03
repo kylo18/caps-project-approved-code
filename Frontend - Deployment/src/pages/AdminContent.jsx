@@ -503,6 +503,204 @@ const AdminContent = () => {
               </div>
             </div>
 
+            {(activeTab === 0 || activeTab === 1) && (
+              <div>
+                {/* Show Add Question Button Only If No Active Question */}
+                {!submittedQuestion[
+                  activeTab === 0 ? "practiceQuestions" : "examQuestions"
+                ] && (
+                  <div className="fixed right-0 bottom-0 p-4 text-center">
+                    <button
+                      onClick={() => {
+                        setSubmittedQuestion((prev) => ({
+                          ...prev,
+                          [activeTab === 0
+                            ? "practiceQuestions"
+                            : "examQuestions"]: {
+                            questionText: "",
+                            questionID: null,
+                          },
+                        }));
+                        setIsAddingQuestion(true);
+
+                        setTimeout(() => {
+                          if (formRef.current) {
+                            const yOffset = -500;
+                            const y =
+                              formRef.current.getBoundingClientRect().top +
+                              window.pageYOffset +
+                              yOffset;
+
+                            window.scrollTo({ top: y, behavior: "smooth" });
+                          }
+                        }, 100);
+                      }}
+                      className="cursor-pointer rounded border border-[rgb(200,200,200)] bg-white px-4 py-2 text-[14px] font-semibold text-gray-700 shadow-md hover:bg-gray-200"
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <i className="bx bx-plus text-[20px]"></i>
+                        <span>Add Question</span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+
+                <div ref={formRef}>
+                  {/* Show AddQuestionForm based on activeTab */}
+                  {submittedQuestion[
+                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
+                  ] &&
+                    !submittedQuestion[
+                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
+                    ].questionID && (
+                      <>
+                        <div className="text-right"></div>
+                        {activeTab === 0 ? (
+                          <PracticeAddQuestionForm
+                            subjectID={selectedSubject.subjectID}
+                            onQuestionAdded={handleQuestionAdded}
+                            onCancel={() =>
+                              setSubmittedQuestion((prev) => ({
+                                ...prev,
+                                practiceQuestions: null,
+                              }))
+                            }
+                            areChoicesValid={areChoicesValid}
+                          />
+                        ) : (
+                          <ExamAddQuestionForm
+                            subjectID={selectedSubject.subjectID}
+                            onQuestionAdded={handleQuestionAdded}
+                            onCancel={() =>
+                              setSubmittedQuestion((prev) => ({
+                                ...prev,
+                                examQuestions: null,
+                              }))
+                            }
+                          />
+                        )}
+                      </>
+                    )}
+                </div>
+
+                {/* Preview */}
+                {(activeTab === 0
+                  ? showPracticeChoiceForm
+                  : showExamChoiceForm) &&
+                  submittedQuestion?.[
+                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
+                  ]?.questionID && (
+                    <div className="flex flex-col">
+                      <div className="flex-1">
+                        <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border border-b-0 bg-white py-2 pl-4 text-[14px] font-medium text-gray-600">
+                          <span>ADD CHOICES</span>
+                        </div>
+                        <div className="border-color mx-auto w-full max-w-3xl rounded-b-none border border-b-0 bg-white p-4 shadow-sm">
+                          <div className="relative rounded-md bg-gray-100 p-1 transition-all duration-150 hover:cursor-text">
+                            <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
+                              <span>
+                                <div
+                                  dangerouslySetInnerHTML={{
+                                    __html:
+                                      submittedQuestion[
+                                        activeTab === 0
+                                          ? "practiceQuestions"
+                                          : "examQuestions"
+                                      ].questionText,
+                                  }}
+                                ></div>
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* image preview */}
+                          {submittedQuestion[
+                            activeTab === 0
+                              ? "practiceQuestions"
+                              : "examQuestions"
+                          ].image && (
+                            <div className="relative mt-3 inline-block max-w-[300px] hover:opacity-80">
+                              <img
+                                src={fixImageUrl(
+                                  submittedQuestion[
+                                    activeTab === 0
+                                      ? "practiceQuestions"
+                                      : "examQuestions"
+                                  ].image,
+                                )}
+                                alt="Question Image Preview"
+                                className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md"
+                                onClick={() => setisQuestionModalOpen(true)}
+                              />
+                            </div>
+                          )}
+
+                          {isQuestionModalOpen && (
+                            <div
+                              className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center"
+                              onClick={() => setisQuestionModalOpen(false)}
+                            >
+                              <div className="relative max-h-full max-w-full">
+                                <img
+                                  src={fixImageUrl(
+                                    submittedQuestion[
+                                      activeTab === 0
+                                        ? "practiceQuestions"
+                                        : "examQuestions"
+                                    ].image,
+                                  )}
+                                  alt="Full View"
+                                  className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                <div ref={formRef}>
+                  {(activeTab === 0
+                    ? showPracticeChoiceForm
+                    : showExamChoiceForm) &&
+                    submittedQuestion?.[
+                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
+                    ]?.questionID && (
+                      <>
+                        {activeTab === 0 ? (
+                          <PracticeAddChoiceForm
+                            questionID={
+                              submittedQuestion["practiceQuestions"]?.questionID
+                            }
+                            onComplete={handlePracticeChoicesSubmitted}
+                            onCancel={() =>
+                              setSubmittedQuestion((prev) => ({
+                                ...prev,
+                                practiceQuestions: null,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <ExamAddChoiceForm
+                            questionID={
+                              submittedQuestion["examQuestions"]?.questionID
+                            }
+                            onComplete={handleExamChoicesSubmitted}
+                            onCancel={() =>
+                              setSubmittedQuestion((prev) => ({
+                                ...prev,
+                                examQuestions: null,
+                              }))
+                            }
+                          />
+                        )}
+                      </>
+                    )}
+                </div>
+              </div>
+            )}
+
             {/* Questions List */}
             {(activeTab === 0 || activeTab === 1 || activeTab === 4) && (
               <div className="flex">
@@ -529,6 +727,7 @@ const AdminContent = () => {
                             QUESTIONS
                           </div>
                         </div>
+
                         <div className="ml-auto flex items-center px-4 py-3">
                           <span className="mr-4 ml-2 items-center text-sm font-medium text-gray-500">
                             Show Answer Options
@@ -702,16 +901,18 @@ const AdminContent = () => {
                                       >
                                         <input
                                           type="radio"
-                                          name={`question-${question.questionID}`}
+                                          name={`review-question-${question.questionID}`}
                                           value={choice.choiceText}
-                                          defaultChecked={choice.isCorrect}
+                                          checked={choice.isCorrect}
                                           disabled
+                                          readOnly
                                           className={`size-5 cursor-not-allowed focus:ring-0 ${
                                             choice.isCorrect
                                               ? "border-orange-500 text-orange-500"
                                               : "border-gray-300 text-gray-500"
                                           }`}
                                         />
+
                                         {choice.choiceText?.trim() && (
                                           <span
                                             className={`w-[90%] rounded-md p-2 text-[14px] ${
@@ -865,196 +1066,7 @@ const AdminContent = () => {
             )}
 
             {/* Add Question Section */}
-            {(activeTab === 0 || activeTab === 1) && (
-              <div>
-                {/* Show Add Question Button Only If No Active Question */}
-                {!submittedQuestion[
-                  activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                ] && (
-                  <div className="fixed right-0 bottom-0 p-4 text-center">
-                    <button
-                      onClick={() => {
-                        setSubmittedQuestion((prev) => ({
-                          ...prev,
-                          [activeTab === 0
-                            ? "practiceQuestions"
-                            : "examQuestions"]: {
-                            questionText: "",
-                            questionID: null,
-                          },
-                        }));
-                        setIsAddingQuestion(true);
-                        setTimeout(() => {
-                          formRef.current?.scrollIntoView({
-                            behavior: "smooth",
-                          });
-                        }, 100);
-                      }}
-                      className="cursor-pointer rounded border border-[rgb(200,200,200)] bg-white px-4 py-2 text-[14px] font-semibold text-gray-700 shadow-md hover:bg-gray-200"
-                    >
-                      <div className="flex items-center justify-center gap-2">
-                        <i className="bx bx-plus text-[20px]"></i>
-                        <span>Add Question</span>
-                      </div>
-                    </button>
-                  </div>
-                )}
 
-                <div ref={formRef}>
-                  {/* Show AddQuestionForm based on activeTab */}
-                  {submittedQuestion[
-                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                  ] &&
-                    !submittedQuestion[
-                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                    ].questionID && (
-                      <>
-                        <div className="text-right"></div>
-                        {activeTab === 0 ? (
-                          <PracticeAddQuestionForm
-                            subjectID={selectedSubject.subjectID}
-                            onQuestionAdded={handleQuestionAdded}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                practiceQuestions: null,
-                              }))
-                            }
-                            areChoicesValid={areChoicesValid}
-                          />
-                        ) : (
-                          <ExamAddQuestionForm
-                            subjectID={selectedSubject.subjectID}
-                            onQuestionAdded={handleQuestionAdded}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                examQuestions: null,
-                              }))
-                            }
-                          />
-                        )}
-                      </>
-                    )}
-                </div>
-
-                {/* Preview */}
-                {(activeTab === 0
-                  ? showPracticeChoiceForm
-                  : showExamChoiceForm) &&
-                  submittedQuestion?.[
-                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                  ]?.questionID && (
-                    <div className="flex flex-col">
-                      <div className="flex-1">
-                        <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border border-b-0 bg-white py-2 pl-4 text-[14px] font-medium text-gray-600">
-                          <span>Add Choices</span>
-                        </div>
-                        <div className="border-color mx-auto w-full max-w-3xl rounded-b-none border border-b-0 bg-white p-4 shadow-sm">
-                          <div className="relative rounded-md bg-gray-100 p-1 transition-all duration-150 hover:cursor-text">
-                            <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
-                              <span>
-                                <div
-                                  dangerouslySetInnerHTML={{
-                                    __html:
-                                      submittedQuestion[
-                                        activeTab === 0
-                                          ? "practiceQuestions"
-                                          : "examQuestions"
-                                      ].questionText,
-                                  }}
-                                ></div>
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* image preview */}
-                          {submittedQuestion[
-                            activeTab === 0
-                              ? "practiceQuestions"
-                              : "examQuestions"
-                          ].image && (
-                            <div className="relative mt-3 inline-block max-w-[300px] hover:opacity-80">
-                              <img
-                                src={fixImageUrl(
-                                  submittedQuestion[
-                                    activeTab === 0
-                                      ? "practiceQuestions"
-                                      : "examQuestions"
-                                  ].image,
-                                )}
-                                alt="Question Image Preview"
-                                className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md"
-                                onClick={() => setisQuestionModalOpen(true)}
-                              />
-                            </div>
-                          )}
-
-                          {isQuestionModalOpen && (
-                            <div
-                              className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center"
-                              onClick={() => setisQuestionModalOpen(false)}
-                            >
-                              <div className="relative max-h-full max-w-full">
-                                <img
-                                  src={fixImageUrl(
-                                    submittedQuestion[
-                                      activeTab === 0
-                                        ? "practiceQuestions"
-                                        : "examQuestions"
-                                    ].image,
-                                  )}
-                                  alt="Full View"
-                                  className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                <div ref={formRef}>
-                  {(activeTab === 0
-                    ? showPracticeChoiceForm
-                    : showExamChoiceForm) &&
-                    submittedQuestion?.[
-                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                    ]?.questionID && (
-                      <>
-                        {activeTab === 0 ? (
-                          <PracticeAddChoiceForm
-                            questionID={
-                              submittedQuestion["practiceQuestions"]?.questionID
-                            }
-                            onComplete={handlePracticeChoicesSubmitted}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                practiceQuestions: null,
-                              }))
-                            }
-                          />
-                        ) : (
-                          <ExamAddChoiceForm
-                            questionID={
-                              submittedQuestion["examQuestions"]?.questionID
-                            }
-                            onComplete={handleExamChoicesSubmitted}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                examQuestions: null,
-                              }))
-                            }
-                          />
-                        )}
-                      </>
-                    )}
-                </div>
-              </div>
-            )}
             {activeTab === 2 && (
               <p className="text-center text-gray-500">Under Development</p>
             )}
