@@ -27,6 +27,8 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class,])->group(fu
 
     //User profile route
     Route::get('/practice-settings/{subjectID}', [PracticeExamSettingController::class, 'show']);
+
+    Route::get('/user/profile', [UserController::class, 'getProfile']);
 });
 
 Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4'])->group(function () {
@@ -49,7 +51,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/faculty/my-questions/{subjectID}', [QuestionController::class, 'mySubjectQuestions']);
 });
 
-Route::middleware(['auth:sanctum','role:1'])->group(function () {
+Route::middleware(['api', 'auth:sanctum','role:1'])->group(function () {
     Route::get('/student/practice-subjects', [SubjectController::class, 'getProgramSubjects']);
     Route::get('/practice-exam/generate/{subjectID}', [PracticeExamController::class, 'generate']);
     Route::post('/practice-exam/submit', [PracticeExamController::class, 'submit']);

@@ -33,13 +33,15 @@ if git stash list | grep -q "Auto-stash by pull script"; then
 fi
 
 # Docker rebuild prompt
-read -rp $'\n🔧 Rebuild Docker containers? [y/N] ' REBUILD
+read -rp $'\n🔧 Rebuild Docker containers? This will stop and start the system after rebuild. [y/N] ' REBUILD
 if [[ "$REBUILD" =~ ^[Yy]$ ]]; then
   echo -e "\nRebuilding containers..."
   if command -v docker-compose &> /dev/null; then
+    docker-compose down
     docker-compose up -d --build
   else
     echo "⚠️ docker-compose not found. Using 'docker compose' instead."
+    docker compose down
     docker compose up -d --build
   fi
 fi

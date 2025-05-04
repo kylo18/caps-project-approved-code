@@ -70,7 +70,9 @@ const Sidebar = ({
   const baseMenuItems = [
     { icon: "bx-bar-chart-alt-2", label: "Dashboard", path: homePath },
   ];
-  const facultyItems = [{ icon: "bx-printer", label: "Print" }];
+  const facultyItems = [
+    { icon: "bx-printer", label: "Print", path: "/print-questions" },
+  ];
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
   const classes = [{ icon: "bx-book-bookmark", label: "Classes" }];
 
@@ -89,7 +91,6 @@ const Sidebar = ({
   return (
     <>
       {/* Loading Overlay */}
-      {isLoading && !isSubjectFocused && <LoadingOverlay show={true} />}
 
       {isMobile && !isExpanded && (
         <button

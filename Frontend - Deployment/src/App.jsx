@@ -15,9 +15,10 @@ import Users from "./pages/Users";
 import AdminContent from "./pages/AdminContent";
 import ProgramChairContent from "./pages/ProgramChairContent";
 import FacultyContent from "./pages/FacultyContent";
-import StudentContent from "./pages/StudentContent";
 import PracticeTestResult from "./pages/PracticeTestResult";
 import PracticeExam from "./pages/PracticeExam";
+
+import PrintExam from "./pages/PrintExam";
 
 function App() {
   return (
@@ -87,7 +88,6 @@ function App() {
           <Route path="dashboard" element={<ProgramChairDashboard />} />
         </Route>
 
-        {/* Admin Routes */}
         <Route
           path="/dean/subjects"
           element={<ProtectedRoute element={<Layout />} />}
@@ -108,6 +108,14 @@ function App() {
         <Route path="/users" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<Users />} />
           <Route path="users" element={<Users />} />
+        </Route>
+
+        <Route
+          path="/print-questions"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<PrintExam />} />
+          <Route path="print" element={<PrintExam />} />
         </Route>
       </Routes>
     </Router>

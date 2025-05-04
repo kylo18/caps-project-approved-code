@@ -13,7 +13,7 @@ const PracticeTestResult = () => {
         </h2>
         <p className="mb-6 text-black">{error}</p>
         <button
-          onClick={() => navigate("/practice-exam")}
+          onClick={() => navigate("/student-dashboard")}
           className="rounded bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
         >
           Go Back
@@ -30,8 +30,7 @@ const PracticeTestResult = () => {
 
       <div className="mb-8 rounded-lg bg-gray-100 p-6 shadow-md">
         <p className="mb-2 text-xl">
-          <strong>Items answered:</strong> {score.earnedPoints} /{" "}
-          {score.totalPoints}
+          <strong>Score:</strong> {score.earnedPoints} / {score.totalPoints}
         </p>
         <p className="text-xl">
           <strong>Percentage:</strong> {score.percentage}%

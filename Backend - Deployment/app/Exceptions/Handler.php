@@ -5,6 +5,7 @@ namespace App\Exceptions;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
+use Symfony\Component\Cache\Exception\CacheException;
 
 class Handler extends ExceptionHandler
 {
@@ -34,6 +35,12 @@ class Handler extends ExceptionHandler
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => $exception->getMessage()
+            ], 500);
+        }
+
+        if ($exception instanceof CacheException && str_contains($exception->getMessage(), 'Please provide a valid cache path')) {
+            return response()->json([
+                'message' => 'Cache directory is missing or not writable. Please ensure bootstrap/cache exists and is writable.'
             ], 500);
         }
 

@@ -20,8 +20,8 @@ class RouteServiceProvider extends ServiceProvider
                 ->middleware('api')
                 ->group(base_path('routes/api.php'));
 
-            Route::middleware('web')
-                ->group(base_path('routes/web.php'));
+            /*Route::middleware('web')
+                ->group(base_path('routes/web.php'));*/
         });
 
         $this->app->singleton('role', function ($app) {

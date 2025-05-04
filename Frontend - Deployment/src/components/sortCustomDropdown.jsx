@@ -49,7 +49,7 @@ const SortCustomDropdown = ({
           ref={buttonRef}
           type="button"
           onClick={handleOpenDropdown}
-          className="border-color relative flex w-full cursor-pointer items-center rounded-md border bg-white px-3 py-2 shadow-sm"
+          className="border-color relative flex w-full cursor-pointer items-center rounded-md border bg-white px-3 py-2 shadow-sm hover:bg-gray-100"
         >
           <span className={`truncate ${!value ? "text-black" : ""}`}>
             {options.find((opt) => opt.value === value)?.label || placeholder}
