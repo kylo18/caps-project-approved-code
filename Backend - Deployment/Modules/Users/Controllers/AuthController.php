@@ -6,8 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Users\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
@@ -137,17 +137,27 @@ class AuthController extends Controller
 
     public function changePassword(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'password' => 'required',
             'new_password' => 'required|min:8|confirmed',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
         $user = $request->user();
 
         if (!Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'password' => ['Current password is incorrect.'],
-            ]);
+            return response()->json([
+                'message' => 'Current password is incorrect.'
+            ], 403);
+        }
+
+        if (Hash::check($request->new_password, $user->password)) {
+            return response()->json([
+                'message' => 'New password must be different from the current password.'
+            ], 422);
         }
 
         $user->update([
@@ -158,6 +168,7 @@ class AuthController extends Controller
             'message' => 'Password changed successfully'
         ], 200);
     }
+
 
     public function sendResetLinkEmail(Request $request)
     {
