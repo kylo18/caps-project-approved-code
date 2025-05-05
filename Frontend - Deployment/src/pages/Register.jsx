@@ -64,23 +64,6 @@ export default function Register() {
       if (nextStep > 1) nextStep = 1;
     }
 
-    // Step 2 Validation
-    if (!userCode.trim()) {
-      validationErrors.userCode = "User code is required";
-      if (nextStep > 2) nextStep = 2;
-    } else if (!/^\d{2}-[A-Za-z]-\d{5}$/.test(userCode.trim())) {
-      validationErrors.userCode = "Invalid user code";
-      if (nextStep > 2) nextStep = 2;
-    }
-
-    if (!email.trim()) {
-      validationErrors.email = "Email is required";
-      if (nextStep > 2) nextStep = 2;
-    } else if (!/^[\w.+-]+@gmail\.com$/.test(email.trim())) {
-      validationErrors.email = "Invalid email address";
-      if (nextStep > 2) nextStep = 2;
-    }
-
     // Step 3 Validation
     if (!roleID) {
       validationErrors.roleID = "Position is required";
@@ -180,6 +163,10 @@ export default function Register() {
           <h1 className="text-sm lg:text-lg">
             JOSE RIZAL MEMORIAL STATE UNIVERSITY
           </h1>
+        </div>
+
+        <div className="absolute hidden items-center space-x-2 lg:bottom-3 lg:left-3 lg:block">
+          <h1 className="text-sm text-gray-500">Version 1.0.0</h1>
         </div>
 
         {/* Title */}
@@ -541,6 +528,7 @@ export default function Register() {
                     Log-in
                   </span>
                 </p>
+
                 <div className="mt-20 justify-center px-4 text-center text-sm text-gray-600 sm:hidden">
                   <span className="text-orange-500">
                     Developed by BScPE 2-A

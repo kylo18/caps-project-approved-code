@@ -3,6 +3,7 @@ import Button from "./button";
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "./loadingOverlay";
 import ModalDropdown from "./modalDropdown";
+import SideBarToolTip from "./sidebarTooltip";
 
 const SideBarDropDown = ({
   item,
@@ -371,7 +372,9 @@ const SideBarDropDown = ({
           }
         }}
       >
-        <i className={`bx ${item.icon} text-2xl`}></i>
+        <SideBarToolTip label="Subjects" isExpanded={isExpanded}>
+          <i className={`bx ${item.icon} mt-1 text-2xl`}></i>
+        </SideBarToolTip>
         <span
           className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
             isExpanded

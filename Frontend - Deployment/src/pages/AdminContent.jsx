@@ -43,6 +43,7 @@ const AdminContent = () => {
   const handleChoicesValidity = (validity) => {
     setAreChoicesValid(validity);
   };
+  const buttonRef = useRef(null);
 
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [selectedQuestionID, setSelectedQuestionID] = useState(null);
@@ -392,10 +393,10 @@ const AdminContent = () => {
   }, [dropdownOpen]);
 
   return (
-    <div className="relative mt-9 flex min-h-screen w-full flex-1 flex-col justify-center sm:p-2">
+    <div className="relative mt-9 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
       <div className="flex-1">
         {selectedSubject ? (
-          <div className="w-full py-6">
+          <div className="w-full py-3">
             <div className="w-full">
               <SubjectCard
                 subjectName={selectedSubject.subjectName}
@@ -453,15 +454,16 @@ const AdminContent = () => {
                   className="relative w-full text-left sm:w-auto sm:flex-1"
                 >
                   <button
+                    ref={buttonRef}
                     onClick={() => setDropdownOpen((prev) => !prev)}
-                    className="border-color flex w-full items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100 sm:w-auto"
+                    className="border-color flex w-full cursor-pointer items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100 sm:w-auto"
                   >
-                    <i className="bx bx-slider text-[18px]" />
-                    <span className="text-[14px]">View</span>
+                    <span className="mr-5 text-[14px]">View</span>
                     <i
-                      className={`bx absolute right-[9px] text-[18px] ${
+                      className={`bx absolute right-2 text-[18px] ${
                         dropdownOpen ? "bx-chevron-up" : "bx-chevron-down"
                       }`}
+                      style={{ marginLeft: "auto" }} // Ensure the chevron is right-aligned
                     />
                   </button>
 

@@ -6,7 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Users\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
@@ -33,10 +34,10 @@ class AuthController extends Controller
     {
         // Validate required fields
         $validated = $request->validate([
-            'userCode' => 'required|string|max:10',
+            'userCode' => 'required|string|max:20',
             'firstName' => 'required|string|max:50',
             'lastName' => 'required|string|max:50',
-            'email' => 'required|string|email|max:100',
+            'email' => 'required|string|max:100',
             'password' => 'required|string|min:8',
             'roleID' => 'required|exists:roles,roleID',
             'campusID' => 'required|exists:campuses,campusID',
@@ -136,17 +137,27 @@ class AuthController extends Controller
 
     public function changePassword(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'password' => 'required',
             'new_password' => 'required|min:8|confirmed',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
         $user = $request->user();
 
         if (!Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'password' => ['Current password is incorrect.'],
-            ]);
+            return response()->json([
+                'message' => 'Current password is incorrect.'
+            ], 403);
+        }
+
+        if (Hash::check($request->new_password, $user->password)) {
+            return response()->json([
+                'message' => 'New password must be different from the current password.'
+            ], 422);
         }
 
         $user->update([
@@ -156,5 +167,40 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Password changed successfully'
         ], 200);
+    }
+
+
+    public function sendResetLinkEmail(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $status = Password::sendResetLink(
+            $request->only('email')
+        );
+
+        return $status === Password::RESET_LINK_SENT
+            ? response()->json(['message' => 'Reset link sent.'], 200)
+            : response()->json(['message' => 'Unable to send reset link.'], 400);
+    }
+
+    public function reset(Request $request)
+    {
+        $request->validate([
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => 'required|confirmed|min:8',
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->password = bcrypt($password);
+                $user->save();
+            }
+        );
+
+        return $status === Password::PASSWORD_RESET
+            ? response()->json(['message' => 'Password reset successfully.'])
+            : response()->json(['message' => 'Password reset failed.'], 400);
     }
 }

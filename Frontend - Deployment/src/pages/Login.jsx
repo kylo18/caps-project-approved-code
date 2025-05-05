@@ -3,7 +3,6 @@ import univLogo from "../assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "../components/loadingOverlay";
-import { FaUser, FaKey } from "react-icons/fa";
 
 export default function LoginPage() {
   const [idCode, setIdCode] = useState("");
@@ -19,12 +18,12 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError(""); // Clear any previous errors
-    setIsLogIn(true); // Start loading indicator (if any)
+    setError("");
+    setIsLogIn(true);
 
     if (!idCode.trim() || !password.trim()) {
       setError("Please enter both ID Code and Password.");
-      setIsLogIn(false); // Stop loading if validation fails
+      setIsLogIn(false);
       return;
     }
 
@@ -93,9 +92,13 @@ export default function LoginPage() {
         <div className="absolute top-3 left-3 flex items-center space-x-2">
           <img src={univLogo} alt="Logo 1" className="size-8" />
           <img src={collegeLogo} alt="Logo 2" className="size-8" />
-          <h1 className="text-sm lg:text-lg">
+          <h1 className="text-xs lg:text-lg">
             JOSE RIZAL MEMORIAL STATE UNIVERSITY
           </h1>
+        </div>
+
+        <div className="absolute hidden items-center space-x-2 lg:bottom-3 lg:left-3 lg:block">
+          <h1 className="text-sm text-gray-500">Version 1.0.0</h1>
         </div>
 
         {/* Title */}
@@ -116,7 +119,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-center lg:hidden">
+        <div className="font-inter mt-15 flex flex-col items-center justify-center lg:hidden">
           <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
             <span>
               <span className="text-3xl text-orange-500">C</span>OMPREHENSIVE
@@ -188,19 +191,17 @@ export default function LoginPage() {
               </div>
 
               {/* Remember Me & Links */}
-              <div className="mb-4 flex items-center justify-between text-sm text-nowrap text-gray-600">
-                <label className="flex items-center text-[13px]">
-                  <input
-                    type="checkbox"
-                    className="mr-2 cursor-pointer"
-                    style={{ accentColor: "orange" }}
-                    checked={rememberMe}
-                    onChange={() => setRememberMe(!rememberMe)}
-                  />
-                  Remember me
-                </label>
+              <div className="mb-6 flex items-center justify-end text-sm text-nowrap text-gray-600">
                 <div>
-                  <a href="#" className="text-[13px] hover:underline">
+                  <a
+                    onClick={() =>
+                      alert(
+                        "The forgot password feature is still under development.",
+                      )
+                    }
+                    href="#"
+                    className="text-[13px] hover:underline"
+                  >
                     Forgot Password
                   </a>
                 </div>

@@ -749,6 +749,9 @@ const UserList = () => {
                 {selectedUser.lastName}
               </p>
               <p>
+                <strong>User Code:</strong> {selectedUser.userCode}
+              </p>
+              <p>
                 <strong>Email:</strong> {selectedUser.email}
               </p>
               <p>

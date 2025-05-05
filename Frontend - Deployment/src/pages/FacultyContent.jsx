@@ -350,10 +350,10 @@ const FacultyContent = () => {
   }, []);
 
   return (
-    <div className="relative mt-9 flex min-h-screen w-full flex-1 flex-col justify-center sm:p-2">
+    <div className="relative mt-9 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
       <div className="flex-1">
         {selectedSubject ? (
-          <div className="w-full py-6">
+          <div className="w-full py-3">
             <div className="w-full">
               <SubjectCardLower
                 subjectName={selectedSubject.subjectName}
