@@ -165,7 +165,7 @@ const Sidebar = ({
                     className={`flex items-center gap-3 rounded px-[4px] py-[4px] transition-colors ${
                       isActive(item.path)
                         ? "bg-orange-500 text-white"
-                        : "hover:bg-[rgb(255,230,214)] hover:text-gray-700"
+                        : "hover:text-gray-700"
                     }`}
                   >
                     <i className={`bx ${item.icon} text-2xl`}></i>

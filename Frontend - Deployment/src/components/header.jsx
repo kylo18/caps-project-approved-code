@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "./loadingOverlay";
 import { Tooltip } from "flowbite-react";
+import ChangePasswordForm from "./changePass";
 
 const AdminHeader = ({ title }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
@@ -103,20 +105,23 @@ const AdminHeader = ({ title }) => {
               <div className="absolute top-[44px] right-[-10px] w-60 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
                 <div className="flex items-center gap-3 border-gray-200 px-2 py-3">
                   <div className="flex h-8 w-10 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
-                    {/* Display User Initials */}
-                    {userInfo.fullName
-                      ? userInfo.fullName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
+                    {userInfo?.fullName
+                      ? (() => {
+                          const parts = userInfo.fullName.trim().split(" ");
+                          const firstInitial = parts[0]?.[0] || "";
+                          const lastInitial =
+                            parts.length > 1 ? parts[parts.length - 1][0] : "";
+                          return (firstInitial + lastInitial).toUpperCase();
+                        })()
                       : "NN"}
                   </div>
+
                   <div className="flex w-full flex-col overflow-hidden text-sm">
                     <span className="font-inter overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-gray-800">
-                      {userInfo.fullName}
+                      {userInfo?.fullName || "Loading..."}
                     </span>
                     <span className="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-gray-500">
-                      {userInfo.email}
+                      {userInfo?.email || "loading@email.com"}
                     </span>
                   </div>
                 </div>
@@ -124,15 +129,14 @@ const AdminHeader = ({ title }) => {
                 <div className="mx-1 h-[1px] bg-[rgb(200,200,200)]" />
 
                 <button
-                  onClick={() =>
-                    alert(
-                      "The profile view feature is still under development.",
-                    )
-                  }
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowChangePassword((prev) => !prev);
+                  }}
                   className="mt-1 flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i className="bx bx-user-circle mr-2 text-[16px]"></i> View
-                  Profile
+                  <i className="bx bx-lock-open-alt mr-2 text-[16px]"></i>{" "}
+                  Change Password
                 </button>
 
                 <button
@@ -154,9 +158,12 @@ const AdminHeader = ({ title }) => {
             )}
           </div>
         </div>
-
-        {isLoggingOut && <LoadingOverlay show={isLoggingOut} />}
       </div>
+      {showChangePassword && (
+        <ChangePasswordForm onClose={() => setShowChangePassword(false)} />
+      )}
+
+      {isLoggingOut && <LoadingOverlay show={isLoggingOut} />}
     </div>
   );
 };
