@@ -154,7 +154,7 @@ export default function Register() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-sm.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
+    <div className="relative flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-md.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
       {/* Left Section */}
       <div className="mr-10 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
         {/* Logos */}
@@ -164,10 +164,6 @@ export default function Register() {
           <h1 className="text-xs lg:text-lg">
             JOSE RIZAL MEMORIAL STATE UNIVERSITY
           </h1>
-        </div>
-
-        <div className="absolute hidden items-center space-x-2 lg:bottom-3 lg:left-3 lg:block">
-          <AppVersion />{" "}
         </div>
 
         {/* Title */}
@@ -545,7 +541,7 @@ export default function Register() {
                   </span>
                 </p>
 
-                <div className="justify-center px-4 text-center text-sm text-gray-600">
+                <div className="mt-3 mb-10 justify-center px-4 text-center text-sm text-gray-600 sm:mb-0">
                   <span className="text-orange-500">
                     Developed by Team CAPS
                   </span>
@@ -554,6 +550,9 @@ export default function Register() {
             </div>
           </div>
         </div>
+      </div>
+      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 transform items-center space-x-2 text-black lg:left-8">
+        <AppVersion />
       </div>
       {isRegistering && <LoadingOverlay show={isRegistering} />}
     </div>

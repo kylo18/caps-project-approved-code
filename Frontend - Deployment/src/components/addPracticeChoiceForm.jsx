@@ -174,7 +174,7 @@ const PracticeChoicesForm = ({ questionID, onComplete, onCancel }) => {
   };
 
   return (
-    <div className="flex">
+    <div className="mb-3 flex">
       <div className="flex-1">
         <div className="border-color relative mx-auto w-full max-w-3xl rounded-b border border-t-0 bg-white p-4 shadow-lg sm:px-4">
           <div className="space-y-3 px-3 py-2">

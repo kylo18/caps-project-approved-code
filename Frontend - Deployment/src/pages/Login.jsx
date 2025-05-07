@@ -84,7 +84,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-sm.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
+    <div className="relative flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-md.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
       {/* Left Section */}
       <div className="mr-10 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
         {/* Logos */}
@@ -94,10 +94,6 @@ export default function LoginPage() {
           <h1 className="text-xs lg:text-lg">
             JOSE RIZAL MEMORIAL STATE UNIVERSITY
           </h1>
-        </div>
-
-        <div className="absolute bottom-3 items-center space-x-2 lg:bottom-3 lg:left-3 lg:block">
-          <AppVersion />
         </div>
 
         {/* Title */}
@@ -211,9 +207,13 @@ export default function LoginPage() {
                   type="submit"
                   onClick={handleLogin}
                   disabled={isLogIn}
-                  className="w-full rounded-lg bg-orange-500 py-2 font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+                  className="flex h-10 w-full items-center justify-center rounded-lg bg-orange-500 py-2 font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
                 >
-                  {isLogIn ? "LOADING..." : "LOG IN"}
+                  {isLogIn ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  ) : (
+                    "LOG IN"
+                  )}
                 </button>
               </div>
 
@@ -227,12 +227,15 @@ export default function LoginPage() {
                   Create an account
                 </span>
               </p>
-              <div className="mt-3 justify-center px-4 text-center text-sm text-gray-600">
+              <div className="mt-3 mb-10 justify-center px-4 text-center text-sm text-gray-600 lg:mb-0">
                 <span className="text-orange-500">Developed by Team CAPS</span>
               </div>
             </form>
           </div>
         </div>
+      </div>
+      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 transform items-center space-x-2 text-black lg:left-8">
+        <AppVersion />
       </div>
     </div>
   );
