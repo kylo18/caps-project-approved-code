@@ -3,6 +3,7 @@ import univLogo from "../assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "../components/loadingOverlay";
+import AppVersion from "../components/appVersion";
 
 export default function LoginPage() {
   const [idCode, setIdCode] = useState("");
@@ -11,8 +12,6 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
-
-  const [rememberMe, setRememberMe] = useState(false);
 
   const [isLogIn, setIsLogIn] = useState(false);
 
@@ -85,7 +84,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-sm.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
+    <div className="relative flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-md.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
       {/* Left Section */}
       <div className="mr-10 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
         {/* Logos */}
@@ -95,10 +94,6 @@ export default function LoginPage() {
           <h1 className="text-xs lg:text-lg">
             JOSE RIZAL MEMORIAL STATE UNIVERSITY
           </h1>
-        </div>
-
-        <div className="absolute hidden items-center space-x-2 lg:bottom-3 lg:left-3 lg:block">
-          <h1 className="text-sm text-gray-500">Version 1.0.0</h1>
         </div>
 
         {/* Title */}
@@ -119,7 +114,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="font-inter mt-15 flex flex-col items-center justify-center lg:hidden">
+        <div className="font-inter mt-12 flex flex-col items-center justify-center lg:hidden">
           <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
             <span>
               <span className="text-3xl text-orange-500">C</span>OMPREHENSIVE
@@ -145,12 +140,11 @@ export default function LoginPage() {
           <div className="text-center sm:ml-10 lg:ml-0">
             <h2 className="text-xl font-bold lg:mr-15">LOG IN ACCOUNT</h2>
             <p className="mt-2 justify-center text-center text-sm text-gray-500 lg:mr-15">
-              <span>Welcome! Please enter your ID number and password</span>
-              <br />
+              <span>Welcome! Please enter your ID number and password </span>
               <span>to access your account.</span>
             </p>
 
-            <div className="mt-6 w-full max-w-sm">
+            <form className="mt-6 w-full max-w-sm">
               {/* ID Number Input */}
               <div className="relative mb-4">
                 <i className="bx bx-user absolute top-3 left-3 text-[18px] text-gray-500"></i>
@@ -191,30 +185,35 @@ export default function LoginPage() {
               </div>
 
               {/* Remember Me & Links */}
-              <div className="mb-6 flex items-center justify-end text-sm text-nowrap text-gray-600">
-                <div>
-                  <a
-                    onClick={() =>
-                      alert(
-                        "The forgot password feature is still under development.",
-                      )
-                    }
-                    href="#"
-                    className="text-[13px] hover:underline"
-                  >
-                    Forgot Password
-                  </a>
-                </div>
+              <div className="mb-6 flex items-center justify-between text-sm text-gray-600">
+                {/* Left side: Remember Me */}
+                <label className="flex items-center gap-2 text-nowrap">
+                  <input type="checkbox" />
+                  <span>Remember me</span>
+                </label>
+
+                {/* Right side: Forgot Password */}
+                <a
+                  onClick={() => navigate("/forgot-password")}
+                  className="cursor-pointer text-[13px] hover:underline"
+                >
+                  Forgot Password
+                </a>
               </div>
 
               {/* Login Button */}
-              <div className="mx-auto flex w-1/3 items-center justify-center">
+              <div className="mx-auto flex w-[30%] items-center justify-center text-sm">
                 <button
                   type="submit"
                   onClick={handleLogin}
-                  className="mt-2 w-full rounded bg-orange-500 py-2 text-white hover:bg-orange-600"
+                  disabled={isLogIn}
+                  className="flex h-10 w-full items-center justify-center rounded-lg bg-orange-500 py-2 font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
                 >
-                  LOG-IN
+                  {isLogIn ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  ) : (
+                    "LOG IN"
+                  )}
                 </button>
               </div>
 
@@ -223,20 +222,21 @@ export default function LoginPage() {
                 Don’t have an account?{" "}
                 <span
                   onClick={() => navigate("/register")}
-                  className="text-orange-500 hover:underline"
+                  className="cursor-pointer text-orange-500 hover:underline"
                 >
-                  Register here
+                  Create an account
                 </span>
               </p>
-
-              <div className="mt-20 justify-center px-4 text-center text-sm text-gray-600 sm:hidden">
-                <span className="text-orange-500">Developed by BScPE 2-A</span>
+              <div className="mt-3 mb-10 justify-center px-4 text-center text-sm text-gray-600 lg:mb-0">
+                <span className="text-orange-500">Developed by Team CAPS</span>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>
-      {isLogIn && <LoadingOverlay show={isLogIn} />}
+      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 transform items-center space-x-2 text-black lg:left-8">
+        <AppVersion />
+      </div>
     </div>
   );
 }

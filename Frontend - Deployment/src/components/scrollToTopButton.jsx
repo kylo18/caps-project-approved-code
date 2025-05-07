@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 const ScrollToTopButton = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -10,22 +10,19 @@ const ScrollToTopButton = () => {
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: 'smooth',
+      behavior: "smooth",
     });
   };
 
   useEffect(() => {
-    window.addEventListener('scroll', checkScroll);
-    return () => window.removeEventListener('scroll', checkScroll);
+    window.addEventListener("scroll", checkScroll);
+    return () => window.removeEventListener("scroll", checkScroll);
   }, []);
 
   return (
     <button
       onClick={scrollToTop}
-      className={`flex items-center justify-center fixed bottom-4 left-[calc(50%+32px)] transform -translate-x-1/2 
-        bg-white text-gray-700 rounded-full shadow-md hover:bg-gray-200 p-1 cursor-pointer border border-color transition-all duration-300
-        ${isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
-      `}
+      className={`border-color fixed bottom-4 left-1/2 flex -translate-x-1/2 transform cursor-pointer items-center justify-center rounded-full border bg-white p-1 text-gray-700 shadow-md transition-all duration-300 hover:bg-gray-200 md:left-[calc(50%+32px)] ${isVisible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"} `}
     >
       <i className="bx bx-chevron-up text-[30px]"></i>
     </button>

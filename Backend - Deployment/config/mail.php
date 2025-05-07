@@ -46,7 +46,7 @@ return [
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://100.67.127.17:5173'), PHP_URL_HOST)),
         ],
 
         'ses' => [
@@ -95,6 +95,13 @@ return [
             ],
         ],
 
+        'mailers' => [
+            'mailgun' => [
+                'transport' => 'mailgun',
+            ],
+    // other mailers...
+        ],
+
     ],
 
     /*
@@ -109,8 +116,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS', 'coeofjrmsucaps@gmail.com'),
+        'name' => env('MAIL_FROM_NAME', "CAPS"),
     ],
 
 ];

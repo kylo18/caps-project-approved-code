@@ -9,7 +9,6 @@ import FacultyDashboard from "./pages/FacultyDashboard";
 import ProgramChairDashboard from "./pages/ProgramChairDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 
-import ScrollToTop from "./components/scrollToTop";
 import Users from "./pages/Users";
 
 import AdminContent from "./pages/AdminContent";
@@ -19,14 +18,17 @@ import PracticeTestResult from "./pages/PracticeTestResult";
 import PracticeExam from "./pages/PracticeExam";
 
 import PrintExam from "./pages/PrintExam";
+import ResetPasswordPage from "./components/resetPassForm";
+import ForgotPasswordForm from "./components/forgotPassForm";
 
 function App() {
   return (
     <Router>
-      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordForm />} />
 
         {/* Protected Routes */}
         <Route

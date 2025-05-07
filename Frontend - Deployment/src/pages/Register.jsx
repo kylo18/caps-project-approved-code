@@ -4,6 +4,7 @@ import univLogo from "/src/assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
 import RegisterDropDown from "../components/registerDropDown.jsx";
 import LoadingOverlay from "../components/loadingOverlay.jsx";
+import AppVersion from "../components/appVersion.jsx";
 
 export default function Register() {
   const [userCode, setUserCode] = useState("");
@@ -153,20 +154,16 @@ export default function Register() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-sm.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
+    <div className="relative flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-md.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
       {/* Left Section */}
       <div className="mr-10 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
         {/* Logos */}
         <div className="absolute top-3 left-3 flex items-center space-x-2">
           <img src={univLogo} alt="Logo 1" className="size-8" />
           <img src={collegeLogo} alt="Logo 2" className="size-8" />
-          <h1 className="text-sm lg:text-lg">
+          <h1 className="text-xs lg:text-lg">
             JOSE RIZAL MEMORIAL STATE UNIVERSITY
           </h1>
-        </div>
-
-        <div className="absolute hidden items-center space-x-2 lg:bottom-3 lg:left-3 lg:block">
-          <h1 className="text-sm text-gray-500">Version 1.0.0</h1>
         </div>
 
         {/* Title */}
@@ -187,7 +184,7 @@ export default function Register() {
           </p>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-center lg:hidden">
+        <div className="font-inter mt-12 flex flex-col items-center justify-center lg:hidden">
           <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
             <span>
               <span className="text-3xl text-orange-500">C</span>OMPREHENSIVE
@@ -231,11 +228,15 @@ export default function Register() {
                   {/* Step 1 Content */}
                   {currentStep === 1 && (
                     <>
+                      {" "}
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        First Name
+                      </label>
                       <div className="relative mb-4">
-                        <i className="bx bx-user absolute top-3 left-5 text-[18px] text-gray-500"></i>
+                        <i className="bx bx-user absolute top-3 left-4 text-[18px] text-gray-500"></i>
                         <input
                           type="text"
-                          placeholder="First Name"
+                          placeholder="Enter"
                           value={firstName}
                           onChange={(e) => setFirstName(e.target.value)}
                           className="open-sans w-full rounded-full border border-gray-300 px-11 py-2 transition-all duration-200 hover:border-gray-500 focus:border-transparent focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none"
@@ -246,12 +247,14 @@ export default function Register() {
                           </p>
                         )}
                       </div>
-
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Last Name
+                      </label>
                       <div className="relative mb-4">
-                        <i className="bx bx-user absolute top-3 left-5 text-[18px] text-gray-500"></i>
+                        <i className="bx bx-user absolute top-3 left-4 text-[18px] text-gray-500"></i>
                         <input
                           type="text"
-                          placeholder="Last Name"
+                          placeholder="Enter"
                           value={lastName}
                           onChange={(e) => setLastName(e.target.value)}
                           className="open-sans w-full rounded-full border border-gray-300 px-11 py-2 transition-all duration-200 hover:border-gray-500 focus:border-transparent focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none"
@@ -262,7 +265,6 @@ export default function Register() {
                           </p>
                         )}
                       </div>
-
                       <div className="mt-7 flex justify-center gap-4">
                         <button
                           type="submit"
@@ -285,11 +287,14 @@ export default function Register() {
                   {/* Step 2 Content */}
                   {currentStep === 2 && (
                     <>
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        User Code
+                      </label>
                       <div className="relative mb-4">
-                        <i className="bx bx-id-card absolute top-3 left-5 text-[18px] text-gray-500"></i>
+                        <i className="bx bx-id-card absolute top-3 left-4 text-[18px] text-gray-500"></i>
                         <input
                           type="text"
-                          placeholder="User Code (23-A-XXXXX)"
+                          placeholder="Enter"
                           value={userCode}
                           onChange={(e) => setUserCode(e.target.value)}
                           className="open-sans w-full rounded-full border border-gray-300 px-11 py-2 transition-all duration-200 hover:border-gray-500 focus:border-transparent focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none"
@@ -300,12 +305,14 @@ export default function Register() {
                           </p>
                         )}
                       </div>
-
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Email Address
+                      </label>
                       <div className="relative mb-4">
-                        <i className="bx bx-envelope absolute top-3 left-5 text-[18px] text-gray-500"></i>
+                        <i className="bx bx-envelope absolute top-3 left-4 text-[18px] text-gray-500"></i>
                         <input
                           type="text"
-                          placeholder="Email Address"
+                          placeholder="e.g steve@gmail.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="open-sans w-full rounded-full border border-gray-300 px-11 py-2 transition-all duration-200 hover:border-gray-500 focus:border-transparent focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none"
@@ -369,7 +376,7 @@ export default function Register() {
 
                         <div className="w-full">
                           <RegisterDropDown
-                            name="Role"
+                            name="Position"
                             value={roleID}
                             onChange={(e) => setRoleID(e.target.value)}
                             placeholder="Select Position"
@@ -436,14 +443,17 @@ export default function Register() {
                 >
                   {currentStep === 4 && (
                     <>
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Password
+                      </label>
                       {/* Password */}
                       <div className="mb-4">
                         <div className="relative mb-4">
-                          <i className="bx bx-key absolute top-3 left-5 text-[18px] text-gray-500"></i>
+                          <i className="bx bx-key absolute top-3 left-4 text-[18px] text-gray-500"></i>
                           <input
                             type={passwordVisible ? "text" : "password"}
                             value={password}
-                            placeholder="Password"
+                            placeholder="Enter"
                             onChange={(e) => setPassword(e.target.value)}
                             className="open-sans w-full rounded-full border border-gray-300 px-11 py-2 transition-all duration-200 hover:border-gray-500 focus:border-transparent focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none"
                           />
@@ -462,15 +472,17 @@ export default function Register() {
                           )}
                         </div>
                       </div>
-
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Confirm Password
+                      </label>
                       <div className="mb-4">
                         <div className="relative mb-4">
-                          <i className="bx bx-key absolute top-3 left-5 text-[18px] text-gray-500"></i>
+                          <i className="bx bx-key absolute top-3 left-4 text-[18px] text-gray-500"></i>
                           <input
                             type={confirmPasswordVisible ? "text" : "password"}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder="Confirm Password"
+                            placeholder="Enter"
                             className="open-sans w-full rounded-full border border-gray-300 px-11 py-2 transition-all duration-200 hover:border-gray-500 focus:border-transparent focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none"
                           />
                           <div
@@ -510,7 +522,7 @@ export default function Register() {
                         </button>
                         <button
                           type="submit"
-                          className="flex cursor-pointer items-center gap-1 rounded-full border bg-green-600 px-6 py-2 text-white transition hover:bg-green-800"
+                          className="flex cursor-pointer items-center gap-1 rounded-full border bg-green-500 px-6 py-2 text-white transition hover:bg-green-600"
                         >
                           <span className="text-[16px]">Register</span>
                         </button>
@@ -529,15 +541,18 @@ export default function Register() {
                   </span>
                 </p>
 
-                <div className="mt-20 justify-center px-4 text-center text-sm text-gray-600 sm:hidden">
+                <div className="mt-3 mb-10 justify-center px-4 text-center text-sm text-gray-600 sm:mb-0">
                   <span className="text-orange-500">
-                    Developed by BScPE 2-A
+                    Developed by Team CAPS
                   </span>
                 </div>
               </form>
             </div>
           </div>
         </div>
+      </div>
+      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 transform items-center space-x-2 text-black lg:left-8">
+        <AppVersion />
       </div>
       {isRegistering && <LoadingOverlay show={isRegistering} />}
     </div>

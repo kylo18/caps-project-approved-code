@@ -544,7 +544,7 @@ const SideBarDropDown = ({
       </div>
 
       {editingSubject && (
-        <div className="lightbox-bg fixed inset-0 z-56 flex flex-col items-center justify-center">
+        <div className="lightbox-bg fixed inset-0 z-56 flex flex-col items-center justify-center p-2">
           <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
             <span>Edit Subject</span>
           </div>
@@ -665,7 +665,7 @@ const SideBarDropDown = ({
       )}
 
       {showDeleteModal && subjectToDelete && (
-        <div className="lightbox-bg fixed inset-0 z-56 flex flex-col items-center justify-center">
+        <div className="lightbox-bg fixed inset-0 z-56 flex flex-col items-center justify-center p-2">
           <div className="font-inter border-color relative mx-auto w-full max-w-sm rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
             <span>Delete Subject</span>
           </div>
@@ -722,7 +722,9 @@ const SideBarDropDown = ({
               <p className="font-semibold text-gray-800">
                 {toast.type === "success" ? "Success" : "Error"}
               </p>
-              <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
+              <p className="mb-1 text-sm text-nowrap text-gray-600">
+                {toast.message}
+              </p>
             </div>
           </div>
         </div>
