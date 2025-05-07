@@ -84,8 +84,8 @@ const ResetPasswordPage = () => {
             <div className="flex items-start space-x-3 text-sm text-gray-600">
               <i className="bx bxs-lock text-2xl"></i>
               <p>
-                Enter your email address and we’ll send you a link to reset your
-                password.
+                Enter your new password below to update your account credentials
+                and complete the reset process.
               </p>
             </div>
 
@@ -152,7 +152,7 @@ const ResetPasswordPage = () => {
               disabled={loading}
               className="w-full cursor-pointer rounded bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 disabled:opacity-50"
             >
-              {loading ? "Sending..." : "Send Reset Link"}
+              {loading ? "Sending..." : "Save"}
             </button>
           </form>
 
