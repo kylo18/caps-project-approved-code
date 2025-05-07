@@ -408,7 +408,7 @@ const UserList = () => {
   }
 
   return (
-    <div className="font-inter mt-10 p-2">
+    <div className="font-inter mt-10">
       <div className="mb-4 flex items-center justify-between gap-2 text-[14px]">
         <div className="relative flex w-full items-center justify-between gap-4">
           {/* Status Tabs (Left) */}

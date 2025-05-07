@@ -513,7 +513,7 @@ const AssignedSubjectsDropDown = ({
 
       {/* Add Assign Subject Modal */}
       {showAddModal && (
-        <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center">
+        <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center p-2">
           <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
             <span>Assign a Subject</span>
           </div>
@@ -626,7 +626,9 @@ const AssignedSubjectsDropDown = ({
               <p className="font-semibold text-gray-800">
                 {toast.type === "success" ? "Success" : "Error"}
               </p>
-              <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
+              <p className="mb-1 text-sm text-nowrap text-gray-600">
+                {toast.message}
+              </p>
             </div>
           </div>
         </div>

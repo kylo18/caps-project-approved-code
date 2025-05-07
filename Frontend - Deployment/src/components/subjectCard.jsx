@@ -104,7 +104,7 @@ const SubjectCard = ({
           <div className="flex">
             <button
               onClick={handleRefresh}
-              className="absolute top-2 right-12 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-2xl hover:bg-gray-200 sm:absolute lg:right-2"
+              className="absolute top-12 right-2 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-2xl hover:bg-gray-200 sm:absolute lg:top-2 lg:right-2"
             >
               <i className="bx bx-refresh text-gray-500"></i>
             </button>
@@ -137,14 +137,14 @@ const SubjectCard = ({
             )}
           </div>
 
-          <div className="flex items-center">
+          <div className="flex flex-wrap items-center">
             <img
               src={SubPhoto}
               alt="Subject"
               className="mr-5 size-16 rounded-md border border-gray-300 object-cover"
             />
-            <div className="flex flex-col flex-wrap">
-              <h1 className="text-[15px] font-bold break-words md:text-[21px]">
+            <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
+              <h1 className="line-clamp-2 text-[15px] font-bold break-words sm:line-clamp-1 md:text-[18px]">
                 {subjectName}
               </h1>
               <div className="mt-1 flex gap-2 text-gray-500">
@@ -250,7 +250,9 @@ const SubjectCard = ({
               <p className="font-semibold text-gray-800">
                 {toast.type === "success" ? "Success" : "Error"}
               </p>
-              <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
+              <p className="mb-1 text-sm text-nowrap text-gray-600">
+                {toast.message}
+              </p>
             </div>
           </div>
         </div>

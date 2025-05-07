@@ -98,7 +98,7 @@ const PracticeExamConfig = ({
     <>
       {/* Form Display - Inside isFormOpen condition */}
       {isFormOpen && (
-        <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center">
+        <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center p-2">
           <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
             <span>Configure Practice Exam</span>
           </div>
