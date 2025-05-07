@@ -542,11 +542,11 @@ const ProgramChairContent = () => {
                           }
                         }, 100);
                       }}
-                      className="cursor-pointer rounded border border-[rgb(200,200,200)] bg-white px-4 py-2 text-[14px] font-semibold text-gray-700 shadow-md hover:bg-gray-200"
+                      className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-lg hover:bg-orange-600 sm:rounded sm:px-4 sm:py-2"
                     >
                       <div className="flex items-center justify-center gap-2">
-                        <i className="bx bx-plus text-[20px]"></i>
-                        <span>Add Question</span>
+                        <i className="bx bx-plus text-[24px] sm:text-[20px]"></i>
+                        <span className="hidden sm:block">Add Question</span>
                       </div>
                     </button>
                   </div>

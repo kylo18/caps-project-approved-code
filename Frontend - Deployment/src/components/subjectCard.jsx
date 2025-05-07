@@ -129,7 +129,12 @@ const SubjectCard = ({
                   <i className="bx bx-cog text-[18px]" />
                   Configure
                 </button>
-                <button className="mt-2 flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition">
+                <button
+                  onClick={() =>
+                    alert("The preview feature is still under development.")
+                  }
+                  className="mt-2 flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition"
+                >
                   <i className="bx bx-show text-[18px]" />
                   Preview
                 </button>
@@ -214,7 +219,12 @@ const SubjectCard = ({
                 <i className="bx bx-cog text-lg"></i>
                 <span className="text-[14px]">Configure</span>
               </button>
-              <button className="hidden cursor-pointer items-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 lg:flex">
+              <button
+                onClick={() =>
+                  alert("The preview feature is still under development.")
+                }
+                className="hidden cursor-pointer items-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 lg:flex"
+              >
                 <i className="bx bxs-show text-lg"></i>
                 <span className="text-[14px]">Preview</span>
               </button>
