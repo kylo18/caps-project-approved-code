@@ -468,7 +468,7 @@ const FacultyContent = () => {
                 {!submittedQuestion[
                   activeTab === 0 ? "practiceQuestions" : "examQuestions"
                 ] && (
-                  <div className="fixed right-0 bottom-0 p-4 text-center">
+                  <div className="fixed right-0 bottom-0 z-57 p-4 text-center">
                     <button
                       onClick={() => {
                         setSubmittedQuestion((prev) => ({
@@ -1038,7 +1038,9 @@ const FacultyContent = () => {
                 <p className="font-semibold text-gray-800">
                   {toast.type === "success" ? "Success" : "Error"}
                 </p>
-                <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
+                <p className="mb-1 text-sm text-nowrap text-gray-600">
+                  {toast.message}
+                </p>
               </div>
             </div>
           </div>

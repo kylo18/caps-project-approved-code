@@ -234,7 +234,7 @@ const AdminContent = () => {
   const fetchQuestions = async () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setIsLoading(true);
-    setQuestions([]); // 👈 Temporarily hide questions
+    setQuestions([]);
 
     try {
       const token = localStorage.getItem("token");
@@ -505,13 +505,14 @@ const AdminContent = () => {
               </div>
             </div>
 
+            {/* Add Question Section */}
             {(activeTab === 0 || activeTab === 1) && (
               <div>
                 {/* Show Add Question Button Only If No Active Question */}
                 {!submittedQuestion[
                   activeTab === 0 ? "practiceQuestions" : "examQuestions"
                 ] && (
-                  <div className="fixed right-0 bottom-0 p-4 text-center">
+                  <div className="fixed right-[-4px] bottom-[-4px] z-57 p-4 text-center">
                     <button
                       onClick={() => {
                         setSubmittedQuestion((prev) => ({
@@ -537,11 +538,11 @@ const AdminContent = () => {
                           }
                         }, 100);
                       }}
-                      className="cursor-pointer rounded border border-[rgb(200,200,200)] bg-white px-4 py-2 text-[14px] font-semibold text-gray-700 shadow-md hover:bg-gray-200"
+                      className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-lg hover:bg-orange-600 sm:rounded sm:px-4 sm:py-2"
                     >
                       <div className="flex items-center justify-center gap-2">
-                        <i className="bx bx-plus text-[20px]"></i>
-                        <span>Add Question</span>
+                        <i className="bx bx-plus text-[24px] sm:text-[20px]"></i>
+                        <span className="hidden sm:block">Add Question</span>
                       </div>
                     </button>
                   </div>
@@ -1067,8 +1068,6 @@ const AdminContent = () => {
               </div>
             )}
 
-            {/* Add Question Section */}
-
             {activeTab === 2 && (
               <p className="text-center text-gray-500">Under Development</p>
             )}
@@ -1155,7 +1154,9 @@ const AdminContent = () => {
               <p className="font-semibold text-gray-800">
                 {toast.type === "success" ? "Success" : "Error"}
               </p>
-              <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
+              <p className="mb-1 text-sm text-nowrap text-gray-600">
+                {toast.message}
+              </p>
             </div>
           </div>
         </div>
