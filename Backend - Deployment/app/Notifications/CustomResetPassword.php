@@ -32,8 +32,6 @@ class CustomResetPassword extends Notification
             ->subject('Reset Your Password')
             ->line('Click the button below to reset your password.')
             ->action('Reset Password', $url)
-            ->line('If you did not request a password reset, no further action is required.')
-            ->line('If you’re having trouble clicking the "Reset Password" button, copy and paste the URL below into your web browser:')
-            ->line($url);
+            ->line('If you did not request a password reset, no further action is required.');
     }
 }
