@@ -6,18 +6,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Modules\Subjects\Models\Subject;
+use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens;
 use Modules\Users\Models\Role;
 use Modules\FacultySubjects\Models\FacultySubject;
 use Modules\PracticeExams\Models\PracticeExamResult;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\CustomResetPassword;
 
 class User extends Authenticatable
 {
     use HasApiTokens;
     use HasFactory;
     use Notifiable;
+    use CanResetPassword;
 
 
     protected $table = 'users';
@@ -103,5 +108,11 @@ class User extends Authenticatable
     public function practiceExamResults()
     {
         return $this->hasMany(PracticeExamResult::class, 'userID', 'userID');
+    }
+
+    public function sendPasswordResetNotification($token)
+    {
+        $url = url('/password/reset/' . $token);
+        $this->notifyNow(new CustomResetPassword($token, $url));
     }
 }

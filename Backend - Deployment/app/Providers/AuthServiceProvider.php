@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Modules\Users\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -44,6 +45,12 @@ class AuthServiceProvider extends ServiceProvider
         // Admins have full access
         Gate::define('is-admin', function (User $user) {
             return in_array($user->role, ['dean', 'program-chair']);
+        });
+
+        $this->registerPolicies();
+
+        ResetPassword::createUrlUsing(function ($user, string $token) {
+            return config('app.frontend_url') . '/reset-password?token=' . $token . '&email=' . urlencode($user->email);
         });
     }
 }

@@ -15,7 +15,7 @@ class UsersTableSeeder extends Seeder
                 'userCode' => '23-A-02087',
                 'firstName' => 'Kent',
                 'lastName' => 'Apat',
-                'email' => 'kentapat123@gmail.com',
+                'email' => 'kentrelatesahappenings@gmail.com',
                 'password' => Hash::make('Kent'),
                 'roleID' => 2,
                 'campusID' => 1,

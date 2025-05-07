@@ -12,13 +12,19 @@ use Modules\PracticeExams\Controllers\PracticeExamSettingController;
 use Modules\PracticeExams\Controllers\PracticeExamController;
 use Modules\Users\Controllers\ProgramController;
 use Modules\Users\Controllers\RoleController;
+use Modules\Users\Controllers\PasswordResetController;
+use Modules\App\Controllers\AppController;
 
 //User authentication routes
 Route::post('/register', action: [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/roles', [RoleController::class, 'indexAvailableRoles']);
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail']);
+Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 
-Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class,])->group(function () {
+Route::get('/app-version', [AppController::class, 'getVersion']);
+
+Route::middleware(['auth:sanctum'])->group(function () {
     //Password change route
     Route::post('/change-password', [AuthController::class, 'changePassword']);
 
