@@ -1,0 +1,110 @@
+Dean Accounts
+First Name: Gillert
+Last Name: Bongcac
+User Code: 23-A-12345
+Email Address: bongcac@gmail.com
+Campus: Dapitan
+Position: Dean
+Password: 12345678
+
+Program Chair Accounts
+BSCPE
+First Name: Troy 
+Last Name: Lasco
+User Code: 23-A-12346
+Email Address: Troy@gmail.com
+Campus: Dapitan
+Position: Program Chair
+Program: BSCpE
+Password: 12345678
+
+BSABE
+First Name: Agri 
+Last Name: Bio
+User Code: 23-A-11111
+Email Address: abe@gmail.com
+Campus: Tampilisan
+Position: Program Chair
+Program: BSABE
+Password: 12345678
+
+BSCE
+First Name: CE 
+Last Name: Engr
+User Code: 23-A-22222
+Email Address: ce@gmail.com
+Campus: Dapitan
+Position: Program Chair
+Program: BSCE
+Password: 12345678
+
+BSECE
+First Name: ECE
+Last Name: Eng
+User Code: 23-A-33333
+Email Address: ece@gmail.com
+Campus: Dapitan
+Position: Program Chair
+Program: BSECE
+Password: 12345678
+
+BSEE
+First Name: EE 
+Last Name: Egr
+User Code: 23-A-55555
+Email Address: ee@gmail.com
+Campus: Dapitan
+Position: Program Chair
+Program: BSEE
+Password: 12345678
+
+Faculty Accounts
+BSCPE
+First Name: Ryann
+Last Name: Elumba
+User Code: 23-A-12347
+Email Address: Ryann@gmail.com
+Campus: Dapitan
+Position: Faculty
+Program: BSCpE
+Password: 12345678
+
+BSABE
+First Name: Abe2 
+Last Name: Bio
+User Code: 23-A-11112
+Email Address: abe2@gmail.com
+Campus: Tampilisan
+Position: Faculty
+Program: BSABE
+Password: 12345678
+
+BSCE
+First Name: CE2
+Last Name: Engr
+User Code: 23-A-22223
+Email Address: ce2@gmail.com
+Campus: Dapitan
+Position: Faculty
+Program: BSCE
+Password: 12345678
+
+BSECE
+First Name: ECE2
+Last Name: Eng
+User Code: 23-A-33334
+Email Address: ece2@gmail.com
+Campus: Dapitan
+Position: Faculty
+Program: BSECE
+Password: 12345678
+
+BSEE
+First Name: EE2
+Last Name: Egr
+User Code: 23-A-55556
+Email Address: ee2@gmail.com
+Campus: Dapitan
+Position: Faculty
+Program: BSEE
+Password: 12345678
