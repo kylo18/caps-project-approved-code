@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
 import SubjectCard from "../components/subjectCard";
-import PracticeAddQuestionForm from "../components/addPracticeQuestionForm";
-import PracticeAddChoiceForm from "../components/addPracticeChoiceForm";
-import ExamAddQuestionForm from "../components/addExamQuestionForm";
-import ExamAddChoiceForm from "../components/addExamChoiceForm";
+import CombinedPracticeQuestionForm from "../components/CombinedPracticeQuestionForm";
+import CombinedExamQuestionForm from "../components/CombinedExamQuestionForm";
+import EditQuestionForm from "../components/EditQuestionForm";
 import ConfirmModal from "../components/confirmModal";
 import Sort from "../components/sort";
 import SearchQuery from "../components/SearchQuery";
@@ -15,6 +14,8 @@ import LoadingOverlay from "../components/loadingOverlay";
 import SubjectCardLower from "../components/subjectCardLower";
 
 const ProgramChairContent = () => {
+  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+
   const [modalImage, setModalImage] = useState(null);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false);
@@ -23,10 +24,7 @@ const ProgramChairContent = () => {
   const { selectedSubject } = useOutletContext();
   const [activeTab, setActiveTab] = useState(0);
   const [questions, setQuestions] = useState([]);
-  const [submittedQuestion, setSubmittedQuestion] = useState({
-    practiceQuestions: { questionID: null, questionText: "", image: null },
-    examQuestions: { questionID: null, questionText: "", image: null },
-  });
+  const [submittedQuestion, setSubmittedQuestion] = useState(null);
   const formRef = useRef(null);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,10 +57,8 @@ const ProgramChairContent = () => {
 
   const dropdownRef = useRef(null);
 
-  const [showPracticeChoiceForm, setShowPracticeChoiceForm] = useState(false);
-  const [showExamChoiceForm, setShowExamChoiceForm] = useState(false);
-
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const buttonRef = useRef(null);
 
@@ -72,6 +68,9 @@ const ProgramChairContent = () => {
     show: false,
   });
 
+  const [editingQuestion, setEditingQuestion] = useState(null);
+
+  // Effect to handle toast notifications auto-dismiss
   useEffect(() => {
     if (toast.message) {
       setToast((prev) => ({ ...prev, show: true }));
@@ -87,24 +86,18 @@ const ProgramChairContent = () => {
     }
   }, [toast.message]);
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
-
+  // Effect to fetch questions when subject changes
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
       fetchQuestions();
-      setSubmittedQuestion({
-        practiceQuestions: null,
-        examQuestions: null,
-      });
-      setShowPracticeChoiceForm(false);
-      setShowExamChoiceForm(false);
+      setSubmittedQuestion(null);
       setSearchQuery("");
       setSortOption("");
       setSubSortOption("");
     }
   }, [selectedSubject]);
 
-  // Small helper
+  // Helper function to fix malformed image URLs
   const fixImageUrl = (url) => {
     if (!url) return "";
 
@@ -118,6 +111,7 @@ const ProgramChairContent = () => {
     return url;
   };
 
+  // Functions for question text editing
   const startEditing = (question) => {
     setEditQuestionID(question.questionID);
     setEditText(question.questionText);
@@ -128,6 +122,7 @@ const ProgramChairContent = () => {
     setEditText("");
   };
 
+  // Function to save edited question text to the server
   const saveEdit = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
@@ -157,6 +152,7 @@ const ProgramChairContent = () => {
     }
   };
 
+  // Function to delete a question from the server
   const handleDeleteQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
@@ -190,6 +186,7 @@ const ProgramChairContent = () => {
     }
   };
 
+  // Function to fetch all questions for the selected subject
   const fetchQuestions = async () => {
     setIsLoading(true);
     setQuestions([]); // 👈 Temporarily hide questions
@@ -228,7 +225,7 @@ const ProgramChairContent = () => {
     }
   };
 
-  // Filter and Sort Questions
+  // Function to filter and sort questions based on search query and active tab
   const filteredQuestions = questions
     .filter((question) => {
       const matchesSearch = question.questionText
@@ -265,78 +262,24 @@ const ProgramChairContent = () => {
       return 0;
     });
 
+  // Function to show confirmation modal before deleting a question
   const confirmDelete = (questionID) => {
     setDeleteQuestionID(questionID);
     setShowConfirmModal(true);
   };
 
-  const handleQuestionAdded = (newQuestion) => {
-    if (activeTab === 0) {
-      // Practice tab
-      setSubmittedQuestion((prev) => ({
-        ...prev,
-        practiceQuestions: newQuestion,
-      }));
-      setShowPracticeChoiceForm(true);
-    } else {
-      // Exam tab
-      setSubmittedQuestion((prev) => ({
-        ...prev,
-        examQuestions: newQuestion,
-      }));
-      setShowExamChoiceForm(true);
-    }
-  };
-
-  const handlePracticeChoicesSubmitted = () => {
-    setSubmittedQuestion((prev) => ({
-      ...prev,
-      practiceQuestions: null,
-    }));
-    setShowPracticeChoiceForm(false);
+  // Function to handle successful question addition
+  const handleQuestionAdded = () => {
+    setSubmittedQuestion(null);
     fetchQuestions();
     setToast({
-      message: "Practice question is now pending for approval!",
+      message: "Question is now pending for approval!",
       type: "success",
       show: true,
     });
   };
 
-  // For Exam Choices
-  const handleExamChoicesSubmitted = () => {
-    setSubmittedQuestion((prev) => ({
-      ...prev,
-      examQuestions: null,
-    }));
-    setShowExamChoiceForm(false);
-    fetchQuestions();
-    setToast({
-      message: "Exam question is now pending for approval!",
-      type: "success",
-      show: true,
-    });
-  };
-
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-  }, []);
-
-  useEffect(() => {
-    if (showPracticeChoiceForm && formRef.current) {
-      formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [showPracticeChoiceForm]);
-
-  useEffect(() => {
-    if (showExamChoiceForm && formRef.current) {
-      formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [showExamChoiceForm]);
-
+  // Function to approve a pending question
   const approveQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
@@ -376,6 +319,7 @@ const ProgramChairContent = () => {
     }
   };
 
+  // Effect to handle clicks outside the dropdown menu
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -397,11 +341,30 @@ const ProgramChairContent = () => {
     };
   }, []);
 
+  // Function to start editing a question
+  const handleEditClick = (question) => {
+    setEditingQuestion(question);
+  };
+
+  // Function to handle completion of question editing
+  const handleEditComplete = () => {
+    setEditingQuestion(null);
+    fetchQuestions();
+    setToast({
+      message: "Question is now pending for approval!",
+      type: "success",
+      show: true,
+    });
+  };
+
   return (
+    // Main container with flex layout for the entire dashboard
     <div className="relative mt-9 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
       <div className="flex-1">
         {selectedSubject ? (
+          // Main content area when a subject is selected
           <div className="w-full py-3">
+            {/* Subject header with tabs for navigation */}
             <div className="w-full">
               <SubjectCard
                 subjectName={selectedSubject.subjectName}
@@ -417,7 +380,8 @@ const ProgramChairContent = () => {
                 onFetchQuestions={fetchQuestions}
               />
             </div>
-            {/*Search bar div here*/}
+
+            {/* Control panel: Search, filters, and view options */}
             <div className="mt-2 mb-4 flex flex-col justify-end gap-[5.5px] sm:flex-row">
               <SearchQuery
                 searchQuery={searchQuery}
@@ -442,7 +406,6 @@ const ProgramChairContent = () => {
                 )}
               </div>
               <div className="flex flex-row items-center justify-center gap-[5.5px]">
-                {/* Sort - takes 1/2 width on small screens */}
                 <div className="w-full sm:w-auto sm:flex-1">
                   <Sort
                     sortOption={sortOption}
@@ -452,7 +415,6 @@ const ProgramChairContent = () => {
                   />
                 </div>
 
-                {/* View Button - takes 1/2 width on small screens */}
                 <div
                   ref={dropdownRef}
                   className="relative w-full text-left sm:w-auto sm:flex-1"
@@ -467,7 +429,7 @@ const ProgramChairContent = () => {
                       className={`bx absolute right-2 text-[18px] ${
                         dropdownOpen ? "bx-chevron-up" : "bx-chevron-down"
                       }`}
-                      style={{ marginLeft: "auto" }} // Ensure the chevron is right-aligned
+                      style={{ marginLeft: "auto" }}
                     />
                   </button>
 
@@ -509,38 +471,19 @@ const ProgramChairContent = () => {
               </div>
             </div>
 
-            {/* Add Question Section */}
+            {/* Question management section */}
             {(activeTab === 0 || activeTab === 1) && (
               <div>
-                {/* Show Add Question Button Only If No Active Question */}
-                {!submittedQuestion[
-                  activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                ] && (
-                  <div className="fixed right-0 bottom-0 z-57 p-4 text-center">
+                {/* Floating action button for adding new questions */}
+                {((activeTab === 0 && submittedQuestion !== "practice") ||
+                  (activeTab === 1 && submittedQuestion !== "exam")) && (
+                  <div className="fixed right-[-4px] bottom-[-4px] z-50 p-4 text-center">
                     <button
                       onClick={() => {
-                        setSubmittedQuestion((prev) => ({
-                          ...prev,
-                          [activeTab === 0
-                            ? "practiceQuestions"
-                            : "examQuestions"]: {
-                            questionText: "",
-                            questionID: null,
-                          },
-                        }));
+                        setSubmittedQuestion(
+                          activeTab === 0 ? "practice" : "exam",
+                        );
                         setIsAddingQuestion(true);
-
-                        setTimeout(() => {
-                          if (formRef.current) {
-                            const yOffset = -500;
-                            const y =
-                              formRef.current.getBoundingClientRect().top +
-                              window.pageYOffset +
-                              yOffset;
-
-                            window.scrollTo({ top: y, behavior: "smooth" });
-                          }
-                        }, 100);
                       }}
                       className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-lg hover:bg-orange-600 sm:rounded sm:px-4 sm:py-2"
                     >
@@ -552,171 +495,39 @@ const ProgramChairContent = () => {
                   </div>
                 )}
 
+                {/* Question form container - switches between practice and exam forms */}
                 <div ref={formRef}>
-                  {/* Show AddQuestionForm based on activeTab */}
-                  {submittedQuestion[
-                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                  ] &&
-                    !submittedQuestion[
-                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                    ].questionID && (
-                      <>
-                        <div className="text-right"></div>
-                        {activeTab === 0 ? (
-                          <PracticeAddQuestionForm
-                            subjectID={selectedSubject.subjectID}
-                            onQuestionAdded={handleQuestionAdded}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                practiceQuestions: null,
-                              }))
-                            }
-                            areChoicesValid={areChoicesValid}
-                          />
-                        ) : (
-                          <ExamAddQuestionForm
-                            subjectID={selectedSubject.subjectID}
-                            onQuestionAdded={handleQuestionAdded}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                examQuestions: null,
-                              }))
-                            }
-                          />
-                        )}
-                      </>
-                    )}
-                </div>
-
-                {/* Preview */}
-                {(activeTab === 0
-                  ? showPracticeChoiceForm
-                  : showExamChoiceForm) &&
-                  submittedQuestion?.[
-                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                  ]?.questionID && (
-                    <div className="flex flex-col">
-                      <div className="flex-1">
-                        <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border border-b-0 bg-white py-2 pl-4 text-[14px] font-medium text-gray-600">
-                          <span>ADD CHOICES</span>
-                        </div>
-                        <div className="border-color mx-auto w-full max-w-3xl rounded-b-none border border-b-0 bg-white p-4 shadow-sm">
-                          <div className="relative rounded-md bg-gray-100 p-1 transition-all duration-150 hover:cursor-text">
-                            <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
-                              <span>
-                                <div
-                                  dangerouslySetInnerHTML={{
-                                    __html:
-                                      submittedQuestion[
-                                        activeTab === 0
-                                          ? "practiceQuestions"
-                                          : "examQuestions"
-                                      ].questionText,
-                                  }}
-                                ></div>
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* image preview */}
-                          {submittedQuestion[
-                            activeTab === 0
-                              ? "practiceQuestions"
-                              : "examQuestions"
-                          ].image && (
-                            <div className="relative mt-3 inline-block max-w-[300px] hover:opacity-80">
-                              <img
-                                src={fixImageUrl(
-                                  submittedQuestion[
-                                    activeTab === 0
-                                      ? "practiceQuestions"
-                                      : "examQuestions"
-                                  ].image,
-                                )}
-                                alt="Question Image Preview"
-                                className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md"
-                                onClick={() => setisQuestionModalOpen(true)}
-                              />
-                            </div>
-                          )}
-
-                          {isQuestionModalOpen && (
-                            <div
-                              className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center"
-                              onClick={() => setisQuestionModalOpen(false)}
-                            >
-                              <div className="relative max-h-full max-w-full">
-                                <img
-                                  src={fixImageUrl(
-                                    submittedQuestion[
-                                      activeTab === 0
-                                        ? "practiceQuestions"
-                                        : "examQuestions"
-                                    ].image,
-                                  )}
-                                  alt="Full View"
-                                  className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                  {submittedQuestion === "practice" && activeTab === 0 && (
+                    <div className="transition-all duration-300 ease-out">
+                      <CombinedPracticeQuestionForm
+                        subjectID={selectedSubject.subjectID}
+                        onComplete={handleQuestionAdded}
+                        onCancel={() => setSubmittedQuestion(null)}
+                      />
                     </div>
                   )}
-
-                <div ref={formRef}>
-                  {(activeTab === 0
-                    ? showPracticeChoiceForm
-                    : showExamChoiceForm) &&
-                    submittedQuestion?.[
-                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                    ]?.questionID && (
-                      <>
-                        {activeTab === 0 ? (
-                          <PracticeAddChoiceForm
-                            questionID={
-                              submittedQuestion["practiceQuestions"]?.questionID
-                            }
-                            onComplete={handlePracticeChoicesSubmitted}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                practiceQuestions: null,
-                              }))
-                            }
-                          />
-                        ) : (
-                          <ExamAddChoiceForm
-                            questionID={
-                              submittedQuestion["examQuestions"]?.questionID
-                            }
-                            onComplete={handleExamChoicesSubmitted}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                examQuestions: null,
-                              }))
-                            }
-                          />
-                        )}
-                      </>
-                    )}
+                  {submittedQuestion === "exam" && activeTab === 1 && (
+                    <div className="transition-all duration-300 ease-out">
+                      <CombinedExamQuestionForm
+                        subjectID={selectedSubject.subjectID}
+                        onComplete={handleQuestionAdded}
+                        onCancel={() => setSubmittedQuestion(null)}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Questions List */}
-            {(activeTab === 0 || activeTab === 1 || activeTab === 4) && ( // Practice Questions
+            {/* Questions display section */}
+            {(activeTab === 0 || activeTab === 1 || activeTab === 4) && (
               <div className="flex">
                 <div className="flex-1">
                   {filteredQuestions.length > 0 ? (
                     <>
+                      {/* Questions list header with count and view options */}
                       <div className="border-color relative mx-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-t-md border border-b-0 bg-white">
                         <div className="flex items-center gap-2">
-                          {/* Question Count */}
                           <div className="ml-4 text-sm font-medium text-gray-600">
                             {
                               filteredQuestions.filter(
@@ -759,6 +570,7 @@ const ProgramChairContent = () => {
                         </div>
                       </div>
 
+                      {/* Questions list - renders each question card */}
                       {filteredQuestions
                         .filter(
                           (question) =>
@@ -772,6 +584,7 @@ const ProgramChairContent = () => {
                               question.status === "approved"),
                         )
                         .map((question, index) => (
+                          // Individual question card with content and actions
                           <div key={`${question.id}-${index}`}>
                             <div
                               onClick={() => {
@@ -792,7 +605,6 @@ const ProgramChairContent = () => {
                             >
                               <div className="w-full max-w-full overflow-hidden break-words">
                                 <div className="flex items-center justify-between text-[14px] text-gray-500">
-                                  {/* Always show points, coverage, and difficulty in list view */}
                                   <span>{index + 1}. Multiple Choice</span>
                                   <div className="flex items-center">
                                     <span className="rounded-lg px-2 py-1 text-[13px] font-medium">
@@ -802,7 +614,6 @@ const ProgramChairContent = () => {
                                         question.difficulty.slice(1)}
                                     </span>
                                     <span> •</span>
-                                    {/* Coverage Badge */}
                                     <span className="rounded-lg px-2 py-1 text-[13px] font-medium">
                                       {question.coverage
                                         .charAt(0)
@@ -891,7 +702,6 @@ const ProgramChairContent = () => {
                                 )}
                               </div>
 
-                              {/* Display Choices */}
                               {(!listViewOnly ||
                                 (listViewOnly &&
                                   expandedQuestionId ===
@@ -1038,15 +848,26 @@ const ProgramChairContent = () => {
                                       />
                                     </>
                                   ) : (
-                                    <Button
-                                      text="Remove"
-                                      textres="Remove"
-                                      icon="bx bx-trash"
-                                      onClick={() =>
-                                        confirmDelete(question.questionID)
-                                      }
-                                      className="cursor-pointer"
-                                    />
+                                    <>
+                                      <Button
+                                        text="Edit"
+                                        textres="Edit"
+                                        icon="bx bx-edit"
+                                        onClick={() =>
+                                          handleEditClick(question)
+                                        }
+                                        className="cursor-pointer"
+                                      />
+                                      <Button
+                                        text="Remove"
+                                        textres="Remove"
+                                        icon="bx bx-trash"
+                                        onClick={() =>
+                                          confirmDelete(question.questionID)
+                                        }
+                                        className="cursor-pointer"
+                                      />
+                                    </>
                                   )}
                                 </div>
                               )}
@@ -1069,6 +890,7 @@ const ProgramChairContent = () => {
               </div>
             )}
 
+            {/* Placeholder for future features */}
             {activeTab === 2 && (
               <p className="text-center text-gray-500">Under Development</p>
             )}
@@ -1077,15 +899,17 @@ const ProgramChairContent = () => {
             )}
           </div>
         ) : (
+          // No subject selected state
           <p className="text-center text-gray-500">
             Please select a subject from the sidebar.
           </p>
         )}
 
+        {/* Overlay components for loading states */}
         {isDeleting && <LoadingOverlay show={isDeleting} />}
         {isApproving && <LoadingOverlay show={isApproving} />}
 
-        {/* Confirmation Modals */}
+        {/* Modal components for user confirmations */}
         <ConfirmModal
           isOpen={showApproveModal}
           onClose={() => setShowApproveModal(false)}
@@ -1095,7 +919,6 @@ const ProgramChairContent = () => {
           }}
           message="Are you sure you want to approve this question?"
         />
-
         <ConfirmModal
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
@@ -1103,6 +926,7 @@ const ProgramChairContent = () => {
           message="Are you sure you want to delete this question?"
         />
 
+        {/* Toast notification system */}
         {toast.message && (
           <div
             className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
@@ -1131,7 +955,7 @@ const ProgramChairContent = () => {
           </div>
         )}
 
-        {/* Image Modal (Full Size) */}
+        {/* Image preview modals for question and choice images */}
         {isChoiceModalOpen && (
           <div
             className="lightbox-bg fixed inset-0 z-55 flex items-center justify-center"
@@ -1146,7 +970,6 @@ const ProgramChairContent = () => {
             </div>
           </div>
         )}
-
         {modalImage && (
           <div
             className="lightbox-bg bg-opacity-70 fixed inset-0 z-55 flex items-center justify-center hover:cursor-pointer"
@@ -1160,6 +983,17 @@ const ProgramChairContent = () => {
             </div>
           </div>
         )}
+
+        {/* Question editing modal */}
+        {editingQuestion && (
+          <EditQuestionForm
+            question={editingQuestion}
+            onComplete={handleEditComplete}
+            onCancel={() => setEditingQuestion(null)}
+          />
+        )}
+
+        {/* Utility components */}
         <ScrollToTopButton />
       </div>
     </div>

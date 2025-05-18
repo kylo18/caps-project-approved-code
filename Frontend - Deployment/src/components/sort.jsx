@@ -1,8 +1,9 @@
 import SortCustomDropdown from "./sortCustomDropdown";
 
+// Displays a Sort Button
 const Sort = ({ sortOption, setSortOption }) => {
   const mainSortOptions = [
-    { value: "", label: "All" },
+    { value: "", label: "Sort" },
     { value: "difficulty", label: "Sort by Difficulty" },
     { value: "coverage", label: "Sort by Coverage" },
     { value: "score", label: "Sort by Score" },

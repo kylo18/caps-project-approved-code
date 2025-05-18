@@ -3,6 +3,7 @@ import Sidebar from "./sideBar";
 import Header from "./header";
 import { Outlet } from "react-router-dom";
 
+// Main Layout
 const Layout = () => {
   const [role_id, setRoleId] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -32,10 +33,12 @@ const Layout = () => {
   const roleTitle =
     role_id !== null && roleMap[role_id] ? roleMap[role_id] : "User";
 
+  const isStudent = Number(role_id) === 1;
+
   return (
-    <div className="min-h-screen bg-[rgb(240,240,240)]">
+    <div className="min-h-screen bg-gray-100">
       <div className="flex">
-        {Number(role_id) !== 1 && ( // Only show Sidebar if NOT student
+        {!isStudent && (
           <Sidebar
             role_id={role_id}
             setSelectedSubject={setSelectedSubject}
@@ -45,7 +48,13 @@ const Layout = () => {
         )}
         <div
           className={`flex flex-1 flex-col transition-all duration-300 ${
-            isMobile ? "ml-0" : isExpanded ? "ml-[200px]" : "ml-[64.5px]"
+            isStudent
+              ? "ml-0"
+              : isMobile
+                ? "ml-0"
+                : isExpanded
+                  ? "ml-[200px]"
+                  : "ml-[64.5px]"
           }`}
         >
           <Header title={roleTitle} />
