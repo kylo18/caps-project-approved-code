@@ -1,11 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import flowbiteReact from "flowbite-react/plugin/vite";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), flowbiteReact()],
+  plugins: [react(),
+    tailwindcss(),
+  ],
   server: {
     host: '0.0.0.0',
+    allowedHosts: ['caps-test2.coeofjrmsu.com'],
   },
 })
