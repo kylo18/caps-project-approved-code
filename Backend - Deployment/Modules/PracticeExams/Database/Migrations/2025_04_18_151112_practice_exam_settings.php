@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('subjectID');
             $table->boolean('enableTimer')->default(false);
+            $table->integer('duration_minutes')->default(20);
             $table->string('coverage')->default('full');
             $table->integer('easy_percentage')->default(30);
             $table->integer('moderate_percentage')->default(50);

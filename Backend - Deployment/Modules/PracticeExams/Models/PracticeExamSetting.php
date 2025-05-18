@@ -9,8 +9,14 @@ use Modules\Users\Models\User;
 class PracticeExamSetting extends Model
 {
     protected $fillable = [
-        'subjectID', 'enableTimer', 'coverage',
-        'easy_percentage', 'moderate_percentage', 'hard_percentage', 'createdBy'
+        'subjectID',
+        'enableTimer',
+        'duration_minutes',
+        'coverage',
+        'easy_percentage',
+        'moderate_percentage',
+        'hard_percentage',
+        'createdBy',
     ];
 
     public function subject()

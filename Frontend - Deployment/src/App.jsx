@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Layout from "./components/layout";
-import ProtectedRoute from "./components/protectRoute"; // Import ProtectedRoute
+import ProtectedRoute from "./components/protectRoute";
 
 import StudentDashboard from "./pages/StudentDashboard";
 import FacultyDashboard from "./pages/FacultyDashboard";
@@ -14,18 +14,22 @@ import Users from "./pages/Users";
 import AdminContent from "./pages/AdminContent";
 import ProgramChairContent from "./pages/ProgramChairContent";
 import FacultyContent from "./pages/FacultyContent";
-import PracticeTestResult from "./pages/PracticeTestResult";
+import PracticeExamResults from "./pages/PracticeExamResults";
 import PracticeExam from "./pages/PracticeExam";
 
-import PrintExam from "./pages/PrintExam";
 import ResetPasswordPage from "./components/resetPassForm";
 import ForgotPasswordForm from "./components/forgotPassForm";
+import PracticeExamInfo from "./pages/PracticeExamInfo";
+
+import TestLogin from "./tests/testLogin";
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/testLogin" element={<TestLogin />} />
+
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
@@ -35,8 +39,8 @@ function App() {
           path="/practice-exam-result"
           element={<ProtectedRoute element={<Layout />} />}
         >
-          <Route index element={<PracticeTestResult />} />
-          <Route path="content" element={<PracticeTestResult />} />
+          <Route index element={<PracticeExamResults />} />
+          <Route path="content" element={<PracticeExamResults />} />
         </Route>
 
         <Route
@@ -45,6 +49,14 @@ function App() {
         >
           <Route index element={<PracticeExam />} />
           <Route path="content" element={<PracticeExam />} />
+        </Route>
+
+        <Route
+          path="/exam-preview"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<PracticeExamInfo />} />
+          <Route path="content" element={<PracticeExamInfo />} />
         </Route>
 
         {/* Student Dashboard Route */}
@@ -110,14 +122,6 @@ function App() {
         <Route path="/users" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<Users />} />
           <Route path="users" element={<Users />} />
-        </Route>
-
-        <Route
-          path="/print-questions"
-          element={<ProtectedRoute element={<Layout />} />}
-        >
-          <Route index element={<PrintExam />} />
-          <Route path="print" element={<PrintExam />} />
         </Route>
       </Routes>
     </Router>

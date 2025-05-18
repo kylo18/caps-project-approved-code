@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
+// Handles the Sort function and the Sort Options
 const SortCustomDropdown = ({
   name,
   value,

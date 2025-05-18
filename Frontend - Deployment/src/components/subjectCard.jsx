@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
 import PracticeExamConfig from "./practiceExamConfig";
-import { Tooltip } from "flowbite-react";
+import { useNavigate } from "react-router-dom";
 
+// Component to display subject information and tabs for admin/faculty view
 const SubjectCard = ({
   subjectName,
   subjectID,
@@ -12,23 +13,31 @@ const SubjectCard = ({
   isLoading,
   onFetchQuestions,
 }) => {
+  // State for tab indicator animation
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  // State for practice exam configuration modal
   const [isFormOpen, setIsFormOpen] = useState(false);
+  // State for mobile dropdown menu
   const [showDropdown, setShowDropdown] = useState(false);
+  // Refs for tab elements and dropdown positioning
   const tabRefs = useRef([]);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
+  const navigate = useNavigate();
 
+  // Function to refresh questions list
   const handleRefresh = () => {
     onFetchQuestions();
   };
 
+  // State for toast notifications
   const [toast, setToast] = useState({
     message: "",
     type: "",
     show: false,
   });
 
+  // Effect to handle toast auto-dismiss
   useEffect(() => {
     if (toast.message) {
       setToast((prev) => ({ ...prev, show: true }));
@@ -44,6 +53,7 @@ const SubjectCard = ({
     }
   }, [toast.message]);
 
+  // Effect to update tab indicator position
   useEffect(() => {
     if (tabRefs.current[activeIndex]) {
       const activeTab = tabRefs.current[activeIndex];
@@ -54,10 +64,12 @@ const SubjectCard = ({
     }
   }, [activeIndex]);
 
+  // Function to open practice exam configuration
   const handleAssignClick = () => {
     setIsFormOpen(true);
   };
 
+  // Effect to handle clicks outside dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -74,6 +86,7 @@ const SubjectCard = ({
     };
   }, []);
 
+  // Function to handle successful exam configuration
   const handleFormSuccess = () => {
     setIsFormOpen(false);
     setToast({
@@ -81,6 +94,47 @@ const SubjectCard = ({
       type: "success",
       show: false,
     });
+  };
+
+  // Function to fetch and preview practice exam questions
+  const handlePreviewClick = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/practice-exam/preview/${subjectID}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch preview questions");
+      }
+
+      const examData = await response.json();
+
+      // Navigate to practice exam with preview flag
+      navigate("/practice-exam", {
+        state: {
+          subjectID,
+          examData: {
+            ...examData,
+            subjectName,
+            isPreview: true,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching preview questions:", error);
+      setToast({
+        message: "Failed to load preview questions. Please try again.",
+        type: "error",
+        show: false,
+      });
+    }
   };
 
   const SkeletonLoader = () => (
@@ -130,9 +184,7 @@ const SubjectCard = ({
                   Configure
                 </button>
                 <button
-                  onClick={() =>
-                    alert("The preview feature is still under development.")
-                  }
+                  onClick={() => alert("Feature under development")}
                   className="mt-2 flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition"
                 >
                   <i className="bx bx-show text-[18px]" />
@@ -220,12 +272,10 @@ const SubjectCard = ({
                 <span className="text-[14px]">Configure</span>
               </button>
               <button
-                onClick={() =>
-                  alert("The preview feature is still under development.")
-                }
+                onClick={() => alert("Feature under development")}
                 className="hidden cursor-pointer items-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 lg:flex"
               >
-                <i className="bx bxs-show text-lg"></i>
+                <i className="bx bx-show text-lg"></i>
                 <span className="text-[14px]">Preview</span>
               </button>
             </div>

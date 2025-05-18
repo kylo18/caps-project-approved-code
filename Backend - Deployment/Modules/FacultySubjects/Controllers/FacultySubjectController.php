@@ -11,7 +11,13 @@ use Illuminate\Support\Facades\Log;
 
 class FacultySubjectController extends Controller
 {
-    // Common method to check if the user has the necessary role
+    /**
+     * Check if the authenticated user has one of the allowed roles.
+     * Allowed roles: Instructor (2), Program Chair (3), Dean (4).
+     *
+     * @param array $roles
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Contracts\Auth\Authenticatable|null
+     */
     private function checkUserRole($roles = [2, 3, 4])
     {
         $user = Auth::user();
@@ -23,7 +29,11 @@ class FacultySubjectController extends Controller
         return $user;
     }
 
-    // Common method to get subjects based on user's programID and include programID 6
+    /**
+     * Retrieve subjects based on the user's program, including general subjects (programID 6).
+     *
+     * @return \Illuminate\Support\Collection
+     */
     private function getSubjectsByUserProgram()
     {
         $user = Auth::user();
@@ -32,15 +42,15 @@ class FacultySubjectController extends Controller
         return Subject::with('program')
             ->where(function ($query) use ($userProgramID) {
                 $query->where('programID', $userProgramID)
-                    ->orWhere('programID', 6); // Include general subjects (programID 6)
+                      ->orWhere('programID', 6); // Include general subjects
             })
             ->get()
             ->map(function ($subject) {
                 $programName = $subject->program ? $subject->program->programName : null;
 
-                // Remove the 'BS-' prefix from the program name if it exists
+                // Remove 'BS-' prefix if present
                 if ($programName && strpos($programName, 'BS-') === 0) {
-                    $programName = substr($programName, 3); // Remove the first 3 characters ('BS-')
+                    $programName = substr($programName, 3);
                 }
 
                 return [
@@ -53,7 +63,12 @@ class FacultySubjectController extends Controller
             });
     }
 
-    // Assign subjects to faculty (Instructor, Program Chair, Dean)
+    /**
+     * Assign a subject to the authenticated faculty.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function assignSubject(Request $request)
     {
         $user = $this->checkUserRole();
@@ -64,16 +79,22 @@ class FacultySubjectController extends Controller
 
         $subjectID = $request->subjectID;
 
+        // Prevent duplicate assignments
         if ($user->subjects()->where('faculty_subjects.subjectID', $subjectID)->exists()) {
             return response()->json(['message' => 'Subject is already assigned to the user.'], 409);
         }
 
+        // Assign subject
         $user->subjects()->attach($subjectID);
 
         return response()->json(['message' => 'Subject assigned successfully.'], 200);
     }
 
-    // Get all subjects assigned to the logged-in faculty
+    /**
+     * Get all subjects currently assigned to the authenticated faculty.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function mySubjects()
     {
         $user = $this->checkUserRole();
@@ -81,14 +102,14 @@ class FacultySubjectController extends Controller
         try {
             $subjects = DB::table('subjects')
                 ->join('faculty_subjects', 'subjects.subjectID', '=', 'faculty_subjects.subjectID')
-                ->leftJoin('programs', 'subjects.programID', '=', 'programs.programID') // Left join to get program name
+                ->leftJoin('programs', 'subjects.programID', '=', 'programs.programID')
                 ->where('faculty_subjects.facultyID', $user->userID)
-                ->select('subjects.*', 'programs.programName') // Select programName along with subject fields
+                ->select('subjects.*', 'programs.programName')
                 ->get()
                 ->map(function ($subject) {
-                    // Remove the 'BS-' prefix from the program name if it exists
+                    // Remove 'BS-' prefix if present
                     if ($subject->programName && strpos($subject->programName, 'BS-') === 0) {
-                        $subject->programName = substr($subject->programName, 3); // Remove the first 3 characters ('BS-')
+                        $subject->programName = substr($subject->programName, 3);
                     }
                     return $subject;
                 });
@@ -104,12 +125,17 @@ class FacultySubjectController extends Controller
         }
     }
 
-    // Remove an assigned subject from faculty
+    /**
+     * Remove an assigned subject from the authenticated faculty.
+     *
+     * @param int $subjectID
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function removeAssignedSubject($subjectID)
     {
         $user = $this->checkUserRole();
 
-        // Check if the subject is currently assigned
+        // Check if the subject is actually assigned
         if (!$user->subjects()->where('faculty_subjects.subjectID', $subjectID)->exists()) {
             return response()->json([
                 'message' => 'Subject is not assigned to this user.'
@@ -130,7 +156,13 @@ class FacultySubjectController extends Controller
         }
     }
 
-    // Retrieve all available subjects (those assigned to the user's program and programID 6)
+    /**
+     * Retrieve all subjects available to the authenticated user
+     * (those under the user's program and programID 6).
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function availableSubjects(Request $request)
     {
         try {
