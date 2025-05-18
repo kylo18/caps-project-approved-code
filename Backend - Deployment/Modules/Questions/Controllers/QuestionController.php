@@ -12,9 +12,11 @@ use Illuminate\Support\Str;
 use Modules\Subjects\Models\Subject;
 use Modules\Questions\Models\Question;
 use Modules\Choices\Models\Choice;
+use Illuminate\Support\Facades\Validator;
 
 class QuestionController extends Controller
 {
+    // Store a new question into the database
     public function store(Request $request)
     {
         $this->authorizeRoles([2, 3, 4]);
@@ -51,51 +53,45 @@ class QuestionController extends Controller
         });
     }
 
+    // Update an existing question and mark it as pending
     public function update(Request $request, $questionID)
     {
-        $this->authorizeRoles([2, 3, 4]);
+        $question = Question::findOrFail($questionID);
 
         $validated = $request->validate([
-            'subjectID' => 'required|exists:subjects,subjectID',
-            'coverage' => 'required|in:midterm,finals',
-            'questionText' => 'required|string',
+            'coverage' => 'sometimes|required|in:midterm,finals',
+            'questionText' => 'sometimes|required|string',
             'image' => 'nullable|image|max:10240',
-            'score' => 'required|integer|min:1',
-            'difficulty' => 'required|in:easy,moderate,hard',
-            'choices' => 'required|array|min:2|max:6',
-            'choices.*.choiceID' => 'nullable|exists:choices,choiceID',
-            'choices.*.choiceText' => 'nullable|string',
-            'choices.*.isCorrect' => 'required|boolean',
-            'choices.*.image' => 'nullable|image|max:10240',
+            'score' => 'sometimes|required|integer|min:1',
+            'difficulty' => 'sometimes|required|in:easy,moderate,hard',
+            'status' => 'sometimes|required|in:pending,approved,disapproved',
+            'purpose' => 'sometimes|required|in:examQuestions,practiceQuestions',
         ]);
 
-        if (!collect($validated['choices'])->contains('isCorrect', true)) {
-            return response()->json(['message' => 'At least one correct choice is required.'], 422);
+        if (isset($validated['questionText'])) {
+            $question->questionText = Crypt::encryptString($validated['questionText']);
         }
 
-        return DB::transaction(function () use ($validated, $request, $questionID) {
-            $question = Question::findOrFail($questionID);
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('question_images', 'public');
+            $question->image = $path;
+        }
 
-            $imagePath = $this->handleImageUpload($request, 'image', 'questions', $question->image);
-            $question->update([
-                'subjectID' => $validated['subjectID'],
-                'coverage' => $validated['coverage'],
-                'questionText' => Crypt::encryptString($validated['questionText']),
-                'image' => $imagePath,
-                'score' => $validated['score'],
-                'difficulty' => $validated['difficulty'],
-                'status' => Auth::user()->roleID === 2 ? 'pending' : 'approved',
-            ]);
+        foreach (['coverage', 'score', 'difficulty', 'purpose'] as $field) {
+            if (isset($validated[$field])) {
+                $question->$field = $validated[$field];
+            }
+        }
 
-            $this->syncChoices($request, $question, $validated['choices']);
+        // Force status to 'pending' after update
+        $question->status = 'pending';
 
-            return response()->json([
-                'message' => 'Question updated successfully.',
-                'question' => $question->load('choices')
-            ]);
-        });
+        $question->save();
+
+        return response()->json(['message' => 'Question updated successfully and marked as pending.']);
     }
 
+    // List all questions for a subject, remove those without choices
     public function indexQuestions($subjectID)
     {
         $subject = Subject::find($subjectID);
@@ -103,6 +99,7 @@ class QuestionController extends Controller
             return response()->json(['message' => 'Subject not found.'], 404);
         }
 
+        // Delete questions with no choices
         Question::where('subjectID', $subjectID)
         ->doesntHave('choices')
         ->each(function ($q) {
@@ -112,6 +109,7 @@ class QuestionController extends Controller
             $q->delete();
         });
 
+        // Get questions with choices only
         $questions = Question::with(['subject', 'choices', 'user'])
             ->where('subjectID', $subjectID)
             ->get()
@@ -126,6 +124,7 @@ class QuestionController extends Controller
         ]);
     }
 
+    // Delete a specific question
     public function destroy($questionID)
     {
         $this->authorizeRoles([2, 3, 4]);
@@ -143,38 +142,33 @@ class QuestionController extends Controller
         return response()->json(['message' => 'Question deleted successfully.']);
     }
 
+    // Retrieve all questions created by the current user for a given subject
     public function mySubjectQuestions($subjectID)
     {
         $user = Auth::user();
 
-        // Find the subject by ID
         $subject = Subject::find($subjectID);
-
         if (!$subject) {
             return response()->json([
                 'message' => 'Subject not found.'
             ], 404);
         }
 
-        // Get the questions added by the specific user for the given subject
         $questions = Question::with(['subject', 'choices'])
             ->where('subjectID', $subjectID)
-            ->where('userID', $user->userID) // Ensure the questions belong to the authenticated user
+            ->where('userID', $user->userID)
             ->get()
             ->map(function ($question) {
                 try {
-                    // Decrypt the question text
                     $question->questionText = Crypt::decryptString($question->questionText);
                 } catch (\Exception $e) {
                     $question->questionText = '[Decryption Error]';
                 }
 
-                // Format image URL if exists
                 if ($question->image && !Str::startsWith($question->image, ['http://', 'https://'])) {
                     $question->image = url("storage/{$question->image}");
                 }
 
-                // Decrypt each choice and format its image URL
                 $question->choices->map(function ($choice) {
                     try {
                         $choice->choiceText = Crypt::decryptString($choice->choiceText);
@@ -199,7 +193,7 @@ class QuestionController extends Controller
         ], 200);
     }
 
-
+    // Approve a question if it's pending and not owned by the current user
     public function updateStatus($questionID)
     {
         $this->authorizeRoles([3, 4]);
@@ -223,6 +217,7 @@ class QuestionController extends Controller
         return response()->json(['message' => 'Question approved.', 'question' => $question]);
     }
 
+    // Show questions by subject and filter them by the program of the logged-in Program Chair
     public function indexQuestionsByProgram($subjectID)
     {
         $subject = Subject::find($subjectID);
@@ -230,6 +225,7 @@ class QuestionController extends Controller
             return response()->json(['message' => 'Subject not found.'], 404);
         }
 
+        // Remove questions with no choices
         Question::where('subjectID', $subjectID)
         ->doesntHave('choices')
         ->each(function ($q) {
@@ -242,6 +238,7 @@ class QuestionController extends Controller
         $query = Question::with(['subject', 'choices', 'user'])
             ->where('subjectID', $subjectID);
 
+        // If user is Program Chair, filter questions by their program
         if (Auth::user()->roleID == 3) {
             $query->whereHas('user', fn($q) => $q->where('programID', Auth::user()->programID));
         }
@@ -257,6 +254,7 @@ class QuestionController extends Controller
 
     // ============ PRIVATE HELPERS ============
 
+    // Ensure only users with certain roles can access specific methods
     private function authorizeRoles(array $allowed)
     {
         if (!in_array(Auth::user()->roleID, $allowed)) {
@@ -264,12 +262,11 @@ class QuestionController extends Controller
         }
     }
 
+    // Handle image upload, supports both flat and nested fields
     private function handleImageUpload(Request $request, $field, $folder, $existingPath = null)
     {
-        // Try getting the file directly
         $file = $request->file($field);
 
-        // If not found, try flattening the nested structure (e.g., 'question.image')
         if (!$file) {
             $flatKey = str_replace(['[', ']'], ['.', ''], $field);
             $file = data_get($request->allFiles(), $flatKey);
@@ -285,32 +282,7 @@ class QuestionController extends Controller
         return $existingPath;
     }
 
-
-    private function syncChoices(Request $request, Question $question, array $choices)
-    {
-        foreach ($choices as $index => $choiceData) {
-            $path = $this->handleImageUpload($request, "choices.$index.image", 'choices', optional(Choice::find($choiceData['choiceID'] ?? null))->image);
-
-            $encryptedText = $choiceData['choiceText']
-                ? Crypt::encryptString($choiceData['choiceText']) : null;
-
-            if (isset($choiceData['choiceID'])) {
-                Choice::find($choiceData['choiceID'])->update([
-                    'choiceText' => $encryptedText,
-                    'isCorrect' => $choiceData['isCorrect'],
-                    'image' => $path,
-                ]);
-            } else {
-                Choice::create([
-                    'questionID' => $question->questionID,
-                    'choiceText' => $encryptedText,
-                    'isCorrect' => $choiceData['isCorrect'],
-                    'image' => $path,
-                ]);
-            }
-        }
-    }
-
+    // Decrypt and format question and its choices for display
     private function formatQuestion($question)
     {
         try {
@@ -335,6 +307,7 @@ class QuestionController extends Controller
         return $question;
     }
 
+    // Generate a full URL for images stored in the public disk
     private function generateUrl($path)
     {
         return $path && !Str::startsWith($path, ['http://', 'https://']) ? url("storage/$path") : $path;
