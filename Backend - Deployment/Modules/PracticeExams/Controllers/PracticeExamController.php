@@ -47,6 +47,7 @@ class PracticeExamController extends Controller
             // Fetch and group questions by difficulty
             $questions = Question::with('choices')
                 ->where('subjectID', $subjectID)
+                ->where('purpose', 'practiceQuestions')
                 ->where('status', '!=', 'pending')
                 ->get()
                 ->shuffle();
