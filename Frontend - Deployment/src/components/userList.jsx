@@ -2,44 +2,51 @@ import React, { useEffect, useState, useRef } from "react";
 import SortCustomDropdown from "./sortCustomDropdown";
 import ConfirmModal from "./confirmModal";
 import LoadingOverlay from "./loadingOverlay";
-import ModalDropdown from "./modalDropdown";
 import { Tooltip } from "flowbite-react";
+import RegisterDropDownSmall from "./registerDropDownSmall";
 
+// Component to display and manage user list with filtering and actions
 const UserList = () => {
+  // Refs for dropdown positioning
   const dropdownRef = useRef(null);
+  // State for user data and loading
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // State for user selection and filtering
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortCategory, setSortCategory] = useState("");
   const [sortOption, setSortOption] = useState("");
   const [sortStatus, setSortStatus] = useState("All");
 
+  // State for user action loading states
   const [isApproving, setIsApproving] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
 
+  // State for bulk action loading states
   const [isApprovingMultiple, setIsApprovingMultiple] = useState(false);
   const [isActivatingMultiple, setIsActivatingMultiple] = useState(false);
   const [isDeactivatingMultiple, setIsDeactivatingMultiple] = useState(false);
 
+  // State for user details modal
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+  // State for filters
   const [statusFilter, setStatusFilter] = useState("all");
-
   const [campusFilter, setCampusFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [positionFilter, setPositionFilter] = useState("");
   const [programFilter, setProgramFilter] = useState("");
   const [stateFilter, setStateFilter] = useState("");
-  const [showFilters, setShowFilters] = useState(false); // To toggle the filter dropdown visibility
+  const [showFilters, setShowFilters] = useState(false);
 
+  // State for dropdowns and search
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-
   const [searchTerm, setSearchTerm] = useState("");
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
@@ -87,6 +94,7 @@ const UserList = () => {
     fetchUsers();
   }, []);
 
+  // Function to fetch users from API
   const fetchUsers = async () => {
     const token = localStorage.getItem("token");
 
@@ -123,6 +131,7 @@ const UserList = () => {
     }
   };
 
+  // Function to handle user selection via checkbox
   const handleCheckboxChange = (userID) => {
     setSelectedUsers((prevSelected) =>
       prevSelected.includes(userID)
@@ -131,26 +140,28 @@ const UserList = () => {
     );
   };
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.userID.toString().includes(searchQuery) ||
-      user.userCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      `${user.firstName} ${user.lastName}`
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredUsers = users
+    .sort((a, b) => b.userID - a.userID) // Sort by userID in descending order (most recent first)
+    .filter((user) => {
+      const matchesSearch =
+        user.userID.toString().includes(searchQuery) ||
+        user.userCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        `${user.firstName} ${user.lastName}`
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesSort =
-      !sortCategory ||
-      sortOption === "All" ||
-      (sortCategory === "Campus" && user.campus === sortOption) ||
-      (sortCategory === "Role" && user.role === sortOption);
+      const matchesSort =
+        !sortCategory ||
+        sortOption === "All" ||
+        (sortCategory === "Campus" && user.campus === sortOption) ||
+        (sortCategory === "Role" && user.role === sortOption);
 
-    const matchesStatus =
-      !sortStatus || sortStatus === "All" || user.status === sortStatus;
+      const matchesStatus =
+        !sortStatus || sortStatus === "All" || user.status === sortStatus;
 
-    return matchesSearch && matchesSort && matchesStatus;
-  });
+      return matchesSearch && matchesSort && matchesStatus;
+    });
 
   const pendingUsersCount = filteredUsers.filter(
     (user) => user.status === "pending",
@@ -160,6 +171,7 @@ const UserList = () => {
     setSearchTerm(e.target.value); // Update the search term
   };
 
+  // Function to approve a single user
   const handleApproveUser = async (userID) => {
     const token = localStorage.getItem("token");
     setIsApproving(true);
@@ -202,6 +214,7 @@ const UserList = () => {
     }
   };
 
+  // Function to activate a single user
   const handleActivateUser = async (userID) => {
     const token = localStorage.getItem("token");
     setIsActivating(true);
@@ -239,6 +252,7 @@ const UserList = () => {
     }
   };
 
+  // Function to deactivate a single user
   const handleDeactivateUser = async (userID) => {
     const token = localStorage.getItem("token");
     setIsDeactivating(true);
@@ -275,6 +289,7 @@ const UserList = () => {
     }
   };
 
+  // Function to approve multiple selected users
   const handleApproveSelectedUsers = async () => {
     const token = localStorage.getItem("token");
     setIsApprovingMultiple(true);
@@ -311,6 +326,7 @@ const UserList = () => {
     }
   };
 
+  // Function to activate multiple selected users
   const handleActivateSelectedUsers = async () => {
     const token = localStorage.getItem("token");
     setIsActivatingMultiple(true);
@@ -349,6 +365,7 @@ const UserList = () => {
     }
   };
 
+  // Function to deactivate multiple selected users
   const handleDeactivateSelectedUsers = async () => {
     const token = localStorage.getItem("token");
     setIsDeactivatingMultiple(true);
@@ -384,6 +401,31 @@ const UserList = () => {
     } finally {
       setIsDeactivatingMultiple(false);
     }
+  };
+
+  // Function to handle bulk actions (approve/activate/deactivate)
+  const handleActionClick = (action) => {
+    if (selectedUsers.length === 0) {
+      setToast({
+        message: "Please select at least one user first",
+        type: "error",
+        show: true,
+      });
+      return;
+    }
+
+    switch (action) {
+      case "approve":
+        handleApproveSelectedUsers();
+        break;
+      case "activate":
+        handleActivateSelectedUsers();
+        break;
+      case "deactivate":
+        handleDeactivateSelectedUsers();
+        break;
+    }
+    setDropdownOpen(false);
   };
 
   //Skeleton Table
@@ -544,8 +586,8 @@ const UserList = () => {
 
         {/* Filter Dropdown */}
         {showFilters && (
-          <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center">
-            <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
+          <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-end min-[448px]:justify-center min-[448px]:p-2">
+            <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-2xl border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700 min-[448px]:rounded-t-md">
               <span>Filter Users</span>
 
               <button
@@ -556,14 +598,14 @@ const UserList = () => {
               </button>
             </div>
 
-            <div className="border-color relative mx-auto w-full max-w-md rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
+            <div className="border-color relative mx-auto w-full max-w-md border border-t-0 bg-white p-2 min-[448px]:rounded-b-md sm:px-4">
               {/* Campus Filter */}
               <div className="mb-2">
                 <span className="font-color-gray mb-2 block text-[12px]">
                   Campus
                 </span>
                 <div>
-                  <ModalDropdown
+                  <RegisterDropDownSmall
                     name="campus"
                     value={campusFilter}
                     onChange={(e) => setCampusFilter(e.target.value)}
@@ -583,7 +625,7 @@ const UserList = () => {
                 <span className="font-color-gray mb-2 block text-[12px]">
                   Position
                 </span>
-                <ModalDropdown
+                <RegisterDropDownSmall
                   name="position"
                   value={positionFilter}
                   onChange={(e) => setPositionFilter(e.target.value)}
@@ -603,7 +645,7 @@ const UserList = () => {
                 <span className="font-color-gray mb-2 block text-[12px]">
                   Program
                 </span>
-                <ModalDropdown
+                <RegisterDropDownSmall
                   name="program"
                   value={programFilter}
                   onChange={(e) => setProgramFilter(e.target.value)}
@@ -624,7 +666,7 @@ const UserList = () => {
                 <span className="font-color-gray mb-2 block text-[12px]">
                   Status
                 </span>
-                <ModalDropdown
+                <RegisterDropDownSmall
                   name="state"
                   value={stateFilter}
                   onChange={(e) => setStateFilter(e.target.value)}
@@ -679,48 +721,63 @@ const UserList = () => {
           {dropdownOpen && (
             <div className="absolute right-0 z-50 mt-2 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
               <div className="text-sm text-gray-700">
-                <button
-                  onClick={() => {
-                    handleApproveSelectedUsers();
-                    setDropdownOpen(false);
-                  }}
-                  disabled={selectedUsers.length === 0}
-                  className={`w-full rounded-sm px-4 py-2 text-left text-black ${
+                <Tooltip
+                  content={
                     selectedUsers.length === 0
-                      ? "cursor-not-allowed text-gray-400"
-                      : "hover:bg-gray-100"
-                  }`}
+                      ? "Select users first"
+                      : "Approve selected users"
+                  }
+                  placement="left"
                 >
-                  Approve
-                </button>
-                <button
-                  onClick={() => {
-                    handleActivateSelectedUsers();
-                    setDropdownOpen(false);
-                  }}
-                  disabled={selectedUsers.length === 0}
-                  className={`w-full rounded-sm px-4 py-2 text-left text-black ${
+                  <button
+                    onClick={() => handleActionClick("approve")}
+                    className={`w-full rounded-sm px-4 py-2 text-left text-black ${
+                      selectedUsers.length === 0
+                        ? "cursor-not-allowed text-gray-400"
+                        : "hover:bg-gray-200"
+                    }`}
+                  >
+                    Approve
+                  </button>
+                </Tooltip>
+                <Tooltip
+                  content={
                     selectedUsers.length === 0
-                      ? "cursor-not-allowed text-gray-400"
-                      : "hover:bg-gray-100"
-                  }`}
+                      ? "Select users first"
+                      : "Activate selected users"
+                  }
+                  placement="left"
                 >
-                  Activate
-                </button>
-                <button
-                  onClick={() => {
-                    handleDeactivateSelectedUsers();
-                    setDropdownOpen(false);
-                  }}
-                  disabled={selectedUsers.length === 0}
-                  className={`w-full rounded-sm px-4 py-2 text-left text-black ${
+                  <button
+                    onClick={() => handleActionClick("activate")}
+                    className={`w-full rounded-sm px-4 py-2 text-left text-black ${
+                      selectedUsers.length === 0
+                        ? "cursor-not-allowed text-gray-400"
+                        : "hover:bg-gray-200"
+                    }`}
+                  >
+                    Activate
+                  </button>
+                </Tooltip>
+                <Tooltip
+                  content={
                     selectedUsers.length === 0
-                      ? "cursor-not-allowed text-gray-400"
-                      : "hover:bg-gray-100"
-                  }`}
+                      ? "Select users first"
+                      : "Deactivate selected users"
+                  }
+                  placement="left"
                 >
-                  Deactivate
-                </button>
+                  <button
+                    onClick={() => handleActionClick("deactivate")}
+                    className={`w-full rounded-sm px-4 py-2 text-left text-black ${
+                      selectedUsers.length === 0
+                        ? "cursor-not-allowed text-gray-400"
+                        : "hover:bg-gray-200"
+                    }`}
+                  >
+                    Deactivate
+                  </button>
+                </Tooltip>
               </div>
             </div>
           )}
@@ -729,53 +786,69 @@ const UserList = () => {
 
       {/* User Info Mobile */}
       {showModal && selectedUser && (
-        <div className="bg-opacity-30 lightbox-bg fixed inset-0 z-55 flex items-center justify-center">
+        <div className="font-inter bg-opacity-30 lightbox-bg fixed inset-0 z-55 flex items-center justify-center">
           <div className="relative w-11/12 max-w-md rounded-lg bg-white p-6 shadow-lg">
             <button
               onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-red-600"
+              className="absolute top-4 right-4 rounded-full px-[9px] py-[5px] text-gray-500 hover:bg-gray-100"
               title="Close"
             >
-              <i className="bx bx-x text-[30px]"></i>
+              <i className="bx bx-x mt-[3px] text-[24px]"></i>
             </button>
 
-            <h2 className="mb-4 text-[14px] font-semibold text-gray-800">
+            <h2 className="mb-6 text-[16px] font-semibold text-gray-800">
               User Details
             </h2>
 
             <div className="space-y-2 text-sm text-gray-700">
-              <p>
-                <strong>Name:</strong> {selectedUser.firstName}{" "}
-                {selectedUser.lastName}
-              </p>
-              <p>
-                <strong>User Code:</strong> {selectedUser.userCode}
-              </p>
-              <p>
-                <strong>Email:</strong> {selectedUser.email}
-              </p>
-              <p>
-                <strong>Position:</strong> {selectedUser.role}
-              </p>
-              <p>
-                <strong>Campus:</strong> {selectedUser.campus}
-              </p>
-              <p>
-                <strong>Program:</strong> {selectedUser.program}
-              </p>
-              <p>
-                <strong>Status:</strong> {selectedUser.status}
-              </p>
-              <p>
-                <strong>Active:</strong> {selectedUser.isActive ? "Yes" : "No"}
-              </p>
+              <div className="flex justify-between">
+                <span className="font-medium">Name</span>
+                <span>
+                  {selectedUser.firstName} {selectedUser.lastName}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="font-medium">User Code</span>
+                <span>{selectedUser.userCode}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="font-medium">Email</span>
+                <span>{selectedUser.email}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="font-medium">Position</span>
+                <span>{selectedUser.role}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="font-medium">Campus</span>
+                <span>{selectedUser.campus}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="font-medium">Program</span>
+                <span>{selectedUser.program}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="font-medium">Status</span>
+                <span>{selectedUser.status}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="font-medium">Active</span>
+                <span>{selectedUser.isActive ? "Yes" : "No"}</span>
+              </div>
             </div>
 
             {/* Action Buttons */}
             <div className="mt-6 flex justify-end gap-6">
               {selectedUser.status === "pending" && !selectedUser.isActive && (
                 <button
-                  className="flex items-center text-orange-600 hover:text-orange-700"
+                  className="ml-auto flex cursor-pointer items-center gap-1 rounded-md border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
                   onClick={() => handleApproveUser(selectedUser.userID)}
                   title="Approve"
                 >
@@ -787,7 +860,7 @@ const UserList = () => {
               {selectedUser.status === "registered" &&
                 selectedUser.isActive && (
                   <button
-                    className="flex items-center text-red-500 hover:text-red-700"
+                    className="ml-auto flex cursor-pointer items-center gap-1 rounded-md border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
                     onClick={() => handleDeactivateUser(selectedUser.userID)}
                     title="Deactivate"
                   >
@@ -799,7 +872,7 @@ const UserList = () => {
               {selectedUser.status === "registered" &&
                 !selectedUser.isActive && (
                   <button
-                    className="flex items-center text-orange-600 hover:text-orange-700"
+                    className="ml-auto flex cursor-pointer items-center gap-1 rounded-md border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
                     onClick={() => handleActivateUser(selectedUser.userID)}
                     title="Activate"
                   >
@@ -916,7 +989,7 @@ const UserList = () => {
             {users.length === 0 ? (
               <tr>
                 <td
-                  colSpan="10"
+                  colSpan="11"
                   className="py-4 text-center text-[14px] text-gray-700"
                 >
                   No users found.
@@ -955,10 +1028,18 @@ const UserList = () => {
                 .map((user) => (
                   <tr
                     key={user.userID}
-                    className="border-b border-[rgb(200,200,200)] text-[12px] text-[rgb(78,78,78)] hover:bg-gray-200"
+                    className={`border-b border-[rgb(200,200,200)] text-[12px] text-[rgb(78,78,78)] transition-colors ${
+                      selectedUsers.includes(user.userID)
+                        ? "bg-gray-200 hover:bg-gray-100"
+                        : "hover:bg-gray-100"
+                    } cursor-pointer`}
+                    onClick={() => handleCheckboxChange(user.userID)}
                   >
                     {/* Checkbox Column */}
-                    <td className="hidden p-3 text-left sm:table-cell">
+                    <td
+                      className="hidden p-3 text-left sm:table-cell"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <input
                         className="mt-1 ml-3"
                         type="checkbox"
@@ -1017,6 +1098,18 @@ const UserList = () => {
                       ) : (
                         <span className="text-red-500">Inactive</span>
                       )}
+                    </td>
+                    <td
+                      className="p-3 text-center"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedUser(user);
+                        setShowModal(true);
+                      }}
+                    >
+                      <button className="text-gray-700 hover:text-orange-500">
+                        <i className="bx bx-chevron-right mr-3 text-[25px] leading-none"></i>
+                      </button>
                     </td>
                   </tr>
                 ))

@@ -1,16 +1,21 @@
 import React from "react";
 
+// Confirmation Modal
 const ConfirmModal = ({ isOpen, onClose, onConfirm, message }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="lightbox-bg bg-opacity-50 fixed inset-0 z-100 flex flex-col items-center justify-center">
-      <div className="font-inter border-color relative mx-auto w-full max-w-sm rounded-t-md border-b bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
+    <div className="lightbox-bg fixed inset-0 z-57 flex flex-col items-center justify-center p-2">
+      <div className="font-inter border-color relative mx-auto w-full max-w-sm rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
         <span>Confirm Action</span>
       </div>
-      <div className="w-96 rounded-b-md bg-white p-6 text-sm shadow-lg">
-        <p className="text-gray-700">{message}</p>
-        <div className="mt-8 flex justify-end gap-2">
+      <div className="border-color relative mx-auto w-full max-w-sm rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
+        <p className="mt-2 mb-9 px-2 text-[14px] break-words text-gray-700">
+          {message}
+        </p>
+        <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
+
+        <div className="mb-2 flex justify-end gap-2 text-[14px]">
           <button
             className="flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-gray-700 hover:bg-gray-200"
             onClick={onClose}

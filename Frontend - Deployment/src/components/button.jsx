@@ -1,3 +1,4 @@
+// Button Component
 const Button = ({ text, textres, icon, onClick, className, type }) => {
   return (
     <button

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
-import PracticeAddQuestionForm from "../components/addPracticeQuestionForm";
-import PracticeAddChoiceForm from "../components/addPracticeChoiceForm";
-import ExamAddQuestionForm from "../components/addExamQuestionForm";
-import ExamAddChoiceForm from "../components/addExamChoiceForm";
+import CombinedPracticeQuestionForm from "../components/CombinedPracticeQuestionForm";
+import CombinedExamQuestionForm from "../components/CombinedExamQuestionForm";
+import EditQuestionForm from "../components/EditQuestionForm";
 import ConfirmModal from "../components/confirmModal";
 import Sort from "../components/sort";
 import SearchQuery from "../components/SearchQuery";
@@ -13,39 +12,43 @@ import ScrollToTopButton from "../components/scrollToTopButton";
 import LoadingOverlay from "../components/loadingOverlay";
 import SubjectCardLower from "../components/subjectCardLower";
 
+// Main faculty dashboard component for managing questions
 const FacultyContent = () => {
+  // State for image modals and question management
   const [modalImage, setModalImage] = useState(null);
   const [pendingSort, setPendingSort] = useState("");
-
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false);
   const [choiceModalImage, setchoiceModalImage] = useState(null);
 
+  // Context and state for subject and question management
   const { selectedSubject } = useOutletContext();
   const [activeTab, setActiveTab] = useState(0);
   const [questions, setQuestions] = useState([]);
-  const [submittedQuestion, setSubmittedQuestion] = useState({
-    practiceQuestions: { questionID: null, questionText: "", image: null },
-    examQuestions: { questionID: null, questionText: "", image: null },
-  });
+  const [submittedQuestion, setSubmittedQuestion] = useState(null);
   const formRef = useRef(null);
 
+  // State for form visibility
   const [showChoiceForm, setShowChoiceForm] = useState(false);
 
+  // State for search and sorting
   const [searchQuery, setSearchQuery] = useState("");
-
   const [sortOption, setSortOption] = useState("");
   const [subSortOption, setSubSortOption] = useState("");
 
+  // State for modals and confirmation
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [deleteQuestionID, setDeleteQuestionID] = useState(null);
 
+  // State for question editing
   const [editQuestionID, setEditQuestionID] = useState(null);
   const [editText, setEditText] = useState("");
 
+  // State for loading and actions
   const [isDeleting, setIsDeleting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
 
+  // State for view preferences
   const [showChoices, setShowChoices] = useState(true);
   const [listViewOnly, setListViewOnly] = useState(false);
 
@@ -54,19 +57,26 @@ const FacultyContent = () => {
 
   const dropdownRef = useRef(null);
 
+  // State for form visibility
   const [showPracticeChoiceForm, setShowPracticeChoiceForm] = useState(false);
   const [showExamChoiceForm, setShowExamChoiceForm] = useState(false);
 
+  // State for question addition
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const buttonRef = useRef(null);
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
+  // State for toast notifications
   const [toast, setToast] = useState({
     message: "",
     type: "",
     show: false,
   });
 
+  // State for question editing
+  const [editingQuestion, setEditingQuestion] = useState(null);
+
+  // Effect to handle toast auto-dismiss
   useEffect(() => {
     if (toast.message) {
       setToast((prev) => ({ ...prev, show: true }));
@@ -82,13 +92,11 @@ const FacultyContent = () => {
     }
   }, [toast.message]);
 
+  // Effect to fetch questions when subject changes
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
       fetchQuestions();
-      setSubmittedQuestion({
-        practiceQuestions: null,
-        examQuestions: null,
-      });
+      setSubmittedQuestion(null);
       setShowPracticeChoiceForm(false);
       setShowExamChoiceForm(false);
       setSearchQuery("");
@@ -96,7 +104,8 @@ const FacultyContent = () => {
       setSubSortOption("");
     }
   }, [selectedSubject]);
-  // Small helper
+
+  // Helper function to fix image URLs
   const fixImageUrl = (url) => {
     if (!url) return "";
 
@@ -110,6 +119,7 @@ const FacultyContent = () => {
     return url;
   };
 
+  // Functions for question editing
   const startEditing = (question) => {
     setEditQuestionID(question.questionID);
     setEditText(question.questionText);
@@ -148,6 +158,7 @@ const FacultyContent = () => {
     }
   };
 
+  // Function to handle question deletion
   const handleDeleteQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
@@ -181,6 +192,7 @@ const FacultyContent = () => {
     }
   };
 
+  // Function to fetch questions for selected subject
   const fetchQuestions = async () => {
     setIsLoading(true);
     setQuestions([]); // 👈 Temporarily hide questions
@@ -219,7 +231,7 @@ const FacultyContent = () => {
     }
   };
 
-  // Filter and Sort Questions
+  // Function to filter and sort questions based on criteria
   const filteredQuestions = questions
     .filter((question) => {
       const matchesSearch = question.questionText
@@ -256,53 +268,33 @@ const FacultyContent = () => {
       return 0;
     });
 
+  // Function to confirm question deletion
   const confirmDelete = (questionID) => {
     setDeleteQuestionID(questionID);
     setShowConfirmModal(true);
   };
 
-  const handleQuestionAdded = (newQuestion) => {
-    if (activeTab === 0) {
-      // Practice tab
-      setSubmittedQuestion((prev) => ({
-        ...prev,
-        practiceQuestions: newQuestion,
-      }));
-      setShowPracticeChoiceForm(true);
-    } else {
-      // Exam tab
-      setSubmittedQuestion((prev) => ({
-        ...prev,
-        examQuestions: newQuestion,
-      }));
-      setShowExamChoiceForm(true);
-    }
-  };
-
-  const handlePracticeChoicesSubmitted = () => {
-    setSubmittedQuestion((prev) => ({
-      ...prev,
-      practiceQuestions: null,
-    }));
-    setShowPracticeChoiceForm(false);
+  // Function to handle successful question addition
+  const handleQuestionAdded = () => {
+    setSubmittedQuestion(null);
     fetchQuestions();
     setToast({
-      message: "Practice question is now pending for approval!",
+      message: "Question is now pending for approval!",
       type: "success",
       show: true,
     });
   };
 
-  // For Exam Choices
-  const handleExamChoicesSubmitted = () => {
-    setSubmittedQuestion((prev) => ({
-      ...prev,
-      examQuestions: null,
-    }));
-    setShowExamChoiceForm(false);
+  // Functions for question editing
+  const handleEditClick = (question) => {
+    setEditingQuestion(question);
+  };
+
+  const handleEditComplete = () => {
+    setEditingQuestion(null);
     fetchQuestions();
     setToast({
-      message: "Exam question is now pending for approval!",
+      message: "Question is now pending for approval!",
       type: "success",
       show: true,
     });
@@ -328,6 +320,7 @@ const FacultyContent = () => {
     }
   }, [showExamChoiceForm]);
 
+  // Effect to handle clicks outside dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -464,35 +457,16 @@ const FacultyContent = () => {
             {/* Add Question Section */}
             {(activeTab === 0 || activeTab === 1) && (
               <div>
-                {/* Show Add Question Button Only If No Active Question */}
-                {!submittedQuestion[
-                  activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                ] && (
-                  <div className="fixed right-0 bottom-0 z-57 p-4 text-center">
+                {/* Show Add Question Button Only If No Active Question for current tab */}
+                {((activeTab === 0 && submittedQuestion !== "practice") ||
+                  (activeTab === 1 && submittedQuestion !== "exam")) && (
+                  <div className="fixed right-[-4px] bottom-[-4px] z-50 p-4 text-center">
                     <button
                       onClick={() => {
-                        setSubmittedQuestion((prev) => ({
-                          ...prev,
-                          [activeTab === 0
-                            ? "practiceQuestions"
-                            : "examQuestions"]: {
-                            questionText: "",
-                            questionID: null,
-                          },
-                        }));
+                        setSubmittedQuestion(
+                          activeTab === 0 ? "practice" : "exam",
+                        );
                         setIsAddingQuestion(true);
-
-                        setTimeout(() => {
-                          if (formRef.current) {
-                            const yOffset = -500;
-                            const y =
-                              formRef.current.getBoundingClientRect().top +
-                              window.pageYOffset +
-                              yOffset;
-
-                            window.scrollTo({ top: y, behavior: "smooth" });
-                          }
-                        }, 100);
                       }}
                       className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-lg hover:bg-orange-600 sm:rounded sm:px-4 sm:py-2"
                     >
@@ -504,152 +478,27 @@ const FacultyContent = () => {
                   </div>
                 )}
 
+                {/* Modal for Combined Forms */}
                 <div ref={formRef}>
-                  {/* Show AddQuestionForm based on activeTab */}
-                  {submittedQuestion[
-                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                  ] &&
-                    !submittedQuestion[
-                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                    ].questionID &&
-                    (activeTab === 0 ? (
-                      <PracticeAddQuestionForm
+                  {/* Show Combined Form based on activeTab and submittedQuestion state */}
+                  {submittedQuestion === "practice" && activeTab === 0 && (
+                    <div className="transition-all duration-300 ease-out">
+                      <CombinedPracticeQuestionForm
                         subjectID={selectedSubject.subjectID}
-                        onQuestionAdded={handleQuestionAdded}
-                        onCancel={() =>
-                          setSubmittedQuestion((prev) => ({
-                            ...prev,
-                            practiceQuestions: null,
-                          }))
-                        }
+                        onComplete={handleQuestionAdded}
+                        onCancel={() => setSubmittedQuestion(null)}
                       />
-                    ) : (
-                      <ExamAddQuestionForm
-                        subjectID={selectedSubject.subjectID}
-                        onQuestionAdded={handleQuestionAdded}
-                        onCancel={() =>
-                          setSubmittedQuestion((prev) => ({
-                            ...prev,
-                            examQuestions: null,
-                          }))
-                        }
-                      />
-                    ))}
-                </div>
-
-                {(activeTab === 0
-                  ? showPracticeChoiceForm
-                  : showExamChoiceForm) &&
-                  submittedQuestion?.[
-                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                  ]?.questionID && (
-                    <div className="flex flex-col">
-                      <div className="flex-1">
-                        <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border border-b-0 bg-white py-2 pl-4 text-[14px] font-medium text-gray-600">
-                          <span>ADD CHOICES</span>
-                        </div>
-                        <div className="border-color mx-auto w-full max-w-3xl rounded-b-none border border-b-0 bg-white p-4 shadow-sm">
-                          <div className="relative rounded-md bg-gray-100 p-1 transition-all duration-150 hover:cursor-text">
-                            <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
-                              <span>
-                                <div
-                                  dangerouslySetInnerHTML={{
-                                    __html:
-                                      submittedQuestion[
-                                        activeTab === 0
-                                          ? "practiceQuestions"
-                                          : "examQuestions"
-                                      ].questionText,
-                                  }}
-                                ></div>
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* image preview */}
-                          {submittedQuestion[
-                            activeTab === 0
-                              ? "practiceQuestions"
-                              : "examQuestions"
-                          ].image && (
-                            <div className="relative mt-3 inline-block max-w-[300px] hover:opacity-80">
-                              <img
-                                src={fixImageUrl(
-                                  submittedQuestion[
-                                    activeTab === 0
-                                      ? "practiceQuestions"
-                                      : "examQuestions"
-                                  ].image,
-                                )}
-                                alt="Question Image Preview"
-                                className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md"
-                                onClick={() => setisQuestionModalOpen(true)}
-                              />
-                            </div>
-                          )}
-
-                          {isQuestionModalOpen && (
-                            <div
-                              className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center"
-                              onClick={() => setisQuestionModalOpen(false)}
-                            >
-                              <div className="relative max-h-full max-w-full">
-                                <img
-                                  src={fixImageUrl(
-                                    submittedQuestion[
-                                      activeTab === 0
-                                        ? "practiceQuestions"
-                                        : "examQuestions"
-                                    ].image,
-                                  )}
-                                  alt="Full View"
-                                  className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   )}
-
-                <div ref={formRef}>
-                  {(activeTab === 0
-                    ? showPracticeChoiceForm
-                    : showExamChoiceForm) &&
-                    submittedQuestion?.[
-                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                    ]?.questionID && (
-                      <>
-                        {activeTab === 0 ? (
-                          <PracticeAddChoiceForm
-                            questionID={
-                              submittedQuestion["practiceQuestions"]?.questionID
-                            }
-                            onComplete={handlePracticeChoicesSubmitted}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                practiceQuestions: null,
-                              }))
-                            }
-                          />
-                        ) : (
-                          <ExamAddChoiceForm
-                            questionID={
-                              submittedQuestion["examQuestions"]?.questionID
-                            }
-                            onComplete={handleExamChoicesSubmitted}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                examQuestions: null,
-                              }))
-                            }
-                          />
-                        )}
-                      </>
-                    )}
+                  {submittedQuestion === "exam" && activeTab === 1 && (
+                    <div className="transition-all duration-300 ease-out">
+                      <CombinedExamQuestionForm
+                        subjectID={selectedSubject.subjectID}
+                        onComplete={handleQuestionAdded}
+                        onCancel={() => setSubmittedQuestion(null)}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -953,14 +802,36 @@ const FacultyContent = () => {
                                   expandedQuestionId ===
                                     question.questionID)) && (
                                 <div className="m-5 mb-1 flex justify-end gap-4">
-                                  <Button
-                                    text="Remove"
-                                    textres="Remove"
-                                    icon="bx bx-trash"
-                                    onClick={() =>
-                                      confirmDelete(question.questionID)
-                                    }
-                                  />
+                                  {question.status === "pending" ? (
+                                    <Button
+                                      text="Remove"
+                                      textres="Remove"
+                                      icon="bx bx-trash"
+                                      onClick={() =>
+                                        confirmDelete(question.questionID)
+                                      }
+                                    />
+                                  ) : (
+                                    <>
+                                      <Button
+                                        text="Edit"
+                                        textres="Edit"
+                                        icon="bx bx-edit"
+                                        onClick={() =>
+                                          handleEditClick(question)
+                                        }
+                                        className="cursor-pointer"
+                                      />
+                                      <Button
+                                        text="Remove"
+                                        textres="Remove"
+                                        icon="bx bx-trash"
+                                        onClick={() =>
+                                          confirmDelete(question.questionID)
+                                        }
+                                      />
+                                    </>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -1062,6 +933,14 @@ const FacultyContent = () => {
           </div>
         )}
         <ScrollToTopButton />
+
+        {editingQuestion && (
+          <EditQuestionForm
+            question={editingQuestion}
+            onComplete={handleEditComplete}
+            onCancel={() => setEditingQuestion(null)}
+          />
+        )}
       </div>
     </div>
   );

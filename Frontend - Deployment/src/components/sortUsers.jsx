@@ -1,6 +1,13 @@
 import SortCustomDropdown from "./sortCustomDropdown";
 
-const Sort = ({ sortOption, setSortOption, subSortOption, setSubSortOption }) => {
+// Handles the Sort function  of Users and the Sort Options
+
+const Sort = ({
+  sortOption,
+  setSortOption,
+  subSortOption,
+  setSubSortOption,
+}) => {
   const mainSortOptions = [
     { value: "all", label: "All" },
     { value: "campus", label: "Campus" },
@@ -37,7 +44,6 @@ const Sort = ({ sortOption, setSortOption, subSortOption, setSubSortOption }) =>
 
       {sortOption && subSortOptions[sortOption] && (
         <SortCustomDropdown
-        
           name="subSortOption"
           value={subSortOption}
           onChange={(e) => setSubSortOption(e.target.value)}

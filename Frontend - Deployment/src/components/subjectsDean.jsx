@@ -1,10 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import Button from "./button";
 import { useNavigate } from "react-router-dom";
-import LoadingOverlay from "./loadingOverlay";
-import ModalDropdown from "./modalDropdown";
 import SideBarToolTip from "./sidebarTooltip";
-
+import { Tooltip } from "flowbite-react";
+import RegisterDropDownSmall from "./registerDropDownSmall";
 const SideBarDropDown = ({
   item,
   isExpanded,
@@ -47,6 +46,8 @@ const SideBarDropDown = ({
 
   const [selectedProgramID, setSelectedProgramID] = useState("");
 
+  const [validationError, setValidationError] = useState("");
+
   const handleEditClick = (subject) => {
     setEditingSubject(subject.subjectID);
     setEditedSubject({
@@ -54,6 +55,7 @@ const SideBarDropDown = ({
       subjectName: subject.subjectName,
     });
   };
+
   const [toast, setToast] = useState({
     message: "",
     type: "",
@@ -78,7 +80,6 @@ const SideBarDropDown = ({
   const handleSaveEdit = async (subjectID) => {
     const token = localStorage.getItem("token");
 
-    setEditingSubject(null);
     setIsEditing(true);
 
     try {
@@ -144,8 +145,6 @@ const SideBarDropDown = ({
 
   const handleDeleteSubject = async (subjectID) => {
     const token = localStorage.getItem("token");
-
-    setShowDeleteModal(false);
 
     setIsDeleting(true);
     try {
@@ -224,7 +223,6 @@ const SideBarDropDown = ({
     if (!newSubjectCode.trim() || !newSubjectName.trim()) return;
     const token = localStorage.getItem("token");
 
-    setShowAddModal(false);
     setIsAdding(true);
 
     try {
@@ -358,7 +356,7 @@ const SideBarDropDown = ({
   return (
     <div className="-mt-2">
       <li
-        className="relative flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] hover:bg-orange-500 hover:text-white"
+        className="relative flex cursor-pointer items-center gap-3 rounded px-[4px] py-[1px] hover:bg-[rgb(255,230,214)] hover:text-gray-700"
         onClick={() => {
           if (!isExpanded || !isOpen) {
             setIsExpanded(true);
@@ -375,6 +373,7 @@ const SideBarDropDown = ({
         <SideBarToolTip label="Subjects" isExpanded={isExpanded}>
           <i className={`bx ${item.icon} mt-1 text-2xl`}></i>
         </SideBarToolTip>
+
         <span
           className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
             isExpanded
@@ -412,6 +411,18 @@ const SideBarDropDown = ({
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          <Tooltip
+            content={<span className="whitespace-nowrap">Add Subject</span>}
+            placement="right"
+          >
+            <div
+              className="cursor-pointer justify-center rounded-sm bg-orange-500 px-[7px] py-[3px] text-center text-white transition-all hover:bg-orange-600"
+              onClick={() => setShowAddModal(true)}
+            >
+              <i className="bx bx-plus text-[16px]"></i>
+            </div>
+          </Tooltip>
         </div>
 
         <div className="mt-4 h-[1px] w-full bg-[rgb(200,200,200)]"></div>
@@ -504,7 +515,7 @@ const SideBarDropDown = ({
 
         {openMenuID && dropdownSubject && (
           <div
-            className="absolute z-50 w-28 rounded bg-white shadow-md"
+            className="absolute z-50 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm"
             style={{
               top:
                 dropdownDirection === "down"
@@ -515,7 +526,7 @@ const SideBarDropDown = ({
             onMouseLeave={() => setOpenMenuID(null)}
           >
             <button
-              className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              className="w-full rounded-sm px-3 py-2 text-left text-sm text-black hover:bg-gray-200"
               onClick={() => {
                 setEditingSubject(dropdownSubject);
                 setEditedSubject({
@@ -527,94 +538,97 @@ const SideBarDropDown = ({
                 setOpenMenuID(null);
               }}
             >
-              Edit
+              <i className="bx bx-edit-alt mr-2 text-[16px]"></i>Edit
             </button>
             <button
-              className="w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
+              className="w-full rounded-sm px-3 py-2 text-left text-sm text-black hover:bg-gray-200"
               onClick={() => {
                 setSubjectToDelete(dropdownSubject);
                 setShowDeleteModal(true);
                 setOpenMenuID(null);
               }}
             >
-              Delete
+              <i className="bx bxs-trash-alt mr-2 text-[16px]"></i>Remove
             </button>
           </div>
         )}
       </div>
 
       {editingSubject && (
-        <div className="lightbox-bg fixed inset-0 z-56 flex flex-col items-center justify-center p-2">
-          <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
+        <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-end min-[448px]:justify-center min-[448px]:p-2">
+          <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-2xl border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700 min-[448px]:rounded-t-md">
             <span>Edit Subject</span>
           </div>
-          <div className="border-color relative mx-auto w-full max-w-md rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
+          <div className="border-color relative mx-auto w-full max-w-md border border-t-0 bg-white p-2 min-[448px]:rounded-b-md sm:px-4">
             <div>
               {/* Subject Name Input */}
-              <div className="mt-2">
-                <div className="mb-2 flex items-start gap-1">
-                  <label className="font-color-gray text-[12px]">Name</label>
-                  {!editedSubject.subjectName && (
-                    <span className="relative -mt-[2px] text-[14px] text-red-500">
-                      *
-                    </span>
-                  )}
+              <div>
+                <div className="mb-2 flex items-start gap-1"></div>
+                <div className="relative w-full">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="peer mt-2 w-full rounded-xl border border-gray-300 px-4 py-[8px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                      placeholder="Name"
+                      value={editedSubject.subjectName}
+                      onChange={(e) =>
+                        setEditedSubject((prev) => ({
+                          ...prev,
+                          subjectName: e.target.value,
+                        }))
+                      }
+                    />
+                    <label
+                      htmlFor="Subject Name"
+                      className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
+                    >
+                      Subject Name
+                    </label>
+                  </div>
                 </div>
-                <input
-                  type="text"
-                  value={editedSubject.subjectName}
-                  onChange={(e) =>
-                    setEditedSubject((prev) => ({
-                      ...prev,
-                      subjectName: e.target.value,
-                    }))
-                  }
-                  className={`relative mb-1 w-full cursor-text rounded-sm border border-gray-300 bg-white px-4 py-[7px] text-[14px] transition-all duration-200 ease-in-out outline-none hover:border-gray-500 focus:border-transparent focus:ring-1 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none`}
-                  placeholder="Enter subject name"
-                />
               </div>
 
               {/* Subject Code Input */}
               <div className="mt-2 mb-4">
-                <div className="mb-2 flex items-start gap-1">
-                  <label className="font-color-gray text-[12px]">Code</label>
-                  {!editedSubject.subjectCode && (
-                    <span className="relative -mt-[2px] text-[14px] text-red-500">
-                      *
-                    </span>
-                  )}
+                <div className="mb-2 flex items-start gap-1"></div>
+                <div className="relative w-full">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="peer mt-2 w-full rounded-xl border border-gray-300 px-4 py-[8px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                      placeholder="Name"
+                      value={editedSubject.subjectCode}
+                      onChange={(e) =>
+                        setEditedSubject((prev) => ({
+                          ...prev,
+                          subjectCode: e.target.value,
+                        }))
+                      }
+                    />
+                    <label
+                      htmlFor="Subject Code"
+                      className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
+                    >
+                      Subject Code
+                    </label>
+                  </div>
                 </div>
-                <input
-                  type="text"
-                  value={editedSubject.subjectCode}
-                  onChange={(e) =>
-                    setEditedSubject((prev) => ({
-                      ...prev,
-                      subjectCode: e.target.value,
-                    }))
-                  }
-                  className={`relative mb-1 w-full cursor-text rounded-sm border border-gray-300 bg-white px-4 py-[7px] text-[14px] transition-all duration-200 ease-in-out outline-none hover:border-gray-500 focus:border-transparent focus:ring-1 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none`}
-                  placeholder="Enter subject code"
-                />
+
                 {editedSubject.subjectCode.length > 20 && (
                   <p className="text-center text-[13px] text-red-500">
                     Code must be 20 characters or less.
                   </p>
                 )}
               </div>
+              <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
 
               {/* Program Selection Dropdown */}
               <div>
                 <div className="mb-2 flex items-start gap-1">
                   <label className="font-color-gray text-[12px]">Program</label>
-                  {!editedSubject.programID && (
-                    <span className="relative -mt-[2px] text-[14px] text-red-500">
-                      *
-                    </span>
-                  )}
                 </div>
 
-                <ModalDropdown
+                <RegisterDropDownSmall
                   name="Program"
                   value={editedSubject.programID}
                   onChange={(e) =>
@@ -635,17 +649,24 @@ const SideBarDropDown = ({
             {/* Divider */}
             <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
 
-            <div className="mt-2 flex justify-end gap-2 text-[16px]">
+            {validationError && (
+              <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                {validationError}
+              </div>
+            )}
+
+            <div className="mt-2 flex justify-end gap-2 text-[14px]">
               <button
-                onClick={() => setEditingSubject(null)}
+                onClick={() => {
+                  setEditingSubject(null);
+                  setValidationError("");
+                }}
                 className="ml-auto flex cursor-pointer items-center gap-1 rounded-md border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
               >
                 Cancel
               </button>
-              <Button
-                text="Save"
-                textres="Save"
-                icon="bx bx-edit"
+              <button
+                className="flex w-[80px] cursor-pointer items-center justify-center rounded-md bg-orange-500 px-[12px] py-[6px] text-[14px] text-white hover:bg-orange-700"
                 onClick={async () => {
                   const isNameValid = editedSubject.subjectName.trim() !== "";
                   const isCodeValid =
@@ -653,39 +674,54 @@ const SideBarDropDown = ({
                     editedSubject.subjectCode.length <= 20;
                   const isProgramValid = editedSubject.programID !== "";
 
-                  if (!isNameValid || !isCodeValid || !isProgramValid) return;
+                  if (!isNameValid || !isCodeValid || !isProgramValid) {
+                    setValidationError("Please fill in all required fields");
+                    return;
+                  }
 
+                  setValidationError("");
                   await handleSaveEdit(editedSubject.subjectID);
                   setEditingSubject(null);
                 }}
-              />
+              >
+                {isEditing ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                ) : (
+                  "Update"
+                )}
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {showDeleteModal && subjectToDelete && (
-        <div className="lightbox-bg fixed inset-0 z-56 flex flex-col items-center justify-center p-2">
+        <div className="lightbox-bg fixed inset-0 z-57 flex flex-col items-center justify-center p-2">
           <div className="font-inter border-color relative mx-auto w-full max-w-sm rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
-            <span>Delete Subject</span>
+            <span>Remove Subject</span>
           </div>
 
           <div className="border-color relative mx-auto w-full max-w-sm rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
-            <p className="mt-2 mb-9 text-[14px] break-words text-gray-700">
-              Are you sure you want to delete{" "}
-              <strong>{subjectToDelete.subjectName}</strong>?
+            <p className="mt-2 mb-9 px-2 text-[14px] break-words text-gray-700">
+              Are you sure you want to remove{" "}
+              <strong>
+                {subjectToDelete.subjectName} ({subjectToDelete.subjectCode})
+              </strong>
+              ?
             </p>
-            <div className="mb-2 flex justify-end gap-2">
+
+            <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
+
+            <div className="mb-2 flex justify-end gap-2 text-[14px]">
               <button
                 onClick={() => setShowDeleteModal(false)}
                 className="ml-auto flex cursor-pointer items-center gap-1 rounded-md border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
               >
                 Cancel
               </button>
-              <Button
-                text="Confirm"
-                textres="Confirm"
-                icon="bx bx-trash"
+
+              <button
+                className="flex w-[80px] cursor-pointer items-center justify-center rounded-md bg-orange-500 px-[12px] py-[6px] text-[14px] text-white hover:bg-orange-700"
                 onClick={async () => {
                   await handleDeleteSubject(subjectToDelete.subjectID);
                   setShowDeleteModal(false);
@@ -696,7 +732,13 @@ const SideBarDropDown = ({
                     show: true,
                   });
                 }}
-              />
+              >
+                {isDeleting ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                ) : (
+                  "Confirm"
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -731,68 +773,72 @@ const SideBarDropDown = ({
       )}
 
       {showAddModal && (
-        <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center">
-          <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
+        <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-end min-[448px]:justify-center min-[448px]:p-2">
+          <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-2xl border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700 min-[448px]:rounded-t-md">
             <span>Add a Subject</span>
           </div>
 
           <div className="border-color relative mx-auto w-full max-w-md rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
             {/* Subject Name */}
             <div className="mb-4">
-              <div className="mb-2 flex items-start gap-1">
-                <label className="font-color-gray text-[12px]">Name</label>
-                {!newSubjectName && (
-                  <span className="relative -mt-[2px] text-[14px] text-red-500">
-                    *
-                  </span>
-                )}
+              <div className="mb-2 flex items-start gap-1"></div>
+
+              <div className="relative w-full">
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="peer mt-2 w-full rounded-xl border border-gray-300 px-4 py-[8px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                    placeholder="Name"
+                    value={newSubjectName}
+                    onChange={(e) => setNewSubjectName(e.target.value)}
+                  />
+                  <label
+                    htmlFor="Subject Name"
+                    className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
+                  >
+                    Subject Name
+                  </label>
+                </div>
               </div>
-              <input
-                type="text"
-                placeholder="Enter Subject Name"
-                value={newSubjectName}
-                onChange={(e) => setNewSubjectName(e.target.value)}
-                className={`relative mb-1 w-full cursor-text rounded-sm border border-gray-300 bg-white px-4 py-[7px] text-[14px] transition-all duration-200 ease-in-out outline-none hover:border-gray-500 focus:border-transparent focus:ring-1 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none`}
-              />
             </div>
 
             {/* Subject Code */}
             <div className="mb-4">
-              <div className="mb-2 flex items-start gap-1">
-                <label className="font-color-gray text-[12px]">Code</label>
-                {!newSubjectCode && (
-                  <span className="relative -mt-[2px] text-[14px] text-red-500">
-                    *
-                  </span>
-                )}
+              <div className="mb-2 flex items-start gap-1"></div>
+
+              <div className="relative w-full">
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="peer mt-2 w-full rounded-xl border border-gray-300 px-4 py-[8px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                    placeholder="Code"
+                    value={newSubjectCode}
+                    onChange={(e) => setNewSubjectCode(e.target.value)}
+                  />
+                  <label
+                    htmlFor="Subject Code"
+                    className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
+                  >
+                    Subject Code
+                  </label>
+                </div>
               </div>
-              <input
-                type="text"
-                className={`relative mb-1 w-full cursor-text rounded-sm border border-gray-300 bg-white px-4 py-[7px] text-[14px] transition-all duration-200 ease-in-out outline-none hover:border-gray-500 focus:border-transparent focus:ring-1 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none`}
-                placeholder="Enter Subject Code (e.g. CPE112)"
-                value={newSubjectCode}
-                onChange={(e) => setNewSubjectCode(e.target.value)}
-              />
 
               {newSubjectCode.length > 20 && (
-                <p className="text-center text-[13px] text-red-500">
+                <p className="mt-1 ml-2 text-start text-[13px] text-red-500">
                   Code must be 20 characters or less.
                 </p>
               )}
             </div>
+            <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
 
             {/* Program Selection */}
             <div>
               <div className="mb-2 flex items-start gap-1">
                 <label className="font-color-gray text-[12px]">Program</label>
-                {!selectedProgramID && (
-                  <span className="relative -mt-[2px] text-[14px] text-red-500">
-                    *
-                  </span>
-                )}
               </div>
 
-              <ModalDropdown
+              <RegisterDropDownSmall
                 name="Program"
                 value={selectedProgramID}
                 onChange={(e) => setSelectedProgramID(e.target.value)}
@@ -807,23 +853,29 @@ const SideBarDropDown = ({
             {/* Divider */}
             <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
 
+            {validationError && (
+              <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                {validationError}
+              </div>
+            )}
+
             {/* Buttons */}
             <div className="mb-1 flex justify-end gap-2">
               <button
-                className="cursor-pointer rounded-md border px-2 py-1.5 text-gray-700 hover:bg-gray-200"
+                className="cursor-pointer rounded-md border px-[12px] py-[6px] text-gray-700 hover:bg-gray-200"
                 onClick={() => {
                   setNewSubjectName("");
                   setNewSubjectCode("");
                   setSelectedProgramID("");
                   setShowAddModal(false);
+                  setValidationError("");
                 }}
               >
-                <span className="px-1 text-[16px]">Cancel</span>
+                <span className="text-[14px]">Cancel</span>
               </button>
 
-              <Button
-                text="Add"
-                icon="bx bx-plus"
+              <button
+                className="flex w-[80px] cursor-pointer items-center justify-center rounded-md bg-orange-500 px-[12px] py-[6px] text-[14px] text-white hover:bg-orange-700"
                 onClick={async () => {
                   const valid =
                     newSubjectName.trim() !== "" &&
@@ -831,20 +883,26 @@ const SideBarDropDown = ({
                     newSubjectCode.length <= 20 &&
                     selectedProgramID;
 
-                  if (!valid) return;
+                  if (!valid) {
+                    setValidationError("Please fill in all required fields");
+                    return;
+                  }
 
+                  setValidationError("");
                   await handleAddSubject();
-
                   setShowAddModal(false);
                 }}
-              />
+              >
+                {isAdding ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                ) : (
+                  "Add"
+                )}
+              </button>
             </div>
           </div>
         </div>
       )}
-      {isAdding && <LoadingOverlay show={isAdding} />}
-      {isDeleting && <LoadingOverlay show={isDeleting} />}
-      {isEditing && <LoadingOverlay show={isEditing} />}
     </div>
   );
 };

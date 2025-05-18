@@ -1,7 +1,13 @@
+import PrintExamModal from "../components/PrintExamModal";
+
 const AdminDashboard = () => {
   return (
     <div className="mt-10 text-center text-gray-500">
-      <p>Dean Dashboard</p>
+      <p>
+        The dashboard is currently under development. To add questions, please
+        select a subject from the sidebar.
+      </p>
+      <PrintExamModal />
     </div>
   );
 };

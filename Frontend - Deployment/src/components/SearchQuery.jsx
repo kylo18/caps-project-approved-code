@@ -1,5 +1,6 @@
 import { useRef } from "react";
 
+// Displays a Search Bar
 const SearchQuery = ({
   searchQuery,
   setSearchQuery,

@@ -1,12 +1,12 @@
-// src/components/common/LoadingOverlay.jsx
 import React from "react";
 
+// Loading Overlay
 const LoadingOverlay = ({ show = false }) => {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 lightbox-bg bg-opacity-50 z-56 flex flex-col justify-center items-center">
-      <i className="bx bxs-cog text-white text-5xl animate-spin mb-2"></i>
+    <div className="lightbox-bg bg-opacity-50 fixed inset-0 z-56 flex flex-col items-center justify-center">
+      <i className="bx bxs-cog mb-2 animate-spin text-5xl text-white"></i>
     </div>
   );
 };

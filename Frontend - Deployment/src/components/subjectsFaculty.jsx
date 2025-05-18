@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import Button from "./button";
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "./loadingOverlay";
-
+import Tooltip from "./toolTip";
 const AssignedSubjectsDropDown = ({
   item,
   isExpanded,
@@ -215,7 +215,6 @@ const AssignedSubjectsDropDown = ({
   const handleDeleteSubject = async (subjectID) => {
     const token = localStorage.getItem("token");
 
-    setShowDeleteModal(false);
     setIsDeleting(true);
 
     try {
@@ -260,7 +259,6 @@ const AssignedSubjectsDropDown = ({
 
     const token = localStorage.getItem("token");
 
-    setShowAddModal(false);
     setIsAssigning(true);
     try {
       const response = await fetch(`${apiUrl}/faculty/assign-subject`, {
@@ -362,12 +360,17 @@ const AssignedSubjectsDropDown = ({
             />
           </div>
 
-          <div
-            className="cursor-pointer justify-center rounded-sm bg-orange-500 px-[7px] py-[3px] text-center text-white transition-all hover:bg-orange-600"
-            onClick={() => setShowAddModal(true)}
+          <Tooltip
+            content={<span className="whitespace-nowrap">Assign Subject</span>}
+            placement="right"
           >
-            <i className="bx bx-plus text-[16px]"></i>
-          </div>
+            <div
+              className="cursor-pointer justify-center rounded-sm bg-orange-500 px-[7px] py-[3px] text-center text-white transition-all hover:bg-orange-600"
+              onClick={() => setShowAddModal(true)}
+            >
+              <i className="bx bx-plus text-[16px]"></i>
+            </div>
+          </Tooltip>
         </div>
 
         <div className="mt-4 h-[1px] w-full bg-[rgb(200,200,200)]"></div>
@@ -432,7 +435,7 @@ const AssignedSubjectsDropDown = ({
               <span>No subjects found</span>
               <button
                 onClick={fetchAssignedSubjects}
-                className="mt-3 flex items-center gap-1 rounded-md border bg-gray-100 px-3 py-1 text-sm shadow-sm hover:bg-gray-200"
+                className="mt-3 flex items-center gap-1 rounded-md border px-3 py-1 text-sm shadow-sm hover:bg-gray-200"
                 disabled={subjectLoading}
               >
                 {subjectLoading ? (
@@ -476,25 +479,30 @@ const AssignedSubjectsDropDown = ({
       {showDeleteModal && subjectToDelete && (
         <div className="lightbox-bg fixed inset-0 z-56 flex flex-col items-center justify-center">
           <div className="font-inter border-color relative mx-auto w-full max-w-sm rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
-            <span>Delete Subject</span>
+            <span>Remove Subject</span>
           </div>
 
           <div className="border-color relative mx-auto w-full max-w-sm rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
-            <p className="mt-2 mb-9 text-[14px] break-words text-gray-700">
-              Are you sure you want to delete{" "}
-              <strong>{subjectToDelete.subjectName}</strong>?
+            <p className="mt-2 mb-9 px-2 text-[14px] break-words text-gray-700">
+              Are you sure you want to remove{" "}
+              <strong>
+                {subjectToDelete.subjectName} ({subjectToDelete.subjectCode})
+              </strong>
+              ?
             </p>
-            <div className="mb-2 flex justify-end gap-2">
+
+            <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
+
+            <div className="mb-2 flex justify-end gap-2 text-[14px]">
               <button
                 onClick={() => setShowDeleteModal(false)}
                 className="ml-auto flex cursor-pointer items-center gap-1 rounded-md border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
               >
                 Cancel
               </button>
-              <Button
-                text="Confirm"
-                textres="Confirm"
-                icon="bx bx-trash"
+
+              <button
+                className="flex w-[80px] cursor-pointer items-center justify-center rounded-md bg-orange-500 px-[12px] py-[6px] text-[14px] text-white hover:bg-orange-700"
                 onClick={async () => {
                   await handleDeleteSubject(subjectToDelete.subjectID);
                   setShowDeleteModal(false);
@@ -505,7 +513,13 @@ const AssignedSubjectsDropDown = ({
                     show: true,
                   });
                 }}
-              />
+              >
+                {isDeleting ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                ) : (
+                  "Confirm"
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -530,7 +544,7 @@ const AssignedSubjectsDropDown = ({
                 />
               </div>
               <button
-                className="flex items-center gap-1 rounded-md border bg-gray-100 px-3 py-[7px] text-sm hover:bg-gray-200"
+                className="border-color flex cursor-pointer items-center gap-1 rounded-md border px-3 py-[7px] text-sm hover:bg-gray-200"
                 onClick={fetchSubjects}
               >
                 <i className="bx bx-refresh text-[18px]"></i> Refresh
@@ -590,21 +604,24 @@ const AssignedSubjectsDropDown = ({
               >
                 <span className="px-1 text-[16px]">Cancel</span>
               </button>
-              <Button
-                text="Assign"
-                textres="Assign"
-                icon="bx bx-check"
+
+              <button
+                className="flex w-[80px] cursor-pointer items-center justify-center rounded-md bg-orange-500 px-[12px] py-[6px] text-[14px] text-white hover:bg-orange-700"
                 onClick={() =>
                   handleAssignSubject(selectedSubjectForAssignment)
                 }
                 disabled={!selectedSubjectForAssignment}
-              />
+              >
+                {isAssigning ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                ) : (
+                  "Assign"
+                )}
+              </button>
             </div>
           </div>
         </div>
       )}
-      {isDeleting && <LoadingOverlay show={isDeleting} />}
-      {isAssigning && <LoadingOverlay show={isAssigning} />}
 
       {toast.message && (
         <div

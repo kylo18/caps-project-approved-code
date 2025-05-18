@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 
+// Displays a button to scroll automatically to the top
 const ScrollToTopButton = () => {
   const [isVisible, setIsVisible] = useState(false);
 
