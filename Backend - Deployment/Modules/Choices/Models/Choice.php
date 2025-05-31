@@ -18,6 +18,11 @@ class Choice extends Model
         'choiceText',
         'image',
         'isCorrect',
+        'position'
+    ];
+
+    protected $casts = [
+        'isCorrect' => 'boolean',
     ];
 
     public function question()

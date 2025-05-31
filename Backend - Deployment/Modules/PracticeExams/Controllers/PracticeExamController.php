@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Modules\PracticeExams\Models\PracticeExamResult;
+use Modules\Questions\Models\Status;
+use Modules\Questions\Models\Difficulty;
 
 class PracticeExamController extends Controller
 {
@@ -44,37 +46,49 @@ class PracticeExamController extends Controller
                 return response()->json(['message' => 'Practice Exam settings not configured for this subject.'], 404);
             }
 
+            // Get difficulty IDs
+            $difficulties = Difficulty::all()->pluck('id', 'name');
+
             // Fetch and group questions by difficulty
-            $questions = Question::with('choices')
+            $questions = Question::with(['choices' => function($query) {
+                $query->orderBy('position', 'asc');
+            }])
                 ->where('subjectID', $subjectID)
-                ->where('purpose', 'practiceQuestions')
-                ->where('status', '!=', 'pending')
+                ->where('purpose_id', 1) // Assuming 1 is for practice questions
+                ->whereHas('status', function($query) {
+                    $query->where('name', '!=', 'pending');
+                })
                 ->get()
                 ->shuffle();
 
-            $grouped = ['easy' => [], 'moderate' => [], 'hard' => []];
+            $grouped = [
+                $difficulties['easy'] => [], 
+                $difficulties['moderate'] => [], 
+                $difficulties['hard'] => []
+            ];
+
             foreach ($questions as $q) {
-                if (isset($grouped[$q->difficulty])) {
-                    $grouped[$q->difficulty][] = $q;
+                if (isset($grouped[$q->difficulty_id])) {
+                    $grouped[$q->difficulty_id][] = $q;
                 }
             }
 
             // Calculate point quotas per difficulty
             $targetPoints = 100;
             $difficultyMap = [
-                'easy' => $settings->easy_percentage,
-                'moderate' => $settings->moderate_percentage,
-                'hard' => $settings->hard_percentage,
+                $difficulties['easy'] => $settings->easy_percentage,
+                $difficulties['moderate'] => $settings->moderate_percentage,
+                $difficulties['hard'] => $settings->hard_percentage,
             ];
 
             $difficultyQuotas = [];
             $remainingPoints = $targetPoints;
-            foreach (array_keys($difficultyMap) as $i => $difficulty) {
+            foreach (array_keys($difficultyMap) as $i => $difficultyId) {
                 if ($i === count($difficultyMap) - 1) {
-                    $difficultyQuotas[$difficulty] = $remainingPoints;
+                    $difficultyQuotas[$difficultyId] = $remainingPoints;
                 } else {
-                    $portion = round(($difficultyMap[$difficulty] / 100) * $targetPoints);
-                    $difficultyQuotas[$difficulty] = $portion;
+                    $portion = round(($difficultyMap[$difficultyId] / 100) * $targetPoints);
+                    $difficultyQuotas[$difficultyId] = $portion;
                     $remainingPoints -= $portion;
                 }
             }
@@ -83,78 +97,109 @@ class PracticeExamController extends Controller
             $selectedQuestions = [];
             $totalPoints = 0;
 
-            foreach ($difficultyQuotas as $difficulty => $pointsQuota) {
+            foreach ($difficultyQuotas as $difficultyId => $pointsQuota) {
                 $currentPoints = 0;
-                $availableQuestions = collect($grouped[$difficulty])->shuffle();
+                $availableQuestions = collect($grouped[$difficultyId])->shuffle();
 
                 foreach ($availableQuestions as $q) {
                     if ($currentPoints + $q->score > $pointsQuota) {
                         continue;
                     }
 
-                    // Ensure one correct and at least three incorrect choices
-                    $shuffledChoices = $q->choices->shuffle();
-                    $correct = $shuffledChoices->where('isCorrect', true)->first();
-                    $incorrect = $shuffledChoices->where('isCorrect', false)->take(3);
+                    // Get regular choices (excluding "None of the above")
+                    $regularChoices = $q->choices->where('position', '!=', 5);
+                    $noneChoice = $q->choices->where('position', 5)->first();
 
-                    if (!$correct || $incorrect->count() < 3) {
-                        continue;
+                    // Check if "None of the above" is the correct answer
+                    $isNoneCorrect = $noneChoice && $noneChoice->isCorrect;
+
+                    // For questions where "None of the above" is correct
+                    if ($isNoneCorrect) {
+                        // We need at least 4 incorrect regular choices
+                        if ($regularChoices->where('isCorrect', false)->count() < 4) {
+                            continue;
+                        }
+                        
+                        try {
+                            // Take 4 incorrect regular choices
+                            $finalRegularChoices = $regularChoices->where('isCorrect', false)
+                                ->shuffle()
+                                ->take(4)
+                                ->map(function ($choice) use ($q) {
+                                    return $this->formatChoice($choice, $q);
+                                })->values();
+
+                            // Add "None of the above" as the fifth choice
+                            $noneOfTheAbove = $this->formatChoice($noneChoice, $q);
+                            $finalChoices = $finalRegularChoices->push($noneOfTheAbove);
+                        } catch (\Exception $e) {
+                            Log::error("Choice processing failed (Question ID: {$q->questionID}): " . $e->getMessage());
+                            continue;
+                        }
+                    } 
+                    // For questions where a regular choice is correct
+                    else {
+                        // Ensure one correct and at least three incorrect choices
+                        $correct = $regularChoices->where('isCorrect', true)->first();
+                        $incorrect = $regularChoices->where('isCorrect', false)->take(3);
+
+                        if (!$correct || $incorrect->count() < 3) {
+                            continue;
+                        }
+
+                        try {
+                            // First shuffle and process regular choices
+                            $finalRegularChoices = $incorrect->push($correct)
+                                ->shuffle()
+                                ->take(4)
+                                ->map(function ($choice) use ($q) {
+                                    return $this->formatChoice($choice, $q);
+                                })->values();
+
+                            // Add "None of the above" as the fifth choice
+                            if ($noneChoice) {
+                                $noneOfTheAbove = $this->formatChoice($noneChoice, $q);
+                                $finalChoices = $finalRegularChoices->push($noneOfTheAbove);
+                            } else {
+                                $finalChoices = $finalRegularChoices;
+                            }
+                        } catch (\Exception $e) {
+                            Log::error("Choice processing failed (Question ID: {$q->questionID}): " . $e->getMessage());
+                            continue;
+                        }
                     }
 
-                    // Build and decrypt choice data
                     try {
-                        $finalChoices = $incorrect->push($correct)->shuffle()->map(function ($choice) use ($q) {
-                            $decryptedText = null;
-                            if ($choice->choiceText) {
-                                try {
-                                    $decryptedText = Crypt::decryptString($choice->choiceText);
-                                } catch (\Exception $e) {
-                                    Log::error("Choice decryption failed (Question ID: {$q->questionID}, Choice ID: {$choice->choiceID}): " . $e->getMessage());
-                                }
-                            }
-
-                            $choiceImage = null;
-                            if ($choice->image && Storage::disk('public')->exists($choice->image)) {
-                                $choiceImage = asset('storage/' . $choice->image);
-                            }
-
-                            return [
-                                'choiceID' => $choice->choiceID,
-                                'choiceText' => $decryptedText,
-                                'choiceImage' => $choiceImage,
-                                'isCorrect' => $choice->isCorrect,
-                            ];
-                        })->values();
-                    } catch (\Exception $e) {
-                        Log::error("Choice processing failed (Question ID: {$q->questionID}): " . $e->getMessage());
-                        continue;
-                    }
-
-                    // Decrypt question text
-                    try {
+                        // Decrypt question text
                         $questionText = Crypt::decryptString($q->questionText);
+
+                        // Handle question image
+                        $questionImage = null;
+                        if ($q->image) {
+                            if (filter_var($q->image, FILTER_VALIDATE_URL)) {
+                                $questionImage = $q->image;
+                            } elseif (Storage::disk('public')->exists($q->image)) {
+                                $questionImage = asset('storage/' . $q->image);
+                            }
+                        }
+
+                        $selectedQuestions[] = [
+                            'questionID' => $q->questionID,
+                            'questionText' => $questionText,
+                            'questionImage' => $questionImage,
+                            'score' => $q->score,
+                            'choices' => $finalChoices,
+                        ];
+
+                        $currentPoints += $q->score;
+                        $totalPoints += $q->score;
+
+                        if ($currentPoints >= $pointsQuota) {
+                            break;
+                        }
                     } catch (\Exception $e) {
-                        Log::error("Question decryption failed (ID: {$q->questionID}): " . $e->getMessage());
+                        Log::error("Question processing failed (ID: {$q->questionID}): " . $e->getMessage());
                         continue;
-                    }
-
-                    $questionImage = $q->image && Storage::disk('public')->exists($q->image)
-                        ? asset('storage/' . $q->image)
-                        : null;
-
-                    $selectedQuestions[] = [
-                        'questionID' => $q->questionID,
-                        'questionText' => $questionText,
-                        'questionImage' => $questionImage,
-                        'score' => $q->score,
-                        'choices' => $finalChoices,
-                    ];
-
-                    $currentPoints += $q->score;
-                    $totalPoints += $q->score;
-
-                    if ($currentPoints >= $pointsQuota) {
-                        break;
                     }
                 }
             }
@@ -174,6 +219,38 @@ class PracticeExamController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Format a choice for output
+     */
+    private function formatChoice($choice, $question)
+    {
+        $decryptedText = null;
+        if ($choice->choiceText) {
+            try {
+                $decryptedText = Crypt::decryptString($choice->choiceText);
+            } catch (\Exception $e) {
+                Log::error("Choice decryption failed (Question ID: {$question->questionID}, Choice ID: {$choice->choiceID}): " . $e->getMessage());
+            }
+        }
+
+        $choiceImage = null;
+        if ($choice->image) {
+            if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
+                $choiceImage = $choice->image;
+            } elseif (Storage::disk('public')->exists($choice->image)) {
+                $choiceImage = asset('storage/' . $choice->image);
+            }
+        }
+
+        return [
+            'choiceID' => $choice->choiceID,
+            'choiceText' => $decryptedText,
+            'choiceImage' => $choiceImage,
+            'isCorrect' => $choice->isCorrect,
+            'position' => $choice->position,
+        ];
     }
 
     /**
@@ -199,35 +276,49 @@ class PracticeExamController extends Controller
                 return response()->json(['message' => 'Practice Exam settings not configured.'], 404);
             }
 
+            // Get difficulty IDs
+            $difficulties = Difficulty::all()->pluck('id', 'name');
+
             // Fetch and group questions by difficulty
-            $questions = Question::with('choices')
+            $questions = Question::with(['choices' => function($query) {
+                $query->orderBy('position', 'asc');
+            }])
                 ->where('subjectID', $subjectID)
-                ->where('status', '!=', 'pending')
+                ->whereHas('status', function($query) {
+                    $query->where('name', '!=', 'pending');
+                })
                 ->get()
                 ->shuffle();
 
-            $grouped = ['easy' => [], 'moderate' => [], 'hard' => []];
+            $grouped = [
+                $difficulties['easy'] => [], 
+                $difficulties['moderate'] => [], 
+                $difficulties['hard'] => []
+            ];
+
             foreach ($questions as $q) {
-                $grouped[$q->difficulty][] = $q;
+                if (isset($grouped[$q->difficulty_id])) {
+                    $grouped[$q->difficulty_id][] = $q;
+                }
             }
 
             // Calculate quotas
             $difficultyMap = [
-                'easy' => $settings->easy_percentage,
-                'moderate' => $settings->moderate_percentage,
-                'hard' => $settings->hard_percentage,
+                $difficulties['easy'] => $settings->easy_percentage,
+                $difficulties['moderate'] => $settings->moderate_percentage,
+                $difficulties['hard'] => $settings->hard_percentage,
             ];
 
             $difficultyQuotas = [];
             $targetPoints = 100;
             $remainingPoints = $targetPoints;
 
-            foreach (array_keys($difficultyMap) as $i => $difficulty) {
+            foreach (array_keys($difficultyMap) as $i => $difficultyId) {
                 if ($i === count($difficultyMap) - 1) {
-                    $difficultyQuotas[$difficulty] = $remainingPoints;
+                    $difficultyQuotas[$diffi6cultyId] = $remainingPoints;
                 } else {
-                    $portion = round(($difficultyMap[$difficulty] / 100) * $targetPoints);
-                    $difficultyQuotas[$difficulty] = $portion;
+                    $portion = round(($difficultyMap[$difficultyId] / 100) * $targetPoints);
+                    $difficultyQuotas[$difficultyId] = $portion;
                     $remainingPoints -= $portion;
                 }
             }
@@ -236,43 +327,47 @@ class PracticeExamController extends Controller
             $selectedQuestions = [];
             $totalPoints = 0;
 
-            foreach ($difficultyQuotas as $difficulty => $pointsQuota) {
+            foreach ($difficultyQuotas as $difficultyId => $pointsQuota) {
                 $currentPoints = 0;
-                $availableQuestions = collect($grouped[$difficulty])->shuffle();
+                $availableQuestions = collect($grouped[$difficultyId])->shuffle();
 
                 foreach ($availableQuestions as $q) {
                     if ($currentPoints + $q->score > $pointsQuota) {
                         continue;
                     }
 
-                    $shuffledChoices = $q->choices->shuffle();
-                    $correct = $shuffledChoices->where('isCorrect', true)->first();
-                    $incorrect = $shuffledChoices->where('isCorrect', false)->take(3);
+                    // Get regular choices (excluding "None of the above")
+                    $regularChoices = $q->choices->where('position', '!=', 5);
+                    $noneChoice = $q->choices->where('position', 5)->first();
+
+                    // Ensure one correct and at least three incorrect choices
+                    $correct = $regularChoices->where('isCorrect', true)->first();
+                    $incorrect = $regularChoices->where('isCorrect', false)->take(3);
 
                     if (!$correct || $incorrect->count() < 3) {
                         continue;
                     }
 
-                    // Decrypt and format choices (no correct flag shown)
-                    $finalChoices = $incorrect->push($correct)->shuffle()->take(4)->map(function ($choice) {
-                        return [
-                            'choiceText' => $choice->choiceText ? Crypt::decryptString($choice->choiceText) : null,
-                            'choiceImage' => $choice->image && Storage::disk('public')->exists($choice->image)
-                                ? asset('storage/' . $choice->image)
-                                : null,
-                        ];
-                    })->values();
-
-                    // Validate presence of correct choice
-                    if (
-                        !collect($finalChoices)->contains(function ($choice) use ($correct) {
-                            return $choice['choiceText'] === Crypt::decryptString($correct->choiceText);
-                        })
-                    ) {
-                        continue;
-                    }
-
                     try {
+                        // First shuffle and process regular choices (hide isCorrect for preview)
+                        $regularFinalChoices = $incorrect->push($correct)
+                            ->shuffle()
+                            ->take(4)
+                            ->map(function ($choice) use ($q) {
+                                $formatted = $this->formatChoice($choice, $q);
+                                unset($formatted['isCorrect']); // Hide correct answer in preview
+                                return $formatted;
+                            })->values();
+
+                        // Add "None of the above" as the fifth choice
+                        if ($noneChoice) {
+                            $noneFormatted = $this->formatChoice($noneChoice, $q);
+                            unset($noneFormatted['isCorrect']);
+                            $finalChoices = $regularFinalChoices->push($noneFormatted);
+                        } else {
+                            $finalChoices = $regularFinalChoices;
+                        }
+
                         $questionText = Crypt::decryptString($q->questionText);
                     } catch (\Exception $e) {
                         continue;

@@ -39,28 +39,42 @@ class FacultySubjectController extends Controller
         $user = Auth::user();
         $userProgramID = $user->programID;
 
-        return Subject::with('program')
+        $subjects = DB::table('subjects as s')
+            ->join('programs as p', 'p.programID', '=', 's.programID')
+            ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
+            ->select(
+                's.subjectID',
+                's.subjectCode',
+                's.subjectName',
+                's.programID',
+                'p.programName',
+                's.yearLevelID',
+                'yl.name as yearLevel'
+            )
             ->where(function ($query) use ($userProgramID) {
-                $query->where('programID', $userProgramID)
-                      ->orWhere('programID', 6); // Include general subjects
+                $query->where('s.programID', $userProgramID)
+                      ->orWhere('s.programID', 6); // Include general subjects
             })
+            ->orderBy('s.subjectID')
             ->get()
             ->map(function ($subject) {
-                $programName = $subject->program ? $subject->program->programName : null;
-
-                // Remove 'BS-' prefix if present
-                if ($programName && strpos($programName, 'BS-') === 0) {
+                $programName = $subject->programName;
+                if (strpos($programName, 'BS-') === 0) {
                     $programName = substr($programName, 3);
                 }
 
                 return [
-                    'subjectID'    => $subject->subjectID,
-                    'subjectName'  => $subject->subjectName,
-                    'subjectCode'  => $subject->subjectCode,
-                    'programID'    => $subject->programID,
-                    'programName'  => $programName,
+                    'subjectID' => $subject->subjectID,
+                    'subjectCode' => $subject->subjectCode,
+                    'subjectName' => $subject->subjectName,
+                    'programID' => $subject->programID,
+                    'programName' => $programName,
+                    'yearLevelID' => $subject->yearLevelID,
+                    'yearLevel' => $subject->yearLevel
                 ];
             });
+
+        return $subjects;
     }
 
     /**
@@ -97,30 +111,64 @@ class FacultySubjectController extends Controller
      */
     public function mySubjects()
     {
-        $user = $this->checkUserRole();
-
         try {
-            $subjects = DB::table('subjects')
-                ->join('faculty_subjects', 'subjects.subjectID', '=', 'faculty_subjects.subjectID')
-                ->leftJoin('programs', 'subjects.programID', '=', 'programs.programID')
-                ->where('faculty_subjects.facultyID', $user->userID)
-                ->select('subjects.*', 'programs.programName')
-                ->get()
-                ->map(function ($subject) {
-                    // Remove 'BS-' prefix if present
-                    if ($subject->programName && strpos($subject->programName, 'BS-') === 0) {
-                        $subject->programName = substr($subject->programName, 3);
-                    }
-                    return $subject;
-                });
+            $user = $this->checkUserRole();
+
+            $subjects = DB::table('subjects as s')
+                ->join('faculty_subjects as fs', 's.subjectID', '=', 'fs.subjectID')
+                ->join('programs as p', 's.programID', '=', 'p.programID')
+                ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
+                ->where('fs.facultyID', $user->userID)
+                ->select(
+                    's.subjectID',
+                    's.subjectCode',
+                    's.subjectName',
+                    's.programID',
+                    'p.programName',
+                    's.yearLevelID',
+                    'yl.name as yearLevel'
+                )
+                ->orderBy('s.subjectID')
+                ->get();
+
+            if ($subjects->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No subjects assigned',
+                    'subjects' => []
+                ], 404);
+            }
+
+            $formattedSubjects = $subjects->map(function ($subject) {
+                $programName = $subject->programName;
+                if (strpos($programName, 'BS-') === 0) {
+                    $programName = substr($programName, 3);
+                }
+
+                return [
+                    'subjectID' => $subject->subjectID,
+                    'subjectCode' => $subject->subjectCode,
+                    'subjectName' => $subject->subjectName,
+                    'programID' => $subject->programID,
+                    'programName' => $programName,
+                    'yearLevelID' => $subject->yearLevelID,
+                    'yearLevel' => $subject->yearLevel
+                ];
+            });
 
             return response()->json([
-                'subjects' => $subjects
-            ]);
+                'success' => true,
+                'message' => 'Subjects retrieved successfully',
+                'subjects' => $formattedSubjects
+            ], 200);
+
         } catch (\Exception $e) {
+            Log::error('Error retrieving faculty subjects: ' . $e->getMessage());
+            
             return response()->json([
-                'error' => 'Internal Server Error',
-                'message' => $e->getMessage()
+                'success' => false,
+                'message' => 'An error occurred while retrieving subjects',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -158,7 +206,7 @@ class FacultySubjectController extends Controller
 
     /**
      * Retrieve all subjects available to the authenticated user
-     * (those under the user's program and programID 6).
+     * (those under the user's program and general education subjects).
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -167,19 +215,71 @@ class FacultySubjectController extends Controller
     {
         try {
             $user = $this->checkUserRole();
+            $userProgramID = $user->programID;
 
-            $subjects = $this->getSubjectsByUserProgram();
+            $subjects = DB::table('subjects as s')
+                ->join('programs as p', 'p.programID', '=', 's.programID')
+                ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
+                ->leftJoin('faculty_subjects as fs', function($join) use ($user) {
+                    $join->on('s.subjectID', '=', 'fs.subjectID')
+                         ->where('fs.facultyID', '=', $user->userID);
+                })
+                ->select(
+                    's.subjectID',
+                    's.subjectCode',
+                    's.subjectName',
+                    's.programID',
+                    'p.programName',
+                    's.yearLevelID',
+                    'yl.name as yearLevel',
+                    DB::raw('CASE WHEN fs.subjectID IS NOT NULL THEN true ELSE false END as isAssigned')
+                )
+                ->where(function ($query) use ($userProgramID) {
+                    $query->where('s.programID', $userProgramID)
+                          ->orWhere('s.programID', 6); // Include general subjects
+                })
+                ->orderBy('s.subjectID')
+                ->get();
+
+            if ($subjects->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No subjects available for your program',
+                    'subjects' => []
+                ], 404);
+            }
+
+            $formattedSubjects = $subjects->map(function ($subject) {
+                $programName = $subject->programName;
+                if (strpos($programName, 'BS-') === 0) {
+                    $programName = substr($programName, 3);
+                }
+
+                return [
+                    'subjectID' => $subject->subjectID,
+                    'subjectCode' => $subject->subjectCode,
+                    'subjectName' => $subject->subjectName,
+                    'programID' => $subject->programID,
+                    'programName' => $programName,
+                    'yearLevelID' => $subject->yearLevelID,
+                    'yearLevel' => $subject->yearLevel,
+                    'isAssigned' => $subject->isAssigned
+                ];
+            });
 
             return response()->json([
-                'message' => 'Subjects retrieved successfully',
-                'subjects' => $subjects
+                'success' => true,
+                'message' => 'Available subjects retrieved successfully',
+                'subjects' => $formattedSubjects
             ], 200);
-        } catch (\Exception $e) {
-            Log::error('Error retrieving subjects: ' . $e->getMessage());
 
+        } catch (\Exception $e) {
+            Log::error('Error retrieving available subjects: ' . $e->getMessage());
+            
             return response()->json([
-                'error' => 'Internal Server Error',
-                'message' => $e->getMessage()
+                'success' => false,
+                'message' => 'An error occurred while retrieving available subjects',
+                'error' => $e->getMessage()
             ], 500);
         }
     }

@@ -10,7 +10,25 @@ class UsersTableSeeder extends Seeder
 {
     public function run()
     {
+        // Get status ID for registered users
+        $registeredStatusId = DB::table('statuses')
+            ->where('name', 'registered')
+            ->first()
+            ->id;
+
         DB::table('users')->insert([
+            [
+                'userCode' => '23-A-02087',
+                'firstName' => 'Gillert',
+                'lastName' => 'Bongcac',
+                'email' => 'kentapat123@gmail.com',
+                'password' => Hash::make('12345678'),
+                'roleID' => 4,
+                'campusID' => 1,
+                'isActive' => true,
+                'status_id' => $registeredStatusId,
+                'programID' => 4
+            ],
             // Dean
             [
                 'userCode' => '23-A-12345',
@@ -21,7 +39,7 @@ class UsersTableSeeder extends Seeder
                 'roleID' => 4,
                 'campusID' => 1,
                 'isActive' => true,
-                'status' => 'registered',
+                'status_id' => 1,
                 'programID' => 4
             ],
             // Program Chairs
@@ -34,7 +52,7 @@ class UsersTableSeeder extends Seeder
                 'roleID' => 3,
                 'campusID' => 1,
                 'isActive' => true,
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'programID' => 1
             ],
             [
@@ -46,7 +64,7 @@ class UsersTableSeeder extends Seeder
                 'roleID' => 3,
                 'campusID' => 2,
                 'isActive' => true,
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'programID' => 2
             ],
             [
@@ -58,7 +76,7 @@ class UsersTableSeeder extends Seeder
                 'roleID' => 3,
                 'campusID' => 1,
                 'isActive' => true,
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'programID' => 3
             ],
             [
@@ -70,7 +88,7 @@ class UsersTableSeeder extends Seeder
                 'roleID' => 3,
                 'campusID' => 1,
                 'isActive' => true,
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'programID' => 4
             ],
             [
@@ -82,7 +100,7 @@ class UsersTableSeeder extends Seeder
                 'roleID' => 3,
                 'campusID' => 1,
                 'isActive' => true,
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'programID' => 5
             ],
 
@@ -96,7 +114,7 @@ class UsersTableSeeder extends Seeder
                 'roleID' => 2,
                 'campusID' => 1,
                 'isActive' => true,
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'programID' => 1
             ],
             [
@@ -108,7 +126,7 @@ class UsersTableSeeder extends Seeder
                 'roleID' => 2,
                 'campusID' => 2,
                 'isActive' => true,
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'programID' => 2
             ],
             [
@@ -120,7 +138,7 @@ class UsersTableSeeder extends Seeder
                 'roleID' => 2,
                 'campusID' => 1,
                 'isActive' => true,
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'programID' => 3
             ],
             [
@@ -132,7 +150,7 @@ class UsersTableSeeder extends Seeder
                 'roleID' => 2,
                 'campusID' => 1,
                 'isActive' => true,
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'programID' => 4
             ],
             [
@@ -144,7 +162,7 @@ class UsersTableSeeder extends Seeder
                 'roleID' => 2,
                 'campusID' => 1,
                 'isActive' => true,
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'programID' => 5
             ],
         ]);

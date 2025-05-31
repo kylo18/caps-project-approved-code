@@ -31,7 +31,7 @@ class PracticeExamSettingController extends Controller
             $validated = $request->validate([
                 'subjectID' => 'required|exists:subjects,subjectID',
                 'enableTimer' => 'required|boolean',
-                'duration_minutes' => 'nullable|integer|max:180',
+                'duration_minutes' => 'nullable|integer|max:240',
                 'coverage' => 'required|in:midterm,final,full',
                 'easy_percentage' => 'required|integer|min:0|max:100',
                 'moderate_percentage' => 'required|integer|min:0|max:100',

@@ -35,14 +35,5 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Request::macro('maxUploadSize', function () {
             return 20 * 1024 * 1024;
         });
-
-        if (env('APP_ENV') !== 'local') {
-            URL::forceScheme('https');
-        }
-
-        // Optionally force HTTPS in local too
-        if (env('APP_FORCE_HTTPS', false)) {
-            URL::forceScheme('https');
-        }
     }
 }

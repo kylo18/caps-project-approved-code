@@ -15,6 +15,7 @@ use Modules\Users\Controllers\RoleController;
 use Modules\Users\Controllers\PasswordResetController;
 use Modules\App\Controllers\AppController;
 use Modules\Print\Controllers\PrintController;
+use Modules\Subjects\Controllers\YearLevelController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,6 +59,9 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/faculty/availableSubjects', [FacultySubjectController::class, 'availableSubjects']);
     Route::delete('/remove-assigned-subject/{subjectID}', [FacultySubjectController::class, 'removeAssignedSubject']);
 
+    // Year Levels
+    Route::get('/year-levels', [YearLevelController::class, 'index']);
+
     // Questions
     Route::post('/questions/add', [QuestionController::class, 'store']);
     Route::get('/subjects/{subjectID}/questions', [QuestionController::class, 'indexQuestions']);
@@ -65,6 +69,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::delete('/questions/delete/{questionID}', [QuestionController::class, 'destroy']);
     Route::get('/faculty/my-questions/{subjectID}', [QuestionController::class, 'mySubjectQuestions']);
     Route::post('/choices/update', [ChoiceController::class, 'updateChoices']);
+    Route::post('/questions/{questionID}/duplicate', [QuestionController::class, 'duplicate']);
 
     // Printable exam (PDF preview/download)
     Route::post('/generate-printable-exam/{subjectID}', [PrintController::class, 'generatePrintableExam']);
@@ -113,6 +118,9 @@ Route::middleware(['auth:sanctum', 'role:3,4'])->group(function () {
 
     // Programs listing
     Route::get('/programs', [ProgramController::class, 'index']);
+
+    // Multi-subject exam generation
+    Route::post('/generate-multi-subject-exam', [PrintController::class, 'generateMultiSubjectExam']);
 });
 
 /*

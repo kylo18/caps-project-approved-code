@@ -8,6 +8,7 @@ use Modules\Users\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -73,8 +74,12 @@ class AuthController extends Controller
             }
         }
 
-        // Determine initial status and activation
-        $status = in_array($validated['roleID'], [1, 2, 3]) ? 'pending' : 'registered';
+        // Get status IDs
+        $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
+        $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;
+
+        // Determine initial status and activation based on role
+        $statusId = in_array($validated['roleID'], [1, 2, 3]) ? $pendingStatusId : $registeredStatusId;
         $isActive = $validated['roleID'] == 4 ? true : false;
 
         // Create the user in the database
@@ -88,7 +93,7 @@ class AuthController extends Controller
             'campusID' => $validated['campusID'],
             'programID' => $validated['programID'],
             'isActive' => $isActive,
-            'status' => $status,
+            'status_id' => $statusId,
         ]);
 
         // Return the newly created user
@@ -124,8 +129,12 @@ class AuthController extends Controller
             return response()->json(['message' => 'Your account is inactive. Contact an administrator.'], 403);
         }
 
+        // Get status IDs
+        $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
+        $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;
+
         // Return if account is not registered
-        if (in_array($user->status, ['pending', 'unregistered'])) {
+        if ($user->status_id === $pendingStatusId) {
             return response()->json(['message' => 'Your account is not registered yet. Please wait for administrator approval.'], 403);
         }
 

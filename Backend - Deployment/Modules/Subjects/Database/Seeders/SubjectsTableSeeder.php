@@ -9,11 +9,16 @@ class SubjectsTableSeeder extends Seeder
 {
     public function run(): void
     {
+        // Get year level IDs
+        $firstYearId = DB::table('year_levels')->where('name', '1st Year')->first()->yearLevelID;
+        $secondYearId = DB::table('year_levels')->where('name', '2nd Year')->first()->yearLevelID;
+
         DB::table('subjects')->insert([
             [
                 'programID' => 1,
                 'subjectCode' => 'MATH101',
                 'subjectName' => 'Basic Algebra',
+                'yearLevelID' => $firstYearId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -21,6 +26,7 @@ class SubjectsTableSeeder extends Seeder
                 'programID' => 1,
                 'subjectCode' => 'CS102',
                 'subjectName' => 'Introduction to Programming',
+                'yearLevelID' => $firstYearId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -28,6 +34,7 @@ class SubjectsTableSeeder extends Seeder
                 'programID' => 1,
                 'subjectCode' => 'ENG103',
                 'subjectName' => 'Technical Writing',
+                'yearLevelID' => $secondYearId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -35,6 +42,7 @@ class SubjectsTableSeeder extends Seeder
                 'programID' => 1,
                 'subjectCode' => 'PHY104',
                 'subjectName' => 'Physics for Engineers',
+                'yearLevelID' => $secondYearId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -42,6 +50,7 @@ class SubjectsTableSeeder extends Seeder
                 'programID' => 2,
                 'subjectCode' => 'HIST105',
                 'subjectName' => 'World History',
+                'yearLevelID' => $firstYearId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

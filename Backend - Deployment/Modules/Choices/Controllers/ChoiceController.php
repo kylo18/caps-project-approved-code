@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 class ChoiceController extends Controller
 {
     /**
-     * Store 6 choices for a specific question.
+     * Store 5 choices for a specific question (4 manual + 1 automatic "None of the above").
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -32,7 +32,7 @@ class ChoiceController extends Controller
 
         $validated = $request->validate([
             'questionID' => 'required|exists:questions,questionID',
-            'choices' => 'required|array|min:6|max:6',
+            'choices' => 'required|array|min:4|max:4',
             'choices.*.choiceText' => 'nullable|string',
             'choices.*.isCorrect'  => 'required|boolean',
             'choices.*.image'      => 'nullable',
@@ -41,7 +41,9 @@ class ChoiceController extends Controller
         DB::beginTransaction();
         try {
             $choices = [];
+            $hasCorrectChoice = false;
 
+            // Process the first 4 manual choices
             foreach ($validated['choices'] as $index => $choiceData) {
                 $imagePath = null;
 
@@ -59,17 +61,36 @@ class ChoiceController extends Controller
                     ? Crypt::encryptString($choiceData['choiceText'])
                     : null;
 
+                if ($choiceData['isCorrect']) {
+                    $hasCorrectChoice = true;
+                }
+
                 $choice = Choice::create([
                     'questionID' => $validated['questionID'],
                     'choiceText' => $encryptedChoiceText,
                     'isCorrect'  => $choiceData['isCorrect'],
-                    'image'      => $imagePath
+                    'image'      => $imagePath,
+                    'position'   => $index + 1  // Position 1-4 for manual choices
                 ]);
 
                 $choices[] = $choice;
             }
 
+            // Add "None of the above" as the 5th choice
+            $noneOfTheAbove = Choice::create([
+                'questionID' => $validated['questionID'],
+                'choiceText' => Crypt::encryptString('None of the above.'),
+                'isCorrect'  => !$hasCorrectChoice, // It's correct only if no other choice is correct
+                'image'      => null,
+                'position'   => 5  // Always position 5 for "None of the above"
+            ]);
+
+            $choices[] = $noneOfTheAbove;
+
             DB::commit();
+
+            // Sort choices by position before returning
+            $choices = collect($choices)->sortBy('position')->values()->all();
 
             return response()->json([
                 'message' => 'Choices created successfully.',
@@ -102,7 +123,7 @@ class ChoiceController extends Controller
 
         $request->validate([
             'questionID' => 'required|exists:questions,questionID',
-            'choices' => 'required|array|min:2|max:6',
+            'choices' => 'required|array|min:4|max:4',
             'choices.*.choiceID' => 'nullable|exists:choices,choiceID',
             'choices.*.choiceText' => 'nullable|string',
             'choices.*.isCorrect' => 'required|boolean',
@@ -113,13 +134,12 @@ class ChoiceController extends Controller
 
         try {
             $questionID = $request->questionID;
-            $correctCount = collect($request->choices)->where('isCorrect', true)->count();
+            $hasCorrectChoice = false;
 
-            if ($correctCount !== 1) {
-                return response()->json([
-                    'message' => 'There must be exactly one correct choice.'
-                ], 422);
-            }
+            // First, get the existing "None of the above" choice
+            $noneOfTheAbove = Choice::where('questionID', $questionID)
+                ->where('position', 5)
+                ->first();
 
             foreach ($request->choices as $index => $choiceData) {
                 $choice = isset($choiceData['choiceID'])
@@ -134,6 +154,10 @@ class ChoiceController extends Controller
                     : null;
 
                 $choice->isCorrect = $choiceData['isCorrect'] ?? false;
+                
+                if ($choice->isCorrect) {
+                    $hasCorrectChoice = true;
+                }
 
                 // Handle image replacement
                 $hasNewImage = false;
@@ -153,14 +177,21 @@ class ChoiceController extends Controller
                     $choice->image = null;
                 }
 
+                $choice->position = $index + 1;  // Position 1-4 for manual choices
                 $choice->save();
             }
 
-            // Ensure no other old choices remain marked as correct
-            Choice::where('questionID', $questionID)
-                ->where('isCorrect', true)
-                ->whereNotIn('choiceID', array_filter(array_column($request->choices, 'choiceID')))
-                ->update(['isCorrect' => false]);
+            // Update the existing "None of the above" choice or create a new one
+            if (!$noneOfTheAbove) {
+                $noneOfTheAbove = new Choice();
+                $noneOfTheAbove->questionID = $questionID;
+            }
+
+            $noneOfTheAbove->choiceText = Crypt::encryptString('None of the above.');
+            $noneOfTheAbove->isCorrect = !$hasCorrectChoice;
+            $noneOfTheAbove->image = null;
+            $noneOfTheAbove->position = 5;  // Always position 5 for "None of the above"
+            $noneOfTheAbove->save();
 
             DB::commit();
 
@@ -201,10 +232,31 @@ class ChoiceController extends Controller
 
         // Convert image path to full URL
         if ($choice->image) {
-            $choice->image = url("storage/{$choice->image}");
+            $choice->image = $this->generateUrl($choice->image);
         }
 
         return response()->json($choice);
+    }
+
+    /**
+     * Generate a full URL for images stored in the public disk
+     *
+     * @param string|null $path
+     * @return string|null
+     */
+    private function generateUrl($path)
+    {
+        if (!$path) {
+            return null;
+        }
+
+        // If it's already a full URL, return as is
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
+        }
+
+        // Generate the full URL using asset helper
+        return asset('storage/' . $path);
     }
 
     /**

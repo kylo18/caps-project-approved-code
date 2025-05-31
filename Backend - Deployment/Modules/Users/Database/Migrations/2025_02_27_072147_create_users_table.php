@@ -17,12 +17,13 @@ return new class extends Migration {
             $table->unsignedBigInteger('roleID'); // Explicitly define as unsigned big int
             $table->unsignedBigInteger('campusID'); // Explicitly define as unsigned big int
             $table->boolean('isActive')->default(true);
-            $table->enum('status', ['registered', 'unregistered', 'pending'])->default('pending'); // New status field
+            $table->unsignedBigInteger('status_id')->default(1); // Default to pending (ID: 1)
             $table->timestamps();
 
             // Foreign key constraints
             $table->foreign('roleID')->references('roleID')->on('roles')->onDelete('cascade');
             $table->foreign('campusID')->references('campusID')->on('campuses')->onDelete('cascade');
+            $table->foreign('status_id')->references('id')->on('statuses')->onDelete('cascade');
             // Foreign key to Programs Table
             $table->foreignId('programID')
             ->constrained('programs', 'programID')

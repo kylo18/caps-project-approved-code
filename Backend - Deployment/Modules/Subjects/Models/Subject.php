@@ -8,6 +8,7 @@ use Modules\Users\Models\User;
 use Modules\PracticeExams\Models\PracticeExamSetting;
 use Modules\Users\Models\Program;
 use Modules\PracticeExams\Models\PracticeExamResult;
+use Modules\YearLevels\Models\YearLevel;
 
 class Subject extends Model
 {
@@ -17,7 +18,8 @@ class Subject extends Model
     protected $fillable = [
         'programID',
         'subjectCode',
-        'subjectName'
+        'subjectName',
+        'yearLevelID'
     ];
 
     public function faculty()
@@ -34,9 +36,15 @@ class Subject extends Model
     {
         return $this->hasOne(PracticeExamSetting::class, 'subjectID');
     }
+
     public function program()
     {
         return $this->belongsTo(Program::class, 'programID');
+    }
+
+    public function yearLevel()
+    {
+        return $this->belongsTo(YearLevel::class, 'yearLevelID');
     }
 
     public function practiceExamResults()

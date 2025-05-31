@@ -11,8 +11,12 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Modules\Subjects\Models\Subject;
 use Modules\Questions\Models\Question;
+use Modules\Questions\Models\Purpose;
+use Modules\Questions\Models\Status;
+use Modules\Questions\Models\Coverage;
+use Modules\Questions\Models\Difficulty;
+use Illuminate\Support\Facades\Log;
 use Modules\Choices\Models\Choice;
-use Illuminate\Support\Facades\Validator;
 
 class QuestionController extends Controller
 {
@@ -23,13 +27,13 @@ class QuestionController extends Controller
 
         $validated = $request->validate([
             'subjectID' => 'required|exists:subjects,subjectID',
-            'coverage' => 'required|in:midterm,finals',
+            'coverage_id' => 'required|exists:coverages,id',
             'questionText' => 'required|string',
             'image' => 'nullable|image|max:2048',
             'score' => 'required|integer|min:1',
-            'difficulty' => 'required|in:easy,moderate,hard',
-            'status' => 'required|in:pending,approved,disapproved',
-            'purpose' => 'required|in:examQuestions,practiceQuestions'
+            'difficulty_id' => 'required|exists:difficulties,id',
+            'status_id' => 'required|exists:statuses,id',
+            'purpose_id' => 'required|exists:purposes,id'
         ]);
 
         return DB::transaction(function () use ($validated, $request) {
@@ -37,13 +41,13 @@ class QuestionController extends Controller
             $question = Question::create([
                 'subjectID' => $validated['subjectID'],
                 'userID' => Auth::id(),
-                'coverage' => $validated['coverage'],
+                'coverage_id' => $validated['coverage_id'],
                 'questionText' => Crypt::encryptString($validated['questionText']),
                 'image' => $imagePath,
                 'score' => $validated['score'],
-                'difficulty' => $validated['difficulty'],
-                'status' => 'pending',
-                'purpose' => $validated['purpose'],
+                'difficulty_id' => $validated['difficulty_id'],
+                'status_id' => $validated['status_id'],
+                'purpose_id' => $validated['purpose_id'],
             ]);
 
             return response()->json([
@@ -59,36 +63,76 @@ class QuestionController extends Controller
         $question = Question::findOrFail($questionID);
 
         $validated = $request->validate([
-            'coverage' => 'sometimes|required|in:midterm,finals',
+            'coverage_id' => 'sometimes|required|exists:coverages,id',
             'questionText' => 'sometimes|required|string',
-            'image' => 'nullable|image|max:10240',
+            'image' => 'nullable',
             'score' => 'sometimes|required|integer|min:1',
-            'difficulty' => 'sometimes|required|in:easy,moderate,hard',
-            'status' => 'sometimes|required|in:pending,approved,disapproved',
-            'purpose' => 'sometimes|required|in:examQuestions,practiceQuestions',
+            'difficulty_id' => 'sometimes|required|exists:difficulties,id',
+            'status_id' => 'sometimes|required|exists:statuses,id',
+            'purpose_id' => 'sometimes|required|exists:purposes,id'
         ]);
 
         if (isset($validated['questionText'])) {
             $question->questionText = Crypt::encryptString($validated['questionText']);
         }
 
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('question_images', 'public');
-            $question->image = $path;
-        }
-
-        foreach (['coverage', 'score', 'difficulty', 'purpose'] as $field) {
-            if (isset($validated[$field])) {
-                $question->$field = $validated[$field];
+        // Handle image update or removal
+        $hasNewImage = false;
+        if (isset($validated['image'])) {
+            if (filter_var($validated['image'], FILTER_VALIDATE_URL)) {
+                // If it's a URL, keep the existing image
+                $hasNewImage = true;
+            } elseif ($request->hasFile('image')) {
+                // If there's an old image, delete it
+                if ($question->image) {
+                    Storage::disk('public')->delete($question->image);
+                }
+                // Store the new image
+                $path = $request->file('image')->store('question_images', 'public');
+                $question->image = $path;
+                $hasNewImage = true;
+            } elseif ($validated['image'] === null) {
+                // If image is explicitly set to null, delete the existing image
+                if ($question->image) {
+                    Storage::disk('public')->delete($question->image);
+                }
+                $question->image = null;
             }
         }
 
-        // Force status to 'pending' after update
-        $question->status = 'pending';
+        // Clear image if text is updated and no new image is provided
+        if (!$hasNewImage && isset($validated['questionText'])) {
+            if ($question->image) {
+                Storage::disk('public')->delete($question->image);
+            }
+            $question->image = null;
+        }
+
+        if (isset($validated['coverage_id'])) {
+            $question->coverage_id = $validated['coverage_id'];
+        }
+        if (isset($validated['score'])) {
+            $question->score = $validated['score'];
+        }
+        if (isset($validated['difficulty_id'])) {
+            $question->difficulty_id = $validated['difficulty_id'];
+        }
+        if (isset($validated['purpose_id'])) {
+            $question->purpose_id = $validated['purpose_id'];
+        }
+
+        // Always set status to pending on update
+        $pendingStatus = Status::where('name', 'pending')->first();
+        if ($pendingStatus) {
+            $question->status_id = $pendingStatus->id;
+        }
 
         $question->save();
 
-        return response()->json(['message' => 'Question updated successfully and marked as pending.']);
+        return response()->json([
+            'message' => 'Question updated successfully and marked as pending.',
+            'data' => $this->formatQuestion($question)
+        ]);
     }
 
     // List all questions for a subject, remove those without choices
@@ -101,16 +145,16 @@ class QuestionController extends Controller
 
         // Delete questions with no choices
         Question::where('subjectID', $subjectID)
-        ->doesntHave('choices')
-        ->each(function ($q) {
-            if ($q->image) {
-                Storage::disk('public')->delete($q->image);
-            }
-            $q->delete();
-        });
+            ->doesntHave('choices')
+            ->each(function ($q) {
+                if ($q->image) {
+                    Storage::disk('public')->delete($q->image);
+                }
+                $q->delete();
+            });
 
         // Get questions with choices only
-        $questions = Question::with(['subject', 'choices', 'user'])
+        $questions = Question::with(['subject', 'choices', 'user', 'status', 'difficulty', 'coverage', 'purpose'])
             ->where('subjectID', $subjectID)
             ->get()
             ->reject(fn($q) => $q->choices->isEmpty())
@@ -154,36 +198,12 @@ class QuestionController extends Controller
             ], 404);
         }
 
-        $questions = Question::with(['subject', 'choices'])
+        $questions = Question::with(['subject', 'choices', 'status', 'difficulty', 'coverage', 'purpose'])
             ->where('subjectID', $subjectID)
             ->where('userID', $user->userID)
             ->get()
             ->map(function ($question) {
-                try {
-                    $question->questionText = Crypt::decryptString($question->questionText);
-                } catch (\Exception $e) {
-                    $question->questionText = '[Decryption Error]';
-                }
-
-                if ($question->image && !Str::startsWith($question->image, ['http://', 'https://'])) {
-                    $question->image = url("storage/{$question->image}");
-                }
-
-                $question->choices->map(function ($choice) {
-                    try {
-                        $choice->choiceText = Crypt::decryptString($choice->choiceText);
-                    } catch (\Exception $e) {
-                        $choice->choiceText = null;
-                    }
-
-                    if ($choice->image && !Str::startsWith($choice->image, ['http://', 'https://'])) {
-                        $choice->image = url("storage/{$choice->image}");
-                    }
-
-                    return $choice;
-                });
-
-                return $question;
+                return $this->formatQuestion($question);
             });
 
         return response()->json([
@@ -202,19 +222,25 @@ class QuestionController extends Controller
         if (!$question) {
             return response()->json(['message' => 'Question not found.'], 404);
         }
-        if ($question->status !== 'pending') {
+
+        $pendingStatus = Status::where('name', 'pending')->first();
+        if (!$pendingStatus || $question->status_id !== $pendingStatus->id) {
             return response()->json([
                 'message' => 'Only questions with pending status can be approved.',
-                'current_status' => $question->status
+                'current_status' => optional($question->status)->name
             ], 400);
         }
+
         if (Auth::id() === $question->userID) {
             return response()->json(['message' => 'You cannot approve your own question.'], 403);
         }
 
-        $question->update(['status' => 'approved']);
+        $approvedStatus = Status::where('name', 'approved')->first();
+        if ($approvedStatus) {
+            $question->update(['status_id' => $approvedStatus->id]);
+        }
 
-        return response()->json(['message' => 'Question approved.', 'question' => $question]);
+        return response()->json(['message' => 'Question approved.', 'question' => $this->formatQuestion($question)]);
     }
 
     // Show questions by subject and filter them by the program of the logged-in Program Chair
@@ -227,15 +253,15 @@ class QuestionController extends Controller
 
         // Remove questions with no choices
         Question::where('subjectID', $subjectID)
-        ->doesntHave('choices')
-        ->each(function ($q) {
-            if ($q->image) {
-                Storage::disk('public')->delete($q->image);
-            }
-            $q->delete();
-        });
+            ->doesntHave('choices')
+            ->each(function ($q) {
+                if ($q->image) {
+                    Storage::disk('public')->delete($q->image);
+                }
+                $q->delete();
+            });
 
-        $query = Question::with(['subject', 'choices', 'user'])
+        $query = Question::with(['subject', 'choices', 'user', 'status', 'difficulty', 'coverage', 'purpose'])
             ->where('subjectID', $subjectID);
 
         // If user is Program Chair, filter questions by their program
@@ -250,6 +276,220 @@ class QuestionController extends Controller
             'subject' => $subject->subjectName,
             'data' => $questions
         ]);
+    }
+
+    /**
+     * Duplicate a question and its choices with optional modifications
+     *
+     * @param int $questionID
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function duplicate(Request $request, $questionID)
+    {
+        $this->authorizeRoles([2, 3, 4]);
+
+        try {
+            // Validate optional modifications
+            $validated = $request->validate([
+                'coverage_id' => 'nullable|exists:coverages,id',
+                'questionText' => 'nullable|string',
+                'image' => 'nullable',
+                'score' => 'nullable|integer|min:1',
+                'difficulty_id' => 'nullable|exists:difficulties,id',
+                'purpose_id' => 'nullable|exists:purposes,id',
+                'choices' => 'nullable|array',
+                'choices.*.choiceText' => 'nullable|string',
+                'choices.*.isCorrect' => 'nullable|boolean',
+                'choices.*.image' => 'nullable'
+            ]);
+
+            // Find original question with its choices
+            $originalQuestion = Question::with(['choices' => function($query) {
+                $query->orderBy('position', 'asc');
+            }])->findOrFail($questionID);
+
+            DB::beginTransaction();
+
+            // Create new question with modifications
+            $newQuestion = $originalQuestion->replicate();
+            $newQuestion->userID = Auth::id();
+            $newQuestion->status_id = Status::where('name', 'pending')->first()->id;
+
+            // Apply modifications if provided
+            if (isset($validated['questionText'])) {
+                $newQuestion->questionText = Crypt::encryptString($validated['questionText']);
+            }
+            if (isset($validated['coverage_id'])) {
+                $newQuestion->coverage_id = $validated['coverage_id'];
+            }
+            if (isset($validated['score'])) {
+                $newQuestion->score = $validated['score'];
+            }
+            if (isset($validated['difficulty_id'])) {
+                $newQuestion->difficulty_id = $validated['difficulty_id'];
+            }
+            if (isset($validated['purpose_id'])) {
+                $newQuestion->purpose_id = $validated['purpose_id'];
+            }
+
+            // Handle question image
+            if ($request->hasFile('image')) {
+                // If new image is being uploaded
+                $path = $request->file('image')->store('question_images', 'public');
+                $newQuestion->image = $path;
+            } 
+            // If image is being explicitly removed
+            elseif (isset($validated['image']) && $validated['image'] === null) {
+                $newQuestion->image = null;
+            }
+            // If keeping original image or no image modification requested
+            elseif ($originalQuestion->image) {
+                $originalPath = $originalQuestion->image;
+                // If it's a URL, keep it as is
+                if (filter_var($originalPath, FILTER_VALIDATE_URL)) {
+                    $newQuestion->image = $originalPath;
+                }
+                // If it's a storage file, create a copy
+                elseif (Storage::disk('public')->exists($originalPath)) {
+                    $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
+                    $newPath = 'question_images/' . uniqid() . '.' . $extension;
+                    if (Storage::disk('public')->copy($originalPath, $newPath)) {
+                        $newQuestion->image = $newPath;
+                    }
+                }
+            }
+
+            $newQuestion->save();
+
+            // Duplicate choices with modifications
+            $hasCorrectChoice = false;
+            $originalChoices = $originalQuestion->choices->where('position', '!=', 5);
+            
+            foreach ($originalChoices as $index => $originalChoice) {
+                $newChoice = $originalChoice->replicate();
+                $newChoice->questionID = $newQuestion->questionID;
+
+                // Apply modifications if provided
+                if (isset($validated['choices'][$index])) {
+                    $choiceData = $validated['choices'][$index];
+                    
+                    // Handle choice image
+                    if (isset($choiceData['image'])) {
+                        // If new image is being uploaded
+                        if ($request->hasFile("choices.{$index}.image")) {
+                            $newChoice->choiceText = null;
+                            $path = $request->file("choices.{$index}.image")->store('choices', 'public');
+                            $newChoice->image = $path;
+                        } 
+                        // If image is being explicitly removed
+                        elseif ($choiceData['image'] === null) {
+                            $newChoice->image = null;
+                            if (isset($choiceData['choiceText'])) {
+                                $newChoice->choiceText = Crypt::encryptString($choiceData['choiceText']);
+                            }
+                        } 
+                        // If keeping original image
+                        elseif ($originalChoice->image) {
+                            $originalPath = $originalChoice->image;
+                            // If it's a URL, keep it as is
+                            if (filter_var($originalPath, FILTER_VALIDATE_URL)) {
+                                $newChoice->image = $originalPath;
+                                $newChoice->choiceText = null;
+                            }
+                            // If it's a storage file, create a copy
+                            elseif (Storage::disk('public')->exists($originalPath)) {
+                                $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
+                                $newPath = 'choices/' . uniqid() . '.' . $extension;
+                                if (Storage::disk('public')->copy($originalPath, $newPath)) {
+                                    $newChoice->image = $newPath;
+                                    $newChoice->choiceText = null;
+                                }
+                            }
+                        }
+                    }
+                    // If no image modification, handle text
+                    else if (isset($choiceData['choiceText'])) {
+                        $newChoice->choiceText = Crypt::encryptString($choiceData['choiceText']);
+                        $newChoice->image = null;
+                    }
+                    // If neither image nor text is modified, keep the original
+                    else {
+                        if ($originalChoice->image) {
+                            $originalPath = $originalChoice->image;
+                            // If it's a URL, keep it as is
+                            if (filter_var($originalPath, FILTER_VALIDATE_URL)) {
+                                $newChoice->image = $originalPath;
+                            }
+                            // If it's a storage file, create a copy
+                            elseif (Storage::disk('public')->exists($originalPath)) {
+                                $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
+                                $newPath = 'choices/' . uniqid() . '.' . $extension;
+                                if (Storage::disk('public')->copy($originalPath, $newPath)) {
+                                    $newChoice->image = $newPath;
+                                }
+                            }
+                        }
+                    }
+
+                    if (isset($choiceData['isCorrect'])) {
+                        $newChoice->isCorrect = $choiceData['isCorrect'];
+                    }
+                }
+                // If no modifications provided for this choice, copy the original image if it exists
+                else if ($originalChoice->image) {
+                    $originalPath = $originalChoice->image;
+                    // If it's a URL, keep it as is
+                    if (filter_var($originalPath, FILTER_VALIDATE_URL)) {
+                        $newChoice->image = $originalPath;
+                    }
+                    // If it's a storage file, create a copy
+                    elseif (Storage::disk('public')->exists($originalPath)) {
+                        $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
+                        $newPath = 'choices/' . uniqid() . '.' . $extension;
+                        if (Storage::disk('public')->copy($originalPath, $newPath)) {
+                            $newChoice->image = $newPath;
+                        }
+                    }
+                }
+
+                if ($newChoice->isCorrect) {
+                    $hasCorrectChoice = true;
+                }
+
+                $newChoice->position = $index + 1;
+                $newChoice->save();
+            }
+
+            // Add "None of the above" choice
+            Choice::create([
+                'questionID' => $newQuestion->questionID,
+                'choiceText' => Crypt::encryptString('None of the above.'),
+                'isCorrect'  => !$hasCorrectChoice,
+                'image'      => null,
+                'position'   => 5
+            ]);
+
+            DB::commit();
+
+            // Load the new question with all its relationships
+            $newQuestion = Question::with(['choices', 'user', 'status', 'difficulty', 'coverage', 'purpose'])
+                ->find($newQuestion->questionID);
+
+            return response()->json([
+                'message' => 'Question duplicated successfully with modifications.',
+                'data' => $this->formatQuestion($newQuestion)
+            ], 201)->header('Content-Type', 'application/json');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Question duplication failed: " . $e->getMessage());
+
+            return response()->json([
+                'message' => 'Failed to duplicate question.',
+                'error' => $e->getMessage()
+            ], 500)->header('Content-Type', 'application/json');
+        }
     }
 
     // ============ PRIVATE HELPERS ============
@@ -278,7 +518,6 @@ class QuestionController extends Controller
             }
             return $file->store($folder, 'public');
         }
-
         return $existingPath;
     }
 
@@ -293,6 +532,12 @@ class QuestionController extends Controller
 
         $question->image = $this->generateUrl($question->image);
         $question->creatorName = optional($question->user)->firstName . ' ' . optional($question->user)->lastName;
+
+        // Add related model names for easier frontend handling
+        $question->status_name = optional($question->status)->name;
+        $question->difficulty_name = optional($question->difficulty)->name;
+        $question->coverage_name = optional($question->coverage)->name;
+        $question->purpose_name = optional($question->purpose)->name;
 
         $question->choices->transform(function ($choice) {
             try {
@@ -310,6 +555,22 @@ class QuestionController extends Controller
     // Generate a full URL for images stored in the public disk
     private function generateUrl($path)
     {
-        return $path && !Str::startsWith($path, ['http://', 'https://']) ? url("storage/$path") : $path;
+        if (!$path) {
+            return null;
+        }
+
+        // If it's already a full URL, return as is
+        if (Str::startsWith($path, ['http://', 'https://'])) {
+            return $path;
+        }
+
+        // Check if the file exists in storage
+        if (!Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        // Generate the full URL for the existing file
+        return asset('storage/' . $path);
     }
 }
+

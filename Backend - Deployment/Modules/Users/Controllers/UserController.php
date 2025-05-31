@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use Modules\Users\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -28,8 +29,8 @@ class UserController extends Controller
                 return response()->json(['message' => 'Forbidden'], 403);
             }
 
-            // Eager load related role, campus, and program data for each user
-            $users = User::with(['role', 'campus', 'program'])
+            // Eager load related role, campus, program, and status data for each user
+            $users = User::with(['role', 'campus', 'program', 'status'])
                         ->get()
                         ->map(function ($user) {
                             return [
@@ -45,7 +46,8 @@ class UserController extends Controller
                                 'campus' => $user->campus ? $user->campus->campusName : 'Unknown',
                                 'program' => $user->program ? $user->program->programName : 'Not Assigned',
                                 'isActive' => $user->isActive,
-                                'status' => $user->status,
+                                'status_id' => $user->status_id,
+                                'status' => $user->status ? $user->status->name : 'Unknown',
                             ];
                         });
 
@@ -206,18 +208,16 @@ class UserController extends Controller
             return response()->json(['message' => 'User not found.'], 404);
         }
 
-        // If unregistered, delete
-        if ($user->status === 'unregistered') {
-            $user->delete();
-            return response()->json(['message' => 'User was unregistered and has been deleted.'], 200);
-        }
+        // Get status IDs
+        $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
+        $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;
 
-        if ($user->status !== 'pending') {
+        if ($user->status_id !== $pendingStatusId) {
             return response()->json(['message' => 'User is already registered.'], 400);
         }
 
         $user->update([
-            'status' => 'registered',
+            'status_id' => $registeredStatusId,
             'isActive' => true
         ]);
 
@@ -225,7 +225,7 @@ class UserController extends Controller
     }
 
     /**
-     * Disapprove user by marking them as unregistered (Only Dean).
+     * Disapprove user (Only Dean).
      */
     public function disapproveUser(Request $request, $userID)
     {
@@ -241,13 +241,15 @@ class UserController extends Controller
             return response()->json(['message' => 'User not found.'], 404);
         }
 
-        if ($user->status === 'unregistered') {
-            return response()->json(['message' => 'User is already unregistered.'], 400);
-        }
+        // Get disapproved status ID
+        $disapprovedStatusId = DB::table('statuses')->where('name', 'disapproved')->first()->id;
 
-        $user->update(['status' => 'unregistered']);
+        $user->update([
+            'status_id' => $disapprovedStatusId,
+            'isActive' => false
+        ]);
 
-        return response()->json(['message' => 'User has been marked as unregistered.', 'user' => $user], 200);
+        return response()->json(['message' => 'User has been disapproved.', 'user' => $user], 200);
     }
 
     /**
@@ -266,8 +268,12 @@ class UserController extends Controller
             'userIDs.*' => 'integer|exists:users,userID'
         ]);
 
+        // Get status IDs
+        $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
+        $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;
+        $disapprovedStatusId = DB::table('statuses')->where('name', 'disapproved')->first()->id;
+
         $approvedUsers = [];
-        $deletedUsers = [];
         $skippedUsers = [];
 
         foreach ($validated['userIDs'] as $userID) {
@@ -278,19 +284,18 @@ class UserController extends Controller
                 continue;
             }
 
-            if ($user->status === 'unregistered') {
-                $user->delete();
-                $deletedUsers[] = $userID;
+            if ($user->status_id === $disapprovedStatusId) {
+                $skippedUsers[] = $userID;
                 continue;
             }
 
-            if ($user->status !== 'pending') {
+            if ($user->status_id !== $pendingStatusId) {
                 $skippedUsers[] = $userID;
                 continue;
             }
 
             $user->update([
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'isActive' => true
             ]);
 
@@ -300,7 +305,6 @@ class UserController extends Controller
         return response()->json([
             'message' => 'Bulk approval completed.',
             'approved_users' => $approvedUsers,
-            'deleted_users' => $deletedUsers,
             'skipped_users' => $skippedUsers
         ], 200);
     }

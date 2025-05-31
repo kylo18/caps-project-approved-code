@@ -6,8 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Routing\Controller;
 use Modules\Subjects\Models\Subject;
+use Modules\Subjects\Models\YearLevel;
 use Illuminate\Support\Facades\Auth;
 use Modules\Users\Models\Program;
+use Illuminate\Support\Facades\DB;
 
 class SubjectController extends Controller
 {
@@ -22,17 +24,19 @@ class SubjectController extends Controller
                 'programID'    => 'required|exists:programs,programID',
                 'subjectCode'  => 'required|string',
                 'subjectName'  => 'required|string',
+                'yearLevelID'  => 'required|exists:year_levels,yearLevelID',
             ]);
 
-            // Prevent duplicate subject entries (same code, name, and program)
+            // Prevent duplicate subject entries (same code, name, program and year level)
             $existingSubject = Subject::where('subjectCode', $request->subjectCode)
                 ->where('subjectName', $request->subjectName)
                 ->where('programID', $request->programID)
+                ->where('yearLevelID', $request->yearLevelID)
                 ->first();
 
             if ($existingSubject) {
                 return response()->json([
-                    'message' => 'Subject already exists for this program.',
+                    'message' => 'Subject already exists for this program and year level.',
                     'existing_subject' => $existingSubject
                 ], 409);
             } else {
@@ -41,6 +45,7 @@ class SubjectController extends Controller
                     'programID'   => $request->programID,
                     'subjectCode' => $request->subjectCode,
                     'subjectName' => $request->subjectName,
+                    'yearLevelID' => $request->yearLevelID,
                 ]);
                 return response()->json([
                     'message' => 'Subject created successfully.',
@@ -63,64 +68,86 @@ class SubjectController extends Controller
     public function index(Request $request)
     {
         try {
-            $user = Auth::user(); // Get the authenticated user
+            $user = Auth::user();
 
             if (!$user) {
                 return response()->json([
-                    'error' => 'Unauthorized',
-                    'message' => 'User not authenticated'
+                    'success' => false,
+                    'message' => 'Unauthorized'
                 ], 401);
             }
 
-            // Allow only Dean, Instructor, or Program Chair to access
+            // Only allow Dean (4), Program Chair (3), and Instructors (2) to access
             if (!in_array($user->roleID, [2, 3, 4])) {
                 return response()->json([
-                    'error' => 'Forbidden',
-                    'message' => 'Access denied. Only Dean, Instructor, or Program Chair can view the subjects list.'
+                    'success' => false,
+                    'message' => 'Forbidden. Only Dean, Program Chair, and Instructors can view subjects.'
                 ], 403);
             }
 
-            // Role-based subject visibility
+            // Get subjects based on role
+            $query = DB::table('subjects as s')
+                ->join('programs as p', 'p.programID', '=', 's.programID')
+                ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
+                ->select(
+                    's.subjectID',
+                    's.subjectCode',
+                    's.subjectName',
+                    's.programID',
+                    'p.programName',
+                    's.yearLevelID',
+                    'yl.name as yearLevel'
+                );
+
+            // Program Chair: show only their program subjects + general subjects
             if ($user->roleID === 3) {
-                // Program Chair: show subjects for their program + general subjects
-                $subjects = Subject::with('program')
-                    ->where(function ($query) use ($user) {
-                        $query->where('programID', $user->programID)
-                              ->orWhere('programID', 6); // General subjects
-                    })
-                    ->get();
-            } else {
-                // Dean or Instructor: show all subjects
-                $subjects = Subject::with('program')->get();
+                $query->where(function ($q) use ($user) {
+                    $q->where('s.programID', $user->programID)
+                      ->orWhere('s.programID', 6); // General subjects
+                });
             }
 
-            // Format subjects and optionally clean program name
-            $formattedSubjects = $subjects->map(function ($subject) {
-                $programName = $subject->program ? $subject->program->programName : null;
+            $subjects = $query->orderBy('s.subjectID')->get();
 
-                if ($programName && strpos($programName, 'BS-') === 0) {
+            if ($subjects->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No subjects found',
+                    'subjects' => []
+                ], 404);
+            }
+
+            // Format the subjects
+            $formattedSubjects = $subjects->map(function ($subject) {
+                $programName = $subject->programName;
+                if (strpos($programName, 'BS-') === 0) {
                     $programName = substr($programName, 3);
                 }
 
                 return [
-                    'subjectID'    => $subject->subjectID,
-                    'subjectName'  => $subject->subjectName,
-                    'subjectCode'  => $subject->subjectCode,
-                    'programID'    => $subject->programID,
-                    'programName'  => $programName,
+                    'subjectID' => $subject->subjectID,
+                    'subjectCode' => $subject->subjectCode,
+                    'subjectName' => $subject->subjectName,
+                    'programID' => $subject->programID,
+                    'programName' => $programName,
+                    'yearLevelID' => $subject->yearLevelID,
+                    'yearLevel' => $subject->yearLevel
                 ];
             });
 
             return response()->json([
+                'success' => true,
                 'message' => 'Subjects retrieved successfully',
                 'subjects' => $formattedSubjects
             ], 200);
+
         } catch (\Exception $e) {
             Log::error('Error retrieving subjects: ' . $e->getMessage());
-
+            
             return response()->json([
-                'error' => 'Internal Server Error',
-                'message' => $e->getMessage()
+                'success' => false,
+                'message' => 'An error occurred while retrieving subjects',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -152,23 +179,26 @@ class SubjectController extends Controller
             'subjectCode' => 'required|string|max:50',
             'subjectName' => 'required|string|max:255',
             'programID'   => 'nullable|exists:programs,programID',
+            'yearLevelID' => 'required|exists:year_levels,yearLevelID',
         ]);
 
         try {
             $subjectCode = $validated['subjectCode'];
             $subjectName = $validated['subjectName'];
             $programID = $validated['programID'] ?? null;
+            $yearLevelID = $validated['yearLevelID'];
 
             // Prevent duplicate entries excluding current subject
             $duplicate = Subject::where('subjectCode', $subjectCode)
                 ->where('subjectName', $subjectName)
                 ->where('programID', $programID)
+                ->where('yearLevelID', $yearLevelID)
                 ->where('subjectID', '!=', $subjectID)
                 ->first();
 
             if ($duplicate) {
                 return response()->json([
-                    'message' => 'Another subject with the same code, name, and program already exists.',
+                    'message' => 'Another subject with the same code, name, program, and year level already exists.',
                     'duplicate' => $duplicate
                 ], 409);
             }
@@ -178,6 +208,7 @@ class SubjectController extends Controller
                 'subjectCode' => $subjectCode,
                 'subjectName' => $subjectName,
                 'programID'   => $programID,
+                'yearLevelID' => $yearLevelID,
             ]);
 
             return response()->json([
@@ -242,7 +273,7 @@ class SubjectController extends Controller
         }
 
         // Fetch program-specific and general education subjects with practice exam settings
-        $subjects = Subject::with('program')
+        $subjects = Subject::with(['program', 'yearLevel'])
             ->where(function ($query) use ($user) {
                 $query->where('programID', $user->programID)
                     ->orwhere('programID', 6) // General subjects
@@ -251,12 +282,24 @@ class SubjectController extends Controller
                     });
             })
             ->whereHas('practiceExamSetting') // Only if practice exam settings exist
-            ->select('subjectID', 'subjectName', 'subjectCode', 'programID')
+            ->select('subjectID', 'subjectName', 'subjectCode', 'programID', 'yearLevelID')
             ->get();
+
+        $formattedSubjects = $subjects->map(function ($subject) {
+            return [
+                'subjectID' => $subject->subjectID,
+                'subjectName' => $subject->subjectName,
+                'subjectCode' => $subject->subjectCode,
+                'programID' => $subject->programID,
+                'programName' => $subject->program ? $subject->program->programName : null,
+                'yearLevelID' => $subject->yearLevelID,
+                'yearLevel' => $subject->yearLevel ? $subject->yearLevel->name : null,
+            ];
+        });
 
         return response()->json([
             'message' => 'Subjects available for practice exam.',
-            'data' => $subjects
+            'data' => $formattedSubjects
         ], 200);
     }
 }

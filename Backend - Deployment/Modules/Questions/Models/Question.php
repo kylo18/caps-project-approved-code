@@ -21,11 +21,12 @@ class Question extends Model
         'userID',
         'image',
         'score',
-        'difficulty',
-        'coverage',
-        'status',
-        'purpose',
+        'difficulty_id',
+        'coverage_id',
+        'status_id',
+        'purpose_id',
     ];
+
 
     // No need for a cast here unless a field in your table is stored as JSON
     // protected $casts = [
@@ -50,5 +51,25 @@ class Question extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'userID');
+    }
+
+    public function purpose()
+    {
+        return $this->belongsTo(Purpose::class, 'purpose_id');
+    }
+
+    public function difficulty()
+    {
+        return $this->belongsTo(Difficulty::class, 'difficulty_id');
+    }
+
+    public function status()
+    {
+        return $this->belongsTo(Status::class, 'status_id');
+    }
+
+    public function coverage()
+    {
+        return $this->belongsTo(Coverage::class, 'coverage_id');
     }
 }
