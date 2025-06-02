@@ -157,70 +157,193 @@ class SubjectController extends Controller
      */
     public function update(Request $request, $subjectID)
     {
-        $user = Auth::user();
-
-        // Only Dean can modify subjects
-        if ($user->roleID !== 4) {
-            return response()->json([
-                'message' => 'Unauthorized. Only the Dean can modify subjects.'
-            ], 403);
-        }
-
-        $subject = Subject::find($subjectID);
-
-        if (!$subject) {
-            return response()->json([
-                'message' => 'Subject not found.'
-            ], 404);
-        }
-
-        // Validate request (programID is nullable for general subjects)
-        $validated = $request->validate([
-            'subjectCode' => 'required|string|max:50',
-            'subjectName' => 'required|string|max:255',
-            'programID'   => 'nullable|exists:programs,programID',
-            'yearLevelID' => 'required|exists:year_levels,yearLevelID',
-        ]);
-
         try {
-            $subjectCode = $validated['subjectCode'];
-            $subjectName = $validated['subjectName'];
-            $programID = $validated['programID'] ?? null;
-            $yearLevelID = $validated['yearLevelID'];
+            Log::info('Starting subject update', ['subjectID' => $subjectID, 'request' => $request->all()]);
 
-            // Prevent duplicate entries excluding current subject
-            $duplicate = Subject::where('subjectCode', $subjectCode)
-                ->where('subjectName', $subjectName)
-                ->where('programID', $programID)
-                ->where('yearLevelID', $yearLevelID)
-                ->where('subjectID', '!=', $subjectID)
-                ->first();
+            // Check authentication and authorization
+            $user = $this->checkAuthorization();
+            if (!$user['success']) {
+                return response()->json($user['response'], $user['status']);
+            }
 
-            if ($duplicate) {
+            // Find and validate subject existence
+            $subject = Subject::with(['program', 'yearLevel'])->find($subjectID);
+            if (!$subject) {
+                Log::warning('Subject not found', ['subjectID' => $subjectID]);
                 return response()->json([
+                    'success' => false,
+                    'message' => 'Subject not found.'
+                ], 404);
+            }
+
+            // Validate input data
+            $validated = $this->validateSubjectData($request);
+            if (!$validated['success']) {
+                return response()->json($validated['response'], $validated['status']);
+            }
+
+            // Check for duplicates
+            $duplicate = $this->checkDuplicateSubject(
+                $validated['data']['subjectCode'],
+                $validated['data']['subjectName'],
+                $validated['data']['programID'],
+                $validated['data']['yearLevelID'],
+                $subjectID
+            );
+            if ($duplicate) {
+                Log::info('Duplicate subject found', ['duplicate' => $duplicate]);
+                return response()->json([
+                    'success' => false,
                     'message' => 'Another subject with the same code, name, program, and year level already exists.',
                     'duplicate' => $duplicate
                 ], 409);
             }
 
-            // Update subject
-            $subject->update([
-                'subjectCode' => $subjectCode,
-                'subjectName' => $subjectName,
-                'programID'   => $programID,
-                'yearLevelID' => $yearLevelID,
-            ]);
+            // Update the subject
+            $updateResult = $this->performSubjectUpdate($subject, $validated['data']);
+            
+            Log::info('Update completed successfully', ['response' => $updateResult]);
+            return response()->json($updateResult, 200);
 
-            return response()->json([
-                'message' => 'Subject updated successfully.',
-                'data'    => $subject
-            ], 200);
         } catch (\Exception $e) {
+            Log::error('Failed to update subject', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all(),
+                'subject_id' => $subjectID,
+                'exception_class' => get_class($e)
+            ]);
+            
             return response()->json([
+                'success' => false,
                 'message' => 'Failed to update subject.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage(),
+                'debug_info' => app()->environment('local') ? [
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'type' => get_class($e)
+                ] : null
             ], 500);
         }
+    }
+
+    /**
+     * Check user authorization for subject updates.
+     */
+    private function checkAuthorization()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            Log::error('No authenticated user found');
+            return [
+                'success' => false,
+                'response' => [
+                    'success' => false,
+                    'message' => 'Unauthorized. User not authenticated.'
+                ],
+                'status' => 401
+            ];
+        }
+
+        if ($user->roleID !== 4) {
+            Log::warning('Unauthorized access attempt', ['userRole' => $user->roleID]);
+            return [
+                'success' => false,
+                'response' => [
+                    'success' => false,
+                    'message' => 'Unauthorized. Only the Dean can modify subjects.'
+                ],
+                'status' => 403
+            ];
+        }
+
+        return ['success' => true];
+    }
+
+    /**
+     * Validate subject update data.
+     */
+    private function validateSubjectData(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'subjectCode' => 'required|string|max:50',
+                'subjectName' => 'required|string|max:255',
+                'programID'   => 'nullable|exists:programs,programID',
+                'yearLevelID' => 'required|exists:year_levels,yearLevelID',
+            ]);
+
+            return [
+                'success' => true,
+                'data' => [
+                    'subjectCode' => trim($validated['subjectCode']),
+                    'subjectName' => trim($validated['subjectName']),
+                    'programID'   => $validated['programID'] ?? null,
+                    'yearLevelID' => $validated['yearLevelID']
+                ]
+            ];
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return [
+                'success' => false,
+                'response' => [
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ],
+                'status' => 422
+            ];
+        }
+    }
+
+    /**
+     * Check for duplicate subjects.
+     */
+    private function checkDuplicateSubject($subjectCode, $subjectName, $programID, $yearLevelID, $currentSubjectID)
+    {
+        return Subject::where('subjectCode', $subjectCode)
+            ->where('subjectName', $subjectName)
+            ->where('programID', $programID)
+            ->where('yearLevelID', $yearLevelID)
+            ->where('subjectID', '!=', $currentSubjectID)
+            ->first();
+    }
+
+    /**
+     * Perform the subject update operation.
+     */
+    private function performSubjectUpdate($subject, $data)
+    {
+        Log::info('About to update subject', $data);
+
+        $subject->fill([
+            'subjectCode' => $data['subjectCode'],
+            'subjectName' => $data['subjectName'],
+            'programID'   => $data['programID'],
+            'yearLevelID' => $data['yearLevelID'],
+        ]);
+
+        $changes = $subject->getDirty();
+        Log::info('Changes to be applied', ['changes' => $changes]);
+        
+        $subject->save();
+        Log::info('Subject saved successfully');
+
+        $subject->refresh();
+
+        return [
+            'success' => true,
+            'message' => 'Subject updated successfully.',
+            'data'    => [
+                'subject' => $subject,
+                'changes' => $changes,
+                'relationships' => [
+                    'program' => $subject->program,
+                    'yearLevel' => $subject->yearLevel
+                ]
+            ]
+        ];
     }
 
     /**

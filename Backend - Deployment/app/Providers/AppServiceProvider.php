@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,7 +14,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Add explicit model binding for YearLevel
+        $this->app->bind('Modules\YearLevels\Models\YearLevel', 'Modules\Subjects\Models\YearLevel');
     }
 
     /**
@@ -35,5 +37,14 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Request::macro('maxUploadSize', function () {
             return 20 * 1024 * 1024;
         });
+
+        // Add morphMap for YearLevel model
+        Relation::morphMap([
+            'year_level' => 'Modules\Subjects\Models\YearLevel',
+        ]);
+
+        if (env('APP_ENV') !== 'local') {
+            URL::forceScheme('https');
+        }
     }
 }
