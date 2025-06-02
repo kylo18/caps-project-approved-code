@@ -4,6 +4,7 @@ namespace Modules\Questions\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Arr;
 
 class QuestionsTableSeeder extends Seeder
@@ -18,17 +19,19 @@ class QuestionsTableSeeder extends Seeder
             "How does {subject} relate to the following scenario?",
         ];
 
-        return str_replace(
+        $text = str_replace(
             '{subject}',
             $subject->subjectName,
             $templates[array_rand($templates)]
         );
+
+        return Crypt::encryptString($text);
     }
 
     private function generateChoiceText($questionIndex, $choiceIndex, $subject)
     {
         if ($choiceIndex === 4) {
-            return 'None of the above';
+            return Crypt::encryptString('None of the above');
         }
 
         $templates = [
@@ -38,11 +41,13 @@ class QuestionsTableSeeder extends Seeder
             "This illustrates a fundamental aspect of {subject}",
         ];
 
-        return str_replace(
+        $text = str_replace(
             '{subject}',
             $subject->subjectName,
             $templates[array_rand($templates)] . " (Option " . ($choiceIndex + 1) . ")"
         );
+
+        return Crypt::encryptString($text);
     }
 
     public function run(): void
