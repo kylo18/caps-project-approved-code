@@ -133,7 +133,7 @@ const Tooltip = ({
       <div
         ref={tooltipRef}
         role="tooltip"
-        className={`pointer-events-none absolute z-50 inline-block rounded-lg bg-gray-700 px-3 py-2 text-sm font-medium text-nowrap text-white opacity-0 shadow-sm transition-opacity duration-200 ${
+        className={`pointer-events-none absolute z-60 inline-block rounded-lg bg-gray-700 px-3 py-2 text-sm font-medium text-nowrap text-white opacity-0 shadow-sm transition-opacity duration-200 ${
           placements[placement].position
         } ${className} ${isVisible ? "pointer-events-auto opacity-100" : ""}`}
         style={{ maxWidth }}

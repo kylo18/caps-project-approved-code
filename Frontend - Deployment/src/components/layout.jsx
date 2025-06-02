@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "./sideBar";
 import Header from "./header";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
 // Main Layout
 const Layout = () => {
@@ -9,6 +9,7 @@ const Layout = () => {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const location = useLocation();
 
   const roleMap = {
     1: "Student",
@@ -34,11 +35,12 @@ const Layout = () => {
     role_id !== null && roleMap[role_id] ? roleMap[role_id] : "User";
 
   const isStudent = Number(role_id) === 1;
+  const isTutorialPage = location.pathname.includes("/help");
 
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="flex">
-        {!isStudent && (
+        {!isStudent && !isTutorialPage && (
           <Sidebar
             role_id={role_id}
             setSelectedSubject={setSelectedSubject}
@@ -48,7 +50,7 @@ const Layout = () => {
         )}
         <div
           className={`flex flex-1 flex-col transition-all duration-300 ${
-            isStudent
+            isStudent || isTutorialPage
               ? "ml-0"
               : isMobile
                 ? "ml-0"
@@ -58,7 +60,7 @@ const Layout = () => {
           }`}
         >
           <Header title={roleTitle} />
-          <main className="p-4">
+          <main className={isTutorialPage ? "" : "p-4"}>
             <Outlet context={{ selectedSubject }} />
           </main>
         </div>

@@ -2,7 +2,10 @@ import { useEffect, useState, useRef } from "react";
 import Button from "./button";
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "./loadingOverlay";
-import Tooltip from "./toolTip";
+import { Tooltip } from "flowbite-react";
+import { createPortal } from "react-dom";
+import SideBarToolTip from "./sidebarTooltip";
+
 const AssignedSubjectsDropDown = ({
   item,
   isExpanded,
@@ -46,6 +49,24 @@ const AssignedSubjectsDropDown = ({
     type: "",
     show: false,
   });
+
+  // Add new state variables for year level functionality
+  const [selectedYearLevel, setSelectedYearLevel] = useState(null);
+  const [showYearSubjects, setShowYearSubjects] = useState(false);
+  const [yearLevelPosition, setYearLevelPosition] = useState({ x: 0, y: 0 });
+
+  // Hardcoded year levels
+  const yearLevelOptions = ["1", "2", "3", "4"];
+
+  // Group subjects by year level
+  const yearLevelGroups = assignedSubjects.reduce((acc, subject) => {
+    const yearLevel = subject.yearLevelID || "Unassigned";
+    if (!acc[yearLevel]) {
+      acc[yearLevel] = [];
+    }
+    acc[yearLevel].push(subject);
+    return acc;
+  }, {});
 
   useEffect(() => {
     if (toast.message) {
@@ -102,6 +123,11 @@ const AssignedSubjectsDropDown = ({
       }
 
       const data = await response.json();
+
+      if (!data.success) {
+        console.error("Error fetching subjects:", data.message);
+        return;
+      }
 
       if (!Array.isArray(data.subjects)) {
         console.error("Unexpected subjects data format:", data);
@@ -165,6 +191,8 @@ const AssignedSubjectsDropDown = ({
       setIsOpen(false);
       setSearchTerm("");
       setFilteredSubjects(subjects);
+      setShowYearSubjects(false);
+      setOpenMenuID(null);
       if (listRef.current) {
         listRef.current.scrollTo({ top: 0, behavior: "smooth" });
       }
@@ -200,12 +228,7 @@ const AssignedSubjectsDropDown = ({
     }
   }, [isOpen]);
 
-  const unassignedSubjects = subjects.filter(
-    (subject) =>
-      !assignedSubjects.some(
-        (assigned) => assigned.subjectID === subject.subjectID,
-      ),
-  );
+  const unassignedSubjects = subjects.filter((subject) => !subject.isAssigned);
 
   const handleSelectSubject = (subject) => {
     setSelectedSubject(subject);
@@ -275,9 +298,11 @@ const AssignedSubjectsDropDown = ({
       if (response.ok) {
         const result = await response.json();
 
-        await fetchAssignedSubjects();
+        // Refresh both assigned and available subjects
+        await Promise.all([fetchAssignedSubjects(), fetchSubjects()]);
 
         setSelectedSubjectForAssignment(null);
+        setShowAddModal(false);
 
         setToast({
           message: result.message || "Subject assigned successfully",
@@ -307,7 +332,7 @@ const AssignedSubjectsDropDown = ({
   return (
     <div className="mt-[2px]">
       <li
-        className="relative flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] hover:bg-[rgb(255,230,214)] hover:text-gray-700"
+        className="relative flex items-center gap-3 rounded px-[4px] py-[1px] hover:bg-[rgb(255,230,214)] hover:text-gray-700"
         onClick={() => {
           if (!isExpanded || !isOpen) {
             setIsExpanded(true);
@@ -318,10 +343,13 @@ const AssignedSubjectsDropDown = ({
           } else {
             setIsOpen(!isOpen);
             setIsSubjectFocused(!isOpen);
+            setShowYearSubjects(false);
           }
         }}
       >
-        <i className={`bx ${item.icon} text-2xl`}></i>
+        <SideBarToolTip label="Subjects" isExpanded={isExpanded}>
+          <i className={`bx ${item.icon} mt-1 text-2xl`}></i>
+        </SideBarToolTip>
         <span
           className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
             isExpanded
@@ -342,7 +370,7 @@ const AssignedSubjectsDropDown = ({
         )}
       </li>
 
-      {/* Dropdown Content */}
+      {/* Year Levels Dropdown */}
       <div
         className={`mt-2 flex flex-col overflow-hidden transition-all duration-0 ease-in-out ${
           isOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
@@ -362,11 +390,15 @@ const AssignedSubjectsDropDown = ({
 
           <Tooltip
             content={<span className="whitespace-nowrap">Assign Subject</span>}
-            placement="right"
+            placement="left"
+            className="z-[100]"
           >
             <div
               className="cursor-pointer justify-center rounded-sm bg-orange-500 px-[7px] py-[3px] text-center text-white transition-all hover:bg-orange-600"
-              onClick={() => setShowAddModal(true)}
+              onClick={() => {
+                setShowAddModal(true);
+                setShowYearSubjects(false);
+              }}
             >
               <i className="bx bx-plus text-[16px]"></i>
             </div>
@@ -377,7 +409,7 @@ const AssignedSubjectsDropDown = ({
 
         <ul
           ref={listRef}
-          className={`scrollbar-show-on-hover mx-auto mt-2 w-full flex-grow text-[14px] font-semibold text-gray-700 transition-all duration-100 ease-in-out ${!isExpanded ? "hidden" : ""} `}
+          className={`scrollbar-show-on-hover mx-auto mt-2 w-full flex-grow pr-2 text-[14px] font-semibold text-gray-700 transition-all duration-100 ease-in-out ${!isExpanded ? "hidden" : ""}`}
         >
           {subjectLoading ? (
             <li className="mt-3 animate-pulse p-2 text-center text-[14px] text-[rgb(168,168,168)]">
@@ -386,8 +418,9 @@ const AssignedSubjectsDropDown = ({
                 <div className="ml-2 size-4 animate-spin rounded-full border-3 border-t-transparent"></div>
               </div>
             </li>
-          ) : searchResults && searchResults.length > 0 ? (
-            searchResults.map((subject) => (
+          ) : searchTerm.trim() ? (
+            // Show filtered subjects when searching
+            filteredSubjects.map((subject) => (
               <li
                 key={subject.subjectID}
                 className={`group relative mt-2 mr-1 flex cursor-pointer items-center justify-between rounded-md p-[7px] transition-all duration-100 ease-in-out ${
@@ -403,7 +436,8 @@ const AssignedSubjectsDropDown = ({
                 }}
               >
                 <span className="ml-1 flex-1 cursor-pointer break-all">
-                  {subject.programName} - {subject.subjectCode}
+                  {subject.yearLevel} {subject.programName} -{" "}
+                  {subject.subjectCode}
                 </span>
 
                 {/* 3-dot menu */}
@@ -413,12 +447,9 @@ const AssignedSubjectsDropDown = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       const rect = e.currentTarget.getBoundingClientRect();
-                      const menuHeight = 80; // Approximate height of dropdown
-
-                      // Check if there's space below, otherwise open upwards
+                      const menuHeight = 80;
                       const spaceBelow = window.innerHeight - rect.bottom;
                       const direction = spaceBelow < menuHeight ? "up" : "down";
-
                       setDropdownDirection(direction);
                       setDropdownPosition({ x: rect.right, y: rect.bottom });
                       setDropdownSubject(subject);
@@ -431,50 +462,233 @@ const AssignedSubjectsDropDown = ({
               </li>
             ))
           ) : (
-            <li className="flex flex-col items-center gap-2 p-2 text-center text-[14px] text-[rgb(168,168,168)]">
-              <span>No subjects found</span>
-              <button
-                onClick={fetchAssignedSubjects}
-                className="mt-3 flex items-center gap-1 rounded-md border px-3 py-1 text-sm shadow-sm hover:bg-gray-200"
-                disabled={subjectLoading}
-              >
-                {subjectLoading ? (
-                  <span className="mt-3 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></span>
-                ) : (
-                  <>
-                    <i className="bx bx-refresh text-[16px]"></i>
-                    Refresh
-                  </>
-                )}
-              </button>
-            </li>
+            // Show year levels when not searching
+            <>
+              {yearLevelOptions.map((yearLevel) => (
+                <li
+                  key={yearLevel}
+                  className="group relative mt-2 mr-1 flex cursor-pointer items-center justify-between rounded-sm px-[4px] py-[5px] transition-all duration-100 ease-in-out hover:bg-[rgb(255,230,214)]"
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setYearLevelPosition({ x: rect.right + 10, y: rect.top });
+                    setSelectedYearLevel(yearLevel);
+                    setShowYearSubjects(true);
+                    setOpenMenuID(null);
+                  }}
+                >
+                  <span className="ml-2 flex-1 break-all">
+                    {`${yearLevel}${yearLevel === "1" ? "st" : yearLevel === "2" ? "nd" : yearLevel === "3" ? "rd" : "th"} Year`}
+                  </span>
+                  <i className="bx bx-chevron-right text-[18px]"></i>
+                </li>
+              ))}
+              {/* Refresh Button */}
+              <li className="mt-4 border-t border-gray-200 pt-4">
+                <button
+                  onClick={() => {
+                    setShowYearSubjects(false);
+                    setOpenMenuID(null);
+                    fetchAssignedSubjects();
+                  }}
+                  className="border-color flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  <i className="bx bx-refresh text-lg"></i>
+                  <span className="text-[14px]">Refresh</span>
+                </button>
+              </li>
+            </>
           )}
         </ul>
-        {openMenuID && dropdownSubject && (
-          <div
-            className="absolute z-50 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm"
-            style={{
-              top:
-                dropdownDirection === "down"
-                  ? dropdownPosition.y + 4
-                  : dropdownPosition.y - 50,
-              left: dropdownPosition.x - 0, // Align left of button
-            }}
-            onMouseLeave={() => setOpenMenuID(null)}
-          >
-            <button
-              className="w-full rounded-sm px-3 py-2 text-left text-sm text-black hover:bg-gray-200"
+      </div>
+
+      {/* Floating Subjects Panel */}
+      {showYearSubjects &&
+        selectedYearLevel &&
+        createPortal(
+          <>
+            <div
+              className="lightbox-bg fixed inset-0 z-54"
+              style={{ pointerEvents: "auto" }}
               onClick={() => {
-                setSubjectToDelete(dropdownSubject);
-                setShowDeleteModal(true);
+                setShowYearSubjects(false);
+                setOpenMenuID(null);
+              }}
+            />
+            {/* Mobile Modal */}
+            <div
+              className="lightbox-bg fixed inset-0 z-55 flex items-center justify-center p-5 sm:hidden"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowYearSubjects(false);
                 setOpenMenuID(null);
               }}
             >
-              <i className="bx bxs-trash-alt mr-2 text-[16px]"></i>Remove
-            </button>
-          </div>
+              <div
+                className="max-h-[90vh] w-full max-w-sm rounded-lg bg-white shadow-lg"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="border-b border-gray-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[16px] font-semibold text-gray-700">
+                      {`${selectedYearLevel}${selectedYearLevel === "1" ? "st" : selectedYearLevel === "2" ? "nd" : selectedYearLevel === "3" ? "rd" : "th"} Year Subjects`}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setShowYearSubjects(false);
+                        setOpenMenuID(null);
+                      }}
+                      className="cursor-pointer text-gray-500 hover:text-gray-700"
+                    >
+                      <i className="bx bx-x text-xl"></i>
+                    </button>
+                  </div>
+                </div>
+                {/* Content */}
+                <div className="max-h-[calc(90vh-80px)] overflow-y-auto p-4">
+                  {yearLevelGroups[selectedYearLevel]?.length > 0 ? (
+                    yearLevelGroups[selectedYearLevel].map((subject) => (
+                      <div
+                        key={subject.subjectID}
+                        className="group relative flex items-center justify-between rounded-sm px-2 py-2 hover:bg-[rgb(255,230,214)]"
+                        onClick={() => {
+                          setSelectedSubject(null);
+                          handleSelectSubject(subject);
+                          navigate(homePath);
+                          setShowYearSubjects(false);
+                          setOpenMenuID(null);
+                        }}
+                      >
+                        <span className="flex-1 cursor-pointer text-sm break-all">
+                          {subject.programName} - {subject.subjectCode}
+                        </span>
+                        <div
+                          className="relative"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            className="hidden items-center justify-center rounded-full transition group-hover:flex"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const rect =
+                                e.currentTarget.getBoundingClientRect();
+                              const menuHeight = 80;
+                              const spaceBelow =
+                                window.innerHeight - rect.bottom;
+                              const direction =
+                                spaceBelow < menuHeight ? "up" : "down";
+                              setDropdownDirection(direction);
+                              setDropdownPosition({
+                                x: rect.right,
+                                y: rect.bottom,
+                              });
+                              setDropdownSubject(subject);
+                              setOpenMenuID(subject.subjectID);
+                            }}
+                          >
+                            <i className="bx bx-dots-vertical-rounded cursor-pointer text-[18px]"></i>
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-2 text-center text-sm text-gray-500">
+                      No subjects in this year level
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Floating Panel */}
+            <div
+              className="border-color fixed z-55 hidden w-65 rounded-md border border-gray-200 bg-white shadow-lg sm:block"
+              style={{
+                top: "20px",
+                left: yearLevelPosition.x + 28,
+                height: "calc(100vh - 40px)",
+              }}
+            >
+              {/* Arrow */}
+              <div
+                className="absolute -left-2 mt-1 h-4 w-4 rotate-45 border-l border-gray-200 bg-white"
+                style={{
+                  top: `${yearLevelPosition.y - 20}px`,
+                }}
+              />
+              {/* Header */}
+              <div className="border-b border-gray-200 p-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="px-2 text-sm font-semibold text-gray-700">
+                    {`${selectedYearLevel}${selectedYearLevel === "1" ? "st" : selectedYearLevel === "2" ? "nd" : selectedYearLevel === "3" ? "rd" : "th"} Year Subjects`}
+                  </h3>
+                  <button
+                    onClick={() => setShowYearSubjects(false)}
+                    className="cursor-pointer text-gray-500 hover:text-gray-700"
+                  >
+                    <i className="bx bx-x text-xl"></i>
+                  </button>
+                </div>
+              </div>
+              {/* Content */}
+              <div className="flex h-[calc(100vh-140px)] flex-col">
+                <div className="flex-1 overflow-y-auto p-2">
+                  {yearLevelGroups[selectedYearLevel]?.length > 0 ? (
+                    yearLevelGroups[selectedYearLevel].map((subject) => (
+                      <div
+                        key={subject.subjectID}
+                        className="group relative flex items-center justify-between rounded-sm px-2 py-2 hover:bg-[rgb(255,230,214)]"
+                        onClick={() => {
+                          setSelectedSubject(null);
+                          handleSelectSubject(subject);
+                          navigate(homePath);
+                          setShowYearSubjects(false);
+                          setOpenMenuID(null);
+                        }}
+                      >
+                        <span className="flex-1 cursor-pointer text-sm break-all">
+                          {subject.programName} - {subject.subjectCode}
+                        </span>
+                        <div
+                          className="relative"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            className="hidden items-center justify-center rounded-full transition group-hover:flex"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const rect =
+                                e.currentTarget.getBoundingClientRect();
+                              const menuHeight = 80;
+                              const spaceBelow =
+                                window.innerHeight - rect.bottom;
+                              const direction =
+                                spaceBelow < menuHeight ? "up" : "down";
+                              setDropdownDirection(direction);
+                              setDropdownPosition({
+                                x: rect.right,
+                                y: rect.bottom,
+                              });
+                              setDropdownSubject(subject);
+                              setOpenMenuID(subject.subjectID);
+                            }}
+                          >
+                            <i className="bx bx-dots-vertical-rounded cursor-pointer text-[18px]"></i>
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-2 text-center text-sm text-gray-500">
+                      No subjects in this year level
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>,
+          document.body,
         )}
-      </div>
 
       {showDeleteModal && subjectToDelete && (
         <div className="lightbox-bg fixed inset-0 z-56 flex flex-col items-center justify-center">
@@ -544,7 +758,7 @@ const AssignedSubjectsDropDown = ({
                 />
               </div>
               <button
-                className="border-color flex cursor-pointer items-center gap-1 rounded-md border px-3 py-[7px] text-sm hover:bg-gray-200"
+                className="border-color flex cursor-pointer items-center gap-1 rounded-md border px-3 py-[7px] text-sm hover:bg-gray-100"
                 onClick={fetchSubjects}
               >
                 <i className="bx bx-refresh text-[18px]"></i> Refresh
@@ -564,7 +778,7 @@ const AssignedSubjectsDropDown = ({
                 ) : unassignedSubjects.length > 0 ? (
                   [...unassignedSubjects]
                     .filter((subject) =>
-                      `${subject.programName} ${subject.subjectName} ${subject.subjectCode}`
+                      `${subject.programName} ${subject.subjectName} ${subject.subjectCode} ${subject.yearLevel}`
                         .toLowerCase()
                         .includes(searchUnassigned.toLowerCase()),
                     )
@@ -582,8 +796,8 @@ const AssignedSubjectsDropDown = ({
                         onClick={() => setSelectedSubjectForAssignment(subject)}
                       >
                         <span className="mb-[1px] pl-1 break-words">
-                          {subject.programName} - ({subject.subjectCode}){" "}
-                          {subject.subjectName}
+                          {subject.programName} - {subject.subjectCode} (
+                          {subject.yearLevel}) - {subject.subjectName}
                         </span>
                       </li>
                     ))
@@ -623,9 +837,38 @@ const AssignedSubjectsDropDown = ({
         </div>
       )}
 
+      {/* Subject Actions Menu */}
+      {openMenuID && dropdownSubject && (
+        <div
+          className="absolute z-58 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm"
+          style={{
+            top:
+              dropdownDirection === "down"
+                ? dropdownPosition.y - 50
+                : dropdownPosition.y - 1,
+            left: dropdownPosition.x - -47,
+          }}
+          onMouseLeave={() => setOpenMenuID(null)}
+        >
+          {/* Arrow */}
+          <div className="absolute top-1/2 -left-2 h-4 w-4 -translate-y-1/2 rotate-45 border-l border-gray-300 bg-white" />
+          <button
+            className="w-full rounded-sm px-3 py-2 text-left text-sm text-black hover:bg-gray-200"
+            onClick={() => {
+              setSubjectToDelete(dropdownSubject);
+              setShowDeleteModal(true);
+              setOpenMenuID(null);
+              setShowYearSubjects(false);
+            }}
+          >
+            <i className="bx bxs-trash-alt mr-2 text-[16px]"></i>Remove
+          </button>
+        </div>
+      )}
+
       {toast.message && (
         <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
+          className={`fixed top-6 left-1/2 z-100 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
             toast.show ? "opacity-100" : "opacity-0"
           } ${
             toast.type === "success" ? "border-green-400" : "border-red-400"

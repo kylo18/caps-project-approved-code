@@ -242,6 +242,7 @@ const StudentDashboard = () => {
           `${key}_last_question`,
           `${key}_last_position`,
           `${key}_settings`,
+          `${key}_exam_data`,
         ];
         keysToRemove.forEach((k) => localStorage.removeItem(k));
       });
@@ -273,15 +274,19 @@ const StudentDashboard = () => {
       }
 
       if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("You are not authorized to generate practice exams.");
+        }
         if (response.status === 404) {
           throw new Error(
-            "Subject not found or no questions available for this subject.",
+            data.message ||
+              "Subject not found or no questions available for this subject.",
           );
         }
         throw new Error(data.message || "Failed to generate exam");
       }
 
-      if (data.questions && data.questions.length === 0) {
+      if (!data.questions || data.questions.length === 0) {
         setError(
           "No questions available for this subject. Please try another subject.",
         );
@@ -289,11 +294,43 @@ const StudentDashboard = () => {
         return;
       }
 
-      // Navigate to /exam-preview with timer duration included
-      navigate("/exam-preview", {
+      // Generate a unique key for this exam attempt
+      const examKey = `exam_${subjectID}_${data.questions.map((q) => q.questionID).join("_")}`;
+
+      // Store the complete exam data in localStorage with its own settings
+      localStorage.setItem(
+        `${examKey}_exam_data`,
+        JSON.stringify({
+          questions: data.questions,
+          totalPoints: data.totalPoints,
+          enableTimer: data.enableTimer,
+          durationMinutes: data.durationMinutes,
+          subjectName: data.subjectName,
+          // Store the exam settings separately from the subject settings
+          examSettings: {
+            enableTimer: data.enableTimer,
+            durationMinutes: data.durationMinutes,
+          },
+        }),
+      );
+
+      // Navigate to /exam-preview with all the exam data
+      navigate("/practice-exam", {
         state: {
           subjectID,
-          examData: data,
+          examData: {
+            questions: data.questions,
+            totalPoints: data.totalPoints,
+            enableTimer: data.enableTimer,
+            durationMinutes: data.durationMinutes,
+            subjectName: data.subjectName,
+            // Include the exam settings in the state
+            examSettings: {
+              enableTimer: data.enableTimer,
+              durationMinutes: data.durationMinutes,
+            },
+          },
+          examKey,
         },
       });
     } catch (err) {

@@ -118,6 +118,11 @@ const UserList = () => {
         return;
       }
 
+      if (response.status === 403) {
+        setError("You don't have permission to access this page.");
+        return;
+      }
+
       if (!response.ok) {
         throw new Error("Failed to fetch users");
       }
@@ -166,6 +171,24 @@ const UserList = () => {
   const pendingUsersCount = filteredUsers.filter(
     (user) => user.status === "pending",
   ).length;
+
+  // Update the filter logic for the table
+  const filteredTableUsers = filteredUsers.filter((user) => {
+    return (
+      (campusFilter ? user.campus === campusFilter : true) &&
+      (roleFilter ? user.role === roleFilter : true) &&
+      (positionFilter ? user.role === positionFilter : true) &&
+      (programFilter ? user.program === programFilter : true) &&
+      (stateFilter ? user.isActive === (stateFilter === "Active") : true) &&
+      // Filter by status
+      (statusFilter === "all" ? true : user.status === statusFilter) &&
+      // Search filter by name, email, or user code
+      (user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.userCode.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  });
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value); // Update the search term
@@ -429,21 +452,89 @@ const UserList = () => {
   };
 
   //Skeleton Table
-  /*if (loading) {
+  if (loading) {
     return (
-      <div>
-        <div className="mt-20 min-w-full table-fixed border border-[rgb(200,200,200)] bg-white p-2 shadow-md">
-          <div className="flex animate-pulse items-center space-x-4">
-            <div className="skeleton shimmer h-16 w-16 rounded-md"></div>
-            <div className="flex-1">
-              <div className="skeleton shimmer mb-2 h-8 w-1/2"></div>
-              <div className="skeleton shimmer h-4 w-2/8 rounded"></div>
+      <div className="font-inter mt-10">
+        <div className="mb-4 flex items-center justify-between gap-2 text-[14px]">
+          {/* Skeleton for top bar */}
+          <div className="flex w-full items-center justify-between gap-4">
+            <div className="h-9 w-20 animate-pulse rounded-md bg-gray-200 lg:w-70"></div>
+            <div className="flex gap-2">
+              <div className="h-9 w-10 animate-pulse rounded-md bg-gray-200"></div>
+              <div className="h-9 w-48 animate-pulse rounded-md bg-gray-200"></div>
+              <div className="h-9 w-10 animate-pulse rounded-md bg-gray-200"></div>
+              <div className="h-9 w-10 animate-pulse rounded-md bg-gray-200"></div>
             </div>
           </div>
         </div>
+
+        {/* Skeleton for table header */}
+        <div className="rounded-t-sm border border-b-0 border-[rgb(200,200,200)] bg-white px-5 py-3">
+          <div className="h-5 w-48 animate-pulse rounded bg-gray-200"></div>
+        </div>
+
+        {/* Skeleton for table rows */}
+        <div className="hidden min-[1000px]:block">
+          <div className="min-w-full table-fixed border border-[rgb(200,200,200)] bg-white shadow-md">
+            <div className="border-b border-[rgb(200,200,200)] bg-white p-5">
+              <div className="grid grid-cols-10 gap-4">
+                <div className="h-4 w-4 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-40 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-8 animate-pulse rounded bg-gray-200"></div>
+              </div>
+            </div>
+            {[...Array(5)].map((_, index) => (
+              <div
+                key={index}
+                className="border-b border-[rgb(200,200,200)] p-5"
+              >
+                <div className="grid grid-cols-10 gap-4">
+                  <div className="h-4 w-4 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-40 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-8 animate-pulse rounded bg-gray-200"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Skeleton for mobile view */}
+        <div className="min-[1000px]:hidden">
+          {[...Array(5)].map((_, index) => (
+            <div
+              key={index}
+              className="border border-gray-300 bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="h-4 w-4 animate-pulse rounded bg-gray-200"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+                    <div className="h-3 w-24 animate-pulse rounded bg-gray-200"></div>
+                  </div>
+                </div>
+                <div className="h-6 w-6 animate-pulse rounded bg-gray-200"></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
-  }*/
+  }
 
   if (error) {
     return <div>Error: {error}</div>;
@@ -893,63 +984,40 @@ const UserList = () => {
 
       {/* User Table Mobile */}
       <div className="min-[1000px]:hidden">
-        {filteredUsers
-          .filter((user) => {
-            return (
-              (campusFilter ? user.campus === campusFilter : true) &&
-              (roleFilter ? user.role === roleFilter : true) &&
-              (positionFilter ? user.position === positionFilter : true) &&
-              (programFilter ? user.program === programFilter : true) &&
-              (stateFilter
-                ? user.isActive === (stateFilter === "Active")
-                : true) &&
-              // Filter by status
-              (statusFilter === "all" ? true : user.status === statusFilter) &&
-              // Search filter by name, email, or user code
-              (user.firstName
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-                user.lastName
-                  .toLowerCase()
-                  .includes(searchTerm.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.userCode.toLowerCase().includes(searchTerm.toLowerCase()))
-            );
-          })
-          .map((user) => (
-            <div
-              key={user.userID}
-              className="flex items-center justify-between border border-gray-300 bg-white p-4 shadow-sm"
-            >
-              <div className="flex items-center space-x-3 overflow-hidden">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={selectedUsers.includes(user.userID)}
-                  onChange={() => handleCheckboxChange(user.userID)}
-                />
-                <div className="truncate">
-                  <div className="max-w-[220px] truncate text-[12px] font-semibold text-gray-800 sm:max-w-full">
-                    {user.firstName} {user.lastName}
-                  </div>
+        {filteredTableUsers.map((user) => (
+          <div
+            key={user.userID}
+            className="flex items-center justify-between border border-gray-300 bg-white p-4 shadow-sm"
+          >
+            <div className="flex items-center space-x-3 overflow-hidden">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={selectedUsers.includes(user.userID)}
+                onChange={() => handleCheckboxChange(user.userID)}
+              />
+              <div className="truncate">
+                <div className="max-w-[220px] truncate text-[12px] font-semibold text-gray-800 sm:max-w-full">
+                  {user.firstName} {user.lastName}
+                </div>
 
-                  <div className="truncate text-[10px] text-gray-600">
-                    {user.program}
-                  </div>
+                <div className="truncate text-[10px] text-gray-600">
+                  {user.program}
                 </div>
               </div>
-
-              <button
-                onClick={() => {
-                  setSelectedUser(user);
-                  setShowModal(true);
-                }}
-                className="ml-2 text-gray-700"
-              >
-                <i className="bx bx-chevron-right text-[25px] leading-none"></i>
-              </button>
             </div>
-          ))}
+
+            <button
+              onClick={() => {
+                setSelectedUser(user);
+                setShowModal(true);
+              }}
+              className="ml-2 text-gray-700"
+            >
+              <i className="bx bx-chevron-right text-[25px] leading-none"></i>
+            </button>
+          </div>
+        ))}
       </div>
 
       {/* User Table Desktop */}
@@ -996,123 +1064,92 @@ const UserList = () => {
                 </td>
               </tr>
             ) : (
-              filteredUsers
-                .filter((user) => {
-                  return (
-                    (campusFilter ? user.campus === campusFilter : true) &&
-                    (roleFilter ? user.role === roleFilter : true) &&
-                    (positionFilter ? user.role === positionFilter : true) &&
-                    (programFilter ? user.program === programFilter : true) &&
-                    (stateFilter
-                      ? user.isActive === (stateFilter === "Active")
-                      : true) &&
-                    // Filter by status
-                    (statusFilter === "all"
-                      ? true
-                      : user.status === statusFilter) &&
-                    // Search filter by name, email, or user code
-                    (user.firstName
-                      .toLowerCase()
-                      .includes(searchTerm.toLowerCase()) ||
-                      user.lastName
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase()) ||
-                      user.email
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase()) ||
-                      user.userCode
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase()))
-                  );
-                })
-                .map((user) => (
-                  <tr
-                    key={user.userID}
-                    className={`border-b border-[rgb(200,200,200)] text-[12px] text-[rgb(78,78,78)] transition-colors ${
-                      selectedUsers.includes(user.userID)
-                        ? "bg-gray-200 hover:bg-gray-100"
-                        : "hover:bg-gray-100"
-                    } cursor-pointer`}
-                    onClick={() => handleCheckboxChange(user.userID)}
+              filteredTableUsers.map((user) => (
+                <tr
+                  key={user.userID}
+                  className={`border-b border-[rgb(200,200,200)] text-[12px] text-[rgb(78,78,78)] transition-colors ${
+                    selectedUsers.includes(user.userID)
+                      ? "bg-gray-200 hover:bg-gray-100"
+                      : "hover:bg-gray-100"
+                  } cursor-pointer`}
+                  onClick={() => handleCheckboxChange(user.userID)}
+                >
+                  {/* Checkbox Column */}
+                  <td
+                    className="hidden p-3 text-left sm:table-cell"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {/* Checkbox Column */}
-                    <td
-                      className="hidden p-3 text-left sm:table-cell"
-                      onClick={(e) => e.stopPropagation()}
+                    <input
+                      className="mt-1 ml-3"
+                      type="checkbox"
+                      checked={selectedUsers.includes(user.userID)}
+                      onChange={() => handleCheckboxChange(user.userID)}
+                    />
+                  </td>
+
+                  <td className="p-3 text-left text-nowrap">{user.userCode}</td>
+
+                  {/* Name with Tooltip */}
+                  <td className="max-w-[120px] truncate p-3 text-left text-nowrap">
+                    <Tooltip
+                      content={`${user.firstName} ${user.lastName}`}
+                      placement="top"
                     >
-                      <input
-                        className="mt-1 ml-3"
-                        type="checkbox"
-                        checked={selectedUsers.includes(user.userID)}
-                        onChange={() => handleCheckboxChange(user.userID)}
-                      />
-                    </td>
+                      <span>{`${user.firstName} ${user.lastName}`}</span>
+                    </Tooltip>
+                  </td>
 
-                    <td className="p-3 text-left text-nowrap">
-                      {user.userCode}
-                    </td>
+                  {/* Email with Tooltip */}
+                  <td className="max-w-[120px] truncate p-3 text-left">
+                    <Tooltip content={user.email} placement="top">
+                      <span>{user.email}</span>
+                    </Tooltip>
+                  </td>
 
-                    {/* Name with Tooltip */}
-                    <td className="max-w-[120px] truncate p-3 text-left text-nowrap">
-                      <Tooltip
-                        content={`${user.firstName} ${user.lastName}`}
-                        placement="top"
-                      >
-                        <span>{`${user.firstName} ${user.lastName}`}</span>
-                      </Tooltip>
-                    </td>
+                  <td className="p-3 text-left text-nowrap">{user.role}</td>
+                  <td className="p-3 text-left text-nowrap">{user.campus}</td>
 
-                    {/* Email with Tooltip */}
-                    <td className="max-w-[120px] truncate p-3 text-left">
-                      <Tooltip content={user.email} placement="top">
-                        <span>{user.email}</span>
-                      </Tooltip>
-                    </td>
-
-                    <td className="p-3 text-left text-nowrap">{user.role}</td>
-                    <td className="p-3 text-left text-nowrap">{user.campus}</td>
-
-                    <td className="p-3 text-center font-semibold">
-                      <span
-                        className={`rounded-md px-2 py-1 text-[12px] ${
-                          user.status === "registered"
-                            ? "text-green-600"
-                            : user.status === "unregistered"
-                              ? "text-red-600"
-                              : "text-yellow-600"
-                        }`}
-                      >
-                        {user.status === "registered"
-                          ? "Approved"
+                  <td className="p-3 text-center font-semibold">
+                    <span
+                      className={`rounded-md px-2 py-1 text-[12px] ${
+                        user.status === "registered"
+                          ? "text-green-600"
                           : user.status === "unregistered"
-                            ? "Rejected"
-                            : "Pending"}
-                      </span>
-                    </td>
-
-                    <td className="p-3 text-center">{user.program}</td>
-
-                    <td className="p-3 text-center">
-                      {user.isActive ? (
-                        <span className="text-green-500">Active</span>
-                      ) : (
-                        <span className="text-red-500">Inactive</span>
-                      )}
-                    </td>
-                    <td
-                      className="p-3 text-center"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedUser(user);
-                        setShowModal(true);
-                      }}
+                            ? "text-red-600"
+                            : "text-yellow-600"
+                      }`}
                     >
-                      <button className="text-gray-700 hover:text-orange-500">
-                        <i className="bx bx-chevron-right mr-3 text-[25px] leading-none"></i>
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      {user.status === "registered"
+                        ? "Approved"
+                        : user.status === "unregistered"
+                          ? "Rejected"
+                          : "Pending"}
+                    </span>
+                  </td>
+
+                  <td className="p-3 text-center">{user.program}</td>
+
+                  <td className="p-3 text-center">
+                    {user.isActive ? (
+                      <span className="text-green-500">Active</span>
+                    ) : (
+                      <span className="text-red-500">Inactive</span>
+                    )}
+                  </td>
+                  <td
+                    className="p-3 text-center"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedUser(user);
+                      setShowModal(true);
+                    }}
+                  >
+                    <button className="text-gray-700 hover:text-orange-500">
+                      <i className="bx bx-chevron-right mr-3 text-[25px] leading-none"></i>
+                    </button>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>

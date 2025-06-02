@@ -3,6 +3,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Layout from "./components/layout";
 import ProtectedRoute from "./components/protectRoute";
+import TutorialLayout from "./components/TutorialLayout";
 
 import StudentDashboard from "./pages/StudentDashboard";
 import FacultyDashboard from "./pages/FacultyDashboard";
@@ -33,6 +34,11 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+
+        <Route path="/help" element={<ProtectedRoute element={<Layout />} />}>
+          <Route index element={<TutorialLayout />} />
+          <Route path="content" element={<TutorialLayout />} />
+        </Route>
 
         {/* Protected Routes */}
         <Route

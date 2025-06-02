@@ -12,6 +12,8 @@ import SortCustomDropdown from "../components/sortCustomDropdown";
 import ScrollToTopButton from "../components/scrollToTopButton";
 import LoadingOverlay from "../components/loadingOverlay";
 import SubjectCardLower from "../components/subjectCardLower";
+import DuplicateQuestionForm from "../components/DuplicateQuestionForm";
+import AltButton from "../components/buttonAlt";
 
 const ProgramChairContent = () => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
@@ -69,6 +71,8 @@ const ProgramChairContent = () => {
   });
 
   const [editingQuestion, setEditingQuestion] = useState(null);
+
+  const [duplicatingQuestion, setDuplicatingQuestion] = useState(null);
 
   // Effect to handle toast notifications auto-dismiss
   useEffect(() => {
@@ -234,14 +238,17 @@ const ProgramChairContent = () => {
 
       const matchesTab =
         (activeTab === 0 &&
-          question.purpose === "practiceQuestions" &&
-          question.status === "approved") ||
+          question.purpose_id === 1 &&
+          question.status_id === 2) ||
         (activeTab === 1 &&
-          question.purpose === "examQuestions" &&
-          question.status === "approved") ||
+          question.purpose_id === 2 &&
+          question.status_id === 2) ||
         (activeTab === 4 &&
-          question.status === "pending" &&
-          (pendingSort ? question.purpose === pendingSort : true));
+          question.status_id === 1 &&
+          (pendingSort
+            ? question.purpose_id ===
+              (pendingSort === "practiceQuestions" ? 1 : 2)
+            : true));
 
       return matchesSearch && matchesTab;
     })
@@ -251,12 +258,11 @@ const ProgramChairContent = () => {
       }
 
       if (sortOption === "difficulty") {
-        const order = { easy: 1, moderate: 2, hard: 3 };
-        return (order[a.difficulty] || 0) - (order[b.difficulty] || 0);
+        return (a.difficulty_id || 0) - (b.difficulty_id || 0);
       }
 
       if (sortOption === "coverage") {
-        return (a.coverage || "").localeCompare(b.coverage || "");
+        return (a.coverage_id || 0) - (b.coverage_id || 0);
       }
 
       return 0;
@@ -296,8 +302,16 @@ const ProgramChairContent = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Assuming backend sends an error message in `data.message` if approval fails
-        throw new Error(data.message || "Failed to approve the question");
+        // Handle specific error cases
+        if (response.status === 403) {
+          throw new Error("You cannot approve your own question.");
+        } else if (response.status === 400) {
+          throw new Error(`Cannot approve question: ${data.message}`);
+        } else if (response.status === 404) {
+          throw new Error("Question not found.");
+        } else {
+          throw new Error(data.message || "Failed to approve the question");
+        }
       }
 
       fetchQuestions();
@@ -357,6 +371,22 @@ const ProgramChairContent = () => {
     });
   };
 
+  // Function to handle question duplication
+  const handleDuplicateClick = (question) => {
+    setDuplicatingQuestion(question);
+  };
+
+  // Function to handle successful question duplication
+  const handleDuplicateComplete = () => {
+    setDuplicatingQuestion(null);
+    fetchQuestions();
+    setToast({
+      message: "Question duplicated successfully!",
+      type: "success",
+      show: true,
+    });
+  };
+
   return (
     // Main container with flex layout for the entire dashboard
     <div className="relative mt-9 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
@@ -398,15 +428,21 @@ const ProgramChairContent = () => {
                       { value: "", label: "All Types" },
                       {
                         value: "practiceQuestions",
-                        label: "Practice Questions",
+                        label: "Practice  ",
                       },
-                      { value: "examQuestions", label: "Exam Questions" },
+                      { value: "examQuestions", label: "Qualifying Exam " },
                     ]}
+                    className="w-full sm:w-35"
                   />
                 )}
               </div>
-              <div className="flex flex-row items-center justify-center gap-[5.5px]">
-                <div className="w-full sm:w-auto sm:flex-1">
+
+              <div className="flex flex-row items-center justify-center gap-2">
+                <span className="text-[14px] text-nowrap text-gray-700 sm:ml-10">
+                  Sort by
+                </span>
+                {/* Sort - takes 1/2 width on small screens */}
+                <div className="-mr-8 w-full sm:w-auto sm:flex-1">
                   <Sort
                     sortOption={sortOption}
                     setSortOption={setSortOption}
@@ -426,8 +462,10 @@ const ProgramChairContent = () => {
                   >
                     <span className="mr-5 text-[14px]">View</span>
                     <i
-                      className={`bx absolute right-2 text-[18px] ${
-                        dropdownOpen ? "bx-chevron-up" : "bx-chevron-down"
+                      className={`bx absolute right-2 text-[18px] transition-transform duration-200 ${
+                        dropdownOpen
+                          ? "bx-chevron-down rotate-180"
+                          : "bx-chevron-down rotate-0"
                       }`}
                       style={{ marginLeft: "auto" }}
                     />
@@ -533,13 +571,13 @@ const ProgramChairContent = () => {
                               filteredQuestions.filter(
                                 (question) =>
                                   (activeTab === 4 &&
-                                    question.status === "pending") ||
+                                    question.status_id === 1) ||
                                   (activeTab === 0 &&
-                                    question.purpose === "practiceQuestions" &&
-                                    question.status === "approved") ||
+                                    question.purpose_id === 1 &&
+                                    question.status_id === 2) ||
                                   (activeTab === 1 &&
-                                    question.purpose === "examQuestions" &&
-                                    question.status === "approved"),
+                                    question.purpose_id === 2 &&
+                                    question.status_id === 2),
                               ).length
                             }{" "}
                             TOTAL QUESTIONS
@@ -574,14 +612,13 @@ const ProgramChairContent = () => {
                       {filteredQuestions
                         .filter(
                           (question) =>
-                            (activeTab === 4 &&
-                              question.status === "pending") ||
+                            (activeTab === 4 && question.status_id === 1) ||
                             (activeTab === 0 &&
-                              question.purpose === "practiceQuestions" &&
-                              question.status === "approved") ||
+                              question.purpose_id === 1 &&
+                              question.status_id === 2) ||
                             (activeTab === 1 &&
-                              question.purpose === "examQuestions" &&
-                              question.status === "approved"),
+                              question.purpose_id === 2 &&
+                              question.status_id === 2),
                         )
                         .map((question, index) => (
                           // Individual question card with content and actions
@@ -607,18 +644,13 @@ const ProgramChairContent = () => {
                                 <div className="flex items-center justify-between text-[14px] text-gray-500">
                                   <span>{index + 1}. Multiple Choice</span>
                                   <div className="flex items-center">
-                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium">
-                                      {question.difficulty
-                                        .charAt(0)
-                                        .toUpperCase() +
-                                        question.difficulty.slice(1)}
+                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium capitalize">
+                                      {question.difficulty?.name || "Easy"}
                                     </span>
                                     <span> •</span>
-                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium">
-                                      {question.coverage
-                                        .charAt(0)
-                                        .toUpperCase() +
-                                        question.coverage.slice(1)}
+                                    {/* Coverage Badge */}
+                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium capitalize">
+                                      {question.coverage?.name || "Midterm"}
                                     </span>
                                     <span className="border-color ml-2 rounded-full border px-3 py-1 text-[13px] font-medium">
                                       {question.score} pt
@@ -815,6 +847,16 @@ const ProgramChairContent = () => {
                                         })}
                                       </span>
                                     </div>
+                                    <div className="flex">
+                                      <span className="w-[100px]">
+                                        Question Type:
+                                      </span>
+                                      <span>
+                                        {question.purpose_id === 1
+                                          ? "Practice Question"
+                                          : "Qualifying Exam Question"}
+                                      </span>
+                                    </div>
                                   </div>
                                 </>
                               )}
@@ -823,53 +865,63 @@ const ProgramChairContent = () => {
                                 (listViewOnly &&
                                   expandedQuestionId ===
                                     question.questionID)) && (
-                                <div className="mt-5 mb-1 flex justify-end gap-2">
-                                  {question.status === "pending" ? (
-                                    <>
-                                      <Button
-                                        text="Remove"
-                                        textres="Remove"
-                                        icon="bx bx-trash"
-                                        onClick={() =>
-                                          confirmDelete(question.questionID)
-                                        }
-                                        className="cursor-pointer"
-                                      />
-                                      <Button
-                                        text="Approve"
-                                        textres="Approve"
-                                        icon="bx bx-check"
-                                        onClick={() => {
-                                          setSelectedQuestionID(
-                                            question.questionID,
-                                          );
-                                          setShowApproveModal(true);
-                                        }}
-                                      />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Button
-                                        text="Edit"
-                                        textres="Edit"
-                                        icon="bx bx-edit"
-                                        onClick={() =>
-                                          handleEditClick(question)
-                                        }
-                                        className="cursor-pointer"
-                                      />
-                                      <Button
-                                        text="Remove"
-                                        textres="Remove"
-                                        icon="bx bx-trash"
-                                        onClick={() =>
-                                          confirmDelete(question.questionID)
-                                        }
-                                        className="cursor-pointer"
-                                      />
-                                    </>
-                                  )}
-                                </div>
+                                <>
+                                  <div className="mt-5 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+
+                                  <div className="mt-5 mb-1 flex justify-end gap-2">
+                                    {question.status_id === 1 ? (
+                                      <>
+                                        <AltButton
+                                          text="Remove"
+                                          icon="bx bx-trash"
+                                          className="hover:text-red-500"
+                                          onClick={() =>
+                                            confirmDelete(question.questionID)
+                                          }
+                                        />
+                                        <AltButton
+                                          text="Approve"
+                                          icon="bx bx-check-double"
+                                          className="hover:text-orange-500"
+                                          onClick={() => {
+                                            setSelectedQuestionID(
+                                              question.questionID,
+                                            );
+                                            setShowApproveModal(true);
+                                          }}
+                                        />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <AltButton
+                                          text="Edit"
+                                          textres="Edit"
+                                          icon="bx bx-edit-alt"
+                                          className="hover:text-orange-500"
+                                          onClick={() =>
+                                            handleEditClick(question)
+                                          }
+                                        />
+                                        <AltButton
+                                          text="Copy"
+                                          icon="bx bx-copy"
+                                          className="hover:text-orange-500"
+                                          onClick={() =>
+                                            handleDuplicateClick(question)
+                                          }
+                                        />
+                                        <AltButton
+                                          text="Remove"
+                                          icon="bx bx-trash"
+                                          className="hover:text-red-500"
+                                          onClick={() =>
+                                            confirmDelete(question.questionID)
+                                          }
+                                        />
+                                      </>
+                                    )}
+                                  </div>
+                                </>
                               )}
                             </div>
                           </div>
@@ -885,7 +937,13 @@ const ProgramChairContent = () => {
                         No questions found.
                       </p>
                     )
-                  ) : null}
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <p className="text-center text-[16px] text-gray-500">
+                        Loading questions...
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -990,6 +1048,15 @@ const ProgramChairContent = () => {
             question={editingQuestion}
             onComplete={handleEditComplete}
             onCancel={() => setEditingQuestion(null)}
+          />
+        )}
+
+        {/* DuplicateQuestionForm component */}
+        {duplicatingQuestion && (
+          <DuplicateQuestionForm
+            question={duplicatingQuestion}
+            onComplete={handleDuplicateComplete}
+            onCancel={() => setDuplicatingQuestion(null)}
           />
         )}
 

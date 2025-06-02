@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import LoadingOverlay from "./loadingOverlay";
 import Tooltip from "./toolTip";
 
@@ -11,6 +11,10 @@ const AdminHeader = ({ title }) => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isTutorialPage = location.pathname.includes("/help");
+  const collegeLogo = new URL("../assets/college-logo.png", import.meta.url)
+    .href;
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const dropdownRef = useRef(null);
 
@@ -258,8 +262,21 @@ const AdminHeader = ({ title }) => {
 
   return (
     <div>
-      <div className="open-sans fixed top-0 left-0 z-52 flex h-[44px] w-full items-center justify-between border-b border-gray-300 bg-white px-6 py-[10px] shadow-sm">
-        <div className="mb-1 ml-9 text-lg font-medium text-gray-600 md:ml-14"></div>
+      <div className="open-sans fixed top-0 left-0 z-52 flex h-[44px] w-full items-center justify-between border-b border-gray-300 bg-white px-6 py-[10px]">
+        <div className="flex items-center">
+          {isTutorialPage && (
+            <div className="flex items-center gap-2">
+              <img
+                src={collegeLogo}
+                alt="College Logo"
+                className="size-[30px]"
+              />
+              <span className="font-sans text-lg font-semibold text-black">
+                CAPS
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2">

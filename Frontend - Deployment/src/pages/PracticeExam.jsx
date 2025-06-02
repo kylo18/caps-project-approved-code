@@ -103,6 +103,19 @@ const PracticeExam = ({ closeModal }) => {
   // Load saved answers and timer when component mounts
   useEffect(() => {
     if (examKey) {
+      // Load saved exam data first
+      const savedExamData = localStorage.getItem(`${examKey}_exam_data`);
+      if (savedExamData) {
+        try {
+          const parsedExamData = JSON.parse(savedExamData);
+          // Update examData with the saved data
+          Object.assign(examData, parsedExamData);
+        } catch (err) {
+          console.error("Error loading saved exam data:", err);
+          localStorage.removeItem(`${examKey}_exam_data`);
+        }
+      }
+
       if (savedAnswers) {
         // If we're resuming an exam, use the provided saved answers
         setAnswers(savedAnswers);
@@ -424,7 +437,7 @@ const PracticeExam = ({ closeModal }) => {
   };
 
   return (
-    <div className="font-inter mt-5 flex min-h-screen flex-col items-center justify-center py-5">
+    <div className="font-inter mt-5 flex min-h-screen flex-col py-5">
       <TimerCompletionModal
         isOpen={showTimerCompletionModal}
         onClose={() => setShowTimerCompletionModal(false)}
@@ -548,7 +561,7 @@ const PracticeExam = ({ closeModal }) => {
         </div>
       </div>
 
-      <div className="open-sans border-color mt-2 w-full max-w-3xl rounded-t-lg border-b-[0.5px] bg-white px-3 py-3 shadow-sm">
+      <div className="open-sans border-color mx-auto mt-2 w-full max-w-3xl rounded-t-lg border-b-[0.5px] bg-white px-3 py-3 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="text-[14px] font-medium text-gray-500">
             Question {currentQuestionIndex + 1} of {examData.questions.length}
@@ -597,7 +610,7 @@ const PracticeExam = ({ closeModal }) => {
         </div>
       </div>
 
-      <div className="w-full max-w-3xl rounded-b-xl bg-white p-2 shadow-sm sm:p-4">
+      <div className="mx-auto w-full max-w-3xl rounded-b-xl bg-white p-2 shadow-sm sm:p-4">
         <QuestionListModal
           isOpen={isQuestionListOpen}
           onClose={() => setIsQuestionListOpen(false)}

@@ -2,8 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import CustomDropdown from "./customDropdown";
 import WarnOnExit from "../hooks/WarnOnExit";
 
-// Edit Question Form
-const EditQuestionForm = ({ question, onComplete, onCancel }) => {
+const DuplicateQuestionForm = ({ question, onComplete, onCancel }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [showTip, setShowTip] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -20,7 +19,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [error, setError] = useState(null);
 
-  // Replace formData state with separate form and choices states
+  // Form state
   const [form, setForm] = useState({
     coverage_id: question.coverage_id,
     questionText: question.questionText,
@@ -28,14 +27,13 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
     remove_image: false,
     score: question.score,
     difficulty_id: question.difficulty_id,
-    status_id: question.status_id,
     purpose_id: question.purpose_id,
   });
 
   const [choices, setChoices] = useState(
     question.choices
-      .filter((choice) => choice.position <= 4) // Only get first 4 choices, excluding "None of the above"
-      .sort((a, b) => a.position - b.position) // Sort by position
+      .filter((choice) => choice.position <= 4)
+      .sort((a, b) => a.position - b.position)
       .map((choice) => ({
         choiceID: choice.choiceID,
         choiceText: choice.choiceText,
@@ -90,12 +88,29 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
     }
   }, []);
 
+  // Add function to handle image removal
+  const handleRemoveImage = () => {
+    setForm((prev) => ({
+      ...prev,
+      image: null,
+      remove_image: true,
+    }));
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   // Update handleQuestionChange
   const handleQuestionChange = (e) => {
     const { name, value, files } = e.target;
     if (name === "image" && files && files[0]) {
       const file = files[0];
-      setForm((prev) => ({ ...prev, image: file, remove_image: false }));
+      setForm((prev) => ({
+        ...prev,
+        image: file,
+        remove_image: false,
+      }));
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
     } else {
@@ -103,34 +118,26 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
     }
   };
 
-  // Add function to handle image removal
-  const handleRemoveImage = () => {
-    setForm((prev) => ({ ...prev, image: null, remove_image: true }));
-    setImagePreview(null);
-  };
-
   // Update handleChoiceChange
   const handleChoiceChange = (index, field, value) => {
     const updated = [...choices];
     if (field === "isCorrect") {
-      // When setting a choice as correct, ensure all others are false
       updated.forEach((choice, i) => {
         if (i !== index) choice.isCorrect = false;
       });
       updated[index].isCorrect = value;
     } else if (field === "choiceText") {
-      // When updating text, clear the image
       updated[index] = {
         ...updated[index],
         [field]: value,
-        image: null, // Clear the image when text is entered
-        position: index + 1, // Maintain position
+        image: null,
+        position: index + 1,
       };
     } else {
       updated[index] = {
         ...updated[index],
         [field]: value,
-        position: index + 1, // Maintain position
+        position: index + 1,
       };
     }
     setChoices(updated);
@@ -145,7 +152,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
         ...updated[index],
         image: file,
         choiceText: "",
-        position: index + 1, // Maintain position
+        position: index + 1,
       };
       setChoices(updated);
     }
@@ -160,7 +167,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
       choiceText: "",
       isCorrect: updated[index].isCorrect,
       choiceID: updated[index].choiceID,
-      position: index + 1, // Maintain position
+      position: index + 1,
     };
     setChoices(updated);
   };
@@ -184,9 +191,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
 
     if (
       !choices.every((choice) => {
-        // If there's an image (either File object or URL string), it's valid
         if (choice.image) return true;
-        // Otherwise, check if there's non-empty text
         return choice.choiceText && choice.choiceText.trim() !== "";
       })
     ) {
@@ -194,96 +199,69 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
       return;
     }
 
-    // Check if any choice is correct
-    const hasCorrectChoice = choices.some((choice) => choice.isCorrect);
-    if (!hasCorrectChoice) {
-      // If no choice is correct, we'll let the backend handle setting "None of the above" as correct
-      // Just ensure all choices are marked as incorrect
-      const updatedChoices = choices.map((choice) => ({
-        ...choice,
-        isCorrect: false,
-      }));
-      setChoices(updatedChoices);
-    }
-
     setIsLoading(true);
     const token = localStorage.getItem("token");
 
     try {
-      // Prepare question data
-      const questionData = new FormData();
-      // Add question text from editor
-      questionData.append("questionText", formattedQuestionText);
+      // Prepare form data
+      const formData = new FormData();
+      formData.append("questionText", formattedQuestionText);
 
       // Add all other form fields
       Object.entries(form).forEach(([key, val]) => {
-        if (val !== null && val !== undefined) {
-          if (key === "remove_image") {
-            questionData.append(key, val ? "1" : "0");
-          } else {
-            questionData.append(key, val);
+        if (key === "remove_image") {
+          formData.append(key, val ? "1" : "0");
+        } else if (key === "image") {
+          if (val instanceof File) {
+            formData.append(key, val);
+          } else if (form.remove_image) {
+            formData.append(key, "");
+          } else if (val) {
+            formData.append(key, val);
           }
+        } else if (val !== null && val !== undefined) {
+          formData.append(key, val);
         }
       });
 
-      // Update question
-      const questionResponse = await fetch(
-        `${apiUrl}/questions/update/${question.questionID}`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: questionData,
-        },
-      );
-
-      if (!questionResponse.ok) {
-        const errorData = await questionResponse.json();
-        throw new Error(errorData.message || "Failed to update question.");
-      }
-
-      // Update choices
-      const choicesData = new FormData();
-      choicesData.append("questionID", question.questionID);
-
-      // Only send the first 4 choices, sorted by position
-      const sortedChoices = [...choices].sort(
-        (a, b) => a.position - b.position,
-      );
-
-      sortedChoices.forEach((choice, i) => {
-        // Only include necessary fields
-        if (choice.choiceID) {
-          choicesData.append(`choices[${i}][choiceID]`, choice.choiceID);
-        }
+      // Add choices
+      choices.forEach((choice, index) => {
         if (choice.choiceText) {
-          choicesData.append(`choices[${i}][choiceText]`, choice.choiceText);
+          formData.append(`choices[${index}][choiceText]`, choice.choiceText);
         }
-        choicesData.append(
-          `choices[${i}][isCorrect]`,
+        formData.append(
+          `choices[${index}][isCorrect]`,
           choice.isCorrect ? "1" : "0",
         );
         if (choice.image instanceof File) {
-          choicesData.append(`choices[${i}][image]`, choice.image);
+          formData.append(`choices[${index}][image]`, choice.image);
+        } else if (choice.image === null) {
+          formData.append(`choices[${index}][image]`, "");
         } else if (choice.image) {
-          choicesData.append(`choices[${i}][image]`, choice.image);
+          formData.append(`choices[${index}][image]`, choice.image);
         }
       });
 
-      const choicesResponse = await fetch(`${apiUrl}/choices/update`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: choicesData,
-      });
+      // Make API call to duplicate endpoint
+      const response = await fetch(
+        `${apiUrl}/questions/${question.questionID}/duplicate`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        },
+      );
 
-      if (!choicesResponse.ok) {
-        throw new Error("Failed to update choices.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to duplicate question.");
       }
 
       onComplete();
     } catch (err) {
-      console.error("Error updating:", err);
+      console.error("Error duplicating:", err);
       setError(
-        err.message || "Something went wrong while updating the question.",
+        err.message || "Something went wrong while duplicating the question.",
       );
     } finally {
       setIsLoading(false);
@@ -330,7 +308,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
             {/* Header */}
             <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
               <div className="flex items-center justify-between pr-4">
-                <span>EDIT QUESTION</span>
+                <span>COPY QUESTION</span>
                 <button
                   type="button"
                   onClick={onCancel}
@@ -464,6 +442,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
 
               <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
 
+              {/* Choices Section */}
               <div className="flex max-w-[850px] items-start gap-3">
                 <div className="mt-[6px] flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                   2
@@ -695,10 +674,10 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                     </div>
                     <div>
                       <h3 className="mt-[5px] text-[16px] font-semibold text-black sm:mt-0">
-                        Update Question
+                        Copy Question
                       </h3>
                       <p className="hidden text-sm text-gray-500 sm:block">
-                        Save your changes or cancel to exit without updating.
+                        Save your changes or cancel to exit without duplicating.
                       </p>
                     </div>
                   </div>
@@ -725,7 +704,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                           <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                         </div>
                       ) : (
-                        "Update"
+                        "Copy"
                       )}
                     </button>
                   </div>
@@ -745,4 +724,4 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
   );
 };
 
-export default EditQuestionForm;
+export default DuplicateQuestionForm;

@@ -118,7 +118,7 @@ const SubjectCardLower = ({
               <ul className="relative hidden flex-wrap justify-center gap-9 text-sm font-semibold text-gray-600 sm:flex">
                 {[
                   "Practice Questions",
-                  "Exam Questions",
+                  "Qualifying Exam Questions",
                   "Statistics",
                   "Tagged",
                   "Pending",
@@ -144,7 +144,7 @@ const SubjectCardLower = ({
                 >
                   {[
                     "Practice Questions",
-                    "Exam Questions",
+                    "Qualifying Exam Questions",
                     "Statistics",
                     "Tagged",
                     "Pending",

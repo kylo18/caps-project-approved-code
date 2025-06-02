@@ -176,7 +176,7 @@ const PracticeExamConfig = ({
                       className="peer mt-2 w-full rounded-xl border border-gray-300 px-4 py-[8px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
                       type="number"
                       min={1}
-                      max={180}
+                      max={240}
                       value={settings.duration_minutes}
                       onChange={(e) =>
                         setSettings({

@@ -290,7 +290,7 @@ export default function LoginPage() {
               </div>
             </div>
           </div>
-          <div className="absolute bottom-3 left-1/2 ml-5 flex -translate-x-1/2 transform items-center space-x-2 text-gray-500 lg:left-8">
+          <div className="absolute bottom-3 left-1/2 ml-8 flex -translate-x-1/2 transform items-center space-x-2 text-gray-500 lg:left-8">
             <AppVersion />
           </div>
         </div>

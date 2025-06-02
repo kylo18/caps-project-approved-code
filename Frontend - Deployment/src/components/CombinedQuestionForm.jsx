@@ -2,57 +2,44 @@ import React, { useState, useRef, useEffect } from "react";
 import CustomDropdown from "./customDropdown";
 import WarnOnExit from "../hooks/WarnOnExit";
 
-// Edit Question Form
-const EditQuestionForm = ({ question, onComplete, onCancel }) => {
+// Combined Question Form for both Practice and Exam Questions
+const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [showTip, setShowTip] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [image, setImage] = useState(null);
   const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false);
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
   const fileInputRef = useRef(null);
-  const [imagePreview, setImagePreview] = useState(question.image || null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [focusedChoice, setFocusedChoice] = useState(null);
   const [choiceModalImage, setchoiceModalImage] = useState(null);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [error, setError] = useState(null);
 
-  // Replace formData state with separate form and choices states
-  const [form, setForm] = useState({
-    coverage_id: question.coverage_id,
-    questionText: question.questionText,
+  // State for question and choices
+  const [formData, setFormData] = useState({
+    subjectID,
+    coverage_id: 1, // Default to midterm coverage
+    questionText: "",
     image: null,
-    remove_image: false,
-    score: question.score,
-    difficulty_id: question.difficulty_id,
-    status_id: question.status_id,
-    purpose_id: question.purpose_id,
+    score: 1,
+    difficulty_id: 1, // Default to easy difficulty
+    status_id: 1, // 1 is pending
+    purpose_id: 1, // Default to practice questions
+    choices: [
+      { choiceText: "", isCorrect: false, image: null },
+      { choiceText: "", isCorrect: false, image: null },
+      { choiceText: "", isCorrect: false, image: null },
+      { choiceText: "", isCorrect: false, image: null },
+    ],
   });
 
-  const [choices, setChoices] = useState(
-    question.choices
-      .filter((choice) => choice.position <= 4) // Only get first 4 choices, excluding "None of the above"
-      .sort((a, b) => a.position - b.position) // Sort by position
-      .map((choice) => ({
-        choiceID: choice.choiceID,
-        choiceText: choice.choiceText,
-        isCorrect: choice.isCorrect,
-        image: choice.image || null,
-        position: choice.position,
-      })),
-  );
-
-  // Set initial editor content
-  useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = question.questionText;
-    }
-  }, [question.questionText]);
-
-  WarnOnExit({ ...form, choices });
+  WarnOnExit(formData);
 
   // Question text formatting handlers
   useEffect(() => {
@@ -90,82 +77,51 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
     }
   }, []);
 
-  // Update handleQuestionChange
+  // Question handlers
   const handleQuestionChange = (e) => {
     const { name, value, files } = e.target;
     if (name === "image" && files && files[0]) {
       const file = files[0];
-      setForm((prev) => ({ ...prev, image: file, remove_image: false }));
+      setFormData((prev) => ({ ...prev, image: file }));
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
     } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  // Add function to handle image removal
-  const handleRemoveImage = () => {
-    setForm((prev) => ({ ...prev, image: null, remove_image: true }));
-    setImagePreview(null);
-  };
-
-  // Update handleChoiceChange
+  // Choice handlers
   const handleChoiceChange = (index, field, value) => {
-    const updated = [...choices];
-    if (field === "isCorrect") {
-      // When setting a choice as correct, ensure all others are false
-      updated.forEach((choice, i) => {
+    const updatedChoices = [...formData.choices];
+    if (field === "isCorrect" && value) {
+      updatedChoices.forEach((choice, i) => {
         if (i !== index) choice.isCorrect = false;
       });
-      updated[index].isCorrect = value;
-    } else if (field === "choiceText") {
-      // When updating text, clear the image
-      updated[index] = {
-        ...updated[index],
-        [field]: value,
-        image: null, // Clear the image when text is entered
-        position: index + 1, // Maintain position
-      };
-    } else {
-      updated[index] = {
-        ...updated[index],
-        [field]: value,
-        position: index + 1, // Maintain position
-      };
     }
-    setChoices(updated);
+    updatedChoices[index][field] = value;
+    setFormData((prev) => ({ ...prev, choices: updatedChoices }));
   };
 
-  // Update handleChoiceImageUpload
   const handleChoiceImageUpload = (index, event) => {
     const file = event.target.files[0];
     if (file) {
-      const updated = [...choices];
-      updated[index] = {
-        ...updated[index],
+      const updatedChoices = [...formData.choices];
+      updatedChoices[index] = {
+        ...updatedChoices[index],
         image: file,
         choiceText: "",
-        position: index + 1, // Maintain position
       };
-      setChoices(updated);
+      setFormData((prev) => ({ ...prev, choices: updatedChoices }));
     }
   };
 
-  // Update removeChoiceImage
   const removeChoiceImage = (index) => {
-    const updated = [...choices];
-    updated[index] = {
-      ...updated[index],
-      image: null,
-      choiceText: "",
-      isCorrect: updated[index].isCorrect,
-      choiceID: updated[index].choiceID,
-      position: index + 1, // Maintain position
-    };
-    setChoices(updated);
+    const updatedChoices = [...formData.choices];
+    updatedChoices[index] = { choiceText: "", isCorrect: false, image: null };
+    setFormData((prev) => ({ ...prev, choices: updatedChoices }));
   };
 
-  // Update handleSubmit
+  // Submit handler
   const handleSubmit = async () => {
     setError(null);
     const formattedQuestionText = editorRef.current?.innerHTML?.trim() || "";
@@ -177,113 +133,83 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
     }
 
     // Validate choices
-    if (choices.length !== 4) {
-      setError("Exactly 4 choices are required.");
-      return;
-    }
-
     if (
-      !choices.every((choice) => {
-        // If there's an image (either File object or URL string), it's valid
-        if (choice.image) return true;
-        // Otherwise, check if there's non-empty text
-        return choice.choiceText && choice.choiceText.trim() !== "";
-      })
+      !formData.choices.every(
+        (choice) => choice.choiceText.trim() !== "" || choice.image,
+      )
     ) {
       setError("Each choice must have either text or an image.");
       return;
     }
 
-    // Check if any choice is correct
-    const hasCorrectChoice = choices.some((choice) => choice.isCorrect);
-    if (!hasCorrectChoice) {
-      // If no choice is correct, we'll let the backend handle setting "None of the above" as correct
-      // Just ensure all choices are marked as incorrect
-      const updatedChoices = choices.map((choice) => ({
-        ...choice,
-        isCorrect: false,
-      }));
-      setChoices(updatedChoices);
-    }
-
+    // Directly proceed with submission
     setIsLoading(true);
     const token = localStorage.getItem("token");
 
     try {
-      // Prepare question data
-      const questionData = new FormData();
-      // Add question text from editor
-      questionData.append("questionText", formattedQuestionText);
-
-      // Add all other form fields
-      Object.entries(form).forEach(([key, val]) => {
-        if (val !== null && val !== undefined) {
-          if (key === "remove_image") {
-            questionData.append(key, val ? "1" : "0");
-          } else {
-            questionData.append(key, val);
-          }
-        }
-      });
-
-      // Update question
-      const questionResponse = await fetch(
-        `${apiUrl}/questions/update/${question.questionID}`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: questionData,
-        },
+      // First, submit the question
+      const questionFormData = new FormData();
+      questionFormData.append("subjectID", formData.subjectID);
+      questionFormData.append("coverage_id", formData.coverage_id);
+      questionFormData.append(
+        "questionText",
+        editorRef.current.innerHTML.trim(),
       );
+      questionFormData.append("score", formData.score);
+      questionFormData.append("difficulty_id", formData.difficulty_id);
+      questionFormData.append("status_id", formData.status_id);
+      questionFormData.append("purpose_id", formData.purpose_id);
 
-      if (!questionResponse.ok) {
-        const errorData = await questionResponse.json();
-        throw new Error(errorData.message || "Failed to update question.");
+      if (formData.image) {
+        questionFormData.append("image", formData.image);
       }
 
-      // Update choices
-      const choicesData = new FormData();
-      choicesData.append("questionID", question.questionID);
+      const questionResponse = await fetch(`${apiUrl}/questions/add`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: questionFormData,
+      });
 
-      // Only send the first 4 choices, sorted by position
-      const sortedChoices = [...choices].sort(
-        (a, b) => a.position - b.position,
-      );
+      const questionResult = await questionResponse.json();
 
-      sortedChoices.forEach((choice, i) => {
-        // Only include necessary fields
-        if (choice.choiceID) {
-          choicesData.append(`choices[${i}][choiceID]`, choice.choiceID);
-        }
-        if (choice.choiceText) {
-          choicesData.append(`choices[${i}][choiceText]`, choice.choiceText);
-        }
-        choicesData.append(
-          `choices[${i}][isCorrect]`,
+      if (!questionResponse.ok) {
+        throw new Error(questionResult.message || "Failed to add question.");
+      }
+
+      // Then, submit the choices
+      const choicesFormData = new FormData();
+      choicesFormData.append("questionID", questionResult.data.questionID);
+
+      // Send all 4 choices to the backend
+      formData.choices.forEach((choice, index) => {
+        choicesFormData.append(
+          `choices[${index}][choiceText]`,
+          choice.choiceText.trim(),
+        );
+        choicesFormData.append(
+          `choices[${index}][isCorrect]`,
           choice.isCorrect ? "1" : "0",
         );
         if (choice.image instanceof File) {
-          choicesData.append(`choices[${i}][image]`, choice.image);
-        } else if (choice.image) {
-          choicesData.append(`choices[${i}][image]`, choice.image);
+          choicesFormData.append(`choices[${index}][image]`, choice.image);
         }
       });
 
-      const choicesResponse = await fetch(`${apiUrl}/choices/update`, {
+      const choicesResponse = await fetch(`${apiUrl}/questions/choices`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
-        body: choicesData,
+        body: choicesFormData,
       });
 
       if (!choicesResponse.ok) {
-        throw new Error("Failed to update choices.");
+        throw new Error("Failed to add choices.");
       }
 
       onComplete();
     } catch (err) {
-      console.error("Error updating:", err);
+      console.error("Error submitting:", err);
       setError(
-        err.message || "Something went wrong while updating the question.",
+        err.message || "Something went wrong while submitting the question.",
       );
     } finally {
       setIsLoading(false);
@@ -292,47 +218,14 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
 
   return (
     <>
-      {/* Question Image Modal */}
-      {isQuestionModalOpen && imagePreview && (
-        <div
-          className="lightbox-bg bg-opacity-70 fixed inset-0 z-[9999] flex h-full items-center justify-center bg-black"
-          onClick={() => setisQuestionModalOpen(false)}
-        >
-          <div className="relative max-h-full max-w-full">
-            <img
-              src={imagePreview}
-              alt="Full View"
-              className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Choice Image Modal */}
-      {isChoiceModalOpen && (
-        <div
-          className="lightbox-bg bg-opacity-70 fixed inset-0 z-[9999] flex h-screen items-center justify-center bg-black"
-          onClick={() => setIsChoiceModalOpen(false)}
-        >
-          <div className="relative max-h-full max-w-full">
-            <img
-              src={choiceModalImage}
-              alt="Full View"
-              className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
-            />
-          </div>
-        </div>
-      )}
-
       <div className="lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
         <div className="scrollbar-hide animate-fade-in-up flex max-h-[95vh] overflow-y-auto p-3">
           <div className="flex-1">
             {/* Header */}
             <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
               <div className="flex items-center justify-between pr-4">
-                <span>EDIT QUESTION</span>
+                <span>ADD QUESTION</span>
                 <button
-                  type="button"
                   onClick={onCancel}
                   className="cursor-pointer text-gray-500 hover:text-gray-700"
                 >
@@ -345,7 +238,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
             <div className="border-color relative mx-auto mb-3 w-full max-w-3xl rounded-b-md border border-t-0 bg-white p-4 shadow-lg sm:px-4">
               {/* Question Header */}
               <div className="flex items-start gap-3">
-                <div className="mt-[6px] flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
+                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                   1
                 </div>
                 <div>
@@ -368,7 +261,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                   style={{ width: "4px", transform: "translateY(-50%)" }}
                 ></div>
 
-                {!isFocused && !form.questionText && (
+                {!isFocused && !formData.questionText && (
                   <span className="pointer-events-none absolute top-[14px] left-4 text-[14px] text-gray-400">
                     Enter question...
                   </span>
@@ -382,7 +275,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
                   onInput={(e) => {
-                    setForm((prev) => ({
+                    setFormData((prev) => ({
                       ...prev,
                       questionText: e.target.innerHTML,
                     }));
@@ -453,7 +346,10 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                     />
                     <button
                       type="button"
-                      onClick={handleRemoveImage}
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, image: null }));
+                        setImagePreview(null);
+                      }}
                       className="absolute top-4 right-4 translate-x-1/2 -translate-y-1/2 transform rounded-full bg-black px-[2px] pt-[2px] text-xs text-white opacity-70 hover:cursor-pointer"
                     >
                       <i className="bx bx-x text-[20px]"></i>
@@ -463,7 +359,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
               )}
 
               <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
-
+              {/* Choices Section */}
               <div className="flex max-w-[850px] items-start gap-3">
                 <div className="mt-[6px] flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                   2
@@ -480,31 +376,27 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
               </div>
 
               <div className="mt-4 space-y-4 px-3 py-2">
-                {choices.map((choice, index) => (
+                {formData.choices.map((choice, index) => (
                   <div
                     key={index}
                     className="relative flex items-center space-x-2"
                   >
-                    {/* Radio Button for isCorrect */}
+                    {/* Radio Button */}
                     <input
                       type="radio"
                       name="correctChoice"
                       checked={choice.isCorrect}
-                      onChange={() => {
-                        const updatedChoices = choices.map((c, i) => ({
-                          ...c,
-                          isCorrect: i === index,
-                        }));
-                        setChoices(updatedChoices);
-                      }}
+                      onChange={() =>
+                        handleChoiceChange(index, "isCorrect", true)
+                      }
                       className="size-5 cursor-pointer accent-orange-500"
                     />
 
-                    {/* Text input shown only if no image */}
+                    {/* Input Choice */}
                     {!choice.image && (
                       <input
                         type="text"
-                        value={choice.choiceText || ""}
+                        value={choice.choiceText}
                         placeholder={`Option ${index + 1}`}
                         onChange={(e) =>
                           handleChoiceChange(
@@ -529,11 +421,10 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                       />
                     )}
 
-                    {/* Image Upload Trigger */}
+                    {/* Image Upload Button */}
                     {!choice.image && focusedChoice === index && (
                       <>
                         <button
-                          type="button"
                           onClick={() =>
                             document
                               .getElementById(`fileInput-${index}`)
@@ -555,28 +446,21 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                       </>
                     )}
 
-                    {/* Preview Uploaded Image */}
+                    {/* Choice Image Preview */}
                     {choice.image && (
                       <div className="relative mt-3">
                         <img
-                          src={
-                            typeof choice.image === "string"
-                              ? choice.image
-                              : URL.createObjectURL(choice.image)
-                          }
+                          src={URL.createObjectURL(choice.image)}
                           alt={`Choice ${index + 1}`}
                           className="max-h-[150px] max-w-[150px] rounded-md object-contain shadow-md hover:cursor-pointer hover:opacity-80"
                           onClick={() => {
                             setchoiceModalImage(
-                              typeof choice.image === "string"
-                                ? choice.image
-                                : URL.createObjectURL(choice.image),
+                              URL.createObjectURL(choice.image),
                             );
                             setIsChoiceModalOpen(true);
                           }}
                         />
                         <button
-                          type="button"
                           onClick={() => {
                             removeChoiceImage(index);
                             setFocusedChoice(null);
@@ -592,10 +476,8 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
               </div>
 
               <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
-
-              {/* Question Settings Section */}
               <div className="flex items-start gap-3">
-                <div className="mt-[6px] flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
+                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                   3
                 </div>
                 <div>
@@ -622,7 +504,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                     min="1"
                     max="100"
                     onChange={handleQuestionChange}
-                    value={form.score}
+                    value={formData.score}
                     className="ml-3 w-10 border-0 border-b border-gray-300 p-1 text-[14px] transition-all duration-100 outline-none focus:border-b-2 focus:border-orange-500 sm:w-[50px]"
                     required
                     onInput={(e) => {
@@ -653,7 +535,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                 <CustomDropdown
                   label="Difficulty"
                   name="difficulty_id"
-                  value={form.difficulty_id}
+                  value={formData.difficulty_id}
                   onChange={handleQuestionChange}
                   placeholder="Select difficulty..."
                   options={[
@@ -667,7 +549,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                 <CustomDropdown
                   label="Coverage"
                   name="coverage_id"
-                  value={form.coverage_id}
+                  value={formData.coverage_id}
                   onChange={handleQuestionChange}
                   options={[
                     { value: 1, label: "Midterms" },
@@ -679,7 +561,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                 <CustomDropdown
                   label="Purpose"
                   name="purpose_id"
-                  value={form.purpose_id}
+                  value={formData.purpose_id}
                   onChange={handleQuestionChange}
                   options={[
                     { value: 1, label: "Practice Question" },
@@ -689,20 +571,23 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
 
                 <div className="-mx-2 mt-6 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-6" />
                 <div className="flex w-full items-start justify-between">
+                  {/* Left Side: Number and Text */}
                   <div className="flex items-start gap-3">
-                    <div className="mt-[6px] -ml-2 flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
+                    <div className="mt-[6px] -ml-2 flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                       4
                     </div>
                     <div>
                       <h3 className="mt-[5px] text-[16px] font-semibold text-black sm:mt-0">
-                        Update Question
+                        Save Question
                       </h3>
                       <p className="hidden text-sm text-gray-500 sm:block">
-                        Save your changes or cancel to exit without updating.
+                        Proceed to save your question, or cancel to exit without
+                        saving.
                       </p>
                     </div>
                   </div>
 
+                  {/* Right Side: Buttons */}
                   <div className="flex gap-2 text-[14px] sm:mt-2">
                     <button
                       type="button"
@@ -725,7 +610,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                           <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                         </div>
                       ) : (
-                        "Update"
+                        "Save"
                       )}
                     </button>
                   </div>
@@ -741,8 +626,40 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
           </div>
         </div>
       </div>
+
+      {/* Question Image Modal */}
+      {isQuestionModalOpen && imagePreview && (
+        <div
+          className="bg-opacity-70 lightbox-bg fixed inset-0 z-[9999] flex items-center justify-center"
+          onClick={() => setisQuestionModalOpen(false)}
+        >
+          <div className="relative">
+            <img
+              src={imagePreview}
+              alt="Full View"
+              className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Choice Image Modal */}
+      {isChoiceModalOpen && (
+        <div
+          className="bg-opacity-70 lightbox-bg fixed inset-0 z-[9999] flex items-center justify-center"
+          onClick={() => setIsChoiceModalOpen(false)}
+        >
+          <div className="relative">
+            <img
+              src={choiceModalImage}
+              alt="Full View"
+              className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 };
 
-export default EditQuestionForm;
+export default CombinedQuestionForm;

@@ -76,7 +76,7 @@ const Sidebar = ({
     {
       icon: "bx-printer",
       label: "Print",
-      onClick: () => setShowPrintModal(true),
+      onClick: () => alert("Print feature is under development, Stay Tuned!"),
       isButton: true,
     },
   ];
@@ -97,15 +97,13 @@ const Sidebar = ({
 
   return (
     <>
-      {/* Loading Overlay */}
-
       {isMobile && !isExpanded && (
         <button
           onClick={() => {
             setIsExpanded(true);
             setIsSubjectFocused(false);
           }}
-          className="fixed top-2 left-3 z-54 cursor-pointer rounded"
+          className="fixed top-2 left-3 z-55 cursor-pointer rounded"
         >
           <i className="bx bx-menu text-3xl"></i>
         </button>
@@ -113,7 +111,7 @@ const Sidebar = ({
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className={`border-color fixed top-0 z-53 h-screen border-r bg-white p-4 text-gray-700 transition-all duration-300 ease-in-out ${
+        className={`border-color fixed top-0 z-55 h-screen border-r bg-white p-4 text-gray-700 transition-all duration-300 ease-in-out ${
           isMobile ? (isExpanded ? "left-0" : "-left-full") : "left-0"
         } ${isExpanded ? "w-[200px]" : "w-[64.5px]"}`}
       >
