@@ -8,17 +8,16 @@ use Modules\Users\Models\User;
 use Modules\PracticeExams\Models\PracticeExamSetting;
 use Modules\Users\Models\Program;
 use Modules\PracticeExams\Models\PracticeExamResult;
-use Modules\YearLevels\Models\YearLevel;
+use Modules\Subjects\Models\YearLevel;
 
 class Subject extends Model
 {
     protected $table = 'subjects';
-    protected $primaryKey = 'subjectID';
-
+    protected $primaryKey = 'subjectID'; 
     protected $fillable = [
         'programID',
         'subjectCode',
-        'subjectName',
+        'subjectName', 
         'yearLevelID'
     ];
 
