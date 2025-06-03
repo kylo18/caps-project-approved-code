@@ -1,0 +1,66 @@
+1. Manually drop the tables
+
+First, connect to your database (e.g., via MySQL CLI or PhpMyAdmin) and manually **drop the tables:**
+
+* `Questions`
+* `Subjects`
+
+> Note:Use your preferred DB tool or run this in MySQL CLI:
+
+
+mysql -u your_db_user -p your_database_name
+
+
+Then inside MySQL prompt:
+
+
+DROP TABLE IF EXISTS Questions;
+DROP TABLE IF EXISTS Subjects;
+EXIT;
+
+2. Navigate to the backend container. Type this:
+docker exec -it caps_backend bash
+
+3. Run migrations individually in MobaXterm terminal
+
+Make sure you are in the root directory of your Laravel project (where `artisan` is located), then run these commands one by one:
+
+
+php artisan migrate --path=Modules/Questions/Database/Migrations/2025_02_27_072146_create_statuses_table.php
+
+php artisan migrate --path=Modules/Questions/Database/Migrations/2025_02_27_072149_create_coverages_table.php
+
+php artisan migrate --path=Modules/Questions/Database/Migrations/2025_02_27_072149_create_difficulties_table.php
+
+php artisan migrate --path=Modules/Questions/Database/Migrations/2025_02_27_072149_create_purposes_table.php
+
+php artisan migrate --path=Modules/Subjects/Database/Migrations/2025_02_27_072146_create_year_levels_table.php
+
+php artisan migrate --path=Modules/Subjects/Database/Migrations/2025_02_27_072147_create_subjects_table.php
+
+php artisan migrate --path=Modules/Questions/Database/Migrations/2025_02_27_072150_create_questions_table.php
+
+
+4. Run the database seeder
+
+This will seed the necessary data for normalization:
+
+
+php artisan db:seed
+
+
+5. Run the final migration for users table
+
+This adds `status_id` field to the users table and handles the transition from `status` string to the new normalized field:
+
+
+php artisan migrate --path=Modules/Users/Database/Migrations/2025_05_31_213032_add_status_id_to_users_table.php
+
+
+
+
+6. Verify after each step
+
+After each command, **check your database** to see if changes have applied correctly.
+
+
