@@ -299,7 +299,7 @@ const AdminHeader = ({ title }) => {
               className="border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-black hover:bg-gray-200"
             >
               <i className="bx bx-question-mark text-md"></i>
-              <span className="hidden pr-1.5 text-[14px] sm:inline">Help</span>
+              <span className="pr-1.5 text-[14px]">Help</span>
             </button>
           </Tooltip>
 

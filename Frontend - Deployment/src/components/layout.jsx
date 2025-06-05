@@ -8,7 +8,7 @@ const Layout = () => {
   const [role_id, setRoleId] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
   const location = useLocation();
 
   const roleMap = {
@@ -26,7 +26,7 @@ const Layout = () => {
   }, []);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => setIsMobile(window.innerWidth <= 640);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
