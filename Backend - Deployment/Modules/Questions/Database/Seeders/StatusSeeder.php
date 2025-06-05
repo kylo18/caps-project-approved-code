@@ -16,9 +16,8 @@ class StatusSeeder extends Seeder
                 ['name' => 'pending'],
                 ['name' => 'approved'],
                 ['name' => 'disapproved'],
-                ['name' => 'registered'],
+                ['name' => 'registered']
             ];
-
             foreach ($statuses as $status) {
                 DB::table('statuses')->updateOrInsert(
                     ['name' => $status['name']],
