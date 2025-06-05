@@ -18,10 +18,15 @@ DROP TABLE IF EXISTS Questions;
 DROP TABLE IF EXISTS Subjects;
 EXIT;
 
-2. Navigate to the backend container. Type this:
+2. Go to PhpMyAdmin and go inside migrations table 
+
+3. Delete create_subjects_table && Delete create_questions_table
+  
+
+4. Navigate to the backend container. Type this:
 docker exec -it caps_backend bash
 
-3. Run migrations individually in MobaXterm terminal
+5. Run migrations individually in MobaXterm terminal
 
 Make sure you are in the root directory of your Laravel project (where `artisan` is located), then run these commands one by one:
 
@@ -49,7 +54,7 @@ This will seed the necessary data for normalization:
 php artisan db:seed
 
 
-5. Run the final migration for users table
+6. Run the final migration for users table
 
 This adds `status_id` field to the users table and handles the transition from `status` string to the new normalized field:
 
@@ -59,7 +64,7 @@ php artisan migrate --path=Modules/Users/Database/Migrations/2025_05_31_213032_a
 
 
 
-6. Verify after each step
+7. Verify after each step
 
 After each command, **check your database** to see if changes have applied correctly.
 
