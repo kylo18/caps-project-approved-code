@@ -525,6 +525,126 @@ class QuestionController extends Controller
         }
     }
 
+    /**
+     * Preview all questions from a student's perspective
+     * This function is accessible to faculty, program chair, and dean
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function previewAllQuestions(Request $request)
+    {
+        $this->authorizeRoles([2, 3, 4]); // Only faculty, program chair, and dean
+
+        try {
+            $query = Question::with([
+                'subject',
+                'choices',
+                'status',
+                'difficulty',
+                'coverage',
+                'purpose',
+                'user' => function($query) {
+                    $query->select('userID', 'firstName', 'lastName', 'programID');
+                }
+            ])->whereHas('status', function($query) {
+                $query->where('name', 'approved');
+            });
+
+            // If user is Program Chair, only show questions from their program
+            if (Auth::user()->roleID === 3) {
+                $query->whereHas('user', function($q) {
+                    $q->where('programID', Auth::user()->programID)
+                      ->orWhere('programID', 6); // Include general education questions
+                });
+            }
+
+            // Group questions by subject
+            $questions = $query->get()
+                ->groupBy('subjectID')
+                ->map(function($subjectQuestions) {
+                    $subject = $subjectQuestions->first()->subject;
+                    
+                    // Group questions by coverage (midterm/finals)
+                    $questionsByCoverage = $subjectQuestions->groupBy(function($q) {
+                        return $q->coverage->name;
+                    })->map(function($coverageQuestions) {
+                        // Group by difficulty
+                        return $coverageQuestions->groupBy(function($q) {
+                            return $q->difficulty->name;
+                        })->map(function($questions) {
+                            return $questions->map(function($q) {
+                                return $this->formatQuestionForPreview($q);
+                            });
+                        });
+                    });
+
+                    return [
+                        'subjectName' => $subject->subjectName,
+                        'subjectCode' => $subject->subjectCode,
+                        'questions' => $questionsByCoverage
+                    ];
+                });
+
+            return response()->json([
+                'message' => 'Questions preview retrieved successfully.',
+                'data' => $questions
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Question Preview Error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to retrieve questions preview.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Format question for preview display
+     * Similar to formatQuestion but with additional student-perspective formatting
+     */
+    private function formatQuestionForPreview($question)
+    {
+        try {
+            $questionText = Crypt::decryptString($question->questionText);
+        } catch (\Exception $e) {
+            $questionText = '[Decryption Error]';
+            Log::error("Question decrypt error ID{$question->questionID}: {$e->getMessage()}");
+        }
+
+        // Format choices like they would appear to students
+        $choices = $question->choices->map(function($choice) {
+            try {
+                $text = $choice->choiceText ? Crypt::decryptString($choice->choiceText) : null;
+            } catch (\Exception $e) {
+                $text = null;
+            }
+
+            return [
+                'text' => $text,
+                'image' => $this->generateUrl($choice->image),
+                'position' => $choice->position,
+                'isCorrect' => $choice->isCorrect // Include correct answer for faculty review
+            ];
+        })->sortBy('position')->values();
+
+        return [
+            'questionID' => $question->questionID,
+            'questionText' => $questionText,
+            'questionImage' => $this->generateUrl($question->image),
+            'score' => $question->score,
+            'difficulty' => $question->difficulty->name,
+            'coverage' => $question->coverage->name,
+            'purpose' => $question->purpose->name,
+            'choices' => $choices,
+            'creator' => [
+                'name' => $question->user->firstName . ' ' . $question->user->lastName,
+                'program' => $question->user->programID
+            ]
+        ];
+    }
+
     // ============ PRIVATE HELPERS ============
 
     // Ensure only users with certain roles can access specific methods

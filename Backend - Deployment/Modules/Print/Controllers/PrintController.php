@@ -157,19 +157,13 @@ class PrintController extends Controller
             $validated = $request->validate([
                 'subjects' => 'required|array|min:1',
                 'subjects.*.subjectID' => 'required|exists:subjects,subjectID',
-                'subjects.*.percentage' => 'required|integer|min:1|max:100',
-                'total_items' => 'required|integer|min:1',
+                'subjects.*.itemCount' => 'required|integer|min:1',
                 'difficulty_distribution' => 'required|array',
                 'difficulty_distribution.easy' => 'required|integer|min:0|max:100',
                 'difficulty_distribution.moderate' => 'required|integer|min:0|max:100',
                 'difficulty_distribution.hard' => 'required|integer|min:0|max:100',
+                'preview' => 'boolean'
             ]);
-
-            // Validate total percentage equals 100
-            $totalPercentage = collect($validated['subjects'])->sum('percentage');
-            if ($totalPercentage !== 100) {
-                return response()->json(['message' => 'Subject percentages must sum to 100.'], 422);
-            }
 
             // Validate difficulty distribution sums to 100
             $totalDifficultyPercentage = $validated['difficulty_distribution']['easy'] +
@@ -180,22 +174,24 @@ class PrintController extends Controller
             }
 
             $formattedQuestions = [];
+            $totalItems = 0;
             
             foreach ($validated['subjects'] as $subjectData) {
                 $subject = Subject::find($subjectData['subjectID']);
                 if (!$subject) continue;
 
-                // Calculate number of items for this subject
-                $subjectItems = round(($subjectData['percentage'] / 100) * $validated['total_items']);
-                if ($subjectItems < 1) continue;
+                $itemCount = $subjectData['itemCount'];
+                $totalItems += $itemCount;
 
                 // Get questions for this subject
-                $baseQuery = Question::with('choices')
+                $baseQuery = Question::with(['choices', 'difficulty', 'status'])
                     ->where('subjectID', $subjectData['subjectID'])
                     ->whereHas('status', function($query) {
                         $query->where('name', 'approved');
                     })
-                    ->where('purpose', 'examQuestions');
+                    ->whereHas('purpose', function($query) {
+                        $query->where('name', 'examQuestions');
+                    });
 
                 // If user is Program Chair, filter by program
                 if ($user->roleID === 3) {
@@ -207,14 +203,20 @@ class PrintController extends Controller
                 if ($allQuestions->isEmpty()) continue;
 
                 // Group questions by difficulty
-                $easyQuestions = $allQuestions->where('difficulty', 'easy')->shuffle();
-                $moderateQuestions = $allQuestions->where('difficulty', 'moderate')->shuffle();
-                $hardQuestions = $allQuestions->where('difficulty', 'hard')->shuffle();
+                $easyQuestions = $allQuestions->whereHas('difficulty', function($query) {
+                    $query->where('name', 'easy');
+                })->shuffle();
+                $moderateQuestions = $allQuestions->whereHas('difficulty', function($query) {
+                    $query->where('name', 'moderate');
+                })->shuffle();
+                $hardQuestions = $allQuestions->whereHas('difficulty', function($query) {
+                    $query->where('name', 'hard');
+                })->shuffle();
 
                 // Calculate items per difficulty level
-                $numEasy = round($subjectItems * ($validated['difficulty_distribution']['easy'] / 100));
-                $numModerate = round($subjectItems * ($validated['difficulty_distribution']['moderate'] / 100));
-                $numHard = $subjectItems - ($numEasy + $numModerate);
+                $numEasy = round($itemCount * ($validated['difficulty_distribution']['easy'] / 100));
+                $numModerate = round($itemCount * ($validated['difficulty_distribution']['moderate'] / 100));
+                $numHard = $itemCount - ($numEasy + $numModerate);
 
                 // Select questions for each difficulty level
                 $selectedQuestions = collect()
@@ -280,6 +282,7 @@ class PrintController extends Controller
                         'choices' => $choices,
                         'score' => $q->score,
                         'subject' => $subject->subjectName,
+                        'difficulty' => $q->difficulty->name,
                     ];
                 }
             }
@@ -292,6 +295,15 @@ class PrintController extends Controller
             shuffle($formattedQuestions);
             $formattedQuestions = array_values($formattedQuestions);
 
+            // If preview is requested, return the formatted questions
+            if ($request->input('preview', false)) {
+                return response()->json([
+                    'questions' => $formattedQuestions,
+                    'totalItems' => count($formattedQuestions),
+                    'requestedItems' => $totalItems
+                ]);
+            }
+
             $pdf = PDF::loadView('exams.printable', [
                 'formattedQuestions' => $formattedQuestions,
                 'subjectName' => 'Multi-Subject Examination',
@@ -299,7 +311,13 @@ class PrintController extends Controller
 
             $pdf->setOptions([
                 'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'isHtml5ParserEnabled' => true,
+                'dpi' => 300
             ]);
+
+            // Set paper size to A4 and margins
+            $pdf->setPaper('A4', 'portrait');
 
             return $pdf->download('multi_subject_exam.pdf');
 
