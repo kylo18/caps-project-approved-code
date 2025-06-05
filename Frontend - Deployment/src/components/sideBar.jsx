@@ -13,7 +13,7 @@ const Sidebar = ({
   isExpanded,
   setIsExpanded,
 }) => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
   const collegeLogo = new URL("../assets/college-logo.png", import.meta.url)
     .href;
   const [isSubjectFocused, setIsSubjectFocused] = useState(false);
@@ -51,7 +51,7 @@ const Sidebar = ({
   }, [isMobile, isExpanded]);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => setIsMobile(window.innerWidth <= 640);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);

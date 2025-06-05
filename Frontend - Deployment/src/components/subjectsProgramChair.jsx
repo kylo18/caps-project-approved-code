@@ -556,7 +556,7 @@ const SideBarDropDown = ({
                 key={subject.subjectID}
                 className={`group relative mt-2 mr-1 flex items-center justify-between rounded-sm px-[4px] py-[5px] transition-all duration-100 ease-in-out ${
                   selectedSubject?.subjectID === subject.subjectID
-                    ? "bg-orange-500"
+                    ? "bg-orange-500 text-white"
                     : "hover:bg-[rgb(255,230,214)]"
                 }`}
                 onClick={() => {

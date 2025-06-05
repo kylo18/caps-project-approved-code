@@ -566,73 +566,24 @@ const SideBarDropDown = ({
             </li>
           ) : searchTerm.trim() ? (
             // Show filtered subjects when searching
-            Object.entries(
-              filteredSubjects.reduce((acc, subject) => {
-                const programName = subject.programName || "Unassigned";
-                if (!acc[programName]) {
-                  acc[programName] = [];
-                }
-                acc[programName].push(subject);
-                return acc;
-              }, {}),
-            ).map(([programName, subjects], index, array) => (
-              <div key={programName}>
-                <div className="flex items-center justify-center gap-2 px-2 py-1">
-                  <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
-                  <span className="text-md min-w-[60px] text-center font-bold text-gray-700">
-                    {programName}
-                  </span>
-                  <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
-                </div>
-                {subjects.map((subject) => (
-                  <li
-                    key={subject.subjectID}
-                    className={`group relative mt-2 mr-1 flex items-center justify-between rounded-sm px-[4px] py-[5px] transition-all duration-100 ease-in-out ${
-                      selectedSubject?.subjectID === subject.subjectID
-                        ? "bg-[rgb(255,230,214)]"
-                        : "hover:bg-[rgb(255,230,214)]"
-                    }`}
-                    onClick={() => {
-                      setSelectedSubject(null);
-                      handleSelectSubject(subject);
-                      navigate(homePath);
-                    }}
-                  >
-                    <span className="ml-2 flex-1 cursor-pointer break-all">
-                      {subject.subjectCode}
-                    </span>
-                    <div
-                      className="relative"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        className={`items-center justify-center rounded-full transition ${
-                          selectedSubject?.subjectID === subject.subjectID
-                            ? "flex"
-                            : "hidden group-hover:flex"
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const menuHeight = 80;
-                          const spaceBelow = window.innerHeight - rect.bottom;
-                          const direction =
-                            spaceBelow < menuHeight ? "up" : "down";
-                          setDropdownDirection(direction);
-                          setDropdownPosition({
-                            x: rect.right,
-                            y: rect.bottom,
-                          });
-                          setDropdownSubject(subject);
-                          setOpenMenuID(subject.subjectID);
-                        }}
-                      >
-                        <i className="bx bx-dots-vertical-rounded cursor-pointer text-[18px]"></i>
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </div>
+            filteredSubjects.map((subject) => (
+              <li
+                key={subject.subjectID}
+                className={`group relative mt-2 mr-1 flex items-center justify-between rounded-sm px-[4px] py-[5px] transition-all duration-100 ease-in-out ${
+                  selectedSubject?.subjectID === subject.subjectID
+                    ? "bg-orange-500 text-white"
+                    : "hover:bg-[rgb(255,230,214)]"
+                }`}
+                onClick={() => {
+                  setSelectedSubject(null);
+                  handleSelectSubject(subject);
+                  navigate(homePath);
+                }}
+              >
+                <span className="ml-2 flex-1 cursor-pointer break-all">
+                  {subject.programName} - {subject.subjectCode}
+                </span>
+              </li>
             ))
           ) : (
             // Show year levels when not searching
@@ -862,6 +813,7 @@ const SideBarDropDown = ({
                   )}
                 </div>
               </div>
+
               {openMenuID && dropdownSubject && (
                 <div
                   className="absolute z-100 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm sm:hidden"
@@ -873,6 +825,14 @@ const SideBarDropDown = ({
                     left: dropdownPosition.x - 150,
                   }}
                   onMouseLeave={() => setOpenMenuID(null)}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
                 >
                   {/* Arrow */}
                   <button
@@ -886,8 +846,10 @@ const SideBarDropDown = ({
                         programID: dropdownSubject.programID || "",
                         yearLevelID: dropdownSubject.yearLevelID || "",
                       });
-                      setShowYearSubjects(false);
-                      setOpenMenuID(null);
+                      setTimeout(() => {
+                        setShowYearSubjects(false);
+                        setOpenMenuID(null);
+                      }, 50);
                     }}
                   >
                     <i className="bx bx-edit-alt mr-2 text-[16px]"></i>Edit
@@ -897,8 +859,10 @@ const SideBarDropDown = ({
                     onClick={() => {
                       setSubjectToDelete(dropdownSubject);
                       setShowDeleteModal(true);
-                      setOpenMenuID(null);
-                      setShowYearSubjects(false);
+                      setTimeout(() => {
+                        setOpenMenuID(null);
+                        setShowYearSubjects(false);
+                      }, 50);
                     }}
                   >
                     <i className="bx bxs-trash-alt mr-2 text-[16px]"></i>Remove
@@ -1056,8 +1020,10 @@ const SideBarDropDown = ({
                 programID: dropdownSubject.programID || "",
                 yearLevelID: dropdownSubject.yearLevelID || "",
               });
-              setShowYearSubjects(false);
-              setOpenMenuID(null);
+              setTimeout(() => {
+                setShowYearSubjects(false);
+                setOpenMenuID(null);
+              }, 50);
             }}
           >
             <i className="bx bx-edit-alt mr-2 text-[16px]"></i>Edit
@@ -1067,8 +1033,10 @@ const SideBarDropDown = ({
             onClick={() => {
               setSubjectToDelete(dropdownSubject);
               setShowDeleteModal(true);
-              setOpenMenuID(null);
-              setShowYearSubjects(false);
+              setTimeout(() => {
+                setOpenMenuID(null);
+                setShowYearSubjects(false);
+              }, 50);
             }}
           >
             <i className="bx bxs-trash-alt mr-2 text-[16px]"></i>Remove

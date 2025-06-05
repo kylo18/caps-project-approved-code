@@ -72,6 +72,9 @@ const PracticeExamConfig = ({
         duration_minutes: settings.enableTimer ? settings.duration_minutes : 0,
       };
 
+      console.log("Sending payload:", payload);
+      console.log("Using token:", token ? "Token exists" : "No token found");
+
       const res = await fetch(`${apiUrl}/practice-settings`, {
         method: "POST",
         headers: {
@@ -81,13 +84,16 @@ const PracticeExamConfig = ({
         body: JSON.stringify(payload),
       });
 
+      console.log("Response status:", res.status);
       const contentType = res.headers.get("content-type");
       let data;
 
       if (contentType && contentType.includes("application/json")) {
         data = await res.json();
+        console.log("Response data:", data);
       } else {
         const text = await res.text();
+        console.log("Non-JSON response:", text);
         throw new Error("Unexpected response format: " + text.slice(0, 100));
       }
 

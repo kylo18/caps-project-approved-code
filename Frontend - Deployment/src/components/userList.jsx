@@ -650,7 +650,7 @@ const UserList = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="border-color flex w-[50%] min-w-[100px] cursor-pointer items-center rounded-md border bg-white px-2 py-[1px] text-gray-700 shadow-sm sm:max-w-[300px]">
+        <div className="border-color flex w-[50%] min-w-[100px] cursor-pointer items-center rounded-md border bg-white px-2 text-gray-700 shadow-sm sm:max-w-[300px]">
           <i className="bx bx-search text-[20px] text-gray-500"></i>
           <div className="flex flex-1">
             <input
@@ -658,19 +658,20 @@ const UserList = () => {
               placeholder="Search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full flex-1 rounded-md p-2 text-[10px] text-gray-700 outline-none"
+              className="w-full flex-1 rounded-md p-2 text-[11px] text-gray-700 outline-none"
             />
           </div>
         </div>
 
         {/* Filter Button */}
         <div className="flex items-center justify-center gap-4">
-          <Tooltip content="Filter" placement="bottom">
+          <Tooltip content="Filters" placement="bottom">
             <button
-              onClick={() => setShowFilters(!showFilters)} // toggle filter dropdown visibility
-              className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+              onClick={() => setShowFilters(!showFilters)}
+              className="border-color flex cursor-pointer items-center justify-center gap-1 rounded-md border bg-white px-[10px] py-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
             >
-              <i className="bx bx-filter-alt text-2xl"></i>
+              <i className="bx bx-filter text-2xl"></i>
+              <span className="text-[12px] font-medium">Filters</span>
             </button>
           </Tooltip>
         </div>
@@ -683,7 +684,7 @@ const UserList = () => {
 
               <button
                 onClick={() => setShowFilters(false)}
-                className="absolute top-1 right-2 text-2xl text-gray-600 hover:text-gray-800"
+                className="absolute top-1 right-2 cursor-pointer text-2xl text-gray-600 hover:text-gray-800"
               >
                 <i className="bx bx-x"></i>
               </button>
@@ -787,10 +788,9 @@ const UserList = () => {
                 </button>
                 <button
                   onClick={() => setShowFilters(false)}
-                  className="mb-2 flex cursor-pointer items-center gap-1 rounded-md bg-orange-500 px-[12px] py-[6px] text-white transition-all duration-150 hover:bg-orange-700"
+                  className="mb-2 flex cursor-pointer items-center gap-1 rounded-md bg-orange-500 px-[15px] py-[6px] text-white transition-all duration-150 hover:bg-orange-700"
                 >
-                  <i className={`bx bx-check-double text-[20px]`}></i>
-                  <span className="pr-1.5 text-[14px]">Apply</span>
+                  <span className="text-[14px]">Apply</span>
                 </button>
               </div>
 
@@ -977,9 +977,13 @@ const UserList = () => {
       )}
 
       <div className="rounded-t-sm border border-b-0 border-[rgb(200,200,200)] bg-white px-5 py-3 text-[12px] shadow-sm sm:text-[14px]">
-        {pendingUsersCount > 0
-          ? `${pendingUsersCount} User${pendingUsersCount !== 1 ? "s" : ""} Pending`
-          : " All users approved"}
+        <span className="ml-0 text-sm font-medium text-gray-600">
+          {statusFilter === "pending"
+            ? `${filteredTableUsers.length} Pending User${filteredTableUsers.length !== 1 ? "s" : ""}`
+            : statusFilter === "registered"
+              ? `${filteredTableUsers.length} Approved User${filteredTableUsers.length !== 1 ? "s" : ""}`
+              : `${filteredTableUsers.length} Total User${filteredTableUsers.length !== 1 ? "s" : ""}`}
+        </span>
       </div>
 
       {/* User Table Mobile */}
@@ -1012,7 +1016,7 @@ const UserList = () => {
                 setSelectedUser(user);
                 setShowModal(true);
               }}
-              className="ml-2 text-gray-700"
+              className="ml-2 cursor-pointer text-gray-700"
             >
               <i className="bx bx-chevron-right text-[25px] leading-none"></i>
             </button>
@@ -1025,7 +1029,7 @@ const UserList = () => {
         <table className="min-w-full table-fixed border border-[rgb(200,200,200)] bg-white shadow-md">
           <thead>
             <tr className="border-b border-[rgb(200,200,200)] bg-white text-[10px] text-[rgb(78,78,78)] sm:text-[12px]">
-              <th className="w-[5%] p-3 text-left">
+              <th className="w-[5%] px-2 py-3 text-left">
                 <input
                   className="ml-3"
                   type="checkbox"
@@ -1036,21 +1040,33 @@ const UserList = () => {
                   }
                 />
               </th>
-              <th className="w-[10%] p-3 text-left font-semibold text-nowrap">
+              <th className="w-[10%] px-2 py-3 text-left font-semibold text-nowrap">
                 USER CODE
               </th>
-              <th className="w-[15%] p-3 text-left font-semibold sm:hidden">
+              <th className="w-[15%] px-2 py-3 text-left font-semibold sm:hidden">
                 Full Name
               </th>
-              <th className="hidden max-w-[150px] truncate p-3 text-left font-semibold sm:table-cell">
+              <th className="hidden max-w-[150px] truncate px-2 py-3 text-left font-semibold sm:table-cell">
                 NAME
               </th>
-              <th className="w-[20%] p-3 text-left font-semibold">EMAIL</th>
-              <th className="w-[10%] p-3 text-left font-semibold">POSITION</th>
-              <th className="w-[10%] p-3 text-left font-semibold">CAMPUS</th>
-              <th className="w-[10%] p-3 text-center font-semibold">STATUS</th>
-              <th className="w-[10%] p-3 text-center font-semibold">PROGRAM</th>
-              <th className="w-[10%] p-3 text-center font-semibold">STATE</th>
+              <th className="w-[20%] px-2 py-1 text-left font-semibold">
+                EMAIL
+              </th>
+              <th className="w-[10%] px-2 py-1 text-left font-semibold">
+                POSITION
+              </th>
+              <th className="w-[10%] px-2 py-1 text-left font-semibold">
+                CAMPUS
+              </th>
+              <th className="w-[10%] px-2 py-1 text-center font-semibold">
+                STATUS
+              </th>
+              <th className="w-[10%] px-2 py-1 text-center font-semibold">
+                PROGRAM
+              </th>
+              <th className="w-[10%] px-2 py-1 text-center font-semibold">
+                STATE
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1076,7 +1092,7 @@ const UserList = () => {
                 >
                   {/* Checkbox Column */}
                   <td
-                    className="hidden p-3 text-left sm:table-cell"
+                    className="hidden px-2 py-2 text-left sm:table-cell"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <input
@@ -1087,10 +1103,12 @@ const UserList = () => {
                     />
                   </td>
 
-                  <td className="p-3 text-left text-nowrap">{user.userCode}</td>
+                  <td className="px-2 py-2 text-left text-nowrap">
+                    {user.userCode}
+                  </td>
 
                   {/* Name with Tooltip */}
-                  <td className="max-w-[120px] truncate p-3 text-left text-nowrap">
+                  <td className="max-w-[120px] truncate px-2 py-2 text-left text-nowrap">
                     <Tooltip
                       content={`${user.firstName} ${user.lastName}`}
                       placement="top"
@@ -1100,16 +1118,20 @@ const UserList = () => {
                   </td>
 
                   {/* Email with Tooltip */}
-                  <td className="max-w-[120px] truncate p-3 text-left">
+                  <td className="max-w-[120px] truncate px-2 py-2 text-left">
                     <Tooltip content={user.email} placement="top">
                       <span>{user.email}</span>
                     </Tooltip>
                   </td>
 
-                  <td className="p-3 text-left text-nowrap">{user.role}</td>
-                  <td className="p-3 text-left text-nowrap">{user.campus}</td>
+                  <td className="px-2 py-2 text-left text-nowrap">
+                    {user.role}
+                  </td>
+                  <td className="px-2 py-2 text-left text-nowrap">
+                    {user.campus}
+                  </td>
 
-                  <td className="p-3 text-center font-semibold">
+                  <td className="px-2 py-2 text-center font-semibold">
                     <span
                       className={`rounded-md px-2 py-1 text-[12px] ${
                         user.status === "registered"
@@ -1127,9 +1149,9 @@ const UserList = () => {
                     </span>
                   </td>
 
-                  <td className="p-3 text-center">{user.program}</td>
+                  <td className="px-2 py-2 text-center">{user.program}</td>
 
-                  <td className="p-3 text-center">
+                  <td className="px-2 py-2 text-center">
                     {user.isActive ? (
                       <span className="text-green-500">Active</span>
                     ) : (
@@ -1137,14 +1159,14 @@ const UserList = () => {
                     )}
                   </td>
                   <td
-                    className="p-3 text-center"
+                    className="px-2 py-2 text-center"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedUser(user);
                       setShowModal(true);
                     }}
                   >
-                    <button className="text-gray-700 hover:text-orange-500">
+                    <button className="cursor-pointer text-gray-700 hover:text-orange-500">
                       <i className="bx bx-chevron-right mr-3 text-[25px] leading-none"></i>
                     </button>
                   </td>
