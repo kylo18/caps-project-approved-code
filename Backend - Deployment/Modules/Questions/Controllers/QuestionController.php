@@ -121,11 +121,16 @@ class QuestionController extends Controller
             $question->purpose_id = $validated['purpose_id'];
         }
 
-        // Always set status to pending on update
+        // Always set status to pending on update and record who edited it
         $pendingStatus = Status::where('name', 'pending')->first();
         if ($pendingStatus) {
             $question->status_id = $pendingStatus->id;
         }
+        
+        // Record who last edited the question
+        $question->editedBy = Auth::id();
+        // Clear approvedBy when question is edited since it needs to be re-approved
+        $question->approvedBy = null;
 
         $question->save();
 
@@ -153,8 +158,22 @@ class QuestionController extends Controller
                 $q->delete();
             });
 
-        // Get questions with choices only
-        $questions = Question::with(['subject', 'choices', 'user', 'status', 'difficulty', 'coverage', 'purpose'])
+        // Get questions with choices only and include editor and approver information
+        $questions = Question::with([
+                'subject', 
+                'choices', 
+                'user', 
+                'status', 
+                'difficulty', 
+                'coverage', 
+                'purpose',
+                'editor' => function($query) {
+                    $query->select('userID', 'firstName', 'lastName');
+                },
+                'approver' => function($query) {
+                    $query->select('userID', 'firstName', 'lastName');
+                }
+            ])
             ->where('subjectID', $subjectID)
             ->get()
             ->reject(fn($q) => $q->choices->isEmpty())
@@ -213,7 +232,7 @@ class QuestionController extends Controller
         ], 200);
     }
 
-    // Approve a question if it's pending and not owned by the current user
+    // Approve a question if it's pending and not edited by the current user
     public function updateStatus($questionID)
     {
         $this->authorizeRoles([3, 4]);
@@ -231,13 +250,22 @@ class QuestionController extends Controller
             ], 400);
         }
 
+        // Check if the current user created the question
         if (Auth::id() === $question->userID) {
-            return response()->json(['message' => 'You cannot approve your own question.'], 403);
+            return response()->json(['message' => 'You cannot approve a question you created.'], 403);
+        }
+
+        // Check if the current user is the one who last edited the question
+        if (Auth::id() === $question->editedBy) {
+            return response()->json(['message' => 'You cannot approve a question you last edited.'], 403);
         }
 
         $approvedStatus = Status::where('name', 'approved')->first();
         if ($approvedStatus) {
-            $question->update(['status_id' => $approvedStatus->id]);
+            $question->status_id = $approvedStatus->id;
+            // Update the approvedBy field with the current user
+            $question->approvedBy = Auth::id();
+            $question->save();
         }
 
         return response()->json(['message' => 'Question approved.', 'question' => $this->formatQuestion($question)]);
@@ -313,8 +341,13 @@ class QuestionController extends Controller
 
             // Create new question with modifications
             $newQuestion = $originalQuestion->replicate();
+            // Set the current user as the creator of the duplicated question
             $newQuestion->userID = Auth::id();
+            // Set initial status as pending
             $newQuestion->status_id = Status::where('name', 'pending')->first()->id;
+            // Clear editor and approver information for the new question
+            $newQuestion->editedBy = null;
+            $newQuestion->approvedBy = null;
 
             // Apply modifications if provided
             if (isset($validated['questionText'])) {
@@ -477,7 +510,7 @@ class QuestionController extends Controller
                 ->find($newQuestion->questionID);
 
             return response()->json([
-                'message' => 'Question duplicated successfully with modifications.',
+                'message' => 'Question duplicated successfully. You are now set as the creator of this new question.',
                 'data' => $this->formatQuestion($newQuestion)
             ], 201)->header('Content-Type', 'application/json');
 
@@ -532,6 +565,10 @@ class QuestionController extends Controller
 
         $question->image = $this->generateUrl($question->image);
         $question->creatorName = optional($question->user)->firstName . ' ' . optional($question->user)->lastName;
+        
+        // Add editor and approver information
+        $question->editorName = optional($question->editor)->firstName . ' ' . optional($question->editor)->lastName;
+        $question->approverName = optional($question->approver)->firstName . ' ' . optional($question->approver)->lastName;
 
         // Add related model names for easier frontend handling
         $question->status_name = optional($question->status)->name;

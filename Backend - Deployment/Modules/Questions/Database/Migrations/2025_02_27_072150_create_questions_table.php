@@ -22,6 +22,8 @@ return new class extends Migration {
             $table->foreignId('difficulty_id')->constrained('difficulties');
             $table->foreignId('status_id')->constrained('statuses');
             $table->foreignId('coverage_id')->constrained('coverages');
+            $table->foreignId('editedBy')->nullable()->constrained('users', 'userID');
+            $table->foreignId('approvedBy')->nullable()->constrained('users', 'userID');
             $table->timestamps();
         });
     }
