@@ -85,23 +85,106 @@ class FacultySubjectController extends Controller
      */
     public function assignSubject(Request $request)
     {
-        $user = $this->checkUserRole();
+        try {
+            $user = $this->checkUserRole();
 
-        $request->validate([
-            'subjectID' => 'required|exists:subjects,subjectID',
-        ]);
+            $request->validate([
+                'subjectID' => 'required|exists:subjects,subjectID',
+            ]);
 
-        $subjectID = $request->subjectID;
+            $subjectID = $request->subjectID;
 
-        // Prevent duplicate assignments
-        if ($user->subjects()->where('faculty_subjects.subjectID', $subjectID)->exists()) {
-            return response()->json(['message' => 'Subject is already assigned to the user.'], 409);
+            // Get the subject details first
+            $subject = Subject::find($subjectID);
+            if (!$subject) {
+                Log::warning('Attempt to assign non-existent subject', [
+                    'subjectID' => $subjectID,
+                    'userID' => $user->userID
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Subject not found.'
+                ], 404);
+            }
+
+            // Prevent duplicate assignments
+            if ($user->subjects()->where('faculty_subjects.subjectID', $subjectID)->exists()) {
+                Log::info('Attempt to assign already assigned subject', [
+                    'subjectID' => $subjectID,
+                    'userID' => $user->userID
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Subject is already assigned to the user.'
+                ], 409);
+            }
+
+            DB::beginTransaction();
+            try {
+                // Assign subject
+                $user->subjects()->attach($subjectID);
+
+                // Get the complete subject details with program and year level info
+                $assignedSubject = DB::table('subjects as s')
+                    ->join('programs as p', 'p.programID', '=', 's.programID')
+                    ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
+                    ->where('s.subjectID', $subjectID)
+                    ->select(
+                        's.subjectID',
+                        's.subjectCode',
+                        's.subjectName',
+                        's.programID',
+                        'p.programName',
+                        's.yearLevelID',
+                        'yl.name as yearLevel'
+                    )
+                    ->first();
+
+                $programName = $assignedSubject->programName;
+                if (strpos($programName, 'BS-') === 0) {
+                    $programName = substr($programName, 3);
+                }
+
+                DB::commit();
+
+                Log::info('Subject successfully assigned to faculty', [
+                    'subjectID' => $subjectID,
+                    'userID' => $user->userID
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Subject assigned successfully.',
+                    'subject' => [
+                        'subjectID' => $assignedSubject->subjectID,
+                        'subjectCode' => $assignedSubject->subjectCode,
+                        'subjectName' => $assignedSubject->subjectName,
+                        'programID' => $assignedSubject->programID,
+                        'programName' => $programName,
+                        'yearLevelID' => $assignedSubject->yearLevelID,
+                        'yearLevel' => $assignedSubject->yearLevel,
+                        'isAssigned' => true
+                    ]
+                ], 200);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to assign subject', [
+                'error' => $e->getMessage(),
+                'subjectID' => $subjectID ?? null,
+                'userID' => $user->userID ?? null
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to assign subject.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Assign subject
-        $user->subjects()->attach($subjectID);
-
-        return response()->json(['message' => 'Subject assigned successfully.'], 200);
     }
 
     /**
@@ -176,28 +259,72 @@ class FacultySubjectController extends Controller
     /**
      * Remove an assigned subject from the authenticated faculty.
      *
-     * @param int $subjectID
+     * @param int $subjectID The ID of the subject to be removed
      * @return \Illuminate\Http\JsonResponse
      */
-    public function removeAssignedSubject($subjectID)
+    public function removeAssignedSubject(int $subjectID)
     {
-        $user = $this->checkUserRole();
-
-        // Check if the subject is actually assigned
-        if (!$user->subjects()->where('faculty_subjects.subjectID', $subjectID)->exists()) {
-            return response()->json([
-                'message' => 'Subject is not assigned to this user.'
-            ], 404);
-        }
-
         try {
-            $user->subjects()->detach($subjectID);
+            $user = $this->checkUserRole();
+
+            // Check if the subject exists first
+            $subject = Subject::find($subjectID);
+            if (!$subject) {
+                Log::warning('Attempt to remove non-existent subject', [
+                    'subjectID' => $subjectID,
+                    'userID' => $user->userID
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Subject not found.'
+                ], 404);
+            }
+
+            // Check if the subject is actually assigned
+            if (!$user->subjects()->where('faculty_subjects.subjectID', $subjectID)->exists()) {
+                Log::info('Attempt to remove unassigned subject', [
+                    'subjectID' => $subjectID,
+                    'userID' => $user->userID
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Subject is not assigned to this user.'
+                ], 404);
+            }
+
+            DB::beginTransaction();
+            try {
+                $user->subjects()->detach($subjectID);
+                DB::commit();
+
+                Log::info('Subject successfully removed from faculty', [
+                    'subjectID' => $subjectID,
+                    'userID' => $user->userID
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Assigned subject removed successfully.',
+                    'data' => [
+                        'subjectID' => $subjectID,
+                        'subjectCode' => $subject->subjectCode
+                    ]
+                ], 200);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to remove assigned subject', [
+                'error' => $e->getMessage(),
+                'subjectID' => $subjectID,
+                'userID' => $user->userID ?? null
+            ]);
 
             return response()->json([
-                'message' => 'Assigned subject removed successfully.'
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
+                'success' => false,
                 'message' => 'Failed to remove assigned subject.',
                 'error' => $e->getMessage()
             ], 500);
