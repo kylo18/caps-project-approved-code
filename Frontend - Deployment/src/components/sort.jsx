@@ -25,12 +25,28 @@ const Sort = ({ sortOption, setSortOption }) => {
     }
   };
 
-  // Function to get the display label with arrow
-  const getDisplayLabel = (option) => {
+  // Function to get the display label with direction for dropdown
+  const getDropdownLabel = (option) => {
     if (option.value === "") {
       return option.label;
     }
 
+    const isDescending = sortOption === option.value + "_desc";
+    const isSelected =
+      sortOption === option.value || sortOption === option.value + "_desc";
+
+    if (!isSelected) {
+      return option.label;
+    }
+
+    return `${option.label} (${isDescending ? "Descending" : "Ascending"})`;
+  };
+
+  // Function to get the simple label for the button
+  const getButtonLabel = (option) => {
+    if (option.value === "") {
+      return option.label;
+    }
     return option.label;
   };
 
@@ -42,8 +58,14 @@ const Sort = ({ sortOption, setSortOption }) => {
         onChange={handleSortChange}
         options={mainSortOptions.map((option) => ({
           ...option,
-          label: getDisplayLabel(option),
+          label: getDropdownLabel(option),
         }))}
+        buttonLabel={
+          mainSortOptions.find(
+            (opt) =>
+              opt.value === sortOption || opt.value + "_desc" === sortOption,
+          )?.label || "Sort By"
+        }
         placeholder="Sort By"
       />
     </div>

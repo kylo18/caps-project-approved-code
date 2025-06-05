@@ -1,34 +1,20 @@
 1. Manually drop the tables
 
-First, connect to your database (e.g., via MySQL CLI or PhpMyAdmin) and manually **drop the tables:**
+First, connect to your database via PhpMyAdmin and manually drop the tables:
 
-* `Questions`
-* `Subjects`
-
-> Note:Use your preferred DB tool or run this in MySQL CLI:
-
-
-mysql -u your_db_user -p your_database_name
-
-
-Then inside MySQL prompt:
-
-
-DROP TABLE IF EXISTS Questions;
-DROP TABLE IF EXISTS Subjects;
-EXIT;
+`Questions`
+`Subjects`
 
 2. Go to PhpMyAdmin and go inside migrations table 
 
 3. Delete create_subjects_table && Delete create_questions_table
   
-
 4. Navigate to the backend container. Type this:
 docker exec -it caps_backend bash
 
 5. Run migrations individually in MobaXterm terminal
 
-Make sure you are in the root directory of your Laravel project (where `artisan` is located), then run these commands one by one:
+then run these commands one by one:
 
 
 php artisan migrate --path=Modules/Questions/Database/Migrations/2025_02_27_072146_create_statuses_table.php
@@ -60,8 +46,6 @@ This adds `status_id` field to the users table and handles the transition from `
 
 
 php artisan migrate --path=Modules/Users/Database/Migrations/2025_05_31_213032_add_status_id_to_users_table.php
-
-
 
 
 7. Verify after each step

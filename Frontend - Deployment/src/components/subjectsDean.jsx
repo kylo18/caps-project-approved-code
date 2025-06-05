@@ -282,9 +282,16 @@ const SideBarDropDown = ({
         return;
       }
 
-      const sortedSubjects = [...data.subjects].sort((a, b) =>
-        a.subjectCode.localeCompare(b.subjectCode),
-      );
+      const sortedSubjects = [...data.subjects].sort((a, b) => {
+        // First sort by program name
+        const programCompare = (a.programName || "").localeCompare(
+          b.programName || "",
+        );
+        if (programCompare !== 0) return programCompare;
+
+        // If programs are the same, sort by subject code
+        return a.subjectCode.localeCompare(b.subjectCode);
+      });
 
       setSubjects(sortedSubjects);
       setFilteredSubjects(sortedSubjects);
@@ -559,41 +566,73 @@ const SideBarDropDown = ({
             </li>
           ) : searchTerm.trim() ? (
             // Show filtered subjects when searching
-            filteredSubjects.map((subject) => (
-              <li
-                key={subject.subjectID}
-                className="group relative mt-2 mr-1 flex items-center justify-between rounded-sm px-[4px] py-[5px] transition-all duration-100 ease-in-out hover:bg-[rgb(255,230,214)]"
-                onClick={() => {
-                  setSelectedSubject(null);
-                  handleSelectSubject(subject);
-                  navigate(homePath);
-                }}
-              >
-                <span className="ml-2 flex-1 cursor-pointer break-all">
-                  {subject.programName} - {subject.subjectCode}
-                </span>
-                <div className="relative" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    className="hidden items-center justify-center rounded-full transition group-hover:flex"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const menuHeight = 80;
-                      const spaceBelow = window.innerHeight - rect.bottom;
-                      const direction = spaceBelow < menuHeight ? "up" : "down";
-                      setDropdownDirection(direction);
-                      setDropdownPosition({
-                        x: rect.right,
-                        y: rect.bottom,
-                      });
-                      setDropdownSubject(subject);
-                      setOpenMenuID(subject.subjectID);
+            Object.entries(
+              filteredSubjects.reduce((acc, subject) => {
+                const programName = subject.programName || "Unassigned";
+                if (!acc[programName]) {
+                  acc[programName] = [];
+                }
+                acc[programName].push(subject);
+                return acc;
+              }, {}),
+            ).map(([programName, subjects], index, array) => (
+              <div key={programName}>
+                <div className="flex items-center justify-center gap-2 px-2 py-1">
+                  <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
+                  <span className="text-md min-w-[60px] text-center font-bold text-gray-700">
+                    {programName}
+                  </span>
+                  <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
+                </div>
+                {subjects.map((subject) => (
+                  <li
+                    key={subject.subjectID}
+                    className={`group relative mt-2 mr-1 flex items-center justify-between rounded-sm px-[4px] py-[5px] transition-all duration-100 ease-in-out ${
+                      selectedSubject?.subjectID === subject.subjectID
+                        ? "bg-[rgb(255,230,214)]"
+                        : "hover:bg-[rgb(255,230,214)]"
+                    }`}
+                    onClick={() => {
+                      setSelectedSubject(null);
+                      handleSelectSubject(subject);
+                      navigate(homePath);
                     }}
                   >
-                    <i className="bx bx-dots-vertical-rounded cursor-pointer text-[18px]"></i>
-                  </button>
-                </div>
-              </li>
+                    <span className="ml-2 flex-1 cursor-pointer break-all">
+                      {subject.subjectCode}
+                    </span>
+                    <div
+                      className="relative"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        className={`items-center justify-center rounded-full transition ${
+                          selectedSubject?.subjectID === subject.subjectID
+                            ? "flex"
+                            : "hidden group-hover:flex"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const menuHeight = 80;
+                          const spaceBelow = window.innerHeight - rect.bottom;
+                          const direction =
+                            spaceBelow < menuHeight ? "up" : "down";
+                          setDropdownDirection(direction);
+                          setDropdownPosition({
+                            x: rect.right,
+                            y: rect.bottom,
+                          });
+                          setDropdownSubject(subject);
+                          setOpenMenuID(subject.subjectID);
+                        }}
+                      >
+                        <i className="bx bx-dots-vertical-rounded cursor-pointer text-[18px]"></i>
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </div>
             ))
           ) : (
             // Show year levels when not searching
@@ -640,8 +679,9 @@ const SideBarDropDown = ({
         selectedYearLevel &&
         createPortal(
           <>
+            {/* Desktop Lightbox */}
             <div
-              className="lightbox-bg fixed inset-0 z-54"
+              className="lightbox-bg fixed inset-0 z-54 hidden sm:block"
               style={{ pointerEvents: "auto" }}
               onClick={() => {
                 setShowYearSubjects(false);
@@ -651,24 +691,42 @@ const SideBarDropDown = ({
             {/* Mobile Modal */}
             <div
               className="lightbox-bg fixed inset-0 z-55 flex items-center justify-center p-5 sm:hidden"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowYearSubjects(false);
-                setOpenMenuID(null);
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) {
+                  setShowYearSubjects(false);
+                  setOpenMenuID(null);
+                }
+              }}
+              onTouchStart={(e) => {
+                if (e.target === e.currentTarget) {
+                  setShowYearSubjects(false);
+                  setOpenMenuID(null);
+                }
               }}
             >
               <div
                 className="max-h-[90vh] w-full max-w-sm rounded-lg bg-white shadow-lg"
-                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="border-b border-gray-200 p-4">
+                <div
+                  className="border-b border-gray-200 p-4"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                >
                   <div className="flex items-center justify-between">
                     <h3 className="text-[16px] font-semibold text-gray-700">
                       {`${selectedYearLevel}${selectedYearLevel === "1" ? "st" : selectedYearLevel === "2" ? "nd" : selectedYearLevel === "3" ? "rd" : "th"} Year Subjects`}
                     </h3>
                     <button
-                      onClick={() => {
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        setShowYearSubjects(false);
+                        setOpenMenuID(null);
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
                         setShowYearSubjects(false);
                         setOpenMenuID(null);
                       }}
@@ -679,50 +737,122 @@ const SideBarDropDown = ({
                   </div>
                 </div>
                 {/* Content */}
-                <div className="max-h-[calc(90vh-80px)] overflow-y-auto p-4">
+                <div
+                  className="max-h-[calc(90vh-80px)] overflow-y-auto p-4"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                >
                   {yearLevelGroups[selectedYearLevel]?.length > 0 ? (
-                    yearLevelGroups[selectedYearLevel].map((subject) => (
+                    Object.entries(
+                      yearLevelGroups[selectedYearLevel].reduce(
+                        (acc, subject) => {
+                          const programName =
+                            subject.programName || "Unassigned";
+                          if (!acc[programName]) {
+                            acc[programName] = [];
+                          }
+                          acc[programName].push(subject);
+                          return acc;
+                        },
+                        {},
+                      ),
+                    ).map(([programName, subjects], index, array) => (
                       <div
-                        key={subject.subjectID}
-                        className="group relative flex items-center justify-between rounded-sm px-2 py-2 hover:bg-[rgb(255,230,214)]"
-                        onClick={() => {
-                          setSelectedSubject(null);
-                          handleSelectSubject(subject);
-                          navigate(homePath);
-                          setShowYearSubjects(false);
-                          setOpenMenuID(null);
-                        }}
+                        key={programName}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
                       >
-                        <span className="flex-1 cursor-pointer text-sm break-all">
-                          {subject.programName} - {subject.subjectCode}
-                        </span>
-                        <div
-                          className="relative"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            className="hidden items-center justify-center rounded-full transition group-hover:flex"
-                            onClick={(e) => {
+                        <div className="flex items-center justify-center gap-2 px-2 py-1">
+                          <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
+                          <span className="text-md min-w-[60px] text-center font-bold text-gray-700">
+                            {programName}
+                          </span>
+                          <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
+                        </div>
+                        {subjects.map((subject) => (
+                          <div
+                            key={subject.subjectID}
+                            className={`group relative flex items-center justify-between rounded-sm px-2 py-2 ${
+                              selectedSubject?.subjectID === subject.subjectID
+                                ? "bg-orange-500 text-white"
+                                : "hover:bg-[rgb(255,230,214)]"
+                            }`}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
                               e.stopPropagation();
-                              const rect =
-                                e.currentTarget.getBoundingClientRect();
-                              const menuHeight = 80;
-                              const spaceBelow =
-                                window.innerHeight - rect.bottom;
-                              const direction =
-                                spaceBelow < menuHeight ? "up" : "down";
-                              setDropdownDirection(direction);
-                              setDropdownPosition({
-                                x: rect.right,
-                                y: rect.bottom,
-                              });
-                              setDropdownSubject(subject);
-                              setOpenMenuID(subject.subjectID);
+                              setSelectedSubject(null);
+                              handleSelectSubject(subject);
+                              navigate(homePath);
+                              setShowYearSubjects(false);
+                              setOpenMenuID(null);
+                            }}
+                            onTouchStart={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedSubject(null);
+                              handleSelectSubject(subject);
+                              navigate(homePath);
+                              setShowYearSubjects(false);
+                              setOpenMenuID(null);
                             }}
                           >
-                            <i className="bx bx-dots-vertical-rounded cursor-pointer text-[18px]"></i>
-                          </button>
-                        </div>
+                            <span className="flex-1 cursor-pointer text-sm break-all">
+                              {subject.subjectCode}
+                            </span>
+                            <div
+                              className="relative"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onTouchStart={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                className={`items-center justify-center rounded-full transition ${
+                                  selectedSubject?.subjectID ===
+                                  subject.subjectID
+                                    ? "flex"
+                                    : "hidden group-hover:flex"
+                                }`}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const rect =
+                                    e.currentTarget.getBoundingClientRect();
+                                  const menuHeight = 80;
+                                  const spaceBelow =
+                                    window.innerHeight - rect.bottom;
+                                  const direction =
+                                    spaceBelow < menuHeight ? "up" : "down";
+                                  setDropdownDirection(direction);
+                                  setDropdownPosition({
+                                    x: rect.right,
+                                    y: rect.bottom,
+                                  });
+                                  setDropdownSubject(subject);
+                                  setOpenMenuID(subject.subjectID);
+                                }}
+                                onTouchStart={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const rect =
+                                    e.currentTarget.getBoundingClientRect();
+                                  const menuHeight = 80;
+                                  const spaceBelow =
+                                    window.innerHeight - rect.bottom;
+                                  const direction =
+                                    spaceBelow < menuHeight ? "up" : "down";
+                                  setDropdownDirection(direction);
+                                  setDropdownPosition({
+                                    x: rect.right,
+                                    y: rect.bottom,
+                                  });
+                                  setDropdownSubject(subject);
+                                  setOpenMenuID(subject.subjectID);
+                                }}
+                              >
+                                <i className="bx bx-dots-vertical-rounded cursor-pointer text-[18px]"></i>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))
                   ) : (
@@ -732,6 +862,49 @@ const SideBarDropDown = ({
                   )}
                 </div>
               </div>
+              {openMenuID && dropdownSubject && (
+                <div
+                  className="absolute z-100 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm sm:hidden"
+                  style={{
+                    top:
+                      dropdownDirection === "down"
+                        ? dropdownPosition.y - -20
+                        : dropdownPosition.y - 1,
+                    left: dropdownPosition.x - 150,
+                  }}
+                  onMouseLeave={() => setOpenMenuID(null)}
+                >
+                  {/* Arrow */}
+                  <button
+                    className="w-full rounded-sm px-3 py-2 text-left text-sm text-black hover:bg-gray-200"
+                    onClick={() => {
+                      setEditingSubject(dropdownSubject);
+                      setEditedSubject({
+                        subjectCode: dropdownSubject.subjectCode,
+                        subjectID: dropdownSubject.subjectID,
+                        subjectName: dropdownSubject.subjectName,
+                        programID: dropdownSubject.programID || "",
+                        yearLevelID: dropdownSubject.yearLevelID || "",
+                      });
+                      setShowYearSubjects(false);
+                      setOpenMenuID(null);
+                    }}
+                  >
+                    <i className="bx bx-edit-alt mr-2 text-[16px]"></i>Edit
+                  </button>
+                  <button
+                    className="w-full rounded-sm px-3 py-2 text-left text-sm text-black hover:bg-gray-200"
+                    onClick={() => {
+                      setSubjectToDelete(dropdownSubject);
+                      setShowDeleteModal(true);
+                      setOpenMenuID(null);
+                      setShowYearSubjects(false);
+                    }}
+                  >
+                    <i className="bx bxs-trash-alt mr-2 text-[16px]"></i>Remove
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Desktop Floating Panel */}
@@ -768,48 +941,81 @@ const SideBarDropDown = ({
               <div className="flex h-[calc(100vh-140px)] flex-col">
                 <div className="flex-1 overflow-y-auto p-2">
                   {yearLevelGroups[selectedYearLevel]?.length > 0 ? (
-                    yearLevelGroups[selectedYearLevel].map((subject) => (
-                      <div
-                        key={subject.subjectID}
-                        className="group relative flex items-center justify-between rounded-sm px-2 py-2 hover:bg-[rgb(255,230,214)]"
-                        onClick={() => {
-                          setSelectedSubject(null);
-                          handleSelectSubject(subject);
-                          navigate(homePath);
-                          setShowYearSubjects(false);
-                          setOpenMenuID(null);
-                        }}
-                      >
-                        <span className="flex-1 cursor-pointer text-sm break-all">
-                          {subject.programName} - {subject.subjectCode}
-                        </span>
-                        <div
-                          className="relative"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            className="hidden items-center justify-center rounded-full transition group-hover:flex"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const rect =
-                                e.currentTarget.getBoundingClientRect();
-                              const menuHeight = 80;
-                              const spaceBelow =
-                                window.innerHeight - rect.bottom;
-                              const direction =
-                                spaceBelow < menuHeight ? "up" : "down";
-                              setDropdownDirection(direction);
-                              setDropdownPosition({
-                                x: rect.right,
-                                y: rect.bottom,
-                              });
-                              setDropdownSubject(subject);
-                              setOpenMenuID(subject.subjectID);
+                    Object.entries(
+                      yearLevelGroups[selectedYearLevel].reduce(
+                        (acc, subject) => {
+                          const programName =
+                            subject.programName || "Unassigned";
+                          if (!acc[programName]) {
+                            acc[programName] = [];
+                          }
+                          acc[programName].push(subject);
+                          return acc;
+                        },
+                        {},
+                      ),
+                    ).map(([programName, subjects], index, array) => (
+                      <div key={programName}>
+                        <div className="flex items-center justify-center gap-2 px-2 py-1">
+                          <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
+                          <span className="text-md min-w-[60px] text-center font-bold text-gray-700">
+                            {programName}
+                          </span>
+                          <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
+                        </div>
+                        {subjects.map((subject) => (
+                          <div
+                            key={subject.subjectID}
+                            className={`group relative flex items-center justify-between rounded-sm px-2 py-2 ${
+                              selectedSubject?.subjectID === subject.subjectID
+                                ? "bg-orange-500 text-white"
+                                : "hover:bg-[rgb(255,230,214)]"
+                            }`}
+                            onClick={() => {
+                              setSelectedSubject(null);
+                              handleSelectSubject(subject);
+                              navigate(homePath);
+                              setShowYearSubjects(false);
+                              setOpenMenuID(null);
                             }}
                           >
-                            <i className="bx bx-dots-vertical-rounded cursor-pointer text-[18px]"></i>
-                          </button>
-                        </div>
+                            <span className="flex-1 cursor-pointer text-sm break-all">
+                              {subject.subjectCode}
+                            </span>
+                            <div
+                              className="relative"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                className={`items-center justify-center rounded-full transition ${
+                                  selectedSubject?.subjectID ===
+                                  subject.subjectID
+                                    ? "flex"
+                                    : "hidden group-hover:flex"
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const rect =
+                                    e.currentTarget.getBoundingClientRect();
+                                  const menuHeight = 80;
+                                  const spaceBelow =
+                                    window.innerHeight - rect.bottom;
+                                  const direction =
+                                    spaceBelow < menuHeight ? "up" : "down";
+                                  setDropdownDirection(direction);
+                                  setDropdownPosition({
+                                    x: rect.right,
+                                    y: rect.bottom,
+                                  });
+                                  setDropdownSubject(subject);
+                                  setOpenMenuID(subject.subjectID);
+                                }}
+                              >
+                                <i className="bx bx-dots-vertical-rounded cursor-pointer text-[18px]"></i>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))
                   ) : (
@@ -827,13 +1033,13 @@ const SideBarDropDown = ({
       {/* Subject Actions Menu */}
       {openMenuID && dropdownSubject && (
         <div
-          className="absolute z-58 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm"
+          className="absolute z-58 hidden w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm sm:block"
           style={{
             top:
               dropdownDirection === "down"
                 ? dropdownPosition.y - 50
                 : dropdownPosition.y - 1,
-            left: dropdownPosition.x - -47,
+            left: dropdownPosition.x - -54,
           }}
           onMouseLeave={() => setOpenMenuID(null)}
         >
