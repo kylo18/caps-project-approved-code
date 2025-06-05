@@ -20,8 +20,8 @@ class UsersTableSeeder extends Seeder
             // Original users
             [
                 'userCode' => '23-A-02087',
-                'firstName' => 'Gillert',
-                'lastName' => 'Bongcac',
+                'firstName' => 'Kent',
+                'lastName' => 'Apat',
                 'email' => 'kentapat123@gmail.com',
                 'password' => Hash::make('12345678'),
                 'roleID' => 4,

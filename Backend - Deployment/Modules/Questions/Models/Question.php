@@ -25,6 +25,8 @@ class Question extends Model
         'coverage_id',
         'status_id',
         'purpose_id',
+        'editedBy',
+        'approvedBy',
     ];
 
 
@@ -71,5 +73,15 @@ class Question extends Model
     public function coverage()
     {
         return $this->belongsTo(Coverage::class, 'coverage_id');
+    }
+
+    public function editor()
+    {
+        return $this->belongsTo(User::class, 'editedBy');
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approvedBy');
     }
 }
