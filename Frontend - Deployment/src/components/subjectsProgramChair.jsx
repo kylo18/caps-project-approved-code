@@ -282,9 +282,17 @@ const SideBarDropDown = ({
         return;
       }
 
-      const sortedSubjects = [...data.subjects].sort((a, b) =>
-        a.subjectCode.localeCompare(b.subjectCode),
-      );
+      // Sort subjects by program name first, then by subject code
+      const sortedSubjects = [...data.subjects].sort((a, b) => {
+        // First sort by program name
+        const programCompare = (a.programName || "").localeCompare(
+          b.programName || "",
+        );
+        if (programCompare !== 0) return programCompare;
+
+        // If programs are the same, sort by subject code
+        return a.subjectCode.localeCompare(b.subjectCode);
+      });
 
       setSubjects(sortedSubjects);
       setFilteredSubjects(sortedSubjects);
@@ -546,7 +554,11 @@ const SideBarDropDown = ({
             filteredSubjects.map((subject) => (
               <li
                 key={subject.subjectID}
-                className="group relative mt-2 mr-1 flex items-center justify-between rounded-sm px-[4px] py-[5px] transition-all duration-100 ease-in-out hover:bg-[rgb(255,230,214)]"
+                className={`group relative mt-2 mr-1 flex items-center justify-between rounded-sm px-[4px] py-[5px] transition-all duration-100 ease-in-out ${
+                  selectedSubject?.subjectID === subject.subjectID
+                    ? "bg-orange-500"
+                    : "hover:bg-[rgb(255,230,214)]"
+                }`}
                 onClick={() => {
                   setSelectedSubject(null);
                   handleSelectSubject(subject);
@@ -558,7 +570,11 @@ const SideBarDropDown = ({
                 </span>
                 <div className="relative" onClick={(e) => e.stopPropagation()}>
                   <button
-                    className="hidden items-center justify-center rounded-full transition group-hover:flex"
+                    className={`items-center justify-center rounded-full transition ${
+                      selectedSubject?.subjectID === subject.subjectID
+                        ? "flex"
+                        : "hidden group-hover:flex"
+                    }`}
                     onClick={(e) => {
                       e.stopPropagation();
                       const rect = e.currentTarget.getBoundingClientRect();
@@ -665,48 +681,65 @@ const SideBarDropDown = ({
                 {/* Content */}
                 <div className="max-h-[calc(90vh-80px)] overflow-y-auto p-4">
                   {yearLevelGroups[selectedYearLevel]?.length > 0 ? (
-                    yearLevelGroups[selectedYearLevel].map((subject) => (
-                      <div
-                        key={subject.subjectID}
-                        className="group relative flex items-center justify-between rounded-sm px-2 py-2 hover:bg-[rgb(255,230,214)]"
-                        onClick={() => {
-                          setSelectedSubject(null);
-                          handleSelectSubject(subject);
-                          navigate(homePath);
-                          setShowYearSubjects(false);
-                          setOpenMenuID(null);
-                        }}
-                      >
-                        <span className="flex-1 cursor-pointer text-sm break-all">
-                          {subject.programName} - {subject.subjectCode}
-                        </span>
-                        <div
-                          className="relative"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            className="hidden items-center justify-center rounded-full transition group-hover:flex"
-                            onClick={(e) => {
+                    Object.entries(
+                      yearLevelGroups[selectedYearLevel].reduce(
+                        (acc, subject) => {
+                          const programName =
+                            subject.programName || "Unassigned";
+                          if (!acc[programName]) {
+                            acc[programName] = [];
+                          }
+                          acc[programName].push(subject);
+                          return acc;
+                        },
+                        {},
+                      ),
+                    ).map(([programName, subjects], index, array) => (
+                      <div key={programName}>
+                        <div className="flex items-center justify-center gap-2 px-2 py-1">
+                          <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
+                          <span className="text-md min-w-[60px] text-center font-bold text-gray-700">
+                            {programName}
+                          </span>
+                          <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
+                        </div>
+                        {subjects.map((subject) => (
+                          <div
+                            key={subject.subjectID}
+                            className={`group relative flex items-center justify-between rounded-sm px-2 py-2 ${
+                              selectedSubject?.subjectID === subject.subjectID
+                                ? "bg-orange-500 text-white"
+                                : "hover:bg-[rgb(255,230,214)]"
+                            }`}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
                               e.stopPropagation();
-                              const rect =
-                                e.currentTarget.getBoundingClientRect();
-                              const menuHeight = 80;
-                              const spaceBelow =
-                                window.innerHeight - rect.bottom;
-                              const direction =
-                                spaceBelow < menuHeight ? "up" : "down";
-                              setDropdownDirection(direction);
-                              setDropdownPosition({
-                                x: rect.right,
-                                y: rect.bottom,
-                              });
-                              setDropdownSubject(subject);
-                              setOpenMenuID(subject.subjectID);
+                              setSelectedSubject(null);
+                              handleSelectSubject(subject);
+                              navigate(homePath);
+                              setShowYearSubjects(false);
+                              setOpenMenuID(null);
+                            }}
+                            onTouchStart={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedSubject(null);
+                              handleSelectSubject(subject);
+                              navigate(homePath);
+                              setShowYearSubjects(false);
+                              setOpenMenuID(null);
                             }}
                           >
-                            <i className="bx bx-dots-vertical-rounded cursor-pointer text-[18px]"></i>
-                          </button>
-                        </div>
+                            <span className="flex-1 cursor-pointer text-sm break-all">
+                              {subject.subjectCode}
+                            </span>
+                            <div
+                              className="relative"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onTouchStart={(e) => e.stopPropagation()}
+                            ></div>
+                          </div>
+                        ))}
                       </div>
                     ))
                   ) : (
@@ -752,21 +785,53 @@ const SideBarDropDown = ({
               <div className="flex h-[calc(100vh-140px)] flex-col">
                 <div className="flex-1 overflow-y-auto p-2">
                   {yearLevelGroups[selectedYearLevel]?.length > 0 ? (
-                    yearLevelGroups[selectedYearLevel].map((subject) => (
-                      <div
-                        key={subject.subjectID}
-                        className="group relative flex items-center justify-between rounded-sm px-2 py-2 hover:bg-[rgb(255,230,214)]"
-                        onClick={() => {
-                          setSelectedSubject(null);
-                          handleSelectSubject(subject);
-                          navigate(homePath);
-                          setShowYearSubjects(false);
-                          setOpenMenuID(null);
-                        }}
-                      >
-                        <span className="flex-1 cursor-pointer text-sm break-all">
-                          {subject.programName} - {subject.subjectCode}
-                        </span>
+                    Object.entries(
+                      yearLevelGroups[selectedYearLevel].reduce(
+                        (acc, subject) => {
+                          const programName =
+                            subject.programName || "Unassigned";
+                          if (!acc[programName]) {
+                            acc[programName] = [];
+                          }
+                          acc[programName].push(subject);
+                          return acc;
+                        },
+                        {},
+                      ),
+                    ).map(([programName, subjects], index, array) => (
+                      <div key={programName}>
+                        <div className="flex items-center justify-center gap-2 px-2 py-1">
+                          <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
+                          <span className="text-md min-w-[60px] text-center font-bold text-gray-700">
+                            {programName}
+                          </span>
+                          <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
+                        </div>
+                        {subjects.map((subject) => (
+                          <div
+                            key={subject.subjectID}
+                            className={`group relative flex items-center justify-between rounded-sm px-2 py-2 ${
+                              selectedSubject?.subjectID === subject.subjectID
+                                ? "bg-orange-500"
+                                : "hover:bg-[rgb(255,230,214)]"
+                            }`}
+                            onClick={() => {
+                              setSelectedSubject(null);
+                              handleSelectSubject(subject);
+                              navigate(homePath);
+                              setShowYearSubjects(false);
+                              setOpenMenuID(null);
+                            }}
+                          >
+                            <span className="flex-1 cursor-pointer text-sm break-all">
+                              {subject.subjectCode}
+                            </span>
+                            <div
+                              className="relative"
+                              onClick={(e) => e.stopPropagation()}
+                            ></div>
+                          </div>
+                        ))}
                       </div>
                     ))
                   ) : (

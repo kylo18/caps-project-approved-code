@@ -261,10 +261,20 @@ const AdminContent = () => {
       }
 
       if (baseSortOption === "date") {
-        return direction * (new Date(a.created_at) - new Date(b.created_at));
+        // Get the most recent date between created_at and updated_at
+        const getMostRecentDate = (question) => {
+          const createdDate = new Date(question.created_at);
+          const updatedDate = new Date(question.updated_at);
+          return updatedDate > createdDate ? updatedDate : createdDate;
+        };
+
+        const dateA = getMostRecentDate(a);
+        const dateB = getMostRecentDate(b);
+        return direction * (dateA - dateB);
       }
 
-      return 0;
+      // Default sort by updated_at timestamp (most recently updated first)
+      return new Date(b.updated_at) - new Date(a.updated_at);
     });
 
   // Function to confirm question deletion
@@ -367,7 +377,7 @@ const AdminContent = () => {
     setDuplicatingQuestion(null);
     fetchQuestions();
     setToast({
-      message: "Question duplicated successfully!",
+      message: "Question copied successfully! now waiting for approval",
       type: "success",
       show: true,
     });
@@ -796,56 +806,83 @@ const AdminContent = () => {
                                     question.questionID)) && (
                                 <>
                                   <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
-                                  <div className="ml-4 flex flex-col gap-1 text-[12px] text-gray-500">
-                                    <div className="flex">
-                                      <span className="w-[100px]">
-                                        Created by:
-                                      </span>
-                                      <span>{question.creatorName}</span>
+                                  <div className="ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex">
+                                        <span className="w-[100px]">
+                                          Created by:
+                                        </span>
+                                        <span>{question.creatorName}</span>
+                                      </div>
+                                      <div className="flex">
+                                        <span className="w-[100px]">
+                                          Date Created:
+                                        </span>
+                                        <span>
+                                          {new Date(
+                                            question.created_at,
+                                          ).toLocaleString("en-US", {
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric",
+                                            hour: "numeric",
+                                            minute: "2-digit",
+                                            hour12: true,
+                                          })}
+                                        </span>
+                                      </div>
+                                      <div className="flex sm:col-span-2">
+                                        <span className="w-[100px]">
+                                          Question Type:
+                                        </span>
+                                        <span>
+                                          {question.purpose_id === 1
+                                            ? "Practice Question"
+                                            : "Qualifying Exam Question"}
+                                        </span>
+                                      </div>
                                     </div>
-                                    <div className="flex">
-                                      <span className="w-[100px]">
-                                        Date Added:
-                                      </span>
-                                      <span>
-                                        {new Date(
-                                          question.created_at,
-                                        ).toLocaleString("en-US", {
-                                          year: "numeric",
-                                          month: "long",
-                                          day: "numeric",
-                                          hour: "numeric",
-                                          minute: "2-digit",
-                                          hour12: true,
-                                        })}
-                                      </span>
-                                    </div>
-                                    <div className="flex">
-                                      <span className="w-[100px]">
-                                        Date Modified:
-                                      </span>
-                                      <span>
-                                        {new Date(
-                                          question.updated_at,
-                                        ).toLocaleString("en-US", {
-                                          year: "numeric",
-                                          month: "long",
-                                          day: "numeric",
-                                          hour: "numeric",
-                                          minute: "2-digit",
-                                          hour12: true,
-                                        })}
-                                      </span>
-                                    </div>
-                                    <div className="flex">
-                                      <span className="w-[100px]">
-                                        Question Type:
-                                      </span>
-                                      <span>
-                                        {question.purpose_id === 1
-                                          ? "Practice Question"
-                                          : "Qualifying Exam Question"}
-                                      </span>
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex">
+                                        <span className="w-[100px]">
+                                          Modified by:
+                                        </span>
+                                        <span>
+                                          {question.editor
+                                            ? `${question.editor.firstName} ${question.editor.lastName}`
+                                            : "Not modified"}
+                                        </span>
+                                      </div>
+                                      <div className="flex">
+                                        <span className="w-[100px]">
+                                          Date Modified:
+                                        </span>
+                                        <span>
+                                          {new Date(
+                                            question.updated_at,
+                                          ).toLocaleString("en-US", {
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric",
+                                            hour: "numeric",
+                                            minute: "2-digit",
+                                            hour12: true,
+                                          })}
+                                        </span>
+                                      </div>
+                                      {question.approver && (
+                                        <div className="flex sm:col-span-2">
+                                          <span className="w-[100px]">
+                                            Approved by:
+                                          </span>
+                                          <span>
+                                            {question.approver.firstName &&
+                                            question.approver.lastName
+                                              ? `${question.approver.firstName} ${question.approver.lastName}`
+                                              : "Not approved"}
+                                          </span>
+                                        </div>
+                                      )}{" "}
                                     </div>
                                   </div>
                                 </>
@@ -871,6 +908,7 @@ const AdminContent = () => {
 
                                         <AltButton
                                           text="Approve"
+                                          textres="Approve"
                                           icon="bx bx-check-double"
                                           className="hover:text-orange-500"
                                           onClick={() => {
