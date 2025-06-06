@@ -36,6 +36,12 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
       { choiceText: "", isCorrect: false, image: null },
       { choiceText: "", isCorrect: false, image: null },
       { choiceText: "", isCorrect: false, image: null },
+      {
+        choiceText: "None of the above",
+        isCorrect: false,
+        image: null,
+        isFixed: true,
+      },
     ],
   });
 
@@ -139,6 +145,15 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
       )
     ) {
       setError("Each choice must have either text or an image.");
+      return;
+    }
+
+    // Check if exactly one choice is correct
+    const correctChoices = formData.choices.filter(
+      (choice) => choice.isCorrect,
+    );
+    if (correctChoices.length !== 1) {
+      setError("Please select exactly one correct answer.");
       return;
     }
 
@@ -405,7 +420,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
                             e.target.value,
                           )
                         }
-                        className="w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none"
+                        className={`w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none ${choice.isFixed ? "cursor-not-allowed border-none" : ""}`}
                         onFocus={() => setFocusedChoice(index)}
                         onBlur={(e) => {
                           if (
@@ -418,6 +433,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
                           }
                         }}
                         required
+                        disabled={choice.isFixed}
                       />
                     )}
 
