@@ -204,3 +204,23 @@ select option:hover {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #9ca3af;
 }
+
+/* Custom scrollbar for EditProfileModal */
+.edit-profile-modal-scrollbar {
+  scrollbar-width: thin;
+
+  scrollbar-color: #9fa3a6 #f3f4f6;
+}
+.edit-profile-modal-scrollbar::-webkit-scrollbar {
+  width: 7px;
+  background: #f3f4f6;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+.edit-profile-modal-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}

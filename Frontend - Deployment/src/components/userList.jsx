@@ -877,103 +877,207 @@ const UserList = () => {
 
       {/* User Info Mobile */}
       {showModal && selectedUser && (
-        <div className="font-inter bg-opacity-30 lightbox-bg fixed inset-0 z-55 flex items-center justify-center">
-          <div className="relative w-11/12 max-w-md rounded-lg bg-white p-6 shadow-lg">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 rounded-full px-[9px] py-[5px] text-gray-500 hover:bg-gray-100"
-              title="Close"
-            >
-              <i className="bx bx-x mt-[3px] text-[24px]"></i>
-            </button>
+        <>
+          <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
+            <div className="edit-profile-modal-scrollbar relative mx-2 max-h-[90vh] w-full max-w-[480px] overflow-y-auto rounded-md bg-white shadow-2xl">
+              {/* Header */}
+              <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
+                <h2 className="text-[14px] font-medium text-gray-700">
+                  User Information
+                </h2>
 
-            <h2 className="mb-6 text-[16px] font-semibold text-gray-800">
-              User Details
-            </h2>
-
-            <div className="space-y-2 text-sm text-gray-700">
-              <div className="flex justify-between">
-                <span className="font-medium">Name</span>
-                <span>
-                  {selectedUser.firstName} {selectedUser.lastName}
-                </span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="font-medium">User Code</span>
-                <span>{selectedUser.userCode}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="font-medium">Email</span>
-                <span>{selectedUser.email}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="font-medium">Position</span>
-                <span>{selectedUser.role}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="font-medium">Campus</span>
-                <span>{selectedUser.campus}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="font-medium">Program</span>
-                <span>{selectedUser.program}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="font-medium">Status</span>
-                <span>{selectedUser.status}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="font-medium">Active</span>
-                <span>{selectedUser.isActive ? "Yes" : "No"}</span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="mt-6 flex justify-end gap-6">
-              {selectedUser.status === "pending" && !selectedUser.isActive && (
                 <button
-                  className="ml-auto flex cursor-pointer items-center gap-1 rounded-md border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
-                  onClick={() => handleApproveUser(selectedUser.userID)}
-                  title="Approve"
+                  onClick={() => setShowModal(false)}
+                  className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
+                  title="Close"
                 >
-                  <i className="bx bxs-user-check text-2xl"></i>
-                  <span className="mt-1 text-xs">Approve</span>
+                  <i className="bx bx-x text-[20px]"></i>
                 </button>
-              )}
+              </div>
+              {/* Content */}
+              <form className="px-5 py-4">
+                {/* Fields */}
+                <div className="mb-4 grid grid-cols-2 gap-x-4 text-start">
+                  <div>
+                    <span className="block text-[14px] text-gray-700">
+                      First name
+                    </span>
+                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                      {selectedUser.firstName}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="block text-[14px] text-gray-700">
+                      Last name
+                    </span>
+                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                      {selectedUser.lastName}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="block text-[14px] text-gray-700">
+                      Campus
+                    </span>
+                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                      {selectedUser.campus}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="block text-[14px] text-gray-700">
+                      Position
+                    </span>
+                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                      {selectedUser.role}
+                    </div>
+                  </div>
+                </div>
 
-              {selectedUser.status === "registered" &&
-                selectedUser.isActive && (
-                  <button
-                    className="ml-auto flex cursor-pointer items-center gap-1 rounded-md border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
-                    onClick={() => handleDeactivateUser(selectedUser.userID)}
-                    title="Deactivate"
-                  >
-                    <i className="bx bx-log-out bx-flip-horizontal text-2xl"></i>
-                    <span className="mt-1 text-xs">Deactivate</span>
-                  </button>
-                )}
+                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
 
-              {selectedUser.status === "registered" &&
-                !selectedUser.isActive && (
-                  <button
-                    className="ml-auto flex cursor-pointer items-center gap-1 rounded-md border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
-                    onClick={() => handleActivateUser(selectedUser.userID)}
-                    title="Activate"
-                  >
-                    <i className="bx bx-check-double text-2xl"></i>
-                    <span className="mt-1 text-xs">Activate</span>
-                  </button>
-                )}
+                {/* Credentials */}
+                <div className="mb-4">
+                  <span className="block text-start text-[14px] text-gray-700">
+                    Program
+                  </span>
+                  <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                    {selectedUser.program}
+                  </div>
+                  <div className="mt-1 text-start text-[11px] text-gray-400">
+                    The program the user is assigned to. Used to filter subjects
+                    and academic content specific to your curriculum.
+                  </div>
+                </div>
+
+                {/* Account details */}
+                <div className="mb-4">
+                  <div className="grid grid-cols-2 gap-x-4">
+                    <div>
+                      <span className="block text-start text-[14px] text-gray-700">
+                        User Code
+                      </span>
+                      <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                        {selectedUser.userCode}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="block text-start text-[14px] text-gray-700">
+                        Email Address
+                      </span>
+                      <div className="peer mt-1 w-full truncate rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                        {selectedUser.email}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+
+                <div className="mb-3 flex flex-col gap-2">
+                  <div className="flex justify-between">
+                    <span className="block text-start text-[14px] text-gray-700">
+                      Approval Status:
+                    </span>
+                    <span
+                      className={`text-[14px] font-semibold capitalize ${
+                        selectedUser.status === "registered"
+                          ? "text-green-700"
+                          : selectedUser.status === "pending"
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                      }`}
+                    >
+                      {selectedUser.status}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="block text-start text-[14px] text-gray-700">
+                      Account Status:
+                    </span>
+                    <span
+                      className={`text-[14px] font-semibold ${
+                        selectedUser.isActive
+                          ? "text-green-700"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {selectedUser.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+
+                {selectedUser.status === "pending" &&
+                  !selectedUser.isActive && (
+                    <div className="flex flex-col">
+                      <span className="block text-start text-[14px] font-semibold text-gray-700">
+                        Approve this Account?
+                      </span>
+
+                      <div className="mt-1 text-start text-[11px] text-gray-400">
+                        Approving this account will grant the user access to the
+                        system based on their assigned position.
+                      </div>
+
+                      <button
+                        onClick={() => handleApproveUser(selectedUser.userID)}
+                        className="mt-2 cursor-pointer rounded-md border border-green-500 bg-green-100 px-4 py-2 text-sm font-medium text-green-500 shadow hover:bg-green-200"
+                      >
+                        Approve
+                      </button>
+                    </div>
+                  )}
+
+                {selectedUser.status === "registered" &&
+                  selectedUser.isActive && (
+                    <div className="flex flex-col">
+                      <span className="block text-start text-[14px] font-semibold text-gray-700">
+                        Deactivate this Account?
+                      </span>
+
+                      <div className="mt-1 text-start text-[11px] text-gray-400">
+                        Deactivating this account will disable access without
+                        deleting the users data. You can reactivate it at any
+                        time.
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          handleDeactivateUser(selectedUser.userID)
+                        }
+                        className="mt-2 cursor-pointer rounded-md border border-red-500 bg-red-100 px-4 py-2 text-sm font-medium text-red-500 shadow hover:bg-red-200"
+                      >
+                        Deactivate
+                      </button>
+                    </div>
+                  )}
+
+                {selectedUser.status === "registered" &&
+                  !selectedUser.isActive && (
+                    <div className="flex flex-col">
+                      <span className="block text-start text-[14px] font-semibold text-gray-700">
+                        Activate this Account?
+                      </span>
+
+                      <div className="mt-1 text-start text-[11px] text-gray-400">
+                        Approving this account will grant the user access to the
+                        system based on their assigned position. You can
+                        deactivate it at any time.
+                      </div>
+
+                      <button
+                        onClick={() => handleActivateUser(selectedUser.userID)}
+                        className="mt-2 cursor-pointer rounded-md border border-green-500 bg-green-100 px-4 py-2 text-sm font-medium text-green-500 shadow hover:bg-green-200"
+                      >
+                        Activate
+                      </button>
+                    </div>
+                  )}
+              </form>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       <div className="rounded-t-sm border border-b-0 border-[rgb(200,200,200)] bg-white px-5 py-3 text-[12px] shadow-sm sm:text-[14px]">

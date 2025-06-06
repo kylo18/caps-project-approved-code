@@ -42,7 +42,18 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
         isCorrect: choice.isCorrect,
         image: choice.image || null,
         position: choice.position,
-      })),
+      }))
+      .concat([
+        {
+          choiceID: question.choices.find((c) => c.position === 5)?.choiceID,
+          choiceText: "None of the above",
+          isCorrect:
+            question.choices.find((c) => c.position === 5)?.isCorrect || false,
+          image: null,
+          position: 5,
+          isFixed: true,
+        },
+      ]),
   );
 
   // Set initial editor content
@@ -177,8 +188,8 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
     }
 
     // Validate choices
-    if (choices.length !== 4) {
-      setError("Exactly 4 choices are required.");
+    if (choices.length !== 5) {
+      setError("Exactly 5 choices are required.");
       return;
     }
 
@@ -245,7 +256,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
       const choicesData = new FormData();
       choicesData.append("questionID", question.questionID);
 
-      // Only send the first 4 choices, sorted by position
+      // Only send the first 5 choices, sorted by position
       const sortedChoices = [...choices].sort(
         (a, b) => a.position - b.position,
       );
@@ -513,7 +524,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                             e.target.value,
                           )
                         }
-                        className="w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none"
+                        className={`w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none ${choice.isFixed ? "cursor-not-allowed border-none" : ""}`}
                         onFocus={() => setFocusedChoice(index)}
                         onBlur={(e) => {
                           if (
@@ -526,6 +537,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                           }
                         }}
                         required
+                        disabled={choice.isFixed}
                       />
                     )}
 
