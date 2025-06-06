@@ -32,7 +32,7 @@ class ChoiceController extends Controller
 
         $validated = $request->validate([
             'questionID' => 'required|exists:questions,questionID',
-            'choices' => 'required|array|min:4|max:4',
+            'choices' => 'required|array|min:5|max:5',
             'choices.*.choiceText' => 'nullable|string',
             'choices.*.isCorrect'  => 'required|boolean',
             'choices.*.image'      => 'nullable',
@@ -43,7 +43,7 @@ class ChoiceController extends Controller
             $choices = [];
             $hasCorrectChoice = false;
 
-            // Process the first 4 manual choices
+            // Process all 5 choices
             foreach ($validated['choices'] as $index => $choiceData) {
                 $imagePath = null;
 
@@ -70,22 +70,19 @@ class ChoiceController extends Controller
                     'choiceText' => $encryptedChoiceText,
                     'isCorrect'  => $choiceData['isCorrect'],
                     'image'      => $imagePath,
-                    'position'   => $index + 1  // Position 1-4 for manual choices
+                    'position'   => $index + 1  // Position 1-5 for all choices
                 ]);
 
                 $choices[] = $choice;
             }
 
-            // Add "None of the above" as the 5th choice
-            $noneOfTheAbove = Choice::create([
-                'questionID' => $validated['questionID'],
-                'choiceText' => Crypt::encryptString('None of the above.'),
-                'isCorrect'  => !$hasCorrectChoice, // It's correct only if no other choice is correct
-                'image'      => null,
-                'position'   => 5  // Always position 5 for "None of the above"
-            ]);
-
-            $choices[] = $noneOfTheAbove;
+            // Validate that at least one choice is marked as correct
+            if (!$hasCorrectChoice) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'At least one choice must be marked as correct.'
+                ], 422);
+            }
 
             DB::commit();
 
@@ -123,7 +120,7 @@ class ChoiceController extends Controller
 
         $request->validate([
             'questionID' => 'required|exists:questions,questionID',
-            'choices' => 'required|array|min:4|max:4',
+            'choices' => 'required|array|min:5|max:5',
             'choices.*.choiceID' => 'nullable|exists:choices,choiceID',
             'choices.*.choiceText' => 'nullable|string',
             'choices.*.isCorrect' => 'required|boolean',
@@ -135,11 +132,6 @@ class ChoiceController extends Controller
         try {
             $questionID = $request->questionID;
             $hasCorrectChoice = false;
-
-            // First, get the existing "None of the above" choice
-            $noneOfTheAbove = Choice::where('questionID', $questionID)
-                ->where('position', 5)
-                ->first();
 
             foreach ($request->choices as $index => $choiceData) {
                 $choice = isset($choiceData['choiceID'])
@@ -177,21 +169,17 @@ class ChoiceController extends Controller
                     $choice->image = null;
                 }
 
-                $choice->position = $index + 1;  // Position 1-4 for manual choices
+                $choice->position = $index + 1;  // Position 1-5 for all choices
                 $choice->save();
             }
 
-            // Update the existing "None of the above" choice or create a new one
-            if (!$noneOfTheAbove) {
-                $noneOfTheAbove = new Choice();
-                $noneOfTheAbove->questionID = $questionID;
+            // Validate that at least one choice is marked as correct
+            if (!$hasCorrectChoice) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'At least one choice must be marked as correct.'
+                ], 422);
             }
-
-            $noneOfTheAbove->choiceText = Crypt::encryptString('None of the above.');
-            $noneOfTheAbove->isCorrect = !$hasCorrectChoice;
-            $noneOfTheAbove->image = null;
-            $noneOfTheAbove->position = 5;  // Always position 5 for "None of the above"
-            $noneOfTheAbove->save();
 
             DB::commit();
 
