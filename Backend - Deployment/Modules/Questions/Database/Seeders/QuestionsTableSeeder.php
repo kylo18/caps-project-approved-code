@@ -9,42 +9,92 @@ use Illuminate\Support\Arr;
 
 class QuestionsTableSeeder extends Seeder
 {
-    private function generateQuestionText($subject, $index)
+    private function generateQuestionText($subject, $index, $purposeId)
     {
         $templates = [
-            "In the context of {subject}, what is the most appropriate approach to solve this problem?",
-            "Which of the following best describes the concept of {subject}?",
-            "According to {subject} principles, which statement is correct?",
-            "When dealing with {subject}, what would be the expected outcome?",
-            "How does {subject} relate to the following scenario?",
+            // Purpose ID 1 (Practice/Review) templates
+            1 => [
+                "In {subject}, explain the concept of {concept}.",
+                "What is the primary function of {concept} in {subject}?",
+                "How does {concept} relate to {related_concept} in {subject}?",
+                "Describe the process of {concept} in the context of {subject}.",
+                "What are the key components of {concept} in {subject}?",
+            ],
+            // Purpose ID 2 (Assessment/Exam) templates
+            2 => [
+                "A problem in {subject} involves {concept}. Which of the following is correct?",
+                "Given a scenario in {subject} where {concept} is applied, determine the most appropriate solution.",
+                "Analyze the following {subject} situation involving {concept}.",
+                "In a practical application of {subject}, how would {concept} be implemented?",
+                "Calculate the outcome when {concept} is applied in this {subject} problem.",
+            ]
         ];
 
+        $concepts = $this->getSubjectConcepts($subject->subjectName);
+        $concept = $concepts[array_rand($concepts)];
+        $related_concept = $concepts[array_rand($concepts)];
+
+        $template = $templates[$purposeId][array_rand($templates[$purposeId])];
         $text = str_replace(
-            '{subject}',
-            $subject->subjectName,
-            $templates[array_rand($templates)]
+            ['{subject}', '{concept}', '{related_concept}'],
+            [$subject->subjectName, $concept, $related_concept],
+            $template
         );
 
         return Crypt::encryptString($text);
     }
 
-    private function generateChoiceText($questionIndex, $choiceIndex, $subject)
+    private function getSubjectConcepts($subjectName)
+    {
+        // Define relevant concepts for each subject area
+        $concepts = [
+            'Computer Science' => ['algorithms', 'data structures', 'programming paradigms', 'complexity analysis', 'software design'],
+            'Agricultural Engineering' => ['irrigation systems', 'soil properties', 'farm machinery', 'crop processing', 'agricultural waste'],
+            'Civil Engineering' => ['structural analysis', 'construction materials', 'foundation design', 'hydraulics', 'transportation'],
+            'Electronics' => ['circuit analysis', 'digital systems', 'signal processing', 'microcontrollers', 'communication systems'],
+            'Electrical' => ['power systems', 'electromagnetic fields', 'control systems', 'electrical machines', 'power electronics']
+        ];
+
+        // Extract the main subject area from the subject name
+        foreach ($concepts as $area => $areaConceptList) {
+            if (str_contains($subjectName, $area)) {
+                return $areaConceptList;
+            }
+        }
+
+        // Default concepts if no specific match is found
+        return ['theory', 'application', 'analysis', 'design', 'implementation'];
+    }
+
+    private function generateChoiceText($questionIndex, $choiceIndex, $subject, $purposeId)
     {
         if ($choiceIndex === 4) {
             return Crypt::encryptString('None of the above');
         }
 
         $templates = [
-            "This is a detailed explanation related to {subject}",
-            "This represents a key concept in {subject}",
-            "This demonstrates an important principle of {subject}",
-            "This illustrates a fundamental aspect of {subject}",
+            1 => [ // Practice/Review
+                "This explains how {concept} works in {subject}",
+                "This demonstrates the application of {concept} in {subject}",
+                "This illustrates the relationship between {concept} and {subject}",
+                "This shows the implementation of {concept} in {subject}",
+            ],
+            2 => [ // Assessment/Exam
+                "The solution involves applying {concept} to solve the {subject} problem",
+                "Using {concept} principles in {subject}, this approach works because...",
+                "Based on {subject} theory, {concept} leads to this outcome",
+                "Following {subject} methodology, {concept} results in this solution",
+            ]
         ];
 
+        $concepts = $this->getSubjectConcepts($subject->subjectName);
+        $concept = $concepts[array_rand($concepts)];
+
+        $template = $templates[$purposeId][array_rand($templates[$purposeId])];
         $text = str_replace(
-            '{subject}',
-            $subject->subjectName,
-            $templates[array_rand($templates)] . " (Option " . ($choiceIndex + 1) . ")"
+            ['{subject}', '{concept}'],
+            [$subject->subjectName, $concept],
+            $template . " (Option " . ($choiceIndex + 1) . ")"
         );
 
         return Crypt::encryptString($text);
@@ -55,7 +105,6 @@ class QuestionsTableSeeder extends Seeder
         $subjects = DB::table('subjects')->get();
         $coverages = DB::table('coverages')->pluck('id')->toArray();
         $difficulties = DB::table('difficulties')->pluck('id')->toArray();
-        $purposes = DB::table('purposes')->pluck('id')->toArray();
         $statuses = DB::table('statuses')->pluck('id')->toArray();
         
         // Get a default user ID for the seeder
@@ -64,40 +113,56 @@ class QuestionsTableSeeder extends Seeder
             throw new \Exception('No users found in the database. Please seed users first.');
         }
 
+        $questionsPerPurpose = 2500; // 2500 questions per purpose ID
+        $batchSize = 100; // Insert questions in batches for better performance
+
         foreach ($subjects as $subject) {
-            for ($i = 1; $i <= 50; $i++) {
-                // Insert question
-                $questionId = DB::table('questions')->insertGetId([
-                    'subjectID' => $subject->subjectID ?? $subject->id,
-                    'userID' => $defaultUser->userID ?? $defaultUser->id,
-                    'questionText' => $this->generateQuestionText($subject, $i),
-                    'coverage_id' => $coverages[array_rand($coverages)],
-                    'difficulty_id' => $difficulties[array_rand($difficulties)],
-                    'purpose_id' => $purposes[array_rand($purposes)],
-                    'status_id' => $statuses[array_rand($statuses)],
-                    'score' => rand(1, 5), // Adding a random score between 1 and 5
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-                // Randomly select which choice will be correct (0-3, excluding "None of the above")
-                $correctChoiceIndex = rand(0, 3);
-
-                // Generate 5 choices for each question (including "None of the above")
+            // Generate questions for each purpose ID (1 and 2)
+            for ($purposeId = 1; $purposeId <= 2; $purposeId++) {
+                $questions = [];
                 $choices = [];
-                for ($j = 0; $j < 5; $j++) {
-                    $choices[] = [
-                        'questionID' => $questionId,
-                        'choiceText' => $this->generateChoiceText($i, $j, $subject),
-                        'isCorrect' => $j === $correctChoiceIndex,
-                        'position' => $j + 1,
+
+                for ($i = 1; $i <= $questionsPerPurpose; $i++) {
+                    // Insert question
+                    $questionId = DB::table('questions')->insertGetId([
+                        'subjectID' => $subject->subjectID ?? $subject->id,
+                        'userID' => $defaultUser->userID ?? $defaultUser->id,
+                        'questionText' => $this->generateQuestionText($subject, $i, $purposeId),
+                        'coverage_id' => $coverages[array_rand($coverages)],
+                        'difficulty_id' => $difficulties[array_rand($difficulties)],
+                        'purpose_id' => $purposeId,
+                        'status_id' => $statuses[array_rand($statuses)],
+                        'score' => rand(1, 5),
                         'created_at' => now(),
                         'updated_at' => now(),
-                    ];
+                    ]);
+
+                    // Randomly select which choice will be correct (0-3)
+                    $correctChoiceIndex = rand(0, 3);
+
+                    // Generate 5 choices for each question
+                    for ($j = 0; $j < 5; $j++) {
+                        $choices[] = [
+                            'questionID' => $questionId,
+                            'choiceText' => $this->generateChoiceText($i, $j, $subject, $purposeId),
+                            'isCorrect' => $j === $correctChoiceIndex,
+                            'position' => $j + 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+
+                    // Insert choices in batches
+                    if (count($choices) >= $batchSize * 5) {
+                        DB::table('choices')->insert($choices);
+                        $choices = [];
+                    }
                 }
 
-                // Insert choices
-                DB::table('choices')->insert($choices);
+                // Insert any remaining choices
+                if (!empty($choices)) {
+                    DB::table('choices')->insert($choices);
+                }
             }
         }
     }
