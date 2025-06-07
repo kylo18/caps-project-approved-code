@@ -656,12 +656,12 @@ export default function Register() {
                               </label>
                               <button
                                 type="button"
-                                className="absolute top-[16px] right-3 text-gray-400"
+                                className="absolute top-[16px] right-3 text-gray-400 transition-colors hover:text-gray-600"
                                 onClick={() => setPasswordVisible((v) => !v)}
                                 tabIndex={-1}
                               >
                                 <i
-                                  className={`bx ${passwordVisible ? "bx-show text-orange-500" : "bx-hide"} text-[25px]`}
+                                  className={`bx ${passwordVisible ? "bx-eye-alt text-orange-500" : "bx-eye-slash"} text-[25px]`}
                                 ></i>
                               </button>
                             </div>
@@ -704,7 +704,7 @@ export default function Register() {
                               </label>
                               <button
                                 type="button"
-                                className="absolute top-[16px] right-3 text-gray-400"
+                                className="absolute top-[16px] right-3 text-gray-400 transition-colors hover:text-gray-600"
                                 onClick={() =>
                                   setConfirmPasswordVisible(
                                     !confirmPasswordVisible,
@@ -713,7 +713,7 @@ export default function Register() {
                                 tabIndex={-1}
                               >
                                 <i
-                                  className={`bx ${confirmPasswordVisible ? "bx-show text-orange-500" : "bx-hide"} text-[25px]`}
+                                  className={`bx ${confirmPasswordVisible ? "bx-eye-alt text-orange-500" : "bx-eye-slash"} text-[25px]`}
                                 ></i>
                               </button>
                             </div>
@@ -1192,12 +1192,12 @@ export default function Register() {
                         </label>
                         <button
                           type="button"
-                          className="absolute top-[21px] right-3 text-gray-400"
+                          className="absolute top-[21px] right-3 text-gray-400 transition-colors hover:text-gray-600"
                           onClick={() => setPasswordVisible((v) => !v)}
                           tabIndex={-1}
                         >
                           <i
-                            className={`bx ${passwordVisible ? "bx-show text-orange-500" : "bx-hide"} text-[25px]`}
+                            className={`bx ${passwordVisible ? "bx-eye-alt text-orange-500" : "bx-eye-slash"} text-[25px]`}
                           ></i>
                         </button>
                       </div>
@@ -1234,14 +1234,14 @@ export default function Register() {
                         </label>
                         <button
                           type="button"
-                          className="absolute top-[21px] right-3 text-gray-400"
+                          className="absolute top-[21px] right-3 text-gray-400 transition-colors hover:text-gray-600"
                           onClick={() =>
                             setConfirmPasswordVisible(!confirmPasswordVisible)
                           }
                           tabIndex={-1}
                         >
                           <i
-                            className={`bx ${confirmPasswordVisible ? "bx-show text-orange-500" : "bx-hide"} text-[25px]`}
+                            className={`bx ${confirmPasswordVisible ? "bx-eye-alt text-orange-500" : "bx-eye-slash"} text-[25px]`}
                           ></i>
                         </button>
                       </div>

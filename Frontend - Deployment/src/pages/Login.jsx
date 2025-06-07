@@ -231,12 +231,12 @@ export default function LoginPage() {
                       </label>
                       <button
                         type="button"
-                        className="absolute top-[18px] right-3 text-gray-400"
+                        className="absolute top-[18px] right-3 text-gray-400 transition-colors hover:text-gray-600"
                         onClick={() => setPasswordVisible((v) => !v)}
                         tabIndex={-1}
                       >
                         <i
-                          className={`bx ${passwordVisible ? "bx-show text-orange-500" : "bx-hide"} text-[25px]`}
+                          className={`bx ${passwordVisible ? "bx-eye-alt text-orange-500" : "bx-eye-slash"} text-[25px]`}
                         ></i>
                       </button>
                     </div>
@@ -274,7 +274,7 @@ export default function LoginPage() {
 
                   {/* Register Link */}
                   <p className="mt-4 mb-4 justify-center text-center text-[14px] text-gray-600">
-                    Don’t have an account?{" "}
+                    Don't have an account?{" "}
                     <span
                       onClick={() => navigate("/register")}
                       className="cursor-pointer text-orange-500 hover:underline"
@@ -413,7 +413,7 @@ export default function LoginPage() {
                 </label>
                 <button
                   type="button"
-                  className="absolute top-[21px] right-3 text-gray-400"
+                  className="absolute top-[21px] right-3 text-gray-400 transition-colors hover:text-gray-600"
                   onClick={() => setPasswordVisible((v) => !v)}
                   tabIndex={-1}
                 >
