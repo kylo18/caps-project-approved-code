@@ -1,4 +1,4 @@
-1. Manually drop the tables
+    1. Manually drop the tables
 
 First, connect to your database via PhpMyAdmin and manually drop the tables:
 
@@ -28,14 +28,14 @@ First, connect to your database via PhpMyAdmin and manually drop the tables:
     - Click "OK"
     - It will drop the table 
 
-2. Go inside migrations table 
+    2. Go inside migrations table 
 
-3. Delete create_subjects_table && Delete create_questions_table && practice_exam_settings
+    3. Delete create_subjects_table && Delete create_questions_table && practice_exam_settings
   
-4. Navigate to the backend container. Type this:
+    4. Navigate to the backend container. Type this:
 docker exec -it caps_backend bash
 
-5. Run migrations individually in MobaXterm terminal
+    5. Run migrations individually in MobaXterm terminal
 
 then run these commands one by one:
 
@@ -55,7 +55,7 @@ php artisan migrate --path=Modules/Subjects/Database/Migrations/2025_02_27_07214
 php artisan migrate --path=Modules/Questions/Database/Migrations/2025_02_27_072150_create_questions_table.php
 
 
-6. Run the database seeder
+    6. Run the database seeder
 
 This will seed the necessary data for normalization:
 
@@ -63,14 +63,13 @@ This will seed the necessary data for normalization:
 php artisan db:seed
 
 
-7. Run the migration for users table
+    7. Run the migration for users table
 
 This adds `status_id` field to the users table and handles the transition from `status` string to the new normalized field:
 
-
 php artisan migrate --path=Modules/Users/Database/Migrations/2025_05_31_213032_add_status_id_to_users_table.php
 
-8. Run the final migration for choices table
+    8. Run the final migration for choices table
 
 This will migrate the choices table and practice_exam_settings:
 
@@ -81,7 +80,7 @@ Note: If practice_exam_settings is not migrated rerun the migration:
 php artisan migrate
 
 
-9. Verify after each step
+    9. Verify after each step
 
 After each command, **check your database** to see if changes have applied correctly.
 
