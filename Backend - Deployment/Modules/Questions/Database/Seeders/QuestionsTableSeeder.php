@@ -105,15 +105,11 @@ class QuestionsTableSeeder extends Seeder
         $subjects = DB::table('subjects')->get();
         $coverages = DB::table('coverages')->pluck('id')->toArray();
         $difficulties = DB::table('difficulties')->pluck('id')->toArray();
-        $statuses = DB::table('statuses')->pluck('id')->toArray();
         
-        // Get a default user ID for the seeder
-        $defaultUser = DB::table('users')->first();
-        if (!$defaultUser) {
-            throw new \Exception('No users found in the database. Please seed users first.');
-        }
-
-        $questionsPerPurpose = 2500; // 2500 questions per purpose ID
+        // Questions will be added by users 1-3
+        $allowedUserIds = [1, 2, 3];
+        
+        $questionsPerType = 250; // 250 questions per type (practice and exam)
         $batchSize = 100; // Insert questions in batches for better performance
 
         foreach ($subjects as $subject) {
@@ -122,17 +118,26 @@ class QuestionsTableSeeder extends Seeder
                 $questions = [];
                 $choices = [];
 
-                for ($i = 1; $i <= $questionsPerPurpose; $i++) {
+                for ($i = 1; $i <= $questionsPerType; $i++) {
+                    // Randomly select a user from allowed users
+                    $userId = $allowedUserIds[array_rand($allowedUserIds)];
+                    
+                    // For approved questions (status_id = 2), set approvedBy to a random admin (1-3)
+                    $approvedBy = $allowedUserIds[array_rand($allowedUserIds)];
+                    
                     // Insert question
                     $questionId = DB::table('questions')->insertGetId([
-                        'subjectID' => $subject->subjectID ?? $subject->id,
-                        'userID' => $defaultUser->userID ?? $defaultUser->id,
+                        'subjectID' => $subject->subjectID,
+                        'userID' => $userId,
                         'questionText' => $this->generateQuestionText($subject, $i, $purposeId),
-                        'coverage_id' => $coverages[array_rand($coverages)],
-                        'difficulty_id' => $difficulties[array_rand($difficulties)],
-                        'purpose_id' => $purposeId,
-                        'status_id' => $statuses[array_rand($statuses)],
+                        'image' => null,
                         'score' => rand(1, 5),
+                        'purpose_id' => $purposeId,
+                        'difficulty_id' => $difficulties[array_rand($difficulties)],
+                        'status_id' => 2, // Always approved status
+                        'coverage_id' => $coverages[array_rand($coverages)],
+                        'editedBy' => null,
+                        'approvedBy' => $approvedBy,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
