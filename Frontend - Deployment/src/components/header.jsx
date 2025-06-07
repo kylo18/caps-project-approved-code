@@ -414,7 +414,7 @@ const AdminHeader = ({ title }) => {
                   >
                     <i
                       className={`bx ${
-                        passwordVisible ? "bx-show" : "bx-hide"
+                        passwordVisible ? "bx-eye-alt" : "bx-eye-slash"
                       } text-[22px] text-orange-500`}
                     ></i>
                   </div>
@@ -447,7 +447,7 @@ const AdminHeader = ({ title }) => {
                   >
                     <i
                       className={`bx ${
-                        newPasswordVisible ? "bx-show" : "bx-hide"
+                        newPasswordVisible ? "bx-eye-alt" : "bx-eye-slash"
                       } text-[22px] text-orange-500`}
                     ></i>
                   </div>
@@ -482,7 +482,7 @@ const AdminHeader = ({ title }) => {
                     >
                       <i
                         className={`bx ${
-                          confirmPasswordVisible ? "bx-show" : "bx-hide"
+                          confirmPasswordVisible ? "bx-eye-alt" : "bx-eye-slash"
                         } text-[22px] text-orange-500`}
                       ></i>
                     </div>

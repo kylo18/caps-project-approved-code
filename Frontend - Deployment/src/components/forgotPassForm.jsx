@@ -205,12 +205,11 @@ const ForgotPasswordForm = () => {
                     </button>
                   </div>
                   <p className="mt-4 mb-4 justify-center text-center text-[14px] text-gray-600">
-                    Don't have an account?{" "}
                     <span
-                      onClick={() => navigate("/register")}
+                      onClick={() => navigate("/")}
                       className="cursor-pointer text-orange-500 hover:underline"
                     >
-                      Register here
+                      Back to Login
                     </span>
                   </p>
                   <span className="mx-2 text-xs text-gray-400">
@@ -328,7 +327,7 @@ const ForgotPasswordForm = () => {
             <button
               type="submit"
               disabled={loading}
-              className="mt-3 mb-4 w-full cursor-pointer rounded-xl bg-gradient-to-r from-[#ed3700] to-[#FE6902] py-3 text-base font-semibold text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
+              className="mt-3 w-full cursor-pointer rounded-xl bg-gradient-to-r from-[#ed3700] to-[#FE6902] py-3 text-base font-semibold text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
             >
               {loading ? (
                 <div className="flex items-center justify-center">
@@ -338,6 +337,15 @@ const ForgotPasswordForm = () => {
                 "Send Reset Link"
               )}
             </button>
+
+            <p className="mb-4 justify-center text-center text-[14px] text-gray-600">
+              <span
+                onClick={() => navigate("/")}
+                className="cursor-pointer text-orange-500 hover:underline"
+              >
+                Back to Login
+              </span>
+            </p>
           </form>
 
           <div className="my-2 flex w-full items-center">
@@ -348,7 +356,7 @@ const ForgotPasswordForm = () => {
             <div className="h-px flex-1 bg-gray-200"></div>
           </div>
 
-          <span className="mx-2 text-xs text-gray-400">
+          <span className="mx-2 mt-3 text-xs text-gray-400">
             Developed by <span className="text-orange-500">Team Caps</span>
           </span>
         </div>
