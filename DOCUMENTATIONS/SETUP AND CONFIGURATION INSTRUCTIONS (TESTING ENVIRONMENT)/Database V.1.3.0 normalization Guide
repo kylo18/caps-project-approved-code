@@ -30,7 +30,7 @@ First, connect to your database via PhpMyAdmin and manually drop the tables:
 
 2. Go inside migrations table 
 
-3. Delete create_subjects_table && Delete create_questions_table
+3. Delete create_subjects_table && Delete create_questions_table && practice_exam_settings
   
 4. Navigate to the backend container. Type this:
 docker exec -it caps_backend bash
