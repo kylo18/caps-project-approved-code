@@ -298,7 +298,7 @@ const AdminHeader = ({ title }) => {
               }
               className="border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-black hover:bg-gray-200"
             >
-              <i className="bx bx-question-mark text-md"></i>
+              <i className="bx bx-message-question-mark text-md ml-1"></i>
               <span className="pr-1.5 text-[14px]">Help</span>
             </button>
           </Tooltip>
@@ -372,7 +372,8 @@ const AdminHeader = ({ title }) => {
                   onClick={handleLogout}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i className="bx bx-log-out mr-2 text-[16px]"></i> Log-out
+                  <i className="bx bx-arrow-out-right-square-half mr-2 text-[16px]"></i>{" "}
+                  Log-out
                 </button>
               </div>
             )}
@@ -666,7 +667,7 @@ const AdminHeader = ({ title }) => {
               className={`mr-3 text-[24px] ${
                 toast.type === "success"
                   ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-error text-red-400"
+                  : "bx bxs-x-circle text-red-400"
               }`}
             ></i>
             <div>

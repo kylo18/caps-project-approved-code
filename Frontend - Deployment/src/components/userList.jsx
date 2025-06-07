@@ -198,7 +198,6 @@ const UserList = () => {
   const handleApproveUser = async (userID) => {
     const token = localStorage.getItem("token");
     setIsApproving(true);
-    setShowModal(false);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/approve`, {
         method: "PATCH",
@@ -230,6 +229,7 @@ const UserList = () => {
         ),
       );
       fetchUsers();
+      setShowModal(false);
     } catch (error) {
       console.error("Error approving user:", error);
     } finally {
@@ -241,7 +241,6 @@ const UserList = () => {
   const handleActivateUser = async (userID) => {
     const token = localStorage.getItem("token");
     setIsActivating(true);
-    setShowModal(false);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/activate`, {
         method: "PATCH",
@@ -268,6 +267,7 @@ const UserList = () => {
           user.userID === userID ? { ...user, isActive: true } : user,
         ),
       );
+      setShowModal(false);
     } catch (error) {
       alert(error.message);
     } finally {
@@ -279,7 +279,6 @@ const UserList = () => {
   const handleDeactivateUser = async (userID) => {
     const token = localStorage.getItem("token");
     setIsDeactivating(true);
-    setShowModal(false);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/deactivate`, {
         method: "PATCH",
@@ -305,6 +304,7 @@ const UserList = () => {
           user.userID === userID ? { ...user, isActive: false } : user,
         ),
       );
+      setShowModal(false);
     } catch (error) {
       console.error("Error deactivating user:", error);
     } finally {
@@ -642,9 +642,9 @@ const UserList = () => {
               onClick={() => {
                 window.location.reload();
               }}
-              className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+              className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-2xl text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
             >
-              <i className="bx bx-refresh text-2xl"></i>
+              <i className="bx bx-refresh-ccw"></i>
             </button>
           </Tooltip>
         </div>
@@ -670,7 +670,7 @@ const UserList = () => {
               onClick={() => setShowFilters(!showFilters)}
               className="border-color flex cursor-pointer items-center justify-center gap-1 rounded-md border bg-white px-[10px] py-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
             >
-              <i className="bx bx-filter text-2xl"></i>
+              <i className="bx bx-menu-filter text-2xl"></i>
               <span className="text-[12px] font-medium">Filters</span>
             </button>
           </Tooltip>
@@ -821,7 +821,10 @@ const UserList = () => {
                   placement="left"
                 >
                   <button
-                    onClick={() => handleActionClick("approve")}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleActionClick("approve");
+                    }}
                     className={`w-full rounded-sm px-4 py-2 text-left text-black ${
                       selectedUsers.length === 0
                         ? "cursor-not-allowed text-gray-400"
@@ -840,7 +843,10 @@ const UserList = () => {
                   placement="left"
                 >
                   <button
-                    onClick={() => handleActionClick("activate")}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleActionClick("activate");
+                    }}
                     className={`w-full rounded-sm px-4 py-2 text-left text-black ${
                       selectedUsers.length === 0
                         ? "cursor-not-allowed text-gray-400"
@@ -859,7 +865,10 @@ const UserList = () => {
                   placement="left"
                 >
                   <button
-                    onClick={() => handleActionClick("deactivate")}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleActionClick("deactivate");
+                    }}
                     className={`w-full rounded-sm px-4 py-2 text-left text-black ${
                       selectedUsers.length === 0
                         ? "cursor-not-allowed text-gray-400"
@@ -1021,10 +1030,19 @@ const UserList = () => {
                       </div>
 
                       <button
-                        onClick={() => handleApproveUser(selectedUser.userID)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleApproveUser(selectedUser.userID);
+                        }}
                         className="mt-2 cursor-pointer rounded-md border border-green-500 bg-green-100 px-4 py-2 text-sm font-medium text-green-500 shadow hover:bg-green-200"
                       >
-                        Approve
+                        {isApproving ? (
+                          <div className="flex items-center justify-center">
+                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-green-500 border-t-transparent"></span>
+                          </div>
+                        ) : (
+                          "Activate"
+                        )}
                       </button>
                     </div>
                   )}
@@ -1043,12 +1061,19 @@ const UserList = () => {
                       </div>
 
                       <button
-                        onClick={() =>
-                          handleDeactivateUser(selectedUser.userID)
-                        }
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDeactivateUser(selectedUser.userID);
+                        }}
                         className="mt-2 cursor-pointer rounded-md border border-red-500 bg-red-100 px-4 py-2 text-sm font-medium text-red-500 shadow hover:bg-red-200"
                       >
-                        Deactivate
+                        {isDeactivating ? (
+                          <div className="flex items-center justify-center">
+                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-red-500 border-t-transparent"></span>
+                          </div>
+                        ) : (
+                          "Deactivate"
+                        )}
                       </button>
                     </div>
                   )}
@@ -1067,10 +1092,19 @@ const UserList = () => {
                       </div>
 
                       <button
-                        onClick={() => handleActivateUser(selectedUser.userID)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleActivateUser(selectedUser.userID);
+                        }}
                         className="mt-2 cursor-pointer rounded-md border border-green-500 bg-green-100 px-4 py-2 text-sm font-medium text-green-500 shadow hover:bg-green-200"
                       >
-                        Activate
+                        {isActivating ? (
+                          <div className="flex items-center justify-center">
+                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-green-500 border-t-transparent"></span>
+                          </div>
+                        ) : (
+                          "Activate"
+                        )}
                       </button>
                     </div>
                   )}
@@ -1122,7 +1156,9 @@ const UserList = () => {
               }}
               className="ml-2 cursor-pointer text-gray-700"
             >
-              <i className="bx bx-chevron-right text-[25px] leading-none"></i>
+              <button className="mr-3 flex w-full cursor-pointer items-center justify-center text-gray-700 hover:text-orange-500">
+                <i className="bx bx-contact-book text-[25px] leading-none"></i>
+              </button>
             </button>
           </div>
         ))}
@@ -1270,8 +1306,8 @@ const UserList = () => {
                       setShowModal(true);
                     }}
                   >
-                    <button className="cursor-pointer text-gray-700 hover:text-orange-500">
-                      <i className="bx bx-chevron-right mr-3 text-[25px] leading-none"></i>
+                    <button className="mr-3 flex w-full cursor-pointer items-center justify-center text-gray-700 hover:text-orange-500">
+                      <i className="bx bx-contact-book text-[25px] leading-none"></i>
                     </button>
                   </td>
                 </tr>
@@ -1280,10 +1316,6 @@ const UserList = () => {
           </tbody>
         </table>
       </div>
-
-      {isActivating && <LoadingOverlay show={isActivating} />}
-      {isApproving && <LoadingOverlay show={isApproving} />}
-      {isDeactivating && <LoadingOverlay show={isDeactivating} />}
 
       {isActivatingMultiple && <LoadingOverlay show={isActivatingMultiple} />}
       {isApprovingMultiple && <LoadingOverlay show={isApprovingMultiple} />}
@@ -1304,7 +1336,7 @@ const UserList = () => {
               className={`mr-3 text-[24px] ${
                 toast.type === "success"
                   ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-error text-red-400"
+                  : "bx bxs-x-circle text-red-400"
               }`}
             ></i>
             <div>

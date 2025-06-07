@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "./loadingOverlay";
 import Tooltip from "./toolTip";
 import { createPortal } from "react-dom";
-
+import SideBarToolTip from "./sidebarTooltip";
 const AssignedSubjectsDropDown = ({
   item,
   isExpanded,
@@ -321,7 +321,7 @@ const AssignedSubjectsDropDown = ({
   return (
     <div className="-mt-2">
       <li
-        className="relative flex items-center gap-3 rounded px-[4px] py-[1px] hover:bg-[rgb(255,230,214)] hover:text-gray-700"
+        className="relative flex cursor-pointer items-center gap-3 rounded px-[4px] py-[1px] hover:text-gray-700"
         onClick={() => {
           if (!isExpanded || !isOpen) {
             setIsExpanded(true);
@@ -336,7 +336,9 @@ const AssignedSubjectsDropDown = ({
           }
         }}
       >
-        <i className={`bx ${item.icon} mt-1 text-2xl`}></i>
+        <SideBarToolTip label="Subjects" isExpanded={isExpanded}>
+          <i className={`bx ${item.icon} mt-1 text-2xl`}></i>
+        </SideBarToolTip>
         <span
           className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
             isExpanded
@@ -457,7 +459,7 @@ const AssignedSubjectsDropDown = ({
                   }}
                   className="border-color flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  <i className="bx bx-refresh text-lg"></i>
+                  <i className="bx bx-refresh-ccw text-lg"></i>
                   <span className="text-[14px]">Refresh</span>
                 </button>
               </li>
@@ -565,7 +567,7 @@ const AssignedSubjectsDropDown = ({
                         >
                           <div className="flex items-center justify-center gap-2 px-2 py-1">
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
-                            <span className="text-md min-w-[60px] text-center font-bold text-gray-700">
+                            <span className="open-sans min-w-[60px] text-center text-sm font-bold text-gray-700">
                               {programName}
                             </span>
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
@@ -744,7 +746,7 @@ const AssignedSubjectsDropDown = ({
                         <div key={programName}>
                           <div className="flex items-center justify-center gap-2 px-2 py-1">
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
-                            <span className="text-md min-w-[60px] text-center font-bold text-gray-700">
+                            <span className="open-sans min-w-[60px] text-center text-sm font-bold text-gray-700">
                               {programName}
                             </span>
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
@@ -962,7 +964,7 @@ const AssignedSubjectsDropDown = ({
                 className="border-color flex cursor-pointer items-center gap-1 rounded-md border px-3 py-[7px] text-sm hover:bg-gray-200"
                 onClick={fetchSubjects}
               >
-                <i className="bx bx-refresh text-[18px]"></i> Refresh
+                <i className="bx bx-refresh-ccw text-[18px]"></i> Refresh
               </button>
             </div>
 
@@ -1051,7 +1053,7 @@ const AssignedSubjectsDropDown = ({
               className={`mr-3 text-[24px] ${
                 toast.type === "success"
                   ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-error text-red-400"
+                  : "bx bxs-x-circle text-red-400"
               }`}
             ></i>
             <div>

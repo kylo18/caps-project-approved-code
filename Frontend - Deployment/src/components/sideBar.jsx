@@ -5,6 +5,7 @@ import AllSubjectsDropDownProgramChair from "./subjectsProgramChair";
 import AssignedSubjectsDropDown from "./subjectsFaculty";
 import SideBarToolTip from "./sidebarTooltip";
 import PrintExamModal from "./PrintExamModal";
+import AppVersion from "./appVersion";
 
 // Displays the main sidebar
 const Sidebar = ({
@@ -70,7 +71,7 @@ const Sidebar = ({
             : "/";
 
   const baseMenuItems = [
-    { icon: "bx-bar-chart-alt-2", label: "Dashboard", path: homePath },
+    { icon: "bx-dashboard-alt", label: "Dashboard", path: homePath },
   ];
   const facultyItems = [
     {
@@ -296,6 +297,14 @@ const Sidebar = ({
             </div>
           </>
         )}
+
+        <div
+          className={`fixed bottom-4 ${isExpanded ? "left-[75px]" : "left-[14px]"} transition-all duration-300 ease-in-out ${
+            isMobile && !isExpanded ? "hidden" : ""
+          }`}
+        >
+          <AppVersion />
+        </div>
       </div>
       <PrintExamModal
         isOpen={showPrintModal}

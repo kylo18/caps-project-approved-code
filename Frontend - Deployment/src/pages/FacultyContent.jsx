@@ -535,7 +535,7 @@ const FacultyContent = () => {
                             : "text-black hover:bg-gray-200"
                         }`}
                       >
-                        <i className="bx bx-detail text-[18px]" />
+                        <i className="bx bx-list-ul-square text-[18px]" />
                         <span>Detailed View</span>
                       </button>
                     </div>
@@ -1044,7 +1044,7 @@ const FacultyContent = () => {
                 className={`mr-3 text-[24px] ${
                   toast.type === "success"
                     ? "bx bxs-check-circle text-green-400"
-                    : "bx bxs-error text-red-400"
+                    : "bx bxs-x-circle text-red-400"
                 }`}
               ></i>
               <div>

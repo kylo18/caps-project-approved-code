@@ -279,7 +279,7 @@ export default function Register() {
       <div className="relative hidden min-h-screen w-full bg-[url('/login-bg.png')] bg-cover bg-center bg-no-repeat lg:block">
         {/* Left Section */}
         <div className="flex min-h-screen flex-row">
-          <div className="mr-10 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
+          <div className="mr-18 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
             {/* Logos */}
             <div className="absolute top-3 left-3 flex items-center space-x-2">
               <img src={univLogo} alt="Logo 1" className="size-8" />

@@ -121,10 +121,11 @@ export default function LoginPage() {
 
   return (
     <>
+      {/* Desktop View */}
       <div className="relative hidden min-h-screen w-full bg-[url('/login-bg.png')] bg-cover bg-center bg-no-repeat lg:block">
         {/* Left Section */}
         <div className="flex min-h-screen flex-row">
-          <div className="mr-10 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
+          <div className="mr-18 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
             {/* Logos */}
             <div className="absolute top-3 left-3 flex items-center space-x-2">
               <img src={univLogo} alt="Logo 1" className="size-8" />
@@ -296,6 +297,7 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* Mobile View */}
       <div className="flex flex-col lg:hidden">
         <div className="flex w-full flex-col items-center justify-center bg-gradient-to-br from-[#101010] to-[#3c3c3c]">
           {/* Purple Gradient Header */}
@@ -473,7 +475,7 @@ export default function LoginPage() {
               className={`mr-3 text-[24px] ${
                 toast.type === "success"
                   ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-error text-red-400"
+                  : "bx bxs-x-circle text-red-400"
               }`}
             ></i>
             <div>

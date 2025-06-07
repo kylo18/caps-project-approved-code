@@ -478,7 +478,7 @@ const SideBarDropDown = ({
   return (
     <div className="-mt-2">
       <li
-        className="relative flex items-center gap-3 rounded px-[4px] py-[1px] hover:bg-[rgb(255,230,214)] hover:text-gray-700"
+        className="relative flex cursor-pointer items-center gap-3 rounded px-[4px] py-[1px] hover:text-gray-700"
         onClick={() => {
           if (!isExpanded || !isOpen) {
             setIsExpanded(true);
@@ -616,7 +616,7 @@ const SideBarDropDown = ({
                   }}
                   className="border-color flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  <i className="bx bx-refresh text-lg"></i>
+                  <i className="bx bx-refresh-ccw text-lg"></i>
                   <span className="text-[14px]">Refresh</span>
                 </button>
               </li>
@@ -715,7 +715,7 @@ const SideBarDropDown = ({
                       >
                         <div className="flex items-center justify-center gap-2 px-2 py-1">
                           <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
-                          <span className="text-md min-w-[60px] text-center font-bold text-gray-700">
+                          <span className="open-sans min-w-[60px] text-center text-sm font-bold text-gray-700">
                             {programName}
                           </span>
                           <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
@@ -922,7 +922,7 @@ const SideBarDropDown = ({
                       <div key={programName}>
                         <div className="flex items-center justify-center gap-2 px-2 py-1">
                           <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
-                          <span className="text-md min-w-[60px] text-center font-bold text-gray-700">
+                          <span className="open-sans min-w-[60px] text-center text-sm font-bold text-gray-700">
                             {programName}
                           </span>
                           <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
@@ -1321,7 +1321,7 @@ const SideBarDropDown = ({
               className={`mr-3 text-[24px] ${
                 toast.type === "success"
                   ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-error text-red-400"
+                  : "bx bxs-x-circle text-red-400"
               }`}
             ></i>
             <div>

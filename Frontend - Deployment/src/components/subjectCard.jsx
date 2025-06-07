@@ -158,9 +158,9 @@ const SubjectCard = ({
           <div className="flex">
             <button
               onClick={handleRefresh}
-              className="absolute top-12 right-2 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-2xl hover:bg-gray-200 sm:absolute lg:top-2 lg:right-2"
+              className="absolute top-12 right-2 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-xl hover:bg-gray-200 sm:absolute lg:top-2 lg:right-2"
             >
-              <i className="bx bx-refresh text-gray-500"></i>
+              <i className="bx bx-refresh-ccw text-gray-500"></i>
             </button>
 
             <button
@@ -187,7 +187,7 @@ const SubjectCard = ({
                   onClick={() => alert("Feature under development")}
                   className="mt-2 flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition"
                 >
-                  <i className="bx bx-show text-[18px]" />
+                  <i className="bx bx-eye-alt text-[18px]" />
                   Preview
                 </button>
               </div>
@@ -205,7 +205,7 @@ const SubjectCard = ({
                 {subjectName}
               </h1>
               <div className="mt-1 flex gap-2 text-gray-500">
-                <i className="bx bxs-school text-lg"></i>
+                <i className="bx bx-buildings text-lg"></i>
                 <p className="text-sm font-semibold">JRMSU • {location}</p>
               </div>
             </div>
@@ -213,7 +213,7 @@ const SubjectCard = ({
 
           <div className="mt-8 flex w-full items-center md:flex-row lg:justify-between">
             <div className="relative ml-0 flex w-full justify-center sm:mt-[13px] sm:ml-10 sm:justify-start md:mt-[13px] md:ml-8 lg:-mt-[5px] lg:ml-10">
-              <ul className="relative hidden flex-wrap justify-center gap-9 text-sm font-semibold text-gray-600 sm:flex">
+              <ul className="relative hidden flex-wrap justify-center gap-9 text-sm font-semibold text-gray-600 md:flex">
                 {[
                   "Practice Questions",
                   "Qualifying Exam Questions",
@@ -234,9 +234,9 @@ const SubjectCard = ({
                 ))}
               </ul>
 
-              <div className="relative block sm:hidden">
+              <div className="relative mx-auto flex justify-center md:hidden">
                 <select
-                  className="w-full bg-white p-2 text-sm text-gray-600 outline-none sm:w-auto"
+                  className="mx-auto bg-white p-2 text-sm text-gray-600 outline-none md:w-auto"
                   value={activeIndex}
                   onChange={(e) => setActiveIndex(Number(e.target.value))}
                 >
@@ -275,7 +275,7 @@ const SubjectCard = ({
                 onClick={() => alert("Feature under development")}
                 className="hidden cursor-pointer items-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 lg:flex"
               >
-                <i className="bx bx-show text-lg"></i>
+                <i className="bx bx-eye-big text-xl"></i>
                 <span className="text-[14px]">Preview</span>
               </button>
             </div>
@@ -303,7 +303,7 @@ const SubjectCard = ({
               className={`mr-3 text-[24px] ${
                 toast.type === "success"
                   ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-error text-red-400"
+                  : "bx bxs-x-circle text-red-400"
               }`}
             ></i>
             <div>

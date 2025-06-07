@@ -25,7 +25,7 @@ const ScrollToTopButton = () => {
       onClick={scrollToTop}
       className={`border-color fixed bottom-4 left-1/2 flex -translate-x-1/2 transform cursor-pointer items-center justify-center rounded-full border bg-white p-1 text-gray-700 shadow-xl transition-all duration-300 hover:bg-gray-200 md:left-[calc(50%+32px)] ${isVisible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"} `}
     >
-      <i className="bx bx-up-arrow-alt text-[30px]"></i>
+      <i className="bx bx-arrow-up-stroke text-[30px]"></i>
     </button>
   );
 };
