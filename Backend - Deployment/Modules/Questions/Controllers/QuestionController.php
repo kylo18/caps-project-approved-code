@@ -143,22 +143,8 @@ class QuestionController extends Controller
     // List all questions for a subject, remove those without choices
     public function indexQuestions($subjectID)
     {
-        $subject = Subject::find($subjectID);
-        if (!$subject) {
-            return response()->json(['message' => 'Subject not found.'], 404);
-        }
+        $subject = Subject::findOrFail($subjectID);
 
-        // Delete questions with no choices
-        Question::where('subjectID', $subjectID)
-            ->doesntHave('choices')
-            ->each(function ($q) {
-                if ($q->image) {
-                    Storage::disk('public')->delete($q->image);
-                }
-                $q->delete();
-            });
-
-        // Get questions with choices only and include editor and approver information
         $questions = Question::with([
                 'subject', 
                 'choices', 
@@ -175,15 +161,17 @@ class QuestionController extends Controller
                 }
             ])
             ->where('subjectID', $subjectID)
+            ->whereHas('choices')
+            ->orderBy('created_at', 'desc')
             ->get()
-            ->reject(fn($q) => $q->choices->isEmpty())
-            ->map(fn($q) => $this->formatQuestion($q))
-            ->values();
+            ->map(fn($q) => $this->formatQuestion($q));
 
         return response()->json([
             'message' => 'Questions retrieved successfully.',
             'subject' => $subject->subjectName,
-            'data' => $questions
+            'total_questions' => $questions->count(),
+            'data' => $questions,
+            'last_updated' => $questions->max('updated_at')
         ]);
     }
 
@@ -250,9 +238,9 @@ class QuestionController extends Controller
             ], 400);
         }
 
-        // Check if the current user created the question
-        if (Auth::id() === $question->userID) {
-            return response()->json(['message' => 'You cannot approve a question you created.'], 403);
+        // Check if the current user is the creator and the question hasn't been edited yet
+        if (Auth::id() === $question->userID && !$question->editedBy) {
+            return response()->json(['message' => 'You cannot approve your own question until it has been edited by someone else.'], 403);
         }
 
         // Check if the current user is the one who last edited the question
