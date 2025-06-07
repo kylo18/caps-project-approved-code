@@ -72,8 +72,12 @@ php artisan migrate --path=Modules/Users/Database/Migrations/2025_05_31_213032_a
 
 8. Run the final migration for choices table
 
-This will migrate the choices table 
+This will migrate the choices table and practice_exam_settings:
 
+php artisan migrate
+
+Note: If practice_exam_settings is not migrated rerun the migration:
+ 
 php artisan migrate
 
 
