@@ -105,7 +105,6 @@ class QuestionsTableSeeder extends Seeder
         $subjects = DB::table('subjects')->get();
         $coverages = DB::table('coverages')->pluck('id')->toArray();
         $difficulties = DB::table('difficulties')->pluck('id')->toArray();
-        $statuses = DB::table('statuses')->pluck('id')->toArray();
         
         // Get a default user ID for the seeder
         $defaultUser = DB::table('users')->first();
@@ -131,7 +130,7 @@ class QuestionsTableSeeder extends Seeder
                         'coverage_id' => $coverages[array_rand($coverages)],
                         'difficulty_id' => $difficulties[array_rand($difficulties)],
                         'purpose_id' => $purposeId,
-                        'status_id' => $statuses[array_rand($statuses)],
+                        'status_id' => 2,
                         'score' => rand(1, 5),
                         'created_at' => now(),
                         'updated_at' => now(),
