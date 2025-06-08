@@ -3,7 +3,7 @@ import SortCustomDropdown from "./sortCustomDropdown";
 import ConfirmModal from "./confirmModal";
 import LoadingOverlay from "./loadingOverlay";
 import { Tooltip } from "flowbite-react";
-import RegisterDropDownSmall from "./RegisterDropDownSmall";
+import RegisterDropDownSmall from "./registerDropDownSmall";
 // Component to display and manage user list with filtering and actions
 const UserList = () => {
   // Refs for dropdown positioning
