@@ -54,7 +54,7 @@ class PracticeExamController extends Controller
                 $query->orderBy('position', 'asc');
             }])
                 ->where('subjectID', $subjectID)
-                ->where('purpose_id', 1) // Changed to 1 for examQuestions
+                ->where('purpose_id', 2) // Changed to 1 for practiceQuestions
                 ->whereHas('status', function($query) {
                     $query->where('name', '!=', 'pending');
                 })
