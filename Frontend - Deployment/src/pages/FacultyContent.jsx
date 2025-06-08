@@ -244,10 +244,10 @@ const FacultyContent = () => {
 
       const matchesTab =
         (activeTab === 0 &&
-          question.purpose_id === 1 && // 1 for practice questions
+          question.purpose_id === 2 && // 1 for practice questions
           question.status_id === 2) || // 2 is approved
         (activeTab === 1 &&
-          question.purpose_id === 2 && // 2 for exam questions
+          question.purpose_id === 1 && // 2 for exam questions
           question.status_id === 2) || // 2 is approved
         (activeTab === 4 &&
           question.status_id === 1 && // 1 is pending
@@ -608,10 +608,10 @@ const FacultyContent = () => {
                                   (activeTab === 4 &&
                                     question.status_id === 1) || // 1 is pending
                                   (activeTab === 0 &&
-                                    question.purpose_id === 1 && // 1 for practice questions
+                                    question.purpose_id === 2 && // 1 for practice questions
                                     question.status_id === 2) || // 2 is approved
                                   (activeTab === 1 &&
-                                    question.purpose_id === 2 && // 2 for exam questions
+                                    question.purpose_id === 1 && // 2 for exam questions
                                     question.status_id === 2), // 2 is approved
                               ).length
                             }{" "}
@@ -648,10 +648,10 @@ const FacultyContent = () => {
                           (question) =>
                             (activeTab === 4 && question.status_id === 1) || // 1 is pending
                             (activeTab === 0 &&
-                              question.purpose_id === 1 && // 1 for practice questions
+                              question.purpose_id === 2 && // 1 for practice questions
                               question.status_id === 2) || // 2 is approved
                             (activeTab === 1 &&
-                              question.purpose_id === 2 && // 2 for exam questions
+                              question.purpose_id === 1 && // 2 for exam questions
                               question.status_id === 2), // 2 is approved
                         )
                         .map((question, index) => (
@@ -870,7 +870,7 @@ const FacultyContent = () => {
                                           Question Type:
                                         </span>
                                         <span>
-                                          {question.purpose_id === 1
+                                          {question.purpose_id === 2
                                             ? "Practice Question"
                                             : "Qualifying Exam Question"}
                                         </span>

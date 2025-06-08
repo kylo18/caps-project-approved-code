@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import RegisterDropDownSmall from "./registerDropDownSmall";
-
+import RegisterDropDownSmall from "./RegisterDropDownSmall";
 // Form to COnfigure Practice Exam Settings
 const PracticeExamConfig = ({
   subjectID,

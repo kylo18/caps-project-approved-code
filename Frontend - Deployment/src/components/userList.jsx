@@ -3,8 +3,7 @@ import SortCustomDropdown from "./sortCustomDropdown";
 import ConfirmModal from "./confirmModal";
 import LoadingOverlay from "./loadingOverlay";
 import { Tooltip } from "flowbite-react";
-import RegisterDropDownSmall from "./registerDropDownSmall";
-
+import RegisterDropDownSmall from "./RegisterDropDownSmall";
 // Component to display and manage user list with filtering and actions
 const UserList = () => {
   // Refs for dropdown positioning
@@ -924,7 +923,7 @@ const UserList = () => {
                     </div>
                   </div>
                   <div>
-                    <span className="block text-[14px] text-gray-700">
+                    <span className="mt-2 block text-[14px] text-gray-700">
                       Campus
                     </span>
                     <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
@@ -932,7 +931,7 @@ const UserList = () => {
                     </div>
                   </div>
                   <div>
-                    <span className="block text-[14px] text-gray-700">
+                    <span className="mt-2 block text-[14px] text-gray-700">
                       Position
                     </span>
                     <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
@@ -1034,14 +1033,15 @@ const UserList = () => {
                           e.preventDefault();
                           handleApproveUser(selectedUser.userID);
                         }}
-                        className="mt-2 cursor-pointer rounded-md border border-green-500 bg-green-100 px-4 py-2 text-sm font-medium text-green-500 shadow hover:bg-green-200"
+                        disabled={isApproving}
+                        className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isApproving ? "cursor-not-allowed bg-gray-500" : "bg-green-500 hover:bg-green-700 active:scale-98"} disabled:opacity-50`}
                       >
                         {isApproving ? (
                           <div className="flex items-center justify-center">
-                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-green-500 border-t-transparent"></span>
+                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                           </div>
                         ) : (
-                          "Activate"
+                          "Approve"
                         )}
                       </button>
                     </div>
@@ -1065,11 +1065,12 @@ const UserList = () => {
                           e.preventDefault();
                           handleDeactivateUser(selectedUser.userID);
                         }}
-                        className="mt-2 cursor-pointer rounded-md border border-red-500 bg-red-100 px-4 py-2 text-sm font-medium text-red-500 shadow hover:bg-red-200"
+                        disabled={isDeactivating}
+                        className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isDeactivating ? "cursor-not-allowed bg-gray-500" : "bg-red-500 hover:bg-red-700 active:scale-98"} disabled:opacity-50`}
                       >
                         {isDeactivating ? (
                           <div className="flex items-center justify-center">
-                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-red-500 border-t-transparent"></span>
+                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                           </div>
                         ) : (
                           "Deactivate"
@@ -1096,11 +1097,12 @@ const UserList = () => {
                           e.preventDefault();
                           handleActivateUser(selectedUser.userID);
                         }}
-                        className="mt-2 cursor-pointer rounded-md border border-green-500 bg-green-100 px-4 py-2 text-sm font-medium text-green-500 shadow hover:bg-green-200"
+                        disabled={isActivating}
+                        className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isActivating ? "cursor-not-allowed bg-gray-500" : "bg-green-500 hover:bg-green-700 active:scale-98"} disabled:opacity-50`}
                       >
                         {isActivating ? (
                           <div className="flex items-center justify-center">
-                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-green-500 border-t-transparent"></span>
+                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                           </div>
                         ) : (
                           "Activate"

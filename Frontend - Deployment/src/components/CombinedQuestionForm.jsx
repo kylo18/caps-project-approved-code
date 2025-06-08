@@ -580,8 +580,8 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
                   value={formData.purpose_id}
                   onChange={handleQuestionChange}
                   options={[
-                    { value: 1, label: "Practice Question" },
-                    { value: 2, label: "Qualifying Exam Question" },
+                    { value: 2, label: "Practice Question" },
+                    { value: 1, label: "Qualifying Exam Question" },
                   ]}
                 />
 
