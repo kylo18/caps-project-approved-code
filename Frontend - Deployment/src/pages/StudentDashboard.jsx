@@ -1,15 +1,215 @@
 import { useNavigate } from "react-router-dom";
 import Button from "../components/button";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [subjectID, setSubjectID] = useState("");
+  const [subjectInput, setSubjectInput] = useState("");
+  const [subjects, setSubjects] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredSubjects, setFilteredSubjects] = useState([]);
+  const suggestionsRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [subjectError, setSubjectError] = useState("");
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [showForm, setShowForm] = useState(false);
   const [examStarted, setExamStarted] = useState(false);
+  const [ongoingExam, setOngoingExam] = useState(null);
+
+  const resetForm = () => {
+    setSubjectInput("");
+    setSubjectID("");
+    setSubjectError("");
+    setError("");
+    setLoading(false);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target)
+      ) {
+        setShowSuggestions(false);
+      }
+
+      // Close form and reset when clicking outside
+      if (showForm && !event.target.closest(".lightbox-bg")) {
+        setShowForm(false);
+        resetForm();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showForm]);
+
+  // Filter subjects based on input
+  useEffect(() => {
+    const filtered = subjects.filter(
+      (subject) =>
+        !subjectInput.trim() ||
+        subject.subjectName
+          .toLowerCase()
+          .includes(subjectInput.toLowerCase()) ||
+        subject.subjectCode.toLowerCase().includes(subjectInput.toLowerCase()),
+    );
+    setFilteredSubjects(filtered);
+  }, [subjectInput, subjects]);
+
+  const handleInputFocus = () => {
+    setShowSuggestions(true);
+  };
+
+  const handleInputBlur = (e) => {
+    // Add a small delay to allow click events on suggestions to fire first
+    setTimeout(() => {
+      // Only hide suggestions if we're not clicking on a suggestion
+      if (!suggestionsRef.current?.contains(document.activeElement)) {
+        setShowSuggestions(false);
+      }
+    }, 200);
+  };
+
+  // Fetch available subjects when component mounts
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/student/practice-subjects`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        const data = await response.json();
+        if (data.data) {
+          setSubjects(data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching subjects:", err);
+        setError("Failed to load subjects");
+      }
+    };
+
+    fetchSubjects();
+  }, [apiUrl]);
+
+  // Check for ongoing exam when component mounts
+  useEffect(() => {
+    const checkOngoingExam = () => {
+      // Get all localStorage keys
+      const keys = Object.keys(localStorage);
+      // Find exam keys (they start with 'exam_')
+      const examKeys = keys.filter((key) => key.startsWith("exam_"));
+
+      if (examKeys.length > 0) {
+        // Get the most recent exam (assuming there's only one ongoing exam)
+        const examKey = examKeys[0];
+        try {
+          // Check if this exam has been completed
+          const examCompleted = localStorage.getItem(`${examKey}_completed`);
+          if (examCompleted === "true") {
+            // Clear completed exam data
+            const keysToRemove = [
+              examKey,
+              `${examKey}_bookmarks`,
+              `${examKey}_timer`,
+              `${examKey}_completed`,
+              `${examKey}_last_question`,
+              `${examKey}_last_position`,
+            ];
+            keysToRemove.forEach((key) => localStorage.removeItem(key));
+            return;
+          }
+
+          const savedAnswers = JSON.parse(localStorage.getItem(examKey));
+          const savedBookmarks =
+            JSON.parse(localStorage.getItem(`${examKey}_bookmarks`)) || [];
+          const savedTimer = localStorage.getItem(`${examKey}_timer`);
+
+          // If timer exists and is 0, exam is completed
+          if (savedTimer && parseInt(savedTimer) === 0) {
+            // Clear completed exam data
+            const keysToRemove = [
+              examKey,
+              `${examKey}_bookmarks`,
+              `${examKey}_timer`,
+              `${examKey}_completed`,
+              `${examKey}_last_question`,
+              `${examKey}_last_position`,
+            ];
+            keysToRemove.forEach((key) => localStorage.removeItem(key));
+            return;
+          }
+
+          // Extract subject ID from the exam key (format: exam_subjectID_...)
+          const subjectID = examKey.split("_")[1];
+
+          // Get the exam data from the API
+          fetch(`${apiUrl}/practice-exam/generate/${subjectID}`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.questions) {
+                setOngoingExam({
+                  subjectID,
+                  examData: data,
+                  savedAnswers,
+                  savedBookmarks,
+                  examKey,
+                });
+              }
+            })
+            .catch((err) => {
+              console.error("Error fetching exam data:", err);
+              // If there's an error, clear the saved exam
+              const keysToRemove = [
+                examKey,
+                `${examKey}_bookmarks`,
+                `${examKey}_timer`,
+                `${examKey}_completed`,
+                `${examKey}_last_question`,
+                `${examKey}_last_position`,
+              ];
+              keysToRemove.forEach((key) => localStorage.removeItem(key));
+            });
+        } catch (err) {
+          console.error("Error parsing saved exam:", err);
+          // If there's an error parsing, clear the saved exam
+          const keysToRemove = [
+            examKey,
+            `${examKey}_bookmarks`,
+            `${examKey}_timer`,
+            `${examKey}_completed`,
+            `${examKey}_last_question`,
+            `${examKey}_last_position`,
+          ];
+          keysToRemove.forEach((key) => localStorage.removeItem(key));
+        }
+      }
+    };
+
+    checkOngoingExam();
+  }, [apiUrl]);
+
+  const handleContinueExam = () => {
+    if (ongoingExam) {
+      navigate("/practice-exam", {
+        state: {
+          subjectID: ongoingExam.subjectID,
+          examData: ongoingExam.examData,
+          savedAnswers: ongoingExam.savedAnswers,
+          savedBookmarks: ongoingExam.savedBookmarks,
+          examKey: ongoingExam.examKey,
+        },
+      });
+    }
+  };
 
   const handleStartExam = () => {
     setExamStarted(true);
@@ -19,8 +219,39 @@ const StudentDashboard = () => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSubjectError("");
+
+    // Validate subject selection
+    if (!subjectID) {
+      setSubjectError("Please select a valid subject");
+      setLoading(false);
+      return;
+    }
+
+    // Clear all existing exam data before starting new exam
+    const clearExistingExamData = () => {
+      const keys = Object.keys(localStorage);
+      const examKeys = keys.filter((key) => key.startsWith("exam_"));
+      examKeys.forEach((key) => {
+        // Remove all exam-related keys
+        const keysToRemove = [
+          key,
+          `${key}_bookmarks`,
+          `${key}_timer`,
+          `${key}_completed`,
+          `${key}_last_question`,
+          `${key}_last_position`,
+          `${key}_settings`,
+          `${key}_exam_data`,
+        ];
+        keysToRemove.forEach((k) => localStorage.removeItem(k));
+      });
+    };
 
     try {
+      // Clear existing exam data before generating new exam
+      clearExistingExamData();
+
       const response = await fetch(
         `${apiUrl}/practice-exam/generate/${subjectID}`,
         {
@@ -43,21 +274,63 @@ const StudentDashboard = () => {
       }
 
       if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("You are not authorized to generate practice exams.");
+        }
+        if (response.status === 404) {
+          throw new Error(
+            data.message ||
+              "Subject not found or no questions available for this subject.",
+          );
+        }
         throw new Error(data.message || "Failed to generate exam");
       }
 
-      if (data.questions && data.questions.length === 0) {
-        setError("No questions available for this subject.");
+      if (!data.questions || data.questions.length === 0) {
+        setError(
+          "No questions available for this subject. Please try another subject.",
+        );
+        setLoading(false);
         return;
       }
 
-      console.log("Generated Questions:", data);
+      // Generate a unique key for this exam attempt
+      const examKey = `exam_${subjectID}_${data.questions.map((q) => q.questionID).join("_")}`;
 
-      // Pass data to the next page using navigate
+      // Store the complete exam data in localStorage with its own settings
+      localStorage.setItem(
+        `${examKey}_exam_data`,
+        JSON.stringify({
+          questions: data.questions,
+          totalPoints: data.totalPoints,
+          enableTimer: data.enableTimer,
+          durationMinutes: data.durationMinutes,
+          subjectName: data.subjectName,
+          // Store the exam settings separately from the subject settings
+          examSettings: {
+            enableTimer: data.enableTimer,
+            durationMinutes: data.durationMinutes,
+          },
+        }),
+      );
+
+      // Navigate to /exam-preview with all the exam data
       navigate("/practice-exam", {
         state: {
           subjectID,
-          examData: data,
+          examData: {
+            questions: data.questions,
+            totalPoints: data.totalPoints,
+            enableTimer: data.enableTimer,
+            durationMinutes: data.durationMinutes,
+            subjectName: data.subjectName,
+            // Include the exam settings in the state
+            examSettings: {
+              enableTimer: data.enableTimer,
+              durationMinutes: data.durationMinutes,
+            },
+          },
+          examKey,
         },
       });
     } catch (err) {
@@ -68,14 +341,46 @@ const StudentDashboard = () => {
     }
   };
 
+  const handleSubjectSelect = (subject) => {
+    setSubjectInput(subject.subjectName);
+    setSubjectID(subject.subjectID);
+    // Don't hide suggestions immediately, let the blur handler handle it
+  };
+
   return (
-    <div className="mt-10 text-center text-gray-500">
-      <p>Student Dashboard</p>
+    <div className="font-inter mt-10 text-center text-gray-500">
+      {ongoingExam && (
+        <div className="mb-6">
+          <div className="mx-auto max-w-md rounded-lg bg-yellow-50 p-4 shadow-sm">
+            <h3 className="mb-2 text-[16px] font-semibold text-yellow-800">
+              Exam in Progress
+            </h3>
+            <p className="mb-4 text-[12px] text-yellow-700">
+              You have an unfinished practice exam for Subject{" "}
+              {ongoingExam.subjectID}. Your progress has been saved.
+            </p>
+
+            <div className="flex justify-center">
+              <button
+                onClick={handleContinueExam}
+                className="font-inter mt-3 flex items-center justify-center gap-2 text-[14px] text-gray-700"
+              >
+                <span className="hover:underline">Continue Exam</span>
+                <i className="bx bx-chevron-right text-[18px]"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <button
-        onClick={() => setShowForm(true)}
-        className="mt-4 rounded-md bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+        onClick={() => {
+          setShowForm(true);
+          resetForm(); // Reset form when opening
+        }}
+        className="mt-4 cursor-pointer rounded-md bg-orange-500 px-4 py-2 text-[14px] text-white hover:bg-orange-600"
       >
-        Generate Exam
+        Start a New Exam
       </button>
 
       {showForm && (
@@ -83,38 +388,96 @@ const StudentDashboard = () => {
           onSubmit={handleGenerateExam}
           className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center"
         >
-          <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
-            <span>Generate Exam</span>
+          <div className="font-inter border-color relative mx-auto w-full max-w-sm rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
+            <span>Create Exam</span>
           </div>
-          <div className="border-color relative mx-auto w-full max-w-md rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
-            <div>
-              <label className="font-color-gray text-[12px]">
-                Select a Subject
-              </label>
+          <div className="border-color relative mx-auto w-full max-w-sm rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
+            <div className="relative">
+              <div className="relative mt-2 w-full">
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="peer mt-2 w-full rounded-xl border px-4 py-[8px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                    value={subjectInput}
+                    onChange={(e) => {
+                      setSubjectInput(e.target.value);
+                      setSubjectError("");
+                    }}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                    placeholder=" "
+                  />
+                  <label
+                    htmlFor="Select Subject"
+                    className={`pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base ${
+                      subjectError ? "text-gray-500" : "text-gray-500"
+                    } transition-all duration-200 ${
+                      subjectInput
+                        ? "top-2 mt-0 text-xs text-[#FE6902]"
+                        : "peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902]"
+                    }`}
+                  >
+                    Select Subject
+                  </label>
+                </div>
+              </div>
 
-              <input
-                type="text"
-                id="subjectID"
-                value={subjectID}
-                onChange={(e) => setSubjectID(e.target.value)}
-                required
-                className={`relative mt-2 mb-1 w-full cursor-text rounded-sm border border-gray-300 bg-white px-4 py-[7px] text-[14px] transition-all duration-200 ease-in-out outline-none hover:border-gray-500 focus:border-transparent focus:ring-1 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none`}
-                placeholder="Enter Subject ID"
-              />
+              {showSuggestions && filteredSubjects.length > 0 && (
+                <div
+                  ref={suggestionsRef}
+                  className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
+                  tabIndex={-1} // Make the div focusable
+                >
+                  <div className="max-h-[200px] overflow-y-auto">
+                    {filteredSubjects.map((subject) => (
+                      <div
+                        key={subject.subjectID}
+                        onClick={() => handleSubjectSelect(subject)}
+                        className="cursor-pointer px-4 py-2 text-start text-[14px] text-gray-700 hover:bg-gray-100"
+                        tabIndex={-1} // Make each item focusable
+                      >
+                        {subject.subjectName} ({subject.subjectCode})
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
+            {subjectError && (
+              <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                {subjectError}
+              </div>
+            )}
+            {error && (
+              <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                {error}
+              </div>
+            )}
 
             {/* Buttons */}
             <div className="mb-1 flex justify-end gap-2">
               <button
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  resetForm();
+                }}
                 className="cursor-pointer rounded-md border px-2 py-1.5 text-gray-700 hover:bg-gray-200"
                 type="button"
               >
                 <span className="px-1 text-[16px]">Cancel</span>
               </button>
-              <Button type="submit" text="Generate" icon="bx bxs-magic-wand" />
+              <button
+                type="submit"
+                className="flex w-[80px] cursor-pointer items-center justify-center rounded-md bg-orange-500 px-[12px] py-[6px] text-[14px] text-white hover:bg-orange-700"
+              >
+                {loading ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                ) : (
+                  "Proceed"
+                )}
+              </button>
             </div>
           </div>
         </form>

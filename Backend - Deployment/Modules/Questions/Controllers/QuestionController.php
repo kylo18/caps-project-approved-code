@@ -11,23 +11,29 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Modules\Subjects\Models\Subject;
 use Modules\Questions\Models\Question;
+use Modules\Questions\Models\Purpose;
+use Modules\Questions\Models\Status;
+use Modules\Questions\Models\Coverage;
+use Modules\Questions\Models\Difficulty;
+use Illuminate\Support\Facades\Log;
 use Modules\Choices\Models\Choice;
 
 class QuestionController extends Controller
 {
+    // Store a new question into the database
     public function store(Request $request)
     {
         $this->authorizeRoles([2, 3, 4]);
 
         $validated = $request->validate([
             'subjectID' => 'required|exists:subjects,subjectID',
-            'coverage' => 'required|in:midterm,finals',
+            'coverage_id' => 'required|exists:coverages,id',
             'questionText' => 'required|string',
             'image' => 'nullable|image|max:2048',
             'score' => 'required|integer|min:1',
-            'difficulty' => 'required|in:easy,moderate,hard',
-            'status' => 'required|in:pending,approved,disapproved',
-            'purpose' => 'required|in:examQuestions,practiceQuestions'
+            'difficulty_id' => 'required|exists:difficulties,id',
+            'status_id' => 'required|exists:statuses,id',
+            'purpose_id' => 'required|exists:purposes,id'
         ]);
 
         return DB::transaction(function () use ($validated, $request) {
@@ -35,13 +41,13 @@ class QuestionController extends Controller
             $question = Question::create([
                 'subjectID' => $validated['subjectID'],
                 'userID' => Auth::id(),
-                'coverage' => $validated['coverage'],
+                'coverage_id' => $validated['coverage_id'],
                 'questionText' => Crypt::encryptString($validated['questionText']),
                 'image' => $imagePath,
                 'score' => $validated['score'],
-                'difficulty' => $validated['difficulty'],
-                'status' => 'pending',
-                'purpose' => $validated['purpose'],
+                'difficulty_id' => $validated['difficulty_id'],
+                'status_id' => $validated['status_id'],
+                'purpose_id' => $validated['purpose_id'],
             ]);
 
             return response()->json([
@@ -51,81 +57,125 @@ class QuestionController extends Controller
         });
     }
 
+    // Update an existing question and mark it as pending
     public function update(Request $request, $questionID)
     {
-        $this->authorizeRoles([2, 3, 4]);
+        $question = Question::findOrFail($questionID);
 
         $validated = $request->validate([
-            'subjectID' => 'required|exists:subjects,subjectID',
-            'coverage' => 'required|in:midterm,finals',
-            'questionText' => 'required|string',
-            'image' => 'nullable|image|max:10240',
-            'score' => 'required|integer|min:1',
-            'difficulty' => 'required|in:easy,moderate,hard',
-            'choices' => 'required|array|min:2|max:6',
-            'choices.*.choiceID' => 'nullable|exists:choices,choiceID',
-            'choices.*.choiceText' => 'nullable|string',
-            'choices.*.isCorrect' => 'required|boolean',
-            'choices.*.image' => 'nullable|image|max:10240',
+            'coverage_id' => 'sometimes|required|exists:coverages,id',
+            'questionText' => 'sometimes|required|string',
+            'image' => 'nullable',
+            'score' => 'sometimes|required|integer|min:1',
+            'difficulty_id' => 'sometimes|required|exists:difficulties,id',
+            'status_id' => 'sometimes|required|exists:statuses,id',
+            'purpose_id' => 'sometimes|required|exists:purposes,id'
         ]);
 
-        if (!collect($validated['choices'])->contains('isCorrect', true)) {
-            return response()->json(['message' => 'At least one correct choice is required.'], 422);
+        if (isset($validated['questionText'])) {
+            $question->questionText = Crypt::encryptString($validated['questionText']);
         }
 
-        return DB::transaction(function () use ($validated, $request, $questionID) {
-            $question = Question::findOrFail($questionID);
+        // Handle image update or removal
+        $hasNewImage = false;
+        if (isset($validated['image'])) {
+            if (filter_var($validated['image'], FILTER_VALIDATE_URL)) {
+                // If it's a URL, keep the existing image
+                $hasNewImage = true;
+            } elseif ($request->hasFile('image')) {
+                // If there's an old image, delete it
+                if ($question->image) {
+                    Storage::disk('public')->delete($question->image);
+                }
+                // Store the new image
+                $path = $request->file('image')->store('question_images', 'public');
+                $question->image = $path;
+                $hasNewImage = true;
+            } elseif ($validated['image'] === null) {
+                // If image is explicitly set to null, delete the existing image
+                if ($question->image) {
+                    Storage::disk('public')->delete($question->image);
+                }
+                $question->image = null;
+            }
+        }
 
-            $imagePath = $this->handleImageUpload($request, 'image', 'questions', $question->image);
-            $question->update([
-                'subjectID' => $validated['subjectID'],
-                'coverage' => $validated['coverage'],
-                'questionText' => Crypt::encryptString($validated['questionText']),
-                'image' => $imagePath,
-                'score' => $validated['score'],
-                'difficulty' => $validated['difficulty'],
-                'status' => Auth::user()->roleID === 2 ? 'pending' : 'approved',
-            ]);
+        // Clear image if text is updated and no new image is provided
+        if (!$hasNewImage && isset($validated['questionText'])) {
+            if ($question->image) {
+                Storage::disk('public')->delete($question->image);
+            }
+            $question->image = null;
+        }
 
-            $this->syncChoices($request, $question, $validated['choices']);
+        if (isset($validated['coverage_id'])) {
+            $question->coverage_id = $validated['coverage_id'];
+        }
+        if (isset($validated['score'])) {
+            $question->score = $validated['score'];
+        }
+        if (isset($validated['difficulty_id'])) {
+            $question->difficulty_id = $validated['difficulty_id'];
+        }
+        if (isset($validated['purpose_id'])) {
+            $question->purpose_id = $validated['purpose_id'];
+        }
 
-            return response()->json([
-                'message' => 'Question updated successfully.',
-                'question' => $question->load('choices')
-            ]);
-        });
+        // Always set status to pending on update and record who edited it
+        $pendingStatus = Status::where('name', 'pending')->first();
+        if ($pendingStatus) {
+            $question->status_id = $pendingStatus->id;
+        }
+        
+        // Record who last edited the question
+        $question->editedBy = Auth::id();
+        // Clear approvedBy when question is edited since it needs to be re-approved
+        $question->approvedBy = null;
+
+        $question->save();
+
+        return response()->json([
+            'message' => 'Question updated successfully and marked as pending.',
+            'data' => $this->formatQuestion($question)
+        ]);
     }
 
+    // List all questions for a subject, remove those without choices
     public function indexQuestions($subjectID)
     {
-        $subject = Subject::find($subjectID);
-        if (!$subject) {
-            return response()->json(['message' => 'Subject not found.'], 404);
-        }
+        $subject = Subject::findOrFail($subjectID);
 
-        Question::where('subjectID', $subjectID)
-        ->doesntHave('choices')
-        ->each(function ($q) {
-            if ($q->image) {
-                Storage::disk('public')->delete($q->image);
-            }
-            $q->delete();
-        });
-
-        $questions = Question::with(['subject', 'choices', 'user'])
+        $questions = Question::with([
+                'subject', 
+                'choices', 
+                'user', 
+                'status', 
+                'difficulty', 
+                'coverage', 
+                'purpose',
+                'editor' => function($query) {
+                    $query->select('userID', 'firstName', 'lastName');
+                },
+                'approver' => function($query) {
+                    $query->select('userID', 'firstName', 'lastName');
+                }
+            ])
             ->where('subjectID', $subjectID)
+            ->whereHas('choices')
+            ->orderBy('created_at', 'desc')
             ->get()
-            ->reject(fn($q) => $q->choices->isEmpty())
-            ->map(fn($q) => $this->formatQuestion($q))
-            ->values();
+            ->map(fn($q) => $this->formatQuestion($q));
 
         return response()->json([
             'message' => 'Questions retrieved successfully.',
             'subject' => $subject->subjectName,
-            'data' => $questions
+            'total_questions' => $questions->count(),
+            'data' => $questions,
+            'last_updated' => $questions->max('updated_at')
         ]);
     }
 
+    // Delete a specific question
     public function destroy($questionID)
     {
         $this->authorizeRoles([2, 3, 4]);
@@ -143,53 +193,24 @@ class QuestionController extends Controller
         return response()->json(['message' => 'Question deleted successfully.']);
     }
 
+    // Retrieve all questions created by the current user for a given subject
     public function mySubjectQuestions($subjectID)
     {
         $user = Auth::user();
 
-        // Find the subject by ID
         $subject = Subject::find($subjectID);
-
         if (!$subject) {
             return response()->json([
                 'message' => 'Subject not found.'
             ], 404);
         }
 
-        // Get the questions added by the specific user for the given subject
-        $questions = Question::with(['subject', 'choices'])
+        $questions = Question::with(['subject', 'choices', 'status', 'difficulty', 'coverage', 'purpose'])
             ->where('subjectID', $subjectID)
-            ->where('userID', $user->userID) // Ensure the questions belong to the authenticated user
+            ->where('userID', $user->userID)
             ->get()
             ->map(function ($question) {
-                try {
-                    // Decrypt the question text
-                    $question->questionText = Crypt::decryptString($question->questionText);
-                } catch (\Exception $e) {
-                    $question->questionText = '[Decryption Error]';
-                }
-
-                // Format image URL if exists
-                if ($question->image && !Str::startsWith($question->image, ['http://', 'https://'])) {
-                    $question->image = url("storage/{$question->image}");
-                }
-
-                // Decrypt each choice and format its image URL
-                $question->choices->map(function ($choice) {
-                    try {
-                        $choice->choiceText = Crypt::decryptString($choice->choiceText);
-                    } catch (\Exception $e) {
-                        $choice->choiceText = null;
-                    }
-
-                    if ($choice->image && !Str::startsWith($choice->image, ['http://', 'https://'])) {
-                        $choice->image = url("storage/{$choice->image}");
-                    }
-
-                    return $choice;
-                });
-
-                return $question;
+                return $this->formatQuestion($question);
             });
 
         return response()->json([
@@ -199,7 +220,7 @@ class QuestionController extends Controller
         ], 200);
     }
 
-
+    // Approve a question if it's pending and not edited by the current user
     public function updateStatus($questionID)
     {
         $this->authorizeRoles([3, 4]);
@@ -208,21 +229,37 @@ class QuestionController extends Controller
         if (!$question) {
             return response()->json(['message' => 'Question not found.'], 404);
         }
-        if ($question->status !== 'pending') {
+
+        $pendingStatus = Status::where('name', 'pending')->first();
+        if (!$pendingStatus || $question->status_id !== $pendingStatus->id) {
             return response()->json([
                 'message' => 'Only questions with pending status can be approved.',
-                'current_status' => $question->status
+                'current_status' => optional($question->status)->name
             ], 400);
         }
-        if (Auth::id() === $question->userID) {
-            return response()->json(['message' => 'You cannot approve your own question.'], 403);
+
+        // Check if the current user is the creator and the question hasn't been edited yet
+        if (Auth::id() === $question->userID && !$question->editedBy) {
+            return response()->json(['message' => 'You cannot approve your own question until it has been edited by someone else.'], 403);
         }
 
-        $question->update(['status' => 'approved']);
+        // Check if the current user is the one who last edited the question
+        if (Auth::id() === $question->editedBy) {
+            return response()->json(['message' => 'You cannot approve a question you last edited.'], 403);
+        }
 
-        return response()->json(['message' => 'Question approved.', 'question' => $question]);
+        $approvedStatus = Status::where('name', 'approved')->first();
+        if ($approvedStatus) {
+            $question->status_id = $approvedStatus->id;
+            // Update the approvedBy field with the current user
+            $question->approvedBy = Auth::id();
+            $question->save();
+        }
+
+        return response()->json(['message' => 'Question approved.', 'question' => $this->formatQuestion($question)]);
     }
 
+    // Show questions by subject and filter them by the program of the logged-in Program Chair
     public function indexQuestionsByProgram($subjectID)
     {
         $subject = Subject::find($subjectID);
@@ -230,18 +267,20 @@ class QuestionController extends Controller
             return response()->json(['message' => 'Subject not found.'], 404);
         }
 
+        // Remove questions with no choices
         Question::where('subjectID', $subjectID)
-        ->doesntHave('choices')
-        ->each(function ($q) {
-            if ($q->image) {
-                Storage::disk('public')->delete($q->image);
-            }
-            $q->delete();
-        });
+            ->doesntHave('choices')
+            ->each(function ($q) {
+                if ($q->image) {
+                    Storage::disk('public')->delete($q->image);
+                }
+                $q->delete();
+            });
 
-        $query = Question::with(['subject', 'choices', 'user'])
+        $query = Question::with(['subject', 'choices', 'user', 'status', 'difficulty', 'coverage', 'purpose'])
             ->where('subjectID', $subjectID);
 
+        // If user is Program Chair, filter questions by their program
         if (Auth::user()->roleID == 3) {
             $query->whereHas('user', fn($q) => $q->where('programID', Auth::user()->programID));
         }
@@ -255,8 +294,348 @@ class QuestionController extends Controller
         ]);
     }
 
+    /**
+     * Duplicate a question and its choices with optional modifications
+     *
+     * @param int $questionID
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function duplicate(Request $request, $questionID)
+    {
+        $this->authorizeRoles([2, 3, 4]);
+
+        try {
+            // Validate optional modifications
+            $validated = $request->validate([
+                'coverage_id' => 'nullable|exists:coverages,id',
+                'questionText' => 'nullable|string',
+                'image' => 'nullable',
+                'score' => 'nullable|integer|min:1',
+                'difficulty_id' => 'nullable|exists:difficulties,id',
+                'purpose_id' => 'nullable|exists:purposes,id',
+                'choices' => 'nullable|array',
+                'choices.*.choiceText' => 'nullable|string',
+                'choices.*.isCorrect' => 'nullable|boolean',
+                'choices.*.image' => 'nullable'
+            ]);
+
+            // Find original question with its choices
+            $originalQuestion = Question::with(['choices' => function($query) {
+                $query->orderBy('position', 'asc');
+            }])->findOrFail($questionID);
+
+            DB::beginTransaction();
+
+            // Create new question with modifications
+            $newQuestion = $originalQuestion->replicate();
+            // Set the current user as the creator of the duplicated question
+            $newQuestion->userID = Auth::id();
+            // Set initial status as pending
+            $newQuestion->status_id = Status::where('name', 'pending')->first()->id;
+            // Clear editor and approver information for the new question
+            $newQuestion->editedBy = null;
+            $newQuestion->approvedBy = null;
+
+            // Apply modifications if provided
+            if (isset($validated['questionText'])) {
+                $newQuestion->questionText = Crypt::encryptString($validated['questionText']);
+            }
+            if (isset($validated['coverage_id'])) {
+                $newQuestion->coverage_id = $validated['coverage_id'];
+            }
+            if (isset($validated['score'])) {
+                $newQuestion->score = $validated['score'];
+            }
+            if (isset($validated['difficulty_id'])) {
+                $newQuestion->difficulty_id = $validated['difficulty_id'];
+            }
+            if (isset($validated['purpose_id'])) {
+                $newQuestion->purpose_id = $validated['purpose_id'];
+            }
+
+            // Handle question image
+            if ($request->hasFile('image')) {
+                // If new image is being uploaded
+                $path = $request->file('image')->store('question_images', 'public');
+                $newQuestion->image = $path;
+            } 
+            // If image is being explicitly removed
+            elseif (isset($validated['image']) && $validated['image'] === null) {
+                $newQuestion->image = null;
+            }
+            // If keeping original image or no image modification requested
+            elseif ($originalQuestion->image) {
+                $originalPath = $originalQuestion->image;
+                // If it's a URL, keep it as is
+                if (filter_var($originalPath, FILTER_VALIDATE_URL)) {
+                    $newQuestion->image = $originalPath;
+                }
+                // If it's a storage file, create a copy
+                elseif (Storage::disk('public')->exists($originalPath)) {
+                    $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
+                    $newPath = 'question_images/' . uniqid() . '.' . $extension;
+                    if (Storage::disk('public')->copy($originalPath, $newPath)) {
+                        $newQuestion->image = $newPath;
+                    }
+                }
+            }
+
+            $newQuestion->save();
+
+            // Duplicate choices with modifications
+            $hasCorrectChoice = false;
+            $originalChoices = $originalQuestion->choices->where('position', '!=', 5);
+            
+            foreach ($originalChoices as $index => $originalChoice) {
+                $newChoice = $originalChoice->replicate();
+                $newChoice->questionID = $newQuestion->questionID;
+
+                // Apply modifications if provided
+                if (isset($validated['choices'][$index])) {
+                    $choiceData = $validated['choices'][$index];
+                    
+                    // Handle choice image
+                    if (isset($choiceData['image'])) {
+                        // If new image is being uploaded
+                        if ($request->hasFile("choices.{$index}.image")) {
+                            $newChoice->choiceText = null;
+                            $path = $request->file("choices.{$index}.image")->store('choices', 'public');
+                            $newChoice->image = $path;
+                        } 
+                        // If image is being explicitly removed
+                        elseif ($choiceData['image'] === null) {
+                            $newChoice->image = null;
+                            if (isset($choiceData['choiceText'])) {
+                                $newChoice->choiceText = Crypt::encryptString($choiceData['choiceText']);
+                            }
+                        } 
+                        // If keeping original image
+                        elseif ($originalChoice->image) {
+                            $originalPath = $originalChoice->image;
+                            // If it's a URL, keep it as is
+                            if (filter_var($originalPath, FILTER_VALIDATE_URL)) {
+                                $newChoice->image = $originalPath;
+                                $newChoice->choiceText = null;
+                            }
+                            // If it's a storage file, create a copy
+                            elseif (Storage::disk('public')->exists($originalPath)) {
+                                $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
+                                $newPath = 'choices/' . uniqid() . '.' . $extension;
+                                if (Storage::disk('public')->copy($originalPath, $newPath)) {
+                                    $newChoice->image = $newPath;
+                                    $newChoice->choiceText = null;
+                                }
+                            }
+                        }
+                    }
+                    // If no image modification, handle text
+                    else if (isset($choiceData['choiceText'])) {
+                        $newChoice->choiceText = Crypt::encryptString($choiceData['choiceText']);
+                        $newChoice->image = null;
+                    }
+                    // If neither image nor text is modified, keep the original
+                    else {
+                        if ($originalChoice->image) {
+                            $originalPath = $originalChoice->image;
+                            // If it's a URL, keep it as is
+                            if (filter_var($originalPath, FILTER_VALIDATE_URL)) {
+                                $newChoice->image = $originalPath;
+                            }
+                            // If it's a storage file, create a copy
+                            elseif (Storage::disk('public')->exists($originalPath)) {
+                                $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
+                                $newPath = 'choices/' . uniqid() . '.' . $extension;
+                                if (Storage::disk('public')->copy($originalPath, $newPath)) {
+                                    $newChoice->image = $newPath;
+                                }
+                            }
+                        }
+                    }
+
+                    if (isset($choiceData['isCorrect'])) {
+                        $newChoice->isCorrect = $choiceData['isCorrect'];
+                    }
+                }
+                // If no modifications provided for this choice, copy the original image if it exists
+                else if ($originalChoice->image) {
+                    $originalPath = $originalChoice->image;
+                    // If it's a URL, keep it as is
+                    if (filter_var($originalPath, FILTER_VALIDATE_URL)) {
+                        $newChoice->image = $originalPath;
+                    }
+                    // If it's a storage file, create a copy
+                    elseif (Storage::disk('public')->exists($originalPath)) {
+                        $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
+                        $newPath = 'choices/' . uniqid() . '.' . $extension;
+                        if (Storage::disk('public')->copy($originalPath, $newPath)) {
+                            $newChoice->image = $newPath;
+                        }
+                    }
+                }
+
+                if ($newChoice->isCorrect) {
+                    $hasCorrectChoice = true;
+                }
+
+                $newChoice->position = $index + 1;
+                $newChoice->save();
+            }
+
+            // Add "None of the above" choice
+            Choice::create([
+                'questionID' => $newQuestion->questionID,
+                'choiceText' => Crypt::encryptString('None of the above.'),
+                'isCorrect'  => !$hasCorrectChoice,
+                'image'      => null,
+                'position'   => 5
+            ]);
+
+            DB::commit();
+
+            // Load the new question with all its relationships
+            $newQuestion = Question::with(['choices', 'user', 'status', 'difficulty', 'coverage', 'purpose'])
+                ->find($newQuestion->questionID);
+
+            return response()->json([
+                'message' => 'Question duplicated successfully. You are now set as the creator of this new question.',
+                'data' => $this->formatQuestion($newQuestion)
+            ], 201)->header('Content-Type', 'application/json');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Question duplication failed: " . $e->getMessage());
+
+            return response()->json([
+                'message' => 'Failed to duplicate question.',
+                'error' => $e->getMessage()
+            ], 500)->header('Content-Type', 'application/json');
+        }
+    }
+
+    /**
+     * Preview all questions from a student's perspective
+     * This function is accessible to faculty, program chair, and dean
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function previewAllQuestions(Request $request)
+    {
+        $this->authorizeRoles([2, 3, 4]); // Only faculty, program chair, and dean
+
+        try {
+            $query = Question::with([
+                'subject',
+                'choices',
+                'status',
+                'difficulty',
+                'coverage',
+                'purpose',
+                'user' => function($query) {
+                    $query->select('userID', 'firstName', 'lastName', 'programID');
+                }
+            ])->whereHas('status', function($query) {
+                $query->where('name', 'approved');
+            });
+
+            // If user is Program Chair, only show questions from their program
+            if (Auth::user()->roleID === 3) {
+                $query->whereHas('user', function($q) {
+                    $q->where('programID', Auth::user()->programID)
+                      ->orWhere('programID', 6); // Include general education questions
+                });
+            }
+
+            // Group questions by subject
+            $questions = $query->get()
+                ->groupBy('subjectID')
+                ->map(function($subjectQuestions) {
+                    $subject = $subjectQuestions->first()->subject;
+                    
+                    // Group questions by coverage (midterm/finals)
+                    $questionsByCoverage = $subjectQuestions->groupBy(function($q) {
+                        return $q->coverage->name;
+                    })->map(function($coverageQuestions) {
+                        // Group by difficulty
+                        return $coverageQuestions->groupBy(function($q) {
+                            return $q->difficulty->name;
+                        })->map(function($questions) {
+                            return $questions->map(function($q) {
+                                return $this->formatQuestionForPreview($q);
+                            });
+                        });
+                    });
+
+                    return [
+                        'subjectName' => $subject->subjectName,
+                        'subjectCode' => $subject->subjectCode,
+                        'questions' => $questionsByCoverage
+                    ];
+                });
+
+            return response()->json([
+                'message' => 'Questions preview retrieved successfully.',
+                'data' => $questions
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Question Preview Error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to retrieve questions preview.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Format question for preview display
+     * Similar to formatQuestion but with additional student-perspective formatting
+     */
+    private function formatQuestionForPreview($question)
+    {
+        try {
+            $questionText = Crypt::decryptString($question->questionText);
+        } catch (\Exception $e) {
+            $questionText = '[Decryption Error]';
+            Log::error("Question decrypt error ID{$question->questionID}: {$e->getMessage()}");
+        }
+
+        // Format choices like they would appear to students
+        $choices = $question->choices->map(function($choice) {
+            try {
+                $text = $choice->choiceText ? Crypt::decryptString($choice->choiceText) : null;
+            } catch (\Exception $e) {
+                $text = null;
+            }
+
+            return [
+                'text' => $text,
+                'image' => $this->generateUrl($choice->image),
+                'position' => $choice->position,
+                'isCorrect' => $choice->isCorrect // Include correct answer for faculty review
+            ];
+        })->sortBy('position')->values();
+
+        return [
+            'questionID' => $question->questionID,
+            'questionText' => $questionText,
+            'questionImage' => $this->generateUrl($question->image),
+            'score' => $question->score,
+            'difficulty' => $question->difficulty->name,
+            'coverage' => $question->coverage->name,
+            'purpose' => $question->purpose->name,
+            'choices' => $choices,
+            'creator' => [
+                'name' => $question->user->firstName . ' ' . $question->user->lastName,
+                'program' => $question->user->programID
+            ]
+        ];
+    }
+
     // ============ PRIVATE HELPERS ============
 
+    // Ensure only users with certain roles can access specific methods
     private function authorizeRoles(array $allowed)
     {
         if (!in_array(Auth::user()->roleID, $allowed)) {
@@ -264,12 +643,11 @@ class QuestionController extends Controller
         }
     }
 
+    // Handle image upload, supports both flat and nested fields
     private function handleImageUpload(Request $request, $field, $folder, $existingPath = null)
     {
-        // Try getting the file directly
         $file = $request->file($field);
 
-        // If not found, try flattening the nested structure (e.g., 'question.image')
         if (!$file) {
             $flatKey = str_replace(['[', ']'], ['.', ''], $field);
             $file = data_get($request->allFiles(), $flatKey);
@@ -281,36 +659,10 @@ class QuestionController extends Controller
             }
             return $file->store($folder, 'public');
         }
-
         return $existingPath;
     }
 
-
-    private function syncChoices(Request $request, Question $question, array $choices)
-    {
-        foreach ($choices as $index => $choiceData) {
-            $path = $this->handleImageUpload($request, "choices.$index.image", 'choices', optional(Choice::find($choiceData['choiceID'] ?? null))->image);
-
-            $encryptedText = $choiceData['choiceText']
-                ? Crypt::encryptString($choiceData['choiceText']) : null;
-
-            if (isset($choiceData['choiceID'])) {
-                Choice::find($choiceData['choiceID'])->update([
-                    'choiceText' => $encryptedText,
-                    'isCorrect' => $choiceData['isCorrect'],
-                    'image' => $path,
-                ]);
-            } else {
-                Choice::create([
-                    'questionID' => $question->questionID,
-                    'choiceText' => $encryptedText,
-                    'isCorrect' => $choiceData['isCorrect'],
-                    'image' => $path,
-                ]);
-            }
-        }
-    }
-
+    // Decrypt and format question and its choices for display
     private function formatQuestion($question)
     {
         try {
@@ -321,6 +673,16 @@ class QuestionController extends Controller
 
         $question->image = $this->generateUrl($question->image);
         $question->creatorName = optional($question->user)->firstName . ' ' . optional($question->user)->lastName;
+        
+        // Add editor and approver information
+        $question->editorName = optional($question->editor)->firstName . ' ' . optional($question->editor)->lastName;
+        $question->approverName = optional($question->approver)->firstName . ' ' . optional($question->approver)->lastName;
+
+        // Add related model names for easier frontend handling
+        $question->status_name = optional($question->status)->name;
+        $question->difficulty_name = optional($question->difficulty)->name;
+        $question->coverage_name = optional($question->coverage)->name;
+        $question->purpose_name = optional($question->purpose)->name;
 
         $question->choices->transform(function ($choice) {
             try {
@@ -335,8 +697,25 @@ class QuestionController extends Controller
         return $question;
     }
 
+    // Generate a full URL for images stored in the public disk
     private function generateUrl($path)
     {
-        return $path && !Str::startsWith($path, ['http://', 'https://']) ? url("storage/$path") : $path;
+        if (!$path) {
+            return null;
+        }
+
+        // If it's already a full URL, return as is
+        if (Str::startsWith($path, ['http://', 'https://'])) {
+            return $path;
+        }
+
+        // Check if the file exists in storage
+        if (!Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        // Generate the full URL for the existing file
+        return asset('storage/' . $path);
     }
 }
+

@@ -7,6 +7,8 @@ use Illuminate\Routing\Controller;
 use Modules\Users\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -22,12 +24,13 @@ class UserController extends Controller
                 return response()->json(['message' => 'Unauthorized'], 401);
             }
 
+            // Only Dean (roleID = 4) can access the user list
             if ($user->roleID != 4) {
                 return response()->json(['message' => 'Forbidden'], 403);
             }
 
-            // Fetch all users with role, campus, and program information
-            $users = User::with(['role', 'campus', 'program']) // Eager load program relationship
+            // Eager load related role, campus, program, and status data for each user
+            $users = User::with(['role', 'campus', 'program', 'status'])
                         ->get()
                         ->map(function ($user) {
                             return [
@@ -43,7 +46,8 @@ class UserController extends Controller
                                 'campus' => $user->campus ? $user->campus->campusName : 'Unknown',
                                 'program' => $user->program ? $user->program->programName : 'Not Assigned',
                                 'isActive' => $user->isActive,
-                                'status' => $user->status,
+                                'status_id' => $user->status_id,
+                                'status' => $user->status ? $user->status->name : 'Unknown',
                             ];
                         });
 
@@ -71,6 +75,9 @@ class UserController extends Controller
         return response()->json(['message' => 'User updated successfully', 'user' => $user], 200);
     }
 
+    /**
+     * Get authenticated user profile.
+     */
     public function getProfile()
     {
         $user = Auth::user();
@@ -84,7 +91,6 @@ class UserController extends Controller
             'fullName' => $user->firstName . ' ' . $user->lastName,
         ], 200);
     }
-
 
     /**
      * Deactivate user instead of deleting (Only Dean can do this).
@@ -121,8 +127,8 @@ class UserController extends Controller
     }
 
     /**
- * Activate multiple users (Only Dean can do this).
- */
+     * Activate multiple users (Only Dean can do this).
+     */
     public function activateMultipleUsers(Request $request)
     {
         $authUser = Auth::user();
@@ -130,6 +136,7 @@ class UserController extends Controller
             return response()->json(['message' => 'Unauthorized: Only the Dean can activate users'], 403);
         }
 
+        // Validate incoming array of user IDs
         $validated = $request->validate([
             'userIDs' => 'required|array',
             'userIDs.*' => 'integer|exists:users,userID'
@@ -151,7 +158,6 @@ class UserController extends Controller
             'activated_users' => $activatedUsers
         ], 200);
     }
-
 
     /**
      * Deactivate multiple users (Only Dean can do this).
@@ -185,43 +191,42 @@ class UserController extends Controller
         ], 200);
     }
 
+    /**
+     * Approve single user (Only Dean can do this).
+     */
     public function approveUser(Request $request, $userID)
     {
-        // Get the authenticated user (Dean)
         $authUser = Auth::user();
 
-        // Check if the logged-in user is a Dean
         if ($authUser->roleID !== 4) {
             return response()->json(['message' => 'Unauthorized. Only the Dean can approve users.'], 403);
         }
 
-        // Find the user
         $user = User::find($userID);
 
         if (!$user) {
             return response()->json(['message' => 'User not found.'], 404);
         }
 
-        // If the user is unregistered, delete them
-        if ($user->status === 'unregistered') {
-            $user->delete();
-            return response()->json(['message' => 'User was unregistered and has been deleted.'], 200);
-        }
+        // Get status IDs
+        $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
+        $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;
 
-        // Only pending users can be approved
-        if ($user->status !== 'pending') {
+        if ($user->status_id !== $pendingStatusId) {
             return response()->json(['message' => 'User is already registered.'], 400);
         }
 
-        // Update user status to registered and activate the user
         $user->update([
-            'status' => 'registered',
+            'status_id' => $registeredStatusId,
             'isActive' => true
         ]);
 
         return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
     }
 
+    /**
+     * Disapprove user (Only Dean).
+     */
     public function disapproveUser(Request $request, $userID)
     {
         $authUser = Auth::user();
@@ -236,35 +241,39 @@ class UserController extends Controller
             return response()->json(['message' => 'User not found.'], 404);
         }
 
-        // If already unregistered, prevent unnecessary updates
-        if ($user->status === 'unregistered') {
-            return response()->json(['message' => 'User is already unregistered.'], 400);
-        }
+        // Get disapproved status ID
+        $disapprovedStatusId = DB::table('statuses')->where('name', 'disapproved')->first()->id;
 
-        // Mark user as unregistered instead of deleting immediately
-        $user->update(['status' => 'unregistered']);
+        $user->update([
+            'status_id' => $disapprovedStatusId,
+            'isActive' => false
+        ]);
 
-        return response()->json(['message' => 'User has been marked as unregistered.', 'user' => $user], 200);
+        return response()->json(['message' => 'User has been disapproved.', 'user' => $user], 200);
     }
 
+    /**
+     * Approve multiple users at once (Only Dean).
+     */
     public function approveMultipleUsers(Request $request)
     {
-        // Get the authenticated user (Dean)
         $authUser = Auth::user();
 
-        // Check if the logged-in user is a Dean
         if ($authUser->roleID !== 4) {
             return response()->json(['message' => 'Unauthorized. Only the Dean can approve users.'], 403);
         }
 
-        // Validate input: expecting an array of userIDs
         $validated = $request->validate([
             'userIDs' => 'required|array',
             'userIDs.*' => 'integer|exists:users,userID'
         ]);
 
+        // Get status IDs
+        $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
+        $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;
+        $disapprovedStatusId = DB::table('statuses')->where('name', 'disapproved')->first()->id;
+
         $approvedUsers = [];
-        $deletedUsers = [];
         $skippedUsers = [];
 
         foreach ($validated['userIDs'] as $userID) {
@@ -275,19 +284,18 @@ class UserController extends Controller
                 continue;
             }
 
-            if ($user->status === 'unregistered') {
-                $user->delete();
-                $deletedUsers[] = $userID;
+            if ($user->status_id === $disapprovedStatusId) {
+                $skippedUsers[] = $userID;
                 continue;
             }
 
-            if ($user->status !== 'pending') {
+            if ($user->status_id !== $pendingStatusId) {
                 $skippedUsers[] = $userID;
                 continue;
             }
 
             $user->update([
-                'status' => 'registered',
+                'status_id' => $registeredStatusId,
                 'isActive' => true
             ]);
 
@@ -297,8 +305,87 @@ class UserController extends Controller
         return response()->json([
             'message' => 'Bulk approval completed.',
             'approved_users' => $approvedUsers,
-            'deleted_users' => $deletedUsers,
             'skipped_users' => $skippedUsers
         ], 200);
+    }
+
+    /**
+     * Update the authenticated user's profile.
+     */
+    public function updateProfile(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json(['message' => 'User not authenticated.'], 401);
+            }
+
+            $validated = $request->validate([
+                'firstName' => 'sometimes|required|string|max:100',
+                'lastName' => 'sometimes|required|string|max:100',
+                'email' => [
+                    'sometimes',
+                    'required',
+                    'email',
+                    Rule::unique('users', 'email')->ignore($user->userID, 'userID')
+                ],
+                'userCode' => [
+                    'sometimes',
+                    'required',
+                    'string',
+                    'max:50',
+                    Rule::unique('users', 'userCode')->ignore($user->userID, 'userID')
+                ],
+            ]);
+
+            foreach ($validated as $field => $value) {
+                $user->$field = $value;
+            }
+
+            // Handle non-eloquent instances
+            if (!$user instanceof User) {
+                $eloquentUser = User::find($user->userID);
+                if (!$eloquentUser) {
+                    return response()->json(['message' => 'User record not found.'], 404);
+                }
+
+                foreach ($validated as $field => $value) {
+                    $eloquentUser->$field = $value;
+                }
+
+                $eloquentUser->save();
+                $user = $eloquentUser;
+            } else {
+                $user->save();
+            }
+
+            return response()->json([
+                'message' => 'Profile updated successfully.',
+                'user' => $user
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $customErrors = [];
+
+            if (isset($e->errors()['email'])) {
+                $customErrors['email'] = ['The email is already in use by another account.'];
+            }
+
+            if (isset($e->errors()['userCode'])) {
+                $customErrors['userCode'] = ['The user code is already taken.'];
+            }
+
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => count($customErrors) ? $customErrors : $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Profile update error: ' . $e->getMessage());
+
+            return response()->json([
+                'message' => 'An unexpected error occurred while updating your profile.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

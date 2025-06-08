@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import Sidebar from "./sideBar";
 import Header from "./header";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
+// Main Layout
 const Layout = () => {
   const [role_id, setRoleId] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
+  const location = useLocation();
 
   const roleMap = {
     1: "Student",
@@ -24,7 +26,7 @@ const Layout = () => {
   }, []);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => setIsMobile(window.innerWidth <= 640);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -32,10 +34,13 @@ const Layout = () => {
   const roleTitle =
     role_id !== null && roleMap[role_id] ? roleMap[role_id] : "User";
 
+  const isStudent = Number(role_id) === 1;
+  const isTutorialPage = location.pathname.includes("/help");
+
   return (
-    <div className="min-h-screen bg-[rgb(240,240,240)]">
+    <div className="min-h-screen bg-gray-100">
       <div className="flex">
-        {Number(role_id) !== 1 && ( // Only show Sidebar if NOT student
+        {!isStudent && !isTutorialPage && (
           <Sidebar
             role_id={role_id}
             setSelectedSubject={setSelectedSubject}
@@ -45,11 +50,17 @@ const Layout = () => {
         )}
         <div
           className={`flex flex-1 flex-col transition-all duration-300 ${
-            isMobile ? "ml-0" : isExpanded ? "ml-[200px]" : "ml-[64.5px]"
+            isStudent || isTutorialPage
+              ? "ml-0"
+              : isMobile
+                ? "ml-0"
+                : isExpanded
+                  ? "ml-[200px]"
+                  : "ml-[64.5px]"
           }`}
         >
           <Header title={roleTitle} />
-          <main className="p-4">
+          <main className={isTutorialPage ? "" : "p-4"}>
             <Outlet context={{ selectedSubject }} />
           </main>
         </div>

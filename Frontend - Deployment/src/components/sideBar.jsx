@@ -1,22 +1,25 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import AllSubjectsDropDown from "./allSubjectsDropdown";
-import AllSubjectsDropDownProgramChair from "./allSubjectsDropdownProgramChair";
-import AssignedSubjectsDropDown from "./assignedSubjectDropdown";
-import LoadingOverlay from "./loadingOverlay";
+import AllSubjectsDropDown from "./subjectsDean";
+import AllSubjectsDropDownProgramChair from "./subjectsProgramChair";
+import AssignedSubjectsDropDown from "./subjectsFaculty";
 import SideBarToolTip from "./sidebarTooltip";
+import PrintExamModal from "./PrintExamModal";
+import AppVersion from "./appVersion";
 
+// Displays the main sidebar
 const Sidebar = ({
   role_id,
   setSelectedSubject,
   isExpanded,
   setIsExpanded,
 }) => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
   const collegeLogo = new URL("../assets/college-logo.png", import.meta.url)
     .href;
   const [isSubjectFocused, setIsSubjectFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const sidebarRef = useRef();
 
   const location = useLocation();
@@ -49,7 +52,7 @@ const Sidebar = ({
   }, [isMobile, isExpanded]);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => setIsMobile(window.innerWidth <= 640);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -68,10 +71,15 @@ const Sidebar = ({
             : "/";
 
   const baseMenuItems = [
-    { icon: "bx-bar-chart-alt-2", label: "Dashboard", path: homePath },
+    { icon: "bx-dashboard-alt", label: "Dashboard", path: homePath },
   ];
   const facultyItems = [
-    { icon: "bx-printer", label: "Print", path: "/print-questions" },
+    {
+      icon: "bx-printer",
+      label: "Print",
+      onClick: () => alert("Print feature is under development, Stay Tuned!"),
+      isButton: true,
+    },
   ];
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
   const classes = [{ icon: "bx-book-bookmark", label: "Classes" }];
@@ -90,15 +98,13 @@ const Sidebar = ({
 
   return (
     <>
-      {/* Loading Overlay */}
-
       {isMobile && !isExpanded && (
         <button
           onClick={() => {
             setIsExpanded(true);
             setIsSubjectFocused(false);
           }}
-          className="fixed top-2 left-3 z-54 cursor-pointer rounded hover:bg-orange-500 hover:text-white"
+          className="fixed top-2 left-3 z-55 cursor-pointer rounded"
         >
           <i className="bx bx-menu text-3xl"></i>
         </button>
@@ -106,7 +112,7 @@ const Sidebar = ({
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className={`border-color fixed top-0 z-53 h-screen border-r bg-white p-4 text-gray-700 transition-all duration-300 ease-in-out ${
+        className={`border-color fixed top-0 z-55 h-screen border-r bg-white p-4 text-gray-700 transition-all duration-300 ease-in-out ${
           isMobile ? (isExpanded ? "left-0" : "-left-full") : "left-0"
         } ${isExpanded ? "w-[200px]" : "w-[64.5px]"}`}
       >
@@ -160,32 +166,50 @@ const Sidebar = ({
             {menuItems.map((item, index) => (
               <li key={index}>
                 <SideBarToolTip label={item.label} isExpanded={isExpanded}>
-                  <Link
-                    to={item.path}
-                    className={`flex items-center gap-3 rounded px-[4px] py-[4px] transition-colors ${
-                      isActive(item.path)
-                        ? "bg-orange-500 text-white"
-                        : "hover:text-gray-700"
-                    }`}
-                  >
-                    <i className={`bx ${item.icon} text-2xl`}></i>
-                    <span
-                      className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
-                        isExpanded
-                          ? "pointer-events-auto visible ml-0 opacity-100"
-                          : "pointer-events-none invisible ml-0 opacity-0"
+                  {item.isButton ? (
+                    <button
+                      onClick={item.onClick}
+                      className={`flex w-full items-center gap-3 rounded px-[4px] py-[4px] transition-colors hover:text-gray-700`}
+                    >
+                      <i className={`bx ${item.icon} text-2xl`}></i>
+                      <span
+                        className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
+                          isExpanded
+                            ? "pointer-events-auto visible ml-0 opacity-100"
+                            : "pointer-events-none invisible ml-0 opacity-0"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </button>
+                  ) : (
+                    <Link
+                      to={item.path}
+                      className={`flex items-center gap-3 rounded px-[4px] py-[4px] transition-colors ${
+                        isActive(item.path)
+                          ? "bg-orange-500 text-white"
+                          : "hover:text-gray-700"
                       }`}
                     >
-                      {item.label}
-                    </span>
-                  </Link>
+                      <i className={`bx ${item.icon} text-2xl`}></i>
+                      <span
+                        className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
+                          isExpanded
+                            ? "pointer-events-auto visible ml-0 opacity-100"
+                            : "pointer-events-none invisible ml-0 opacity-0"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </Link>
+                  )}
                 </SideBarToolTip>
               </li>
             ))}
           </ul>
         )}
 
-        {/* Focused Subject Dropdown */}
+        {/* Different Dropdowns for Different Roles*/}
         {parsedRoleId === 4 && (
           <>
             {!isSubjectFocused && (
@@ -273,7 +297,19 @@ const Sidebar = ({
             </div>
           </>
         )}
+
+        <div
+          className={`fixed bottom-4 ${isExpanded ? "left-[75px]" : "left-[14px]"} transition-all duration-300 ease-in-out ${
+            isMobile && !isExpanded ? "hidden" : ""
+          }`}
+        >
+          <AppVersion />
+        </div>
       </div>
+      <PrintExamModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+      />
     </>
   );
 };

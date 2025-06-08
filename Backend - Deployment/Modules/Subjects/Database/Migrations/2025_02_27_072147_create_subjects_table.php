@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->string('subjectCode', 20);
             $table->string('subjectName', 100);
             $table->foreignId('programID')->constrained('programs', 'programID')->onDelete('cascade');
+            $table->foreignId('yearLevelID')->constrained('year_levels', 'yearLevelID')->onDelete('cascade');
             $table->timestamps();
         });
     }

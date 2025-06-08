@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 
+// Displays App Version
 const AppVersion = () => {
   const [version, setVersion] = useState("");
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
@@ -9,15 +10,12 @@ const AppVersion = () => {
       .then((response) => response.json())
       .then((data) => setVersion(data.version))
       .catch((error) => {
-        console.error("Error fetching app version:", error);
-        setVersion("Unavailable");
+        setVersion("Version not found");
       });
   }, []);
 
   return (
-    <div className="mt-4 text-center text-sm text-gray-500">
-      {version && <p>{version}</p>}
-    </div>
+    <div className="text-center text-sm">{version && <p>{version}</p>}</div>
   );
 };
 

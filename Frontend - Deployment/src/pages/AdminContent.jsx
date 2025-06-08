@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
+import AltButton from "../components/buttonAlt";
 import SubjectCard from "../components/subjectCard";
-import PracticeAddQuestionForm from "../components/addPracticeQuestionForm";
-import PracticeAddChoiceForm from "../components/addPracticeChoiceForm";
-import ExamAddQuestionForm from "../components/addExamQuestionForm";
-import ExamAddChoiceForm from "../components/addExamChoiceForm";
+import CombinedQuestionForm from "../components/CombinedQuestionForm";
+import EditQuestionForm from "../components/EditQuestionForm";
+import DuplicateQuestionForm from "../components/DuplicateQuestionForm";
 import ConfirmModal from "../components/confirmModal";
 import Sort from "../components/sort";
 import SearchQuery from "../components/SearchQuery";
@@ -13,44 +13,52 @@ import ScrollToTopButton from "../components/scrollToTopButton";
 import LoadingOverlay from "../components/loadingOverlay";
 import SortCustomDropdown from "../components/sortCustomDropdown";
 
+// Main admin dashboard component for managing questions and subjects
 const AdminContent = () => {
+  // State for image modals and question management
   const [modalImage, setModalImage] = useState(null);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false);
   const [choiceModalImage, setchoiceModalImage] = useState(null);
   const [pendingSort, setPendingSort] = useState("");
+
+  // Context and state for subject and question management
   const { selectedSubject } = useOutletContext();
   const [activeTab, setActiveTab] = useState(0);
   const [questions, setQuestions] = useState([]);
-  const [submittedQuestion, setSubmittedQuestion] = useState({
-    practiceQuestions: { questionID: null, questionText: "", image: null },
-    examQuestions: { questionID: null, questionText: "", image: null },
-  });
+  const [submittedQuestion, setSubmittedQuestion] = useState(null);
+  const [editingQuestion, setEditingQuestion] = useState(null);
 
+  // Refs for form and UI elements
   const formRef = useRef(null);
 
+  // State for search and sorting
   const [searchQuery, setSearchQuery] = useState("");
-
   const [sortOption, setSortOption] = useState("");
   const [subSortOption, setSubSortOption] = useState("");
 
+  // State for modals and confirmation
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [deleteQuestionID, setDeleteQuestionID] = useState(null);
 
   const [editText, setEditText] = useState("");
 
+  // State for form validation
   const [areChoicesValid, setAreChoicesValid] = useState(false);
   const handleChoicesValidity = (validity) => {
     setAreChoicesValid(validity);
   };
   const buttonRef = useRef(null);
 
+  // State for approval modal
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [selectedQuestionID, setSelectedQuestionID] = useState(null);
 
+  // State for loading and actions
   const [isDeleting, setIsDeleting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
 
+  // State for view preferences
   const [showChoices, setShowChoices] = useState(true);
   const [listViewOnly, setListViewOnly] = useState(false);
 
@@ -59,17 +67,20 @@ const AdminContent = () => {
 
   const dropdownRef = useRef(null);
 
-  const [showPracticeChoiceForm, setShowPracticeChoiceForm] = useState(false);
-  const [showExamChoiceForm, setShowExamChoiceForm] = useState(false);
-
+  // State for question addition
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
 
+  // State for toast notifications
   const [toast, setToast] = useState({
     message: "",
     type: "",
     show: false,
   });
 
+  // State for question duplication
+  const [duplicatingQuestion, setDuplicatingQuestion] = useState(null);
+
+  // Effect to handle toast auto-dismiss
   useEffect(() => {
     if (toast.message) {
       setToast((prev) => ({ ...prev, show: true }));
@@ -87,118 +98,45 @@ const AdminContent = () => {
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
+  // Effect to fetch questions when subject changes
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
       fetchQuestions();
-      setSubmittedQuestion({
-        practiceQuestions: null,
-        examQuestions: null,
-      });
-      setShowPracticeChoiceForm(false);
-      setShowExamChoiceForm(false);
+      setSubmittedQuestion(null);
       setSearchQuery("");
       setSortOption("");
       setSubSortOption("");
     }
   }, [selectedSubject]);
 
-  // When a question is added (practice or exam tab)
-  const handleQuestionAdded = (newQuestion) => {
-    if (activeTab === 0) {
-      // Practice tab
-      setSubmittedQuestion((prev) => ({
-        ...prev,
-        practiceQuestions: newQuestion,
-      }));
-      setShowPracticeChoiceForm(true);
-    } else {
-      // Exam tab
-      setSubmittedQuestion((prev) => ({
-        ...prev,
-        examQuestions: newQuestion,
-      }));
-      setShowExamChoiceForm(true);
-    }
-  };
-
-  // For Practice Choices
-  const handlePracticeChoicesSubmitted = () => {
-    setSubmittedQuestion((prev) => ({
-      ...prev,
-      practiceQuestions: null,
-    }));
-    setShowPracticeChoiceForm(false);
+  // Function to handle successful question addition
+  const handleQuestionAdded = () => {
+    setSubmittedQuestion(null);
     fetchQuestions();
     setToast({
-      message: "Practice question is now pending for approval!",
+      message: "Question is now pending for approval!",
       type: "success",
       show: true,
     });
   };
 
-  // For Exam Choices
-  const handleExamChoicesSubmitted = () => {
-    setSubmittedQuestion((prev) => ({
-      ...prev,
-      examQuestions: null,
-    }));
-    setShowExamChoiceForm(false);
+  // Function to handle question editing
+  const handleEditClick = (question) => {
+    setEditingQuestion(question);
+  };
+
+  // Function to handle successful question edit
+  const handleEditComplete = () => {
+    setEditingQuestion(null);
     fetchQuestions();
     setToast({
-      message: "Exam question is now pending for approval!",
+      message: "Question is now pending for approval!",
       type: "success",
       show: true,
     });
   };
 
-  // Small helper
-  const fixImageUrl = (url) => {
-    if (!url) return "";
-
-    // If it wrongly contains "http" inside the path
-    if (url.includes("http")) {
-      const parts = url.split("/http");
-      if (parts.length > 1) {
-        return "http" + parts[1]; // Fix the URL
-      }
-    }
-    return url;
-  };
-
-  const startEditing = (question) => {
-    setEditQuestionID(question.questionID);
-    setEditText(question.questionText);
-  };
-
-  const saveEdit = async (questionID) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${apiUrl}/questions/update/${questionID}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ questionText: editText }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update question");
-      }
-
-      // Update the question in the local state
-      setQuestions((prevQuestions) =>
-        prevQuestions.map((q) =>
-          q.questionID === questionID ? { ...q, questionText: editText } : q,
-        ),
-      );
-
-      cancelEdit(); // Exit edit mode
-    } catch (error) {
-      console.error("Error updating question:", error);
-    }
-  };
-
+  // Function to handle question deletion
   const handleDeleteQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
@@ -231,6 +169,7 @@ const AdminContent = () => {
     }
   };
 
+  // Function to fetch questions for selected subject
   const fetchQuestions = async () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setIsLoading(true);
@@ -262,15 +201,21 @@ const AdminContent = () => {
       const data = await response.json();
       console.log("Fetched Questions:", data);
 
+      // Update questions with the formatted data from backend
       setQuestions(data.data || []);
     } catch (error) {
       console.error("Error fetching questions:", error);
+      setToast({
+        message: "Failed to fetch questions. Please try again.",
+        type: "error",
+        show: true,
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Filter and Sort Questions
+  // Function to filter and sort questions based on criteria
   const filteredQuestions = questions
     .filter((question) => {
       const matchesSearch = question.questionText
@@ -279,34 +224,60 @@ const AdminContent = () => {
 
       const matchesTab =
         (activeTab === 0 &&
-          question.purpose === "practiceQuestions" &&
-          question.status === "approved") ||
+          question.purpose_id === 1 && // 1 for practice questions
+          question.status_id === 2) || // 2 is approved
         (activeTab === 1 &&
-          question.purpose === "examQuestions" &&
-          question.status === "approved") ||
+          question.purpose_id === 2 && // 2 for exam questions
+          question.status_id === 2) || // 2 is approved
         (activeTab === 4 &&
-          question.status === "pending" &&
-          (pendingSort ? question.purpose === pendingSort : true));
+          question.status_id === 1 && // 1 is pending
+          (pendingSort
+            ? question.purpose_id ===
+              (pendingSort === "practiceQuestions" ? 1 : 2)
+            : true));
 
       return matchesSearch && matchesTab;
     })
     .sort((a, b) => {
-      if (sortOption === "score") {
-        return (a.score || 0) - (b.score || 0);
+      // Helper function to determine sort direction
+      const getSortDirection = (option) => {
+        return option.endsWith("_desc") ? -1 : 1;
+      };
+
+      // Get the base sort option without the _desc suffix
+      const baseSortOption = sortOption.replace("_desc", "");
+      const direction = getSortDirection(sortOption);
+
+      if (baseSortOption === "score") {
+        return direction * ((a.score || 0) - (b.score || 0));
       }
 
-      if (sortOption === "difficulty") {
-        const order = { easy: 1, moderate: 2, hard: 3 };
-        return (order[a.difficulty] || 0) - (order[b.difficulty] || 0);
+      if (baseSortOption === "difficulty") {
+        return direction * ((a.difficulty_id || 0) - (b.difficulty_id || 0));
       }
 
-      if (sortOption === "coverage") {
-        return (a.coverage || "").localeCompare(b.coverage || "");
+      if (baseSortOption === "coverage") {
+        return direction * ((a.coverage_id || 0) - (b.coverage_id || 0));
       }
 
-      return 0;
+      if (baseSortOption === "date") {
+        // Get the most recent date between created_at and updated_at
+        const getMostRecentDate = (question) => {
+          const createdDate = new Date(question.created_at);
+          const updatedDate = new Date(question.updated_at);
+          return updatedDate > createdDate ? updatedDate : createdDate;
+        };
+
+        const dateA = getMostRecentDate(a);
+        const dateB = getMostRecentDate(b);
+        return direction * (dateA - dateB);
+      }
+
+      // Default sort by updated_at timestamp (most recently updated first)
+      return new Date(b.updated_at) - new Date(a.updated_at);
     });
 
+  // Function to confirm question deletion
   const confirmDelete = (questionID) => {
     setDeleteQuestionID(questionID);
     setShowConfirmModal(true);
@@ -321,17 +292,12 @@ const AdminContent = () => {
   }, []);
 
   useEffect(() => {
-    if (showPracticeChoiceForm && formRef.current) {
+    if (submittedQuestion && formRef.current) {
       formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [showPracticeChoiceForm]);
+  }, [submittedQuestion]);
 
-  useEffect(() => {
-    if (showExamChoiceForm && formRef.current) {
-      formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [showExamChoiceForm]);
-
+  // Function to handle question approval
   const approveQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
@@ -392,6 +358,31 @@ const AdminContent = () => {
     };
   }, [dropdownOpen]);
 
+  // Add this helper function at the top of the component
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      return path;
+    }
+    return `${apiUrl}/storage/${path}`;
+  };
+
+  // Function to handle question duplication
+  const handleDuplicateClick = (question) => {
+    setDuplicatingQuestion(question);
+  };
+
+  // Function to handle successful question duplication
+  const handleDuplicateComplete = () => {
+    setDuplicatingQuestion(null);
+    fetchQuestions();
+    setToast({
+      message: "Question copied successfully! now waiting for approval",
+      type: "success",
+      show: true,
+    });
+  };
+
   return (
     <div className="relative mt-9 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
       <div className="flex-1">
@@ -429,17 +420,21 @@ const AdminContent = () => {
                       { value: "", label: "All Types" },
                       {
                         value: "practiceQuestions",
-                        label: "Practice Questions",
+                        label: "Practice  ",
                       },
-                      { value: "examQuestions", label: "Exam Questions" },
+                      { value: "examQuestions", label: "Qualifying Exam " },
                     ]}
+                    className="w-full sm:w-35"
                   />
                 )}
               </div>
 
-              <div className="flex flex-row items-center justify-center gap-[5.5px]">
+              <div className="flex flex-row items-center justify-center gap-2">
+                <span className="text-[14px] text-nowrap text-gray-700 sm:ml-10">
+                  Sort by
+                </span>
                 {/* Sort - takes 1/2 width on small screens */}
-                <div className="w-full sm:w-auto sm:flex-1">
+                <div className="-mr-8 w-full sm:w-auto sm:flex-1">
                   <Sort
                     sortOption={sortOption}
                     setSortOption={setSortOption}
@@ -460,10 +455,12 @@ const AdminContent = () => {
                   >
                     <span className="mr-5 text-[14px]">View</span>
                     <i
-                      className={`bx absolute right-2 text-[18px] ${
-                        dropdownOpen ? "bx-chevron-up" : "bx-chevron-down"
+                      className={`bx absolute right-2 text-[18px] transition-transform duration-200 ${
+                        dropdownOpen
+                          ? "bx-chevron-down rotate-180"
+                          : "bx-chevron-down rotate-0"
                       }`}
-                      style={{ marginLeft: "auto" }} // Ensure the chevron is right-aligned
+                      style={{ marginLeft: "auto" }}
                     />
                   </button>
 
@@ -496,7 +493,7 @@ const AdminContent = () => {
                             : "text-black hover:bg-gray-200"
                         }`}
                       >
-                        <i className="bx bx-detail text-[18px]" />
+                        <i className="bx bx-list-ul-square text-[18px]" />
                         <span>Detailed View</span>
                       </button>
                     </div>
@@ -509,21 +506,11 @@ const AdminContent = () => {
             {(activeTab === 0 || activeTab === 1) && (
               <div>
                 {/* Show Add Question Button Only If No Active Question */}
-                {!submittedQuestion[
-                  activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                ] && (
-                  <div className="fixed right-[-4px] bottom-[-4px] z-57 p-4 text-center">
+                {!submittedQuestion && (
+                  <div className="fixed right-[-4px] bottom-[-4px] z-50 p-4 text-center">
                     <button
                       onClick={() => {
-                        setSubmittedQuestion((prev) => ({
-                          ...prev,
-                          [activeTab === 0
-                            ? "practiceQuestions"
-                            : "examQuestions"]: {
-                            questionText: "",
-                            questionID: null,
-                          },
-                        }));
+                        setSubmittedQuestion("new");
                         setIsAddingQuestion(true);
 
                         setTimeout(() => {
@@ -549,157 +536,16 @@ const AdminContent = () => {
                 )}
 
                 <div ref={formRef}>
-                  {/* Show AddQuestionForm based on activeTab */}
-                  {submittedQuestion[
-                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                  ] &&
-                    !submittedQuestion[
-                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                    ].questionID && (
-                      <>
-                        <div className="text-right"></div>
-                        {activeTab === 0 ? (
-                          <PracticeAddQuestionForm
-                            subjectID={selectedSubject.subjectID}
-                            onQuestionAdded={handleQuestionAdded}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                practiceQuestions: null,
-                              }))
-                            }
-                            areChoicesValid={areChoicesValid}
-                          />
-                        ) : (
-                          <ExamAddQuestionForm
-                            subjectID={selectedSubject.subjectID}
-                            onQuestionAdded={handleQuestionAdded}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                examQuestions: null,
-                              }))
-                            }
-                          />
-                        )}
-                      </>
-                    )}
-                </div>
-
-                {/* Preview */}
-                {(activeTab === 0
-                  ? showPracticeChoiceForm
-                  : showExamChoiceForm) &&
-                  submittedQuestion?.[
-                    activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                  ]?.questionID && (
-                    <div className="flex flex-col">
-                      <div className="flex-1">
-                        <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border border-b-0 bg-white py-2 pl-4 text-[14px] font-medium text-gray-600">
-                          <span>ADD CHOICES</span>
-                        </div>
-                        <div className="border-color mx-auto w-full max-w-3xl rounded-b-none border border-b-0 bg-white p-4 shadow-sm">
-                          <div className="relative rounded-md bg-gray-100 p-1 transition-all duration-150 hover:cursor-text">
-                            <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
-                              <span>
-                                <div
-                                  dangerouslySetInnerHTML={{
-                                    __html:
-                                      submittedQuestion[
-                                        activeTab === 0
-                                          ? "practiceQuestions"
-                                          : "examQuestions"
-                                      ].questionText,
-                                  }}
-                                ></div>
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* image preview */}
-                          {submittedQuestion[
-                            activeTab === 0
-                              ? "practiceQuestions"
-                              : "examQuestions"
-                          ].image && (
-                            <div className="relative mt-3 inline-block max-w-[300px] hover:opacity-80">
-                              <img
-                                src={fixImageUrl(
-                                  submittedQuestion[
-                                    activeTab === 0
-                                      ? "practiceQuestions"
-                                      : "examQuestions"
-                                  ].image,
-                                )}
-                                alt="Question Image Preview"
-                                className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md"
-                                onClick={() => setisQuestionModalOpen(true)}
-                              />
-                            </div>
-                          )}
-
-                          {isQuestionModalOpen && (
-                            <div
-                              className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center"
-                              onClick={() => setisQuestionModalOpen(false)}
-                            >
-                              <div className="relative max-h-full max-w-full">
-                                <img
-                                  src={fixImageUrl(
-                                    submittedQuestion[
-                                      activeTab === 0
-                                        ? "practiceQuestions"
-                                        : "examQuestions"
-                                    ].image,
-                                  )}
-                                  alt="Full View"
-                                  className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                  {/* Show Combined Form */}
+                  {submittedQuestion === "new" && (
+                    <div className="transition-all duration-300 ease-out">
+                      <CombinedQuestionForm
+                        subjectID={selectedSubject.subjectID}
+                        onComplete={handleQuestionAdded}
+                        onCancel={() => setSubmittedQuestion(null)}
+                      />
                     </div>
                   )}
-
-                <div ref={formRef}>
-                  {(activeTab === 0
-                    ? showPracticeChoiceForm
-                    : showExamChoiceForm) &&
-                    submittedQuestion?.[
-                      activeTab === 0 ? "practiceQuestions" : "examQuestions"
-                    ]?.questionID && (
-                      <>
-                        {activeTab === 0 ? (
-                          <PracticeAddChoiceForm
-                            questionID={
-                              submittedQuestion["practiceQuestions"]?.questionID
-                            }
-                            onComplete={handlePracticeChoicesSubmitted}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                practiceQuestions: null,
-                              }))
-                            }
-                          />
-                        ) : (
-                          <ExamAddChoiceForm
-                            questionID={
-                              submittedQuestion["examQuestions"]?.questionID
-                            }
-                            onComplete={handleExamChoicesSubmitted}
-                            onCancel={() =>
-                              setSubmittedQuestion((prev) => ({
-                                ...prev,
-                                examQuestions: null,
-                              }))
-                            }
-                          />
-                        )}
-                      </>
-                    )}
                 </div>
               </div>
             )}
@@ -718,13 +564,13 @@ const AdminContent = () => {
                               filteredQuestions.filter(
                                 (question) =>
                                   (activeTab === 4 &&
-                                    question.status === "pending") ||
+                                    question.status_id === 1) || // 1 is pending
                                   (activeTab === 0 &&
-                                    question.purpose === "practiceQuestions" &&
-                                    question.status === "approved") ||
+                                    question.purpose_id === 1 && // 1 for practice questions
+                                    question.status_id === 2) || // 2 is approved
                                   (activeTab === 1 &&
-                                    question.purpose === "examQuestions" &&
-                                    question.status === "approved"),
+                                    question.purpose_id === 2 && // 2 for exam questions
+                                    question.status_id === 2), // 2 is approved
                               ).length
                             }{" "}
                             QUESTIONS
@@ -759,14 +605,13 @@ const AdminContent = () => {
                       {filteredQuestions
                         .filter(
                           (question) =>
-                            (activeTab === 4 &&
-                              question.status === "pending") ||
+                            (activeTab === 4 && question.status_id === 1) || // 1 is pending
                             (activeTab === 0 &&
-                              question.purpose === "practiceQuestions" &&
-                              question.status === "approved") ||
+                              question.purpose_id === 1 && // 1 for practice questions
+                              question.status_id === 2) || // 2 is approved
                             (activeTab === 1 &&
-                              question.purpose === "examQuestions" &&
-                              question.status === "approved"),
+                              question.purpose_id === 2 && // 2 for exam questions
+                              question.status_id === 2), // 2 is approved
                         )
                         .map((question, index) => (
                           <div key={`${question.id}-${index}`}>
@@ -792,19 +637,13 @@ const AdminContent = () => {
                                   {/* Always show points, coverage, and difficulty in list view */}
                                   <span>{index + 1}. Multiple Choice</span>
                                   <div className="flex items-center">
-                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium">
-                                      {question.difficulty
-                                        .charAt(0)
-                                        .toUpperCase() +
-                                        question.difficulty.slice(1)}
+                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium capitalize">
+                                      {question.difficulty?.name || "Easy"}
                                     </span>
                                     <span> •</span>
                                     {/* Coverage Badge */}
-                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium">
-                                      {question.coverage
-                                        .charAt(0)
-                                        .toUpperCase() +
-                                        question.coverage.slice(1)}
+                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium capitalize">
+                                      {question.coverage?.name || "Midterm"}
                                     </span>
                                     <span className="border-color ml-2 rounded-full border px-3 py-1 text-[13px] font-medium">
                                       {question.score} pt
@@ -859,12 +698,14 @@ const AdminContent = () => {
                                         <div className="relative mt-3 inline-block max-w-[300px] rounded-md">
                                           <div className="flex flex-col items-start">
                                             <img
-                                              src={question.image}
+                                              src={getImageUrl(question.image)}
                                               alt="Question Image"
                                               className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md hover:opacity-80"
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                setModalImage(question.image);
+                                                setModalImage(
+                                                  getImageUrl(question.image),
+                                                );
                                               }}
                                             />
                                           </div>
@@ -874,11 +715,13 @@ const AdminContent = () => {
                                       <div className="relative mt-3 inline-block max-w-[300px] rounded-md">
                                         <div className="flex flex-col items-start">
                                           <img
-                                            src={question.image}
+                                            src={getImageUrl(question.image)}
                                             alt="Question Image"
                                             className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md hover:opacity-80"
                                             onClick={() =>
-                                              setModalImage(question.image)
+                                              setModalImage(
+                                                getImageUrl(question.image),
+                                              )
                                             }
                                           />
                                         </div>
@@ -931,7 +774,7 @@ const AdminContent = () => {
                                         {choice.image && (
                                           <div className="relative max-w-[200px] cursor-pointer rounded-md hover:opacity-80">
                                             <img
-                                              src={choice.image}
+                                              src={getImageUrl(choice.image)}
                                               alt={`Choice ${index + 1}`}
                                               className={`h-auto max-w-full rounded-md border-2 object-cover hover:cursor-pointer ${
                                                 choice.isCorrect
@@ -941,7 +784,7 @@ const AdminContent = () => {
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setchoiceModalImage(
-                                                  choice.image,
+                                                  getImageUrl(choice.image),
                                                 );
                                                 setIsChoiceModalOpen(true);
                                               }}
@@ -962,47 +805,84 @@ const AdminContent = () => {
                                   expandedQuestionId ===
                                     question.questionID)) && (
                                 <>
-                                  <div className="mx-4 mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
-                                  <div className="ml-4 flex flex-col gap-1 text-[12px] text-gray-500">
-                                    <div className="flex">
-                                      <span className="w-[100px]">
-                                        Created by:
-                                      </span>
-                                      <span>{question.creatorName}</span>
+                                  <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+                                  <div className="ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex">
+                                        <span className="w-[100px]">
+                                          Created by:
+                                        </span>
+                                        <span>{question.creatorName}</span>
+                                      </div>
+                                      <div className="flex">
+                                        <span className="w-[100px]">
+                                          Date Created:
+                                        </span>
+                                        <span>
+                                          {new Date(
+                                            question.created_at,
+                                          ).toLocaleString("en-US", {
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric",
+                                            hour: "numeric",
+                                            minute: "2-digit",
+                                            hour12: true,
+                                          })}
+                                        </span>
+                                      </div>
+                                      <div className="flex sm:col-span-2">
+                                        <span className="w-[100px]">
+                                          Question Type:
+                                        </span>
+                                        <span>
+                                          {question.purpose_id === 1
+                                            ? "Practice Question"
+                                            : "Qualifying Exam Question"}
+                                        </span>
+                                      </div>
                                     </div>
-                                    <div className="flex">
-                                      <span className="w-[100px]">
-                                        Date Added:
-                                      </span>
-                                      <span>
-                                        {new Date(
-                                          question.created_at,
-                                        ).toLocaleString("en-US", {
-                                          year: "numeric",
-                                          month: "long",
-                                          day: "numeric",
-                                          hour: "numeric",
-                                          minute: "2-digit",
-                                          hour12: true,
-                                        })}
-                                      </span>
-                                    </div>
-                                    <div className="flex">
-                                      <span className="w-[100px]">
-                                        Date Modified:
-                                      </span>
-                                      <span>
-                                        {new Date(
-                                          question.updated_at,
-                                        ).toLocaleString("en-US", {
-                                          year: "numeric",
-                                          month: "long",
-                                          day: "numeric",
-                                          hour: "numeric",
-                                          minute: "2-digit",
-                                          hour12: true,
-                                        })}
-                                      </span>
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex">
+                                        <span className="w-[100px]">
+                                          Modified by:
+                                        </span>
+                                        <span>
+                                          {question.editor
+                                            ? `${question.editor.firstName} ${question.editor.lastName}`
+                                            : "Not modified"}
+                                        </span>
+                                      </div>
+                                      <div className="flex">
+                                        <span className="w-[100px]">
+                                          Date Modified:
+                                        </span>
+                                        <span>
+                                          {new Date(
+                                            question.updated_at,
+                                          ).toLocaleString("en-US", {
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric",
+                                            hour: "numeric",
+                                            minute: "2-digit",
+                                            hour12: true,
+                                          })}
+                                        </span>
+                                      </div>
+                                      {question.approver && (
+                                        <div className="flex sm:col-span-2">
+                                          <span className="w-[100px]">
+                                            Approved by:
+                                          </span>
+                                          <span>
+                                            {question.approver.firstName &&
+                                            question.approver.lastName
+                                              ? `${question.approver.firstName} ${question.approver.lastName}`
+                                              : "Not approved"}
+                                          </span>
+                                        </div>
+                                      )}{" "}
                                     </div>
                                   </div>
                                 </>
@@ -1012,42 +892,66 @@ const AdminContent = () => {
                                 (listViewOnly &&
                                   expandedQuestionId ===
                                     question.questionID)) && (
-                                <div className="mt-5 mb-1 flex justify-end gap-2">
-                                  {question.status === "pending" ? (
-                                    <>
-                                      <Button
-                                        text="Remove"
-                                        textres="Remove"
-                                        icon="bx bx-trash"
-                                        onClick={() =>
-                                          confirmDelete(question.questionID)
-                                        }
-                                        className="cursor-pointer"
-                                      />
-                                      <Button
-                                        text="Approve"
-                                        textres="Approve"
-                                        icon="bx bx-check"
-                                        onClick={() => {
-                                          setSelectedQuestionID(
-                                            question.questionID,
-                                          );
-                                          setShowApproveModal(true);
-                                        }}
-                                      />
-                                    </>
-                                  ) : (
-                                    <Button
-                                      text="Remove"
-                                      textres="Remove"
-                                      icon="bx bx-trash"
-                                      onClick={() =>
-                                        confirmDelete(question.questionID)
-                                      }
-                                      className="cursor-pointer"
-                                    />
-                                  )}
-                                </div>
+                                <>
+                                  <div className="mt-5 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+                                  <div className="mt-5 mb-1 flex justify-end gap-1">
+                                    {question.status_id === 1 ? ( // 1 is pending
+                                      <>
+                                        <AltButton
+                                          text="Remove"
+                                          icon="bx bx-trash"
+                                          className="hover:text-red-500"
+                                          onClick={() =>
+                                            confirmDelete(question.questionID)
+                                          }
+                                        />
+
+                                        <AltButton
+                                          text="Approve"
+                                          textres="Approve"
+                                          icon="bx bx-checks"
+                                          className="hover:text-orange-500"
+                                          onClick={() => {
+                                            setSelectedQuestionID(
+                                              question.questionID,
+                                            );
+                                            setShowApproveModal(true);
+                                          }}
+                                        />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <AltButton
+                                          text="Edit"
+                                          textres="Edit"
+                                          icon="bx bx-edit-alt"
+                                          className="hover:text-orange-500"
+                                          onClick={() =>
+                                            handleEditClick(question)
+                                          }
+                                        />
+
+                                        <AltButton
+                                          text="Copy"
+                                          icon="bx bx-copy"
+                                          className="hover:text-orange-500"
+                                          onClick={() =>
+                                            handleDuplicateClick(question)
+                                          }
+                                        />
+
+                                        <AltButton
+                                          text="Remove"
+                                          icon="bx bx-trash"
+                                          className="hover:text-red-500"
+                                          onClick={() =>
+                                            confirmDelete(question.questionID)
+                                          }
+                                        />
+                                      </>
+                                    )}
+                                  </div>
+                                </>
                               )}
                             </div>
                           </div>
@@ -1063,7 +967,13 @@ const AdminContent = () => {
                         No questions found.
                       </p>
                     )
-                  ) : null}
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <p className="text-center text-[16px] text-gray-500">
+                        Loading questions...
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1131,9 +1041,22 @@ const AdminContent = () => {
             </div>
           </div>
         )}
+        {editingQuestion && (
+          <EditQuestionForm
+            question={editingQuestion}
+            onComplete={handleEditComplete}
+            onCancel={() => setEditingQuestion(null)}
+          />
+        )}
+        {duplicatingQuestion && (
+          <DuplicateQuestionForm
+            question={duplicatingQuestion}
+            onComplete={handleDuplicateComplete}
+            onCancel={() => setDuplicatingQuestion(null)}
+          />
+        )}
         <ScrollToTopButton />
       </div>
-
       {toast.message && (
         <div
           className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
@@ -1147,7 +1070,7 @@ const AdminContent = () => {
               className={`mr-3 text-[24px] ${
                 toast.type === "success"
                   ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-error text-red-400"
+                  : "bx bxs-x-circle text-red-400"
               }`}
             ></i>
             <div>

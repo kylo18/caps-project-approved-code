@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens;
 use Modules\Users\Models\Role;
+use Modules\Questions\Models\Status;
 use Modules\FacultySubjects\Models\FacultySubject;
 use Modules\PracticeExams\Models\PracticeExamResult;
 use Illuminate\Support\Facades\Notification;
@@ -38,7 +39,7 @@ class User extends Authenticatable
         'roleID',
         'campusID',
         'isActive',
-        'status',
+        'status_id',
         'programID',
     ];
 
@@ -65,6 +66,12 @@ class User extends Authenticatable
         return $this->belongsTo(Campus::class, 'campusID');
     }
 
+    // 🔹 Relationship: User belongs to a status
+    public function status(): BelongsTo
+    {
+        return $this->belongsTo(Status::class, 'status_id');
+    }
+
     // 🔹 Relationship: User (faculty) has many assigned subjects
     public function facultySubjects(): HasMany
     {
@@ -85,19 +92,19 @@ class User extends Authenticatable
     // 🔹 Check if user is registered
     public function isRegistered(): bool
     {
-        return $this->status === 'registered';
+        return $this->status->name === 'registered';
     }
 
-    // 🔹 Check if user is unregistered
-    public function isUnregistered(): bool
+    // 🔹 Check if user is disapproved
+    public function isDisapproved(): bool
     {
-        return $this->status === 'unregistered';
+        return $this->status->name === 'disapproved';
     }
 
     // 🔹 Check if user is pending
     public function isPending(): bool
     {
-        return $this->status === 'pending';
+        return $this->status->name === 'pending';
     }
 
     public function program()

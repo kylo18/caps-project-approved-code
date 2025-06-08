@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 
+// Handles the Sort function and the Sort Options
 const SortCustomDropdown = ({
   name,
   value,
   onChange,
   options,
   placeholder,
+  className,
+  buttonLabel,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState("bottom");
@@ -49,10 +52,10 @@ const SortCustomDropdown = ({
           ref={buttonRef}
           type="button"
           onClick={handleOpenDropdown}
-          className="border-color relative flex w-full cursor-pointer items-center rounded-md border bg-white px-3 py-2 shadow-sm hover:bg-gray-100"
+          className={`border-color relative flex w-30 cursor-pointer items-center rounded-md border bg-white px-3 py-2 shadow-sm hover:bg-gray-100 ${className}`}
         >
-          <span className={`truncate ${!value ? "text-black" : ""}`}>
-            {options.find((opt) => opt.value === value)?.label || placeholder}
+          <span className={`truncate ${!value ? "text-gray-700" : ""}`}>
+            {buttonLabel || placeholder}
           </span>
           <i
             className={`bx bx-chevron-down absolute right-2 text-[18px] transition-transform ${isOpen ? "rotate-180" : "rotate-0"}`}
@@ -72,7 +75,9 @@ const SortCustomDropdown = ({
                   setIsOpen(false);
                 }}
                 className={`cursor-pointer rounded-sm px-3 py-[10px] text-[14px] text-black transition hover:bg-gray-200 ${
-                  value === option.value ? "text-orange-500" : ""
+                  value === option.value || value === option.value + "_desc"
+                    ? "text-orange-500"
+                    : ""
                 }`}
               >
                 {option.label}

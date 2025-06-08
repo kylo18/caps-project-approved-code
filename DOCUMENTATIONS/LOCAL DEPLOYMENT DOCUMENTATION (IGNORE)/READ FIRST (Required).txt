@@ -1,0 +1,1 @@
+Kindly ignore this part, this is no longer working in local deployment because all the files in testing environment are uploaded already in AWS

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import univLogo from "../assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,27 @@ export default function LoginPage() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
+  const [toast, setToast] = useState({
+    message: "",
+    type: "",
+    show: false,
+  });
+
+  useEffect(() => {
+    if (toast.message) {
+      setToast((prev) => ({ ...prev, show: true }));
+
+      const timer = setTimeout(() => {
+        setToast((prev) => ({ ...prev, show: false }));
+        setTimeout(() => {
+          setToast({ message: "", type: "", show: false });
+        }, 500);
+      }, 2500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [toast.message]);
+
   const [isLogIn, setIsLogIn] = useState(false);
 
   const handleLogin = async (e) => {
@@ -21,7 +42,11 @@ export default function LoginPage() {
     setIsLogIn(true);
 
     if (!idCode.trim() || !password.trim()) {
-      setError("Please enter both ID Code and Password.");
+      setToast({
+        message: "Please enter both ID Code and Password.",
+        type: "error",
+        show: true,
+      });
       setIsLogIn(false);
       return;
     }
@@ -44,10 +69,18 @@ export default function LoginPage() {
       if (!response.ok) {
         if (response.status === 401) {
           // 401 Unauthorized -> wrong userCode or password
-          setError("Incorrect ID Code or Password.");
+          setToast({
+            message: "Incorrect user code or password",
+            type: "error",
+            show: true,
+          });
         } else {
           // Other errors
-          setError(data.message || "Login failed. Please try again.");
+          setToast({
+            message: "Something went wrong. Please try again later.",
+            type: "error",
+            show: true,
+          });
         }
         return;
       }
@@ -76,167 +109,386 @@ export default function LoginPage() {
           break;
       }
     } catch (error) {
-      console.error("Login error:", error);
-      setError("Something went wrong. Please try again later.");
+      setToast({
+        message: "Something went wrong. Please try again later.",
+        type: "error",
+        show: true,
+      });
     } finally {
       setIsLogIn(false);
     }
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col bg-[url('/login-bg-xs.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/login-bg-md.png')] md:bg-[url('/login-bg-md.png')] lg:flex-row lg:bg-[url('/login-bg.png')]">
-      {/* Left Section */}
-      <div className="mr-10 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
-        {/* Logos */}
-        <div className="absolute top-3 left-3 flex items-center space-x-2">
-          <img src={univLogo} alt="Logo 1" className="size-8" />
-          <img src={collegeLogo} alt="Logo 2" className="size-8" />
-          <h1 className="text-xs lg:text-lg">
-            JOSE RIZAL MEMORIAL STATE UNIVERSITY
-          </h1>
-        </div>
+    <>
+      {/* Desktop View */}
+      <div className="relative hidden min-h-screen w-full bg-[url('/login-bg.png')] bg-cover bg-center bg-no-repeat lg:block">
+        {/* Left Section */}
+        <div className="flex min-h-screen flex-row">
+          <div className="mr-18 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
+            {/* Logos */}
+            <div className="absolute top-3 left-3 flex items-center space-x-2">
+              <img src={univLogo} alt="Logo 1" className="size-8" />
+              <img src={collegeLogo} alt="Logo 2" className="size-8" />
+              <h1 className="text-xs lg:text-lg">
+                JOSE RIZAL MEMORIAL STATE UNIVERSITY
+              </h1>
+            </div>
 
-        {/* Title */}
-        <div className="mt-20 hidden flex-col items-center justify-center lg:flex">
-          <h1 className="text-3xl leading-snug font-bold lg:text-4xl">
-            <span className="text-5xl text-orange-500">C</span>OMPREHENSIVE
-            <br />
-            <span className="text-5xl text-orange-500">A</span>SSESSMENT AND
-            <br />
-            <span className="text-5xl text-orange-500">P</span>REPARATION
-            <br />
-            <span className="text-5xl text-orange-500">S</span>YSTEM
-          </h1>
-          <p className="mt-20 mr-10 hidden max-w-xs text-center text-sm text-gray-500 lg:block">
-            A platform designed to help students practice and prepare for
-            qualifying exams while assessing their knowledge through randomized
-            questions.
-          </p>
-        </div>
-
-        <div className="font-inter mt-12 flex flex-col items-center justify-center lg:hidden">
-          <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
-            <span>
-              <span className="text-3xl text-orange-500">C</span>OMPREHENSIVE
-            </span>
-            <span>
-              <span className="text-3xl text-orange-500"> A</span>SSESSMENT
-            </span>
-            <br />
-            <span>AND</span>
-            <span>
-              <span className="text-3xl text-orange-500"> P</span>REPARATION
-            </span>
-            <span>
-              <span className="text-3xl text-orange-500"> S</span>YSTEM
-            </span>
-          </h1>
-        </div>
-      </div>
-
-      {/* Right Section */}
-      <div className="mt-30 flex w-full items-center justify-center p-6 sm:mt-30 md:mt-30 lg:mt-0 lg:w-1/2">
-        <div className="w-full max-w-xs space-y-6 sm:max-w-md">
-          <div className="text-center sm:ml-10 lg:ml-0">
-            <h2 className="text-xl font-bold lg:mr-15">LOG IN ACCOUNT</h2>
-            <p className="mt-2 justify-center text-center text-sm text-gray-500 lg:mr-15">
-              <span>Welcome! Please enter your ID number and password </span>
-              <span>to access your account.</span>
-            </p>
-
-            <form className="mt-6 w-full max-w-sm">
-              {/* ID Number Input */}
-              <div className="relative mb-4">
-                <i className="bx bx-user absolute top-3 left-3 text-[18px] text-gray-500"></i>
-                <input
-                  type="text"
-                  placeholder="Enter ID Number"
-                  className="open-sans border-[rgb(168,168,168) w-full rounded-none border-0 border-b px-10 py-2 transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none"
-                  value={idCode}
-                  onChange={(e) => setIdCode(e.target.value)}
-                />
-              </div>
-
-              {/* Password Input */}
-              <div className="relative mb-4">
-                <div className="relative flex items-center overflow-hidden">
-                  <i className="bx bx-key absolute top-3 left-3 text-[18px] text-gray-500"></i>
-                  <input
-                    type={passwordVisible ? "text" : "password"}
-                    placeholder="Enter Password"
-                    className="open-sans border-[rgb(168,168,168) w-full rounded-none border-0 border-b px-10 py-2 transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <div
-                    className="border-[rgb(168,168,168) top-2 right-2 flex cursor-pointer items-center border-b p-2"
-                    onClick={() => setPasswordVisible(!passwordVisible)}
-                  >
-                    <i
-                      className={`bx ${passwordVisible ? "bx-show" : "bx-hide"} text-[24px] text-orange-500`}
-                    ></i>
-                  </div>
-                </div>
-                {error && (
-                  <p className="mt-2 text-center text-sm text-red-600">
-                    {error}
-                  </p>
-                )}
-              </div>
-
-              {/* Remember Me & Links */}
-              <div className="mb-6 flex items-center justify-between text-sm text-gray-600">
-                {/* Left side: Remember Me */}
-                <label className="flex items-center gap-2 text-nowrap">
-                  <input type="checkbox" />
-                  <span>Remember me</span>
-                </label>
-
-                {/* Right side: Forgot Password */}
-                <a
-                  onClick={() => navigate("/forgot-password")}
-                  className="cursor-pointer text-[13px] hover:underline"
-                >
-                  Forgot Password
-                </a>
-              </div>
-
-              {/* Login Button */}
-              <div className="mx-auto flex w-[30%] items-center justify-center text-sm">
-                <button
-                  type="submit"
-                  onClick={handleLogin}
-                  disabled={isLogIn}
-                  className="flex h-10 w-full items-center justify-center rounded-lg bg-orange-500 py-2 font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
-                >
-                  {isLogIn ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                  ) : (
-                    "LOG IN"
-                  )}
-                </button>
-              </div>
-
-              {/* Register Link */}
-              <p className="mt-4 justify-center text-center text-[14px] text-gray-600">
-                Don’t have an account?{" "}
-                <span
-                  onClick={() => navigate("/register")}
-                  className="cursor-pointer text-orange-500 hover:underline"
-                >
-                  Create an account
-                </span>
+            {/* Title */}
+            <div className="mt-20 hidden flex-col items-center justify-center lg:flex">
+              <h1 className="text-3xl leading-snug font-bold lg:text-4xl">
+                <span className="text-5xl text-orange-500">C</span>OMPREHENSIVE
+                <br />
+                <span className="text-5xl text-orange-500">A</span>SSESSMENT AND
+                <br />
+                <span className="text-5xl text-orange-500">P</span>REPARATION
+                <br />
+                <span className="text-5xl text-orange-500">S</span>YSTEM
+              </h1>
+              <p className="mt-20 mr-10 hidden max-w-xs text-center text-sm text-gray-500 lg:block">
+                A platform designed to help students practice and prepare for
+                qualifying exams while assessing their knowledge through
+                randomized questions.
               </p>
-              <div className="mt-3 mb-10 justify-center px-4 text-center text-sm text-gray-600 lg:mb-0">
-                <span className="text-orange-500">Developed by Team CAPS</span>
+            </div>
+
+            <div className="font-inter mt-12 flex flex-col items-center justify-center lg:hidden">
+              <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
+                <span>
+                  <span className="text-3xl text-orange-500">C</span>
+                  OMPREHENSIVE
+                </span>
+                <span>
+                  <span className="text-3xl text-orange-500"> A</span>SSESSMENT
+                </span>
+                <br />
+                <span>AND</span>
+                <span>
+                  <span className="text-3xl text-orange-500"> P</span>REPARATION
+                </span>
+                <span>
+                  <span className="text-3xl text-orange-500"> S</span>YSTEM
+                </span>
+              </h1>
+            </div>
+          </div>
+
+          {/* Right Section */}
+          <div className="mt-30 flex w-full items-center justify-center p-6 sm:mt-30 md:mt-30 lg:mt-0 lg:w-1/2">
+            <div className="w-full max-w-xs space-y-6 sm:max-w-md">
+              <div
+                style={{ fontFamily: "Poppins, sans-serif" }}
+                className="text-center sm:ml-10 lg:ml-0"
+              >
+                <h2 className="mr-15 mb-1 text-[20px] font-bold text-gray-900">
+                  LOG IN ACCOUNT
+                </h2>
+                <p className="mt-2 justify-center text-center text-sm text-gray-500 lg:mr-15">
+                  <span>
+                    Welcome! Please enter your user code and password{" "}
+                  </span>
+                  <span>to access your account.</span>
+                </p>
+
+                <form className="mt-6 w-full max-w-sm">
+                  {/* ID Number Input */}
+                  <div className="relative mb-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        id="userCode"
+                        className="peer mt-2 w-full rounded-xl border border-gray-300 px-4 py-[9px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                        placeholder="User Code"
+                        value={idCode}
+                        onChange={(e) => setIdCode(e.target.value)}
+                      />
+                      <label
+                        htmlFor="userCode"
+                        className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
+                      >
+                        User Code
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Password Input */}
+                  <div className="relative mb-4">
+                    <div className="relative flex items-center overflow-hidden">
+                      <input
+                        type={passwordVisible ? "text" : "password"}
+                        className="peer mt-2 w-full rounded-xl border border-gray-300 px-4 py-[9px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                        placeholder=" "
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="current-password"
+                      />
+                      <label
+                        htmlFor="userCode"
+                        className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
+                      >
+                        Password
+                      </label>
+                      <button
+                        type="button"
+                        className="absolute top-[18px] right-3 text-gray-400 transition-colors hover:text-gray-600"
+                        onClick={() => setPasswordVisible((v) => !v)}
+                        tabIndex={-1}
+                      >
+                        <i
+                          className={`bx ${passwordVisible ? "bx-eye-alt text-orange-500" : "bx-eye-slash"} text-[25px]`}
+                        ></i>
+                      </button>
+                    </div>
+                    {error && (
+                      <p className="mt-3 text-center text-xs text-red-500">
+                        {error}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Login Button */}
+                  <div className="mx-auto flex w-full items-center justify-center text-sm">
+                    <button
+                      type="submit"
+                      onClick={handleLogin}
+                      disabled={isLogIn}
+                      className="mb-1 w-full cursor-pointer rounded-xl bg-gradient-to-r from-[#ed3700] to-[#FE6902] py-[10px] text-base font-semibold text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
+                    >
+                      {isLogIn ? (
+                        <div className="flex items-center justify-center">
+                          <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                        </div>
+                      ) : (
+                        "Log in"
+                      )}
+                    </button>
+                  </div>
+
+                  <button
+                    className="mt-2 text-sm text-[#FE6902] hover:underline"
+                    onClick={() => navigate("/forgot-password")}
+                  >
+                    Forgot your password?
+                  </button>
+
+                  {/* Register Link */}
+                  <p className="mt-4 mb-4 justify-center text-center text-[14px] text-gray-600">
+                    Don't have an account?{" "}
+                    <span
+                      onClick={() => navigate("/register")}
+                      className="cursor-pointer text-orange-500 hover:underline"
+                    >
+                      Register here
+                    </span>
+                  </p>
+
+                  <span className="mx-2 text-xs text-gray-400">
+                    Developed by{" "}
+                    <span className="text-orange-500">Team Caps</span>
+                  </span>
+                </form>
               </div>
-            </form>
+            </div>
+          </div>
+          <div className="absolute bottom-3 left-1/2 ml-8 flex -translate-x-1/2 transform items-center space-x-2 text-gray-500 lg:left-8">
+            <AppVersion />
           </div>
         </div>
       </div>
-      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 transform items-center space-x-2 text-black lg:left-8">
-        <AppVersion />
+
+      {/* Mobile View */}
+      <div className="flex flex-col lg:hidden">
+        <div className="flex w-full flex-col items-center justify-center bg-gradient-to-br from-[#101010] to-[#3c3c3c]">
+          {/* Purple Gradient Header */}
+          <div className="relative flex h-60 w-full flex-col items-center justify-center">
+            <div className="font-inter absolute top-5 right-5">
+              <span className="mr-2 text-[12px] text-white">
+                Don't have an account?{" "}
+              </span>
+              <button
+                onClick={() => navigate("/register")}
+                className="cursor-pointer rounded-lg bg-white/10 px-4 py-1 text-[14px] font-medium text-white shadow-md backdrop-blur-md transition hover:bg-white/20 hover:backdrop-blur-lg"
+              >
+                Sign in
+              </button>
+            </div>
+            {/* Logos at top left */}
+            <div className="absolute top-5 left-5 z-10 flex items-center gap-3">
+              <img
+                src={univLogo}
+                alt="University Logo"
+                className="size-8 object-contain"
+              />
+              <img
+                src={collegeLogo}
+                alt="College Logo"
+                className="size-8 object-contain"
+              />
+            </div>
+            <div
+              style={{ fontFamily: "Poppins, sans-serif" }}
+              className="mt-5 mb-1 flex flex-col items-center"
+            >
+              <h1 className="text-center text-[22px] font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
+                <span>
+                  <span className="text-3xl text-orange-500">C</span>
+                  OMPREHENSIVE
+                </span>
+                <span>
+                  <span className="text-3xl text-orange-500"> A</span>SSESSMENT
+                </span>
+                <br />
+                <span>AND</span>
+                <span>
+                  <span className="text-3xl text-orange-500"> P</span>REPARATION
+                </span>
+                <span>
+                  <span className="text-3xl text-orange-500"> S</span>YSTEM
+                </span>
+              </h1>
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            borderTopLeftRadius: "30px 15px",
+            borderTopRightRadius: "30px 15px",
+          }}
+          className="mx-auto -mt-10 flex h-[14px] w-[85%] flex-col items-center justify-center bg-white/10 shadow-lg backdrop-blur-md"
+        ></div>
+
+        {/* Login Card */}
+        <div
+          style={{ fontFamily: "Poppins, sans-serif" }}
+          className="flex w-full flex-col items-center justify-center rounded-t-4xl bg-white p-6"
+        >
+          <h2 className="mb-1 text-[20px] font-bold text-gray-900">
+            LOG IN ACCOUNT
+          </h2>
+          <p className="mb-5 max-w-80 justify-center text-center text-xs text-gray-500 md:max-w-full lg:mr-15">
+            <span>Welcome! Please enter your user code and password </span>
+            <span>to access your account.</span>
+          </p>
+          <form
+            className="mt-2 flex w-full flex-col gap-4 sm:max-w-md md:max-w-xl"
+            onSubmit={handleLogin}
+          >
+            <div className="relative w-full">
+              <div className="relative">
+                <input
+                  type="text"
+                  id="userCode"
+                  className="peer mt-2 w-full rounded-xl border border-gray-300 px-4 py-[12px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                  placeholder="User Code"
+                  value={idCode}
+                  onChange={(e) => setIdCode(e.target.value)}
+                />
+                <label
+                  htmlFor="userCode"
+                  className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
+                >
+                  User Code
+                </label>
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div className="relative w-full">
+              <div className="relative">
+                <input
+                  type={passwordVisible ? "text" : "password"}
+                  className="peer mt-2 w-full rounded-xl border border-gray-300 px-4 py-[12px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                  placeholder=" "
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+                <label
+                  htmlFor="userCode"
+                  className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
+                >
+                  Password
+                </label>
+                <button
+                  type="button"
+                  className="absolute top-[21px] right-3 text-gray-400 transition-colors hover:text-gray-600"
+                  onClick={() => setPasswordVisible((v) => !v)}
+                  tabIndex={-1}
+                >
+                  <i
+                    className={`bx ${passwordVisible ? "bx-show text-orange-500" : "bx-hide"} text-[25px]`}
+                  ></i>
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-center text-xs text-red-500">{error}</p>
+            )}
+            <button
+              type="submit"
+              onClick={handleLogin}
+              disabled={isLogIn}
+              className="mt-3 mb-1 w-full cursor-pointer rounded-xl bg-gradient-to-r from-[#ed3700] to-[#FE6902] py-3 text-base font-semibold text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
+            >
+              {isLogIn ? (
+                <div className="flex items-center justify-center">
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                </div>
+              ) : (
+                "LOG IN"
+              )}
+            </button>
+          </form>
+          <button
+            className="mt-2 mb-5 text-sm text-[#FE6902] hover:underline"
+            onClick={() => navigate("/forgot-password")}
+          >
+            Forgot your password?
+          </button>
+          <div className="my-2 flex w-full items-center">
+            <div className="h-px flex-1 bg-gray-200"></div>
+            <span className="mx-2 text-xs text-gray-400">
+              <AppVersion />
+            </span>
+            <div className="h-px flex-1 bg-gray-200"></div>
+          </div>
+
+          <span className="mx-2 text-xs text-gray-400">
+            Developed by <span className="text-orange-500">Team Caps</span>
+          </span>
+        </div>
       </div>
-    </div>
+
+      {toast.message && (
+        <div
+          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
+            toast.show ? "opacity-100" : "opacity-0"
+          } ${
+            toast.type === "success" ? "border-green-400" : "border-red-400"
+          }`}
+        >
+          <div className="flex items-center">
+            <i
+              className={`mr-3 text-[24px] ${
+                toast.type === "success"
+                  ? "bx bxs-check-circle text-green-400"
+                  : "bx bxs-x-circle text-red-400"
+              }`}
+            ></i>
+            <div>
+              <p className="font-semibold text-gray-800">
+                {toast.type === "success" ? "Success" : "Error"}
+              </p>
+              <p className="mb-1 text-sm text-nowrap text-gray-600">
+                {toast.message}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
