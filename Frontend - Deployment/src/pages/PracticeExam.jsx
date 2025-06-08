@@ -282,16 +282,17 @@ const PracticeExam = ({ closeModal }) => {
   const handleSubmitAnswers = async () => {
     setIsSubmitting(true);
     try {
+      // Create an array of all questions, marking unanswered ones as null
+      const allAnswers = examData.questions.map((question) => ({
+        questionID: question.questionID,
+        selectedChoiceID: answers[question.questionID]
+          ? parseInt(answers[question.questionID])
+          : null,
+      }));
+
       const payload = {
         subjectID,
-        answers: Object.entries(answers).map(
-          ([questionID, selectedChoiceID]) => ({
-            questionID: parseInt(questionID),
-            selectedChoiceID: selectedChoiceID
-              ? parseInt(selectedChoiceID)
-              : null,
-          }),
-        ),
+        answers: allAnswers,
       };
 
       const response = await fetch(`${apiUrl}/practice-exam/submit`, {
