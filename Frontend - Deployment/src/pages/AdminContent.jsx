@@ -224,16 +224,16 @@ const AdminContent = () => {
 
       const matchesTab =
         (activeTab === 0 &&
-          question.purpose_id === 1 && // 1 for practice questions
+          question.purpose_id === 2 && // 1 for practice questions
           question.status_id === 2) || // 2 is approved
         (activeTab === 1 &&
-          question.purpose_id === 2 && // 2 for exam questions
+          question.purpose_id === 1 && // 2 for exam questions
           question.status_id === 2) || // 2 is approved
         (activeTab === 4 &&
           question.status_id === 1 && // 1 is pending
           (pendingSort
             ? question.purpose_id ===
-              (pendingSort === "practiceQuestions" ? 1 : 2)
+              (pendingSort === "practiceQuestions" ? 2 : 1)
             : true));
 
       return matchesSearch && matchesTab;
@@ -566,10 +566,10 @@ const AdminContent = () => {
                                   (activeTab === 4 &&
                                     question.status_id === 1) || // 1 is pending
                                   (activeTab === 0 &&
-                                    question.purpose_id === 1 && // 1 for practice questions
+                                    question.purpose_id === 2 && // 1 for practice questions
                                     question.status_id === 2) || // 2 is approved
                                   (activeTab === 1 &&
-                                    question.purpose_id === 2 && // 2 for exam questions
+                                    question.purpose_id === 1 && // 2 for exam questions
                                     question.status_id === 2), // 2 is approved
                               ).length
                             }{" "}
@@ -607,10 +607,10 @@ const AdminContent = () => {
                           (question) =>
                             (activeTab === 4 && question.status_id === 1) || // 1 is pending
                             (activeTab === 0 &&
-                              question.purpose_id === 1 && // 1 for practice questions
+                              question.purpose_id === 2 && // 1 for practice questions
                               question.status_id === 2) || // 2 is approved
                             (activeTab === 1 &&
-                              question.purpose_id === 2 && // 2 for exam questions
+                              question.purpose_id === 1 && // 2 for exam questions
                               question.status_id === 2), // 2 is approved
                         )
                         .map((question, index) => (
@@ -836,7 +836,7 @@ const AdminContent = () => {
                                           Question Type:
                                         </span>
                                         <span>
-                                          {question.purpose_id === 1
+                                          {question.purpose_id === 2
                                             ? "Practice Question"
                                             : "Qualifying Exam Question"}
                                         </span>

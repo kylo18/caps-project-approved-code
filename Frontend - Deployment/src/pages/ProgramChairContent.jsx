@@ -237,16 +237,16 @@ const ProgramChairContent = () => {
 
       const matchesTab =
         (activeTab === 0 &&
-          question.purpose_id === 1 &&
+          question.purpose_id === 2 &&
           question.status_id === 2) ||
         (activeTab === 1 &&
-          question.purpose_id === 2 &&
+          question.purpose_id === 1 &&
           question.status_id === 2) ||
         (activeTab === 4 &&
           question.status_id === 1 &&
           (pendingSort
             ? question.purpose_id ===
-              (pendingSort === "practiceQuestions" ? 1 : 2)
+              (pendingSort === "practiceQuestions" ? 2 : 1)
             : true));
 
       return matchesSearch && matchesTab;
@@ -586,10 +586,10 @@ const ProgramChairContent = () => {
                                   (activeTab === 4 &&
                                     question.status_id === 1) ||
                                   (activeTab === 0 &&
-                                    question.purpose_id === 1 &&
+                                    question.purpose_id === 2 &&
                                     question.status_id === 2) ||
                                   (activeTab === 1 &&
-                                    question.purpose_id === 2 &&
+                                    question.purpose_id === 1 &&
                                     question.status_id === 2),
                               ).length
                             }{" "}
@@ -627,10 +627,10 @@ const ProgramChairContent = () => {
                           (question) =>
                             (activeTab === 4 && question.status_id === 1) ||
                             (activeTab === 0 &&
-                              question.purpose_id === 1 &&
+                              question.purpose_id === 2 &&
                               question.status_id === 2) ||
                             (activeTab === 1 &&
-                              question.purpose_id === 2 &&
+                              question.purpose_id === 1 &&
                               question.status_id === 2),
                         )
                         .map((question, index) => (
@@ -849,7 +849,7 @@ const ProgramChairContent = () => {
                                           Question Type:
                                         </span>
                                         <span>
-                                          {question.purpose_id === 1
+                                          {question.purpose_id === 2
                                             ? "Practice Question"
                                             : "Qualifying Exam Question"}
                                         </span>

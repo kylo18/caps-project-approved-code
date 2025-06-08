@@ -10,7 +10,7 @@ const AppVersion = () => {
       .then((response) => response.json())
       .then((data) => setVersion(data.version))
       .catch((error) => {
-        setVersion("Version not found");
+        setVersion("---");
       });
   }, []);
 
