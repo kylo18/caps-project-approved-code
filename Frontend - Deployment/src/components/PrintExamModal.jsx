@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import SubjectSearchInput from "./SubjectSearchInput";
 import ExamPreviewModal from "./ExamPreviewModal";
-import RegisterDropDownSmall from "./RegisterDropDownSmall";
+import RegisterDropDownSmall from "./registerDropDownSmall";
 
 export default function ExamGenerator({ auth, isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
