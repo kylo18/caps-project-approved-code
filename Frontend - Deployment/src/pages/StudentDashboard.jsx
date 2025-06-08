@@ -349,6 +349,7 @@ const StudentDashboard = () => {
 
   return (
     <div className="font-inter mt-10 text-center text-gray-500">
+      {/* Draft
       {ongoingExam && (
         <div className="mb-6">
           <div className="mx-auto max-w-md rounded-lg bg-yellow-50 p-4 shadow-sm">
@@ -372,6 +373,7 @@ const StudentDashboard = () => {
           </div>
         </div>
       )}
+        */}
 
       <button
         onClick={() => {

@@ -89,7 +89,9 @@ const SubjectCardLower = ({
               </h1>
               <div className="mt-1 flex gap-2 text-gray-500">
                 <i className="bx bx-buildings text-lg"></i>
-                <p className="text-sm font-semibold">JRMSU • {location}</p>
+                <p className="text-sm font-semibold">
+                  Jose Rizal Memorial State University
+                </p>
               </div>
             </div>
           </div>
