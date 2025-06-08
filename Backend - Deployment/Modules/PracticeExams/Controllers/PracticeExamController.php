@@ -54,12 +54,22 @@ class PracticeExamController extends Controller
                 $query->orderBy('position', 'asc');
             }])
                 ->where('subjectID', $subjectID)
-                ->where('purpose_id', 2) // Changed to 1 for practiceQuestions
+                ->where('purpose_id', 2) // Changed to 2 for practiceQuestions
                 ->whereHas('status', function($query) {
                     $query->where('name', '!=', 'pending');
                 })
+                ->when(!empty($settings->coverage), function($query) use ($settings) {
+                    $coverage = strtolower(trim($settings->coverage));
+                    if ($coverage === 'full') {
+                        return $query->whereIn('coverage_id', [1, 2]); // 1 for midterm, 2 for finals
+                    }
+                    return $query->where('coverage_id', $coverage === 'midterm' ? 1 : 2);
+                })
                 ->get()
                 ->shuffle();
+
+            // Log the number of questions retrieved
+            Log::info('Questions retrieved:', ['count' => $questions->count()]);
 
             $grouped = [
                 $difficulties['easy'] => [], 
