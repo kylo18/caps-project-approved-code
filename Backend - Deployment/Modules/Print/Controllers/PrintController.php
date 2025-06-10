@@ -626,7 +626,6 @@ class PrintController extends Controller
         try {
             if (empty($imageUrl)) return null;
 
-            // Get image content
             $imageContent = null;
             $maxWidth = 800; // Maximum width in pixels
             $maxHeight = 600; // Maximum height in pixels
@@ -634,12 +633,12 @@ class PrintController extends Controller
 
             if (filter_var($imageUrl, FILTER_VALIDATE_URL)) {
                 // For external URLs
-                $imageContent = file_get_contents($imageUrl);
+                $imageContent = @file_get_contents($imageUrl);
             } else {
                 // For local storage files
                 $path = str_replace('/storage/', '', parse_url($imageUrl, PHP_URL_PATH));
-                if (Storage::disk('public')->exists($path)) {
-                    $imageContent = Storage::disk('public')->get($path);
+                if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+                    $imageContent = \Illuminate\Support\Facades\Storage::disk('public')->get($path);
                 }
             }
 
@@ -648,43 +647,35 @@ class PrintController extends Controller
             }
 
             // Create image resource
-            $image = imagecreatefromstring($imageContent);
+            $image = @imagecreatefromstring($imageContent);
             if (!$image) {
                 return $imageUrl;
             }
 
-            // Get original dimensions
             $width = imagesx($image);
             $height = imagesy($image);
 
-            // Calculate new dimensions
             if ($width > $maxWidth || $height > $maxHeight) {
                 $ratio = min($maxWidth / $width, $maxHeight / $height);
                 $newWidth = round($width * $ratio);
                 $newHeight = round($height * $ratio);
 
-                // Create new image
                 $newImage = imagecreatetruecolor($newWidth, $newHeight);
                 imagecopyresampled($newImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-                
-                // Free up memory
                 imagedestroy($image);
                 $image = $newImage;
             }
 
-            // Output optimized image
             ob_start();
             imagejpeg($image, null, $quality);
             $optimizedContent = ob_get_clean();
             imagedestroy($image);
 
-            // Create temporary file
-            $tempFile = tempnam(sys_get_temp_dir(), 'pdf_img_');
-            file_put_contents($tempFile, $optimizedContent);
-
-            return $tempFile;
+            // Convert to base64 data URI
+            $base64 = base64_encode($optimizedContent);
+            return 'data:image/jpeg;base64,' . $base64;
         } catch (\Exception $e) {
-            Log::error('Image optimization failed:', [
+            \Illuminate\Support\Facades\Log::error('Image optimization failed:', [
                 'url' => $imageUrl,
                 'error' => $e->getMessage()
             ]);
