@@ -887,7 +887,7 @@ const UserList = () => {
       {showModal && selectedUser && (
         <>
           <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
-            <div className="edit-profile-modal-scrollbar relative mx-2 max-h-[90vh] w-full max-w-[480px] overflow-y-auto rounded-md bg-white shadow-2xl">
+            <div className="relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
               {/* Header */}
               <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
                 <h2 className="text-[14px] font-medium text-gray-700">
@@ -903,7 +903,7 @@ const UserList = () => {
                 </button>
               </div>
               {/* Content */}
-              <form className="px-5 py-4">
+              <form className="edit-profile-modal-scrollbar max-h-[calc(90vh-60px)] overflow-y-auto px-5 py-4">
                 {/* Fields */}
                 <div className="mb-4 grid grid-cols-2 gap-x-4 text-start">
                   <div>

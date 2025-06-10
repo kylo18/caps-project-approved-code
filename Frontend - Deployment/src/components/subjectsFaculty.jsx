@@ -401,12 +401,14 @@ const AssignedSubjectsDropDown = ({
           className={`scrollbar-show-on-hover mx-auto mt-2 w-full flex-grow pr-2 text-[14px] font-semibold text-gray-700 transition-all duration-100 ease-in-out ${!isExpanded ? "hidden" : ""}`}
         >
           {subjectLoading ? (
-            <li className="animate-pulse p-2 text-center text-[14px] text-[rgb(168,168,168)]">
-              <div className="flex items-center justify-center">
-                <span>Loading</span>
-                <div className="ml-2 size-4 animate-spin rounded-full border-3 border-t-transparent"></div>
+            <div className="flex h-[300px] items-start justify-center">
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <div className="size-5 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></div>
+                <span className="text-sm text-gray-600">
+                  Loading Subjects...
+                </span>
               </div>
-            </li>
+            </div>
           ) : searchTerm.trim() ? (
             // Show filtered subjects when searching
             filteredSubjects.map((subject) => (

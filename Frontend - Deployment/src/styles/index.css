@@ -209,7 +209,7 @@ select option:hover {
 .edit-profile-modal-scrollbar {
   scrollbar-width: thin;
 
-  scrollbar-color: #9fa3a6 #f3f4f6;
+  scrollbar-color: #838484 #f3f4f6;
 }
 .edit-profile-modal-scrollbar::-webkit-scrollbar {
   width: 7px;

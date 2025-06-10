@@ -8,8 +8,10 @@ export default function SubjectSearchInput({ options, onChange, placeholder }) {
 
   useEffect(() => {
     // Filter options based on search term
-    const filtered = options.filter((option) =>
-      option.label.toLowerCase().includes(searchTerm.toLowerCase()),
+    const filtered = options.filter(
+      (option) =>
+        option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        option.subjectCode.toLowerCase().includes(searchTerm.toLowerCase()),
     );
     setFilteredOptions(filtered);
   }, [searchTerm, options]);
@@ -48,15 +50,27 @@ export default function SubjectSearchInput({ options, onChange, placeholder }) {
       />
       {showSuggestions && filteredOptions.length > 0 && (
         <div className="ring-opacity-5 absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black">
-          {filteredOptions.map((option) => (
-            <div
-              key={option.value}
-              onClick={() => handleSuggestionClick(option)}
-              className="cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              {option.label}
-            </div>
-          ))}
+          {filteredOptions.map((option, index) => {
+            const showYearLabel =
+              index === 0 ||
+              filteredOptions[index - 1].yearLevel !== option.yearLevel;
+
+            return (
+              <React.Fragment key={option.value}>
+                {showYearLabel && (
+                  <div className="sticky top-[-4px] bg-gray-200 px-4 py-2 text-xs font-medium text-gray-500">
+                    {option.yearLevel}
+                  </div>
+                )}
+                <div
+                  onClick={() => handleSuggestionClick(option)}
+                  className="cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  {option.subjectCode} - {option.label}
+                </div>
+              </React.Fragment>
+            );
+          })}
         </div>
       )}
     </div>

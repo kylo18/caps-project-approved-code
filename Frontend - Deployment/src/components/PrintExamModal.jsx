@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import SubjectSearchInput from "./SubjectSearchInput";
 import ExamPreviewModal from "./ExamPreviewModal";
 import RegisterDropDownSmall from "./registerDropDownSmall";
+import { Tooltip } from "flowbite-react";
 
 export default function ExamGenerator({ auth, isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
@@ -17,6 +18,8 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
     moderate_percentage: 50,
     hard_percentage: 20,
   });
+  const [examTitle, setExamTitle] = useState("");
+  const [examInstructions, setExamInstructions] = useState("");
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -37,6 +40,8 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
       moderate_percentage: 50,
       hard_percentage: 20,
     });
+    setExamTitle("");
+    setExamInstructions("");
     onClose();
   };
 
@@ -140,6 +145,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
           hard: settings.hard_percentage,
         },
         preview: true,
+        purpose: "examQuestions",
       };
 
       console.log("Sending request:", requestBody);
@@ -160,7 +166,11 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
 
       const data = await response.json();
       console.log("Received response:", data);
-      setPreviewData(data);
+      setPreviewData({
+        ...data,
+        examTitle: examTitle,
+        examInstructions: examInstructions,
+      });
       setShowPreview(true);
     } catch (err) {
       console.error("Error generating exam:", err);
@@ -187,6 +197,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
           hard: settings.hard_percentage,
         },
         preview: false,
+        purpose: "examQuestions",
       };
 
       const response = await fetch(endpoint, {
@@ -203,35 +214,47 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         throw new Error(errorData.message || "Failed to generate exam");
       }
 
-      // Check the content type of the response
+      // Check if the response is a PDF
       const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        // If we received JSON instead of a PDF, it's probably an error
+      if (!contentType || !contentType.includes("application/pdf")) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to generate PDF");
       }
 
+      // Get the blob from the response
       const blob = await response.blob();
+
+      // Create a URL for the blob
       const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary link element
       const link = document.createElement("a");
       link.href = url;
 
-      // Create a more descriptive filename
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      link.download = `exam_${timestamp}.pdf`;
+      // Get filename from Content-Disposition header or use default
+      const disposition = response.headers.get("content-disposition");
+      let filename = "exam.pdf";
+      if (disposition && disposition.includes("filename=")) {
+        const filenameMatch = disposition.match(
+          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/,
+        );
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, "");
+        }
+      }
 
-      // Trigger download
+      link.download = filename;
+
+      // Append to body, click, and remove
       document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
 
-      // Cleanup
-      setTimeout(() => {
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      }, 100);
+      // Clean up the URL object
+      window.URL.revokeObjectURL(url);
 
       setShowPreview(false);
-      handleClose(); // Close the form after successful download
+      onClose();
     } catch (err) {
       console.error("Download error:", err);
       setError(err.message || "An error occurred while downloading the exam");
@@ -248,10 +271,12 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
       {!showPreview && (
         <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
           <div
-            className={`relative flex max-h-[90vh] w-full ${selectedSubjects.length > 0 ? "max-w-[900px]" : "max-w-[480px]"} mx-auto min-[448px]:px-4`}
+            className={`relative flex w-full ${selectedSubjects.length > 0 ? "mx-0 max-w-[1280px]" : "max-w-md"} mx-auto min-[448px]:mx-2 ${selectedSubjects.length === 0 ? "justify-center" : "justify-center"}`}
           >
             {/* Main Panel */}
-            <div className="w-full max-w-[480px] rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md md:w-[480px]">
+            <div
+              className={`relative w-full min-[448px]:mx-2 ${selectedSubjects.length === 0 ? "md:w-[480px]" : "max-w-[435px]"} rounded-2xl bg-white shadow-2xl min-[448px]:rounded-md`}
+            >
               <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
                 <h2 className="text-[14px] font-medium text-gray-700">
                   Print Exam
@@ -267,6 +292,32 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
               </div>
               <div className="edit-profile-modal-scrollbar max-h-[calc(90vh-60px)] overflow-y-auto">
                 <form className="px-5 py-4" onSubmit={handleSubmit}>
+                  {/* Exam Title Input */}
+                  <div className="mb-3">
+                    <label className="mb-1 block text-[14px] text-gray-700">
+                      Exam Title
+                    </label>
+                    <input
+                      type="text"
+                      value={examTitle}
+                      onChange={(e) => setExamTitle(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-[14px] text-gray-900 focus:border-[#FE6902] focus:outline-none"
+                      placeholder="Enter exam title"
+                    />
+                  </div>
+                  {/* Exam Instructions Input */}
+                  <div className="mb-3">
+                    <label className="mb-1 block text-[14px] text-gray-700">
+                      Instructions
+                    </label>
+                    <textarea
+                      value={examInstructions}
+                      onChange={(e) => setExamInstructions(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-[14px] text-gray-900 focus:border-[#FE6902] focus:outline-none"
+                      placeholder="Enter exam instructions"
+                      rows={3}
+                    />
+                  </div>
                   {settings.exam_type !== "personal" && (
                     <div>
                       <span className="mb-2 block text-[14px] text-gray-700">
@@ -280,15 +331,100 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                                 (s) => s.subjectID === subject.subjectID,
                               ),
                           )
+                          .sort((a, b) => {
+                            // First group by year level
+                            const yearA = parseInt(a.yearLevel);
+                            const yearB = parseInt(b.yearLevel);
+                            if (yearA !== yearB) {
+                              return yearA - yearB;
+                            }
+                            // Then sort alphabetically by subject name within each year
+                            return a.subjectName.localeCompare(b.subjectName);
+                          })
                           .map((subject) => ({
-                            label: subject.subjectName,
+                            label: `${subject.subjectName}`,
                             value: subject.subjectID,
+                            subjectCode: subject.subjectCode,
+                            yearLevel: subject.yearLevel,
                           }))}
                         onChange={handleSubjectAdd}
                         placeholder="Search for a subject"
                       />
                     </div>
                   )}
+
+                  {/* Mobile Selected Subjects Section */}
+                  {settings.exam_type !== "personal" &&
+                    selectedSubjects.length > 0 && (
+                      <>
+                        <div className="mt-3 md:hidden">
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                            <div className="mb-3 flex items-center justify-between">
+                              <h3 className="text-[14px] font-medium text-gray-700">
+                                Selected Subjects
+                              </h3>
+                              <span className="mr-3 text-[12px] text-gray-500">
+                                Percentage (%)
+                              </span>
+                            </div>
+                            <div className="space-y-3">
+                              {selectedSubjects.map((subject) => (
+                                <div
+                                  key={subject.subjectID}
+                                  className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="max-w-[100px] truncate text-[12px] min-[415px]:max-w-[200px] lg:max-w-[240px]">
+                                      {subject.subjectCode} -{" "}
+                                      {subject.subjectName}
+                                    </div>
+                                    {subject.subjectName.length > 15 && (
+                                      <Tooltip
+                                        content={subject.subjectName}
+                                        placement="right"
+                                        className="z-50"
+                                      >
+                                        <button
+                                          type="button"
+                                          className="text-gray-500 hover:text-gray-700"
+                                        >
+                                          <i className="bx bx-show text-[16px]"></i>
+                                        </button>
+                                      </Tooltip>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max="100"
+                                      value={subject.percentage}
+                                      onChange={(e) =>
+                                        handleSubjectPercentageChange(
+                                          subject.subjectID,
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-[60px] rounded-lg border border-gray-300 px-[9px] py-[5px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleRemoveSubject(subject.subjectID)
+                                      }
+                                      className="flex h-[25px] cursor-pointer items-center justify-center rounded-full px-1 py-[1px] text-red-600 hover:bg-red-50"
+                                    >
+                                      <i className="bx bx-x text-[18px]"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-3 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+                      </>
+                    )}
 
                   <div className="mt-2 mb-3 text-start">
                     <div className="flex gap-4">
@@ -359,7 +495,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                       <div className="grid grid-cols-3 gap-4">
                         {["easy", "moderate", "hard"].map((level) => (
                           <div key={level}>
-                            <span className="mb-2 block text-[12px] text-gray-700 capitalize">
+                            <span className="mb-2 block text-[12px] text-nowrap text-gray-700 capitalize">
                               {level} (%)
                             </span>
                             <input
@@ -381,6 +517,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                       </div>
                     )}
                   </div>
+
                   <div className="mt-4 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
                   {error && (
                     <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
@@ -406,28 +543,28 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
               </div>
             </div>
 
-            {/* Right Panel - Selected Subjects */}
+            {/* Right Panel - Selected Subjects (Desktop Only) */}
             {settings.exam_type !== "personal" &&
               selectedSubjects.length > 0 && (
-                <div className="hidden w-full flex-col rounded-t-2xl border-l border-gray-200 bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md md:flex md:w-[420px]">
+                <div className="hidden w-full flex-col rounded-t-md border-l border-gray-200 bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md md:flex md:max-w-[480px] md:min-w-[300px]">
                   <div className="border-color flex-shrink-0 border-b py-2 pl-4">
                     <h3 className="text-[14px] font-medium text-gray-700">
                       Selected Subjects
                     </h3>
                   </div>
-                  <div className="flex-1 overflow-y-auto">
-                    <div className="p-4">
+                  <div className="edit-profile-modal-scrollbar max-h-[calc(90vh-60px)] overflow-y-auto rounded-b-md">
+                    <div className="">
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="sticky top-0 bg-gray-50">
+                          <thead className="sticky top-0 bg-gray-100">
                             <tr>
-                              <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                              <th className="w-[200px] px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                                 Subject
                               </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                Percentage
+                              <th className="w-[40px] px-2 py-3 text-left text-xs font-medium tracking-wider text-nowrap text-gray-500 uppercase">
+                                Percentage %
                               </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                              <th className="w-[60px] px-2 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                                 Actions
                               </th>
                             </tr>
@@ -435,10 +572,32 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                           <tbody className="divide-y divide-gray-200 bg-white">
                             {selectedSubjects.map((subject) => (
                               <tr key={subject.subjectID}>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  {subject.subjectName}
+                                <td className="px-4 py-2 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    <div
+                                      className="max-w-[120px] truncate text-[12px] md:max-w-[160px] lg:max-w-[240px]"
+                                      title={subject.subjectName}
+                                    >
+                                      {subject.subjectCode} -{" "}
+                                      {subject.subjectName}
+                                    </div>
+                                    {subject.subjectName.length > 15 && (
+                                      <Tooltip
+                                        content={subject.subjectName}
+                                        placement="right"
+                                        className="z-50"
+                                      >
+                                        <button
+                                          type="button"
+                                          className="text-gray-500 hover:text-gray-700"
+                                        >
+                                          <i className="bx bx-show text-[16px]"></i>
+                                        </button>
+                                      </Tooltip>
+                                    )}
+                                  </div>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
+                                <td className="py-1 pl-6 text-[14px] whitespace-nowrap">
                                   <input
                                     type="number"
                                     min="1"
@@ -450,16 +609,16 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                                         e.target.value,
                                       )
                                     }
-                                    className="w-20 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="peer w-[60px] rounded-lg border border-gray-300 px-[9px] py-[5px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
                                   />
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
+                                <td className="py-3 pr-5 pl-3 whitespace-nowrap">
                                   <button
                                     type="button"
                                     onClick={() =>
                                       handleRemoveSubject(subject.subjectID)
                                     }
-                                    className="text-red-600 hover:text-red-900"
+                                    className="cursor-pointer text-[12px] text-red-600 hover:text-red-900"
                                   >
                                     Remove
                                   </button>
