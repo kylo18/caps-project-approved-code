@@ -85,127 +85,17 @@ class PrintController extends Controller
         }
     }
 
-    public function generatePrintableExam(Request $request, $subjectID)
+    private function getBase64Image($path)
     {
         try {
-            $user = Auth::user();
-            if (!in_array($user->roleID, [2, 3, 4])) {
-                return response()->json(['message' => 'Unauthorized.'], 403);
+            if (file_exists($path)) {
+                $imageData = file_get_contents($path);
+                return 'data:image/jpeg;base64,' . base64_encode($imageData);
             }
-
-            $subject = Subject::find($subjectID);
-            if (!$subject) {
-                return response()->json(['message' => 'Subject not found.'], 404);
-            }
-
-            $coverage = $request->input('coverage', 'full');
-            $limit = (int) $request->input('limit', 10);
-            $easy = (int) $request->input('easy_percentage', 30);
-            $moderate = (int) $request->input('moderate_percentage', 50);
-            $hard = 100 - ($easy + $moderate);
-
-            if ($limit <= 0) {
-                return response()->json(['message' => 'Item count must be greater than 0.'], 422);
-            }
-
-            $baseQuery = Question::with('choices')
-                ->where('subjectID', $subjectID)
-                ->whereHas('status', function($query) {
-                    $query->where('name', 'approved');
-                })
-                ->where('purpose', 'examQuestions');
-
-            if (in_array($coverage, ['midterm', 'final'])) {
-                $baseQuery->where('coverage', $coverage);
-            }
-
-            if ($user->roleID === 2) {
-                $assignedSubjectIDs = $user->subjects()->pluck('subjects.subjectID')->toArray();
-                if (!in_array($subjectID, $assignedSubjectIDs)) {
-                    return response()->json(['message' => 'You are not assigned to this subject.'], 403);
-                }
-                $baseQuery->where('userID', $user->userID);
-            } elseif ($user->roleID === 3) {
-                $validUserIDs = User::whereIn('programID', [$user->programID, 6])->pluck('userID');
-                $baseQuery->whereIn('userID', $validUserIDs);
-            }
-
-            $allQuestions = $baseQuery->get();
-            if ($allQuestions->isEmpty()) {
-                return response()->json(['message' => 'No questions available.'], 404);
-            }
-
-            $easyQuestions = $allQuestions->where('difficulty', 'easy')->shuffle();
-            $moderateQuestions = $allQuestions->where('difficulty', 'moderate')->shuffle();
-            $hardQuestions = $allQuestions->where('difficulty', 'hard')->shuffle();
-
-            $numEasy = round($limit * ($easy / 100));
-            $numModerate = round($limit * ($moderate / 100));
-            $numHard = $limit - ($numEasy + $numModerate);
-
-            $finalQuestions = collect()
-                ->merge($easyQuestions->take($numEasy))
-                ->merge($moderateQuestions->take($numModerate))
-                ->merge($hardQuestions->take($numHard))
-                ->shuffle();
-
-            $formattedQuestions = [];
-
-            foreach ($finalQuestions as $q) {
-                try {
-                    $questionText = Crypt::decryptString($q->questionText);
-                } catch (\Exception $e) {
-                    Log::error("Decrypt fail Q{$q->questionID}: {$e->getMessage()}");
-                    continue;
-                }
-
-                $shuffledChoices = $q->choices->shuffle();
-                $correctChoice = $shuffledChoices->firstWhere('isCorrect', true);
-
-                if (!$correctChoice) {
-                    continue; // Skip if no correct choice exists
-                }
-
-                $selectedChoices = collect([$correctChoice]);
-                $otherChoices = $shuffledChoices->filter(fn($c) => $c->choiceID !== $correctChoice->choiceID)->take(3);
-                $selectedChoices = $selectedChoices->merge($otherChoices)->shuffle();
-
-                $choices = $selectedChoices->map(function ($choice) {
-                    try {
-                        $text = $choice->choiceText ? Crypt::decryptString($choice->choiceText) : null;
-                    } catch (\Exception $e) {
-                        $text = null;
-                    }
-                    return [
-                        'choiceText' => $text,
-                        'choiceImage' => $this->generateUrl($choice->image),
-                    ];
-                });
-
-                $formattedQuestions[] = [
-                    'questionText' => $questionText,
-                    'questionImage' => $this->generateUrl($q->image),
-                    'choices' => $choices,
-                    'score' => $q->score,
-                ];
-            }
-
-            if (empty($formattedQuestions)) {
-                return response()->json(['message' => 'Failed to retrieve valid questions.'], 422);
-            }
-            $formattedQuestions = array_values($formattedQuestions);
-            $pdf = PDF::loadView('exams.printable', [
-                'formattedQuestions' => $formattedQuestions,
-                'subjectName' => $subject->subjectName,
-            ]);
-
-            $pdf->setOptions([
-                'isRemoteEnabled' => true,
-            ]);
-            return $pdf->download("exam_{$subject->subjectCode}.pdf");
+            return null;
         } catch (\Exception $e) {
-            Log::error('Exam Print Error: ' . $e->getMessage());
-            return response()->json(['message' => 'Server error.', 'error' => $e->getMessage()], 500);
+            Log::error('Error reading image:', ['path' => $path, 'error' => $e->getMessage()]);
+            return null;
         }
     }
 
@@ -433,6 +323,13 @@ class PrintController extends Controller
                 throw new \Exception('No questions were successfully processed for any subject');
             }
 
+            // Get base64 encoded logos
+            $leftLogoPath = public_path('storage/logo/JRMSU.jpg');
+            $rightLogoPath = public_path('storage/logo/COE.jpg');
+            
+            $leftLogoBase64 = $this->getBase64Image($leftLogoPath);
+            $rightLogoBase64 = $this->getBase64Image($rightLogoPath);
+
             // Handle preview request
             if ($request->input('preview', false)) {
                 $previewData = [
@@ -447,8 +344,8 @@ class PrintController extends Controller
                         default => 'Multi-Subject Questions'
                     },
                     'logos' => [
-                        'left' => asset('storage/logo/JRMSU.jpg'),
-                        'right' => asset('storage/logo/COE.jpg')
+                        'left' => $leftLogoBase64,
+                        'right' => $rightLogoBase64
                     ]
                 ];
 
@@ -474,24 +371,8 @@ class PrintController extends Controller
                     default => 'Multi-Subject Questions'
                 };
 
-                // Update logo paths to use public directory
-                $leftLogoPath = public_path('storage/logo/JRMSU.jpg');
-                $rightLogoPath = public_path('storage/logo/COE.jpg');
-
-                if (!file_exists($leftLogoPath) || !file_exists($rightLogoPath)) {
-                    Log::error('Logo files not found:', [
-                        'leftLogoPath' => $leftLogoPath,
-                        'rightLogoPath' => $rightLogoPath,
-                        'exists' => [
-                            'left' => file_exists($leftLogoPath),
-                            'right' => file_exists($rightLogoPath)
-                        ]
-                    ]);
-                    throw new \Exception('Logo files not found in public storage');
-                }
-
-                $leftLogoUrl = 'data:image/jpeg;base64,' . base64_encode(file_get_contents($leftLogoPath));
-                $rightLogoUrl = 'data:image/jpeg;base64,' . base64_encode(file_get_contents($rightLogoPath));
+                $leftLogoUrl = $leftLogoBase64;
+                $rightLogoUrl = $rightLogoBase64;
             }
 
             // Generate PDF
@@ -510,7 +391,7 @@ class PrintController extends Controller
                 ]);
 
                 $pdfOptions = [
-                    'isRemoteEnabled' => true,
+                    'isRemoteEnabled' => false, // Disable remote resources
                     'isPhpEnabled' => true,
                     'isHtml5ParserEnabled' => true,
                     'dpi' => 72, // Reduced DPI for better performance
@@ -520,7 +401,7 @@ class PrintController extends Controller
                         public_path(),
                         storage_path('app/public')
                     ],
-                    'enable_remote' => true,
+                    'enable_remote' => false, // Disable remote resources
                     'enable_php' => true,
                     'enable_javascript' => false,
                     'images' => true,
@@ -530,7 +411,7 @@ class PrintController extends Controller
                     'logOutputFile' => storage_path('logs/pdf.log'),
                     'fontCache' => storage_path('fonts'),
                     'tempDir' => storage_path('app/temp'),
-                    'image_cache_enabled' => true, // Enable image caching
+                    'image_cache_enabled' => true,
                     'defaultMediaType' => 'print',
                     'defaultPaperSize' => 'a4',
                     'fontHeightRatio' => 1,
@@ -539,24 +420,6 @@ class PrintController extends Controller
 
                 $pdf->setOptions($pdfOptions);
                 $pdf->setPaper('A4', 'portrait');
-
-                // Process images with size limits
-                foreach ($questionsBySubject as &$subjectData) {
-                    foreach ($subjectData['questions'] as &$question) {
-                        if (!empty($question['questionImage'])) {
-                            $question['questionImage'] = $this->optimizeImage($question['questionImage']);
-                        }
-                        if (!empty($question['choices'])) {
-                            foreach ($question['choices'] as &$choice) {
-                                if (!empty($choice['choiceImage'])) {
-                                    $choice['choiceImage'] = $this->optimizeImage($choice['choiceImage']);
-                                }
-                            }
-                        }
-                        // Clear memory after processing each question
-                        gc_collect_cycles();
-                    }
-                }
 
                 // Generate and save PDF
                 $tempPath = storage_path('app/temp-' . Str::random(16) . '.pdf');
