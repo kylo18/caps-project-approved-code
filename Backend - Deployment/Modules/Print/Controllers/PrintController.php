@@ -238,7 +238,7 @@ class PrintController extends Controller
                     'error' => $e->getMessage(),
                     'user' => Auth::id() ?? 'none'
                 ]);
-                return response()->json(['message' => 'Unauthorized. Only Program Chair and Dean can generate multi-subject exams.'], 403);
+                return response()->json(['message' => 'Unauthorized. Only Program Chair and Dean can generate multi-subject exams.'], 401);
             }
 
             // Force the purpose to be examQuestions
@@ -262,7 +262,7 @@ class PrintController extends Controller
                     'errors' => $e->errors(),
                     'request_data' => $request->all()
                 ]);
-                throw $e;
+                return response()->json(['message' => 'Validation failed', 'errors' => $e->errors()], 422);
             }
 
             // Add purpose to validated data
@@ -474,8 +474,21 @@ class PrintController extends Controller
                     default => 'Multi-Subject Questions'
                 };
 
-                $leftLogoPath = storage_path('app/public/logo/JRMSU.jpg');
-                $rightLogoPath = storage_path('app/public/logo/COE.jpg');
+                // Update logo paths to use public directory
+                $leftLogoPath = public_path('storage/logo/JRMSU.jpg');
+                $rightLogoPath = public_path('storage/logo/COE.jpg');
+
+                if (!file_exists($leftLogoPath) || !file_exists($rightLogoPath)) {
+                    Log::error('Logo files not found:', [
+                        'leftLogoPath' => $leftLogoPath,
+                        'rightLogoPath' => $rightLogoPath,
+                        'exists' => [
+                            'left' => file_exists($leftLogoPath),
+                            'right' => file_exists($rightLogoPath)
+                        ]
+                    ]);
+                    throw new \Exception('Logo files not found in public storage');
+                }
 
                 $leftLogoUrl = 'data:image/jpeg;base64,' . base64_encode(file_get_contents($leftLogoPath));
                 $rightLogoUrl = 'data:image/jpeg;base64,' . base64_encode(file_get_contents($rightLogoPath));
