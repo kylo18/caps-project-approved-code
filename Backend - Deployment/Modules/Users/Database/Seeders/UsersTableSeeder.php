@@ -168,17 +168,17 @@ class UsersTableSeeder extends Seeder
             ],
         ];
 
-        // Add 100 more users
+        // Add 5000 more users
         $roles = [2, 3, 4]; // Faculty, Program Chair, Dean
         $campuses = [1, 2];
         $programs = [1, 2, 3, 4, 5];
         $lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
         $firstNames = ['James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Charles'];
 
-        for ($i = 1; $i <= 100; $i++) {
+        for ($i = 1; $i <= 5000; $i++) {
             $year = 23;
             $campus = 'A';
-            $number = str_pad($i + 60000, 5, '0', STR_PAD_LEFT);
+            $number = str_pad($i + 10000, 5, '0', STR_PAD_LEFT);
             $userCode = "{$year}-{$campus}-{$number}";
             
             $firstName = $firstNames[array_rand($firstNames)];
