@@ -7,7 +7,7 @@
     <style>
       @page {
         size: A4;
-        margin: 1cm;
+        margin: 2.54cm; /* Standard 1-inch margins on all sides */
       }
       body {
         font-family: "Times New Roman", Times, serif;
@@ -19,17 +19,18 @@
       .paper {
         width: 100%;
         box-sizing: border-box;
-        padding: 1cm;
+        padding: 0; /* Remove padding since we're using @page margins */
       }
       .header {
         position: relative;
         text-align: center;
         margin-bottom: 5px;
         padding-top: 20px;
+        min-height: 120px; /* Ensure consistent header height */
       }
       .header-logo {
-        width: 80px;
-        height: 80px;
+        width: 100px; /* Increased logo size */
+        height: 100px;
         object-fit: contain;
       }
       .header-logo.left {
@@ -45,11 +46,11 @@
       .header-code {
         position: absolute;
         left: 0;
-        top: 105px;
+        top: 125px; /* Adjusted for larger logo */
         font-size: 12px;
       }
       .header-center {
-        margin: 0 90px;
+        margin: 0 120px; /* Increased margin to accommodate larger logos */
       }
       .gov-line { font-size: 13px; }
       .univ-name {
@@ -120,19 +121,19 @@
       
       .image-container {
         text-align: center;
-        margin: 10px 0;
+        margin: 15px 0;
         max-width: 100%;
         overflow: hidden;
       }
       .question-image {
-        max-width: 350px;
-        max-height: 175px;
+        max-width: 33.33%; /* One-third of page width */
+        min-width: 300px; /* Minimum width */
         height: auto;
         object-fit: contain;
       }
       .choice-image {
-        max-width: 175px;
-        max-height: 88px;
+        max-width: 33.33%; /* One-third of page width */
+        min-width: 250px; /* Minimum width */
         height: auto;
         object-fit: contain;
       }
