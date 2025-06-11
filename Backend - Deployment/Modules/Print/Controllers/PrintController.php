@@ -50,9 +50,15 @@ class PrintController extends Controller
                     $questionImage = null;
                     if ($q->image) {
                         if (filter_var($q->image, FILTER_VALIDATE_URL)) {
-                            $questionImage = $q->image;
+                            $imageContent = @file_get_contents($q->image);
+                            if ($imageContent) {
+                                $questionImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
+                            }
                         } elseif (Storage::disk('public')->exists($q->image)) {
-                            $questionImage = asset('storage/' . $q->image);
+                            $imageContent = Storage::disk('public')->get($q->image);
+                            if ($imageContent) {
+                                $questionImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
+                            }
                         }
                     }
 
@@ -65,9 +71,15 @@ class PrintController extends Controller
                             $choiceImage = null;
                             if ($choice->image) {
                                 if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
-                                    $choiceImage = $choice->image;
+                                    $imageContent = @file_get_contents($choice->image);
+                                    if ($imageContent) {
+                                        $choiceImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
+                                    }
                                 } elseif (Storage::disk('public')->exists($choice->image)) {
-                                    $choiceImage = asset('storage/' . $choice->image);
+                                    $imageContent = Storage::disk('public')->get($choice->image);
+                                    if ($imageContent) {
+                                        $choiceImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
+                                    }
                                 }
                             }
 
@@ -436,17 +448,17 @@ class PrintController extends Controller
                 ]);
 
                 $pdfOptions = [
-                    'isRemoteEnabled' => false, // Disable remote resources
+                    'isRemoteEnabled' => true, // Enable remote resources for base64 images
                     'isPhpEnabled' => true,
                     'isHtml5ParserEnabled' => true,
-                    'dpi' => 72, // Reduced DPI for better performance
+                    'dpi' => 150, // Increased DPI for better image quality
                     'defaultFont' => 'times',
                     'chroot' => [
                         public_path('storage'),
                         public_path(),
                         storage_path('app/public')
                     ],
-                    'enable_remote' => false, // Disable remote resources
+                    'enable_remote' => true, // Enable remote resources for base64 images
                     'enable_php' => true,
                     'enable_javascript' => false,
                     'images' => true,
