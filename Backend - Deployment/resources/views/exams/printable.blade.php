@@ -30,6 +30,7 @@
       .header-logo {
         width: 80px;
         height: 80px;
+        object-fit: contain;
       }
       .header-logo.left {
         position: absolute;
@@ -121,16 +122,20 @@
       .image-container {
         text-align: center;
         margin: 10px 0;
+        max-width: 100%;
+        overflow: hidden;
       }
       .question-image {
         max-width: 350px;
         max-height: 175px;
         height: auto;
+        object-fit: contain;
       }
       .choice-image {
         max-width: 175px;
         max-height: 88px;
         height: auto;
+        object-fit: contain;
       }
       .image-error {
         font-style: italic;

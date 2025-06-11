@@ -485,7 +485,7 @@ class PrintController extends Controller
             try {
                 // Increase execution time and memory limits
                 ini_set('max_execution_time', '600'); // 10 minutes
-                ini_set('memory_limit', '1G'); // Increase memory limit
+                ini_set('memory_limit', '2G'); // Increase memory limit to 2GB
                 gc_enable(); // Enable garbage collection
 
                 // Configure PDF with optimized settings
@@ -500,7 +500,7 @@ class PrintController extends Controller
                     'isRemoteEnabled' => true,
                     'isPhpEnabled' => true,
                     'isHtml5ParserEnabled' => true,
-                    'dpi' => 96, // Reduced DPI for better performance
+                    'dpi' => 72, // Reduced DPI for better performance
                     'defaultFont' => 'times',
                     'chroot' => [
                         public_path('storage'),
@@ -517,7 +517,7 @@ class PrintController extends Controller
                     'logOutputFile' => storage_path('logs/pdf.log'),
                     'fontCache' => storage_path('fonts'),
                     'tempDir' => storage_path('app/temp'),
-                    'image_cache_enabled' => false, // Disable image caching for now
+                    'image_cache_enabled' => true, // Enable image caching
                     'defaultMediaType' => 'print',
                     'defaultPaperSize' => 'a4',
                     'fontHeightRatio' => 1,
@@ -552,21 +552,27 @@ class PrintController extends Controller
                     // Clear temporary files
                     $this->clearTempFiles();
                     
-                    // Generate PDF in chunks if needed
+                    // Generate PDF
                     $pdf->save($tempPath);
 
                     if (!file_exists($tempPath)) {
                         throw new \Exception("Failed to generate PDF file");
                     }
 
+                    // Generate a unique filename
+                    $filename = 'exam_' . date('Y-m-d_H-i-s') . '.pdf';
+
                     // Set headers for immediate download
                     $headers = [
                         'Content-Type' => 'application/pdf',
-                        'Content-Disposition' => 'attachment; filename="exam.pdf"',
+                        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
                         'Cache-Control' => 'no-cache, private',
                         'Pragma' => 'no-cache',
+                        'Content-Length' => filesize($tempPath),
+                        'Access-Control-Expose-Headers' => 'Content-Disposition'
                     ];
 
+                    // Return the file response
                     return response()->file($tempPath, $headers)->deleteFileAfterSend(true);
 
                 } catch (\Exception $e) {
@@ -579,12 +585,15 @@ class PrintController extends Controller
             } catch (\Exception $e) {
                 Log::error('PDF Generation Error:', [
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
+                    'trace' => $e->getTraceAsString(),
+                    'memory_usage' => memory_get_usage(true),
+                    'peak_memory_usage' => memory_get_peak_usage(true)
                 ]);
                 
                 return response()->json([
                     'message' => 'Failed to generate PDF.',
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
+                    'details' => 'An error occurred while generating the PDF. Please try again with fewer questions or images.'
                 ], 500);
             }
 
