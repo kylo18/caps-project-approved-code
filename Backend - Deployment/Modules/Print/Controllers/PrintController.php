@@ -92,6 +92,13 @@ class PrintController extends Controller
                 $imageData = file_get_contents($path);
                 return 'data:image/jpeg;base64,' . base64_encode($imageData);
             }
+            // Try alternative path if first path doesn't exist
+            $altPath = resource_path('assets/images/' . basename($path));
+            if (file_exists($altPath)) {
+                $imageData = file_get_contents($altPath);
+                return 'data:image/jpeg;base64,' . base64_encode($imageData);
+            }
+            Log::warning('Logo file not found:', ['path' => $path, 'altPath' => $altPath]);
             return null;
         } catch (\Exception $e) {
             Log::error('Error reading image:', ['path' => $path, 'error' => $e->getMessage()]);
@@ -329,6 +336,19 @@ class PrintController extends Controller
             
             $leftLogoBase64 = $this->getBase64Image($leftLogoPath);
             $rightLogoBase64 = $this->getBase64Image($rightLogoPath);
+
+            // If logos are not found in public storage, try resource path
+            if (!$leftLogoBase64 || !$rightLogoBase64) {
+                $leftLogoBase64 = $this->getBase64Image(resource_path('assets/images/JRMSU.jpg'));
+                $rightLogoBase64 = $this->getBase64Image(resource_path('assets/images/COE.jpg'));
+            }
+
+            // If still not found, use default logos
+            if (!$leftLogoBase64 || !$rightLogoBase64) {
+                Log::warning('Using default logos as custom logos not found');
+                $leftLogoBase64 = $this->getBase64Image(resource_path('assets/images/default-left-logo.jpg'));
+                $rightLogoBase64 = $this->getBase64Image(resource_path('assets/images/default-right-logo.jpg'));
+            }
 
             // Handle preview request
             if ($request->input('preview', false)) {
