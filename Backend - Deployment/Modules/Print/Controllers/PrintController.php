@@ -45,11 +45,36 @@ class PrintController extends Controller
             foreach ($questions as $q) {
                 try {
                     $questionText = Crypt::decryptString($q->questionText);
+                    
+                    // Handle question image
+                    $questionImage = null;
+                    if ($q->image) {
+                        if (filter_var($q->image, FILTER_VALIDATE_URL)) {
+                            $questionImage = $q->image;
+                        } elseif (Storage::disk('public')->exists($q->image)) {
+                            $questionImage = asset('storage/' . $q->image);
+                        }
+                    }
+
+                    // Format choices with proper image handling
                     $choices = $q->choices->map(function ($choice) {
                         try {
+                            $choiceText = $choice->choiceText ? Crypt::decryptString($choice->choiceText) : null;
+                            
+                            // Handle choice image
+                            $choiceImage = null;
+                            if ($choice->image) {
+                                if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
+                                    $choiceImage = $choice->image;
+                                } elseif (Storage::disk('public')->exists($choice->image)) {
+                                    $choiceImage = asset('storage/' . $choice->image);
+                                }
+                            }
+
                             return [
-                                'choiceText' => $choice->choiceText ? Crypt::decryptString($choice->choiceText) : null,
-                                'choiceImage' => $this->generateUrl($choice->image),
+                                'choiceText' => $choiceText,
+                                'choiceImage' => $choiceImage,
+                                'position' => $choice->position
                             ];
                         } catch (\Exception $e) {
                             Log::error('Choice formatting failed:', [
@@ -58,11 +83,11 @@ class PrintController extends Controller
                             ]);
                             return null;
                         }
-                    })->filter();
+                    })->filter()->sortBy('position')->values();
 
                     $formattedQuestions[] = [
                         'questionText' => $questionText,
-                        'questionImage' => $this->generateUrl($q->image),
+                        'questionImage' => $questionImage,
                         'choices' => $choices,
                         'score' => $q->score,
                         'subject' => $subject ? $subject->subjectName : null,

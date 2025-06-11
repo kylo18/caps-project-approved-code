@@ -24,7 +24,7 @@
       .header {
         position: relative;
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 5px;
         padding-top: 20px;
       }
       .header-logo {
@@ -68,14 +68,14 @@
         font-weight: bold;
         margin: 10px 0;
       }
-      .total-items-header { font-size: 11pt; }
+      .total-items-header { display: none; }
       
       .student-info {
-        margin: 20px 0;
+        margin: 5px 0;
         border-bottom: 1px solid #ccc;
-        padding: 10px 0;
+        padding: 5px 0;
       }
-      .info-field { margin: 10px 0; }
+      .info-field { margin: 3px 0; }
       .info-label {
         font-weight: bold;
         margin-right: 5px;
@@ -87,17 +87,16 @@
       }
 
       .subject-section {
-        margin-bottom: 30px;
-        page-break-before: always;
+        margin-bottom: 15px;
       }
       .subject-section:first-of-type {
-        page-break-before: avoid;
+        margin-top: 0;
       }
       .subject-header {
         font-size: 12pt;
         font-weight: bold;
-        margin: 20px 0;
-        padding: 5px 0;
+        margin: 5px 0;
+        padding: 3px 0;
         border-bottom: 2px solid #333;
       }
       .total-items {
@@ -106,7 +105,7 @@
       }
 
       .question {
-        margin-bottom: 20px;
+        margin-bottom: 15px;
         page-break-inside: avoid;
       }
       .question-text {
@@ -159,9 +158,6 @@
           <div class="tagline">The Premiere University in Zamboanga del Norte</div>
           <div class="college">COLLEGE OF ENGINEERING</div>
           <div class="qe-exam-title">{{ $examTitle }}</div>
-          <div class="total-items-header">
-            Total Items: {{ array_sum(array_map(function($subject) { return $subject['totalItems']; }, $questionsBySubject)) }}
-          </div>
         </div>
         <img src="{{ $rightLogoPath }}" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
       </div>
