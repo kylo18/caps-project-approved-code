@@ -170,6 +170,9 @@ class UsersTableSeeder extends Seeder
                 ],
             ];
 
+            // Insert the predefined users first
+            DB::table('users')->insert($users);
+
             // Add 5000 more users
             $roles = [2, 3, 4]; // Faculty, Program Chair, Dean
             $campuses = [1, 2];
@@ -182,10 +185,10 @@ class UsersTableSeeder extends Seeder
             $totalUsers = 5000;
             $bulkUsers = [];
 
-            for ($i = 1; $i <= $totalUsers; $i++) {
+            for ($i = 5001; $i <= 10000; $i++) {
                 $year = 23;
                 $campus = 'A';
-                $number = str_pad($i + 10000, 5, '0', STR_PAD_LEFT);
+                $number = str_pad($i, 5, '0', STR_PAD_LEFT);
                 $userCode = "{$year}-{$campus}-{$number}";
                 
                 $firstName = $firstNames[array_rand($firstNames)];

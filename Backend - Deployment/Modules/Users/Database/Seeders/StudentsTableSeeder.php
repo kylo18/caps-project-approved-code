@@ -12,11 +12,11 @@ class StudentsTableSeeder extends Seeder
     public function run()
     {
         try {
-            // Get all CSV files from the storage/app/imports directory
-            $files = glob(storage_path('app/imports/*.csv'));
+            // Get all CSV files from the new path
+            $files = glob(base_path('public/csv/*.csv'));
             
             if (empty($files)) {
-                $this->command->error('No CSV files found in storage/app/imports directory!');
+                $this->command->error('No CSV files found in public/csv directory!');
                 return;
             }
 
