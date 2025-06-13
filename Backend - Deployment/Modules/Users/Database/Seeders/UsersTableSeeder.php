@@ -177,88 +177,63 @@ class UsersTableSeeder extends Seeder
             $lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
             $firstNames = ['James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Charles'];
 
-            // Start a database transaction
-            DB::beginTransaction();
+            // Generate and insert bulk users in smaller chunks
+            $chunkSize = 100; // Smaller chunk size for better memory management
+            $totalUsers = 5000;
+            $bulkUsers = [];
 
-            try {
-                // Insert original users first
-                DB::table('users')->insert($users);
+            for ($i = 1; $i <= $totalUsers; $i++) {
+                $year = 23;
+                $campus = 'A';
+                $number = str_pad($i + 10000, 5, '0', STR_PAD_LEFT);
+                $userCode = "{$year}-{$campus}-{$number}";
+                
+                $firstName = $firstNames[array_rand($firstNames)];
+                $lastName = $lastNames[array_rand($lastNames)];
+                $email = strtolower($firstName . '.' . $lastName . $i . '@university.edu');
+                
+                $bulkUsers[] = [
+                    'userCode' => $userCode,
+                    'firstName' => $firstName,
+                    'lastName' => $lastName,
+                    'email' => $email,
+                    'password' => Hash::make('12345678'),
+                    'roleID' => $roles[array_rand($roles)],
+                    'campusID' => $campuses[array_rand($campuses)],
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => $programs[array_rand($programs)]
+                ];
 
-                // Generate and insert bulk users in smaller chunks
-                $chunkSize = 100; // Smaller chunk size for better memory management
-                $totalUsers = 5000;
-                $bulkUsers = [];
-                $usedUserCodes = [];
-                $usedEmails = [];
-
-                // Get existing user codes and emails
-                $existingUsers = DB::table('users')->select('userCode', 'email')->get();
-                foreach ($existingUsers as $user) {
-                    $usedUserCodes[] = $user->userCode;
-                    $usedEmails[] = $user->email;
-                }
-
-                for ($i = 1; $i <= $totalUsers; $i++) {
-                    // Generate unique user code
-                    do {
-                        $year = 23;
-                        $campus = 'A';
-                        $number = str_pad($i + 10000, 5, '0', STR_PAD_LEFT);
-                        $userCode = "{$year}-{$campus}-{$number}";
-                    } while (in_array($userCode, $usedUserCodes));
-                    
-                    $firstName = $firstNames[array_rand($firstNames)];
-                    $lastName = $lastNames[array_rand($lastNames)];
-                    
-                    // Generate unique email
-                    $baseEmail = strtolower($firstName . '.' . $lastName);
-                    $email = $baseEmail . $i . '@university.edu';
-                    $counter = 1;
-                    while (in_array($email, $usedEmails)) {
-                        $email = $baseEmail . $i . '_' . $counter . '@university.edu';
-                        $counter++;
-                    }
-
-                    // Add to used arrays
-                    $usedUserCodes[] = $userCode;
-                    $usedEmails[] = $email;
-                    
-                    $bulkUsers[] = [
-                        'userCode' => $userCode,
-                        'firstName' => $firstName,
-                        'lastName' => $lastName,
-                        'email' => $email,
-                        'password' => Hash::make('12345678'),
-                        'roleID' => $roles[array_rand($roles)],
-                        'campusID' => $campuses[array_rand($campuses)],
-                        'isActive' => true,
-                        'status_id' => $registeredStatusId,
-                        'programID' => $programs[array_rand($programs)]
-                    ];
-
-                    // Insert in chunks
-                    if (count($bulkUsers) >= $chunkSize) {
+                // Insert in chunks with separate transactions
+                if (count($bulkUsers) >= $chunkSize) {
+                    DB::beginTransaction();
+                    try {
                         DB::table('users')->insert($bulkUsers);
-                        $bulkUsers = []; // Clear the array
+                        DB::commit();
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        Log::error('Error inserting chunk: ' . $e->getMessage());
+                        throw $e;
                     }
+                    $bulkUsers = []; // Clear the array
                 }
-
-                // Insert any remaining users
-                if (!empty($bulkUsers)) {
-                    DB::table('users')->insert($bulkUsers);
-                }
-
-                // Commit the transaction
-                DB::commit();
-                
-                $this->command->info("Successfully seeded 5000 users!");
-                
-            } catch (\Exception $e) {
-                // Rollback the transaction on error
-                DB::rollBack();
-                Log::error('Error in UsersTableSeeder: ' . $e->getMessage());
-                throw $e;
             }
+
+            // Insert any remaining users
+            if (!empty($bulkUsers)) {
+                DB::beginTransaction();
+                try {
+                    DB::table('users')->insert($bulkUsers);
+                    DB::commit();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    Log::error('Error inserting final chunk: ' . $e->getMessage());
+                    throw $e;
+                }
+            }
+
+            $this->command->info("Successfully seeded 5000 users!");
         } catch (\Exception $e) {
             $this->command->error('Failed to seed users: ' . $e->getMessage());
             throw $e;
