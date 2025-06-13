@@ -6,6 +6,12 @@
 !/public/storage/.gitkeep
 /storage/*.key
 /storage/pail
+
+# Allow tracking of storage/app/imports
+!/storage/app/
+!/storage/app/imports/
+!/storage/app/imports/**
+
 /vendor
 .env
 .env.backup
