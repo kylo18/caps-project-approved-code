@@ -89,12 +89,37 @@ class AuthController extends Controller
                 ], 409);
             }
 
-            // Limit Deans to 2 users only
+            // Check if userCode exists in students table
+            $studentExists = DB::table('students')
+                ->where('userCode', $validated['userCode'])
+                ->where('lastName', strtoupper($validated['lastName']))
+                ->exists();
+
+            // If registering as a student (roleID 1), check if userCode and lastName match in students table
+            if ($validated['roleID'] == 1) {
+                if (!$studentExists) {
+                    Log::warning('Registration failed: Student ID number or last name does not match - ' . $validated['userCode']);
+                    return response()->json([
+                        'message' => 'Cannot register as student. Student ID number or last name does not match our records.'
+                    ], 403);
+                }
+            }
+
+            // Limit Deans to 1 user only
             if ($validated['roleID'] == 4) {
                 $deanCount = User::where('roleID', 4)->count();
-                if ($deanCount >= 2) {
+                if ($deanCount >= 1) {
                     Log::warning('Registration failed: Dean limit exceeded');
-                    return response()->json(['message' => 'Only 2 Deans are allowed. Registration failed.'], 403);
+                    return response()->json(['message' => 'Only 1 Dean is allowed. Registration failed.'], 403);
+                }
+            }
+
+            // Limit Associate Deans to 4 users only
+            if ($validated['roleID'] == 5) {
+                $associateDeanCount = User::where('roleID', 5)->count();
+                if ($associateDeanCount >= 4) {
+                    Log::warning('Registration failed: Associate Dean limit exceeded');
+                    return response()->json(['message' => 'Only 4 Associate Deans are allowed. Registration failed.'], 403);
                 }
             }
 
@@ -114,11 +139,11 @@ class AuthController extends Controller
 
             // Get status IDs
             $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
-            $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;
+            $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;  
 
-            // Determine initial status and activation based on role
-            $statusId = in_array($validated['roleID'], [1, 2, 3]) ? $pendingStatusId : $registeredStatusId;
-            $isActive = $validated['roleID'] == 4 ? true : false;
+            // Determine initial status and activation based on role and student existence
+            $statusId = $studentExists ? $registeredStatusId : (in_array($validated['roleID'], [1, 2, 3]) ? $pendingStatusId : $registeredStatusId);
+            $isActive = $studentExists ? true : ($validated['roleID'] == 4 ? true : false);
 
             // Create the user in the database
             $user = User::create([

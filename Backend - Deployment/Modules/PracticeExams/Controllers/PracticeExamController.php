@@ -46,6 +46,11 @@ class PracticeExamController extends Controller
                 return response()->json(['message' => 'Practice Exam settings not configured for this subject.'], 404);
             }
 
+            // Check if practice exam is enabled for this subject
+            if (!$settings->isEnabled) {
+                return response()->json(['message' => 'Practice exam is currently disabled for this subject.'], 403);
+            }
+
             // Get difficulty IDs
             $difficulties = Difficulty::all()->pluck('id', 'name');
 
@@ -84,7 +89,7 @@ class PracticeExamController extends Controller
             }
 
             // Calculate point quotas per difficulty
-            $targetPoints = 100;
+            $targetItems = $settings->total_items;
             $difficultyMap = [
                 $difficulties['easy'] => $settings->easy_percentage,
                 $difficulties['moderate'] => $settings->moderate_percentage,
@@ -92,28 +97,29 @@ class PracticeExamController extends Controller
             ];
 
             $difficultyQuotas = [];
-            $remainingPoints = $targetPoints;
+            $remainingItems = $targetItems;
             foreach (array_keys($difficultyMap) as $i => $difficultyId) {
                 if ($i === count($difficultyMap) - 1) {
-                    $difficultyQuotas[$difficultyId] = $remainingPoints;
+                    $difficultyQuotas[$difficultyId] = $remainingItems;
                 } else {
-                    $portion = round(($difficultyMap[$difficultyId] / 100) * $targetPoints);
+                    $portion = round(($difficultyMap[$difficultyId] / 100) * $targetItems);
                     $difficultyQuotas[$difficultyId] = $portion;
-                    $remainingPoints -= $portion;
+                    $remainingItems -= $portion;
                 }
             }
 
             // Select and assemble questions
             $selectedQuestions = [];
             $totalPoints = 0;
+            $totalItems = 0;
 
-            foreach ($difficultyQuotas as $difficultyId => $pointsQuota) {
-                $currentPoints = 0;
+            foreach ($difficultyQuotas as $difficultyId => $itemsQuota) {
+                $currentItems = 0;
                 $availableQuestions = collect($grouped[$difficultyId])->shuffle();
 
                 foreach ($availableQuestions as $q) {
-                    if ($currentPoints + $q->score > $pointsQuota) {
-                        continue;
+                    if ($currentItems >= $itemsQuota) {
+                        break;
                     }
 
                     // Get regular choices (excluding "None of the above")
@@ -201,12 +207,10 @@ class PracticeExamController extends Controller
                             'choices' => $finalChoices,
                         ];
 
-                        $currentPoints += $q->score;
+                        $currentItems++;
+                        $totalItems++;
                         $totalPoints += $q->score;
 
-                        if ($currentPoints >= $pointsQuota) {
-                            break;
-                        }
                     } catch (\Exception $e) {
                         Log::error("Question processing failed (ID: {$q->questionID}): " . $e->getMessage());
                         continue;
@@ -217,6 +221,7 @@ class PracticeExamController extends Controller
             return response()->json([
                 'message' => 'Practice exam generated successfully.',
                 'questions' => $selectedQuestions,
+                'totalItems' => $totalItems,
                 'totalPoints' => $totalPoints,
                 'enableTimer' => $settings->enableTimer,
                 'durationMinutes' => $settings->duration_minutes,

@@ -24,8 +24,8 @@ class UserController extends Controller
                 return response()->json(['message' => 'Unauthorized'], 401);
             }
 
-            // Only Dean (roleID = 4) can access the user list
-            if ($user->roleID != 4) {
+            // Only Dean (roleID = 4) or Associate Dean (roleID = 5) can access the user list
+            if (!in_array($user->roleID, [4, 5])) {
                 return response()->json(['message' => 'Forbidden'], 403);
             }
 
@@ -98,8 +98,8 @@ class UserController extends Controller
     public function deactivate($id)
     {
         $authUser = Auth::user();
-        if ($authUser->roleID !== 4) {
-            return response()->json(['message' => 'Unauthorized: Only the Dean can deactivate users'], 403);
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can deactivate users'], 403);
         }
 
         $user = User::findOrFail($id);
@@ -115,8 +115,8 @@ class UserController extends Controller
     public function activate($id)
     {
         $authUser = Auth::user();
-        if ($authUser->roleID !== 4) {
-            return response()->json(['message' => 'Unauthorized: Only the Dean can reactivate users'], 403);
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can reactivate users'], 403);
         }
 
         $user = User::findOrFail($id);
@@ -132,8 +132,8 @@ class UserController extends Controller
     public function activateMultipleUsers(Request $request)
     {
         $authUser = Auth::user();
-        if ($authUser->roleID !== 4) {
-            return response()->json(['message' => 'Unauthorized: Only the Dean can activate users'], 403);
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can activate users'], 403);
         }
 
         // Validate incoming array of user IDs
@@ -165,8 +165,8 @@ class UserController extends Controller
     public function deactivateMultipleUsers(Request $request)
     {
         $authUser = Auth::user();
-        if ($authUser->roleID !== 4) {
-            return response()->json(['message' => 'Unauthorized: Only the Dean can deactivate users'], 403);
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can deactivate users'], 403);
         }
 
         $validated = $request->validate([
@@ -198,8 +198,8 @@ class UserController extends Controller
     {
         $authUser = Auth::user();
 
-        if ($authUser->roleID !== 4) {
-            return response()->json(['message' => 'Unauthorized. Only the Dean can approve users.'], 403);
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized. Only the Dean or Associate Dean can approve users.'], 403);
         }
 
         $user = User::find($userID);
@@ -231,8 +231,8 @@ class UserController extends Controller
     {
         $authUser = Auth::user();
 
-        if ($authUser->roleID !== 4) {
-            return response()->json(['message' => 'Unauthorized. Only the Dean can disapprove users.'], 403);
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized. Only the Dean or Associate Dean can disapprove users.'], 403);
         }
 
         $user = User::find($userID);
@@ -259,8 +259,8 @@ class UserController extends Controller
     {
         $authUser = Auth::user();
 
-        if ($authUser->roleID !== 4) {
-            return response()->json(['message' => 'Unauthorized. Only the Dean can approve users.'], 403);
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized. Only the Dean or Associate Dean can approve users.'], 403);
         }
 
         $validated = $request->validate([

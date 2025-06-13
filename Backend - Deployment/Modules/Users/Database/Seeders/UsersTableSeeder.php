@@ -42,7 +42,7 @@ class UsersTableSeeder extends Seeder
                     'roleID' => 4,
                     'campusID' => 1,
                     'isActive' => true,
-                    'status_id' => 4,
+                    'status_id' => $registeredStatusId,
                     'programID' => 4
                 ],
                 // Program Chairs

@@ -13,12 +13,11 @@ class ProgramSeeder extends Seeder
     {
         try {
             DB::table('programs')->insert([
-                ['programID' => 1, 'programName' => 'BS-CpE'],
-                ['programID' => 2, 'programName' => 'BS-EE'],
-                ['programID' => 3, 'programName' => 'BS-CE'],
-                ['programID' => 4, 'programName' => 'BS-ECE'],
-                ['programID' => 5, 'programName' => 'BS-ABE'],
-                ['programID' => 6, 'programName' => 'GE'],
+                ['programID' => 1, 'programName' => 'BSCOE'],
+                ['programID' => 2, 'programName' => 'BSEE'],
+                ['programID' => 3, 'programName' => 'BSCE'],
+                ['programID' => 4, 'programName' => 'BSECE'],
+                ['programID' => 5, 'programName' => 'BSABE'],
             ]);
         } catch (Exception $e) {
             Log::error('Failed to seed programs table: ' . $e->getMessage());

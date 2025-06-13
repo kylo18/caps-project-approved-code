@@ -27,11 +27,11 @@ class YearLevelController extends Controller
                 ], 401);
             }
 
-            // Only allow Dean (4), Program Chair (3), and Instructors (2) to access
-            if (!in_array($user->roleID, [2, 3, 4])) {
+            // Only allow Dean (4), Associate Dean (5), Program Chair (3), and Instructors (2) to access
+            if (!in_array($user->roleID, [2, 3, 4, 5])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Forbidden. Only Dean, Program Chair, and Instructors can view year levels.'
+                    'message' => 'Forbidden. Only Dean, Associate Dean, Program Chair, and Instructors can view year levels.'
                 ], 403);
             }
 

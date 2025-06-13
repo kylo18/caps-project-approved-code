@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\TokenExpirationMiddleware;
 use Illuminate\Support\Facades\Route;
 use Modules\Users\Controllers\AuthController;
 use Modules\Subjects\Controllers\SubjectController;
@@ -7,7 +8,6 @@ use Modules\FacultySubjects\Controllers\FacultySubjectController;
 use Modules\Questions\Controllers\QuestionController;
 use Modules\Choices\Controllers\ChoiceController;
 use Modules\Users\Controllers\UserController;
-use App\Http\Middleware\TokenExpirationMiddleware;
 use Modules\PracticeExams\Controllers\PracticeExamSettingController;
 use Modules\PracticeExams\Controllers\PracticeExamController;
 use Modules\Users\Controllers\ProgramController;
@@ -44,10 +44,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Routes for Faculty (roleID: 2), Program Chair (roleID: 3), and Dean (roleID: 4)
+| Routes for Faculty (roleID: 2), Program Chair (roleID: 3), Dean (roleID: 4), and Associate Dean (roleID: 5)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4'])->group(function () {
+Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4,5'])->group(function () {
     // Choices
     Route::post('/questions/choices', [ChoiceController::class, 'store']);
     Route::get('/questions/{questionID}/choices', [ChoiceController::class, 'showChoices']);
@@ -105,10 +105,10 @@ Route::middleware(['auth:sanctum', 'role:3'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Routes for Program Chair and Dean (roleID: 3, 4)
+| Routes for Program Chair and Dean (roleID: 3, 4, 5)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'role:3,4'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:3,4,5'])->group(function () {
     // Question approval (approve/disapprove)
     Route::patch('/questions/{questionID}/status', [QuestionController::class, 'updateStatus']);
 
@@ -125,10 +125,10 @@ Route::middleware(['auth:sanctum', 'role:3,4'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Routes for Dean (roleID: 4 only)
+| Routes for Dean and Associate Dean (roleID: 4, 5 only)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'role:4'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:4,5'])->group(function () {
     // User management
     Route::get('/users', [UserController::class, 'index']);
     Route::patch('/users/{userID}/approve', [UserController::class, 'approveUser']);

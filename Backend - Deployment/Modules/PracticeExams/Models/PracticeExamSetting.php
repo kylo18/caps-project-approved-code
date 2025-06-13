@@ -10,12 +10,14 @@ class PracticeExamSetting extends Model
 {
     protected $fillable = [
         'subjectID',
+        'isEnabled',
         'enableTimer',
         'duration_minutes',
         'coverage',
         'easy_percentage',
         'moderate_percentage',
         'hard_percentage',
+        'total_items',
         'createdBy',
     ];
 

@@ -18,6 +18,7 @@ require_once base_path('Modules/Questions/Database/Seeders/DifficultySeeder.php'
 require_once base_path('Modules/Questions/Database/Seeders/PurposeSeeder.php');
 require_once base_path('Modules/Questions/Database/Seeders/StatusSeeder.php');
 require_once base_path('Modules/Questions/Database/Seeders/QuestionsTableSeeder.php');
+require_once base_path('Modules/Users/Database/Seeders/StudentsTableSeeder.php');
 
 class DatabaseSeeder extends Seeder
 {
@@ -37,6 +38,7 @@ class DatabaseSeeder extends Seeder
             \Modules\Questions\Database\Seeders\DifficultySeeder::class,
             \Modules\Questions\Database\Seeders\PurposeSeeder::class,
             \Modules\Questions\Database\Seeders\QuestionsTableSeeder::class,
+            \Modules\Users\Database\Seeders\StudentsTableSeeder::class,
         ];
 
         foreach ($seeders as $seeder) {

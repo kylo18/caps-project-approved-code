@@ -164,7 +164,7 @@ class PrintController extends Controller
                 if (!$user) {
                     throw new \Exception('User not authenticated');
                 }
-                if (!in_array($user->roleID, [3, 4])) {
+                if (!in_array($user->roleID, [3, 4, 5])) {
                     throw new \Exception('User role not authorized. Role ID: ' . $user->roleID);
                 }
             } catch (\Exception $e) {
@@ -172,7 +172,7 @@ class PrintController extends Controller
                     'error' => $e->getMessage(),
                     'user' => Auth::id() ?? 'none'
                 ]);
-                return response()->json(['message' => 'Unauthorized. Only Program Chair and Dean can generate multi-subject exams.'], 401);
+                return response()->json(['message' => 'Unauthorized. Only Program Chair, Dean, and Associate Dean can generate multi-subject exams.'], 401);
             }
 
             // Force the purpose to be examQuestions
