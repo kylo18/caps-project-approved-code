@@ -120,22 +120,23 @@
       }
       
       .image-container {
-        text-align: center;
         margin: 15px 0;
         max-width: 100%;
         overflow: hidden;
+        text-align: left;
       }
       .question-image {
-        max-width: 33.33%; /* One-third of page width */
-        min-width: 300px; /* Minimum width */
-        height: auto;
+        max-width: 100%;
+        height: 320px;
         object-fit: contain;
+        border-radius: 0.5rem;
       }
       .choice-image {
-        max-width: 33.33%; /* One-third of page width */
-        min-width: 250px; /* Minimum width */
-        height: auto;
+        max-width: 100%;
+        height: 240px;
         object-fit: contain;
+        border-radius: 0.5rem;
+        margin-left: 1rem;
       }
       .image-error {
         font-style: italic;
