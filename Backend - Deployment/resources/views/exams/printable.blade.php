@@ -88,7 +88,7 @@
       }
 
       .subject-section {
-        margin-bottom: 10px;
+        margin-bottom: 5px;
       }
       .subject-section:first-of-type {
         margin-top: 0;
@@ -96,8 +96,8 @@
       .subject-header {
         font-size: 12pt;
         font-weight: bold;
-        margin: 3px 0;
-        padding: 2px 0;
+        margin: 2px 0;
+        padding: 1px 0;
         border-bottom: 2px solid #333;
       }
       .total-items {
@@ -106,29 +106,32 @@
       }
 
       .question {
-        margin-bottom: 10px;
+        margin-bottom: 5px;
         page-break-inside: avoid;
       }
       .question-text {
-        margin-bottom: 5px;
+        margin-bottom: 3px;
         font-weight: normal;
       }
       .choices {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 5px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2px 20px;
         margin-left: 20px;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
       }
       .choice {
-        margin-bottom: 5px;
+        margin-bottom: 2px;
         page-break-inside: avoid;
         display: flex;
         align-items: flex-start;
       }
       .choice-letter {
-        min-width: 20px;
+        min-width: 15px;
         font-weight: bold;
+      }
+      .choice-content {
+        flex: 1;
       }
       
       .image-container {
