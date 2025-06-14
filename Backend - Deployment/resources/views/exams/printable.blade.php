@@ -71,22 +71,6 @@
       }
       .total-items-header { display: none; }
       
-      .exam-details {
-          display: flex;
-          justify-content: flex-end;
-          width: 100%;
-          margin-top: 10px;
-      }
-      .exam-number {
-          font-size: 14px;
-          font-weight: bold;
-          margin-right: 20px;
-      }
-      .exam-date {
-          font-size: 14px;
-          font-weight: normal;
-      }
-
       .student-info {
         margin: 5px 0;
         border-bottom: 1px solid #ccc;
@@ -123,22 +107,22 @@
 
       .question {
         margin-bottom: 5px;
+        page-break-inside: avoid;
       }
       .question-text {
         margin-bottom: 3px;
         font-weight: normal;
       }
       .choices {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
         gap: 2px 20px;
         margin-left: 20px;
         margin-bottom: 5px;
       }
       .choice {
-        flex: 0 0 calc(50% - 10px);
-        box-sizing: border-box;
         margin-bottom: 2px;
+        page-break-inside: avoid;
         display: flex;
         align-items: flex-start;
       }
@@ -183,31 +167,16 @@
   <body>
     <div class="paper">
       <div class="header">
-        <img
-          src="{{ $leftLogoPath }}"
-          class="header-logo left"
-          alt="University Seal"
-          onerror="this.style.display='none'"
-        />
+        <img src="{{ $leftLogoPath }}" class="header-logo left" alt="University Seal" onerror="this.style.display='none'" />
         <div class="header-code">JRMSU-COE-027</div>
         <div class="header-center">
-          <div class="univ-name">JOSE RIZAL MEMORIAL STATE UNIVERSITY</div>
           <div class="gov-line">Republic of the Philippines</div>
-          <div class="tagline">
-            The Premiere University in Zamboanga del Norte
-          </div>
+          <div class="univ-name">JOSE RIZAL MEMORIAL STATE UNIVERSITY</div>
+          <div class="tagline">The Premiere University in Zamboanga del Norte</div>
           <div class="college">COLLEGE OF ENGINEERING</div>
-          <div class="exam-details">
-              <span class="exam-number">{{ $examTitle }}</span>
-              <span class="exam-date">Date:</span>
-          </div>
+          <div class="qe-exam-title">{{ $examTitle }}</div>
         </div>
-        <img
-          src="{{ $rightLogoPath }}"
-          class="header-logo right"
-          alt="College Logo"
-          onerror="this.style.display='none'"
-        />
+        <img src="{{ $rightLogoPath }}" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
       </div>
 
       <div class="student-info">
@@ -216,13 +185,18 @@
           <span class="info-value">&nbsp;</span>
         </div>
         <div class="info-field">
-          <span class="info-label">Instructions:</span>
-          <span class="info-value">1</span>
+          <span class="info-label">Date:</span>
+          <span class="info-value">&nbsp;</span>
+        </div>
+        <div class="info-field">
+          <span class="info-label">Section:</span>
+          <span class="info-value">&nbsp;</span>
         </div>
       </div>
 
-      @php $questionNumber = 1; @endphp @foreach ($questionsBySubject as
-      $subjectData)
+      @php $questionNumber = 1; @endphp 
+      
+      @foreach ($questionsBySubject as $subjectData)
       <div class="subject-section">
         <div class="subject-header">
           {{ $subjectData['subject'] }}
@@ -232,10 +206,13 @@
         </div>
 
         @foreach ($subjectData['questions'] as $question)
+        @if($questionNumber > 1 && ($questionNumber - 1) % 5 == 0)
+        <div style="page-break-after: always"></div>
+        @endif
+
         <div class="question">
           <div class="question-text">
-            {{ $questionNumber }}. {!! $question['questionText'] ?? 'Question
-            text not available' !!}
+            {{ $questionNumber }}. {!! $question['questionText'] ?? 'Question text not available' !!}
           </div>
 
           @if (!empty($question['questionImage']))
@@ -244,7 +221,7 @@
               class="question-image"
               src="{{ $question['questionImage'] }}"
               alt="Question Image"
-              onerror="this.parentElement.innerHTML='<div class='image-error'>[Image not available]</div>'"
+              onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Image not available]</div>'"
             />
           </div>
           @endif
@@ -255,13 +232,14 @@
               <span class="choice-letter">{{ chr(65 + $choiceIndex) }}.</span>
               <div class="choice-content">
                 {!! $choice['choiceText'] ?? '' !!}
+
                 @if(!empty($choice['choiceImage']))
                 <div class="image-container">
                   <img
                     class="choice-image"
                     src="{{ $choice['choiceImage'] }}"
                     alt="Choice {{ chr(65 + $choiceIndex) }} Image"
-                    onerror="this.parentElement.innerHTML='<div class='image-error'>[Choice image not available]</div>'"
+                    onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Choice image not available]</div>'"
                   />
                 </div>
                 @endif
@@ -270,8 +248,9 @@
             @endforeach
           </div>
         </div>
-        @php $questionNumber++; @endphp @endforeach
-      </div>
+        @php $questionNumber++; @endphp 
+        @endforeach
+      </div> 
       @endforeach
     </div>
   </body>
