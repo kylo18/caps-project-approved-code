@@ -15,9 +15,12 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Modules\Users\Models\User;
 use Modules\Questions\Models\Status;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class PrintController extends Controller
 {
+    private $sessionLifetime = 3600; // 1 hour in seconds
+
     private function generateUrl($path)
     {
         if (!$path) {
@@ -50,14 +53,12 @@ class PrintController extends Controller
                     $questionImage = null;
                     if ($q->image) {
                         if (filter_var($q->image, FILTER_VALIDATE_URL)) {
-                            $imageContent = @file_get_contents($q->image);
-                            if ($imageContent) {
-                                $questionImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
-                            }
-                        } elseif (Storage::disk('public')->exists($q->image)) {
-                            $imageContent = Storage::disk('public')->get($q->image);
-                            if ($imageContent) {
-                                $questionImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
+                            $questionImage = $q->image;
+                        } else {
+                            // Handle local storage path
+                            $imagePath = str_replace('storage/', '', $q->image);
+                            if (Storage::disk('public')->exists($imagePath)) {
+                                $questionImage = url('storage/' . $imagePath);
                             }
                         }
                     }
@@ -71,14 +72,12 @@ class PrintController extends Controller
                             $choiceImage = null;
                             if ($choice->image) {
                                 if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
-                                    $imageContent = @file_get_contents($choice->image);
-                                    if ($imageContent) {
-                                        $choiceImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
-                                    }
-                                } elseif (Storage::disk('public')->exists($choice->image)) {
-                                    $imageContent = Storage::disk('public')->get($choice->image);
-                                    if ($imageContent) {
-                                        $choiceImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
+                                    $choiceImage = $choice->image;
+                                } else {
+                                    // Handle local storage path
+                                    $imagePath = str_replace('storage/', '', $choice->image);
+                                    if (Storage::disk('public')->exists($imagePath)) {
+                                        $choiceImage = url('storage/' . $imagePath);
                                     }
                                 }
                             }
@@ -126,14 +125,13 @@ class PrintController extends Controller
     {
         try {
             if (file_exists($path)) {
-                $imageData = file_get_contents($path);
-                return 'data:image/jpeg;base64,' . base64_encode($imageData);
+                $imagePath = str_replace('storage/', '', $path);
+                return url('storage/' . $imagePath);
             }
             // Try alternative path if first path doesn't exist
             $altPath = resource_path('assets/images/' . basename($path));
             if (file_exists($altPath)) {
-                $imageData = file_get_contents($altPath);
-                return 'data:image/jpeg;base64,' . base64_encode($imageData);
+                return url('storage/images/' . basename($path));
             }
             Log::warning('Logo file not found:', ['path' => $path, 'altPath' => $altPath]);
             return null;
@@ -189,7 +187,8 @@ class PrintController extends Controller
                     'difficulty_distribution.easy' => 'required|integer|min:0|max:100',
                     'difficulty_distribution.moderate' => 'required|integer|min:0|max:100',
                     'difficulty_distribution.hard' => 'required|integer|min:0|max:100',
-                    'preview' => 'boolean'
+                    'preview' => 'boolean',
+                    'previewKey' => 'nullable|string'
                 ]);
             } catch (\Illuminate\Validation\ValidationException $e) {
                 Log::error('Validation Error:', [
@@ -403,41 +402,93 @@ class PrintController extends Controller
                     'logos' => [
                         'left' => $leftLogoBase64,
                         'right' => $rightLogoBase64
-                    ]
+                    ],
+                    'timestamp' => now()->timestamp,
+                    'user_id' => Auth::id() // Add user ID to track ownership
                 ];
 
-                // Store preview data in session
-                session(['exam_preview_data' => $previewData]);
+                // Store preview data in session with a unique key
+                $previewKey = 'exam_preview_' . Auth::id() . '_' . now()->timestamp;
+                
+                // Store in both session and cache for redundancy
+                session([$previewKey => $previewData]);
+                Cache::put($previewKey, $previewData, $this->sessionLifetime);
+                
+                // Ensure session is saved
+                session()->save();
 
-                return response()->json($previewData);
+                // Log the session data for debugging
+                Log::info('Preview data stored:', [
+                    'previewKey' => $previewKey,
+                    'session_id' => session()->getId(),
+                    'data_size' => strlen(json_encode($previewData)),
+                    'user_id' => Auth::id(),
+                    'timestamp' => now()->timestamp
+                ]);
+
+                return response()->json([
+                    'previewData' => $previewData,
+                    'previewKey' => $previewKey
+                ]);
             }
 
-            // For download request, use the stored preview data if it exists
-            $storedPreviewData = session('exam_preview_data');
-            if ($storedPreviewData) {
+            // For download request, use the stored preview data
+            $previewKey = $request->input('previewKey');
+            if (!$previewKey) {
+                throw new \Exception('No preview key provided. Please generate a preview first.');
+            }
+
+            // Log session information for debugging
+            Log::info('Attempting to retrieve preview data:', [
+                'previewKey' => $previewKey,
+                'session_id' => session()->getId(),
+                'all_session_keys' => array_keys(session()->all()),
+                'user_id' => Auth::id()
+            ]);
+
+            // Try to get preview data from both session and cache
+            $storedPreviewData = session($previewKey) ?? Cache::get($previewKey);
+
+            if (!$storedPreviewData) {
+                Log::error('Preview data not found:', [
+                    'previewKey' => $previewKey,
+                    'session_id' => session()->getId(),
+                    'all_session_keys' => array_keys(session()->all()),
+                    'user_id' => Auth::id()
+                ]);
+                throw new \Exception('Preview data not found. Please generate a new preview.');
+            }
+
+            // Validate that the preview data belongs to the current user
+            if ($storedPreviewData['user_id'] !== Auth::id()) {
+                Log::error('Preview data ownership mismatch:', [
+                    'previewKey' => $previewKey,
+                    'stored_user_id' => $storedPreviewData['user_id'],
+                    'current_user_id' => Auth::id()
+                ]);
+                throw new \Exception('Invalid preview data. Please generate a new preview.');
+            }
+
+            // Validate that the preview data is not too old
+            if (now()->timestamp - $storedPreviewData['timestamp'] > $this->sessionLifetime) {
+                session()->forget($previewKey);
+                Cache::forget($previewKey);
+                session()->save();
+                throw new \Exception('Preview data has expired. Please generate a new preview.');
+            }
+
+            // Use the stored preview data for PDF generation
                 $questionsBySubject = $storedPreviewData['questionsBySubject'];
                 $examTitle = $storedPreviewData['examTitle'];
                 $leftLogoUrl = $storedPreviewData['logos']['left'];
                 $rightLogoUrl = $storedPreviewData['logos']['right'];
-            } else {
-                // If no stored data (direct download without preview), generate exam title and logos
-                $examTitle = match($validated['purpose']) {
-                    'examQuestions' => 'Qualifying Examination',
-                    'practiceQuestions' => 'Practice Questions',
-                    'personalQuestions' => 'Personal Questions',
-                    default => 'Multi-Subject Questions'
-                };
 
-                $leftLogoUrl = $leftLogoBase64;
-                $rightLogoUrl = $rightLogoBase64;
-            }
-
-            // Generate PDF
+            // Don't clear the session data until after successful PDF generation
             try {
                 // Increase execution time and memory limits
-                ini_set('max_execution_time', '600'); // 10 minutes
-                ini_set('memory_limit', '2G'); // Increase memory limit to 2GB
-                gc_enable(); // Enable garbage collection
+                ini_set('max_execution_time', '600');
+                ini_set('memory_limit', '2G');
+                gc_enable();
 
                 // Configure PDF with optimized settings
                 $pdf = PDF::loadView('exams.printable', [
@@ -448,17 +499,17 @@ class PrintController extends Controller
                 ]);
 
                 $pdfOptions = [
-                    'isRemoteEnabled' => true, // Enable remote resources for base64 images
+                    'isRemoteEnabled' => true,
                     'isPhpEnabled' => true,
                     'isHtml5ParserEnabled' => true,
-                    'dpi' => 150, // Increased DPI for better image quality
+                    'dpi' => 150,
                     'defaultFont' => 'times',
                     'chroot' => [
                         public_path('storage'),
                         public_path(),
                         storage_path('app/public')
                     ],
-                    'enable_remote' => true, // Enable remote resources for base64 images
+                    'enable_remote' => true,
                     'enable_php' => true,
                     'enable_javascript' => false,
                     'images' => true,
@@ -504,6 +555,11 @@ class PrintController extends Controller
                         'Content-Length' => filesize($tempPath),
                         'Access-Control-Expose-Headers' => 'Content-Disposition'
                     ];
+
+                    // Only clear the session data after successful PDF generation
+                    session()->forget($previewKey);
+                    Cache::forget($previewKey);
+                    session()->save();
 
                     // Return the file response
                     return response()->file($tempPath, $headers)->deleteFileAfterSend(true);

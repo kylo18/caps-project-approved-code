@@ -15,11 +15,13 @@
         line-height: 1.3;
         margin: 0;
         padding: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
       .paper {
         width: 100%;
         box-sizing: border-box;
-        padding: 0; /* Remove padding since we're using @page margins */
+        padding: 0;
       }
       .header {
         position: relative;
@@ -32,6 +34,7 @@
         width: 80px;
         height: 80px;
         object-fit: contain;
+        max-width: 100%;
       }
       .header-logo.left {
         position: absolute;
@@ -89,6 +92,7 @@
 
       .subject-section {
         margin-bottom: 5px;
+        page-break-inside: avoid;
       }
       .subject-section:first-of-type {
         margin-top: 0;
@@ -107,31 +111,34 @@
 
       .question {
         margin-bottom: 5px;
-        page-break-inside: avoid;
+        page-break-inside: auto;
       }
       .question-text {
         margin-bottom: 3px;
         font-weight: normal;
+        page-break-inside: avoid;
       }
       .choices {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 2px 20px;
         margin-left: 20px;
         margin-bottom: 5px;
+        page-break-inside: auto;
       }
       .choice {
         margin-bottom: 2px;
         page-break-inside: avoid;
-        display: flex;
-        align-items: flex-start;
+        display: inline-block;
+        width: 100%;
       }
       .choice-letter {
+        display: inline-block;
         min-width: 15px;
         font-weight: bold;
+        vertical-align: top;
       }
       .choice-content {
-        flex: 1;
+        display: inline-block;
+        width: calc(100% - 20px);
+        vertical-align: top;
       }
       
       .image-container {
@@ -139,16 +146,19 @@
         max-width: 100%;
         overflow: hidden;
         text-align: left;
+        page-break-inside: avoid;
       }
       .question-image {
         max-width: 100%;
-        height: 320px;
+        height: auto;
+        max-height: 320px;
         object-fit: contain;
         border-radius: 0.5rem;
       }
       .choice-image {
         max-width: 100%;
-        height: 180px;
+        height: auto;
+        max-height: 180px;
         object-fit: contain;
         border-radius: 0.5rem;
         margin-left: 0.5rem;
@@ -206,10 +216,6 @@
         </div>
 
         @foreach ($subjectData['questions'] as $question)
-        @if($questionNumber > 1 && ($questionNumber - 1) % 5 == 0)
-        <div style="page-break-after: always"></div>
-        @endif
-
         <div class="question">
           <div class="question-text">
             {{ $questionNumber }}. {!! $question['questionText'] ?? 'Question text not available' !!}
