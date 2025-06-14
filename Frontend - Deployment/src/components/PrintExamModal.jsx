@@ -10,6 +10,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
   const [subjects, setSubjects] = useState([]);
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [previewData, setPreviewData] = useState(null);
+  const [previewKey, setPreviewKey] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [mode, setMode] = useState("default");
   const [settings, setSettings] = useState({
@@ -63,10 +64,15 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
     if (!subject) return;
 
     if (!selectedSubjects.find((s) => s.subjectID === subject.subjectID)) {
-      const defaultPercentage = Math.floor(100 / (selectedSubjects.length + 1));
+      const basePercentage = Math.floor(100 / (selectedSubjects.length + 1));
+      const remainder = 100 - basePercentage * (selectedSubjects.length + 1);
+
       setSelectedSubjects((prev) => [
-        ...prev.map((s) => ({ ...s, percentage: defaultPercentage })),
-        { ...subject, percentage: defaultPercentage },
+        ...prev.map((s, index) => ({
+          ...s,
+          percentage: index === 0 ? basePercentage + remainder : basePercentage,
+        })),
+        { ...subject, percentage: basePercentage },
       ]);
     }
   };
@@ -151,8 +157,6 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         purpose: "examQuestions",
       };
 
-      console.log("Sending request:", requestBody);
-
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -164,14 +168,20 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to generate exam preview");
+        const errorMessage =
+          errorData.message ||
+          errorData.error ||
+          "Failed to generate exam preview";
+        const errorDetails =
+          errorData.details ||
+          errorData.stack ||
+          "No additional details available";
+        throw new Error(`${errorMessage}\nDetails: ${errorDetails}`);
       }
 
       const data = await response.json();
-      console.log("Received response:", data);
-      setPreviewData({
-        ...data,
-      });
+      setPreviewData(data.previewData);
+      setPreviewKey(data.previewKey);
       setShowPreview(true);
     } catch (err) {
       console.error("Error generating exam:", err);
@@ -199,7 +209,37 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         },
         preview: false,
         purpose: "examQuestions",
+        previewKey: previewKey,
       };
+
+      // Validate request data
+      if (!requestBody.subjects || requestBody.subjects.length === 0) {
+        throw new Error("No subjects selected");
+      }
+
+      if (!requestBody.total_items || requestBody.total_items < 1) {
+        throw new Error("Invalid total items count");
+      }
+
+      const totalPercentage = requestBody.subjects.reduce(
+        (sum, subject) => sum + subject.percentage,
+        0,
+      );
+      if (totalPercentage !== 100) {
+        throw new Error(
+          `Subject percentages must sum to 100%. Current sum: ${totalPercentage}%`,
+        );
+      }
+
+      // Log request details for debugging
+      console.log("Request details:", {
+        endpoint,
+        requestBody,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -210,16 +250,41 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         body: JSON.stringify(requestBody),
       });
 
-      if (!response.ok) {
+      // Log response details for debugging
+      console.log("Response status:", response.status);
+      console.log(
+        "Response headers:",
+        Object.fromEntries(response.headers.entries()),
+      );
+
+      // First check if the response is JSON (error case)
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to generate exam");
+        console.error("Error response data:", errorData);
+
+        // Log the complete error response
+        console.error("Complete error response:", {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: errorData,
+        });
+
+        const errorMessage =
+          errorData.message || errorData.error || "Failed to generate exam";
+        const errorDetails =
+          errorData.details ||
+          errorData.stack ||
+          "No additional details available";
+        throw new Error(
+          `${errorMessage}\nDetails: ${errorDetails}\nStatus: ${response.status}`,
+        );
       }
 
-      // Check if the response is a PDF
-      const contentType = response.headers.get("content-type");
+      // If not JSON, it should be a PDF
       if (!contentType || !contentType.includes("application/pdf")) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to generate PDF");
+        throw new Error("Invalid response format from server");
       }
 
       // Get the blob from the response

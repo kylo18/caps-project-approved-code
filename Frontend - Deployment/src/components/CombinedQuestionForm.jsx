@@ -237,7 +237,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
         <div className="scrollbar-hide animate-fade-in-up flex max-h-[95vh] overflow-y-auto p-3">
           <div className="flex-1">
             {/* Header */}
-            <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
+            <div className="font-inter border-color relative mx-auto mt-2 max-w-5xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
               <div className="flex items-center justify-between pr-4">
                 <span>ADD QUESTION</span>
                 <button
@@ -250,7 +250,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
             </div>
 
             {/* Question Card */}
-            <div className="border-color relative mx-auto mb-3 w-full max-w-3xl rounded-b-md border border-t-0 bg-white p-4 shadow-lg sm:px-4">
+            <div className="border-color relative mx-auto mb-3 w-full max-w-5xl rounded-b-md border border-t-0 bg-white p-4 shadow-lg sm:px-4">
               {/* Question Header */}
               <div className="flex items-start gap-3">
                 <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">

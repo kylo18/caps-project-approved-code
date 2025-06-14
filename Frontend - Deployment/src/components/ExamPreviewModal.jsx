@@ -6,10 +6,35 @@ export default function ExamPreviewModal({
   onDownload,
   loading,
 }) {
-  if (!previewData) return null;
-
   const [scale, setScale] = useState(1);
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
   const PAGE_WIDTH = 793.7; // 210mm in px at 96dpi
+
+  useEffect(() => {
+    // Validate preview data
+    if (!previewData) {
+      setError("No preview data available");
+      return;
+    }
+
+    if (!previewData.questionsBySubject) {
+      setError("Invalid preview data structure");
+      return;
+    }
+
+    // Validate that we have questions
+    const hasQuestions = Object.values(previewData.questionsBySubject).some(
+      (subject) => subject.questions && subject.questions.length > 0,
+    );
+
+    if (!hasQuestions) {
+      setError("No questions available in the preview");
+      return;
+    }
+
+    setError(null);
+  }, [previewData]);
 
   useEffect(() => {
     function handleResize() {
@@ -22,7 +47,81 @@ export default function ExamPreviewModal({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const handleDownload = async () => {
+    try {
+      setError(null);
+      await onDownload();
+      setRetryCount(0); // Reset retry count on success
+    } catch (err) {
+      console.error("Download error:", err);
+
+      // Check if it's a PDF generation error
+      if (err.message.includes("Failed to generate PDF")) {
+        if (retryCount < 2) {
+          // Allow up to 2 retries
+          setRetryCount((prev) => prev + 1);
+          setError(
+            `PDF generation failed. Retrying... (Attempt ${retryCount + 1}/2)`,
+          );
+          // Wait a bit before retrying
+          setTimeout(() => {
+            handleDownload();
+          }, 2000);
+        } else {
+          setError(
+            "PDF generation failed after multiple attempts. This might be due to large images or complex content. " +
+              "Please try reducing the number of questions or images and try again.",
+          );
+        }
+      } else {
+        setError(err.message || "Failed to download the exam");
+      }
+    }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(0);
+    setError(null);
+    handleDownload();
+  };
+
+  if (error) {
+    return (
+      <div className="lightbox-bg fixed inset-0 z-60 overflow-hidden bg-gray-100">
+        <div className="flex h-screen items-center justify-center">
+          <div className="rounded-lg bg-white p-8 shadow-xl">
+            <div className="mb-4 text-center text-red-600">
+              <i className="bx bx-error-circle text-4xl"></i>
+            </div>
+            <h3 className="mb-2 text-center text-lg font-semibold text-gray-900">
+              {error.includes("Retrying")
+                ? "Processing..."
+                : "Error Loading Preview"}
+            </h3>
+            <p className="mb-4 text-center text-gray-600">{error}</p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={onClose}
+                className="rounded-lg bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
+              >
+                Close
+              </button>
+              {!error.includes("Retrying") && (
+                <button
+                  onClick={handleRetry}
+                  className="rounded-lg bg-orange-500 px-4 py-2 text-white hover:bg-orange-600"
+                >
+                  Try Again
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!previewData || !previewData.questionsBySubject) return null;
 
   return (
     <div className="lightbox-bg fixed inset-0 z-60 overflow-hidden bg-gray-100">
@@ -38,7 +137,7 @@ export default function ExamPreviewModal({
       {/* Fixed Download Button */}
       <button
         type="button"
-        onClick={onDownload}
+        onClick={handleDownload}
         disabled={loading}
         className={`fixed right-8 bottom-4 z-70 flex items-center justify-center rounded-lg px-6 py-3 text-base font-semibold text-white shadow-lg transition-all focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none ${
           loading
