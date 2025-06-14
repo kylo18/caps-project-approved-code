@@ -1,8 +1,8 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>{{ $examTitle }}</title>
     <style>
       @page {
@@ -52,17 +52,13 @@
       .header-center {
         margin: 0 100px;
       }
-      .gov-line {
-        font-size: 13px;
-      }
+      .gov-line { font-size: 13px; }
       .univ-name {
         font-weight: bold;
         font-size: 16px;
         margin: 5px 0;
       }
-      .tagline {
-        font-size: 13px;
-      }
+      .tagline { font-size: 13px; }
       .college {
         font-weight: bold;
         font-size: 18px;
@@ -73,8 +69,22 @@
         font-weight: bold;
         margin: 10px 0;
       }
-      .total-items-header {
-        display: none;
+      .total-items-header { display: none; }
+      
+      .exam-details {
+          display: flex;
+          justify-content: flex-end;
+          width: 100%;
+          margin-top: 10px;
+      }
+      .exam-number {
+          font-size: 14px;
+          font-weight: bold;
+          margin-right: 20px;
+      }
+      .exam-date {
+          font-size: 14px;
+          font-weight: normal;
       }
 
       .student-info {
@@ -82,9 +92,7 @@
         border-bottom: 1px solid #ccc;
         padding: 5px 0;
       }
-      .info-field {
-        margin: 3px 0;
-      }
+      .info-field { margin: 3px 0; }
       .info-label {
         font-weight: bold;
         margin-right: 5px;
@@ -115,22 +123,22 @@
 
       .question {
         margin-bottom: 5px;
-        page-break-inside: avoid;
       }
       .question-text {
         margin-bottom: 3px;
         font-weight: normal;
       }
       .choices {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        display: flex;
+        flex-wrap: wrap;
         gap: 2px 20px;
         margin-left: 20px;
         margin-bottom: 5px;
       }
       .choice {
+        flex: 0 0 calc(50% - 10px);
+        box-sizing: border-box;
         margin-bottom: 2px;
-        page-break-inside: avoid;
         display: flex;
         align-items: flex-start;
       }
@@ -141,7 +149,7 @@
       .choice-content {
         flex: 1;
       }
-
+      
       .image-container {
         margin: 10px 0;
         max-width: 100%;
@@ -170,14 +178,6 @@
         border: 1px dashed #ccc;
         margin: 5px 0;
       }
-
-      /* Add new styles for page break control */
-      .question-with-images {
-        page-break-before: auto;
-      }
-      .question-with-images:first-of-type {
-        page-break-before: avoid;
-      }
     </style>
   </head>
   <body>
@@ -191,13 +191,16 @@
         />
         <div class="header-code">JRMSU-COE-027</div>
         <div class="header-center">
-          <div class="gov-line">Republic of the Philippines</div>
           <div class="univ-name">JOSE RIZAL MEMORIAL STATE UNIVERSITY</div>
+          <div class="gov-line">Republic of the Philippines</div>
           <div class="tagline">
             The Premiere University in Zamboanga del Norte
           </div>
           <div class="college">COLLEGE OF ENGINEERING</div>
-          <div class="qe-exam-title">{{ $examTitle }}</div>
+          <div class="exam-details">
+              <span class="exam-number">{{ $examTitle }}</span>
+              <span class="exam-date">Date:</span>
+          </div>
         </div>
         <img
           src="{{ $rightLogoPath }}"
@@ -213,12 +216,8 @@
           <span class="info-value">&nbsp;</span>
         </div>
         <div class="info-field">
-          <span class="info-label">Date:</span>
-          <span class="info-value">&nbsp;</span>
-        </div>
-        <div class="info-field">
-          <span class="info-label">Course & Section:</span>
-          <span class="info-value">&nbsp;</span>
+          <span class="info-label">Instructions:</span>
+          <span class="info-value">1</span>
         </div>
       </div>
 
@@ -233,9 +232,7 @@
         </div>
 
         @foreach ($subjectData['questions'] as $question)
-        <div
-          class="question {{ !empty($question['questionImage']) || collect($question['choices'])->contains('choiceImage') ? 'question-with-images' : '' }}"
-        >
+        <div class="question">
           <div class="question-text">
             {{ $questionNumber }}. {!! $question['questionText'] ?? 'Question
             text not available' !!}
@@ -247,7 +244,7 @@
               class="question-image"
               src="{{ $question['questionImage'] }}"
               alt="Question Image"
-              onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Image not available]</div>'"
+              onerror="this.parentElement.innerHTML='<div class='image-error'>[Image not available]</div>'"
             />
           </div>
           @endif
@@ -264,7 +261,7 @@
                     class="choice-image"
                     src="{{ $choice['choiceImage'] }}"
                     alt="Choice {{ chr(65 + $choiceIndex) }} Image"
-                    onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Choice image not available]</div>'"
+                    onerror="this.parentElement.innerHTML='<div class='image-error'>[Choice image not available]</div>'"
                   />
                 </div>
                 @endif
