@@ -4,6 +4,8 @@ import ConfirmModal from "./confirmModal";
 import LoadingOverlay from "./loadingOverlay";
 import { Tooltip } from "flowbite-react";
 import RegisterDropDownSmall from "./registerDropDownSmall";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
 // Component to display and manage user list with filtering and actions
 const UserList = () => {
   // Refs for dropdown positioning
@@ -12,10 +14,17 @@ const UserList = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [itemsPerPage] = useState(50); // Number of items per page
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [tabLoading, setTabLoading] = useState(false);
 
   // State for user selection and filtering
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [sortCategory, setSortCategory] = useState("");
   const [sortOption, setSortOption] = useState("");
   const [sortStatus, setSortStatus] = useState("All");
@@ -50,11 +59,8 @@ const UserList = () => {
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
+  // Get toast functions from hook
+  const { toast, showToast } = useToast();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -75,42 +81,55 @@ const UserList = () => {
   }, [dropdownOpen]);
 
   useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
-
-  useEffect(() => {
     fetchUsers();
   }, []);
 
-  // Function to fetch users from API
-  const fetchUsers = async () => {
+  // Add debounce effect for search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setSearchLoading(true);
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Update fetchUsers to include filters
+  const fetchUsers = async (page = 1) => {
     const token = localStorage.getItem("token");
 
     if (!token) {
       setError("No token found, please log in.");
       setLoading(false);
+      setSearchLoading(false);
+      setTabLoading(false);
       return;
     }
 
     try {
-      const response = await fetch(`${apiUrl}/users`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+      // Build query parameters
+      const queryParams = new URLSearchParams({
+        page: page,
+        limit: itemsPerPage,
+        search: debouncedSearchQuery,
+        status: statusFilter,
+        campus: campusFilter,
+        role: roleFilter,
+        position: positionFilter,
+        program: programFilter,
+        state: stateFilter,
       });
+
+      const response = await fetch(
+        `${apiUrl}/users?${queryParams.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (response.status === 401) {
         setError("Session expired, please log in again.");
@@ -128,12 +147,31 @@ const UserList = () => {
 
       const data = await response.json();
       setUsers(data.users);
+      setTotalPages(Math.ceil(data.total / itemsPerPage));
+      setTotalUsers(data.total);
+      setCurrentPage(page);
     } catch (error) {
       setError(error.message);
+      showToast("Failed to fetch users. Please try again.", "error");
     } finally {
       setLoading(false);
+      setSearchLoading(false);
+      setTabLoading(false);
     }
   };
+
+  // Update useEffect to refetch when filters change
+  useEffect(() => {
+    fetchUsers(1); // Reset to first page when filters change
+  }, [
+    debouncedSearchQuery,
+    statusFilter,
+    campusFilter,
+    roleFilter,
+    positionFilter,
+    programFilter,
+    stateFilter,
+  ]);
 
   // Function to handle user selection via checkbox
   const handleCheckboxChange = (userID) => {
@@ -144,50 +182,10 @@ const UserList = () => {
     );
   };
 
-  const filteredUsers = users
-    .sort((a, b) => b.userID - a.userID) // Sort by userID in descending order (most recent first)
-    .filter((user) => {
-      const matchesSearch =
-        user.userID.toString().includes(searchQuery) ||
-        user.userCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        `${user.firstName} ${user.lastName}`
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesSort =
-        !sortCategory ||
-        sortOption === "All" ||
-        (sortCategory === "Campus" && user.campus === sortOption) ||
-        (sortCategory === "Role" && user.role === sortOption);
-
-      const matchesStatus =
-        !sortStatus || sortStatus === "All" || user.status === sortStatus;
-
-      return matchesSearch && matchesSort && matchesStatus;
-    });
-
-  const pendingUsersCount = filteredUsers.filter(
+  // Remove all local filtering since it's now handled by the backend
+  const pendingUsersCount = users.filter(
     (user) => user.status === "pending",
   ).length;
-
-  // Update the filter logic for the table
-  const filteredTableUsers = filteredUsers.filter((user) => {
-    return (
-      (campusFilter ? user.campus === campusFilter : true) &&
-      (roleFilter ? user.role === roleFilter : true) &&
-      (positionFilter ? user.role === positionFilter : true) &&
-      (programFilter ? user.program === programFilter : true) &&
-      (stateFilter ? user.isActive === (stateFilter === "Active") : true) &&
-      // Filter by status
-      (statusFilter === "all" ? true : user.status === statusFilter) &&
-      // Search filter by name, email, or user code
-      (user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.userCode.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  });
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value); // Update the search term
@@ -211,11 +209,7 @@ const UserList = () => {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to approve user");
       }
-      setToast({
-        message: "User approved successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("User approved successfully!", "success");
 
       setUsers(
         users.map((user) =>
@@ -231,6 +225,7 @@ const UserList = () => {
       setShowModal(false);
     } catch (error) {
       console.error("Error approving user:", error);
+      showToast("Failed to approve user. Please try again.", "error");
     } finally {
       setIsApproving(false);
     }
@@ -255,11 +250,7 @@ const UserList = () => {
         throw new Error(errorData.message || "Failed to activate user");
       }
 
-      setToast({
-        message: "User activated successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("User activated successfully!", "success");
 
       setUsers(
         users.map((user) =>
@@ -268,7 +259,10 @@ const UserList = () => {
       );
       setShowModal(false);
     } catch (error) {
-      alert(error.message);
+      showToast(
+        error.message || "Failed to activate user. Please try again.",
+        "error",
+      );
     } finally {
       setIsActivating(false);
     }
@@ -292,11 +286,7 @@ const UserList = () => {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to deactivate user");
       }
-      setToast({
-        message: "User deactivated successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("User deactivated successfully!", "success");
 
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
@@ -306,6 +296,7 @@ const UserList = () => {
       setShowModal(false);
     } catch (error) {
       console.error("Error deactivating user:", error);
+      showToast("Failed to deactivate user. Please try again.", "error");
     } finally {
       setIsDeactivating(false);
     }
@@ -316,7 +307,7 @@ const UserList = () => {
     const token = localStorage.getItem("token");
     setIsApprovingMultiple(true);
     if (selectedUsers.length === 0) {
-      alert("Please select users to approve.");
+      showToast("Please select users to approve.", "error");
       return;
     }
 
@@ -334,15 +325,12 @@ const UserList = () => {
         throw new Error("Failed to approve selected users.");
       }
 
-      setToast({
-        message: "Users approved successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("Users approved successfully!", "success");
       fetchUsers();
       setSelectedUsers([]); // clear selection
     } catch (error) {
       console.error(error);
+      showToast("Failed to approve selected users. Please try again.", "error");
     } finally {
       setIsApprovingMultiple(false);
     }
@@ -354,7 +342,7 @@ const UserList = () => {
     setIsActivatingMultiple(true);
 
     if (selectedUsers.length === 0) {
-      alert("Please select users to activate.");
+      showToast("Please select users to activate.", "error");
       return;
     }
 
@@ -374,14 +362,13 @@ const UserList = () => {
 
       fetchUsers();
       setSelectedUsers([]);
-      setToast({
-        message: "Users activated successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("Users activated successfully!", "success");
     } catch (error) {
       console.error(error);
-      alert("Error activating selected users.");
+      showToast(
+        "Failed to activate selected users. Please try again.",
+        "error",
+      );
     } finally {
       setIsActivatingMultiple(false);
     }
@@ -393,7 +380,7 @@ const UserList = () => {
     setIsDeactivatingMultiple(true);
 
     if (selectedUsers.length === 0) {
-      alert("Please select users to deactivate.");
+      showToast("Please select users to deactivate.", "error");
       return;
     }
 
@@ -410,16 +397,15 @@ const UserList = () => {
       if (!response.ok) {
         throw new Error("Failed to deactivate selected users.");
       }
-      setToast({
-        message: "Users deactivated successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("Users deactivated successfully!", "success");
       fetchUsers();
       setSelectedUsers([]);
     } catch (error) {
       console.error(error);
-      alert("Error deactivating selected users.");
+      showToast(
+        "Failed to deactivate selected users. Please try again.",
+        "error",
+      );
     } finally {
       setIsDeactivatingMultiple(false);
     }
@@ -428,11 +414,7 @@ const UserList = () => {
   // Function to handle bulk actions (approve/activate/deactivate)
   const handleActionClick = (action) => {
     if (selectedUsers.length === 0) {
-      setToast({
-        message: "Please select at least one user first",
-        type: "error",
-        show: true,
-      });
+      showToast("Please select at least one user first", "error");
       return;
     }
 
@@ -448,6 +430,12 @@ const UserList = () => {
         break;
     }
     setDropdownOpen(false);
+  };
+
+  // Function to handle page change
+  const handlePageChange = (newPage) => {
+    setLoading(true);
+    fetchUsers(newPage);
   };
 
   //Skeleton Table
@@ -539,6 +527,61 @@ const UserList = () => {
     return <div>Error: {error}</div>;
   }
 
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => handlePageChange(i)}
+          className={`mx-1 rounded-md px-3 py-1 text-sm ${
+            currentPage === i
+              ? "bg-orange-500 text-white"
+              : "bg-white text-gray-700 hover:bg-gray-100"
+          }`}
+        >
+          {i}
+        </button>,
+      );
+    }
+
+    return (
+      <div className="mt-4 flex items-center justify-center gap-2">
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`rounded-md px-3 py-1 text-sm ${
+            currentPage === 1
+              ? "cursor-not-allowed bg-gray-100 text-gray-400"
+              : "bg-white text-gray-700 hover:bg-gray-100"
+          }`}
+        >
+          Previous
+        </button>
+        {pages}
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`rounded-md px-3 py-1 text-sm ${
+            currentPage === totalPages
+              ? "cursor-not-allowed bg-gray-100 text-gray-400"
+              : "bg-white text-gray-700 hover:bg-gray-100"
+          }`}
+        >
+          Next
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="font-inter mt-10">
       <div className="mb-4 flex items-center justify-between gap-2 text-[14px]">
@@ -548,7 +591,10 @@ const UserList = () => {
             {/* Status Buttons (Visible on medium screens and up) */}
             <div className="hidden items-center gap-1 text-[12px] font-semibold text-gray-500 md:flex">
               <button
-                onClick={() => setStatusFilter("all")}
+                onClick={() => {
+                  setTabLoading(true);
+                  setStatusFilter("all");
+                }}
                 className={`rounded-md px-8 py-[8px] ${
                   statusFilter === "all"
                     ? "border-color border bg-gray-100 text-gray-700"
@@ -559,7 +605,10 @@ const UserList = () => {
               </button>
 
               <button
-                onClick={() => setStatusFilter("pending")}
+                onClick={() => {
+                  setTabLoading(true);
+                  setStatusFilter("pending");
+                }}
                 className={`rounded-md px-6 py-[8px] ${
                   statusFilter === "pending"
                     ? "border-color border bg-gray-100 text-gray-700"
@@ -570,7 +619,10 @@ const UserList = () => {
               </button>
 
               <button
-                onClick={() => setStatusFilter("registered")}
+                onClick={() => {
+                  setTabLoading(true);
+                  setStatusFilter("registered");
+                }}
                 className={`rounded-md px-5 py-[8px] ${
                   statusFilter === "registered"
                     ? "border-color border bg-gray-100 text-gray-700"
@@ -602,6 +654,7 @@ const UserList = () => {
                   <div className="py-1 text-sm text-gray-700">
                     <button
                       onClick={() => {
+                        setTabLoading(true);
                         setStatusFilter("all");
                         setStatusDropdownOpen(false);
                       }}
@@ -611,6 +664,7 @@ const UserList = () => {
                     </button>
                     <button
                       onClick={() => {
+                        setTabLoading(true);
                         setStatusFilter("pending");
                         setStatusDropdownOpen(false);
                       }}
@@ -620,6 +674,7 @@ const UserList = () => {
                     </button>
                     <button
                       onClick={() => {
+                        setTabLoading(true);
                         setStatusFilter("registered");
                         setStatusDropdownOpen(false);
                       }}
@@ -1038,7 +1093,7 @@ const UserList = () => {
                       >
                         {isApproving ? (
                           <div className="flex items-center justify-center">
-                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                            <span className="loader-white"></span>
                           </div>
                         ) : (
                           "Approve"
@@ -1070,7 +1125,7 @@ const UserList = () => {
                       >
                         {isDeactivating ? (
                           <div className="flex items-center justify-center">
-                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                            <span className="loader-white"></span>
                           </div>
                         ) : (
                           "Deactivate"
@@ -1102,7 +1157,7 @@ const UserList = () => {
                       >
                         {isActivating ? (
                           <div className="flex items-center justify-center">
-                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                            <span className="loader-white"></span>
                           </div>
                         ) : (
                           "Activate"
@@ -1119,51 +1174,61 @@ const UserList = () => {
       <div className="rounded-t-sm border border-b-0 border-[rgb(200,200,200)] bg-white px-5 py-3 text-[12px] shadow-sm sm:text-[14px]">
         <span className="ml-0 text-sm font-medium text-gray-600">
           {statusFilter === "pending"
-            ? `${filteredTableUsers.length} Pending User${filteredTableUsers.length !== 1 ? "s" : ""}`
+            ? `${totalUsers} Pending User${totalUsers !== 1 ? "s" : ""}`
             : statusFilter === "registered"
-              ? `${filteredTableUsers.length} Approved User${filteredTableUsers.length !== 1 ? "s" : ""}`
-              : `${filteredTableUsers.length} Total User${filteredTableUsers.length !== 1 ? "s" : ""}`}
+              ? `${totalUsers} Approved User${totalUsers !== 1 ? "s" : ""}`
+              : `${totalUsers} Total User${totalUsers !== 1 ? "s" : ""}`}
         </span>
       </div>
 
       {/* User Table Mobile */}
       <div className="min-[1000px]:hidden">
-        {filteredTableUsers.map((user) => (
-          <div
-            key={user.userID}
-            className="flex items-center justify-between border border-gray-300 bg-white p-4 shadow-sm"
-          >
-            <div className="flex items-center space-x-3 overflow-hidden">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={selectedUsers.includes(user.userID)}
-                onChange={() => handleCheckboxChange(user.userID)}
-              />
-              <div className="truncate">
-                <div className="max-w-[220px] truncate text-[12px] font-semibold text-gray-800 sm:max-w-full">
-                  {user.firstName} {user.lastName}
-                </div>
+        {loading || searchLoading || tabLoading ? (
+          <div className="flex items-center justify-center border border-gray-300 bg-white p-8 shadow-sm">
+            <div className="loader"></div>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="border border-gray-300 bg-white p-4 text-center text-[14px] text-gray-700 shadow-sm">
+            No users found.
+          </div>
+        ) : (
+          users.map((user) => (
+            <div
+              key={user.userID}
+              className="flex items-center justify-between border border-gray-300 bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-center space-x-3 overflow-hidden">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={selectedUsers.includes(user.userID)}
+                  onChange={() => handleCheckboxChange(user.userID)}
+                />
+                <div className="truncate">
+                  <div className="max-w-[220px] truncate text-[12px] font-semibold text-gray-800 sm:max-w-full">
+                    {user.firstName} {user.lastName}
+                  </div>
 
-                <div className="truncate text-[10px] text-gray-600">
-                  {user.program}
+                  <div className="truncate text-[10px] text-gray-600">
+                    {user.program}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <button
-              onClick={() => {
-                setSelectedUser(user);
-                setShowModal(true);
-              }}
-              className="ml-2 cursor-pointer text-gray-700"
-            >
-              <button className="mr-3 flex w-full cursor-pointer items-center justify-center text-gray-700 hover:text-orange-500">
-                <i className="bx bx-contact-book text-[25px] leading-none"></i>
+              <button
+                onClick={() => {
+                  setSelectedUser(user);
+                  setShowModal(true);
+                }}
+                className="ml-2 cursor-pointer text-gray-700"
+              >
+                <button className="mr-3 flex w-full cursor-pointer items-center justify-center text-gray-700 hover:text-orange-500">
+                  <i className="bx bx-contact-book text-[25px] leading-none"></i>
+                </button>
               </button>
-            </button>
-          </div>
-        ))}
+            </div>
+          ))
+        )}
       </div>
 
       {/* User Table Desktop */}
@@ -1212,7 +1277,15 @@ const UserList = () => {
             </tr>
           </thead>
           <tbody>
-            {users.length === 0 ? (
+            {loading || searchLoading || tabLoading ? (
+              <tr>
+                <td colSpan="11" className="py-8">
+                  <div className="flex items-center justify-center">
+                    <div className="loader"></div>
+                  </div>
+                </td>
+              </tr>
+            ) : users.length === 0 ? (
               <tr>
                 <td
                   colSpan="11"
@@ -1222,7 +1295,7 @@ const UserList = () => {
                 </td>
               </tr>
             ) : (
-              filteredTableUsers.map((user) => (
+              users.map((user) => (
                 <tr
                   key={user.userID}
                   className={`border-b border-[rgb(200,200,200)] text-[12px] text-[rgb(78,78,78)] transition-colors ${
@@ -1325,31 +1398,9 @@ const UserList = () => {
         <LoadingOverlay show={isDeactivatingMultiple} />
       )}
 
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-            toast.show ? "opacity-100" : "opacity-0"
-          } ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-x-circle text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
+
+      {!loading && !error && renderPagination()}
     </div>
   );
 };

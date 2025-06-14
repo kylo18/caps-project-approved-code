@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
 import PracticeExamConfig from "./practiceExamConfig";
 import { useNavigate } from "react-router-dom";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
 
 // Component to display subject information and tabs for admin/faculty view
 const SubjectCard = ({
@@ -24,34 +26,12 @@ const SubjectCard = ({
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
   const navigate = useNavigate();
+  const { toast, showToast } = useToast();
 
   // Function to refresh questions list
   const handleRefresh = () => {
     onFetchQuestions();
   };
-
-  // State for toast notifications
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
-
-  // Effect to handle toast auto-dismiss
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
 
   // Effect to update tab indicator position
   useEffect(() => {
@@ -89,11 +69,7 @@ const SubjectCard = ({
   // Function to handle successful exam configuration
   const handleFormSuccess = () => {
     setIsFormOpen(false);
-    setToast({
-      message: "Exam successfully configured!",
-      type: "success",
-      show: false,
-    });
+    showToast("Exam successfully configured!", "success");
   };
 
   // Function to fetch and preview practice exam questions
@@ -129,11 +105,7 @@ const SubjectCard = ({
       });
     } catch (error) {
       console.error("Error fetching preview questions:", error);
-      setToast({
-        message: "Failed to load preview questions. Please try again.",
-        type: "error",
-        show: false,
-      });
+      showToast("Failed to load preview questions. Please try again.", "error");
     }
   };
 
@@ -294,31 +266,7 @@ const SubjectCard = ({
         />
       )}
 
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-x-circle text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-nowrap text-gray-600">
-                {toast.message}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>
   );
 };

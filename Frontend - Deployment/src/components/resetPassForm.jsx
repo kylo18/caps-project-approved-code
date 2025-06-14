@@ -15,32 +15,12 @@ const ResetPasswordPage = () => {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { toast, showToast } = useToast();
 
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [passwordError, setPasswordError] = useState("");
-
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
-
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -111,29 +91,19 @@ const ResetPasswordPage = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setToast({
-          message: data.message || "Password reset successful!",
-          type: "success",
-          show: true,
-        });
+        showToast(data.message || "Password reset successful!", "success");
 
         setTimeout(() => {
           window.location.href = "/";
         }, 2500);
       } else {
-        setToast({
-          message: data.message || "Password reset failed.",
-          type: "error",
-          show: true,
-        });
+        showToast(data.message || "Password reset failed.", "error");
       }
     } catch (err) {
-      setToast({
-        message:
-          "Unstable network connection. Please check your internet connection and try again.",
-        type: "error",
-        show: true,
-      });
+      showToast(
+        "Unstable network connection. Please check your internet connection and try again.",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
@@ -310,7 +280,7 @@ const ResetPasswordPage = () => {
                     >
                       {loading ? (
                         <div className="flex items-center justify-center">
-                          <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                          <span className="loader-white"></span>
                         </div>
                       ) : (
                         "Reset Password"
@@ -489,7 +459,7 @@ const ResetPasswordPage = () => {
 
             {loading && (
               <div className="flex items-center justify-center">
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                <span className="loader-white"></span>
               </div>
             )}
 
@@ -500,7 +470,7 @@ const ResetPasswordPage = () => {
             >
               {loading ? (
                 <div className="flex items-center justify-center">
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  <span className="loader-white"></span>
                 </div>
               ) : (
                 "Reset Password"
@@ -522,33 +492,7 @@ const ResetPasswordPage = () => {
         </div>
       </div>
 
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-            toast.show ? "opacity-100" : "opacity-0"
-          } ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-x-circle text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-nowrap text-gray-600">
-                {toast.message}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
     </>
   );
 };

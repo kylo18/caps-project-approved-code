@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
 
 const SubjectCardLower = ({
   subjectName,
@@ -15,9 +17,11 @@ const SubjectCardLower = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const tabRefs = useRef([]);
   const dropdownRef = useRef(null);
+  const { toast, showToast } = useToast();
 
   const handleRefresh = () => {
     onFetchQuestions();
+    showToast("Questions refreshed successfully!", "success");
   };
 
   useEffect(() => {
@@ -157,6 +161,19 @@ const SubjectCardLower = ({
           </div>
         </div>
       )}
+
+      {isFormOpen && (
+        <PracticeExamConfig
+          isFormOpen={isFormOpen}
+          setIsFormOpen={setIsFormOpen}
+          subjectID={subjectID}
+          onSuccess={() =>
+            showToast("Exam successfully configured!", "success")
+          }
+        />
+      )}
+
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>
   );
 };

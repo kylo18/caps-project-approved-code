@@ -140,16 +140,6 @@ export default function ExamPreviewModal({
                   )}
                 </div>
               </div>
-              {/* Horizontal line */}
-
-              {/* Exam Title and Instructions */}
-              {previewData.examTitle && (
-                <div className="px-8 text-center">
-                  <div className="mb-1 text-[18px] font-bold text-black">
-                    {previewData.examTitle}
-                  </div>
-                </div>
-              )}
               {/* Name and Date row */}
               <div className="mt-3 flex items-center justify-between px-8 pb-1">
                 <span className="text-[14px] font-bold text-black">Name:</span>
@@ -157,14 +147,6 @@ export default function ExamPreviewModal({
                   Date:
                 </span>
               </div>
-              {previewData.examInstructions && (
-                <div className="px-8 text-start">
-                  <div className="text-[14px] font-bold text-black">
-                    Istructions: {previewData.examInstructions}
-                  </div>
-                </div>
-              )}
-              {/* Date row */}
 
               <div className="space-y-3">
                 {Object.entries(previewData.questionsBySubject).map(

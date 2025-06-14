@@ -1,38 +1,39 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
+import AltButton from "../components/buttonAlt";
+import SubjectCard from "../components/subjectCard";
 import CombinedQuestionForm from "../components/CombinedQuestionForm";
 import EditQuestionForm from "../components/EditQuestionForm";
+import DuplicateQuestionForm from "../components/DuplicateQuestionForm";
 import ConfirmModal from "../components/confirmModal";
 import Sort from "../components/sort";
 import SearchQuery from "../components/SearchQuery";
-import Button from "../components/button";
-import SortCustomDropdown from "../components/sortCustomDropdown";
 import ScrollToTopButton from "../components/scrollToTopButton";
 import LoadingOverlay from "../components/loadingOverlay";
-import SubjectCardLower from "../components/subjectCardLower";
-import DuplicateQuestionForm from "../components/DuplicateQuestionForm";
-import AltButton from "../components/buttonAlt";
+import SortCustomDropdown from "../components/sortCustomDropdown";
+import PracticeExamConfig from "../components/practiceExamConfig";
 import Toast from "../components/Toast";
 import useToast from "../hooks/useToast";
 
-// Main faculty dashboard component for managing questions
-const FacultyContent = () => {
+// Main admin dashboard component for managing questions and subjects
+const AssoDeanContent = () => {
   // State for image modals and question management
   const [modalImage, setModalImage] = useState(null);
-  const [pendingSort, setPendingSort] = useState("");
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false);
   const [choiceModalImage, setchoiceModalImage] = useState(null);
+  const [pendingSort, setPendingSort] = useState("");
+  const { toast, showToast } = useToast();
 
   // Context and state for subject and question management
   const { selectedSubject } = useOutletContext();
   const [activeTab, setActiveTab] = useState(0);
   const [questions, setQuestions] = useState([]);
   const [submittedQuestion, setSubmittedQuestion] = useState(null);
-  const formRef = useRef(null);
+  const [editingQuestion, setEditingQuestion] = useState(null);
 
-  // State for form visibility
-  const [showChoiceForm, setShowChoiceForm] = useState(false);
+  // Refs for form and UI elements
+  const formRef = useRef(null);
 
   // State for search and sorting
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,9 +44,18 @@ const FacultyContent = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [deleteQuestionID, setDeleteQuestionID] = useState(null);
 
-  // State for question editing
-  const [editQuestionID, setEditQuestionID] = useState(null);
   const [editText, setEditText] = useState("");
+
+  // State for form validation
+  const [areChoicesValid, setAreChoicesValid] = useState(false);
+  const handleChoicesValidity = (validity) => {
+    setAreChoicesValid(validity);
+  };
+  const buttonRef = useRef(null);
+
+  // State for approval modal
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [selectedQuestionID, setSelectedQuestionID] = useState(null);
 
   // State for loading and actions
   const [isDeleting, setIsDeleting] = useState(false);
@@ -60,89 +70,45 @@ const FacultyContent = () => {
 
   const dropdownRef = useRef(null);
 
-  // State for form visibility
-  const [showPracticeChoiceForm, setShowPracticeChoiceForm] = useState(false);
-  const [showExamChoiceForm, setShowExamChoiceForm] = useState(false);
-
   // State for question addition
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
-  const buttonRef = useRef(null);
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
-
-  // State for question editing
-  const [editingQuestion, setEditingQuestion] = useState(null);
 
   // State for question duplication
   const [duplicatingQuestion, setDuplicatingQuestion] = useState(null);
 
-  // Get toast functions from hook
-  const { toast, showToast } = useToast();
+  // State for loading
+  const [isLoading, setIsLoading] = useState(true);
+
+  const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
   // Effect to fetch questions when subject changes
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
       fetchQuestions();
       setSubmittedQuestion(null);
-      setShowPracticeChoiceForm(false);
-      setShowExamChoiceForm(false);
       setSearchQuery("");
       setSortOption("");
       setSubSortOption("");
     }
   }, [selectedSubject]);
 
-  // Helper function to fix image URLs
-  const fixImageUrl = (url) => {
-    if (!url) return "";
-
-    // If it wrongly contains "http" inside the path
-    if (url.includes("http")) {
-      const parts = url.split("/http");
-      if (parts.length > 1) {
-        return "http" + parts[1]; // Fix the URL
-      }
-    }
-    return url;
+  // Function to handle successful question addition
+  const handleQuestionAdded = () => {
+    setSubmittedQuestion(null);
+    fetchQuestions();
+    showToast("Question is now pending for approval!", "success");
   };
 
-  // Functions for question editing
-  const startEditing = (question) => {
-    setEditQuestionID(question.questionID);
-    setEditText(question.questionText);
+  // Function to handle question editing
+  const handleEditClick = (question) => {
+    setEditingQuestion(question);
   };
 
-  const cancelEdit = () => {
-    setEditQuestionID(null);
-    setEditText("");
-  };
-
-  const saveEdit = async (questionID) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${apiUrl}/questions/update/${questionID}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ questionText: editText }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update question");
-      }
-
-      setQuestions((prevQuestions) =>
-        prevQuestions.map((q) =>
-          q.questionID === questionID ? { ...q, questionText: editText } : q,
-        ),
-      );
-
-      cancelEdit();
-    } catch (error) {
-      console.error("Error updating question:", error);
-      showToast("Failed to update question. Please try again.", "error");
-    }
+  // Function to handle successful question edit
+  const handleEditComplete = () => {
+    setEditingQuestion(null);
+    fetchQuestions();
+    showToast("Question is now pending for approval!", "success");
   };
 
   // Function to handle question deletion
@@ -162,7 +128,6 @@ const FacultyContent = () => {
       if (!response.ok) {
         throw new Error("Failed to delete question");
       }
-
       setQuestions((prevQuestions) =>
         prevQuestions.filter((question) => question.questionID !== questionID),
       );
@@ -178,8 +143,9 @@ const FacultyContent = () => {
 
   // Function to fetch questions for selected subject
   const fetchQuestions = async () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setIsLoading(true);
-    setQuestions([]); // 👈 Temporarily hide questions
+    setQuestions([]);
 
     try {
       const token = localStorage.getItem("token");
@@ -190,7 +156,7 @@ const FacultyContent = () => {
       }
 
       const response = await fetch(
-        `${apiUrl}/faculty/my-questions/${selectedSubject.subjectID}`,
+        `${apiUrl}/subjects/${selectedSubject.subjectID}/questions`,
         {
           method: "GET",
           headers: {
@@ -207,6 +173,7 @@ const FacultyContent = () => {
       const data = await response.json();
       console.log("Fetched Questions:", data);
 
+      // Update questions with the formatted data from backend
       setQuestions(data.data || []);
     } catch (error) {
       console.error("Error fetching questions:", error);
@@ -234,25 +201,34 @@ const FacultyContent = () => {
           question.status_id === 1 && // 1 is pending
           (pendingSort
             ? question.purpose_id ===
-              (pendingSort === "practiceQuestions" ? 1 : 2)
+              (pendingSort === "practiceQuestions" ? 2 : 1)
             : true));
 
       return matchesSearch && matchesTab;
     })
     .sort((a, b) => {
-      if (sortOption === "score") {
-        return (a.score || 0) - (b.score || 0);
+      // Helper function to determine sort direction
+      const getSortDirection = (option) => {
+        return option.endsWith("_desc") ? -1 : 1;
+      };
+
+      // Get the base sort option without the _desc suffix
+      const baseSortOption = sortOption.replace("_desc", "");
+      const direction = getSortDirection(sortOption);
+
+      if (baseSortOption === "score") {
+        return direction * ((a.score || 0) - (b.score || 0));
       }
 
-      if (sortOption === "difficulty") {
-        return (a.difficulty_id || 0) - (b.difficulty_id || 0);
+      if (baseSortOption === "difficulty") {
+        return direction * ((a.difficulty_id || 0) - (b.difficulty_id || 0));
       }
 
-      if (sortOption === "coverage") {
-        return (a.coverage_id || 0) - (b.coverage_id || 0);
+      if (baseSortOption === "coverage") {
+        return direction * ((a.coverage_id || 0) - (b.coverage_id || 0));
       }
 
-      if (sortOption === "date") {
+      if (baseSortOption === "date") {
         // Get the most recent date between created_at and updated_at
         const getMostRecentDate = (question) => {
           const createdDate = new Date(question.created_at);
@@ -262,7 +238,7 @@ const FacultyContent = () => {
 
         const dateA = getMostRecentDate(a);
         const dateB = getMostRecentDate(b);
-        return dateA - dateB;
+        return direction * (dateA - dateB);
       }
 
       // Default sort by updated_at timestamp (most recently updated first)
@@ -275,69 +251,13 @@ const FacultyContent = () => {
     setShowConfirmModal(true);
   };
 
-  // Function to handle successful question addition
-  const handleQuestionAdded = () => {
-    setSubmittedQuestion(null);
-    fetchQuestions();
-    showToast("Question is now pending for approval!", "success");
-  };
-
-  // Functions for question editing
-  const handleEditClick = (question) => {
-    setEditingQuestion(question);
-  };
-
-  const handleEditComplete = () => {
-    setEditingQuestion(null);
-    fetchQuestions();
-    showToast(
-      "Question edited successfully! Now waiting for approval",
-      "success",
-    );
-  };
-
-  const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-  }, []);
-
-  useEffect(() => {
-    if (showPracticeChoiceForm && formRef.current) {
+    if (submittedQuestion && formRef.current) {
       formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [showPracticeChoiceForm]);
+  }, [submittedQuestion]);
 
-  useEffect(() => {
-    if (showExamChoiceForm && formRef.current) {
-      formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [showExamChoiceForm]);
-
-  // Effect to handle clicks outside dropdown
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target)
-      ) {
-        setDropdownOpen(false);
-      }
-    };
-
-    // Add event listener for clicks outside
-    document.addEventListener("mousedown", handleClickOutside);
-
-    // Cleanup the event listener when the component unmounts
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
+  // Function to handle question approval
   const approveQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
@@ -354,16 +274,7 @@ const FacultyContent = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle specific error cases
-        if (response.status === 403) {
-          throw new Error("You cannot approve your own question.");
-        } else if (response.status === 400) {
-          throw new Error(`Cannot approve question: ${data.message}`);
-        } else if (response.status === 404) {
-          throw new Error("Question not found.");
-        } else {
-          throw new Error(data.message || "Failed to approve the question");
-        }
+        throw new Error(data.message || "Failed to approve the question");
       }
 
       fetchQuestions();
@@ -377,6 +288,37 @@ const FacultyContent = () => {
     } finally {
       setIsApproving(false);
     }
+  };
+
+  useEffect(() => {
+    if (listViewOnly) {
+      setShowChoices(true);
+    }
+  }, [listViewOnly]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    if (dropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownOpen]);
+
+  // Add this helper function at the top of the component
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      return path;
+    }
+    return `${apiUrl}/storage/${path}`;
   };
 
   // Function to handle question duplication
@@ -400,7 +342,7 @@ const FacultyContent = () => {
         {selectedSubject ? (
           <div className="w-full py-3">
             <div className="w-full">
-              <SubjectCardLower
+              <SubjectCard
                 subjectName={selectedSubject.subjectName}
                 subjectID={selectedSubject.subjectID}
                 university="JRMSU"
@@ -562,10 +504,16 @@ const FacultyContent = () => {
             )}
 
             {/* Questions List */}
-            {(activeTab === 0 || activeTab === 1 || activeTab === 4) && ( // Practice Questions
+            {(activeTab === 0 || activeTab === 1 || activeTab === 4) && (
               <div className="flex">
                 <div className="flex-1">
-                  {filteredQuestions.length > 0 ? (
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="loader"></div>
+                      </div>
+                    </div>
+                  ) : filteredQuestions.length > 0 ? (
                     <>
                       <div className="border-color relative mx-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-t-md border border-b-0 bg-white">
                         <div className="flex items-center gap-2">
@@ -587,6 +535,7 @@ const FacultyContent = () => {
                             QUESTIONS
                           </div>
                         </div>
+
                         <div className="ml-auto flex items-center px-4 py-3">
                           <span className="mr-4 ml-2 items-center text-sm font-medium text-gray-500">
                             Show Answer Options
@@ -708,12 +657,14 @@ const FacultyContent = () => {
                                         <div className="relative mt-3 inline-block max-w-[300px] rounded-md">
                                           <div className="flex flex-col items-start">
                                             <img
-                                              src={question.image}
+                                              src={getImageUrl(question.image)}
                                               alt="Question Image"
                                               className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md hover:opacity-80"
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                setModalImage(question.image);
+                                                setModalImage(
+                                                  getImageUrl(question.image),
+                                                );
                                               }}
                                             />
                                           </div>
@@ -723,11 +674,13 @@ const FacultyContent = () => {
                                       <div className="relative mt-3 inline-block max-w-[300px] rounded-md">
                                         <div className="flex flex-col items-start">
                                           <img
-                                            src={question.image}
+                                            src={getImageUrl(question.image)}
                                             alt="Question Image"
                                             className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md hover:opacity-80"
                                             onClick={() =>
-                                              setModalImage(question.image)
+                                              setModalImage(
+                                                getImageUrl(question.image),
+                                              )
                                             }
                                           />
                                         </div>
@@ -764,6 +717,7 @@ const FacultyContent = () => {
                                               : "border-gray-300 text-gray-500"
                                           }`}
                                         />
+
                                         {choice.choiceText?.trim() && (
                                           <span
                                             className={`w-[90%] rounded-md p-2 text-[14px] ${
@@ -775,10 +729,11 @@ const FacultyContent = () => {
                                             {choice.choiceText}
                                           </span>
                                         )}
+
                                         {choice.image && (
                                           <div className="relative max-w-[200px] cursor-pointer rounded-md hover:opacity-80">
                                             <img
-                                              src={choice.image}
+                                              src={getImageUrl(choice.image)}
                                               alt={`Choice ${index + 1}`}
                                               className={`h-auto max-w-full rounded-md border-2 object-cover hover:cursor-pointer ${
                                                 choice.isCorrect
@@ -788,7 +743,7 @@ const FacultyContent = () => {
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setchoiceModalImage(
-                                                  choice.image,
+                                                  getImageUrl(choice.image),
                                                 );
                                                 setIsChoiceModalOpen(true);
                                               }}
@@ -803,12 +758,13 @@ const FacultyContent = () => {
                                     No choices added yet.
                                   </p>
                                 ))}
+
                               {(!listViewOnly ||
                                 (listViewOnly &&
                                   expandedQuestionId ===
                                     question.questionID)) && (
                                 <>
-                                  <div className="mx-4 mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+                                  <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
                                   <div className="ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
                                     <div className="flex flex-col gap-1">
                                       <div className="flex">
@@ -897,16 +853,31 @@ const FacultyContent = () => {
                                     question.questionID)) && (
                                 <>
                                   <div className="mt-5 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
-                                  <div className="m-5 mb-1 flex justify-end gap-4">
+                                  <div className="mt-5 mb-1 flex justify-end gap-1">
                                     {question.status_id === 1 ? ( // 1 is pending
-                                      <AltButton
-                                        text="Remove"
-                                        icon="bx bx-trash"
-                                        className="hover:text-red-500"
-                                        onClick={() =>
-                                          confirmDelete(question.questionID)
-                                        }
-                                      />
+                                      <>
+                                        <AltButton
+                                          text="Remove"
+                                          icon="bx bx-trash"
+                                          className="hover:text-red-500"
+                                          onClick={() =>
+                                            confirmDelete(question.questionID)
+                                          }
+                                        />
+
+                                        <AltButton
+                                          text="Approve"
+                                          textres="Approve"
+                                          icon="bx bx-checks"
+                                          className="hover:text-orange-500"
+                                          onClick={() => {
+                                            setSelectedQuestionID(
+                                              question.questionID,
+                                            );
+                                            setShowApproveModal(true);
+                                          }}
+                                        />
+                                      </>
                                     ) : (
                                       <>
                                         <AltButton
@@ -918,6 +889,7 @@ const FacultyContent = () => {
                                             handleEditClick(question)
                                           }
                                         />
+
                                         <AltButton
                                           text="Copy"
                                           icon="bx bx-copy"
@@ -926,6 +898,7 @@ const FacultyContent = () => {
                                             handleDuplicateClick(question)
                                           }
                                         />
+
                                         <AltButton
                                           text="Remove"
                                           icon="bx bx-trash"
@@ -976,31 +949,27 @@ const FacultyContent = () => {
             Please select a subject from the sidebar.
           </p>
         )}
-        {modalImage && (
-          <div
-            className="lightbox-bg bg-opacity-70 fixed inset-0 z-55 flex items-center justify-center hover:cursor-pointer"
-            onClick={() => setModalImage(null)}
-          >
-            <div className="relative max-h-full max-w-full">
-              <img
-                src={modalImage}
-                className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
-              />
-            </div>
-          </div>
-        )}
 
         {isDeleting && <LoadingOverlay show={isDeleting} />}
+        {isApproving && <LoadingOverlay show={isApproving} />}
 
-        {/* Confirmation Modal */}
+        {/* Confirmation Modals */}
+        <ConfirmModal
+          isOpen={showApproveModal}
+          onClose={() => setShowApproveModal(false)}
+          onConfirm={() => {
+            approveQuestion(selectedQuestionID);
+            setShowApproveModal(false);
+          }}
+          message="Are you sure you want to approve this question?"
+        />
+
         <ConfirmModal
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
           onConfirm={() => handleDeleteQuestion(deleteQuestionID)}
           message="Are you sure you want to delete this question?"
         />
-
-        <Toast message={toast.message} type={toast.type} show={toast.show} />
 
         {/* Image Modal (Full Size) */}
         {isChoiceModalOpen && (
@@ -1017,8 +986,20 @@ const FacultyContent = () => {
             </div>
           </div>
         )}
-        <ScrollToTopButton />
 
+        {modalImage && (
+          <div
+            className="lightbox-bg bg-opacity-70 fixed inset-0 z-55 flex items-center justify-center hover:cursor-pointer"
+            onClick={() => setModalImage(null)}
+          >
+            <div className="relative max-h-full max-w-full">
+              <img
+                src={modalImage}
+                className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
+              />
+            </div>
+          </div>
+        )}
         {editingQuestion && (
           <EditQuestionForm
             question={editingQuestion}
@@ -1026,8 +1007,6 @@ const FacultyContent = () => {
             onCancel={() => setEditingQuestion(null)}
           />
         )}
-
-        {/* Add the DuplicateQuestionForm component */}
         {duplicatingQuestion && (
           <DuplicateQuestionForm
             question={duplicatingQuestion}
@@ -1035,9 +1014,11 @@ const FacultyContent = () => {
             onCancel={() => setDuplicatingQuestion(null)}
           />
         )}
+        <ScrollToTopButton />
       </div>
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>
   );
 };
 
-export default FacultyContent;
+export default AssoDeanContent;

@@ -275,7 +275,7 @@ const StudentDashboard = () => {
 
       if (!response.ok) {
         if (response.status === 403) {
-          throw new Error("You are not authorized to generate practice exams.");
+          throw new Error("Practice exam is not enabled for this subject.");
         }
         if (response.status === 404) {
           throw new Error(
@@ -474,11 +474,7 @@ const StudentDashboard = () => {
                 type="submit"
                 className="flex w-[80px] cursor-pointer items-center justify-center rounded-md bg-orange-500 px-[12px] py-[6px] text-[14px] text-white hover:bg-orange-700"
               >
-                {loading ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                ) : (
-                  "Proceed"
-                )}
+                {loading ? <span className="loader-white"></span> : "Proceed"}
               </button>
             </div>
           </div>

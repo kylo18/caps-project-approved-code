@@ -713,7 +713,7 @@ const DuplicateQuestionForm = ({ question, onComplete, onCancel }) => {
                     >
                       {isLoading ? (
                         <div className="flex items-center justify-center">
-                          <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                          <span className="loader-white"></span>
                         </div>
                       ) : (
                         "Copy"

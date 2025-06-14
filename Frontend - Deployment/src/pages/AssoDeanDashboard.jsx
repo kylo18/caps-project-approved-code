@@ -1,4 +1,4 @@
-const AdminDashboard = () => {
+const AssoDeanDashboard = () => {
   return (
     <div className="mt-10 text-center text-gray-500">
       <p>
@@ -132,4 +132,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default AssoDeanDashboard;

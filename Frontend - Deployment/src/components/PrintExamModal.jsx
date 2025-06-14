@@ -18,8 +18,6 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
     moderate_percentage: 50,
     hard_percentage: 20,
   });
-  const [examTitle, setExamTitle] = useState("");
-  const [examInstructions, setExamInstructions] = useState("");
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -40,8 +38,6 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
       moderate_percentage: 50,
       hard_percentage: 20,
     });
-    setExamTitle("");
-    setExamInstructions("");
     onClose();
   };
 
@@ -79,7 +75,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
     setSelectedSubjects((prev) =>
       prev.map((s) =>
         s.subjectID === subjectID
-          ? { ...s, percentage: parseInt(value) || 0 }
+          ? { ...s, percentage: value === "" ? "" : parseInt(value) || 0 }
           : s,
       ),
     );
@@ -100,6 +96,13 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    // Validate total items
+    if (!settings.total_items || settings.total_items === "") {
+      setError("Please enter the total number of items");
+      setLoading(false);
+      return;
+    }
 
     // Validate difficulty percentages
     const totalDifficulty =
@@ -168,8 +171,6 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
       console.log("Received response:", data);
       setPreviewData({
         ...data,
-        examTitle: examTitle,
-        examInstructions: examInstructions,
       });
       setShowPreview(true);
     } catch (err) {
@@ -271,7 +272,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
       {!showPreview && (
         <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
           <div
-            className={`relative flex w-full ${selectedSubjects.length > 0 ? "mx-0 max-w-[1280px]" : "max-w-md"} mx-auto min-[448px]:mx-2 ${selectedSubjects.length === 0 ? "justify-center" : "justify-center"}`}
+            className={`relative flex w-full ${selectedSubjects.length > 0 ? "mx-0 max-w-[1280px]" : "max-w-lg"} mx-auto min-[448px]:mx-2 ${selectedSubjects.length === 0 ? "justify-center" : "justify-center"}`}
           >
             {/* Main Panel */}
             <div
@@ -292,32 +293,6 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
               </div>
               <div className="edit-profile-modal-scrollbar max-h-[calc(90vh-60px)] overflow-y-auto">
                 <form className="px-5 py-4" onSubmit={handleSubmit}>
-                  {/* Exam Title Input */}
-                  <div className="mb-3">
-                    <label className="mb-1 block text-[14px] text-gray-700">
-                      Exam Title
-                    </label>
-                    <input
-                      type="text"
-                      value={examTitle}
-                      onChange={(e) => setExamTitle(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-[14px] text-gray-900 focus:border-[#FE6902] focus:outline-none"
-                      placeholder="Enter exam title"
-                    />
-                  </div>
-                  {/* Exam Instructions Input */}
-                  <div className="mb-3">
-                    <label className="mb-1 block text-[14px] text-gray-700">
-                      Instructions
-                    </label>
-                    <textarea
-                      value={examInstructions}
-                      onChange={(e) => setExamInstructions(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-[14px] text-gray-900 focus:border-[#FE6902] focus:outline-none"
-                      placeholder="Enter exam instructions"
-                      rows={3}
-                    />
-                  </div>
                   {settings.exam_type !== "personal" && (
                     <div>
                       <span className="mb-2 block text-[14px] text-gray-700">
@@ -402,7 +377,9 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                                       onChange={(e) =>
                                         handleSubjectPercentageChange(
                                           subject.subjectID,
-                                          e.target.value,
+                                          e.target.value === ""
+                                            ? ""
+                                            : parseInt(e.target.value) || 0,
                                         )
                                       }
                                       className="w-[60px] rounded-lg border border-gray-300 px-[9px] py-[5px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
@@ -440,7 +417,10 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                           onChange={(e) =>
                             setSettings((prev) => ({
                               ...prev,
-                              total_items: parseInt(e.target.value) || 0,
+                              total_items:
+                                e.target.value === ""
+                                  ? ""
+                                  : parseInt(e.target.value) || 0,
                             }))
                           }
                           className="peer w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
@@ -458,32 +438,34 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                     <span className="mt-2 mb-2 block text-[14px] text-gray-700">
                       Difficulty Distribution
                     </span>
-                    <RegisterDropDownSmall
-                      options={[
-                        {
-                          value: "default",
-                          label: "Default: Easy 30%, Moderate 50%, Hard 20%",
-                        },
-                        {
-                          value: "custom",
-                          label: "Custom: Must equal to 100%",
-                        },
-                      ]}
-                      value={mode}
-                      onChange={(e) => {
-                        const selectedMode = e.target.value;
-                        setMode(selectedMode);
+                    <div className="flex items-center gap-2">
+                      <RegisterDropDownSmall
+                        options={[
+                          {
+                            value: "default",
+                            label: "Default: Easy 30%, Moderate 50%, Hard 20%",
+                          },
+                          {
+                            value: "custom",
+                            label: "Custom: Must equal to 100%",
+                          },
+                        ]}
+                        value={mode}
+                        onChange={(e) => {
+                          const selectedMode = e.target.value;
+                          setMode(selectedMode);
 
-                        if (selectedMode === "default") {
-                          setSettings((prev) => ({
-                            ...prev,
-                            easy_percentage: 30,
-                            moderate_percentage: 50,
-                            hard_percentage: 20,
-                          }));
-                        }
-                      }}
-                    />
+                          if (selectedMode === "default") {
+                            setSettings((prev) => ({
+                              ...prev,
+                              easy_percentage: 30,
+                              moderate_percentage: 50,
+                              hard_percentage: 20,
+                            }));
+                          }
+                        }}
+                      />
+                    </div>
 
                     <div className="mb-3 text-start text-[11px] text-gray-400">
                       Choose how to distribute question difficulty. You can use
@@ -507,7 +489,9 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                                 setSettings((prev) => ({
                                   ...prev,
                                   [`${level}_percentage`]:
-                                    parseInt(e.target.value) || 0,
+                                    e.target.value === ""
+                                      ? ""
+                                      : parseInt(e.target.value) || 0,
                                 }))
                               }
                               className="w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
@@ -532,7 +516,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                     >
                       {loading ? (
                         <div className="flex items-center justify-center">
-                          <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                          <span className="loader-white"></span>
                         </div>
                       ) : (
                         "Generate Exam"
@@ -606,7 +590,9 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                                     onChange={(e) =>
                                       handleSubjectPercentageChange(
                                         subject.subjectID,
-                                        e.target.value,
+                                        e.target.value === ""
+                                          ? ""
+                                          : parseInt(e.target.value) || 0,
                                       )
                                     }
                                     className="peer w-[60px] rounded-lg border border-gray-300 px-[9px] py-[5px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"

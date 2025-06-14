@@ -12,6 +12,9 @@ import Button from "../components/button";
 import ScrollToTopButton from "../components/scrollToTopButton";
 import LoadingOverlay from "../components/loadingOverlay";
 import SortCustomDropdown from "../components/sortCustomDropdown";
+import PracticeExamConfig from "../components/practiceExamConfig";
+import Toast from "../components/Toast";
+import useToast from "../hooks/useToast";
 
 // Main admin dashboard component for managing questions and subjects
 const AdminContent = () => {
@@ -70,31 +73,14 @@ const AdminContent = () => {
   // State for question addition
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
 
-  // State for toast notifications
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
+  // Use the toast hook
+  const { toast, showToast } = useToast();
 
   // State for question duplication
   const [duplicatingQuestion, setDuplicatingQuestion] = useState(null);
 
-  // Effect to handle toast auto-dismiss
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
+  // State for loading
+  const [isLoading, setIsLoading] = useState(true);
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -113,11 +99,7 @@ const AdminContent = () => {
   const handleQuestionAdded = () => {
     setSubmittedQuestion(null);
     fetchQuestions();
-    setToast({
-      message: "Question is now pending for approval!",
-      type: "success",
-      show: true,
-    });
+    showToast("Question is now pending for approval!", "success");
   };
 
   // Function to handle question editing
@@ -129,11 +111,7 @@ const AdminContent = () => {
   const handleEditComplete = () => {
     setEditingQuestion(null);
     fetchQuestions();
-    setToast({
-      message: "Question is now pending for approval!",
-      type: "success",
-      show: true,
-    });
+    showToast("Question is now pending for approval!", "success");
   };
 
   // Function to handle question deletion
@@ -157,13 +135,10 @@ const AdminContent = () => {
         prevQuestions.filter((question) => question.questionID !== questionID),
       );
       setDeleteQuestionID(null);
-      setToast({
-        message: "Question deleted successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("Question deleted successfully!", "success");
     } catch (error) {
       console.error("Error deleting question:", error);
+      showToast("Failed to delete question", "error");
     } finally {
       setIsDeleting(false);
     }
@@ -205,11 +180,7 @@ const AdminContent = () => {
       setQuestions(data.data || []);
     } catch (error) {
       console.error("Error fetching questions:", error);
-      setToast({
-        message: "Failed to fetch questions. Please try again.",
-        type: "error",
-        show: true,
-      });
+      showToast("Failed to fetch questions. Please try again.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -283,14 +254,6 @@ const AdminContent = () => {
     setShowConfirmModal(true);
   };
 
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-  }, []);
-
   useEffect(() => {
     if (submittedQuestion && formRef.current) {
       formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -318,19 +281,13 @@ const AdminContent = () => {
       }
 
       fetchQuestions();
-      setToast({
-        message: "Question approved successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("Question approved successfully!", "success");
     } catch (error) {
       console.error("Error approving question:", error);
-      setToast({
-        message:
-          error.message || "An error occurred while approving the question.",
-        type: "error",
-        show: true,
-      });
+      showToast(
+        error.message || "An error occurred while approving the question.",
+        "error",
+      );
     } finally {
       setIsApproving(false);
     }
@@ -376,11 +333,10 @@ const AdminContent = () => {
   const handleDuplicateComplete = () => {
     setDuplicatingQuestion(null);
     fetchQuestions();
-    setToast({
-      message: "Question copied successfully! now waiting for approval",
-      type: "success",
-      show: true,
-    });
+    showToast(
+      "Question copied successfully! now waiting for approval",
+      "success",
+    );
   };
 
   return (
@@ -554,7 +510,13 @@ const AdminContent = () => {
             {(activeTab === 0 || activeTab === 1 || activeTab === 4) && (
               <div className="flex">
                 <div className="flex-1">
-                  {filteredQuestions.length > 0 ? (
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="loader"></div>
+                      </div>
+                    </div>
+                  ) : filteredQuestions.length > 0 ? (
                     <>
                       <div className="border-color relative mx-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-t-md border border-b-0 bg-white">
                         <div className="flex items-center gap-2">
@@ -1057,33 +1019,7 @@ const AdminContent = () => {
         )}
         <ScrollToTopButton />
       </div>
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-            toast.show ? "opacity-100" : "opacity-0"
-          } ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-x-circle text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-nowrap text-gray-600">
-                {toast.message}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>
   );
 };
