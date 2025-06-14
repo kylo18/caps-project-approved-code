@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>{{ $examTitle }}</title>
     <style>
       @page {
@@ -52,13 +52,17 @@
       .header-center {
         margin: 0 100px;
       }
-      .gov-line { font-size: 13px; }
+      .gov-line {
+        font-size: 13px;
+      }
       .univ-name {
         font-weight: bold;
         font-size: 16px;
         margin: 5px 0;
       }
-      .tagline { font-size: 13px; }
+      .tagline {
+        font-size: 13px;
+      }
       .college {
         font-weight: bold;
         font-size: 18px;
@@ -69,14 +73,18 @@
         font-weight: bold;
         margin: 10px 0;
       }
-      .total-items-header { display: none; }
-      
+      .total-items-header {
+        display: none;
+      }
+
       .student-info {
         margin: 5px 0;
         border-bottom: 1px solid #ccc;
         padding: 5px 0;
       }
-      .info-field { margin: 3px 0; }
+      .info-field {
+        margin: 3px 0;
+      }
       .info-label {
         font-weight: bold;
         margin-right: 5px;
@@ -133,7 +141,7 @@
       .choice-content {
         flex: 1;
       }
-      
+
       .image-container {
         margin: 10px 0;
         max-width: 100%;
@@ -162,21 +170,41 @@
         border: 1px dashed #ccc;
         margin: 5px 0;
       }
+
+      /* Add new styles for page break control */
+      .question-with-images {
+        page-break-before: auto;
+      }
+      .question-with-images:first-of-type {
+        page-break-before: avoid;
+      }
     </style>
   </head>
   <body>
     <div class="paper">
       <div class="header">
-        <img src="{{ $leftLogoPath }}" class="header-logo left" alt="University Seal" onerror="this.style.display='none'" />
+        <img
+          src="{{ $leftLogoPath }}"
+          class="header-logo left"
+          alt="University Seal"
+          onerror="this.style.display='none'"
+        />
         <div class="header-code">JRMSU-COE-027</div>
         <div class="header-center">
           <div class="gov-line">Republic of the Philippines</div>
           <div class="univ-name">JOSE RIZAL MEMORIAL STATE UNIVERSITY</div>
-          <div class="tagline">The Premiere University in Zamboanga del Norte</div>
+          <div class="tagline">
+            The Premiere University in Zamboanga del Norte
+          </div>
           <div class="college">COLLEGE OF ENGINEERING</div>
           <div class="qe-exam-title">{{ $examTitle }}</div>
         </div>
-        <img src="{{ $rightLogoPath }}" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
+        <img
+          src="{{ $rightLogoPath }}"
+          class="header-logo right"
+          alt="College Logo"
+          onerror="this.style.display='none'"
+        />
       </div>
 
       <div class="student-info">
@@ -189,14 +217,13 @@
           <span class="info-value">&nbsp;</span>
         </div>
         <div class="info-field">
-          <span class="info-label">Section:</span>
+          <span class="info-label">Course & Section:</span>
           <span class="info-value">&nbsp;</span>
         </div>
       </div>
 
-      @php $questionNumber = 1; @endphp 
-      
-      @foreach ($questionsBySubject as $subjectData)
+      @php $questionNumber = 1; @endphp @foreach ($questionsBySubject as
+      $subjectData)
       <div class="subject-section">
         <div class="subject-header">
           {{ $subjectData['subject'] }}
@@ -206,13 +233,12 @@
         </div>
 
         @foreach ($subjectData['questions'] as $question)
-        @if($questionNumber > 1 && ($questionNumber - 1) % 5 == 0)
-        <div style="page-break-after: always"></div>
-        @endif
-
-        <div class="question">
+        <div
+          class="question {{ !empty($question['questionImage']) || collect($question['choices'])->contains('choiceImage') ? 'question-with-images' : '' }}"
+        >
           <div class="question-text">
-            {{ $questionNumber }}. {!! $question['questionText'] ?? 'Question text not available' !!}
+            {{ $questionNumber }}. {!! $question['questionText'] ?? 'Question
+            text not available' !!}
           </div>
 
           @if (!empty($question['questionImage']))
@@ -232,7 +258,6 @@
               <span class="choice-letter">{{ chr(65 + $choiceIndex) }}.</span>
               <div class="choice-content">
                 {!! $choice['choiceText'] ?? '' !!}
-
                 @if(!empty($choice['choiceImage']))
                 <div class="image-container">
                   <img
@@ -248,8 +273,7 @@
             @endforeach
           </div>
         </div>
-        @php $questionNumber++; @endphp 
-        @endforeach
+        @php $questionNumber++; @endphp @endforeach
       </div>
       @endforeach
     </div>
