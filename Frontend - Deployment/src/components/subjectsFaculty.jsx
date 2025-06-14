@@ -5,6 +5,9 @@ import LoadingOverlay from "./loadingOverlay";
 import Tooltip from "./toolTip";
 import { createPortal } from "react-dom";
 import SideBarToolTip from "./sidebarTooltip";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
+
 const AssignedSubjectsDropDown = ({
   item,
   isExpanded,
@@ -29,6 +32,7 @@ const AssignedSubjectsDropDown = ({
   const [selectedSubjectForAssignment, setSelectedSubjectForAssignment] =
     useState(null);
   const [openMenuID, setOpenMenuID] = useState(null);
+  const { toast, showToast } = useToast();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState(null);
@@ -43,32 +47,12 @@ const AssignedSubjectsDropDown = ({
 
   const [dropdownDirection, setDropdownDirection] = useState("down"); // "down" or "up"
   const [searchUnassigned, setSearchUnassigned] = useState("");
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
 
   const [selectedYearLevel, setSelectedYearLevel] = useState(null);
   const [showYearSubjects, setShowYearSubjects] = useState(false);
   const [yearLevelPosition, setYearLevelPosition] = useState({ x: 0, y: 0 });
 
   const yearLevelOptions = ["1", "2", "3", "4"];
-
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
 
   const handleEditClick = (subject) => {
     setEditingSubject(subject.subjectID);
@@ -287,26 +271,14 @@ const AssignedSubjectsDropDown = ({
 
         setSelectedSubjectForAssignment(null);
 
-        setToast({
-          message: result.message || "Subject assigned successfully",
-          type: "success",
-          show: true,
-        });
+        showToast(result.message || "Subject assigned successfully", "success");
       } else {
         console.error("Failed to assign subject:", response.status);
-        setToast({
-          message: "Failed to assign subject",
-          type: "error",
-          show: true,
-        });
+        showToast("Failed to assign subject", "error");
       }
     } catch (error) {
       console.error("Error assigning subject:", error);
-      setToast({
-        message: "An error occurred while assigning subject",
-        type: "error",
-        show: true,
-      });
+      showToast("An error occurred while assigning subject", "error");
     } finally {
       setIsAssigning(false);
     }
@@ -403,10 +375,7 @@ const AssignedSubjectsDropDown = ({
           {subjectLoading ? (
             <div className="flex h-[300px] items-start justify-center">
               <div className="mt-4 flex flex-col items-center gap-2">
-                <div className="size-5 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></div>
-                <span className="text-sm text-gray-600">
-                  Loading Subjects...
-                </span>
+                <div className="loader"></div>
               </div>
             </div>
           ) : searchTerm.trim() ? (
@@ -926,15 +895,11 @@ const AssignedSubjectsDropDown = ({
                   await handleDeleteSubject(subjectToDelete.subjectID);
                   setShowDeleteModal(false);
                   setSubjectToDelete(null);
-                  setToast({
-                    message: "Subject deleted successfully",
-                    type: "success",
-                    show: true,
-                  });
+                  showToast("Subject deleted successfully", "success");
                 }}
               >
                 {isDeleting ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  <span className="loader-white"></span>
                 ) : (
                   <span className="inline text-[14px]">Confirm</span>
                 )}
@@ -977,8 +942,7 @@ const AssignedSubjectsDropDown = ({
               <ul className="max-h-[200px] overflow-y-auto" ref={listRef}>
                 {loading ? (
                   <div className="flex items-center justify-center text-[rgb(168,168,168)]">
-                    <span>Loading</span>
-                    <div className="ml-2 size-4 animate-spin rounded-full border-3 border-t-transparent"></div>
+                    <div className="loader"></div>
                   </div>
                 ) : unassignedSubjects.length > 0 ? (
                   [...unassignedSubjects]
@@ -1032,7 +996,7 @@ const AssignedSubjectsDropDown = ({
                 disabled={!selectedSubjectForAssignment}
               >
                 {isAssigning ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  <span className="loader-white"></span>
                 ) : (
                   "Assign"
                 )}
@@ -1042,33 +1006,7 @@ const AssignedSubjectsDropDown = ({
         </div>
       )}
 
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-100 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-            toast.show ? "opacity-100" : "opacity-0"
-          } ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-x-circle text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-nowrap text-gray-600">
-                {toast.message}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>
   );
 };

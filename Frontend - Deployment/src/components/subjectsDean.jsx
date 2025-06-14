@@ -5,6 +5,8 @@ import SideBarToolTip from "./sidebarTooltip";
 import { Tooltip } from "flowbite-react";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import { createPortal } from "react-dom";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
 
 const SideBarDropDown = ({
   item,
@@ -58,6 +60,9 @@ const SideBarDropDown = ({
   const [showYearSubjects, setShowYearSubjects] = useState(false);
   const [yearLevelPosition, setYearLevelPosition] = useState({ x: 0, y: 0 });
 
+  // Use the toast hook
+  const { toast, showToast } = useToast();
+
   const handleEditClick = (subject) => {
     setEditingSubject(subject.subjectID);
     setEditedSubject({
@@ -67,27 +72,6 @@ const SideBarDropDown = ({
       yearLevelID: subject.yearLevelID || "",
     });
   };
-
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
-
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
 
   const handleSaveEdit = async (subjectID) => {
     const token = localStorage.getItem("token");
@@ -145,68 +129,45 @@ const SideBarDropDown = ({
         setOpenMenuID(null);
         setSelectedSubject(null);
 
-        setToast({
-          message: result.message || "Subject updated successfully",
-          type: "success",
-          show: true,
-        });
+        showToast(result.message || "Subject updated successfully", "success");
       } else {
         // Handle different error cases
         switch (response.status) {
           case 401:
-            setToast({
-              message: "You are not authenticated. Please log in again.",
-              type: "error",
-              show: true,
-            });
+            showToast(
+              "You are not authenticated. Please log in again.",
+              "error",
+            );
             break;
           case 403:
-            setToast({
-              message: "You are not authorized to modify subjects.",
-              type: "error",
-              show: true,
-            });
+            showToast("You are not authorized to modify subjects.", "error");
             break;
           case 404:
-            setToast({
-              message: "Subject not found.",
-              type: "error",
-              show: true,
-            });
+            showToast("Subject not found.", "error");
             break;
           case 409:
-            setToast({
-              message:
-                result.message ||
-                "A subject with these details already exists.",
-              type: "error",
-              show: true,
-            });
+            showToast(
+              result.message || "A subject with these details already exists.",
+              "error",
+            );
             break;
           case 500:
             console.error("Server error details:", result);
-            setToast({
-              message:
-                "An error occurred while updating the subject. Please try again.",
-              type: "error",
-              show: true,
-            });
+            showToast(
+              "An error occurred while updating the subject. Please try again.",
+              "error",
+            );
             break;
           default:
-            setToast({
-              message: result.message || "Failed to update subject.",
-              type: "error",
-              show: true,
-            });
+            showToast(result.message || "Failed to update subject.", "error");
         }
       }
     } catch (error) {
       console.error("Error updating subject:", error);
-      setToast({
-        message: "An unexpected error occurred while connecting to the server.",
-        type: "error",
-        show: true,
-      });
+      showToast(
+        "An unexpected error occurred while connecting to the server.",
+        "error",
+      );
     } finally {
       setIsEditing(false);
       setEditingSubject(null);
@@ -240,11 +201,14 @@ const SideBarDropDown = ({
         setFilteredSubjects((prevSubjects) =>
           prevSubjects.filter((subject) => subject.subjectID !== subjectID),
         );
+        showToast("Subject deleted successfully", "success");
       } else {
         console.error("Failed to delete subject");
+        showToast("Failed to delete subject", "error");
       }
     } catch (error) {
       console.error("Error deleting subject:", error);
+      showToast("Error deleting subject", "error");
     } finally {
       setIsDeleting(false);
     }
@@ -297,11 +261,7 @@ const SideBarDropDown = ({
       setFilteredSubjects(sortedSubjects);
     } catch (error) {
       console.error("Error fetching subjects:", error);
-      setToast({
-        message: error.message || "Failed to fetch subjects",
-        type: "error",
-        show: true,
-      });
+      showToast(error.message || "Failed to fetch subjects", "error");
     } finally {
       setSubjectLoading(false);
     }
@@ -342,39 +302,23 @@ const SideBarDropDown = ({
         setSelectedProgramID("");
         setSelectedYearLevelID("");
 
-        setToast({
-          message: "Subject added successfully",
-          type: "success",
-          show: true,
-        });
+        showToast("Subject added successfully", "success");
       } else {
         // Handle specific error if subject already exists
         if (result.message && result.message.includes("already exists")) {
-          setToast({
-            message: "Subject already exists",
-            type: "error",
-            show: true,
-          });
+          showToast("Subject already exists", "error");
         } else {
           // General error case
           console.error(
             "Failed to add subject:",
             result.message || "Unknown error",
           );
-          setToast({
-            message: "Failed to add subject",
-            type: "error",
-            show: true,
-          });
+          showToast("Failed to add subject", "error");
         }
       }
     } catch (error) {
       console.error("Error adding subject:", error);
-      setToast({
-        message: "An error occurred while adding subject",
-        type: "error",
-        show: true,
-      });
+      showToast("An error occurred while adding subject", "error");
     } finally {
       setIsAdding(false);
     }
@@ -560,10 +504,7 @@ const SideBarDropDown = ({
           {subjectLoading ? (
             <div className="flex h-[300px] items-start justify-center">
               <div className="mt-4 flex flex-col items-center gap-2">
-                <div className="size-5 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></div>
-                <span className="text-sm text-gray-600">
-                  Loading Subjects...
-                </span>
+                <div className="loader"></div>
               </div>
             </div>
           ) : searchTerm.trim() ? (
@@ -1047,20 +988,34 @@ const SideBarDropDown = ({
       )}
 
       {editingSubject && (
-        <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-end min-[448px]:justify-center min-[448px]:p-2">
-          <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-2xl border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700 min-[448px]:rounded-t-md">
-            <span>Edit Subject</span>
-          </div>
-          <div className="border-color relative mx-auto w-full max-w-md border border-t-0 bg-white p-2 min-[448px]:rounded-b-md sm:px-4">
-            <div>
-              {/* Subject Name Input */}
-              <div>
-                <div className="mb-2 flex items-start gap-1"></div>
-                <div className="relative w-full">
+        <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+          <div className="relative max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
+            <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
+              <h2 className="text-[14px] font-medium text-gray-700">
+                Edit Subject
+              </h2>
+
+              <button
+                onClick={() => {
+                  setEditingSubject(null);
+                  setValidationError("");
+                }}
+                className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
+                title="Close"
+              >
+                <i className="bx bx-x text-[20px]"></i>
+              </button>
+            </div>
+
+            <div className="px-5 py-4">
+              <div className="mb-4 text-start">
+                <div className="mb-4">
+                  <span className="block text-[14px] text-gray-700">
+                    Subject Name
+                  </span>
                   <div className="relative">
                     <input
                       type="text"
-                      className="peer mt-2 w-full rounded-xl border border-gray-300 px-4 py-[8px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
                       placeholder="Name"
                       value={editedSubject.subjectName}
                       onChange={(e) =>
@@ -1069,26 +1024,21 @@ const SideBarDropDown = ({
                           subjectName: e.target.value,
                         }))
                       }
+                      className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
                     />
-                    <label
-                      htmlFor="Subject Name"
-                      className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
-                    >
-                      Subject Name
-                    </label>
                   </div>
                 </div>
               </div>
 
-              {/* Subject Code Input */}
-              <div className="mt-2 mb-4">
-                <div className="mb-2 flex items-start gap-1"></div>
-                <div className="relative w-full">
+              <div className="mb-4 text-start">
+                <div className="mb-4">
+                  <span className="block text-[14px] text-gray-700">
+                    Subject Code
+                  </span>
                   <div className="relative">
                     <input
                       type="text"
-                      className="peer mt-2 w-full rounded-xl border border-gray-300 px-4 py-[8px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                      placeholder="Name"
+                      placeholder="Code"
                       value={editedSubject.subjectCode}
                       onChange={(e) =>
                         setEditedSubject((prev) => ({
@@ -1096,123 +1046,124 @@ const SideBarDropDown = ({
                           subjectCode: e.target.value,
                         }))
                       }
+                      className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
                     />
-                    <label
-                      htmlFor="Subject Code"
-                      className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
-                    >
-                      Subject Code
-                    </label>
+                  </div>
+                  <div className="mt-1 text-start text-[11px] text-gray-400">
+                    Enter the subject code of the subject you want to edit (e.g
+                    MATH123)
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <div className="mb-2 flex items-start gap-1">
+                    <span className="block text-[14px] text-gray-700">
+                      Program
+                    </span>
+                  </div>
+
+                  <RegisterDropDownSmall
+                    name="Program"
+                    value={editedSubject.programID}
+                    onChange={(e) =>
+                      setEditedSubject((prev) => ({
+                        ...prev,
+                        programID: e.target.value,
+                      }))
+                    }
+                    placeholder="Select Program"
+                    options={programs.map((program) => ({
+                      value: program.programID,
+                      label: program.programName,
+                    }))}
+                  />
+
+                  <div className="text-start text-[11px] text-gray-400">
+                    Enter the program of the subject you want to edit
                   </div>
                 </div>
 
-                {editedSubject.subjectCode.length > 20 && (
-                  <p className="text-center text-[13px] text-red-500">
-                    Code must be 20 characters or less.
-                  </p>
-                )}
-              </div>
-              <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
+                <div className="flex-1">
+                  <div className="mb-2 flex items-start gap-1">
+                    <span className="block text-[14px] text-gray-700">
+                      Year Level
+                    </span>
+                  </div>
 
-              {/* Program Selection Dropdown */}
-              <div>
-                <div className="mb-2 flex items-start gap-1">
-                  <label className="font-color-gray text-[12px]">Program</label>
+                  <RegisterDropDownSmall
+                    name="Year Level"
+                    value={editedSubject.yearLevelID}
+                    onChange={(e) =>
+                      setEditedSubject((prev) => ({
+                        ...prev,
+                        yearLevelID: e.target.value,
+                      }))
+                    }
+                    placeholder={`${editedSubject.yearLevelID}${Number(editedSubject.yearLevelID) === 1 ? "st" : Number(editedSubject.yearLevelID) === 2 ? "nd" : Number(editedSubject.yearLevelID) === 3 ? "rd" : "th"} Year`}
+                    options={yearLevelOptions.map((yearLevel) => ({
+                      value: yearLevel,
+                      label: `${yearLevel}${Number(yearLevel) === 1 ? "st" : Number(yearLevel) === 2 ? "nd" : Number(yearLevel) === 3 ? "rd" : "th"} Year`,
+                    }))}
+                  />
+                  <div className="text-start text-[11px] text-gray-400">
+                    Enter the year level of the subject
+                  </div>
                 </div>
-
-                <RegisterDropDownSmall
-                  name="Program"
-                  value={editedSubject.programID}
-                  onChange={(e) =>
-                    setEditedSubject((prev) => ({
-                      ...prev,
-                      programID: e.target.value,
-                    }))
-                  }
-                  placeholder="Select Program"
-                  options={programs.map((program) => ({
-                    value: program.programID,
-                    label: program.programName,
-                  }))}
-                />
               </div>
+              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
 
-              {/* Year Level Selection */}
-              <div className="mb-4">
-                <div className="mb-2 flex items-start gap-1">
-                  <label className="font-color-gray text-[12px]">
-                    Year Level
-                  </label>
+              {validationError && (
+                <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                  {validationError}
                 </div>
+              )}
 
-                <RegisterDropDownSmall
-                  name="Year Level"
-                  value={editedSubject.yearLevelID}
-                  onChange={(e) =>
-                    setEditedSubject((prev) => ({
-                      ...prev,
-                      yearLevelID: e.target.value,
-                    }))
-                  }
-                  placeholder={`${editedSubject.yearLevelID}${Number(editedSubject.yearLevelID) === 1 ? "st" : Number(editedSubject.yearLevelID) === 2 ? "nd" : Number(editedSubject.yearLevelID) === 3 ? "rd" : "th"} Year`}
-                  options={yearLevelOptions.map((yearLevel) => ({
-                    value: yearLevel,
-                    label: `${yearLevel}${Number(yearLevel) === 1 ? "st" : Number(yearLevel) === 2 ? "nd" : Number(yearLevel) === 3 ? "rd" : "th"} Year`,
-                  }))}
-                />
+              {editedSubject.subjectCode.length > 20 && (
+                <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                  Code must be 20 characters or less.
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="submit"
+                  disabled={isEditing}
+                  onClick={async () => {
+                    const isNameValid = editedSubject.subjectName.trim() !== "";
+                    const isCodeValid =
+                      editedSubject.subjectCode.trim() !== "" &&
+                      editedSubject.subjectCode.length <= 20;
+                    const isProgramValid = editedSubject.programID !== "";
+                    const isYearLevelValid = editedSubject.yearLevelID !== "";
+
+                    if (
+                      !isNameValid ||
+                      !isCodeValid ||
+                      !isProgramValid ||
+                      !isYearLevelValid
+                    ) {
+                      setValidationError("Please fill in all required fields");
+                      return;
+                    }
+
+                    setValidationError("");
+                    await handleSaveEdit(editedSubject.subjectID);
+                    setEditingSubject(null);
+                  }}
+                  className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isEditing ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                >
+                  {isEditing ? (
+                    <div className="flex items-center justify-center">
+                      <span className="loader-white"></span>
+                    </div>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
               </div>
-            </div>
-
-            {/* Divider */}
-            <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
-
-            {validationError && (
-              <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                {validationError}
-              </div>
-            )}
-
-            <div className="mt-2 flex justify-end gap-2 text-[14px]">
-              <button
-                onClick={() => {
-                  setEditingSubject(null);
-                  setValidationError("");
-                }}
-                className="ml-auto flex cursor-pointer items-center gap-1 rounded-md border px-4 py-1.5 text-gray-700 hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                className="flex w-[80px] cursor-pointer items-center justify-center rounded-md bg-orange-500 px-[12px] py-[6px] text-[14px] text-white hover:bg-orange-700"
-                onClick={async () => {
-                  const isNameValid = editedSubject.subjectName.trim() !== "";
-                  const isCodeValid =
-                    editedSubject.subjectCode.trim() !== "" &&
-                    editedSubject.subjectCode.length <= 20;
-                  const isProgramValid = editedSubject.programID !== "";
-                  const isYearLevelValid = editedSubject.yearLevelID !== "";
-
-                  if (
-                    !isNameValid ||
-                    !isCodeValid ||
-                    !isProgramValid ||
-                    !isYearLevelValid
-                  ) {
-                    setValidationError("Please fill in all required fields");
-                    return;
-                  }
-
-                  setValidationError("");
-                  await handleSaveEdit(editedSubject.subjectID);
-                  setEditingSubject(null);
-                }}
-              >
-                {isEditing ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                ) : (
-                  "Update"
-                )}
-              </button>
             </div>
           </div>
         </div>
@@ -1292,15 +1243,10 @@ const SideBarDropDown = ({
                   await handleDeleteSubject(subjectToDelete.subjectID);
                   setShowDeleteModal(false);
                   setSubjectToDelete(null);
-                  setToast({
-                    message: "Subject deleted successfully",
-                    type: "success",
-                    show: true,
-                  });
                 }}
               >
                 {isDeleting ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  <span className="loader-white"></span>
                 ) : (
                   <span className="inline text-[14px]">Confirm</span>
                 )}
@@ -1310,33 +1256,8 @@ const SideBarDropDown = ({
         </div>
       )}
 
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-            toast.show ? "opacity-100" : "opacity-0"
-          } ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-x-circle text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-nowrap text-gray-600">
-                {toast.message}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Replace the toast JSX with the Toast component */}
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
 
       {showAddModal && (
         <>
@@ -1490,7 +1411,7 @@ const SideBarDropDown = ({
                   >
                     {isAdding ? (
                       <div className="flex items-center justify-center">
-                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                        <span className="loader-white"></span>
                       </div>
                     ) : (
                       "Save Changes"

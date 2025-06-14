@@ -67,7 +67,7 @@ const Sidebar = ({
         : parsedRoleId === 3
           ? "/program-chair-dashboard"
           : parsedRoleId === 4
-            ? "/admin-dashboard"
+            ? "/dean-dashboard"
             : "/";
 
   const baseMenuItems = [
@@ -209,6 +209,35 @@ const Sidebar = ({
               </li>
             ))}
           </ul>
+        )}
+
+        {parsedRoleId === 5 && (
+          <>
+            {!isSubjectFocused && (
+              <>
+                <div className="mb-7 h-[1px] w-full bg-[rgb(168,168,168)]"></div>
+              </>
+            )}
+            <div
+              className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
+            >
+              <ul className="space-y-[10px]">
+                {classes.map((item, index) => (
+                  <AllSubjectsDropDown
+                    key={index}
+                    item={item}
+                    isExpanded={isExpanded}
+                    parsedRoleId={parsedRoleId}
+                    setIsExpanded={setIsExpanded}
+                    setSelectedSubject={setSelectedSubject}
+                    isSubjectFocused={isSubjectFocused}
+                    setIsSubjectFocused={setIsSubjectFocused}
+                    homePath={"/Dean/subjects"}
+                  />
+                ))}
+              </ul>
+            </div>
+          </>
         )}
 
         {/* Different Dropdowns for Different Roles*/}

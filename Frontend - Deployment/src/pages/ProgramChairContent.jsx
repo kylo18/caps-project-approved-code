@@ -13,6 +13,8 @@ import LoadingOverlay from "../components/loadingOverlay";
 import SubjectCardLower from "../components/subjectCardLower";
 import DuplicateQuestionForm from "../components/DuplicateQuestionForm";
 import AltButton from "../components/buttonAlt";
+import Toast from "../components/Toast";
+import useToast from "../hooks/useToast";
 
 const ProgramChairContent = () => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
@@ -63,31 +65,12 @@ const ProgramChairContent = () => {
 
   const buttonRef = useRef(null);
 
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
+  // Get toast functions from hook
+  const { toast, showToast } = useToast();
 
   const [editingQuestion, setEditingQuestion] = useState(null);
 
   const [duplicatingQuestion, setDuplicatingQuestion] = useState(null);
-
-  // Effect to handle toast notifications auto-dismiss
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
 
   // Effect to fetch questions when subject changes
   useEffect(() => {
@@ -152,6 +135,7 @@ const ProgramChairContent = () => {
       cancelEdit(); // Exit edit mode
     } catch (error) {
       console.error("Error updating question:", error);
+      showToast("Failed to update question. Please try again.", "error");
     }
   };
 
@@ -177,13 +161,10 @@ const ProgramChairContent = () => {
         prevQuestions.filter((question) => question.questionID !== questionID),
       );
       setDeleteQuestionID(null);
-      setToast({
-        message: "Question deleted successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("Question deleted successfully!", "success");
     } catch (error) {
       console.error("Error deleting question:", error);
+      showToast("Failed to delete question. Please try again.", "error");
     } finally {
       setIsDeleting(false);
     }
@@ -223,6 +204,7 @@ const ProgramChairContent = () => {
       setQuestions(data.data || []);
     } catch (error) {
       console.error("Error fetching questions:", error);
+      showToast("Failed to fetch questions. Please try again.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -291,11 +273,7 @@ const ProgramChairContent = () => {
   const handleQuestionAdded = () => {
     setSubmittedQuestion(null);
     fetchQuestions();
-    setToast({
-      message: "Question is now pending for approval!",
-      type: "success",
-      show: true,
-    });
+    showToast("Question is now pending for approval!", "success");
   };
 
   // Function to approve a pending question
@@ -328,19 +306,13 @@ const ProgramChairContent = () => {
       }
 
       fetchQuestions();
-      setToast({
-        message: "Question approved successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("Question approved successfully!", "success");
     } catch (error) {
       console.error("Error approving question:", error);
-      setToast({
-        message:
-          error.message || "An error occurred while approving the question.",
-        type: "error",
-        show: true,
-      });
+      showToast(
+        error.message || "An error occurred while approving the question.",
+        "error",
+      );
     } finally {
       setIsApproving(false);
     }
@@ -377,11 +349,10 @@ const ProgramChairContent = () => {
   const handleEditComplete = () => {
     setEditingQuestion(null);
     fetchQuestions();
-    setToast({
-      message: "Question edited successfully! Now waiting for approval",
-      type: "success",
-      show: true,
-    });
+    showToast(
+      "Question edited successfully! Now waiting for approval",
+      "success",
+    );
   };
 
   // Function to handle question duplication
@@ -393,11 +364,10 @@ const ProgramChairContent = () => {
   const handleDuplicateComplete = () => {
     setDuplicatingQuestion(null);
     fetchQuestions();
-    setToast({
-      message: "Question copied successfully! now waiting for approval",
-      type: "success",
-      show: true,
-    });
+    showToast(
+      "Question copied successfully! Now waiting for approval",
+      "success",
+    );
   };
 
   return (
@@ -1025,33 +995,7 @@ const ProgramChairContent = () => {
         />
 
         {/* Toast notification system */}
-        {toast.message && (
-          <div
-            className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-              toast.show ? "opacity-100" : "opacity-0"
-            } ${
-              toast.type === "success" ? "border-green-400" : "border-red-400"
-            }`}
-          >
-            <div className="flex items-center">
-              <i
-                className={`mr-3 text-[24px] ${
-                  toast.type === "success"
-                    ? "bx bxs-check-circle text-green-400"
-                    : "bx bxs-x-circle text-red-400"
-                }`}
-              ></i>
-              <div>
-                <p className="font-semibold text-gray-800">
-                  {toast.type === "success" ? "Success" : "Error"}
-                </p>
-                <p className="mb-1 text-sm text-nowrap text-gray-600">
-                  {toast.message}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        <Toast message={toast.message} type={toast.type} show={toast.show} />
 
         {/* Image preview modals for question and choice images */}
         {isChoiceModalOpen && (

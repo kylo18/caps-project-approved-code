@@ -4,6 +4,8 @@ import collegeLogo from "/src/assets/college-logo.png";
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "../components/loadingOverlay";
 import AppVersion from "../components/appVersion";
+import Toast from "../components/Toast";
+import useToast from "../hooks/useToast";
 
 export default function LoginPage() {
   const [idCode, setIdCode] = useState("");
@@ -13,26 +15,8 @@ export default function LoginPage() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
-
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
+  // Get toast functions from hook
+  const { toast, showToast } = useToast();
 
   const [isLogIn, setIsLogIn] = useState(false);
 
@@ -42,11 +26,7 @@ export default function LoginPage() {
     setIsLogIn(true);
 
     if (!idCode.trim() || !password.trim()) {
-      setToast({
-        message: "Please enter both ID Code and Password.",
-        type: "error",
-        show: true,
-      });
+      showToast("Please enter both ID Code and Password.", "error");
       setIsLogIn(false);
       return;
     }
@@ -69,18 +49,10 @@ export default function LoginPage() {
       if (!response.ok) {
         if (response.status === 401) {
           // 401 Unauthorized -> wrong userCode or password
-          setToast({
-            message: "Incorrect user code or password",
-            type: "error",
-            show: true,
-          });
+          showToast("Incorrect user code or password", "error");
         } else {
           // Other errors
-          setToast({
-            message: "Something went wrong. Please try again later.",
-            type: "error",
-            show: true,
-          });
+          showToast("Something went wrong. Please try again later.", "error");
         }
         return;
       }
@@ -102,18 +74,17 @@ export default function LoginPage() {
           navigate("/program-chair-dashboard");
           break;
         case 4:
-          navigate("/admin-dashboard");
+          navigate("/dean-dashboard");
+          break;
+        case 5:
+          navigate("/asso-dean-dashboard");
           break;
         default:
           setError("Invalid user role.");
           break;
       }
     } catch (error) {
-      setToast({
-        message: "Something went wrong. Please try again later.",
-        type: "error",
-        show: true,
-      });
+      showToast("Something went wrong. Please try again later.", "error");
     } finally {
       setIsLogIn(false);
     }
@@ -185,9 +156,7 @@ export default function LoginPage() {
                   LOG IN ACCOUNT
                 </h2>
                 <p className="mt-2 justify-center text-center text-sm text-gray-500 lg:mr-15">
-                  <span>
-                    Welcome! Please enter your user code and password{" "}
-                  </span>
+                  <span>Welcome! Please enter your code and password </span>
                   <span>to access your account.</span>
                 </p>
 
@@ -207,7 +176,7 @@ export default function LoginPage() {
                         htmlFor="userCode"
                         className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
                       >
-                        User Code
+                        Instructor Code/Student ID Number
                       </label>
                     </div>
                   </div>
@@ -257,7 +226,7 @@ export default function LoginPage() {
                     >
                       {isLogIn ? (
                         <div className="flex items-center justify-center">
-                          <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                          <span className="loader-white"></span>
                         </div>
                       ) : (
                         "Log in"
@@ -368,7 +337,7 @@ export default function LoginPage() {
             LOG IN ACCOUNT
           </h2>
           <p className="mb-5 max-w-80 justify-center text-center text-xs text-gray-500 md:max-w-full lg:mr-15">
-            <span>Welcome! Please enter your user code and password </span>
+            <span>Welcome! Please enter your code and password</span>
             <span>to access your account.</span>
           </p>
           <form
@@ -389,7 +358,7 @@ export default function LoginPage() {
                   htmlFor="userCode"
                   className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
                 >
-                  User Code
+                  Instructor Code/Student ID Number
                 </label>
               </div>
             </div>
@@ -435,7 +404,7 @@ export default function LoginPage() {
             >
               {isLogIn ? (
                 <div className="flex items-center justify-center">
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  <span className="loader-white"></span>
                 </div>
               ) : (
                 "LOG IN"
@@ -462,33 +431,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-            toast.show ? "opacity-100" : "opacity-0"
-          } ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-x-circle text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-nowrap text-gray-600">
-                {toast.message}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
     </>
   );
 }

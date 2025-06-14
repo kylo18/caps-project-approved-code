@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import LoadingOverlay from "./loadingOverlay";
-import Tooltip from "./toolTip";
+import { Tooltip } from "flowbite-react";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
 
 // Web App Header
 const AdminHeader = ({ title }) => {
@@ -17,6 +19,7 @@ const AdminHeader = ({ title }) => {
     .href;
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const dropdownRef = useRef(null);
+  const { toast, showToast } = useToast();
 
   const [isChangePasswordSubmitting, setIsChangePasswordSubmitting] =
     useState(false);
@@ -34,12 +37,6 @@ const AdminHeader = ({ title }) => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
-
   // Profile form states
   const [profileFormData, setProfileFormData] = useState({
     firstName: "",
@@ -51,20 +48,9 @@ const AdminHeader = ({ title }) => {
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
 
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
 
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
+  const [wasProfileModalOpen, setWasProfileModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -95,6 +81,7 @@ const AdminHeader = ({ title }) => {
   // Handle the logout process
   const handleLogout = async () => {
     try {
+      setIsLoggingOut(true);
       const token = localStorage.getItem("token");
       const response = await fetch(`${apiUrl}/logout`, {
         method: "POST",
@@ -109,9 +96,11 @@ const AdminHeader = ({ title }) => {
         navigate("/");
       } else {
         console.error("Logout failed");
+        setIsLoggingOut(false);
       }
     } catch (error) {
       console.error("Error logging out:", error);
+      setIsLoggingOut(false);
     }
   };
 
@@ -173,14 +162,13 @@ const AdminHeader = ({ title }) => {
           new_password: "",
           new_password_confirmation: "",
         });
+        setPasswordVisible(false);
+        setNewPasswordVisible(false);
+        setConfirmPasswordVisible(false);
 
-        setToast({
-          message: "Password changed successfully!",
-          type: "success",
-          show: true,
-        });
+        showToast("Password changed successfully!", "success");
 
-        setShowChangePassword(false);
+        handleCloseChangePassword();
       } else {
         setError(result.message || "Failed to change password.");
       }
@@ -204,41 +192,40 @@ const AdminHeader = ({ title }) => {
     setProfileError("");
     setProfileSuccess("");
 
-    const payload = {};
-    Object.entries(profileFormData).forEach(([key, value]) => {
-      if (value.trim() !== "") {
-        payload[key] = value.trim();
-      }
-    });
-
     try {
+      const profilePayload = {};
+      Object.entries(profileFormData).forEach(([key, value]) => {
+        if (value.trim() !== "") {
+          profilePayload[key] = value.trim();
+        }
+      });
+
       const token = localStorage.getItem("token");
-      const response = await fetch(`${apiUrl}/user/update-profile`, {
+      const profileResponse = await fetch(`${apiUrl}/user/update-profile`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(profilePayload),
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        setToast({
-          message: "Profile updated successfully!",
-          type: "success",
-          show: true,
-        });
+      const profileData = await profileResponse.json();
+
+      if (profileResponse.ok) {
+        showToast("Profile updated successfully!", "success");
         // Update local user info
         setUserInfo((prev) => ({
           ...prev,
-          fullName: `${payload.firstName} ${payload.lastName}`.trim(),
-          email: payload.email,
-          userCode: payload.userCode,
+          fullName:
+            `${profilePayload.firstName} ${profilePayload.lastName}`.trim(),
+          email: profilePayload.email,
+          userCode: profilePayload.userCode,
         }));
+
         setTimeout(() => setShowProfileModal(false), 0);
       } else {
-        setProfileError(data.message || "Failed to update profile.");
+        setProfileError(profileData.message || "Failed to update profile.");
       }
     } catch (err) {
       console.error("Profile update error:", err);
@@ -267,6 +254,29 @@ const AdminHeader = ({ title }) => {
       resetProfileForm();
     }
   }, [userInfo]);
+
+  const handleOpenChangePassword = () => {
+    setWasProfileModalOpen(showProfileModal);
+    setShowProfileModal(false);
+    setShowChangePassword(true);
+  };
+
+  const handleCloseChangePassword = () => {
+    setShowChangePassword(false);
+    setFormData({
+      password: "",
+      new_password: "",
+      new_password_confirmation: "",
+    });
+    setPasswordVisible(false);
+    setNewPasswordVisible(false);
+    setConfirmPasswordVisible(false);
+    setError("");
+    setMessage("");
+    if (wasProfileModalOpen) {
+      setShowProfileModal(true);
+    }
+  };
 
   return (
     <div>
@@ -325,24 +335,36 @@ const AdminHeader = ({ title }) => {
             {dropdownOpen && (
               <div className="absolute top-[44px] right-[-10px] w-60 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
                 <div className="flex items-center gap-3 border-gray-200 px-2 py-3">
-                  <div className="flex h-8 w-10 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
-                    {userInfo?.fullName
-                      ? (() => {
-                          const parts = userInfo.fullName.trim().split(" ");
-                          const firstInitial = parts[0]?.[0] || "";
-                          const lastInitial =
-                            parts.length > 1 ? parts[parts.length - 1][0] : "";
-                          return (firstInitial + lastInitial).toUpperCase();
-                        })()
-                      : "NN"}
+                  <div
+                    className={`flex h-8 w-10 items-center justify-center rounded-full ${userInfo ? "bg-orange-500" : "bg-gray-300"} text-sm font-bold text-white`}
+                  >
+                    {userInfo?.fullName ? (
+                      (() => {
+                        const parts = userInfo.fullName.trim().split(" ");
+                        const firstInitial = parts[0]?.[0] || "";
+                        const lastInitial =
+                          parts.length > 1 ? parts[parts.length - 1][0] : "";
+                        return (firstInitial + lastInitial).toUpperCase();
+                      })()
+                    ) : (
+                      <span className="inline-block size-8 animate-pulse rounded-full bg-gray-300"></span>
+                    )}
                   </div>
 
                   <div className="flex w-full flex-col overflow-hidden text-sm">
                     <span className="font-inter overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-gray-800">
-                      {userInfo?.fullName || "Loading..."}
+                      {userInfo?.fullName ? (
+                        userInfo.fullName
+                      ) : (
+                        <span className="inline-block h-4 w-24 animate-pulse rounded bg-gray-200"></span>
+                      )}
                     </span>
                     <span className="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-gray-500">
-                      {userInfo?.email || "loading@email.com"}
+                      {userInfo?.email ? (
+                        userInfo.email
+                      ) : (
+                        <span className="inline-block h-3 w-32 animate-pulse rounded bg-gray-200"></span>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -354,17 +376,6 @@ const AdminHeader = ({ title }) => {
                 >
                   <i className="bx bx-user-circle mr-2 text-[16px]"></i> Edit
                   Profile
-                </button>
-
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setShowChangePassword((prev) => !prev);
-                  }}
-                  className="mt-1 flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
-                >
-                  <i className="bx bx-lock-open-alt mr-2 text-[16px]"></i>{" "}
-                  Change Password
                 </button>
 
                 <button
@@ -381,7 +392,13 @@ const AdminHeader = ({ title }) => {
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
                   <i className="bx bx-arrow-out-right-square-half mr-2 text-[16px]"></i>{" "}
-                  Log-out
+                  {isLoggingOut ? (
+                    <div className="flex items-center justify-center">
+                      <span className="">Logging out...</span>
+                    </div>
+                  ) : (
+                    "Logout"
+                  )}
                 </button>
               </div>
             )}
@@ -389,10 +406,177 @@ const AdminHeader = ({ title }) => {
         </div>
       </div>
 
-      {showChangePassword && (
+      {showProfileModal && (
         <>
           <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
-            <div className="edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
+            <div className="edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-6 py-4 shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
+              <button
+                onClick={() => {
+                  setShowProfileModal(false);
+                  resetProfileForm();
+                  setProfileError("");
+                  setProfileSuccess("");
+                }}
+                className="absolute top-2 right-5 cursor-pointer text-3xl text-gray-700 hover:text-gray-700"
+              >
+                <Tooltip
+                  content="Close"
+                  placement="bottom"
+                  trigger="hover"
+                  className="bg-gray-800"
+                >
+                  <i className="bx bx-x text-[20px]"></i>
+                </Tooltip>
+              </button>
+
+              {/* Profile Picture and Name */}
+              <div className="mb-3 flex items-center gap-4 p-4">
+                <div className="relative">
+                  <div
+                    className={`flex size-11 items-center justify-center rounded-full ${userInfo ? "bg-orange-500" : "bg-gray-300"} font-bold text-white`}
+                  >
+                    {userInfo?.fullName ? (
+                      (() => {
+                        const parts = userInfo.fullName.trim().split(" ");
+                        const firstInitial = parts[0]?.[0] || "";
+                        const lastInitial =
+                          parts.length > 1 ? parts[parts.length - 1][0] : "";
+                        return (firstInitial + lastInitial).toUpperCase();
+                      })()
+                    ) : (
+                      <span className="inline-block size-11 animate-pulse rounded-full bg-gray-300"></span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-gray-800">
+                    {userInfo?.fullName ? (
+                      userInfo.fullName
+                    ) : (
+                      <span className="inline-block h-5 w-32 animate-pulse rounded bg-gray-200"></span>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {userInfo?.email ? (
+                      userInfo.email
+                    ) : (
+                      <span className="inline-block h-4 w-40 animate-pulse rounded bg-gray-200"></span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+
+              <form className="rounded-b-md" onSubmit={handleProfileSubmit}>
+                <div className="mb-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="relative w-full">
+                      <div className="relative">
+                        <span className="block text-[14px] text-gray-700">
+                          First Name
+                        </span>
+                        <input
+                          type="text"
+                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                          name="firstName"
+                          placeholder="Enter"
+                          value={profileFormData.firstName}
+                          onChange={handleProfileChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="relative w-full">
+                      <div className="relative">
+                        <span className="block text-[14px] text-gray-700">
+                          Last Name
+                        </span>
+                        <input
+                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                          type="text"
+                          name="lastName"
+                          placeholder="Enter"
+                          value={profileFormData.lastName}
+                          onChange={handleProfileChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="relative w-full">
+                      <div className="relative">
+                        <span className="block text-[14px] text-gray-700">
+                          Email Address
+                        </span>
+                        <input
+                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                          type="email"
+                          name="email"
+                          placeholder="Enter"
+                          value={profileFormData.email}
+                          onChange={handleProfileChange}
+                          required
+                        />
+
+                        <div className="mt-1 text-start text-[11px] text-gray-400">
+                          Your primary email address. It may be used for
+                          account-related communications.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 h-[0.5px] bg-[rgb(200,200,200)]" />
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-[14px] font-medium text-gray-700">
+                        Change Password
+                      </h3>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 rounded-lg px-3 text-[13px] text-gray-700"
+                      >
+                        <i
+                          onClick={handleOpenChangePassword}
+                          className="bx bx-chevron-right mt-1 cursor-pointer text-[30px] hover:text-gray-500 active:scale-95"
+                        ></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2 mb-2 h-[0.5px] bg-[rgb(200,200,200)]" />
+                {profileError && (
+                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                    {profileError}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={isProfileSubmitting}
+                  className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isProfileSubmitting ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                >
+                  {isProfileSubmitting ? (
+                    <div className="flex items-center justify-center">
+                      <span className="loader-white"></span>
+                    </div>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
+
+      {showChangePassword && (
+        <>
+          <div className="font-inter lightbox-bg bg-opacity-40 fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+            <div className="edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
               {/* Header */}
               <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
                 <h2 className="text-[14px] font-medium text-gray-700">
@@ -400,23 +584,17 @@ const AdminHeader = ({ title }) => {
                 </h2>
 
                 <button
-                  onClick={() => {
-                    setShowChangePassword(false);
-                    setFormData({
-                      password: "",
-                      new_password: "",
-                      new_password_confirmation: "",
-                    });
-                    setPasswordVisible(false);
-                    setNewPasswordVisible(false);
-                    setConfirmPasswordVisible(false);
-                    setError("");
-                    setMessage("");
-                  }}
+                  onClick={handleCloseChangePassword}
                   className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
-                  title="Close"
                 >
-                  <i className="bx bx-x text-[20px]"></i>
+                  <Tooltip
+                    content="Close"
+                    placement="bottom"
+                    trigger="hover"
+                    className="bg-gray-800"
+                  >
+                    <i className="bx bx-x text-[20px]"></i>
+                  </Tooltip>
                 </button>
               </div>
 
@@ -527,10 +705,10 @@ const AdminHeader = ({ title }) => {
                   >
                     {isChangePasswordSubmitting ? (
                       <div className="flex items-center justify-center">
-                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                        <span className="loader-white"></span>
                       </div>
                     ) : (
-                      "Save Changes"
+                      "Apply"
                     )}
                   </button>
                 </div>
@@ -540,290 +718,7 @@ const AdminHeader = ({ title }) => {
         </>
       )}
 
-      {showProfileModal && (
-        <>
-          <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
-            <div className="edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
-              <button
-                onClick={() => {
-                  setShowProfileModal(false);
-                  resetProfileForm();
-                  setProfileError("");
-                  setProfileSuccess("");
-                }}
-                className="absolute top-2 right-5 cursor-pointer text-3xl text-gray-400 hover:text-gray-700"
-                aria-label="Close"
-              >
-                &times;
-              </button>
-
-              {/* Profile Picture and Name */}
-              <div className="mb-6 flex items-center gap-4 p-4">
-                <div className="relative">
-                  <div className="flex size-11 items-center justify-center rounded-full bg-orange-500 text-xl font-bold text-white">
-                    {userInfo?.fullName
-                      ? (() => {
-                          const parts = userInfo.fullName.trim().split(" ");
-                          const firstInitial = parts[0]?.[0] || "";
-                          const lastInitial =
-                            parts.length > 1 ? parts[parts.length - 1][0] : "";
-                          return (firstInitial + lastInitial).toUpperCase();
-                        })()
-                      : "NN"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-lg font-semibold text-gray-800">
-                    {userInfo?.fullName || "loading.."}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {userInfo?.email || "loading@gmail.com"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-              <form className="rounded-b-md" onSubmit={handleProfileSubmit}>
-                <div className="mb-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="relative w-full">
-                      <div className="relative">
-                        <span className="block text-[14px] text-gray-700">
-                          First Name
-                        </span>
-                        <input
-                          type="text"
-                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                          name="firstName"
-                          placeholder="Enter"
-                          value={profileFormData.firstName}
-                          onChange={handleProfileChange}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="relative w-full">
-                      <div className="relative">
-                        <span className="block text-[14px] text-gray-700">
-                          Last Name
-                        </span>
-                        <input
-                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                          type="text"
-                          name="lastName"
-                          placeholder="Enter"
-                          value={profileFormData.lastName}
-                          onChange={handleProfileChange}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="relative w-full">
-                      <div className="relative">
-                        <span className="block text-[14px] text-gray-700">
-                          Email Address
-                        </span>
-                        <input
-                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                          type="email"
-                          name="email"
-                          placeholder="Enter"
-                          value={profileFormData.email}
-                          onChange={handleProfileChange}
-                          required
-                        />
-
-                        <div className="mt-1 text-start text-[11px] text-gray-400">
-                          Your primary email address. It may be used for
-                          account-related communications.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-                {profileError && (
-                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                    {profileError}
-                  </div>
-                )}
-                <button
-                  type="submit"
-                  disabled={isProfileSubmitting}
-                  className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isProfileSubmitting ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
-                >
-                  {isProfileSubmitting ? (
-                    <div className="flex items-center justify-center">
-                      <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                    </div>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </button>
-              </form>
-            </div>
-          </div>
-
-          <div className="lightbox-bg fixed inset-0 z-100 hidden flex-col items-center justify-end min-[448px]:justify-center min-[448px]:p-2">
-            <div className="relative w-full max-w-md rounded-t-2xl border border-gray-200 bg-white p-4 shadow-lg min-[448px]:rounded-md">
-              {/* Close Button */}
-              <button
-                onClick={() => {
-                  setShowProfileModal(false);
-                  resetProfileForm();
-                  setProfileError("");
-                  setProfileSuccess("");
-                }}
-                className="absolute top-2 right-5 text-3xl text-gray-400 hover:text-gray-700"
-                aria-label="Close"
-              >
-                &times;
-              </button>
-
-              {/* Profile Picture and Name */}
-              <div className="mb-6 flex items-center gap-4">
-                <div className="relative">
-                  <div className="flex size-11 items-center justify-center rounded-full bg-orange-500 text-xl font-bold text-white">
-                    {userInfo?.fullName
-                      ? (() => {
-                          const parts = userInfo.fullName.trim().split(" ");
-                          const firstInitial = parts[0]?.[0] || "";
-                          const lastInitial =
-                            parts.length > 1 ? parts[parts.length - 1][0] : "";
-                          return (firstInitial + lastInitial).toUpperCase();
-                        })()
-                      : "NN"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-lg font-semibold text-gray-800">
-                    {userInfo?.fullName || "loading.."}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {userInfo?.email || "loading@gmail.com"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-              <form className="rounded-b-md" onSubmit={handleProfileSubmit}>
-                <div className="mb-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="relative w-full">
-                      <div className="relative">
-                        <span className="block text-[14px] text-gray-700">
-                          First Name
-                        </span>
-                        <input
-                          type="text"
-                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                          name="firstName"
-                          placeholder="Enter"
-                          value={profileFormData.firstName}
-                          onChange={handleProfileChange}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="relative w-full">
-                      <div className="relative">
-                        <span className="block text-[14px] text-gray-700">
-                          Last Name
-                        </span>
-                        <input
-                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                          type="text"
-                          name="lastName"
-                          placeholder="Enter"
-                          value={profileFormData.lastName}
-                          onChange={handleProfileChange}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="relative w-full">
-                      <div className="relative">
-                        <span className="block text-[14px] text-gray-700">
-                          Email
-                        </span>
-                        <input
-                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                          type="email"
-                          name="email"
-                          value={profileFormData.email}
-                          onChange={handleProfileChange}
-                          required
-                        />
-
-                        <div className="mt-1 text-start text-[11px] text-gray-400">
-                          Your primary email address. It may be used for
-                          account-related communications.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-                {profileError && (
-                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                    {profileError}
-                  </div>
-                )}
-                <button
-                  type="submit"
-                  disabled={isProfileSubmitting}
-                  className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isProfileSubmitting ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
-                >
-                  {isProfileSubmitting ? (
-                    <div className="flex items-center justify-center">
-                      <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                    </div>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </button>
-              </form>
-            </div>
-          </div>
-        </>
-      )}
-
-      {isLoggingOut && <LoadingOverlay show={isLoggingOut} />}
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-            toast.show ? "opacity-100" : "opacity-0"
-          } ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-x-circle text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>
   );
 };
