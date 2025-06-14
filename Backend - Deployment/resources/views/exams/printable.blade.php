@@ -24,33 +24,33 @@
       .header {
         position: relative;
         text-align: center;
-        margin-bottom: 0;
-        padding-top: 10px;
-        min-height: 100px;
+        margin-bottom: 10px;
+        padding-top: 5px;
+        min-height: 80px;
       }
       .header-logo {
-        width: 100px; /* Increased logo size */
-        height: 100px;
+        width: 80px;
+        height: 80px;
         object-fit: contain;
       }
       .header-logo.left {
         position: absolute;
         left: 0;
-        top: 20px;
+        top: 10px;
       }
       .header-logo.right {
         position: absolute;
         right: 0;
-        top: 20px;
+        top: 10px;
       }
       .header-code {
         position: absolute;
         left: 0;
-        top: 125px; /* Adjusted for larger logo */
+        top: 95px;
         font-size: 12px;
       }
       .header-center {
-        margin: 0 120px; /* Increased margin to accommodate larger logos */
+        margin: 0 100px;
       }
       .gov-line { font-size: 13px; }
       .univ-name {
@@ -118,6 +118,7 @@
         grid-template-columns: 1fr 1fr;
         gap: 5px;
         margin-left: 20px;
+        margin-bottom: 10px;
       }
       .choice {
         margin-bottom: 5px;
@@ -127,10 +128,11 @@
       }
       .choice-letter {
         min-width: 20px;
+        font-weight: bold;
       }
       
       .image-container {
-        margin: 15px 0;
+        margin: 10px 0;
         max-width: 100%;
         overflow: hidden;
         text-align: left;
@@ -143,10 +145,10 @@
       }
       .choice-image {
         max-width: 100%;
-        height: 240px;
+        height: 180px;
         object-fit: contain;
         border-radius: 0.5rem;
-        margin-left: 1rem;
+        margin-left: 0.5rem;
       }
       .image-error {
         font-style: italic;
