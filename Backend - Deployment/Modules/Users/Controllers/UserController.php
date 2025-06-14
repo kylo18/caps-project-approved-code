@@ -19,39 +19,114 @@ class UserController extends Controller
     {
         try {
             $user = Auth::user();
-
+    
             if (!$user) {
                 return response()->json(['message' => 'Unauthorized'], 401);
             }
-
+    
             // Only Dean (roleID = 4) or Associate Dean (roleID = 5) can access the user list
             if (!in_array($user->roleID, [4, 5])) {
                 return response()->json(['message' => 'Forbidden'], 403);
             }
-
-            // Eager load related role, campus, program, and status data for each user
-            $users = User::with(['role', 'campus', 'program', 'status'])
-                        ->get()
-                        ->map(function ($user) {
-                            return [
-                                'userID' => $user->userID,
-                                'userCode' => $user->userCode,
-                                'firstName' => $user->firstName,
-                                'lastName' => $user->lastName,
-                                'email' => $user->email,
-                                'roleID' => $user->roleID,
-                                'campusID' => $user->campusID,
-                                'programID' => $user->programID,
-                                'role' => $user->role ? $user->role->roleName : 'Unknown',
-                                'campus' => $user->campus ? $user->campus->campusName : 'Unknown',
-                                'program' => $user->program ? $user->program->programName : 'Not Assigned',
-                                'isActive' => $user->isActive,
-                                'status_id' => $user->status_id,
-                                'status' => $user->status ? $user->status->name : 'Unknown',
-                            ];
-                        });
-
-            return response()->json(['users' => $users], 200);
+    
+            // Get query parameters with defaults
+            $perPage = $request->input('limit', 50);
+            $page = $request->input('page', 1);
+            $search = $request->input('search', '');
+            $status = $request->input('status');
+            $campus = $request->input('campus');
+            $role = $request->input('role');
+            $position = $request->input('position');
+            $program = $request->input('program');
+            $state = $request->input('state');
+    
+            // Start building the query
+            $query = User::with(['role', 'campus', 'program', 'status']);
+    
+            // If user is Associate Dean, only show users from their campus
+            if ($user->roleID === 5) {
+                $query->where('campusID', $user->campusID);
+            }
+    
+            // Apply search filter
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('firstName', 'like', "%{$search}%")
+                      ->orWhere('lastName', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('userCode', 'like', "%{$search}%");
+                });
+            }
+    
+            // Apply other filters
+            if ($status && $status !== 'all') {
+                $query->whereHas('status', function($q) use ($status) {
+                    $q->where('name', $status);
+                });
+            }
+    
+            if ($campus) {
+                $query->whereHas('campus', function($q) use ($campus) {
+                    $q->where('campusName', $campus);
+                });
+            }
+    
+            if ($role) {
+                $query->whereHas('role', function($q) use ($role) {
+                    $q->where('roleName', $role);
+                });
+            }
+    
+            if ($position) {
+                $query->whereHas('role', function($q) use ($position) {
+                    $q->where('roleName', $position);
+                });
+            }
+    
+            if ($program) {
+                $query->whereHas('program', function($q) use ($program) {
+                    $q->where('programName', $program);
+                });
+            }
+    
+            if ($state) {
+                $query->where('isActive', $state === 'Active');
+            }
+    
+            // Get total count before pagination
+            $total = $query->count();
+    
+            // Apply pagination
+            $users = $query->orderBy('userID', 'desc')
+                          ->skip(($page - 1) * $perPage)
+                          ->take($perPage)
+                          ->get()
+                          ->map(function ($user) {
+                              return [
+                                  'userID' => $user->userID,
+                                  'userCode' => $user->userCode,
+                                  'firstName' => $user->firstName,
+                                  'lastName' => $user->lastName,
+                                  'email' => $user->email,
+                                  'roleID' => $user->roleID,
+                                  'campusID' => $user->campusID,
+                                  'programID' => $user->programID,
+                                  'role' => $user->role ? $user->role->roleName : 'Unknown',
+                                  'campus' => $user->campus ? $user->campus->campusName : 'Unknown',
+                                  'program' => $user->program ? $user->program->programName : 'Not Assigned',
+                                  'isActive' => $user->isActive,
+                                  'status_id' => $user->status_id,
+                                  'status' => $user->status ? $user->status->name : 'Unknown',
+                              ];
+                          });
+    
+            return response()->json([
+                'users' => $users,
+                'total' => $total,
+                'page' => (int)$page,
+                'totalPages' => ceil($total / $perPage)
+            ], 200);
+    
         } catch (\Exception $e) {
             Log::error("Error fetching users: " . $e->getMessage());
             return response()->json(['message' => 'An error occurred while fetching users. Please try again later.'], 500);

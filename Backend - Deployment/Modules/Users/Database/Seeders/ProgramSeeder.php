@@ -18,6 +18,7 @@ class ProgramSeeder extends Seeder
                 ['programID' => 3, 'programName' => 'BSCE'],
                 ['programID' => 4, 'programName' => 'BSECE'],
                 ['programID' => 5, 'programName' => 'BSABE'],
+                ['programID' => 6, 'programName' => 'GE'],
             ]);
         } catch (Exception $e) {
             Log::error('Failed to seed programs table: ' . $e->getMessage());

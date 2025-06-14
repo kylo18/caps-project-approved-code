@@ -24,9 +24,9 @@
       .header {
         position: relative;
         text-align: center;
-        margin-bottom: 5px;
-        padding-top: 20px;
-        min-height: 120px; /* Ensure consistent header height */
+        margin-bottom: 0;
+        padding-top: 10px;
+        min-height: 100px;
       }
       .header-logo {
         width: 100px; /* Increased logo size */
@@ -88,7 +88,7 @@
       }
 
       .subject-section {
-        margin-bottom: 15px;
+        margin-bottom: 10px;
       }
       .subject-section:first-of-type {
         margin-top: 0;
@@ -96,8 +96,8 @@
       .subject-header {
         font-size: 12pt;
         font-weight: bold;
-        margin: 5px 0;
-        padding: 3px 0;
+        margin: 3px 0;
+        padding: 2px 0;
         border-bottom: 2px solid #333;
       }
       .total-items {
@@ -106,17 +106,27 @@
       }
 
       .question {
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         page-break-inside: avoid;
       }
       .question-text {
-        margin-bottom: 10px;
+        margin-bottom: 5px;
         font-weight: normal;
       }
-      .choices { margin-left: 20px; }
+      .choices {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+        margin-left: 20px;
+      }
       .choice {
-        margin-bottom: 10px;
+        margin-bottom: 5px;
         page-break-inside: avoid;
+        display: flex;
+        align-items: flex-start;
+      }
+      .choice-letter {
+        min-width: 20px;
       }
       
       .image-container {
@@ -214,18 +224,21 @@
           <div class="choices">
             @foreach ($question['choices'] as $choiceIndex => $choice)
             <div class="choice">
-              {{ chr(65 + $choiceIndex) }}. {!! $choice['choiceText'] ?? '' !!}
+              <span class="choice-letter">{{ chr(65 + $choiceIndex) }}.</span>
+              <div class="choice-content">
+                {!! $choice['choiceText'] ?? '' !!}
 
-              @if(!empty($choice['choiceImage']))
-              <div class="image-container">
-                <img
-                  class="choice-image"
-                  src="{{ $choice['choiceImage'] }}"
-                  alt="Choice {{ chr(65 + $choiceIndex) }} Image"
-                  onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Choice image not available]</div>'"
-                />
+                @if(!empty($choice['choiceImage']))
+                <div class="image-container">
+                  <img
+                    class="choice-image"
+                    src="{{ $choice['choiceImage'] }}"
+                    alt="Choice {{ chr(65 + $choiceIndex) }} Image"
+                    onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Choice image not available]</div>'"
+                  />
+                </div>
+                @endif
               </div>
-              @endif
             </div>
             @endforeach
           </div>

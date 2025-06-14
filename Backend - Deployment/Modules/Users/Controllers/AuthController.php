@@ -114,25 +114,28 @@ class AuthController extends Controller
                 }
             }
 
-            // Limit Associate Deans to 4 users only
+            // Limit Associate Deans to 1 per campus
             if ($validated['roleID'] == 5) {
-                $associateDeanCount = User::where('roleID', 5)->count();
-                if ($associateDeanCount >= 4) {
-                    Log::warning('Registration failed: Associate Dean limit exceeded');
-                    return response()->json(['message' => 'Only 4 Associate Deans are allowed. Registration failed.'], 403);
+                $associateDeanCount = User::where('roleID', 5)
+                    ->where('campusID', $validated['campusID'])
+                    ->count();
+                if ($associateDeanCount >= 1) {
+                    Log::warning('Registration failed: Associate Dean limit exceeded for campus ID ' . $validated['campusID']);
+                    return response()->json(['message' => 'Only 1 Associate Dean is allowed per campus.'], 403);
                 }
             }
 
-            // Limit Program Chairs to 1 per program
+            // Limit Program Chairs to 1 per program per campus
             if ($validated['roleID'] == 3) { // Program Chair role
                 $programChairCount = User::where('roleID', 3)
                     ->where('programID', $validated['programID'])
+                    ->where('campusID', $validated['campusID'])
                     ->count();
                 
                 if ($programChairCount >= 1) {
-                    Log::warning('Registration failed: Program Chair already exists for program ID ' . $validated['programID']);
+                    Log::warning('Registration failed: Program Chair already exists for program ID ' . $validated['programID'] . ' in campus ID ' . $validated['campusID']);
                     return response()->json([
-                        'message' => 'A Program Chair already exists for this program. Registration failed.'
+                        'message' => 'A Program Chair already exists for this program in this campus.'
                     ], 403);
                 }
             }
@@ -142,7 +145,7 @@ class AuthController extends Controller
             $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;  
 
             // Determine initial status and activation based on role and student existence
-            $statusId = $studentExists ? $registeredStatusId : (in_array($validated['roleID'], [1, 2, 3]) ? $pendingStatusId : $registeredStatusId);
+            $statusId = $studentExists ? $registeredStatusId : (in_array($validated['roleID'], [1, 2, 3, 5]) ? $pendingStatusId : $registeredStatusId);
             $isActive = $studentExists ? true : ($validated['roleID'] == 4 ? true : false);
 
             // Create the user in the database
