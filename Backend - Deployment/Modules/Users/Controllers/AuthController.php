@@ -95,14 +95,29 @@ class AuthController extends Controller
                 ->where('lastName', strtoupper($validated['lastName']))
                 ->exists();
 
-            // If registering as a student (roleID 1), check if userCode and lastName match in students table
+            // Get status IDs
+            $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
+            $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;  
+
+            // Determine initial status and activation based on role and student verification
+            $statusId = $pendingStatusId; // Default to pending
+            $isActive = false; // Default to inactive
+
+            // For students, check if credentials match students table
             if ($validated['roleID'] == 1) {
-                if (!$studentExists) {
-                    Log::warning('Registration failed: Student ID number or last name does not match - ' . $validated['userCode']);
-                    return response()->json([
-                        'message' => 'Cannot register as student. Student ID number or last name does not match our records.'
-                    ], 403);
+                if ($studentExists) {
+                    // If credentials match, set to registered and active
+                    $statusId = $registeredStatusId;
+                    $isActive = true;
+                } else {
+                    // If credentials don't match, keep as pending and inactive
+                    $statusId = $pendingStatusId;
+                    $isActive = false;
                 }
+            } else if (!$studentExists && !in_array($validated['roleID'], [1, 2, 3, 5])) {
+                // For non-student roles (except dean, associate dean, and program chair), set to registered and active
+                $statusId = $registeredStatusId;
+                $isActive = true;
             }
 
             // Limit Deans to 1 user only
@@ -138,20 +153,6 @@ class AuthController extends Controller
                         'message' => 'A Program Chair already exists for this program in this campus.'
                     ], 403);
                 }
-            }
-
-            // Get status IDs
-            $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
-            $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;  
-
-            // Determine initial status and activation based on role and student existence
-            $statusId = $pendingStatusId; // Default to pending for all users
-            $isActive = false; // Default to inactive for all users
-
-            // Only set to registered and active if dean
-            if (!$studentExists && !in_array($validated['roleID'], [1, 2, 3, 5])) {
-                $statusId = $registeredStatusId;
-                $isActive = true;
             }
 
             // Create the user in the database
@@ -217,12 +218,6 @@ class AuthController extends Controller
                 return response()->json(['message' => 'Wrong Credentials.'], 401);
             }
 
-            // Return if account is inactive
-            if (!$user->isActive) {
-                Log::warning('Login attempt for inactive account: ' . $request->userCode);
-                return response()->json(['message' => 'Your account is inactive. Contact an administrator.'], 403);
-            }
-
             // Get status IDs
             $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
             $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;
@@ -230,7 +225,21 @@ class AuthController extends Controller
             // Return if account is not registered
             if ($user->status_id === $pendingStatusId) {
                 Log::warning('Login attempt for pending account: ' . $request->userCode);
-                return response()->json(['message' => 'Your account is not registered yet. Please wait for administrator approval.'], 403);
+                return response()->json([
+                    'message' => 'Your account is pending approval. Please wait for administrator verification.',
+                    'status' => 'pending',
+                    'userCode' => $request->userCode
+                ], 403);
+            }
+
+            // Return if account is inactive
+            if (!$user->isActive) {
+                Log::warning('Login attempt for inactive account: ' . $request->userCode);
+                return response()->json([
+                    'message' => 'Your account is inactive. Please contact an administrator to reactivate your account.',
+                    'status' => 'inactive',
+                    'userCode' => $request->userCode
+                ], 403);
             }
 
             // Revoke any old tokens (force logout)

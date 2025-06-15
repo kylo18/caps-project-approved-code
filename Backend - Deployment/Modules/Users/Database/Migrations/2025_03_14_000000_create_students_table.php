@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->string('fullName', 100);
             $table->string('lastName', 50);
             $table->string('firstName_middleName', 100);
-            $table->enum('sex', ['MALE', 'FEMALE']);
+            $table->unsignedBigInteger('sex_id');
             $table->unsignedBigInteger('programID');
             $table->integer('yearLevel');
             $table->string('block', 10);
@@ -30,6 +30,12 @@ return new class extends Migration {
                 ->references('programID')
                 ->on('programs')
                 ->onDelete('cascade');
+
+            // Foreign key to sexes table
+            $table->foreign('sex_id')
+                ->references('id')
+                ->on('sexes')
+                ->onDelete('restrict');
         });
     }
 

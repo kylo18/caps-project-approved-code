@@ -193,7 +193,8 @@ class PrintController extends Controller
                     'status' => 'error',
                     'message' => 'Authentication Error',
                     'details' => 'You are not authorized to generate multi-subject exams. Only Program Chair, Dean, and Associate Dean can perform this action.',
-                    'code' => 'AUTH_ERROR'
+                    'code' => 'AUTH_ERROR',
+                    'action' => 'Please contact your administrator if you believe this is an error.'
                 ], 401);
             }
 
@@ -221,10 +222,11 @@ class PrintController extends Controller
                 ]);
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Validation Error',
+                    'message' => 'Input Validation Error',
                     'details' => 'Please check your input values. All fields are required and must be within valid ranges.',
                     'errors' => $e->errors(),
-                    'code' => 'VALIDATION_ERROR'
+                    'code' => 'VALIDATION_ERROR',
+                    'action' => 'Please review the form and ensure all fields are filled correctly.'
                 ], 422);
             }
 
@@ -245,8 +247,9 @@ class PrintController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'System Configuration Error',
-                    'details' => 'Unable to process exam generation. Please contact system administrator.',
-                    'code' => 'CONFIG_ERROR'
+                    'details' => 'Unable to process exam generation. The system is not properly configured.',
+                    'code' => 'CONFIG_ERROR',
+                    'action' => 'Please contact system administrator to resolve this issue.'
                 ], 500);
             }
 
@@ -273,11 +276,12 @@ class PrintController extends Controller
                 ]);
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Percentage Error',
+                    'message' => 'Percentage Distribution Error',
                     'details' => $e->getMessage(),
                     'subject_total' => $totalSubjectPercentage,
                     'difficulty_total' => $totalDifficultyPercentage,
-                    'code' => 'PERCENTAGE_ERROR'
+                    'code' => 'PERCENTAGE_ERROR',
+                    'action' => 'Please ensure that all percentages add up to exactly 100%.'
                 ], 422);
             }
 
@@ -340,6 +344,82 @@ class PrintController extends Controller
                         $numEasy = round($subjectItemCount * ($validated['difficulty_distribution']['easy'] / 100));
                         $numModerate = round($subjectItemCount * ($validated['difficulty_distribution']['moderate'] / 100));
                         $numHard = $subjectItemCount - ($numEasy + $numModerate);
+
+                        // Check for insufficient questions
+                        $insufficientQuestions = [];
+                        $totalAvailable = 0;
+                        $totalRequired = 0;
+
+                        if ($easyQuestions->count() < $numEasy) {
+                            $insufficientQuestions[] = [
+                                'difficulty' => 'Easy',
+                                'required' => $numEasy,
+                                'available' => $easyQuestions->count(),
+                                'deficit' => $numEasy - $easyQuestions->count()
+                            ];
+                        }
+                        if ($moderateQuestions->count() < $numModerate) {
+                            $insufficientQuestions[] = [
+                                'difficulty' => 'Moderate',
+                                'required' => $numModerate,
+                                'available' => $moderateQuestions->count(),
+                                'deficit' => $numModerate - $moderateQuestions->count()
+                            ];
+                        }
+                        if ($hardQuestions->count() < $numHard) {
+                            $insufficientQuestions[] = [
+                                'difficulty' => 'Hard',
+                                'required' => $numHard,
+                                'available' => $hardQuestions->count(),
+                                'deficit' => $numHard - $hardQuestions->count()
+                            ];
+                        }
+
+                        if (!empty($insufficientQuestions)) {
+                            $totalAvailable = $easyQuestions->count() + $moderateQuestions->count() + $hardQuestions->count();
+                            $totalRequired = $numEasy + $numModerate + $numHard;
+                            
+                            $details = "Insufficient questions available for {$subject->subjectName}:\n";
+                            foreach ($insufficientQuestions as $insufficient) {
+                                $details .= "- {$insufficient['difficulty']}: Required {$insufficient['required']}, Available {$insufficient['available']} (Missing {$insufficient['deficit']})\n";
+                            }
+                            
+                            $suggestions = [];
+                            if ($totalAvailable < $totalRequired) {
+                                $suggestions[] = "Reduce the total number of questions for this subject";
+                            }
+                            if (!empty($insufficientQuestions)) {
+                                $suggestions[] = "Adjust the difficulty distribution percentages";
+                            }
+                            $suggestions[] = "Add more questions to the question bank";
+                            
+                            return response()->json([
+                                'status' => 'error',
+                                'message' => 'Insufficient Questions Available',
+                                'details' => $details,
+                                'code' => 'INSUFFICIENT_QUESTIONS',
+                                'action' => 'Please try the following:\n' . implode('\n', $suggestions),
+                                'insufficient_questions' => $insufficientQuestions,
+                                'subject' => $subject->subjectName,
+                                'total_required' => $totalRequired,
+                                'total_available' => $totalAvailable,
+                                'deficit' => $totalRequired - $totalAvailable,
+                                'difficulty_distribution' => [
+                                    'easy' => [
+                                        'required' => $numEasy,
+                                        'available' => $easyQuestions->count()
+                                    ],
+                                    'moderate' => [
+                                        'required' => $numModerate,
+                                        'available' => $moderateQuestions->count()
+                                    ],
+                                    'hard' => [
+                                        'required' => $numHard,
+                                        'available' => $hardQuestions->count()
+                                    ]
+                                ]
+                            ], 422);
+                        }
 
                         // Validate question counts
                         if ($easyQuestions->count() < $numEasy || 
@@ -475,8 +555,9 @@ class PrintController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Preview Required',
-                    'details' => 'Please generate a preview before downloading the exam.',
-                    'code' => 'PREVIEW_REQUIRED'
+                    'details' => 'You must generate a preview before downloading the exam.',
+                    'code' => 'PREVIEW_REQUIRED',
+                    'action' => 'Please click the "Preview" button first to generate a preview of the exam.'
                 ], 400);
             }
 
@@ -501,8 +582,9 @@ class PrintController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Preview Expired',
-                    'details' => 'The preview has expired. Please generate a new preview.',
-                    'code' => 'PREVIEW_EXPIRED'
+                    'details' => 'The preview has expired or is no longer available.',
+                    'code' => 'PREVIEW_EXPIRED',
+                    'action' => 'Please generate a new preview by clicking the "Preview" button.'
                 ], 410);
             }
 
@@ -515,9 +597,10 @@ class PrintController extends Controller
                 ]);
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Invalid Preview',
-                    'details' => 'This preview does not belong to you. Please generate a new preview.',
-                    'code' => 'INVALID_PREVIEW'
+                    'message' => 'Invalid Preview Access',
+                    'details' => 'You are trying to access a preview that does not belong to you.',
+                    'code' => 'INVALID_PREVIEW',
+                    'action' => 'Please generate your own preview by clicking the "Preview" button.'
                 ], 403);
             }
 
@@ -528,9 +611,10 @@ class PrintController extends Controller
                 session()->save();
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Preview Expired',
-                    'details' => 'The preview has expired. Please generate a new preview.',
-                    'code' => 'PREVIEW_EXPIRED'
+                    'message' => 'Preview Session Expired',
+                    'details' => 'Your preview session has expired due to inactivity.',
+                    'code' => 'PREVIEW_EXPIRED',
+                    'action' => 'Please generate a new preview by clicking the "Preview" button.'
                 ], 410);
             }
 
@@ -639,8 +723,9 @@ class PrintController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'PDF Generation Failed',
-                    'details' => 'Unable to generate the PDF. This might be due to large file sizes or system limitations. Please try reducing the number of questions or images.',
-                    'code' => 'PDF_GENERATION_ERROR'
+                    'details' => 'Unable to generate the PDF file. This might be due to large file sizes, system limitations, or memory constraints.',
+                    'code' => 'PDF_GENERATION_ERROR',
+                    'action' => 'Please try the following:\n1. Reduce the number of questions\n2. Reduce the size of images\n3. Try again in a few minutes'
                 ], 500);
             }
 
@@ -653,9 +738,10 @@ class PrintController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'System Error',
-                'details' => 'An unexpected error occurred while generating the exam. Please try again later.',
-                'code' => 'SYSTEM_ERROR'
-                ], 500);
+                'details' => 'An unexpected error occurred while processing your request.',
+                'code' => 'SYSTEM_ERROR',
+                'action' => 'Please try again later. If the problem persists, contact system administrator.'
+            ], 500);
         }
     }
 
@@ -664,14 +750,22 @@ class PrintController extends Controller
      */
     private function clearTempFiles()
     {
-        $tempDir = storage_path('app/temp');
-        if (is_dir($tempDir)) {
-            $files = glob($tempDir . '/temp-*.pdf');
-            foreach ($files as $file) {
-                if (is_file($file) && time() - filemtime($file) > 3600) { // Remove files older than 1 hour
-                    unlink($file);
+        try {
+            $tempDir = storage_path('app/temp');
+            if (is_dir($tempDir)) {
+                $files = glob($tempDir . '/temp-*.pdf');
+                foreach ($files as $file) {
+                    if (is_file($file) && time() - filemtime($file) > 3600) { // Remove files older than 1 hour
+                        unlink($file);
+                    }
                 }
             }
+        } catch (\Exception $e) {
+            Log::error('Temp Files Cleanup Error:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Don't throw error as this is a cleanup operation
         }
     }
 
@@ -681,7 +775,10 @@ class PrintController extends Controller
     private function optimizeImage($imageUrl)
     {
         try {
-            if (empty($imageUrl)) return null;
+            if (empty($imageUrl)) {
+                Log::warning('Empty image URL provided for optimization');
+                return null;
+            }
 
             $imageContent = null;
             $maxWidth = 800; // Maximum width in pixels
@@ -691,21 +788,30 @@ class PrintController extends Controller
             if (filter_var($imageUrl, FILTER_VALIDATE_URL)) {
                 // For external URLs
                 $imageContent = @file_get_contents($imageUrl);
+                if ($imageContent === false) {
+                    Log::error('Failed to fetch external image:', ['url' => $imageUrl]);
+                    return null;
+                }
             } else {
                 // For local storage files
                 $path = str_replace('/storage/', '', parse_url($imageUrl, PHP_URL_PATH));
                 if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
                     $imageContent = \Illuminate\Support\Facades\Storage::disk('public')->get($path);
+                } else {
+                    Log::error('Local image not found:', ['path' => $path]);
+                    return null;
                 }
             }
 
             if (!$imageContent) {
+                Log::warning('No image content found for optimization');
                 return null;
             }
 
             // Create image resource
             $image = @imagecreatefromstring($imageContent);
             if (!$image) {
+                Log::error('Failed to create image resource from content');
                 return $imageUrl;
             }
 
@@ -718,6 +824,12 @@ class PrintController extends Controller
                 $newHeight = round($height * $ratio);
 
                 $newImage = imagecreatetruecolor($newWidth, $newHeight);
+                if (!$newImage) {
+                    Log::error('Failed to create new image resource for resizing');
+                    imagedestroy($image);
+                    return $imageUrl;
+                }
+
                 imagecopyresampled($newImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
                 imagedestroy($image);
                 $image = $newImage;
@@ -728,13 +840,19 @@ class PrintController extends Controller
             $optimizedContent = ob_get_clean();
             imagedestroy($image);
 
+            if (!$optimizedContent) {
+                Log::error('Failed to generate optimized image content');
+                return $imageUrl;
+            }
+
             // Convert to base64 data URI
             $base64 = base64_encode($optimizedContent);
             return 'data:image/jpeg;base64,' . $base64;
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Image optimization failed:', [
+            Log::error('Image optimization failed:', [
                 'url' => $imageUrl,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return $imageUrl;
         }

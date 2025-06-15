@@ -240,7 +240,7 @@ class QuestionController extends Controller
 
         // Check if the current user is the creator and the question hasn't been edited yet
         if (Auth::id() === $question->userID && !$question->editedBy) {
-            return response()->json(['message' => 'You cannot approve your own question until it has been edited by someone else.'], 403);
+            return response()->json(['message' => 'You cannot approve your own question.'], 403);
         }
 
         // Check if the current user is the one who last edited the question
