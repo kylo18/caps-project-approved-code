@@ -189,7 +189,12 @@ class PrintController extends Controller
                     'error' => $e->getMessage(),
                     'user' => Auth::id() ?? 'none'
                 ]);
-                return response()->json(['message' => 'Unauthorized. Only Program Chair, Dean, and Associate Dean can generate multi-subject exams.'], 401);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Authentication Error',
+                    'details' => 'You are not authorized to generate multi-subject exams. Only Program Chair, Dean, and Associate Dean can perform this action.',
+                    'code' => 'AUTH_ERROR'
+                ], 401);
             }
 
             // Force the purpose to be examQuestions
@@ -214,7 +219,13 @@ class PrintController extends Controller
                     'errors' => $e->errors(),
                     'request_data' => $request->all()
                 ]);
-                return response()->json(['message' => 'Validation failed', 'errors' => $e->errors()], 422);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Validation Error',
+                    'details' => 'Please check your input values. All fields are required and must be within valid ranges.',
+                    'errors' => $e->errors(),
+                    'code' => 'VALIDATION_ERROR'
+                ], 422);
             }
 
             // Add purpose to validated data
@@ -232,8 +243,10 @@ class PrintController extends Controller
                     'trace' => $e->getTraceAsString()
                 ]);
                 return response()->json([
-                    'message' => 'System configuration error: examQuestions purpose not found.',
-                    'error_details' => $e->getMessage()
+                    'status' => 'error',
+                    'message' => 'System Configuration Error',
+                    'details' => 'Unable to process exam generation. Please contact system administrator.',
+                    'code' => 'CONFIG_ERROR'
                 ], 500);
             }
 
@@ -259,9 +272,12 @@ class PrintController extends Controller
                     'difficulty_distribution' => $validated['difficulty_distribution']
                 ]);
                 return response()->json([
-                    'message' => $e->getMessage(),
+                    'status' => 'error',
+                    'message' => 'Percentage Error',
+                    'details' => $e->getMessage(),
                     'subject_total' => $totalSubjectPercentage,
-                    'difficulty_total' => $totalDifficultyPercentage
+                    'difficulty_total' => $totalDifficultyPercentage,
+                    'code' => 'PERCENTAGE_ERROR'
                 ], 422);
             }
 
@@ -375,8 +391,10 @@ class PrintController extends Controller
                         'trace' => $e->getTraceAsString()
                     ]);
                     return response()->json([
+                        'status' => 'error',
                         'message' => "Error processing subject: " . ($subject ? $subject->subjectName : 'Unknown'),
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
+                        'code' => 'SUBJECT_PROCESSING_ERROR'
                     ], 422);
                 }
             }
@@ -454,7 +472,12 @@ class PrintController extends Controller
             // For download request, use the stored preview data
             $previewKey = $request->input('previewKey');
             if (!$previewKey) {
-                throw new \Exception('No preview key provided. Please generate a preview first.');
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Preview Required',
+                    'details' => 'Please generate a preview before downloading the exam.',
+                    'code' => 'PREVIEW_REQUIRED'
+                ], 400);
             }
 
             // Log session information for debugging
@@ -475,7 +498,12 @@ class PrintController extends Controller
                     'all_session_keys' => array_keys(session()->all()),
                     'user_id' => Auth::id()
                 ]);
-                throw new \Exception('Preview data not found. Please generate a new preview.');
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Preview Expired',
+                    'details' => 'The preview has expired. Please generate a new preview.',
+                    'code' => 'PREVIEW_EXPIRED'
+                ], 410);
             }
 
             // Validate that the preview data belongs to the current user
@@ -485,7 +513,12 @@ class PrintController extends Controller
                     'stored_user_id' => $storedPreviewData['user_id'],
                     'current_user_id' => Auth::id()
                 ]);
-                throw new \Exception('Invalid preview data. Please generate a new preview.');
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid Preview',
+                    'details' => 'This preview does not belong to you. Please generate a new preview.',
+                    'code' => 'INVALID_PREVIEW'
+                ], 403);
             }
 
             // Validate that the preview data is not too old
@@ -493,7 +526,12 @@ class PrintController extends Controller
                 session()->forget($previewKey);
                 Cache::forget($previewKey);
                 session()->save();
-                throw new \Exception('Preview data has expired. Please generate a new preview.');
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Preview Expired',
+                    'details' => 'The preview has expired. Please generate a new preview.',
+                    'code' => 'PREVIEW_EXPIRED'
+                ], 410);
             }
 
             // Use the stored preview data for PDF generation
@@ -599,9 +637,10 @@ class PrintController extends Controller
                 ]);
                 
                 return response()->json([
-                    'message' => 'Failed to generate PDF.',
-                    'error' => $e->getMessage(),
-                    'details' => 'An error occurred while generating the PDF. Please try again with fewer questions or images.'
+                    'status' => 'error',
+                    'message' => 'PDF Generation Failed',
+                    'details' => 'Unable to generate the PDF. This might be due to large file sizes or system limitations. Please try reducing the number of questions or images.',
+                    'code' => 'PDF_GENERATION_ERROR'
                 ], 500);
             }
 
@@ -612,10 +651,11 @@ class PrintController extends Controller
                 'request' => $request->all()
             ]);
             return response()->json([
-                'message' => 'Server error.',
-                'error' => $e->getMessage(),
-                'details' => 'An unexpected error occurred while generating the exam.'
-            ], 500);
+                'status' => 'error',
+                'message' => 'System Error',
+                'details' => 'An unexpected error occurred while generating the exam. Please try again later.',
+                'code' => 'SYSTEM_ERROR'
+                ], 500);
         }
     }
 
