@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import CustomDropdown from "./customDropdown";
 import WarnOnExit from "../hooks/WarnOnExit";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
 
 // Combined Question Form for both Practice and Exam Questions
 const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const { toast, showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
@@ -135,6 +138,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
     // Validate question
     if (!formattedQuestionText || formattedQuestionText === "<br>") {
       setError("Please enter a question before submitting.");
+      showToast("Please enter a question before submitting.", "error");
       return;
     }
 
@@ -145,6 +149,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
       )
     ) {
       setError("Each choice must have either text or an image.");
+      showToast("Each choice must have either text or an image.", "error");
       return;
     }
 
@@ -154,6 +159,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
     );
     if (correctChoices.length !== 1) {
       setError("Please select exactly one correct answer.");
+      showToast("Please select exactly one correct answer.", "error");
       return;
     }
 
@@ -220,11 +226,16 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
         throw new Error("Failed to add choices.");
       }
 
+      showToast("Question added successfully!", "success");
       onComplete();
     } catch (err) {
       console.error("Error submitting:", err);
       setError(
         err.message || "Something went wrong while submitting the question.",
+      );
+      showToast(
+        err.message || "Something went wrong while submitting the question.",
+        "error",
       );
     } finally {
       setIsLoading(false);
@@ -632,12 +643,6 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
                   </div>
                 </div>
               </div>
-
-              {error && (
-                <p className="mt-7 flex justify-center text-[14px] text-red-500">
-                  {error}
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -674,6 +679,11 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
           </div>
         </div>
       )}
+
+      {/* Toast notification */}
+      <div className="fixed top-4 right-4 z-[99999]">
+        <Toast message={toast.message} type={toast.type} show={toast.show} />
+      </div>
     </>
   );
 };

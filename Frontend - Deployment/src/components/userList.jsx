@@ -524,7 +524,97 @@ const UserList = () => {
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <div className="font-inter mt-10">
+        <div className="mb-4 flex items-center justify-between gap-2 text-[14px]">
+          {/* Keep the top bar with filters */}
+          <div className="relative flex w-full items-center justify-between gap-4">
+            <div className="flex items-center gap-2 rounded-md bg-gray-300 md:flex-row md:gap-2">
+              <div className="hidden items-center gap-1 text-[12px] font-semibold text-gray-500 md:flex">
+                <button className="rounded-md px-8 py-[8px] text-gray-500">
+                  All
+                </button>
+                <button className="rounded-md px-6 py-[8px] text-gray-500">
+                  Pending
+                </button>
+                <button className="rounded-md px-5 py-[8px] text-gray-500">
+                  Approved
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-t-sm border border-b-0 border-[rgb(200,200,200)] bg-white px-5 py-3 text-[12px] shadow-sm sm:text-[14px]">
+          <span className="ml-0 text-sm font-medium text-gray-600">Users</span>
+        </div>
+
+        {/* Mobile Error View */}
+        <div className="min-[1000px]:hidden">
+          <div className="border border-gray-300 bg-white p-4 text-center text-[14px] text-gray-700 shadow-sm">
+            <div className="mb-2 text-red-500">
+              <i className="bx bx-error-circle text-2xl"></i>
+            </div>
+            <p className="font-medium">Unable to fetch users</p>
+            <p className="text-sm text-gray-500">
+              Please check your connection and try again
+            </p>
+          </div>
+        </div>
+
+        {/* Desktop Error View */}
+        <div className="hidden w-full overflow-x-auto min-[1000px]:block">
+          <table className="min-w-full table-fixed border border-[rgb(200,200,200)] bg-white shadow-md">
+            <thead>
+              <tr className="border-b border-[rgb(200,200,200)] bg-white text-[10px] text-[rgb(78,78,78)] sm:text-[12px]">
+                <th className="w-[5%] px-2 py-3 text-left"></th>
+                <th className="w-[10%] px-2 py-3 text-left font-semibold text-nowrap">
+                  USER CODE
+                </th>
+                <th className="hidden max-w-[150px] truncate px-2 py-3 text-left font-semibold sm:table-cell">
+                  NAME
+                </th>
+                <th className="w-[20%] px-2 py-1 text-left font-semibold">
+                  EMAIL
+                </th>
+                <th className="w-[10%] px-2 py-1 text-left font-semibold">
+                  POSITION
+                </th>
+                <th className="w-[10%] px-2 py-1 text-left font-semibold">
+                  CAMPUS
+                </th>
+                <th className="w-[10%] px-2 py-1 text-center font-semibold">
+                  STATUS
+                </th>
+                <th className="w-[10%] px-2 py-1 text-center font-semibold">
+                  PROGRAM
+                </th>
+                <th className="w-[10%] px-2 py-1 text-center font-semibold">
+                  STATE
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colSpan="9" className="py-8">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <div className="mb-2 text-red-500">
+                      <i className="bx bx-error-circle text-3xl"></i>
+                    </div>
+                    <p className="font-medium text-gray-700">
+                      Unable to fetch users
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Please check your connection and try again
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
   }
 
   const renderPagination = () => {
@@ -879,13 +969,13 @@ const UserList = () => {
                       e.preventDefault();
                       handleActionClick("approve");
                     }}
-                    className={`w-full rounded-sm px-4 py-2 text-left text-black ${
+                    className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
                       selectedUsers.length === 0
                         ? "cursor-not-allowed text-gray-400"
                         : "hover:bg-gray-200"
                     }`}
                   >
-                    Approve
+                    <span className="block w-full">Approve</span>
                   </button>
                 </Tooltip>
                 <Tooltip
@@ -901,13 +991,13 @@ const UserList = () => {
                       e.preventDefault();
                       handleActionClick("activate");
                     }}
-                    className={`w-full rounded-sm px-4 py-2 text-left text-black ${
+                    className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
                       selectedUsers.length === 0
                         ? "cursor-not-allowed text-gray-400"
                         : "hover:bg-gray-200"
                     }`}
                   >
-                    Activate
+                    <span className="block w-full">Activate</span>
                   </button>
                 </Tooltip>
                 <Tooltip
@@ -923,13 +1013,13 @@ const UserList = () => {
                       e.preventDefault();
                       handleActionClick("deactivate");
                     }}
-                    className={`w-full rounded-sm px-4 py-2 text-left text-black ${
+                    className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
                       selectedUsers.length === 0
                         ? "cursor-not-allowed text-gray-400"
                         : "hover:bg-gray-200"
                     }`}
                   >
-                    Deactivate
+                    <span className="block w-full">Deactivate</span>
                   </button>
                 </Tooltip>
               </div>

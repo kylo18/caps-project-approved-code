@@ -584,7 +584,7 @@ const SideBarDropDown = ({
             />
             {/* Mobile Modal */}
             <div
-              className="lightbox-bg fixed inset-0 z-55 flex items-center justify-center p-5 sm:hidden"
+              className="lightbox-bg fixed inset-0 z-55 flex items-end justify-center min-[448px]:items-center sm:hidden"
               onMouseDown={(e) => {
                 if (e.target === e.currentTarget) {
                   setShowYearSubjects(false);
@@ -599,7 +599,7 @@ const SideBarDropDown = ({
               }}
             >
               <div
-                className="max-h-[90vh] w-full max-w-sm rounded-lg bg-white shadow-lg"
+                className="max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-lg min-[448px]:rounded-md"
                 onMouseDown={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}
               >

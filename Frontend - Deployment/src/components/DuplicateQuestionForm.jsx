@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import CustomDropdown from "./customDropdown";
 import WarnOnExit from "../hooks/WarnOnExit";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
 
 const DuplicateQuestionForm = ({ question, onComplete, onCancel }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const { toast, showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
@@ -191,12 +194,14 @@ const DuplicateQuestionForm = ({ question, onComplete, onCancel }) => {
     // Validate question
     if (!formattedQuestionText || formattedQuestionText === "<br>") {
       setError("Please enter a question before submitting.");
+      showToast("Please enter a question before submitting.", "error");
       return;
     }
 
     // Validate choices
     if (choices.length !== 5) {
       setError("Exactly 5 choices are required.");
+      showToast("Exactly 5 choices are required.", "error");
       return;
     }
 
@@ -207,6 +212,7 @@ const DuplicateQuestionForm = ({ question, onComplete, onCancel }) => {
       })
     ) {
       setError("Each choice must have either text or an image.");
+      showToast("Each choice must have either text or an image.", "error");
       return;
     }
 
@@ -268,11 +274,16 @@ const DuplicateQuestionForm = ({ question, onComplete, onCancel }) => {
         throw new Error(errorData.message || "Failed to duplicate question.");
       }
 
+      showToast("Question duplicated successfully!", "success");
       onComplete();
     } catch (err) {
       console.error("Error duplicating:", err);
       setError(
         err.message || "Something went wrong while duplicating the question.",
+      );
+      showToast(
+        err.message || "Something went wrong while duplicating the question.",
+        "error",
       );
     } finally {
       setIsLoading(false);
@@ -312,6 +323,11 @@ const DuplicateQuestionForm = ({ question, onComplete, onCancel }) => {
           </div>
         </div>
       )}
+
+      {/* Toast notification */}
+      <div className="fixed top-4 right-4 z-[99999]">
+        <Toast message={toast.message} type={toast.type} show={toast.show} />
+      </div>
 
       <div className="lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
         <div className="scrollbar-hide animate-fade-in-up flex max-h-[95vh] overflow-y-auto p-3">

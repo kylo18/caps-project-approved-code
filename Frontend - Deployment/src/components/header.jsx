@@ -409,7 +409,7 @@ const AdminHeader = ({ title }) => {
       {showProfileModal && (
         <>
           <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
-            <div className="edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-6 py-4 shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
+            <div className="edit-profile-modal-scrollbar relative mx-0 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-6 py-4 shadow-2xl min-[448px]:mx-2 min-[448px]:rounded-md">
               <button
                 onClick={() => {
                   setShowProfileModal(false);
@@ -576,7 +576,7 @@ const AdminHeader = ({ title }) => {
       {showChangePassword && (
         <>
           <div className="font-inter lightbox-bg bg-opacity-40 fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
-            <div className="edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
+            <div className="edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
               {/* Header */}
               <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
                 <h2 className="text-[14px] font-medium text-gray-700">

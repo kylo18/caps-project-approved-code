@@ -3,6 +3,7 @@ import SubjectSearchInput from "./SubjectSearchInput";
 import ExamPreviewModal from "./ExamPreviewModal";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import { Tooltip } from "flowbite-react";
+import ConfirmModal from "./confirmModal";
 
 export default function ExamGenerator({ auth, isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
@@ -13,6 +14,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
   const [previewKey, setPreviewKey] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [mode, setMode] = useState("default");
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [settings, setSettings] = useState({
     total_items: 10,
     easy_percentage: 30,
@@ -27,6 +29,28 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
   }, []);
 
   const handleClose = () => {
+    if (loading) {
+      setShowConfirmClose(true);
+      return;
+    }
+    // Reset all state
+    setSelectedSubjects([]);
+    setPreviewData(null);
+    setShowPreview(false);
+    setError("");
+    setMode("default");
+    setSettings({
+      total_items: 10,
+      easy_percentage: 30,
+      moderate_percentage: 50,
+      hard_percentage: 20,
+    });
+    onClose();
+  };
+
+  const handleConfirmClose = () => {
+    setLoading(false);
+    setShowConfirmClose(false);
     // Reset all state
     setSelectedSubjects([]);
     setPreviewData(null);
@@ -168,15 +192,11 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage =
+        throw new Error(
           errorData.message ||
-          errorData.error ||
-          "Failed to generate exam preview";
-        const errorDetails =
-          errorData.details ||
-          errorData.stack ||
-          "No additional details available";
-        throw new Error(`${errorMessage}\nDetails: ${errorDetails}`);
+            errorData.error ||
+            "Failed to generate exam preview",
+        );
       }
 
       const data = await response.json();
@@ -185,7 +205,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
       setShowPreview(true);
     } catch (err) {
       console.error("Error generating exam:", err);
-      setError(err.message || "An error occurred while generating the exam");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -212,35 +232,6 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         previewKey: previewKey,
       };
 
-      // Validate request data
-      if (!requestBody.subjects || requestBody.subjects.length === 0) {
-        throw new Error("No subjects selected");
-      }
-
-      if (!requestBody.total_items || requestBody.total_items < 1) {
-        throw new Error("Invalid total items count");
-      }
-
-      const totalPercentage = requestBody.subjects.reduce(
-        (sum, subject) => sum + subject.percentage,
-        0,
-      );
-      if (totalPercentage !== 100) {
-        throw new Error(
-          `Subject percentages must sum to 100%. Current sum: ${totalPercentage}%`,
-        );
-      }
-
-      // Log request details for debugging
-      console.log("Request details:", {
-        endpoint,
-        requestBody,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -250,35 +241,12 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         body: JSON.stringify(requestBody),
       });
 
-      // Log response details for debugging
-      console.log("Response status:", response.status);
-      console.log(
-        "Response headers:",
-        Object.fromEntries(response.headers.entries()),
-      );
-
       // First check if the response is JSON (error case)
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         const errorData = await response.json();
-        console.error("Error response data:", errorData);
-
-        // Log the complete error response
-        console.error("Complete error response:", {
-          status: response.status,
-          statusText: response.statusText,
-          headers: Object.fromEntries(response.headers.entries()),
-          body: errorData,
-        });
-
-        const errorMessage =
-          errorData.message || errorData.error || "Failed to generate exam";
-        const errorDetails =
-          errorData.details ||
-          errorData.stack ||
-          "No additional details available";
         throw new Error(
-          `${errorMessage}\nDetails: ${errorDetails}\nStatus: ${response.status}`,
+          errorData.message || errorData.error || "Failed to generate exam",
         );
       }
 
@@ -323,7 +291,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
       onClose();
     } catch (err) {
       console.error("Download error:", err);
-      setError(err.message || "An error occurred while downloading the exam");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -341,7 +309,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
           >
             {/* Main Panel */}
             <div
-              className={`relative w-full min-[448px]:mx-2 ${selectedSubjects.length === 0 ? "md:w-[480px]" : "max-w-[435px]"} rounded-2xl bg-white shadow-2xl min-[448px]:rounded-md`}
+              className={`relative w-full min-[448px]:mx-2 ${selectedSubjects.length === 0 ? "md:w-[1280px]" : "max-w-lg"} rounded-t-2xl bg-white shadow-2xl min-[448px]:rounded-md`}
             >
               <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
                 <h2 className="text-[14px] font-medium text-gray-700">
@@ -407,14 +375,14 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                                 Percentage (%)
                               </span>
                             </div>
-                            <div className="space-y-3">
+                            <div className="max-h-[200px] space-y-1 overflow-y-auto">
                               {selectedSubjects.map((subject) => (
                                 <div
                                   key={subject.subjectID}
                                   className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <div className="max-w-[100px] truncate text-[12px] min-[415px]:max-w-[200px] lg:max-w-[240px]">
+                                    <div className="max-w-[160px] truncate text-[12px] min-[415px]:max-w-[200px] lg:max-w-[240px]">
                                       {subject.subjectCode} -{" "}
                                       {subject.subjectName}
                                     </div>
@@ -696,6 +664,15 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
           loading={loading}
         />
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showConfirmClose}
+        onClose={() => setShowConfirmClose(false)}
+        onConfirm={handleConfirmClose}
+        message="You are about to close the exam generator while it's still processing. This will cancel the generation process. Do you want to continue?"
+        isLoading={loading}
+      />
     </>
   );
 }

@@ -218,8 +218,8 @@ const PracticeExamConfig = ({
     <>
       {/* Form Display - Inside isFormOpen condition */}
       {isFormOpen && (
-        <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
-          <div className="relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
+        <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+          <div className="relative mx-0 w-full max-w-[480px] rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-2 min-[448px]:rounded-md">
             <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
               <h2 className="text-[14px] font-medium text-gray-700">
                 Configure Practice Exam
