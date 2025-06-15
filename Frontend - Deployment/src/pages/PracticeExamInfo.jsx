@@ -42,10 +42,14 @@ const PracticeExamInfo = () => {
                 <span className="font-medium">Total Points:</span>{" "}
                 {examData.totalPoints}
               </p>
-              {examData.enableTimer && (
+              {examData.enableTimer ? (
                 <p className="text-gray-600">
                   <span className="font-medium">Duration:</span>{" "}
                   {examData.durationMinutes} minutes
+                </p>
+              ) : (
+                <p className="text-gray-600">
+                  <span className="font-medium">Duration:</span> No time limit
                 </p>
               )}
             </div>
@@ -56,18 +60,17 @@ const PracticeExamInfo = () => {
               Instructions
             </h3>
             <ul className="list-inside list-disc space-y-2 text-[12px] text-gray-600">
-              <li>You will have unlimited attempts to complete this exam</li>
               <li>Make sure to answer all questions before submitting</li>
-              {examData.enableTimer && (
+              {examData.enableTimer ? (
                 <li>
                   This exam has a time limit. Make sure to complete it within
                   the given duration
                 </li>
+              ) : (
+                <li>
+                  This exam has no time limit. Take your time to complete it
+                </li>
               )}
-              <li>
-                Your progress will be saved automatically if you log out, unless
-                timer is enabled
-              </li>
               <li>You can bookmark questions to review them later</li>
               <li>Use the navigation buttons to move between questions</li>
             </ul>

@@ -43,7 +43,7 @@ const QuestionListModal = ({
 
   return (
     <>
-      <div className="font-inter bg-opacity-50 lightbox-bg fixed inset-0 z-56 flex items-center justify-center">
+      <div className="font-inter bg-opacity-50 lightbox-bg fixed inset-0 z-56 flex items-center justify-center p-7">
         <div className="w-full max-w-2xl rounded-md bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-4">

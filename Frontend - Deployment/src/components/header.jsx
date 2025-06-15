@@ -302,19 +302,32 @@ const AdminHeader = ({ title }) => {
 
           {/* Help Button */}
           <Tooltip
-            content="Need help?"
+            content={
+              title === "student"
+                ? "Help not available for students"
+                : "Need help?"
+            }
             placement="bottom"
             trigger="hover"
             className="bg-gray-800"
           >
             <button
-              onClick={() =>
-                window.open(
-                  "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
-                  "_blank",
-                )
-              }
-              className="border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-black hover:bg-gray-200"
+              onClick={() => {
+                if (title !== "Student") {
+                  window.open(
+                    "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
+                    "_blank",
+                  );
+                } else {
+                  alert("Under Maintenance");
+                }
+              }}
+              className={`border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-black ${
+                title === "student"
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:bg-gray-200"
+              }`}
+              disabled={title === "student"}
             >
               <i className="bx bx-message-question-mark text-md ml-1"></i>
               <span className="pr-1.5 text-[14px]">Help</span>

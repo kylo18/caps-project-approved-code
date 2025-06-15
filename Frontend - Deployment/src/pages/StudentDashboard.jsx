@@ -13,6 +13,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [subjectError, setSubjectError] = useState("");
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [showForm, setShowForm] = useState(false);
   const [examStarted, setExamStarted] = useState(false);
@@ -49,6 +50,7 @@ const StudentDashboard = () => {
 
   // Filter subjects based on input
   useEffect(() => {
+    setIsSearchLoading(true);
     const filtered = subjects.filter(
       (subject) =>
         !subjectInput.trim() ||
@@ -58,6 +60,10 @@ const StudentDashboard = () => {
         subject.subjectCode.toLowerCase().includes(subjectInput.toLowerCase()),
     );
     setFilteredSubjects(filtered);
+    // Simulate loading state for 500ms
+    setTimeout(() => {
+      setIsSearchLoading(false);
+    }, 500);
   }, [subjectInput, subjects]);
 
   const handleInputFocus = () => {
@@ -315,7 +321,7 @@ const StudentDashboard = () => {
       );
 
       // Navigate to /exam-preview with all the exam data
-      navigate("/practice-exam-info", {
+      navigate("/exam-preview", {
         state: {
           subjectID,
           examData: {
@@ -332,7 +338,6 @@ const StudentDashboard = () => {
           },
           examKey,
         },
-        replace: true,
       });
     } catch (err) {
       console.error("Exam generation error:", err);
@@ -345,7 +350,7 @@ const StudentDashboard = () => {
   const handleSubjectSelect = (subject) => {
     setSubjectInput(subject.subjectName);
     setSubjectID(subject.subjectID);
-    // Don't hide suggestions immediately, let the blur handler handle it
+    setShowSuggestions(false); // Close the suggestions dropdown
   };
 
   return (
@@ -419,29 +424,42 @@ const StudentDashboard = () => {
                     value={subjectInput}
                     onChange={(e) => {
                       setSubjectInput(e.target.value);
+                      if (!e.target.value.trim()) {
+                        setSubjectID(""); // Clear subjectID when input is empty
+                      }
                       setSubjectError("");
                     }}
                     onFocus={handleInputFocus}
                     onBlur={handleInputBlur}
                     placeholder="Enter"
                   />
-                  {showSuggestions && filteredSubjects.length > 0 && (
+                  {showSuggestions && (
                     <div
                       ref={suggestionsRef}
-                      className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
-                      tabIndex={-1} // Make the div focusable
+                      className="border-color absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
+                      tabIndex={-1}
                     >
                       <div className="max-h-[200px] overflow-y-auto">
-                        {filteredSubjects.map((subject) => (
-                          <div
-                            key={subject.subjectID}
-                            onClick={() => handleSubjectSelect(subject)}
-                            className="cursor-pointer px-4 py-2 text-start text-[14px] text-gray-700 hover:bg-gray-100"
-                            tabIndex={-1} // Make each item focusable
-                          >
-                            {subject.subjectName} ({subject.subjectCode})
+                        {isSearchLoading ? (
+                          <div className="flex items-center justify-center py-2">
+                            <span className="loader"></span>
                           </div>
-                        ))}
+                        ) : filteredSubjects.length > 0 ? (
+                          filteredSubjects.map((subject) => (
+                            <div
+                              key={subject.subjectID}
+                              onClick={() => handleSubjectSelect(subject)}
+                              className="cursor-pointer px-4 py-2 text-start text-[14px] text-gray-700 hover:bg-gray-100"
+                              tabIndex={-1}
+                            >
+                              {subject.subjectCode} - {subject.subjectName}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-2 text-center text-sm text-gray-500">
+                            No subjects found
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
