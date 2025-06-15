@@ -133,7 +133,7 @@
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 20px;
-        margin-top: 15px;
+        margin-top: 30px;
       }
       .choice {
         margin-bottom: 2px;
@@ -169,6 +169,7 @@
         max-height: 320px;
         object-fit: contain;
         border-radius: 0.5rem;
+        margin-bottom: 20px;
       }
       .choice-image {
         max-width: 100%;
@@ -176,7 +177,7 @@
         max-height: 140px;
         object-fit: contain;
         border-radius: 0.5rem;
-        margin-top: 10px;
+        margin-top: 15px;
       }
       .image-error {
         font-style: italic;
