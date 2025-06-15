@@ -92,7 +92,7 @@
 
       .subject-section {
         margin-bottom: 5px;
-        page-break-inside: avoid;
+        page-break-before: avoid;
       }
       .subject-section:first-of-type {
         margin-top: 0;
@@ -103,6 +103,7 @@
         margin: 2px 0;
         padding: 1px 0;
         border-bottom: 2px solid #333;
+        page-break-after: avoid;
       }
       .total-items {
         font-size: 10pt;
@@ -128,7 +129,7 @@
         page-break-inside: auto;
         display: inline-block;
         width: 100%;
-      }
+      } 
       .choice-letter {
         display: inline-block;
         min-width: 15px;
