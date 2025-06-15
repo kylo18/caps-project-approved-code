@@ -111,7 +111,7 @@
       }
 
       .question {
-        margin-bottom: 15px;
+        margin-bottom: 30px;
         page-break-inside: auto;
       }
       .question-text {
@@ -132,7 +132,7 @@
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 20px;
-        margin-top: 15px;
+        margin-top: 30px;
       }
       .choice {
         margin-bottom: 2px;
@@ -167,6 +167,7 @@
         max-height: 320px;
         object-fit: contain;
         border-radius: 0.5rem;
+        margin-bottom: 20px;
       }
       .choice-image {
         max-width: 100%;
