@@ -138,7 +138,6 @@
       .choice {
         margin-bottom: 2px;
         page-break-inside: auto;
-        display: inline-flex;
         display: flex;
         align-items: flex-start;
         width: 100%;
@@ -149,6 +148,7 @@
         font-weight: bold;
         margin-right: 5px;
         flex-shrink: 0;
+        padding-top: 3px;
       }
       .choice-content {
         display: inline-block;
@@ -173,7 +173,7 @@
       .choice-image {
         max-width: 100%;
         height: auto;
-        max-height: 180px;
+        max-height: 140px;
         object-fit: contain;
         border-radius: 0.5rem;
         margin-top: 10px;
