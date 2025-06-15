@@ -123,17 +123,16 @@
         margin-left: 20px;
         margin-bottom: 5px;
         page-break-inside: auto;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px 40px;
       }
       .choice {
         margin-bottom: 2px;
         page-break-inside: auto;
         display: inline-flex;
         align-items: flex-start;
-        min-width: 200px;
-        flex: 1;
+        width: 100%;
       }
       .choice-letter {
         display: inline-block;
@@ -159,6 +158,7 @@
         max-height: 320px;
         object-fit: contain;
         border-radius: 0.5rem;
+        margin-bottom: 20px;
       }
       .choice-image {
         max-width: 100%;
@@ -167,6 +167,7 @@
         object-fit: contain;
         border-radius: 0.5rem;
         margin-left: 0.5rem;
+        margin-top: 10px;
       }
       .image-error {
         font-style: italic;
