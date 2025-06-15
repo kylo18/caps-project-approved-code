@@ -127,19 +127,19 @@
       .choice {
         margin-bottom: 2px;
         page-break-inside: auto;
-        display: inline-block;
+        display: flex;
+        align-items: flex-start;
         width: 100%;
-      } 
+      }
       .choice-letter {
         display: inline-block;
         min-width: 15px;
         font-weight: bold;
-        vertical-align: top;
+        margin-right: 5px;
       }
       .choice-content {
         display: inline-block;
-        width: calc(100% - 20px);
-        vertical-align: top;
+        flex: 1;
       }
       
       .image-container {
