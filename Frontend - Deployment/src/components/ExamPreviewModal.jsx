@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import univLogo from "../assets/univLogo.png";
+import collegeLogo from "/src/assets/college-logo.png";
 
 export default function ExamPreviewModal({
   previewData,
@@ -190,7 +192,7 @@ export default function ExamPreviewModal({
                 <div className="flex w-32 flex-col items-center">
                   {previewData.logos?.left && (
                     <img
-                      src={previewData.logos.left}
+                      src={univLogo}
                       alt="Left Logo"
                       className="mt-4 ml-5 size-[70px] md:ml-20 md:size-[80px]"
                       onError={(e) => {
@@ -228,7 +230,7 @@ export default function ExamPreviewModal({
                 <div className="flex w-32 flex-col items-center">
                   {previewData.logos?.right && (
                     <img
-                      src={previewData.logos.right}
+                      src={collegeLogo}
                       alt="Right Logo"
                       className="-mt-2 mr-5 size-[70px] md:mr-20 md:size-[80px]"
                       onError={(e) => {

@@ -356,7 +356,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                   <i className="bx bx-x text-[20px]"></i>
                 </button>
               </div>
-              <div className="edit-profile-modal-scrollbar max-h-[calc(90vh-60px)] overflow-y-auto">
+              <div className="edit-profile-modal-scrollbar max-h-[calc(100vh-80px)] overflow-y-auto">
                 <form className="px-5 py-4" onSubmit={handleSubmit}>
                   {settings.exam_type !== "personal" && (
                     <div>

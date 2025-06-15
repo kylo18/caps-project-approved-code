@@ -217,7 +217,7 @@ export default function Register() {
 
       if (res.ok) {
         setMessage(
-          "Registration successful! Your account is pending approval. You will be notified once approved.",
+          "Registration successful! Your account is pending approval.",
         );
         setErrors({});
         // Add a delay before navigation to allow user to read the message
