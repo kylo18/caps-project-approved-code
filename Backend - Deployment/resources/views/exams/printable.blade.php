@@ -116,7 +116,7 @@
       .question-text {
         margin-bottom: 3px;
         font-weight: normal;
-        page-break-inside: avoid;
+        page-break-inside: auto;
       }
       .choices {
         margin-left: 20px;
@@ -125,7 +125,7 @@
       }
       .choice {
         margin-bottom: 2px;
-        page-break-inside: avoid;
+        page-break-inside: auto;
         display: inline-block;
         width: 100%;
       }
@@ -177,7 +177,7 @@
   <body>
     <div class="paper">
       <div class="header">
-        <img src="{{ $leftLogoPath }}" class="header-logo left" alt="University Seal" onerror="this.style.display='none'" />
+        <img src="/univLogo.png.jpg" class="header-logo left" alt="University Seal" onerror="this.style.display='none'" />
         <div class="header-code">JRMSU-COE-027</div>
         <div class="header-center">
           <div class="gov-line">Republic of the Philippines</div>
@@ -186,7 +186,7 @@
           <div class="college">COLLEGE OF ENGINEERING</div>
           <div class="qe-exam-title">{{ $examTitle }}</div>
         </div>
-        <img src="{{ $rightLogoPath }}" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
+        <img src="/college-logo.png.jpg" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
       </div>
 
       <div class="student-info">

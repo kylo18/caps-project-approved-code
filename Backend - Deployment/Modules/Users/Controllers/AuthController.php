@@ -145,8 +145,14 @@ class AuthController extends Controller
             $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;  
 
             // Determine initial status and activation based on role and student existence
-            $statusId = $studentExists ? $registeredStatusId : (in_array($validated['roleID'], [1, 2, 3, 5]) ? $pendingStatusId : $registeredStatusId);
-            $isActive = $studentExists ? true : ($validated['roleID'] == 4 ? true : false);
+            $statusId = $pendingStatusId; // Default to pending for all users
+            $isActive = false; // Default to inactive for all users
+
+            // Only set to registered and active if dean
+            if (!$studentExists && !in_array($validated['roleID'], [1, 2, 3, 5])) {
+                $statusId = $registeredStatusId;
+                $isActive = true;
+            }
 
             // Create the user in the database
             $user = User::create([
