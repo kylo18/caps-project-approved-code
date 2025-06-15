@@ -130,9 +130,9 @@
         margin-left: 20px;
         margin-bottom: 5px;
         page-break-inside: auto;
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 40px;
         margin-top: 30px;
       }
       .choice {
@@ -140,7 +140,8 @@
         page-break-inside: auto;
         display: flex;
         align-items: flex-start;
-        width: 100%;
+        width: calc(50% - 20px);
+        min-width: 0;
       }
       .choice-letter {
         display: inline-block;
@@ -154,6 +155,7 @@
         display: inline-block;
         flex: 1;
         word-wrap: break-word;
+        min-width: 0;
       }
       
       .image-container {
