@@ -137,7 +137,7 @@
       .choice {
         margin-bottom: 2px;
         page-break-inside: auto;
-        display: inline-flex;
+        display: flex;
         align-items: flex-start;
         width: 100%;
       }
@@ -146,10 +146,12 @@
         min-width: 15px;
         font-weight: bold;
         margin-right: 5px;
+        flex-shrink: 0;
       }
       .choice-content {
         display: inline-block;
         flex: 1;
+        word-wrap: break-word;
       }
       
       .image-container {
