@@ -123,13 +123,17 @@
         margin-left: 20px;
         margin-bottom: 5px;
         page-break-inside: auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
       }
       .choice {
         margin-bottom: 2px;
         page-break-inside: auto;
-        display: flex;
+        display: inline-flex;
         align-items: flex-start;
-        width: 100%;
+        min-width: 200px;
+        flex: 1;
       }
       .choice-letter {
         display: inline-block;
