@@ -111,7 +111,7 @@
       }
 
       .question {
-        margin-bottom: 30px;
+        margin-bottom: 15px;
         page-break-inside: auto;
       }
       .question-text {
@@ -132,26 +132,24 @@
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 20px;
-        margin-top: 30px;
+        margin-top: 15px;
       }
       .choice {
         margin-bottom: 2px;
         page-break-inside: auto;
-        display: flex;
+        display: inline-flex;
         align-items: flex-start;
-        width: 100%;
+        min-width: 200px;
       }
       .choice-letter {
         display: inline-block;
         min-width: 15px;
         font-weight: bold;
         margin-right: 5px;
-        flex-shrink: 0;
       }
       .choice-content {
         display: inline-block;
         flex: 1;
-        word-wrap: break-word;
       }
       
       .image-container {
@@ -167,7 +165,6 @@
         max-height: 320px;
         object-fit: contain;
         border-radius: 0.5rem;
-        margin-bottom: 20px;
       }
       .choice-image {
         max-width: 100%;
