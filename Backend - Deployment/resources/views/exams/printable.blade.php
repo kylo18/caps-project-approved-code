@@ -1,3 +1,4 @@
+@ -1,275 +1,277 @@
 <!DOCTYPE html>
 <html>
   <head>
@@ -138,18 +139,21 @@
         margin-bottom: 2px;
         page-break-inside: auto;
         display: inline-flex;
+        display: flex;
         align-items: flex-start;
-        min-width: 200px;
+        width: 100%;
       }
       .choice-letter {
         display: inline-block;
         min-width: 15px;
         font-weight: bold;
         margin-right: 5px;
+        flex-shrink: 0;
       }
       .choice-content {
         display: inline-block;
         flex: 1;
+        word-wrap: break-word;
       }
       
       .image-container {
