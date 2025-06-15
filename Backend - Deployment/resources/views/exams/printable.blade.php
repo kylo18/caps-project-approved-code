@@ -118,30 +118,28 @@
         margin-bottom: 3px;
         font-weight: normal;
         page-break-inside: auto;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .question-text-content {
+        flex: 1;
       }
       .choices {
         margin-left: 20px;
         margin-bottom: 5px;
         page-break-inside: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .choice-row {
-        display: flex;
-        gap: 40px;
-        width: 100%;
-        page-break-inside: avoid;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-top: 15px;
       }
       .choice {
         margin-bottom: 2px;
-        page-break-inside: avoid;
+        page-break-inside: auto;
         display: inline-flex;
         align-items: flex-start;
-        width: 50%;
-      }
-      .choice:last-child {
-        width: 50%;
+        width: 100%;
       }
       .choice-letter {
         display: inline-block;
@@ -167,7 +165,6 @@
         max-height: 320px;
         object-fit: contain;
         border-radius: 0.5rem;
-        margin-bottom: 20px;
       }
       .choice-image {
         max-width: 100%;
@@ -175,7 +172,6 @@
         max-height: 180px;
         object-fit: contain;
         border-radius: 0.5rem;
-        margin-left: 0.5rem;
         margin-top: 10px;
       }
       .image-error {
@@ -186,19 +182,6 @@
         padding: 5px;
         border: 1px dashed #ccc;
         margin: 5px 0;
-      }
-
-      /* Grid layout for choices with images */
-      .choices.has-images {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px 40px;
-      }
-      .choices.has-images .choice {
-        width: 100%;
-      }
-      .choices.has-images .choice:last-child {
-        grid-column: 1 / -1;
       }
     </style>
   </head>
@@ -246,81 +229,41 @@
         @foreach ($subjectData['questions'] as $question)
         <div class="question">
           <div class="question-text">
-            {{ $questionNumber }}. {!! $question['questionText'] ?? 'Question text not available' !!}
-          </div>
-
-          @if (!empty($question['questionImage']))
-          <div class="image-container">
-            <img
-              class="question-image"
-              src="{{ $question['questionImage'] }}"
-              alt="Question Image"
-              onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Image not available]</div>'"
-            />
-          </div>
-          @endif
-
-          @php
-            $totalChoices = count($question['choices']);
-            $lastChoice = $totalChoices - 1;
-            $hasImages = false;
-            foreach ($question['choices'] as $choice) {
-              if (!empty($choice['choiceImage'])) {
-                $hasImages = true;
-                break;
-              }
-            }
-          @endphp
-          
-          <div class="choices {{ $hasImages ? 'has-images' : '' }}">
-            @if ($hasImages)
-              @foreach ($question['choices'] as $choiceIndex => $choice)
-                <div class="choice">
-                  <span class="choice-letter">{{ chr(65 + $choiceIndex) }}.</span>
-                  <div class="choice-content">
-                    {!! $choice['choiceText'] ?? '' !!}
-                    @if(!empty($choice['choiceImage']))
-                      <div class="image-container">
-                        <img
-                          class="choice-image"
-                          src="{{ $choice['choiceImage'] }}"
-                          alt="Choice {{ chr(65 + $choiceIndex) }} Image"
-                          onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Choice image not available]</div>'"
-                        />
-                      </div>
-                    @endif
-                  </div>
-                </div>
-              @endforeach
-            @else
-              @for ($i = 0; $i < $totalChoices; $i += 2)
-                @if ($i < $lastChoice)
-                  <div class="choice-row">
-                    <div class="choice">
-                      <span class="choice-letter">{{ chr(65 + $i) }}.</span>
-                      <div class="choice-content">
-                        {!! $question['choices'][$i]['choiceText'] ?? '' !!}
-                      </div>
-                    </div>
-                    <div class="choice">
-                      <span class="choice-letter">{{ chr(65 + $i + 1) }}.</span>
-                      <div class="choice-content">
-                        {!! $question['choices'][$i + 1]['choiceText'] ?? '' !!}
-                      </div>
-                    </div>
-                  </div>
-                @else
-                  <div class="choice-row">
-                    <div class="choice">
-                      <span class="choice-letter">{{ chr(65 + $i) }}.</span>
-                      <div class="choice-content">
-                        {!! $question['choices'][$i]['choiceText'] ?? '' !!}
-                      </div>
-                    </div>
-                  </div>
-                @endif
-              @endfor
+            <div class="question-text-content">
+              {{ $questionNumber }}. {!! $question['questionText'] ?? 'Question text not available' !!}
+            </div>
+            @if (!empty($question['questionImage']))
+            <div class="image-container">
+              <img
+                class="question-image"
+                src="{{ $question['questionImage'] }}"
+                alt="Question Image"
+                onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Image not available]</div>'"
+              />
+            </div>
             @endif
+          </div>
+
+          <div class="choices">
+            @foreach ($question['choices'] as $choiceIndex => $choice)
+            <div class="choice">
+              <span class="choice-letter">{{ chr(65 + $choiceIndex) }}.</span>
+              <div class="choice-content">
+                {!! $choice['choiceText'] ?? '' !!}
+
+                @if(!empty($choice['choiceImage']))
+                <div class="image-container">
+                  <img
+                    class="choice-image"
+                    src="{{ $choice['choiceImage'] }}"
+                    alt="Choice {{ chr(65 + $choiceIndex) }} Image"
+                    onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Choice image not available]</div>'"
+                  />
+                </div>
+                @endif
+              </div>
+            </div>
+            @endforeach
           </div>
         </div>
         @php $questionNumber++; @endphp 
