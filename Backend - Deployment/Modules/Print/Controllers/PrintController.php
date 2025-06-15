@@ -64,17 +64,19 @@ class PrintController extends Controller
                     }
 
                     // Format choices with proper image handling
-                    $choices = $q->choices->map(function ($choice) {
+                    $choices = [];
+                    $regularChoices = [];
+                    $noneChoice = null;
+
+                    foreach ($q->choices as $choice) {
                         try {
                             $choiceText = $choice->choiceText ? Crypt::decryptString($choice->choiceText) : null;
-                            
-                            // Handle choice image
                             $choiceImage = null;
+                            
                             if ($choice->image) {
                                 if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
                                     $choiceImage = $choice->image;
                                 } else {
-                                    // Handle local storage path
                                     $imagePath = str_replace('storage/', '', $choice->image);
                                     if (Storage::disk('public')->exists($imagePath)) {
                                         $choiceImage = url('storage/' . $imagePath);
@@ -82,19 +84,32 @@ class PrintController extends Controller
                                 }
                             }
 
-                            return [
+                            $formattedChoice = [
                                 'choiceText' => $choiceText,
                                 'choiceImage' => $choiceImage,
-                                'position' => $choice->position
+                                'isCorrect' => $choice->isCorrect
                             ];
+
+                            // Separate regular choices from "None of the above"
+                            if ($choice->position === 5) {
+                                $noneChoice = $formattedChoice;
+                            } else {
+                                $regularChoices[] = $formattedChoice;
+                            }
                         } catch (\Exception $e) {
                             Log::error('Choice formatting failed:', [
                                 'choiceID' => $choice->choiceID,
                                 'error' => $e->getMessage()
                             ]);
-                            return null;
+                            continue;
                         }
-                    })->filter()->sortBy('position')->values();
+                    }
+
+                    // Shuffle regular choices (A-D)
+                    shuffle($regularChoices);
+
+                    // Combine shuffled regular choices with "None of the above" at the end
+                    $choices = array_merge($regularChoices, $noneChoice ? [$noneChoice] : []);
 
                     $formattedQuestions[] = [
                         'questionText' => $questionText,
@@ -112,6 +127,10 @@ class PrintController extends Controller
                     continue;
                 }
             }
+
+            // Shuffle the questions
+            shuffle($formattedQuestions);
+            
             return $formattedQuestions;
         } catch (\Exception $e) {
             Log::error('Questions formatting failed:', [
@@ -395,8 +414,8 @@ class PrintController extends Controller
                     'purpose' => $validated['purpose'],
                     'examTitle' => match($validated['purpose']) {
                         'examQuestions' => 'Qualifying Examination',
-                        'practiceQuestions' => 'Practice Questions',
-                        'personalQuestions' => 'Personal Questions',
+                        'practiceQuestions' => 'Practice Examination',
+                        'personalQuestions' => 'Quiz',
                         default => 'Multi-Subject Questions'
                     },
                     'logos' => [

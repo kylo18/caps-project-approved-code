@@ -38,12 +38,12 @@
       }
       .header-logo.left {
         position: absolute;
-        left: 0;
+        left: 5px;
         top: 10px;
       }
       .header-logo.right {
         position: absolute;
-        right: 0;
+        right: 5px;
         top: 10px;
       }
       .header-code {
@@ -111,7 +111,7 @@
       }
 
       .question {
-        margin-bottom: 5px;
+        margin-bottom: 15px;
         page-break-inside: auto;
       }
       .question-text {
@@ -125,7 +125,7 @@
         page-break-inside: auto;
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 20px;
       }
       .choice {
         margin-bottom: 2px;
