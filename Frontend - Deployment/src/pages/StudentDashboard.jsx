@@ -13,6 +13,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [subjectError, setSubjectError] = useState("");
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [showForm, setShowForm] = useState(false);
   const [examStarted, setExamStarted] = useState(false);
@@ -49,6 +50,7 @@ const StudentDashboard = () => {
 
   // Filter subjects based on input
   useEffect(() => {
+    setIsSearchLoading(true);
     const filtered = subjects.filter(
       (subject) =>
         !subjectInput.trim() ||
@@ -58,6 +60,10 @@ const StudentDashboard = () => {
         subject.subjectCode.toLowerCase().includes(subjectInput.toLowerCase()),
     );
     setFilteredSubjects(filtered);
+    // Simulate loading state for 500ms
+    setTimeout(() => {
+      setIsSearchLoading(false);
+    }, 500);
   }, [subjectInput, subjects]);
 
   const handleInputFocus = () => {
@@ -315,7 +321,7 @@ const StudentDashboard = () => {
       );
 
       // Navigate to /exam-preview with all the exam data
-      navigate("/practice-exam", {
+      navigate("/exam-preview", {
         state: {
           subjectID,
           examData: {
@@ -344,7 +350,7 @@ const StudentDashboard = () => {
   const handleSubjectSelect = (subject) => {
     setSubjectInput(subject.subjectName);
     setSubjectID(subject.subjectID);
-    // Don't hide suggestions immediately, let the blur handler handle it
+    setShowSuggestions(false); // Close the suggestions dropdown
   };
 
   return (
@@ -386,99 +392,108 @@ const StudentDashboard = () => {
       </button>
 
       {showForm && (
-        <form
-          onSubmit={handleGenerateExam}
-          className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center"
-        >
-          <div className="font-inter border-color relative mx-auto w-full max-w-sm rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
-            <span>Create Exam</span>
-          </div>
-          <div className="border-color relative mx-auto w-full max-w-sm rounded-b-md border border-t-0 bg-white p-2 sm:px-4">
-            <div className="relative">
-              <div className="relative mt-2 w-full">
+        <>
+          <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
+            <div className="relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
+              <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
+                <h2 className="text-[14px] font-medium text-gray-700">
+                  Start a New Exam
+                </h2>
+
+                <button
+                  onClick={() => {
+                    setShowForm(false);
+                    resetForm();
+                  }}
+                  className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
+                  title="Close"
+                >
+                  <i className="bx bx-x text-[20px]"></i>
+                </button>
+              </div>
+
+              <form className="px-5 py-4" onSubmit={handleGenerateExam}>
+                {" "}
+                <span className="mb-2 block text-start text-[14px] text-gray-700">
+                  Select Subject
+                </span>
                 <div className="relative">
                   <input
                     type="text"
-                    className="peer mt-2 w-full rounded-xl border px-4 py-[8px] text-base text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                    className="peer border-color mt-1 w-full rounded-xl border px-4 py-[8px] text-base text-gray-700 transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
                     value={subjectInput}
                     onChange={(e) => {
                       setSubjectInput(e.target.value);
+                      if (!e.target.value.trim()) {
+                        setSubjectID(""); // Clear subjectID when input is empty
+                      }
                       setSubjectError("");
                     }}
                     onFocus={handleInputFocus}
                     onBlur={handleInputBlur}
-                    placeholder=" "
+                    placeholder="Enter"
                   />
-                  <label
-                    htmlFor="Select Subject"
-                    className={`pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base ${
-                      subjectError ? "text-gray-500" : "text-gray-500"
-                    } transition-all duration-200 ${
-                      subjectInput
-                        ? "top-2 mt-0 text-xs text-[#FE6902]"
-                        : "peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902]"
-                    }`}
-                  >
-                    Select Subject
-                  </label>
-                </div>
-              </div>
-
-              {showSuggestions && filteredSubjects.length > 0 && (
-                <div
-                  ref={suggestionsRef}
-                  className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
-                  tabIndex={-1} // Make the div focusable
-                >
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {filteredSubjects.map((subject) => (
-                      <div
-                        key={subject.subjectID}
-                        onClick={() => handleSubjectSelect(subject)}
-                        className="cursor-pointer px-4 py-2 text-start text-[14px] text-gray-700 hover:bg-gray-100"
-                        tabIndex={-1} // Make each item focusable
-                      >
-                        {subject.subjectName} ({subject.subjectCode})
+                  {showSuggestions && (
+                    <div
+                      ref={suggestionsRef}
+                      className="border-color absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
+                      tabIndex={-1}
+                    >
+                      <div className="max-h-[200px] overflow-y-auto">
+                        {isSearchLoading ? (
+                          <div className="flex items-center justify-center py-2">
+                            <span className="loader"></span>
+                          </div>
+                        ) : filteredSubjects.length > 0 ? (
+                          filteredSubjects.map((subject) => (
+                            <div
+                              key={subject.subjectID}
+                              onClick={() => handleSubjectSelect(subject)}
+                              className="cursor-pointer px-4 py-2 text-start text-[14px] text-gray-700 hover:bg-gray-100"
+                              tabIndex={-1}
+                            >
+                              {subject.subjectCode} - {subject.subjectName}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-2 text-center text-sm text-gray-500">
+                            No subjects found
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-
-            <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
-            {subjectError && (
-              <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                {subjectError}
-              </div>
-            )}
-            {error && (
-              <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                {error}
-              </div>
-            )}
-
-            {/* Buttons */}
-            <div className="mb-1 flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setShowForm(false);
-                  resetForm();
-                }}
-                className="cursor-pointer rounded-md border px-2 py-1.5 text-gray-700 hover:bg-gray-200"
-                type="button"
-              >
-                <span className="px-1 text-[16px]">Cancel</span>
-              </button>
-              <button
-                type="submit"
-                className="flex w-[80px] cursor-pointer items-center justify-center rounded-md bg-orange-500 px-[12px] py-[6px] text-[14px] text-white hover:bg-orange-700"
-              >
-                {loading ? <span className="loader-white"></span> : "Proceed"}
-              </button>
-            </div>
+                <div className="mt-4 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+                {subjectError && (
+                  <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                    {subjectError}
+                  </div>
+                )}
+                {error && (
+                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                    {error}
+                  </div>
+                )}
+                <div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${loading ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                  >
+                    {loading ? (
+                      <div className="flex items-center justify-center">
+                        <span className="loader-white"></span>
+                      </div>
+                    ) : (
+                      "Generate Exam"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>{" "}
           </div>
-        </form>
+        </>
       )}
     </div>
   );

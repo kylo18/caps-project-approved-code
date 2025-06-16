@@ -15,9 +15,12 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Modules\Users\Models\User;
 use Modules\Questions\Models\Status;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class PrintController extends Controller
 {
+    private $sessionLifetime = 3600; // 1 hour in seconds
+
     private function generateUrl($path)
     {
         if (!$path) {
@@ -50,52 +53,63 @@ class PrintController extends Controller
                     $questionImage = null;
                     if ($q->image) {
                         if (filter_var($q->image, FILTER_VALIDATE_URL)) {
-                            $imageContent = @file_get_contents($q->image);
-                            if ($imageContent) {
-                                $questionImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
-                            }
-                        } elseif (Storage::disk('public')->exists($q->image)) {
-                            $imageContent = Storage::disk('public')->get($q->image);
-                            if ($imageContent) {
-                                $questionImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
+                            $questionImage = $q->image;
+                        } else {
+                            // Handle local storage path
+                            $imagePath = str_replace('storage/', '', $q->image);
+                            if (Storage::disk('public')->exists($imagePath)) {
+                                $questionImage = url('storage/' . $imagePath);
                             }
                         }
                     }
 
                     // Format choices with proper image handling
-                    $choices = $q->choices->map(function ($choice) {
+                    $choices = [];
+                    $regularChoices = [];
+                    $noneChoice = null;
+
+                    foreach ($q->choices as $choice) {
                         try {
                             $choiceText = $choice->choiceText ? Crypt::decryptString($choice->choiceText) : null;
-                            
-                            // Handle choice image
                             $choiceImage = null;
+                            
                             if ($choice->image) {
                                 if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
-                                    $imageContent = @file_get_contents($choice->image);
-                                    if ($imageContent) {
-                                        $choiceImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
-                                    }
-                                } elseif (Storage::disk('public')->exists($choice->image)) {
-                                    $imageContent = Storage::disk('public')->get($choice->image);
-                                    if ($imageContent) {
-                                        $choiceImage = 'data:image/jpeg;base64,' . base64_encode($imageContent);
+                                    $choiceImage = $choice->image;
+                                } else {
+                                    $imagePath = str_replace('storage/', '', $choice->image);
+                                    if (Storage::disk('public')->exists($imagePath)) {
+                                        $choiceImage = url('storage/' . $imagePath);
                                     }
                                 }
                             }
 
-                            return [
+                            $formattedChoice = [
                                 'choiceText' => $choiceText,
                                 'choiceImage' => $choiceImage,
-                                'position' => $choice->position
+                                'isCorrect' => $choice->isCorrect
                             ];
+
+                            // Separate regular choices from "None of the above"
+                            if ($choice->position === 5) {
+                                $noneChoice = $formattedChoice;
+                            } else {
+                                $regularChoices[] = $formattedChoice;
+                            }
                         } catch (\Exception $e) {
                             Log::error('Choice formatting failed:', [
                                 'choiceID' => $choice->choiceID,
                                 'error' => $e->getMessage()
                             ]);
-                            return null;
+                            continue;
                         }
-                    })->filter()->sortBy('position')->values();
+                    }
+
+                    // Shuffle regular choices (A-D)
+                    shuffle($regularChoices);
+
+                    // Combine shuffled regular choices with "None of the above" at the end
+                    $choices = array_merge($regularChoices, $noneChoice ? [$noneChoice] : []);
 
                     $formattedQuestions[] = [
                         'questionText' => $questionText,
@@ -113,6 +127,10 @@ class PrintController extends Controller
                     continue;
                 }
             }
+
+            // Shuffle the questions
+            shuffle($formattedQuestions);
+            
             return $formattedQuestions;
         } catch (\Exception $e) {
             Log::error('Questions formatting failed:', [
@@ -126,14 +144,13 @@ class PrintController extends Controller
     {
         try {
             if (file_exists($path)) {
-                $imageData = file_get_contents($path);
-                return 'data:image/jpeg;base64,' . base64_encode($imageData);
+                $imagePath = str_replace('storage/', '', $path);
+                return url('storage/' . $imagePath);
             }
             // Try alternative path if first path doesn't exist
             $altPath = resource_path('assets/images/' . basename($path));
             if (file_exists($altPath)) {
-                $imageData = file_get_contents($altPath);
-                return 'data:image/jpeg;base64,' . base64_encode($imageData);
+                return url('storage/images/' . basename($path));
             }
             Log::warning('Logo file not found:', ['path' => $path, 'altPath' => $altPath]);
             return null;
@@ -172,7 +189,13 @@ class PrintController extends Controller
                     'error' => $e->getMessage(),
                     'user' => Auth::id() ?? 'none'
                 ]);
-                return response()->json(['message' => 'Unauthorized. Only Program Chair, Dean, and Associate Dean can generate multi-subject exams.'], 401);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Authentication Error',
+                    'details' => 'You are not authorized to generate multi-subject exams. Only Program Chair, Dean, and Associate Dean can perform this action.',
+                    'code' => 'AUTH_ERROR',
+                    'action' => 'Please contact your administrator if you believe this is an error.'
+                ], 401);
             }
 
             // Force the purpose to be examQuestions
@@ -189,14 +212,22 @@ class PrintController extends Controller
                     'difficulty_distribution.easy' => 'required|integer|min:0|max:100',
                     'difficulty_distribution.moderate' => 'required|integer|min:0|max:100',
                     'difficulty_distribution.hard' => 'required|integer|min:0|max:100',
-                    'preview' => 'boolean'
+                    'preview' => 'boolean',
+                    'previewKey' => 'nullable|string'
                 ]);
             } catch (\Illuminate\Validation\ValidationException $e) {
                 Log::error('Validation Error:', [
                     'errors' => $e->errors(),
                     'request_data' => $request->all()
                 ]);
-                return response()->json(['message' => 'Validation failed', 'errors' => $e->errors()], 422);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Input Validation Error',
+                    'details' => 'Please check your input values. All fields are required and must be within valid ranges.',
+                    'errors' => $e->errors(),
+                    'code' => 'VALIDATION_ERROR',
+                    'action' => 'Please review the form and ensure all fields are filled correctly.'
+                ], 422);
             }
 
             // Add purpose to validated data
@@ -214,8 +245,11 @@ class PrintController extends Controller
                     'trace' => $e->getTraceAsString()
                 ]);
                 return response()->json([
-                    'message' => 'System configuration error: examQuestions purpose not found.',
-                    'error_details' => $e->getMessage()
+                    'status' => 'error',
+                    'message' => 'System Configuration Error',
+                    'details' => 'Unable to process exam generation. The system is not properly configured.',
+                    'code' => 'CONFIG_ERROR',
+                    'action' => 'Please contact system administrator to resolve this issue.'
                 ], 500);
             }
 
@@ -241,9 +275,13 @@ class PrintController extends Controller
                     'difficulty_distribution' => $validated['difficulty_distribution']
                 ]);
                 return response()->json([
-                    'message' => $e->getMessage(),
+                    'status' => 'error',
+                    'message' => 'Percentage Distribution Error',
+                    'details' => $e->getMessage(),
                     'subject_total' => $totalSubjectPercentage,
-                    'difficulty_total' => $totalDifficultyPercentage
+                    'difficulty_total' => $totalDifficultyPercentage,
+                    'code' => 'PERCENTAGE_ERROR',
+                    'action' => 'Please ensure that all percentages add up to exactly 100%.'
                 ], 422);
             }
 
@@ -307,6 +345,82 @@ class PrintController extends Controller
                         $numModerate = round($subjectItemCount * ($validated['difficulty_distribution']['moderate'] / 100));
                         $numHard = $subjectItemCount - ($numEasy + $numModerate);
 
+                        // Check for insufficient questions
+                        $insufficientQuestions = [];
+                        $totalAvailable = 0;
+                        $totalRequired = 0;
+
+                        if ($easyQuestions->count() < $numEasy) {
+                            $insufficientQuestions[] = [
+                                'difficulty' => 'Easy',
+                                'required' => $numEasy,
+                                'available' => $easyQuestions->count(),
+                                'deficit' => $numEasy - $easyQuestions->count()
+                            ];
+                        }
+                        if ($moderateQuestions->count() < $numModerate) {
+                            $insufficientQuestions[] = [
+                                'difficulty' => 'Moderate',
+                                'required' => $numModerate,
+                                'available' => $moderateQuestions->count(),
+                                'deficit' => $numModerate - $moderateQuestions->count()
+                            ];
+                        }
+                        if ($hardQuestions->count() < $numHard) {
+                            $insufficientQuestions[] = [
+                                'difficulty' => 'Hard',
+                                'required' => $numHard,
+                                'available' => $hardQuestions->count(),
+                                'deficit' => $numHard - $hardQuestions->count()
+                            ];
+                        }
+
+                        if (!empty($insufficientQuestions)) {
+                            $totalAvailable = $easyQuestions->count() + $moderateQuestions->count() + $hardQuestions->count();
+                            $totalRequired = $numEasy + $numModerate + $numHard;
+                            
+                            $details = "Insufficient questions available for {$subject->subjectName}:\n";
+                            foreach ($insufficientQuestions as $insufficient) {
+                                $details .= "- {$insufficient['difficulty']}: Required {$insufficient['required']}, Available {$insufficient['available']} (Missing {$insufficient['deficit']})\n";
+                            }
+                            
+                            $suggestions = [];
+                            if ($totalAvailable < $totalRequired) {
+                                $suggestions[] = "Reduce the total number of questions for this subject";
+                            }
+                            if (!empty($insufficientQuestions)) {
+                                $suggestions[] = "Adjust the difficulty distribution percentages";
+                            }
+                            $suggestions[] = "Add more questions to the question bank";
+                            
+                            return response()->json([
+                                'status' => 'error',
+                                'message' => 'Insufficient Questions Available',
+                                'details' => $details,
+                                'code' => 'INSUFFICIENT_QUESTIONS',
+                                'action' => 'Please try the following:\n' . implode('\n', $suggestions),
+                                'insufficient_questions' => $insufficientQuestions,
+                                'subject' => $subject->subjectName,
+                                'total_required' => $totalRequired,
+                                'total_available' => $totalAvailable,
+                                'deficit' => $totalRequired - $totalAvailable,
+                                'difficulty_distribution' => [
+                                    'easy' => [
+                                        'required' => $numEasy,
+                                        'available' => $easyQuestions->count()
+                                    ],
+                                    'moderate' => [
+                                        'required' => $numModerate,
+                                        'available' => $moderateQuestions->count()
+                                    ],
+                                    'hard' => [
+                                        'required' => $numHard,
+                                        'available' => $hardQuestions->count()
+                                    ]
+                                ]
+                            ], 422);
+                        }
+
                         // Validate question counts
                         if ($easyQuestions->count() < $numEasy || 
                             $moderateQuestions->count() < $numModerate || 
@@ -357,8 +471,10 @@ class PrintController extends Controller
                         'trace' => $e->getTraceAsString()
                     ]);
                     return response()->json([
+                        'status' => 'error',
                         'message' => "Error processing subject: " . ($subject ? $subject->subjectName : 'Unknown'),
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
+                        'code' => 'SUBJECT_PROCESSING_ERROR'
                     ], 422);
                 }
             }
@@ -396,48 +512,124 @@ class PrintController extends Controller
                     'purpose' => $validated['purpose'],
                     'examTitle' => match($validated['purpose']) {
                         'examQuestions' => 'Qualifying Examination',
-                        'practiceQuestions' => 'Practice Questions',
-                        'personalQuestions' => 'Personal Questions',
+                        'practiceQuestions' => 'Practice Examination',
+                        'personalQuestions' => 'Quiz',
                         default => 'Multi-Subject Questions'
                     },
                     'logos' => [
                         'left' => $leftLogoBase64,
                         'right' => $rightLogoBase64
-                    ]
+                    ],
+                    'timestamp' => now()->timestamp,
+                    'user_id' => Auth::id() // Add user ID to track ownership
                 ];
 
-                // Store preview data in session
-                session(['exam_preview_data' => $previewData]);
+                // Store preview data in session with a unique key
+                $previewKey = 'exam_preview_' . Auth::id() . '_' . now()->timestamp;
+                
+                // Store in both session and cache for redundancy
+                session([$previewKey => $previewData]);
+                Cache::put($previewKey, $previewData, $this->sessionLifetime);
+                
+                // Ensure session is saved
+                session()->save();
 
-                return response()->json($previewData);
+                // Log the session data for debugging
+                Log::info('Preview data stored:', [
+                    'previewKey' => $previewKey,
+                    'session_id' => session()->getId(),
+                    'data_size' => strlen(json_encode($previewData)),
+                    'user_id' => Auth::id(),
+                    'timestamp' => now()->timestamp
+                ]);
+
+                return response()->json([
+                    'previewData' => $previewData,
+                    'previewKey' => $previewKey
+                ]);
             }
 
-            // For download request, use the stored preview data if it exists
-            $storedPreviewData = session('exam_preview_data');
-            if ($storedPreviewData) {
+            // For download request, use the stored preview data
+            $previewKey = $request->input('previewKey');
+            if (!$previewKey) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Preview Required',
+                    'details' => 'You must generate a preview before downloading the exam.',
+                    'code' => 'PREVIEW_REQUIRED',
+                    'action' => 'Please click the "Preview" button first to generate a preview of the exam.'
+                ], 400);
+            }
+
+            // Log session information for debugging
+            Log::info('Attempting to retrieve preview data:', [
+                'previewKey' => $previewKey,
+                'session_id' => session()->getId(),
+                'all_session_keys' => array_keys(session()->all()),
+                'user_id' => Auth::id()
+            ]);
+
+            // Try to get preview data from both session and cache
+            $storedPreviewData = session($previewKey) ?? Cache::get($previewKey);
+
+            if (!$storedPreviewData) {
+                Log::error('Preview data not found:', [
+                    'previewKey' => $previewKey,
+                    'session_id' => session()->getId(),
+                    'all_session_keys' => array_keys(session()->all()),
+                    'user_id' => Auth::id()
+                ]);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Preview Expired',
+                    'details' => 'The preview has expired or is no longer available.',
+                    'code' => 'PREVIEW_EXPIRED',
+                    'action' => 'Please generate a new preview by clicking the "Preview" button.'
+                ], 410);
+            }
+
+            // Validate that the preview data belongs to the current user
+            if ($storedPreviewData['user_id'] !== Auth::id()) {
+                Log::error('Preview data ownership mismatch:', [
+                    'previewKey' => $previewKey,
+                    'stored_user_id' => $storedPreviewData['user_id'],
+                    'current_user_id' => Auth::id()
+                ]);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid Preview Access',
+                    'details' => 'You are trying to access a preview that does not belong to you.',
+                    'code' => 'INVALID_PREVIEW',
+                    'action' => 'Please generate your own preview by clicking the "Preview" button.'
+                ], 403);
+            }
+
+            // Validate that the preview data is not too old
+            if (now()->timestamp - $storedPreviewData['timestamp'] > $this->sessionLifetime) {
+                session()->forget($previewKey);
+                Cache::forget($previewKey);
+                session()->save();
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Preview Session Expired',
+                    'details' => 'Your preview session has expired due to inactivity.',
+                    'code' => 'PREVIEW_EXPIRED',
+                    'action' => 'Please generate a new preview by clicking the "Preview" button.'
+                ], 410);
+            }
+
+            // Use the stored preview data for PDF generation
                 $questionsBySubject = $storedPreviewData['questionsBySubject'];
                 $examTitle = $storedPreviewData['examTitle'];
                 $leftLogoUrl = $storedPreviewData['logos']['left'];
                 $rightLogoUrl = $storedPreviewData['logos']['right'];
-            } else {
-                // If no stored data (direct download without preview), generate exam title and logos
-                $examTitle = match($validated['purpose']) {
-                    'examQuestions' => 'Qualifying Examination',
-                    'practiceQuestions' => 'Practice Questions',
-                    'personalQuestions' => 'Personal Questions',
-                    default => 'Multi-Subject Questions'
-                };
 
-                $leftLogoUrl = $leftLogoBase64;
-                $rightLogoUrl = $rightLogoBase64;
-            }
-
-            // Generate PDF
+            // Don't clear the session data until after successful PDF generation
             try {
                 // Increase execution time and memory limits
-                ini_set('max_execution_time', '600'); // 10 minutes
-                ini_set('memory_limit', '2G'); // Increase memory limit to 2GB
-                gc_enable(); // Enable garbage collection
+                ini_set('max_execution_time', '600');
+                ini_set('memory_limit', '2G');
+                gc_enable();
 
                 // Configure PDF with optimized settings
                 $pdf = PDF::loadView('exams.printable', [
@@ -448,17 +640,17 @@ class PrintController extends Controller
                 ]);
 
                 $pdfOptions = [
-                    'isRemoteEnabled' => true, // Enable remote resources for base64 images
+                    'isRemoteEnabled' => true,
                     'isPhpEnabled' => true,
                     'isHtml5ParserEnabled' => true,
-                    'dpi' => 150, // Increased DPI for better image quality
+                    'dpi' => 150,
                     'defaultFont' => 'times',
                     'chroot' => [
                         public_path('storage'),
                         public_path(),
                         storage_path('app/public')
                     ],
-                    'enable_remote' => true, // Enable remote resources for base64 images
+                    'enable_remote' => true,
                     'enable_php' => true,
                     'enable_javascript' => false,
                     'images' => true,
@@ -505,6 +697,11 @@ class PrintController extends Controller
                         'Access-Control-Expose-Headers' => 'Content-Disposition'
                     ];
 
+                    // Only clear the session data after successful PDF generation
+                    session()->forget($previewKey);
+                    Cache::forget($previewKey);
+                    session()->save();
+
                     // Return the file response
                     return response()->file($tempPath, $headers)->deleteFileAfterSend(true);
 
@@ -524,9 +721,11 @@ class PrintController extends Controller
                 ]);
                 
                 return response()->json([
-                    'message' => 'Failed to generate PDF.',
-                    'error' => $e->getMessage(),
-                    'details' => 'An error occurred while generating the PDF. Please try again with fewer questions or images.'
+                    'status' => 'error',
+                    'message' => 'PDF Generation Failed',
+                    'details' => 'Unable to generate the PDF file. This might be due to large file sizes, system limitations, or memory constraints.',
+                    'code' => 'PDF_GENERATION_ERROR',
+                    'action' => 'Please try the following:\n1. Reduce the number of questions\n2. Reduce the size of images\n3. Try again in a few minutes'
                 ], 500);
             }
 
@@ -537,9 +736,11 @@ class PrintController extends Controller
                 'request' => $request->all()
             ]);
             return response()->json([
-                'message' => 'Server error.',
-                'error' => $e->getMessage(),
-                'details' => 'An unexpected error occurred while generating the exam.'
+                'status' => 'error',
+                'message' => 'System Error',
+                'details' => 'An unexpected error occurred while processing your request.',
+                'code' => 'SYSTEM_ERROR',
+                'action' => 'Please try again later. If the problem persists, contact system administrator.'
             ], 500);
         }
     }
@@ -549,14 +750,22 @@ class PrintController extends Controller
      */
     private function clearTempFiles()
     {
-        $tempDir = storage_path('app/temp');
-        if (is_dir($tempDir)) {
-            $files = glob($tempDir . '/temp-*.pdf');
-            foreach ($files as $file) {
-                if (is_file($file) && time() - filemtime($file) > 3600) { // Remove files older than 1 hour
-                    unlink($file);
+        try {
+            $tempDir = storage_path('app/temp');
+            if (is_dir($tempDir)) {
+                $files = glob($tempDir . '/temp-*.pdf');
+                foreach ($files as $file) {
+                    if (is_file($file) && time() - filemtime($file) > 3600) { // Remove files older than 1 hour
+                        unlink($file);
+                    }
                 }
             }
+        } catch (\Exception $e) {
+            Log::error('Temp Files Cleanup Error:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Don't throw error as this is a cleanup operation
         }
     }
 
@@ -566,7 +775,10 @@ class PrintController extends Controller
     private function optimizeImage($imageUrl)
     {
         try {
-            if (empty($imageUrl)) return null;
+            if (empty($imageUrl)) {
+                Log::warning('Empty image URL provided for optimization');
+                return null;
+            }
 
             $imageContent = null;
             $maxWidth = 800; // Maximum width in pixels
@@ -576,21 +788,30 @@ class PrintController extends Controller
             if (filter_var($imageUrl, FILTER_VALIDATE_URL)) {
                 // For external URLs
                 $imageContent = @file_get_contents($imageUrl);
+                if ($imageContent === false) {
+                    Log::error('Failed to fetch external image:', ['url' => $imageUrl]);
+                    return null;
+                }
             } else {
                 // For local storage files
                 $path = str_replace('/storage/', '', parse_url($imageUrl, PHP_URL_PATH));
                 if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
                     $imageContent = \Illuminate\Support\Facades\Storage::disk('public')->get($path);
+                } else {
+                    Log::error('Local image not found:', ['path' => $path]);
+                    return null;
                 }
             }
 
             if (!$imageContent) {
+                Log::warning('No image content found for optimization');
                 return null;
             }
 
             // Create image resource
             $image = @imagecreatefromstring($imageContent);
             if (!$image) {
+                Log::error('Failed to create image resource from content');
                 return $imageUrl;
             }
 
@@ -603,6 +824,12 @@ class PrintController extends Controller
                 $newHeight = round($height * $ratio);
 
                 $newImage = imagecreatetruecolor($newWidth, $newHeight);
+                if (!$newImage) {
+                    Log::error('Failed to create new image resource for resizing');
+                    imagedestroy($image);
+                    return $imageUrl;
+                }
+
                 imagecopyresampled($newImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
                 imagedestroy($image);
                 $image = $newImage;
@@ -613,13 +840,19 @@ class PrintController extends Controller
             $optimizedContent = ob_get_clean();
             imagedestroy($image);
 
+            if (!$optimizedContent) {
+                Log::error('Failed to generate optimized image content');
+                return $imageUrl;
+            }
+
             // Convert to base64 data URI
             $base64 = base64_encode($optimizedContent);
             return 'data:image/jpeg;base64,' . $base64;
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Image optimization failed:', [
+            Log::error('Image optimization failed:', [
                 'url' => $imageUrl,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return $imageUrl;
         }

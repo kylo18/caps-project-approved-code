@@ -3,6 +3,7 @@ import SubjectSearchInput from "./SubjectSearchInput";
 import ExamPreviewModal from "./ExamPreviewModal";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import { Tooltip } from "flowbite-react";
+import ConfirmModal from "./confirmModal";
 
 export default function ExamGenerator({ auth, isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
@@ -10,8 +11,10 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
   const [subjects, setSubjects] = useState([]);
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [previewData, setPreviewData] = useState(null);
+  const [previewKey, setPreviewKey] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [mode, setMode] = useState("default");
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [settings, setSettings] = useState({
     total_items: 10,
     easy_percentage: 30,
@@ -26,6 +29,28 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
   }, []);
 
   const handleClose = () => {
+    if (loading) {
+      setShowConfirmClose(true);
+      return;
+    }
+    // Reset all state
+    setSelectedSubjects([]);
+    setPreviewData(null);
+    setShowPreview(false);
+    setError("");
+    setMode("default");
+    setSettings({
+      total_items: 10,
+      easy_percentage: 30,
+      moderate_percentage: 50,
+      hard_percentage: 20,
+    });
+    onClose();
+  };
+
+  const handleConfirmClose = () => {
+    setLoading(false);
+    setShowConfirmClose(false);
     // Reset all state
     setSelectedSubjects([]);
     setPreviewData(null);
@@ -63,10 +88,15 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
     if (!subject) return;
 
     if (!selectedSubjects.find((s) => s.subjectID === subject.subjectID)) {
-      const defaultPercentage = Math.floor(100 / (selectedSubjects.length + 1));
+      const basePercentage = Math.floor(100 / (selectedSubjects.length + 1));
+      const remainder = 100 - basePercentage * (selectedSubjects.length + 1);
+
       setSelectedSubjects((prev) => [
-        ...prev.map((s) => ({ ...s, percentage: defaultPercentage })),
-        { ...subject, percentage: defaultPercentage },
+        ...prev.map((s, index) => ({
+          ...s,
+          percentage: index === 0 ? basePercentage + remainder : basePercentage,
+        })),
+        { ...subject, percentage: basePercentage },
       ]);
     }
   };
@@ -151,8 +181,6 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         purpose: "examQuestions",
       };
 
-      console.log("Sending request:", requestBody);
-
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -164,18 +192,25 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to generate exam preview");
+        if (errorData.message?.toLowerCase().includes("insufficient")) {
+          throw new Error(
+            "Insufficient questions available for the selected criteria. Please try reducing the number of items or adjusting the difficulty distribution.",
+          );
+        }
+        throw new Error(
+          errorData.message ||
+            errorData.error ||
+            "Failed to generate exam preview",
+        );
       }
 
       const data = await response.json();
-      console.log("Received response:", data);
-      setPreviewData({
-        ...data,
-      });
+      setPreviewData(data.previewData);
+      setPreviewKey(data.previewKey);
       setShowPreview(true);
     } catch (err) {
       console.error("Error generating exam:", err);
-      setError(err.message || "An error occurred while generating the exam");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -199,6 +234,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         },
         preview: false,
         purpose: "examQuestions",
+        previewKey: previewKey,
       };
 
       const response = await fetch(endpoint, {
@@ -210,16 +246,18 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         body: JSON.stringify(requestBody),
       });
 
-      if (!response.ok) {
+      // First check if the response is JSON (error case)
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to generate exam");
+        throw new Error(
+          errorData.message || errorData.error || "Failed to generate exam",
+        );
       }
 
-      // Check if the response is a PDF
-      const contentType = response.headers.get("content-type");
+      // If not JSON, it should be a PDF
       if (!contentType || !contentType.includes("application/pdf")) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to generate PDF");
+        throw new Error("Invalid response format from server");
       }
 
       // Get the blob from the response
@@ -258,7 +296,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
       onClose();
     } catch (err) {
       console.error("Download error:", err);
-      setError(err.message || "An error occurred while downloading the exam");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -276,7 +314,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
           >
             {/* Main Panel */}
             <div
-              className={`relative w-full min-[448px]:mx-2 ${selectedSubjects.length === 0 ? "md:w-[480px]" : "max-w-[435px]"} rounded-2xl bg-white shadow-2xl min-[448px]:rounded-md`}
+              className={`relative w-full min-[448px]:mx-2 ${selectedSubjects.length === 0 ? "md:w-[1280px]" : "max-w-lg"} rounded-t-2xl bg-white shadow-2xl min-[448px]:rounded-md`}
             >
               <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
                 <h2 className="text-[14px] font-medium text-gray-700">
@@ -291,7 +329,7 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                   <i className="bx bx-x text-[20px]"></i>
                 </button>
               </div>
-              <div className="edit-profile-modal-scrollbar max-h-[calc(90vh-60px)] overflow-y-auto">
+              <div className="edit-profile-modal-scrollbar max-h-[calc(100vh-80px)] overflow-y-auto">
                 <form className="px-5 py-4" onSubmit={handleSubmit}>
                   {settings.exam_type !== "personal" && (
                     <div>
@@ -342,14 +380,14 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                                 Percentage (%)
                               </span>
                             </div>
-                            <div className="space-y-3">
+                            <div className="max-h-[200px] space-y-1 overflow-y-auto">
                               {selectedSubjects.map((subject) => (
                                 <div
                                   key={subject.subjectID}
                                   className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <div className="max-w-[100px] truncate text-[12px] min-[415px]:max-w-[200px] lg:max-w-[240px]">
+                                    <div className="max-w-[160px] truncate text-[12px] min-[415px]:max-w-[200px] lg:max-w-[240px]">
                                       {subject.subjectCode} -{" "}
                                       {subject.subjectName}
                                     </div>
@@ -631,6 +669,15 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
           loading={loading}
         />
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showConfirmClose}
+        onClose={() => setShowConfirmClose(false)}
+        onConfirm={handleConfirmClose}
+        message="You are about to close the exam generator while it's still processing. This will cancel the generation process. Do you want to continue?"
+        isLoading={loading}
+      />
     </>
   );
 }

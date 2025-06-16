@@ -85,7 +85,6 @@ const SideBarDropDown = ({
         yearLevelID: String(editedSubject.yearLevelID),
       };
 
-      console.log("Sending update data:", updateData);
 
       const response = await fetch(`${apiUrl}/subjects/${subjectID}/update`, {
         method: "PUT",
@@ -103,7 +102,6 @@ const SideBarDropDown = ({
       }
 
       const result = await response.json();
-      console.log("Update response:", result);
 
       if (response.ok) {
         // Update the subjects list with the new data including relationships
@@ -588,7 +586,7 @@ const SideBarDropDown = ({
             />
             {/* Mobile Modal */}
             <div
-              className="lightbox-bg fixed inset-0 z-55 flex items-center justify-center p-5 sm:hidden"
+              className="lightbox-bg fixed inset-0 z-55 flex items-end justify-center min-[448px]:items-center sm:hidden"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowYearSubjects(false);
@@ -596,7 +594,7 @@ const SideBarDropDown = ({
               }}
             >
               <div
-                className="max-h-[90vh] w-full max-w-sm rounded-lg bg-white shadow-lg"
+                className="max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-lg min-[448px]:rounded-md"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}

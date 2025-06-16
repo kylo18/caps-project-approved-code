@@ -1,3 +1,4 @@
+@ -1,275 +1,277 @@
 <!DOCTYPE html>
 <html>
   <head>
@@ -15,11 +16,13 @@
         line-height: 1.3;
         margin: 0;
         padding: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
       .paper {
         width: 100%;
         box-sizing: border-box;
-        padding: 0; /* Remove padding since we're using @page margins */
+        padding: 0;
       }
       .header {
         position: relative;
@@ -29,18 +32,19 @@
         min-height: 80px;
       }
       .header-logo {
-        width: 80px;
-        height: 80px;
+        width: 90px;
+        height: 90px;
         object-fit: contain;
+        max-width: 100%;
       }
       .header-logo.left {
         position: absolute;
-        left: 0;
+        left: 5px;
         top: 10px;
       }
       .header-logo.right {
         position: absolute;
-        right: 0;
+        right: 5px;
         top: 10px;
       }
       .header-code {
@@ -89,6 +93,7 @@
 
       .subject-section {
         margin-bottom: 5px;
+        page-break-before: avoid;
       }
       .subject-section:first-of-type {
         margin-top: 0;
@@ -99,6 +104,7 @@
         margin: 2px 0;
         padding: 1px 0;
         border-bottom: 2px solid #333;
+        page-break-after: avoid;
       }
       .total-items {
         font-size: 10pt;
@@ -106,32 +112,50 @@
       }
 
       .question {
-        margin-bottom: 5px;
-        page-break-inside: avoid;
+        margin-bottom: 15px;
+        page-break-inside: auto;
       }
       .question-text {
         margin-bottom: 3px;
         font-weight: normal;
+        page-break-inside: auto;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .question-text-content {
+        flex: 1;
       }
       .choices {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 2px 20px;
         margin-left: 20px;
         margin-bottom: 5px;
+        page-break-inside: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 30px;
       }
       .choice {
         margin-bottom: 2px;
-        page-break-inside: avoid;
+        page-break-inside: auto;
         display: flex;
         align-items: flex-start;
+        width: 100%;
+        min-width: 0;
       }
       .choice-letter {
+        display: inline-block;
         min-width: 15px;
         font-weight: bold;
+        margin-right: 5px;
+        flex-shrink: 0;
+        padding-top: 3px;
       }
       .choice-content {
+        display: inline-block;
         flex: 1;
+        word-wrap: break-word;
+        min-width: 0;
       }
       
       .image-container {
@@ -139,19 +163,23 @@
         max-width: 100%;
         overflow: hidden;
         text-align: left;
+        page-break-inside: avoid;
       }
       .question-image {
         max-width: 100%;
-        height: 320px;
+        height: auto;
+        max-height: 320px;
         object-fit: contain;
         border-radius: 0.5rem;
+        margin-bottom: 20px;
       }
       .choice-image {
         max-width: 100%;
-        height: 180px;
+        height: auto;
+        max-height: 140px;
         object-fit: contain;
         border-radius: 0.5rem;
-        margin-left: 0.5rem;
+        margin-top: 15px;
       }
       .image-error {
         font-style: italic;
@@ -167,8 +195,7 @@
   <body>
     <div class="paper">
       <div class="header">
-        <img src="{{ $leftLogoPath }}" class="header-logo left" alt="University Seal" onerror="this.style.display='none'" />
-        <div class="header-code">JRMSU-COE-027</div>
+        <img src="/univLogo.png.jpg" class="header-logo left" alt="University Seal" onerror="this.style.display='none'" />
         <div class="header-center">
           <div class="gov-line">Republic of the Philippines</div>
           <div class="univ-name">JOSE RIZAL MEMORIAL STATE UNIVERSITY</div>
@@ -176,22 +203,7 @@
           <div class="college">COLLEGE OF ENGINEERING</div>
           <div class="qe-exam-title">{{ $examTitle }}</div>
         </div>
-        <img src="{{ $rightLogoPath }}" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
-      </div>
-
-      <div class="student-info">
-        <div class="info-field">
-          <span class="info-label">Name:</span>
-          <span class="info-value">&nbsp;</span>
-        </div>
-        <div class="info-field">
-          <span class="info-label">Date:</span>
-          <span class="info-value">&nbsp;</span>
-        </div>
-        <div class="info-field">
-          <span class="info-label">Section:</span>
-          <span class="info-value">&nbsp;</span>
-        </div>
+        <img src="/college-logo.png.jpg" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
       </div>
 
       @php $questionNumber = 1; @endphp 
@@ -206,25 +218,22 @@
         </div>
 
         @foreach ($subjectData['questions'] as $question)
-        @if($questionNumber > 1 && ($questionNumber - 1) % 5 == 0)
-        <div style="page-break-after: always"></div>
-        @endif
-
         <div class="question">
           <div class="question-text">
-            {{ $questionNumber }}. {!! $question['questionText'] ?? 'Question text not available' !!}
+            <div class="question-text-content">
+              {{ $questionNumber }}. {!! $question['questionText'] ?? 'Question text not available' !!}
+            </div>
+            @if (!empty($question['questionImage']))
+            <div class="image-container">
+              <img
+                class="question-image"
+                src="{{ $question['questionImage'] }}"
+                alt="Question Image"
+                onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Image not available]</div>'"
+              />
+            </div>
+            @endif
           </div>
-
-          @if (!empty($question['questionImage']))
-          <div class="image-container">
-            <img
-              class="question-image"
-              src="{{ $question['questionImage'] }}"
-              alt="Question Image"
-              onerror="this.parentElement.innerHTML='<div class=\'image-error\'>[Image not available]</div>'"
-            />
-          </div>
-          @endif
 
           <div class="choices">
             @foreach ($question['choices'] as $choiceIndex => $choice)

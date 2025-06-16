@@ -168,7 +168,12 @@ const ForgotPasswordForm = () => {
                   </p>
                   <span className="mx-2 text-xs text-gray-400">
                     Developed by{" "}
-                    <span className="text-orange-500">Team Caps</span>
+                    <span
+                      onClick={() => navigate("/team-caps")}
+                      className="cursor-pointer text-orange-500 hover:underline"
+                    >
+                      Team Caps
+                    </span>
                   </span>
                 </form>
               </div>
@@ -311,7 +316,13 @@ const ForgotPasswordForm = () => {
           </div>
 
           <span className="mx-2 mt-3 text-xs text-gray-400">
-            Developed by <span className="text-orange-500">Team Caps</span>
+            Developed by{" "}
+            <span
+              onClick={() => navigate("/team-caps")}
+              className="cursor-pointer text-orange-500 hover:underline"
+            >
+              Team Caps
+            </span>
           </span>
         </div>
       </div>

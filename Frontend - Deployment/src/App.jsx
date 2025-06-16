@@ -5,6 +5,8 @@ import Layout from "./components/layout";
 import ProtectedRoute from "./components/protectRoute";
 import TutorialLayout from "./components/TutorialLayout";
 
+import Credits from "./pages/Credits";
+
 import StudentDashboard from "./pages/StudentDashboard";
 import FacultyDashboard from "./pages/FacultyDashboard";
 import ProgramChairDashboard from "./pages/ProgramChairDashboard";
@@ -37,6 +39,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+        <Route path="/team-caps" element={<Credits />} />
 
         <Route path="/help" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<TutorialLayout />} />

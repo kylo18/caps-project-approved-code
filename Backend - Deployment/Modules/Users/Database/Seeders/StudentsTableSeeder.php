@@ -5,14 +5,17 @@ namespace Modules\Users\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 
 class StudentsTableSeeder extends Seeder
 {
     public function run()
     {
         try {
-            // Get all CSV files from the new path
+            // Temporarily disable foreign key checks
+            Schema::disableForeignKeyConstraints();
+
+            // Get all CSV files from the path
             $files = glob(base_path('public/csv/*.csv'));
             
             if (empty($files)) {
@@ -64,62 +67,58 @@ class StudentsTableSeeder extends Seeder
                         $firstName_middleName = trim($nameParts[1]);
                     }
 
-                    // Get program ID
+                    // Get program ID - check both programName and programName2
                     $program = DB::table('programs')
                         ->where('programName', $data['Program'])
+                        ->orWhere('programName2', $data['Program'])
                         ->first();
 
                     if (!$program) {
-                        // If program not found, use the first available program
-                        $program = DB::table('programs')->first();
-                        if (!$program) {
-                            Log::error("No programs found in database");
-                            continue;
-                        }
+                        Log::error("Program not found: {$data['Program']}");
+                        $skippedRecords++;
+                        continue;
                     }
 
-                    // Convert sex value to match enum
+                    // Normalize and get sex ID
                     $sex = strtoupper(trim($data['Sex']));
                     if (!in_array($sex, ['MALE', 'FEMALE'])) {
                         $sex = 'MALE'; // Default to MALE if invalid
                     }
+                    
+                    $sexRecord = DB::table('sexes')
+                        ->where('name', $sex)
+                        ->first();
+
+                    if (!$sexRecord) {
+                        Log::error("Sex not found in database: $sex");
+                        $skippedRecords++;
+                        continue;
+                    }
 
                     // Prepare student data
                     $studentData = [
-                        'userCode' => $data['ID Number'],
-                        'fullName' => $data['Full Name'],
-                        'lastName' => $lastName,
-                        'firstName_middleName' => $firstName_middleName,
-                        'sex' => $sex,
+                        'userCode' => trim($data['ID Number']),
+                        'fullName' => trim($data['Full Name']),
+                        'lastName' => trim($lastName),
+                        'firstName_middleName' => trim($firstName_middleName),
+                        'sex_id' => $sexRecord->id,
                         'programID' => $program->programID,
                         'yearLevel' => (int)$data['Year Level'],
-                        'block' => $data['Block'],
+                        'block' => trim($data['Block']),
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
 
-                    // Log the data being inserted
-                    Log::info("Attempting to insert/update student: " . json_encode($studentData));
-
                     try {
-                        // For students table, update the oldest record if duplicate exists
-                        $existingStudent = DB::table('students')
-                            ->where('userCode', $data['ID Number'])
-                            ->orderBy('created_at', 'asc')
-                            ->first();
-
-                        if ($existingStudent) {
-                            DB::table('students')
-                                ->where('id', $existingStudent->id)
-                                ->update($studentData);
-                        } else {
-                            DB::table('students')->insert($studentData);
-                        }
-
+                        // Update or create student record
+                        DB::table('students')->updateOrInsert(
+                            ['userCode' => $studentData['userCode']], // The unique key to check
+                            $studentData // The data to update or insert
+                        );
                         $insertedRecords++;
-                        Log::info("Successfully inserted/updated student with ID: {$data['ID Number']}");
+                        Log::info("Successfully processed student with ID: {$studentData['userCode']}");
                     } catch (\Exception $e) {
-                        Log::error("Database error for student {$data['ID Number']}: " . $e->getMessage());
+                        Log::error("Database error for student {$studentData['userCode']}: " . $e->getMessage());
                         $skippedRecords++;
                     }
                 }
@@ -127,12 +126,18 @@ class StudentsTableSeeder extends Seeder
                 fclose($handle);
             }
 
+            // Re-enable foreign key checks
+            Schema::enableForeignKeyConstraints();
+
             $this->command->info("Import Summary:");
             $this->command->info("Total records processed: " . $totalRecords);
             $this->command->info("Records skipped: " . $skippedRecords);
-            $this->command->info("Records inserted/updated: " . $insertedRecords);
+            $this->command->info("Records inserted: " . $insertedRecords);
             $this->command->info('Successfully imported student data from CSV files!');
         } catch (\Exception $e) {
+            // Make sure to re-enable foreign key checks even if an error occurs
+            Schema::enableForeignKeyConstraints();
+            
             $this->command->error('Failed to import student data: ' . $e->getMessage());
             Log::error('Student import error: ' . $e->getMessage());
             throw $e;

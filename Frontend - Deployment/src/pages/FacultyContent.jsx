@@ -78,6 +78,9 @@ const FacultyContent = () => {
   // Get toast functions from hook
   const { toast, showToast } = useToast();
 
+  // State for loading
+  const [isLoading, setIsLoading] = useState(true);
+
   // Effect to fetch questions when subject changes
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
@@ -149,7 +152,6 @@ const FacultyContent = () => {
   const handleDeleteQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
-      setShowConfirmModal(false);
       setIsDeleting(true);
       const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
         method: "DELETE",
@@ -162,7 +164,6 @@ const FacultyContent = () => {
       if (!response.ok) {
         throw new Error("Failed to delete question");
       }
-
       setQuestions((prevQuestions) =>
         prevQuestions.filter((question) => question.questionID !== questionID),
       );
@@ -173,6 +174,7 @@ const FacultyContent = () => {
       showToast("Failed to delete question. Please try again.", "error");
     } finally {
       setIsDeleting(false);
+      setShowConfirmModal(false);
     }
   };
 
@@ -205,7 +207,6 @@ const FacultyContent = () => {
       }
 
       const data = await response.json();
-      console.log("Fetched Questions:", data);
 
       setQuestions(data.data || []);
     } catch (error) {
@@ -296,8 +297,6 @@ const FacultyContent = () => {
     );
   };
 
-  const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     setTimeout(() => {
       setIsLoading(false);
@@ -354,16 +353,7 @@ const FacultyContent = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle specific error cases
-        if (response.status === 403) {
-          throw new Error("You cannot approve your own question.");
-        } else if (response.status === 400) {
-          throw new Error(`Cannot approve question: ${data.message}`);
-        } else if (response.status === 404) {
-          throw new Error("Question not found.");
-        } else {
-          throw new Error(data.message || "Failed to approve the question");
-        }
+        throw new Error(data.message || "Failed to approve the question");
       }
 
       fetchQuestions();
@@ -376,6 +366,7 @@ const FacultyContent = () => {
       );
     } finally {
       setIsApproving(false);
+      setShowApproveModal(false);
     }
   };
 
@@ -416,101 +407,120 @@ const FacultyContent = () => {
             </div>
             {/*Search bar div here*/}
             <div className="mt-2 mb-4 flex flex-col justify-end gap-[5.5px] sm:flex-row">
-              <SearchQuery
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-              />
-              <div className="flex items-center justify-end">
-                {activeTab === 4 && (
-                  <SortCustomDropdown
-                    name="pendingSort"
-                    value={pendingSort}
-                    onChange={(e) => setPendingSort(e.target.value)}
-                    placeholder="Filter by Type"
-                    options={[
-                      { value: "", label: "All Types" },
-                      {
-                        value: "practiceQuestions",
-                        label: "Practice  ",
-                      },
-                      { value: "examQuestions", label: "Qualifying Exam " },
-                    ]}
-                    className="w-full sm:w-35"
+              {isLoading ? (
+                <>
+                  <div className="flex w-full justify-start">
+                    <div className="h-10 w-full animate-pulse rounded-md bg-gray-200 sm:w-64"></div>
+                  </div>
+                  <div className="hidden items-center justify-start sm:flex sm:justify-end">
+                    {activeTab === 4 && (
+                      <div className="h-10 w-32 animate-pulse rounded-md bg-gray-200"></div>
+                    )}
+                  </div>
+                  <div className="flex flex-row items-center justify-between gap-2 sm:justify-center">
+                    <div className="h-10 w-32 animate-pulse rounded-md bg-gray-200"></div>
+                    <div className="h-10 w-32 animate-pulse rounded-md bg-gray-200"></div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <SearchQuery
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
                   />
-                )}
-              </div>
+                  <div className="flex items-center justify-end">
+                    {activeTab === 4 && (
+                      <SortCustomDropdown
+                        name="pendingSort"
+                        value={pendingSort}
+                        onChange={(e) => setPendingSort(e.target.value)}
+                        placeholder="Filter by Type"
+                        options={[
+                          { value: "", label: "All Types" },
+                          {
+                            value: "practiceQuestions",
+                            label: "Practice  ",
+                          },
+                          { value: "examQuestions", label: "Qualifying Exam " },
+                        ]}
+                        className="w-full sm:w-35"
+                      />
+                    )}
+                  </div>
 
-              <div className="flex flex-row items-center justify-center gap-2">
-                <span className="text-[14px] text-nowrap text-gray-700 sm:ml-10">
-                  Sort by
-                </span>
-                {/* Sort - takes 1/2 width on small screens */}
-                <div className="-mr-8 w-full sm:w-auto sm:flex-1">
-                  <Sort
-                    sortOption={sortOption}
-                    setSortOption={setSortOption}
-                    subSortOption={subSortOption}
-                    setSubSortOption={setSubSortOption}
-                  />
-                </div>
-
-                {/* View Button - takes 1/2 width on small screens */}
-                <div
-                  ref={dropdownRef}
-                  className="relative w-full text-left sm:w-auto sm:flex-1"
-                >
-                  <button
-                    ref={buttonRef}
-                    onClick={() => setDropdownOpen((prev) => !prev)}
-                    className="border-color flex w-full cursor-pointer items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100 sm:w-auto"
-                  >
-                    <span className="mr-5 text-[14px]">View</span>
-                    <i
-                      className={`bx absolute right-2 text-[18px] transition-transform duration-200 ${
-                        dropdownOpen
-                          ? "bx-chevron-down rotate-180"
-                          : "bx-chevron-down rotate-0"
-                      }`}
-                      style={{ marginLeft: "auto" }}
-                    />
-                  </button>
-
-                  {dropdownOpen && (
-                    <div className="open-sans border-color absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm">
-                      <button
-                        onClick={() => {
-                          setListViewOnly(true);
-                          setExpandedQuestionId(null);
-                          setDropdownOpen(false);
-                        }}
-                        className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
-                          listViewOnly
-                            ? "text-orange-500 hover:bg-gray-200"
-                            : "text-black hover:bg-gray-200"
-                        }`}
-                      >
-                        <i className="bx bx-list-ul text-[18px]" />
-                        <span>List View</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setListViewOnly(false);
-                          setExpandedQuestionId(null);
-                          setDropdownOpen(false);
-                        }}
-                        className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
-                          !listViewOnly
-                            ? "text-orange-500 hover:bg-gray-200"
-                            : "text-black hover:bg-gray-200"
-                        }`}
-                      >
-                        <i className="bx bx-list-ul-square text-[18px]" />
-                        <span>Detailed View</span>
-                      </button>
+                  <div className="flex flex-row items-center justify-center gap-2">
+                    <span className="text-[14px] text-nowrap text-gray-700 sm:ml-10">
+                      Sort by
+                    </span>
+                    {/* Sort - takes 1/2 width on small screens */}
+                    <div className="-mr-8 w-full sm:w-auto sm:flex-1">
+                      <Sort
+                        sortOption={sortOption}
+                        setSortOption={setSortOption}
+                        subSortOption={subSortOption}
+                        setSubSortOption={setSubSortOption}
+                      />
                     </div>
-                  )}
-                </div>
-              </div>
+
+                    {/* View Button - takes 1/2 width on small screens */}
+                    <div
+                      ref={dropdownRef}
+                      className="relative w-full text-left sm:w-auto sm:flex-1"
+                    >
+                      <button
+                        ref={buttonRef}
+                        onClick={() => setDropdownOpen((prev) => !prev)}
+                        className="border-color flex w-full cursor-pointer items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100 sm:w-auto"
+                      >
+                        <span className="mr-5 text-[14px]">View</span>
+                        <i
+                          className={`bx absolute right-2 text-[18px] transition-transform duration-200 ${
+                            dropdownOpen
+                              ? "bx-chevron-down rotate-180"
+                              : "bx-chevron-down rotate-0"
+                          }`}
+                          style={{ marginLeft: "auto" }}
+                        />
+                      </button>
+
+                      {dropdownOpen && (
+                        <div className="open-sans border-color absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm">
+                          <button
+                            onClick={() => {
+                              setListViewOnly(true);
+                              setExpandedQuestionId(null);
+                              setDropdownOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
+                              listViewOnly
+                                ? "text-orange-500 hover:bg-gray-200"
+                                : "text-black hover:bg-gray-200"
+                            }`}
+                          >
+                            <i className="bx bx-list-ul text-[18px]" />
+                            <span>List View</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setListViewOnly(false);
+                              setExpandedQuestionId(null);
+                              setDropdownOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
+                              !listViewOnly
+                                ? "text-orange-500 hover:bg-gray-200"
+                                : "text-black hover:bg-gray-200"
+                            }`}
+                          >
+                            <i className="bx bx-list-ul-square text-[18px]" />
+                            <span>Detailed View</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Add Question Section */}
@@ -554,6 +564,7 @@ const FacultyContent = () => {
                         subjectID={selectedSubject.subjectID}
                         onComplete={handleQuestionAdded}
                         onCancel={() => setSubmittedQuestion(null)}
+                        activeTab={activeTab}
                       />
                     </div>
                   )}
@@ -565,7 +576,73 @@ const FacultyContent = () => {
             {(activeTab === 0 || activeTab === 1 || activeTab === 4) && ( // Practice Questions
               <div className="flex">
                 <div className="flex-1">
-                  {filteredQuestions.length > 0 ? (
+                  {isLoading ? (
+                    <div className="flex flex-col gap-2">
+                      {[1, 2, 3].map((index) => (
+                        <div
+                          key={index}
+                          className="relative mx-auto w-full max-w-3xl rounded-md border border-[rgb(200,200,200)] bg-white p-4 shadow-md sm:px-4"
+                        >
+                          {/* Question header skeleton */}
+                          <div className="flex items-center justify-between text-[14px] text-gray-500">
+                            <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                            <div className="flex items-center gap-2">
+                              <div className="h-4 w-16 animate-pulse rounded bg-gray-200"></div>
+                              <div className="h-4 w-4 animate-pulse rounded-full bg-gray-200"></div>
+                              <div className="h-4 w-16 animate-pulse rounded bg-gray-200"></div>
+                              <div className="h-4 w-12 animate-pulse rounded bg-gray-200"></div>
+                            </div>
+                          </div>
+
+                          {/* Question text skeleton */}
+                          <div className="mt-4 space-y-2">
+                            <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200"></div>
+                            <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200"></div>
+                          </div>
+
+                          {/* Choices skeleton */}
+                          <div className="mt-3 space-y-3 p-3">
+                            {[1, 2, 3, 4].map((choiceIndex) => (
+                              <div
+                                key={choiceIndex}
+                                className="flex items-center space-x-2"
+                              >
+                                <div className="h-5 w-5 animate-pulse rounded-full bg-gray-200"></div>
+                                <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200"></div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Divider */}
+                          <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+
+                          {/* Metadata skeleton */}
+                          <div className="ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex">
+                                <div className="h-4 w-[100px] animate-pulse rounded bg-gray-200"></div>
+                                <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+                              </div>
+                              <div className="flex">
+                                <div className="h-4 w-[100px] animate-pulse rounded bg-gray-200"></div>
+                                <div className="h-4 w-40 animate-pulse rounded bg-gray-200"></div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex">
+                                <div className="h-4 w-[100px] animate-pulse rounded bg-gray-200"></div>
+                                <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+                              </div>
+                              <div className="flex">
+                                <div className="h-4 w-[100px] animate-pulse rounded bg-gray-200"></div>
+                                <div className="h-4 w-40 animate-pulse rounded bg-gray-200"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : filteredQuestions.length > 0 ? (
                     <>
                       <div className="border-color relative mx-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-t-md border border-b-0 bg-white">
                         <div className="flex items-center gap-2">
@@ -771,9 +848,10 @@ const FacultyContent = () => {
                                                 ? "font-semibold text-orange-500"
                                                 : "text-gray-700"
                                             }`}
-                                          >
-                                            {choice.choiceText}
-                                          </span>
+                                            dangerouslySetInnerHTML={{
+                                              __html: choice.choiceText,
+                                            }}
+                                          />
                                         )}
                                         {choice.image && (
                                           <div className="relative max-w-[200px] cursor-pointer rounded-md hover:opacity-80">
@@ -899,14 +977,25 @@ const FacultyContent = () => {
                                   <div className="mt-5 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
                                   <div className="m-5 mb-1 flex justify-end gap-4">
                                     {question.status_id === 1 ? ( // 1 is pending
-                                      <AltButton
-                                        text="Remove"
-                                        icon="bx bx-trash"
-                                        className="hover:text-red-500"
-                                        onClick={() =>
-                                          confirmDelete(question.questionID)
-                                        }
-                                      />
+                                      <>
+                                        <AltButton
+                                          text="Edit"
+                                          textres="Edit"
+                                          icon="bx bx-edit-alt"
+                                          className="hover:text-orange-500"
+                                          onClick={() =>
+                                            handleEditClick(question)
+                                          }
+                                        />
+                                        <AltButton
+                                          text="Remove"
+                                          icon="bx bx-trash"
+                                          className="hover:text-red-500"
+                                          onClick={() =>
+                                            confirmDelete(question.questionID)
+                                          }
+                                        />
+                                      </>
                                     ) : (
                                       <>
                                         <AltButton
@@ -990,14 +1079,13 @@ const FacultyContent = () => {
           </div>
         )}
 
-        {isDeleting && <LoadingOverlay show={isDeleting} />}
-
         {/* Confirmation Modal */}
         <ConfirmModal
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
           onConfirm={() => handleDeleteQuestion(deleteQuestionID)}
           message="Are you sure you want to delete this question?"
+          isLoading={isDeleting}
         />
 
         <Toast message={toast.message} type={toast.type} show={toast.show} />

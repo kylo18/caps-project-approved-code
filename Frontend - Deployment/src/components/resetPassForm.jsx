@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import univLogo from "../assets/univLogo.png";
 import AppVersion from "../components/appVersion";
 import collegeLogo from "/src/assets/college-logo.png";
+import Toast from "./Toast";
 
 // Reset Password Form
 const ResetPasswordPage = () => {
@@ -290,7 +291,12 @@ const ResetPasswordPage = () => {
 
                   <span className="mx-2 text-xs text-gray-400">
                     Developed by{" "}
-                    <span className="text-orange-500">Team Caps</span>
+                    <span
+                      onClick={() => navigate("/team-caps")}
+                      className="cursor-pointer text-orange-500 hover:underline"
+                    >
+                      Team Caps
+                    </span>
                   </span>
                 </form>
               </div>
@@ -487,7 +493,13 @@ const ResetPasswordPage = () => {
           </div>
 
           <span className="mx-2 text-xs text-gray-400">
-            Developed by <span className="text-orange-500">Team Caps</span>
+            Developed by{" "}
+            <span
+              onClick={() => navigate("/team-caps")}
+              className="cursor-pointer text-orange-500 hover:underline"
+            >
+              Team Caps
+            </span>
           </span>
         </div>
       </div>

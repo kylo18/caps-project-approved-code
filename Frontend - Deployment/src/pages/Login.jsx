@@ -49,15 +49,16 @@ export default function LoginPage() {
       if (!response.ok) {
         if (response.status === 401) {
           // 401 Unauthorized -> wrong userCode or password
-          showToast("Incorrect user code or password", "error");
+          showToast(data.message || "Incorrect user code or password", "error");
         } else {
           // Other errors
-          showToast("Something went wrong. Please try again later.", "error");
+          showToast(
+            data.message || "Something went wrong. Please try again later.",
+            "error",
+          );
         }
         return;
       }
-
-      console.log("Login successful!", data);
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
@@ -254,7 +255,12 @@ export default function LoginPage() {
 
                   <span className="mx-2 text-xs text-gray-400">
                     Developed by{" "}
-                    <span className="text-orange-500">Team Caps</span>
+                    <span
+                      onClick={() => navigate("/team-caps")}
+                      className="cursor-pointer text-orange-500 hover:underline"
+                    >
+                      Team Caps
+                    </span>
                   </span>
                 </form>
               </div>
@@ -426,7 +432,13 @@ export default function LoginPage() {
           </div>
 
           <span className="mx-2 text-xs text-gray-400">
-            Developed by <span className="text-orange-500">Team Caps</span>
+            Developed by{" "}
+            <button
+              onClick={() => navigate("/team-caps")}
+              className="cursor-pointer text-orange-500 hover:underline"
+            >
+              Team Caps
+            </button>
           </span>
         </div>
       </div>

@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import CustomDropdown from "./customDropdown";
 import WarnOnExit from "../hooks/WarnOnExit";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
 
 // Edit Question Form
 const EditQuestionForm = ({ question, onComplete, onCancel }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const { toast, showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
@@ -184,12 +187,14 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
     // Validate question
     if (!formattedQuestionText || formattedQuestionText === "<br>") {
       setError("Please enter a question before submitting.");
+      showToast("Please enter a question before submitting.", "error");
       return;
     }
 
     // Validate choices
     if (choices.length !== 5) {
       setError("Exactly 5 choices are required.");
+      showToast("Exactly 5 choices are required.", "error");
       return;
     }
 
@@ -202,6 +207,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
       })
     ) {
       setError("Each choice must have either text or an image.");
+      showToast("Each choice must have either text or an image.", "error");
       return;
     }
 
@@ -290,11 +296,16 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
         throw new Error("Failed to update choices.");
       }
 
+      showToast("Question updated successfully!", "success");
       onComplete();
     } catch (err) {
       console.error("Error updating:", err);
       setError(
         err.message || "Something went wrong while updating the question.",
+      );
+      showToast(
+        err.message || "Something went wrong while updating the question.",
+        "error",
       );
     } finally {
       setIsLoading(false);
@@ -334,6 +345,11 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
           </div>
         </div>
       )}
+
+      {/* Toast notification */}
+      <div className="fixed top-4 right-4 z-[99999]">
+        <Toast message={toast.message} type={toast.type} show={toast.show} />
+      </div>
 
       <div className="lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
         <div className="scrollbar-hide animate-fade-in-up flex max-h-[95vh] overflow-y-auto p-3">
@@ -476,7 +492,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
               <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
 
               <div className="flex max-w-[850px] items-start gap-3">
-                <div className="mt-[6px] flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
+                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                   2
                 </div>
                 <div>
@@ -524,8 +540,14 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                             e.target.value,
                           )
                         }
-                        className={`w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none ${choice.isFixed ? "cursor-not-allowed border-none" : ""}`}
-                        onFocus={() => setFocusedChoice(index)}
+                        className={`w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 ${
+                          choice.isFixed
+                            ? "cursor-not-allowed"
+                            : "hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none"
+                        }`}
+                        onFocus={() =>
+                          !choice.isFixed && setFocusedChoice(index)
+                        }
                         onBlur={(e) => {
                           if (
                             !e.relatedTarget ||
@@ -536,36 +558,38 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                             setFocusedChoice(null);
                           }
                         }}
-                        required
                         disabled={choice.isFixed}
+                        required
                       />
                     )}
 
                     {/* Image Upload Trigger */}
-                    {!choice.image && focusedChoice === index && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            document
-                              .getElementById(`fileInput-${index}`)
-                              .click()
-                          }
-                          className="image-upload-btn cursor-pointer rounded-md px-2 py-1 text-[24px] text-[rgb(120,120,120)] hover:text-gray-900"
-                        >
-                          <i className="bx bx-image-alt"></i>
-                        </button>
-                        <input
-                          id={`fileInput-${index}`}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(event) =>
-                            handleChoiceImageUpload(index, event)
-                          }
-                        />
-                      </>
-                    )}
+                    {!choice.image &&
+                      focusedChoice === index &&
+                      !choice.isFixed && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              document
+                                .getElementById(`fileInput-${index}`)
+                                .click()
+                            }
+                            className="image-upload-btn cursor-pointer rounded-md px-2 py-1 text-[24px] text-[rgb(120,120,120)] hover:text-gray-900"
+                          >
+                            <i className="bx bx-image-alt"></i>
+                          </button>
+                          <input
+                            id={`fileInput-${index}`}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(event) =>
+                              handleChoiceImageUpload(index, event)
+                            }
+                          />
+                        </>
+                      )}
 
                     {/* Preview Uploaded Image */}
                     {choice.image && (
@@ -706,7 +730,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                       4
                     </div>
                     <div>
-                      <h3 className="mt-[5px] text-[16px] font-semibold text-black sm:mt-0">
+                      <h3 className="mt-[8px] text-[13px] font-semibold text-black sm:mt-0 sm:text-[16px]">
                         Update Question
                       </h3>
                       <p className="hidden text-sm text-gray-500 sm:block">
@@ -743,12 +767,6 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                   </div>
                 </div>
               </div>
-
-              {error && (
-                <p className="mt-7 flex justify-center text-[14px] text-red-500">
-                  {error}
-                </p>
-              )}
             </div>
           </div>
         </div>

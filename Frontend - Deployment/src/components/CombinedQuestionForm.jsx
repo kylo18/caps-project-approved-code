@@ -1,10 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import CustomDropdown from "./customDropdown";
 import WarnOnExit from "../hooks/WarnOnExit";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
 
 // Combined Question Form for both Practice and Exam Questions
-const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
+const CombinedQuestionForm = ({
+  subjectID,
+  onComplete,
+  onCancel,
+  activeTab,
+}) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const { toast, showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
@@ -20,6 +28,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
   const [choiceModalImage, setchoiceModalImage] = useState(null);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [error, setError] = useState(null);
+  const choiceEditors = useRef({});
 
   // State for question and choices
   const [formData, setFormData] = useState({
@@ -30,7 +39,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
     score: 1,
     difficulty_id: 1, // Default to easy difficulty
     status_id: 1, // 1 is pending
-    purpose_id: 1, // Default to practice questions
+    purpose_id: activeTab === 0 ? 2 : 1, // 2 for practice questions, 1 for exam questions
     choices: [
       { choiceText: "", isCorrect: false, image: null },
       { choiceText: "", isCorrect: false, image: null },
@@ -135,6 +144,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
     // Validate question
     if (!formattedQuestionText || formattedQuestionText === "<br>") {
       setError("Please enter a question before submitting.");
+      showToast("Please enter a question before submitting.", "error");
       return;
     }
 
@@ -145,6 +155,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
       )
     ) {
       setError("Each choice must have either text or an image.");
+      showToast("Each choice must have either text or an image.", "error");
       return;
     }
 
@@ -154,6 +165,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
     );
     if (correctChoices.length !== 1) {
       setError("Please select exactly one correct answer.");
+      showToast("Please select exactly one correct answer.", "error");
       return;
     }
 
@@ -220,11 +232,16 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
         throw new Error("Failed to add choices.");
       }
 
+      showToast("Question added successfully!", "success");
       onComplete();
     } catch (err) {
       console.error("Error submitting:", err);
       setError(
         err.message || "Something went wrong while submitting the question.",
+      );
+      showToast(
+        err.message || "Something went wrong while submitting the question.",
+        "error",
       );
     } finally {
       setIsLoading(false);
@@ -237,7 +254,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
         <div className="scrollbar-hide animate-fade-in-up flex max-h-[95vh] overflow-y-auto p-3">
           <div className="flex-1">
             {/* Header */}
-            <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
+            <div className="font-inter border-color relative mx-auto mt-2 max-w-5xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
               <div className="flex items-center justify-between pr-4">
                 <span>ADD QUESTION</span>
                 <button
@@ -250,7 +267,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
             </div>
 
             {/* Question Card */}
-            <div className="border-color relative mx-auto mb-3 w-full max-w-3xl rounded-b-md border border-t-0 bg-white p-4 shadow-lg sm:px-4">
+            <div className="border-color relative mx-auto mb-3 w-full max-w-5xl rounded-b-md border border-t-0 bg-white p-4 shadow-lg sm:px-4">
               {/* Question Header */}
               <div className="flex items-start gap-3">
                 <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
@@ -376,7 +393,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
               <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
               {/* Choices Section */}
               <div className="flex max-w-[850px] items-start gap-3">
-                <div className="mt-[6px] flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
+                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                   2
                 </div>
                 <div>
@@ -420,8 +437,14 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
                             e.target.value,
                           )
                         }
-                        className={`w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none ${choice.isFixed ? "cursor-not-allowed border-none" : ""}`}
-                        onFocus={() => setFocusedChoice(index)}
+                        className={`w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 ${
+                          choice.isFixed
+                            ? "cursor-not-allowed"
+                            : "hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none"
+                        }`}
+                        onFocus={() =>
+                          !choice.isFixed && setFocusedChoice(index)
+                        }
                         onBlur={(e) => {
                           if (
                             !e.relatedTarget ||
@@ -432,35 +455,37 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
                             setFocusedChoice(null);
                           }
                         }}
-                        required
                         disabled={choice.isFixed}
+                        required
                       />
                     )}
 
                     {/* Image Upload Button */}
-                    {!choice.image && focusedChoice === index && (
-                      <>
-                        <button
-                          onClick={() =>
-                            document
-                              .getElementById(`fileInput-${index}`)
-                              .click()
-                          }
-                          className="image-upload-btn cursor-pointer rounded-md px-2 py-1 text-[24px] text-[rgb(120,120,120)] hover:text-gray-900"
-                        >
-                          <i className="bx bx-image-alt"></i>
-                        </button>
-                        <input
-                          id={`fileInput-${index}`}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(event) =>
-                            handleChoiceImageUpload(index, event)
-                          }
-                        />
-                      </>
-                    )}
+                    {!choice.image &&
+                      focusedChoice === index &&
+                      !choice.isFixed && (
+                        <>
+                          <button
+                            onClick={() =>
+                              document
+                                .getElementById(`fileInput-${index}`)
+                                .click()
+                            }
+                            className="image-upload-btn cursor-pointer rounded-md px-2 py-1 text-[24px] text-[rgb(120,120,120)] hover:text-gray-900"
+                          >
+                            <i className="bx bx-image-alt"></i>
+                          </button>
+                          <input
+                            id={`fileInput-${index}`}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(event) =>
+                              handleChoiceImageUpload(index, event)
+                            }
+                          />
+                        </>
+                      )}
 
                     {/* Choice Image Preview */}
                     {choice.image && (
@@ -632,12 +657,6 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
                   </div>
                 </div>
               </div>
-
-              {error && (
-                <p className="mt-7 flex justify-center text-[14px] text-red-500">
-                  {error}
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -674,6 +693,11 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
           </div>
         </div>
       )}
+
+      {/* Toast notification */}
+      <div className="fixed top-4 right-4 z-[99999]">
+        <Toast message={toast.message} type={toast.type} show={toast.show} />
+      </div>
     </>
   );
 };

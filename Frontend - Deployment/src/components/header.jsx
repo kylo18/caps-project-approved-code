@@ -302,19 +302,32 @@ const AdminHeader = ({ title }) => {
 
           {/* Help Button */}
           <Tooltip
-            content="Need help?"
+            content={
+              title === "student"
+                ? "Help not available for students"
+                : "Need help?"
+            }
             placement="bottom"
             trigger="hover"
             className="bg-gray-800"
           >
             <button
-              onClick={() =>
-                window.open(
-                  "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
-                  "_blank",
-                )
-              }
-              className="border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-black hover:bg-gray-200"
+              onClick={() => {
+                if (title !== "Student") {
+                  window.open(
+                    "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
+                    "_blank",
+                  );
+                } else {
+                  alert("Under Maintenance");
+                }
+              }}
+              className={`border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-black ${
+                title === "student"
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:bg-gray-200"
+              }`}
+              disabled={title === "student"}
             >
               <i className="bx bx-message-question-mark text-md ml-1"></i>
               <span className="pr-1.5 text-[14px]">Help</span>
@@ -409,7 +422,7 @@ const AdminHeader = ({ title }) => {
       {showProfileModal && (
         <>
           <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
-            <div className="edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-6 py-4 shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
+            <div className="edit-profile-modal-scrollbar relative mx-0 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-6 py-4 shadow-2xl min-[448px]:mx-2 min-[448px]:rounded-md">
               <button
                 onClick={() => {
                   setShowProfileModal(false);
@@ -576,7 +589,7 @@ const AdminHeader = ({ title }) => {
       {showChangePassword && (
         <>
           <div className="font-inter lightbox-bg bg-opacity-40 fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
-            <div className="edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
+            <div className="edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
               {/* Header */}
               <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
                 <h2 className="text-[14px] font-medium text-gray-700">

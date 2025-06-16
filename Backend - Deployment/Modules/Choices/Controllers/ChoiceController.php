@@ -24,7 +24,7 @@ class ChoiceController extends Controller
         $user = Auth::user();
 
         // Only Instructor, Program Chair, Dean can add choices
-        if (!in_array($user->roleID, [2, 3, 4])) {
+        if (!in_array($user->roleID, [2, 3, 4, 5])) {
             return response()->json([
                 'message' => 'Unauthorized. You do not have permission to add choices.'
             ], 403);
@@ -57,7 +57,7 @@ class ChoiceController extends Controller
                     }
                 }
 
-                $encryptedChoiceText = $choiceData['choiceText']
+                $encryptedChoiceText = strlen($choiceData['choiceText']) > 0
                     ? Crypt::encryptString($choiceData['choiceText'])
                     : null;
 
@@ -114,7 +114,7 @@ class ChoiceController extends Controller
     {
         $user = Auth::user();
 
-        if (!in_array($user->roleID, [2, 3, 4])) {
+        if (!in_array($user->roleID, [2, 3, 4, 5])) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
@@ -141,7 +141,7 @@ class ChoiceController extends Controller
                 $choice->questionID = $questionID;
 
                 // Encrypt text if present
-                $choice->choiceText = isset($choiceData['choiceText']) && $choiceData['choiceText'] !== null
+                $choice->choiceText = strlen($choiceData['choiceText']) > 0
                     ? Crypt::encryptString($choiceData['choiceText'])
                     : null;
 
