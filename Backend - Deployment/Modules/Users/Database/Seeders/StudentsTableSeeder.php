@@ -67,9 +67,10 @@ class StudentsTableSeeder extends Seeder
                         $firstName_middleName = trim($nameParts[1]);
                     }
 
-                    // Get program ID
+                    // Get program ID - check both programName and programName2
                     $program = DB::table('programs')
                         ->where('programName', $data['Program'])
+                        ->orWhere('programName2', $data['Program'])
                         ->first();
 
                     if (!$program) {

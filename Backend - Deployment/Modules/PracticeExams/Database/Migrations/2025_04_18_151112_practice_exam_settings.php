@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('practice_exam_settings', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('subjectID');
-            $table->boolean('isEnabled')->default(true);
             $table->boolean('enableTimer')->default(false);
             $table->integer('duration_minutes')->default(20);
             $table->string('coverage')->default('full');
@@ -35,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        Schema::dropIfExists('practice_exam_settings');
     }
 };
