@@ -32,8 +32,8 @@
         min-height: 80px;
       }
       .header-logo {
-        width: 80px;
-        height: 80px;
+        width: 90px;
+        height: 90px;
         object-fit: contain;
         max-width: 100%;
       }
@@ -131,8 +131,8 @@
         margin-bottom: 5px;
         page-break-inside: auto;
         display: flex;
-        flex-wrap: wrap;
-        gap: 40px;
+        flex-direction: column;
+        gap: 10px;
         margin-top: 30px;
       }
       .choice {
@@ -140,7 +140,7 @@
         page-break-inside: auto;
         display: flex;
         align-items: flex-start;
-        width: calc(50% - 20px);
+        width: 100%;
         min-width: 0;
       }
       .choice-letter {
@@ -196,7 +196,6 @@
     <div class="paper">
       <div class="header">
         <img src="/univLogo.png.jpg" class="header-logo left" alt="University Seal" onerror="this.style.display='none'" />
-        <div class="header-code">JRMSU-COE-027</div>
         <div class="header-center">
           <div class="gov-line">Republic of the Philippines</div>
           <div class="univ-name">JOSE RIZAL MEMORIAL STATE UNIVERSITY</div>
@@ -217,7 +216,7 @@
           <span class="info-value">&nbsp;</span>
         </div>
         <div class="info-field">
-          <span class="info-label">Section:</span>
+          <span class="info-label">Course & Yr:</span>
           <span class="info-value">&nbsp;</span>
         </div>
       </div>

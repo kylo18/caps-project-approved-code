@@ -17,7 +17,7 @@ require_once base_path('Modules/Questions/Database/Seeders/CoverageSeeder.php');
 require_once base_path('Modules/Questions/Database/Seeders/DifficultySeeder.php');
 require_once base_path('Modules/Questions/Database/Seeders/PurposeSeeder.php');
 require_once base_path('Modules/Questions/Database/Seeders/StatusSeeder.php');
-require_once base_path('Modules/Questions/Database/Seeders/QuestionsTableSeeder.php');
+//require_once base_path('Modules/Questions/Database/Seeders/QuestionsTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/StudentsTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/SexesTableSeeder.php');
 
@@ -39,7 +39,7 @@ class DatabaseSeeder extends Seeder
             \Modules\Questions\Database\Seeders\CoverageSeeder::class,
             \Modules\Questions\Database\Seeders\DifficultySeeder::class,
             \Modules\Questions\Database\Seeders\PurposeSeeder::class,
-            \Modules\Questions\Database\Seeders\QuestionsTableSeeder::class,
+            //\Modules\Questions\Database\Seeders\QuestionsTableSeeder::class,
             \Modules\Users\Database\Seeders\StudentsTableSeeder::class,
         ];
 
