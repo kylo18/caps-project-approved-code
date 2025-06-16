@@ -426,15 +426,25 @@ const CombinedQuestionForm = ({
 
                     {/* Input Choice */}
                     {!choice.image && (
-                      <div
-                        ref={(el) => {
-                          if (el) {
-                            choiceEditors.current[index] = el;
-                          }
-                        }}
-                        contentEditable
-                        className={`w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none ${choice.isFixed ? "cursor-not-allowed border-none" : ""}`}
-                        onFocus={() => setFocusedChoice(index)}
+                      <input
+                        type="text"
+                        value={choice.choiceText}
+                        placeholder={`Option ${index + 1}`}
+                        onChange={(e) =>
+                          handleChoiceChange(
+                            index,
+                            "choiceText",
+                            e.target.value,
+                          )
+                        }
+                        className={`w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 ${
+                          choice.isFixed
+                            ? "cursor-not-allowed"
+                            : "hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none"
+                        }`}
+                        onFocus={() =>
+                          !choice.isFixed && setFocusedChoice(index)
+                        }
                         onBlur={(e) => {
                           if (
                             !e.relatedTarget ||
@@ -445,42 +455,37 @@ const CombinedQuestionForm = ({
                             setFocusedChoice(null);
                           }
                         }}
-                        onInput={(e) => {
-                          handleChoiceChange(
-                            index,
-                            "choiceText",
-                            e.target.innerHTML,
-                          );
-                        }}
-                        dangerouslySetInnerHTML={{ __html: choice.choiceText }}
-                        suppressContentEditableWarning={true}
+                        disabled={choice.isFixed}
+                        required
                       />
                     )}
 
                     {/* Image Upload Button */}
-                    {!choice.image && focusedChoice === index && (
-                      <>
-                        <button
-                          onClick={() =>
-                            document
-                              .getElementById(`fileInput-${index}`)
-                              .click()
-                          }
-                          className="image-upload-btn cursor-pointer rounded-md px-2 py-1 text-[24px] text-[rgb(120,120,120)] hover:text-gray-900"
-                        >
-                          <i className="bx bx-image-alt"></i>
-                        </button>
-                        <input
-                          id={`fileInput-${index}`}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(event) =>
-                            handleChoiceImageUpload(index, event)
-                          }
-                        />
-                      </>
-                    )}
+                    {!choice.image &&
+                      focusedChoice === index &&
+                      !choice.isFixed && (
+                        <>
+                          <button
+                            onClick={() =>
+                              document
+                                .getElementById(`fileInput-${index}`)
+                                .click()
+                            }
+                            className="image-upload-btn cursor-pointer rounded-md px-2 py-1 text-[24px] text-[rgb(120,120,120)] hover:text-gray-900"
+                          >
+                            <i className="bx bx-image-alt"></i>
+                          </button>
+                          <input
+                            id={`fileInput-${index}`}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(event) =>
+                              handleChoiceImageUpload(index, event)
+                            }
+                          />
+                        </>
+                      )}
 
                     {/* Choice Image Preview */}
                     {choice.image && (
