@@ -173,7 +173,6 @@ const AdminContent = () => {
       }
 
       const data = await response.json();
-      console.log("Fetched Questions:", data);
 
       // Update questions with the formatted data from backend
       setQuestions(data.data || []);
@@ -518,6 +517,7 @@ const AdminContent = () => {
                         subjectID={selectedSubject.subjectID}
                         onComplete={handleQuestionAdded}
                         onCancel={() => setSubmittedQuestion(null)}
+                        activeTab={activeTab}
                       />
                     </div>
                   )}
@@ -803,16 +803,17 @@ const AdminContent = () => {
                                           }}
                                         />
 
-                                        {choice.choiceText?.trim() && (
+                                        {choice.choiceText !== null && (
                                           <span
                                             className={`w-[90%] rounded-md p-2 text-[14px] ${
                                               choice.isCorrect
                                                 ? "font-semibold text-orange-500"
                                                 : "text-gray-700"
                                             }`}
-                                          >
-                                            {choice.choiceText}
-                                          </span>
+                                            dangerouslySetInnerHTML={{
+                                              __html: choice.choiceText,
+                                            }}
+                                          />
                                         )}
 
                                         {choice.image && (
@@ -942,6 +943,15 @@ const AdminContent = () => {
                                     {question.status_id === 1 ? ( // 1 is pending
                                       <>
                                         <AltButton
+                                          text="Edit"
+                                          textres="Edit"
+                                          icon="bx bx-edit-alt"
+                                          className="hover:text-orange-500"
+                                          onClick={() =>
+                                            handleEditClick(question)
+                                          }
+                                        />
+                                        <AltButton
                                           text="Remove"
                                           icon="bx bx-trash"
                                           className="hover:text-red-500"
@@ -949,7 +959,6 @@ const AdminContent = () => {
                                             confirmDelete(question.questionID)
                                           }
                                         />
-
                                         <AltButton
                                           text="Approve"
                                           textres="Approve"

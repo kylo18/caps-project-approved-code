@@ -60,8 +60,6 @@ export default function LoginPage() {
         return;
       }
 
-      console.log("Login successful!", data);
-
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 

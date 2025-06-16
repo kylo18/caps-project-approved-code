@@ -85,7 +85,6 @@ const SideBarDropDown = ({
         yearLevelID: String(editedSubject.yearLevelID),
       };
 
-      console.log("Sending update data:", updateData);
 
       const response = await fetch(`${apiUrl}/subjects/${subjectID}/update`, {
         method: "PUT",
@@ -103,7 +102,6 @@ const SideBarDropDown = ({
       }
 
       const result = await response.json();
-      console.log("Update response:", result);
 
       if (response.ok) {
         // Update the subjects list with the new data including relationships

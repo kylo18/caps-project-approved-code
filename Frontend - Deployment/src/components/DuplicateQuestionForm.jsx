@@ -471,7 +471,7 @@ const DuplicateQuestionForm = ({ question, onComplete, onCancel }) => {
 
               {/* Choices Section */}
               <div className="flex max-w-[850px] items-start gap-3">
-                <div className="mt-[6px] flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
+                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                   2
                 </div>
                 <div>
@@ -508,17 +508,8 @@ const DuplicateQuestionForm = ({ question, onComplete, onCancel }) => {
 
                     {/* Text input shown only if no image */}
                     {!choice.image && (
-                      <input
-                        type="text"
-                        value={choice.choiceText || ""}
-                        placeholder={`Option ${index + 1}`}
-                        onChange={(e) =>
-                          handleChoiceChange(
-                            index,
-                            "choiceText",
-                            e.target.value,
-                          )
-                        }
+                      <div
+                        contentEditable
                         className={`w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none ${choice.isFixed ? "cursor-not-allowed border-none" : ""}`}
                         onFocus={() => setFocusedChoice(index)}
                         onBlur={(e) => {
@@ -531,8 +522,15 @@ const DuplicateQuestionForm = ({ question, onComplete, onCancel }) => {
                             setFocusedChoice(null);
                           }
                         }}
-                        required
-                        disabled={choice.isFixed}
+                        onInput={(e) => {
+                          handleChoiceChange(
+                            index,
+                            "choiceText",
+                            e.target.innerHTML,
+                          );
+                        }}
+                        dangerouslySetInnerHTML={{ __html: choice.choiceText }}
+                        suppressContentEditableWarning={true}
                       />
                     )}
 

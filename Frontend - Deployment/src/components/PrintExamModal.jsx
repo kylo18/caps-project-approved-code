@@ -192,6 +192,11 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (errorData.message?.toLowerCase().includes("insufficient")) {
+          throw new Error(
+            "Insufficient questions available for the selected criteria. Please try reducing the number of items or adjusting the difficulty distribution.",
+          );
+        }
         throw new Error(
           errorData.message ||
             errorData.error ||

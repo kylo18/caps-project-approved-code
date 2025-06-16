@@ -198,7 +198,6 @@ const ProgramChairContent = () => {
       }
 
       const data = await response.json();
-      console.log("Fetched Questions:", data);
 
       setQuestions(data.data || []);
     } catch (error) {
@@ -544,6 +543,7 @@ const ProgramChairContent = () => {
                         subjectID={selectedSubject.subjectID}
                         onComplete={handleQuestionAdded}
                         onCancel={() => setSubmittedQuestion(null)}
+                        activeTab={activeTab}
                       />
                     </div>
                   )}
@@ -820,17 +820,21 @@ const ProgramChairContent = () => {
                                               : "border-gray-300 text-gray-500"
                                           }`}
                                         />
-                                        {choice.choiceText?.trim() && (
-                                          <span
-                                            className={`w-[90%] rounded-md p-2 text-[14px] ${
-                                              choice.isCorrect
-                                                ? "font-semibold text-orange-500"
-                                                : "text-gray-700"
-                                            }`}
-                                          >
-                                            {choice.choiceText}
-                                          </span>
-                                        )}
+
+                                        {choice.choiceText !== null &&
+                                          choice.choiceText !== undefined &&
+                                          choice.choiceText !== "" && (
+                                            <span
+                                              className={`w-[90%] rounded-md p-2 text-[14px] ${
+                                                choice.isCorrect
+                                                  ? "font-semibold text-orange-500"
+                                                  : "text-gray-700"
+                                              }`}
+                                              dangerouslySetInnerHTML={{
+                                                __html: choice.choiceText,
+                                              }}
+                                            />
+                                          )}
                                         {choice.image && (
                                           <div className="relative max-w-[200px] cursor-pointer rounded-md hover:opacity-80">
                                             <img
@@ -958,6 +962,15 @@ const ProgramChairContent = () => {
                                   <div className="mt-5 mb-1 flex justify-end gap-2">
                                     {question.status_id === 1 ? (
                                       <>
+                                        <AltButton
+                                          text="Edit"
+                                          textres="Edit"
+                                          icon="bx bx-edit-alt"
+                                          className="hover:text-orange-500"
+                                          onClick={() =>
+                                            handleEditClick(question)
+                                          }
+                                        />
                                         <AltButton
                                           text="Remove"
                                           icon="bx bx-trash"

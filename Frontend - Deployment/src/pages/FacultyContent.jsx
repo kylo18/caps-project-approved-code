@@ -207,7 +207,6 @@ const FacultyContent = () => {
       }
 
       const data = await response.json();
-      console.log("Fetched Questions:", data);
 
       setQuestions(data.data || []);
     } catch (error) {
@@ -565,6 +564,7 @@ const FacultyContent = () => {
                         subjectID={selectedSubject.subjectID}
                         onComplete={handleQuestionAdded}
                         onCancel={() => setSubmittedQuestion(null)}
+                        activeTab={activeTab}
                       />
                     </div>
                   )}
@@ -848,9 +848,10 @@ const FacultyContent = () => {
                                                 ? "font-semibold text-orange-500"
                                                 : "text-gray-700"
                                             }`}
-                                          >
-                                            {choice.choiceText}
-                                          </span>
+                                            dangerouslySetInnerHTML={{
+                                              __html: choice.choiceText,
+                                            }}
+                                          />
                                         )}
                                         {choice.image && (
                                           <div className="relative max-w-[200px] cursor-pointer rounded-md hover:opacity-80">
@@ -976,14 +977,25 @@ const FacultyContent = () => {
                                   <div className="mt-5 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
                                   <div className="m-5 mb-1 flex justify-end gap-4">
                                     {question.status_id === 1 ? ( // 1 is pending
-                                      <AltButton
-                                        text="Remove"
-                                        icon="bx bx-trash"
-                                        className="hover:text-red-500"
-                                        onClick={() =>
-                                          confirmDelete(question.questionID)
-                                        }
-                                      />
+                                      <>
+                                        <AltButton
+                                          text="Edit"
+                                          textres="Edit"
+                                          icon="bx bx-edit-alt"
+                                          className="hover:text-orange-500"
+                                          onClick={() =>
+                                            handleEditClick(question)
+                                          }
+                                        />
+                                        <AltButton
+                                          text="Remove"
+                                          icon="bx bx-trash"
+                                          className="hover:text-red-500"
+                                          onClick={() =>
+                                            confirmDelete(question.questionID)
+                                          }
+                                        />
+                                      </>
                                     ) : (
                                       <>
                                         <AltButton

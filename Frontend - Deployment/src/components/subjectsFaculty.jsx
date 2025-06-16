@@ -247,7 +247,6 @@ const AssignedSubjectsDropDown = ({
 
   const handleAssignSubject = async (subject) => {
     if (!subject) return;
-    console.log("Assigning subject:", subject);
 
     const token = localStorage.getItem("token");
 

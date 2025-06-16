@@ -5,7 +5,12 @@ import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 
 // Combined Question Form for both Practice and Exam Questions
-const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
+const CombinedQuestionForm = ({
+  subjectID,
+  onComplete,
+  onCancel,
+  activeTab,
+}) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const { toast, showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
@@ -23,6 +28,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
   const [choiceModalImage, setchoiceModalImage] = useState(null);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [error, setError] = useState(null);
+  const choiceEditors = useRef({});
 
   // State for question and choices
   const [formData, setFormData] = useState({
@@ -33,7 +39,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
     score: 1,
     difficulty_id: 1, // Default to easy difficulty
     status_id: 1, // 1 is pending
-    purpose_id: 1, // Default to practice questions
+    purpose_id: activeTab === 0 ? 2 : 1, // 2 for practice questions, 1 for exam questions
     choices: [
       { choiceText: "", isCorrect: false, image: null },
       { choiceText: "", isCorrect: false, image: null },
@@ -387,7 +393,7 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
               <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
               {/* Choices Section */}
               <div className="flex max-w-[850px] items-start gap-3">
-                <div className="mt-[6px] flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
+                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                   2
                 </div>
                 <div>
@@ -420,17 +426,13 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
 
                     {/* Input Choice */}
                     {!choice.image && (
-                      <input
-                        type="text"
-                        value={choice.choiceText}
-                        placeholder={`Option ${index + 1}`}
-                        onChange={(e) =>
-                          handleChoiceChange(
-                            index,
-                            "choiceText",
-                            e.target.value,
-                          )
-                        }
+                      <div
+                        ref={(el) => {
+                          if (el) {
+                            choiceEditors.current[index] = el;
+                          }
+                        }}
+                        contentEditable
                         className={`w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none ${choice.isFixed ? "cursor-not-allowed border-none" : ""}`}
                         onFocus={() => setFocusedChoice(index)}
                         onBlur={(e) => {
@@ -443,8 +445,15 @@ const CombinedQuestionForm = ({ subjectID, onComplete, onCancel }) => {
                             setFocusedChoice(null);
                           }
                         }}
-                        required
-                        disabled={choice.isFixed}
+                        onInput={(e) => {
+                          handleChoiceChange(
+                            index,
+                            "choiceText",
+                            e.target.innerHTML,
+                          );
+                        }}
+                        dangerouslySetInnerHTML={{ __html: choice.choiceText }}
+                        suppressContentEditableWarning={true}
                       />
                     )}
 

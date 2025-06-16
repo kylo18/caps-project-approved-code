@@ -171,7 +171,6 @@ const AssoDeanContent = () => {
       }
 
       const data = await response.json();
-      console.log("Fetched Questions:", data);
 
       // Update questions with the formatted data from backend
       setQuestions(data.data || []);
@@ -516,6 +515,7 @@ const AssoDeanContent = () => {
                         subjectID={selectedSubject.subjectID}
                         onComplete={handleQuestionAdded}
                         onCancel={() => setSubmittedQuestion(null)}
+                        activeTab={activeTab}
                       />
                     </div>
                   )}
@@ -798,17 +798,20 @@ const AssoDeanContent = () => {
                                           }`}
                                         />
 
-                                        {choice.choiceText?.trim() && (
-                                          <span
-                                            className={`w-[90%] rounded-md p-2 text-[14px] ${
-                                              choice.isCorrect
-                                                ? "font-semibold text-orange-500"
-                                                : "text-gray-700"
-                                            }`}
-                                          >
-                                            {choice.choiceText}
-                                          </span>
-                                        )}
+                                        {choice.choiceText !== null &&
+                                          choice.choiceText !== undefined &&
+                                          choice.choiceText !== "" && (
+                                            <span
+                                              className={`w-[90%] rounded-md p-2 text-[14px] ${
+                                                choice.isCorrect
+                                                  ? "font-semibold text-orange-500"
+                                                  : "text-gray-700"
+                                              }`}
+                                              dangerouslySetInnerHTML={{
+                                                __html: choice.choiceText,
+                                              }}
+                                            />
+                                          )}
 
                                         {choice.image && (
                                           <div className="relative max-w-[200px] cursor-pointer rounded-md hover:opacity-80">
@@ -937,6 +940,15 @@ const AssoDeanContent = () => {
                                     {question.status_id === 1 ? ( // 1 is pending
                                       <>
                                         <AltButton
+                                          text="Edit"
+                                          textres="Edit"
+                                          icon="bx bx-edit-alt"
+                                          className="hover:text-orange-500"
+                                          onClick={() =>
+                                            handleEditClick(question)
+                                          }
+                                        />
+                                        <AltButton
                                           text="Remove"
                                           icon="bx bx-trash"
                                           className="hover:text-red-500"
@@ -944,7 +956,6 @@ const AssoDeanContent = () => {
                                             confirmDelete(question.questionID)
                                           }
                                         />
-
                                         <AltButton
                                           text="Approve"
                                           textres="Approve"
@@ -969,7 +980,6 @@ const AssoDeanContent = () => {
                                             handleEditClick(question)
                                           }
                                         />
-
                                         <AltButton
                                           text="Copy"
                                           icon="bx bx-copy"
@@ -978,7 +988,6 @@ const AssoDeanContent = () => {
                                             handleDuplicateClick(question)
                                           }
                                         />
-
                                         <AltButton
                                           text="Remove"
                                           icon="bx bx-trash"

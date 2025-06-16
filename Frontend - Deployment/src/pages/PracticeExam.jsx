@@ -2,14 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import QuestionListModal from "../components/QuestionListModal";
-import DOMPurify from "dompurify";
-
-const sanitizeHtml = (html) => {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ["b", "i", "u", "strong", "em", "p", "br", "span"],
-    ALLOWED_ATTR: ["class", "style"],
-  });
-};
 
 const TimerCompletionModal = ({
   isOpen,
@@ -634,9 +626,7 @@ const PracticeExam = ({ closeModal }) => {
           <div
             className="text-sm leading-relaxed text-gray-800 sm:text-[15px] md:text-base"
             dangerouslySetInnerHTML={{
-              __html: sanitizeHtml(
-                examData.questions[currentQuestionIndex].questionText,
-              ),
+              __html: examData.questions[currentQuestionIndex].questionText,
             }}
           />
           {examData.questions[currentQuestionIndex].questionImage && (
@@ -675,7 +665,11 @@ const PracticeExam = ({ closeModal }) => {
                 <span
                   className={`flex items-center gap-2 text-xs sm:gap-3 sm:text-[12px] md:text-sm ${isSelected ? "text-orange-500" : "text-gray-700"}`}
                 >
-                  {choice.choiceText}
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: choice.choiceText,
+                    }}
+                  />
                   {choice.choiceImage && (
                     <img
                       src={choice.choiceImage}

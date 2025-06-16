@@ -164,8 +164,6 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         preview: true,
       };
 
-      console.log("Sending request:", requestBody);
-
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -181,7 +179,6 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
       }
 
       const data = await response.json();
-      console.log("Received response:", data);
       setPreviewData(data);
       setShowPreview(true);
     } catch (err) {

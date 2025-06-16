@@ -865,12 +865,13 @@ const UserList = () => {
                   name="position"
                   value={positionFilter}
                   onChange={(e) => setPositionFilter(e.target.value)}
-                  placeholder="Select Campus"
+                  placeholder="Select Position"
                   options={[
                     { value: "", label: "All" },
                     { value: "Student", label: "Student" },
                     { value: "Instructor", label: "Instructor" },
                     { value: "Program Chair", label: "Program Chair" },
+                    { value: "Associate Dean", label: "Associate Dean" },
                     { value: "Dean", label: "Dean" },
                   ]}
                 />
@@ -885,14 +886,14 @@ const UserList = () => {
                   name="program"
                   value={programFilter}
                   onChange={(e) => setProgramFilter(e.target.value)}
-                  placeholder="Select Campus"
+                  placeholder="Select Program"
                   options={[
                     { value: "", label: "All" },
-                    { value: "BS-CpE", label: "BS-CpE" },
-                    { value: "BS-EE", label: "BS-EE" },
-                    { value: "BS-CE", label: "BS-CE" },
-                    { value: "BS-ECE", label: "BS-ECE" },
-                    { value: "BS-ABE", label: "BS-ABE" },
+                    { value: "BSCOE", label: "BSCOE" },
+                    { value: "BSEE", label: "BSEE" },
+                    { value: "BSCE", label: "BSCE" },
+                    { value: "BSECE", label: "BSECE" },
+                    { value: "BSABE", label: "BSABE" },
                   ]}
                 />
               </div>
@@ -906,7 +907,7 @@ const UserList = () => {
                   name="state"
                   value={stateFilter}
                   onChange={(e) => setStateFilter(e.target.value)}
-                  placeholder="Select Campus"
+                  placeholder="Select Status"
                   options={[
                     { value: "", label: "All" },
                     { value: "Active", label: "Active" },
