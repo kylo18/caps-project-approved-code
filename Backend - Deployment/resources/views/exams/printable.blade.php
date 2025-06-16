@@ -206,21 +206,6 @@
         <img src="/college-logo.png.jpg" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
       </div>
 
-      <div class="student-info">
-        <div class="info-field">
-          <span class="info-label">Name:</span>
-          <span class="info-value">&nbsp;</span>
-        </div>
-        <div class="info-field">
-          <span class="info-label">Date:</span>
-          <span class="info-value">&nbsp;</span>
-        </div>
-        <div class="info-field">
-          <span class="info-label">Course & Yr:</span>
-          <span class="info-value">&nbsp;</span>
-        </div>
-      </div>
-
       @php $questionNumber = 1; @endphp 
       
       @foreach ($questionsBySubject as $subjectData)
