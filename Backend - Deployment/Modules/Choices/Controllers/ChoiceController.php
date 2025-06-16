@@ -141,7 +141,7 @@ class ChoiceController extends Controller
                 $choice->questionID = $questionID;
 
                 // Encrypt text if present
-                $choice->choiceText = isset($choiceData['choiceText']) && $choiceData['choiceText'] !== null
+                $choice->choiceText = strlen($choiceData['choiceText']) > 0
                     ? Crypt::encryptString($choiceData['choiceText'])
                     : null;
 
