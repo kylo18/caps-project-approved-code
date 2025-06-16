@@ -767,12 +767,6 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                   </div>
                 </div>
               </div>
-
-              {error && (
-                <p className="mt-7 flex justify-center text-[14px] text-red-500">
-                  {error}
-                </p>
-              )}
             </div>
           </div>
         </div>
