@@ -145,7 +145,13 @@ class QuestionController extends Controller
     {
         $subject = Subject::findOrFail($subjectID);
 
-        $questions = Question::with([
+        // Check if user is Program Chair or Associate Dean
+        $user = Auth::user();
+        $isProgramChair = $user->roleID === 3;
+        $isAssociateDean = $user->roleID === 5;
+
+        // Base query with relationships
+        $query = Question::with([
                 'subject', 
                 'choices', 
                 'user', 
@@ -161,8 +167,23 @@ class QuestionController extends Controller
                 }
             ])
             ->where('subjectID', $subjectID)
-            ->whereHas('choices')
-            ->orderBy('created_at', 'desc')
+            ->whereHas('choices');
+
+        // Apply program-based filtering for Program Chairs
+        if ($isProgramChair) {
+            $query->whereHas('user', function($q) use ($user) {
+                $q->where('programID', $user->programID);
+            });
+        }
+
+        // Apply campus-based filtering for Associate Deans
+        if ($isAssociateDean) {
+            $query->whereHas('user', function($q) use ($user) {
+                $q->where('campusID', $user->campusID);
+            });
+        }
+
+        $questions = $query->orderBy('created_at', 'desc')
             ->get()
             ->map(fn($q) => $this->formatQuestion($q));
 

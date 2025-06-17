@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Cache;
 class PrintController extends Controller
 {
     private $sessionLifetime = 3600; // 1 hour in seconds
+    private $pdfStoragePath = 'app/public/generated-exams'; // Path for storing generated PDFs
 
     private function generateUrl($path)
     {
@@ -618,116 +619,33 @@ class PrintController extends Controller
                 ], 410);
             }
 
-            // Use the stored preview data for PDF generation
-                $questionsBySubject = $storedPreviewData['questionsBySubject'];
-                $examTitle = $storedPreviewData['examTitle'];
-                $leftLogoUrl = $storedPreviewData['logos']['left'];
-                $rightLogoUrl = $storedPreviewData['logos']['right'];
+            // Generate a unique job ID
+            $jobId = Str::uuid()->toString();
 
-            // Don't clear the session data until after successful PDF generation
-            try {
-                // Increase execution time and memory limits
-                ini_set('max_execution_time', '600');
-                ini_set('memory_limit', '2G');
-                gc_enable();
+            // Store the job data in cache
+            Cache::put('pdf_generation_' . $jobId, [
+                'status' => 'pending',
+                'user_id' => Auth::id(),
+                'preview_data' => $storedPreviewData,
+                'created_at' => now()->timestamp
+            ], 3600); // Store for 1 hour
 
-                // Configure PDF with optimized settings
-                $pdf = PDF::loadView('exams.printable', [
-                    'questionsBySubject' => $questionsBySubject,
-                    'examTitle' => $examTitle,
-                    'leftLogoPath' => $leftLogoUrl,
-                    'rightLogoPath' => $rightLogoUrl
-                ]);
+            // Dispatch the PDF generation job
+            \Modules\Print\Jobs\GenerateExamPDF::dispatch($jobId, $storedPreviewData)
+                ->onQueue('pdf-generation')
+                ->delay(now()->addSeconds(2));
 
-                $pdfOptions = [
-                    'isRemoteEnabled' => true,
-                    'isPhpEnabled' => true,
-                    'isHtml5ParserEnabled' => true,
-                    'dpi' => 150,
-                    'defaultFont' => 'times',
-                    'chroot' => [
-                        public_path('storage'),
-                        public_path(),
-                        storage_path('app/public')
-                    ],
-                    'enable_remote' => true,
-                    'enable_php' => true,
-                    'enable_javascript' => false,
-                    'images' => true,
-                    'enable_html5_parser' => true,
-                    'debugPng' => false,
-                    'debugKeepTemp' => false,
-                    'logOutputFile' => storage_path('logs/pdf.log'),
-                    'fontCache' => storage_path('fonts'),
-                    'tempDir' => storage_path('app/temp'),
-                    'image_cache_enabled' => true,
-                    'defaultMediaType' => 'print',
-                    'defaultPaperSize' => 'a4',
-                    'fontHeightRatio' => 1,
-                    'isFontSubsettingEnabled' => true
-                ];
-
-                $pdf->setOptions($pdfOptions);
-                $pdf->setPaper('A4', 'portrait');
-
-                // Generate and save PDF
-                $tempPath = storage_path('app/temp-' . Str::random(16) . '.pdf');
-                
-                try {
-                    // Clear temporary files
-                    $this->clearTempFiles();
-                    
-                    // Generate PDF
-                    $pdf->save($tempPath);
-
-                    if (!file_exists($tempPath)) {
-                        throw new \Exception("Failed to generate PDF file");
-                    }
-
-                    // Generate a unique filename
-                    $filename = 'exam_' . date('Y-m-d_H-i-s') . '.pdf';
-
-                    // Set headers for immediate download
-                    $headers = [
-                        'Content-Type' => 'application/pdf',
-                        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                        'Cache-Control' => 'no-cache, private',
-                        'Pragma' => 'no-cache',
-                        'Content-Length' => filesize($tempPath),
-                        'Access-Control-Expose-Headers' => 'Content-Disposition'
-                    ];
-
-                    // Only clear the session data after successful PDF generation
+            // Clear the preview data
                     session()->forget($previewKey);
                     Cache::forget($previewKey);
                     session()->save();
 
-                    // Return the file response
-                    return response()->file($tempPath, $headers)->deleteFileAfterSend(true);
-
-                } catch (\Exception $e) {
-                    if (file_exists($tempPath)) {
-                        unlink($tempPath);
-                    }
-                    throw $e;
-                }
-
-            } catch (\Exception $e) {
-                Log::error('PDF Generation Error:', [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                    'memory_usage' => memory_get_usage(true),
-                    'peak_memory_usage' => memory_get_peak_usage(true)
-                ]);
-                
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'PDF Generation Failed',
-                    'details' => 'Unable to generate the PDF file. This might be due to large file sizes, system limitations, or memory constraints.',
-                    'code' => 'PDF_GENERATION_ERROR',
-                    'action' => 'Please try the following:\n1. Reduce the number of questions\n2. Reduce the size of images\n3. Try again in a few minutes'
-                ], 500);
-            }
+            return response()->json([
+                'status' => 'success',
+                'message' => 'PDF generation started',
+                'jobId' => $jobId,
+                'pollUrl' => route('api.print.check-status', ['jobId' => $jobId]) // Updated route name
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Multi-Subject Exam Print Error:', [
@@ -746,11 +664,56 @@ class PrintController extends Controller
     }
 
     /**
+     * Check the status of a PDF generation job
+     */
+    public function checkGenerationStatus($jobId)
+    {
+        try {
+            $jobData = Cache::get('pdf_generation_' . $jobId);
+            
+            if (!$jobData) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Job not found',
+                    'code' => 'JOB_NOT_FOUND'
+                ], 404);
+            }
+
+            if ($jobData['user_id'] !== Auth::id()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthorized access',
+                    'code' => 'UNAUTHORIZED'
+                ], 403);
+            }
+
+            return response()->json([
+                'status' => $jobData['status'],
+                'downloadUrl' => $jobData['status'] === 'completed' ? $jobData['downloadUrl'] : null,
+                'error' => $jobData['error'] ?? null
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Status Check Error:', [
+                'jobId' => $jobId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to check status',
+                'code' => 'STATUS_CHECK_ERROR'
+            ], 500);
+        }
+    }
+
+    /**
      * Clear temporary PDF files
      */
     private function clearTempFiles()
     {
         try {
+            // Clear temporary PDF files
             $tempDir = storage_path('app/temp');
             if (is_dir($tempDir)) {
                 $files = glob($tempDir . '/temp-*.pdf');
@@ -760,13 +723,41 @@ class PrintController extends Controller
                     }
                 }
             }
+
+            // Clear old generated exam PDFs
+            $examDir = storage_path($this->pdfStoragePath);
+            if (is_dir($examDir)) {
+                $files = glob($examDir . '/*.pdf');
+                foreach ($files as $file) {
+                    if (is_file($file) && time() - filemtime($file) > 86400) { // Remove files older than 24 hours
+                        unlink($file);
+                    }
+                }
+            }
         } catch (\Exception $e) {
             Log::error('Temp Files Cleanup Error:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            // Don't throw error as this is a cleanup operation
         }
+    }
+
+    private function ensureStorageDirectoryExists()
+    {
+        $examDir = storage_path($this->pdfStoragePath);
+        if (!is_dir($examDir)) {
+            mkdir($examDir, 0755, true);
+        }
+    }
+
+    private function generateUniqueFilename()
+    {
+        return 'exam_' . date('Y-m-d_H-i-s') . '_' . Str::random(8) . '.pdf';
+    }
+
+    private function getPublicUrl($filename)
+    {
+        return url('storage/generated-exams/' . $filename);
     }
 
     /**
@@ -855,6 +846,51 @@ class PrintController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return $imageUrl;
+        }
+    }
+
+    /**
+     * Download a generated exam PDF
+     */
+    public function downloadExam($filename)
+    {
+        try {
+            $filePath = storage_path($this->pdfStoragePath . '/' . $filename);
+            
+            if (!file_exists($filePath)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'File not found',
+                    'details' => 'The requested exam file does not exist or has been removed.',
+                    'code' => 'FILE_NOT_FOUND'
+                ], 404);
+            }
+
+            // Set headers for download
+            $headers = [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'no-cache, private',
+                'Pragma' => 'no-cache',
+                'Content-Length' => filesize($filePath)
+            ];
+
+            // Return the file response
+            return response()->file($filePath, $headers);
+
+        } catch (\Exception $e) {
+            Log::error('PDF Download Error:', [
+                'filename' => $filename,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Download Failed',
+                'details' => 'Unable to download the PDF file.',
+                'code' => 'DOWNLOAD_ERROR'
+            ], 500);
         }
     }
 }

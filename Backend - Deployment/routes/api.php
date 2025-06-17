@@ -40,6 +40,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user/profile', [UserController::class, 'getProfile']);
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
+
+    Route::get('/print/check-status/{jobId}', [PrintController::class, 'checkGenerationStatus'])
+        ->name('api.print.check-status'); // Changed the route name to be unique
 });
 
 /*
