@@ -1,35 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import univLogo from "../assets/univLogo.png";
 import AppVersion from "../components/appVersion";
 import collegeLogo from "/src/assets/college-logo.png";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
 
 const ForgotPasswordForm = () => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { toast, showToast } = useToast();
 
   const [email, setEmail] = useState("");
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
-
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,27 +28,22 @@ const ForgotPasswordForm = () => {
       const data = await res.json();
 
       if (!res.ok) {
-        setToast({
-          message:
-            data.message || "Something went wrong. Please try again later.",
-          type: "error",
-          show: true,
-        });
+        showToast(
+          data.message || "Something went wrong. Please try again later.",
+          "error",
+        );
         return;
       }
 
-      setToast({
-        message: data.message || "Password reset link sent successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast(
+        data.message || "Password reset link sent successfully!",
+        "success",
+      );
     } catch (error) {
-      setToast({
-        message:
-          "Unstable network connection. Please check your internet connection and try again.",
-        type: "error",
-        show: true,
-      });
+      showToast(
+        "Unstable network connection. Please check your internet connection and try again.",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
@@ -73,31 +51,7 @@ const ForgotPasswordForm = () => {
 
   return (
     <>
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-            toast.show ? "opacity-100" : "opacity-0"
-          } ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-x-circle text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-gray-600">{toast.message}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
       <div className="relative hidden min-h-screen w-full bg-[url('/login-bg.png')] bg-cover bg-center bg-no-repeat lg:block">
         {/* Left Section */}
         <div className="flex min-h-screen flex-row">
@@ -197,7 +151,7 @@ const ForgotPasswordForm = () => {
                     >
                       {loading ? (
                         <div className="flex items-center justify-center">
-                          <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                          <span className="loader-white"></span>
                         </div>
                       ) : (
                         "Send Reset Link"
@@ -214,7 +168,12 @@ const ForgotPasswordForm = () => {
                   </p>
                   <span className="mx-2 text-xs text-gray-400">
                     Developed by{" "}
-                    <span className="text-orange-500">Team Caps</span>
+                    <span
+                      onClick={() => navigate("/team-caps")}
+                      className="cursor-pointer text-orange-500 hover:underline"
+                    >
+                      Team Caps
+                    </span>
                   </span>
                 </form>
               </div>
@@ -331,7 +290,7 @@ const ForgotPasswordForm = () => {
             >
               {loading ? (
                 <div className="flex items-center justify-center">
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  <span className="loader-white"></span>
                 </div>
               ) : (
                 "Send Reset Link"
@@ -357,7 +316,13 @@ const ForgotPasswordForm = () => {
           </div>
 
           <span className="mx-2 mt-3 text-xs text-gray-400">
-            Developed by <span className="text-orange-500">Team Caps</span>
+            Developed by{" "}
+            <span
+              onClick={() => navigate("/team-caps")}
+              className="cursor-pointer text-orange-500 hover:underline"
+            >
+              Team Caps
+            </span>
           </span>
         </div>
       </div>

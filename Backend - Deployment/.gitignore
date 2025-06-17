@@ -3,8 +3,16 @@
 /public/build
 /public/hot
 /public/storage
+!/public/storage/.gitkeep
 /storage/*.key
 /storage/pail
+
+# Allow tracking of storage/app/imports
+!/storage/app/
+!/storage/app/imports/
+!/storage/app/imports/**
+!/storage/app/imports/*.csv
+
 /vendor
 .env
 .env.backup
@@ -21,3 +29,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+!/public/storage/csv/
+!/public/storage/csv/**

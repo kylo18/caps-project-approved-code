@@ -106,7 +106,7 @@
         <form id="registerForm">
             <div class="input-group">
                 <label for="userCode">User Code:</label>
-                <input type="text" id="userCode" name="userCode" required>
+                <input type="text" id="registerUserCode" name="userCode" required>
             </div>
 
             <div class="input-group">

@@ -23,7 +23,7 @@ class QuestionController extends Controller
     // Store a new question into the database
     public function store(Request $request)
     {
-        $this->authorizeRoles([2, 3, 4]);
+        $this->authorizeRoles([2, 3, 4, 5]);
 
         $validated = $request->validate([
             'subjectID' => 'required|exists:subjects,subjectID',
@@ -145,7 +145,13 @@ class QuestionController extends Controller
     {
         $subject = Subject::findOrFail($subjectID);
 
-        $questions = Question::with([
+        // Check if user is Program Chair or Associate Dean
+        $user = Auth::user();
+        $isProgramChair = $user->roleID === 3;
+        $isAssociateDean = $user->roleID === 5;
+
+        // Base query with relationships
+        $query = Question::with([
                 'subject', 
                 'choices', 
                 'user', 
@@ -161,8 +167,23 @@ class QuestionController extends Controller
                 }
             ])
             ->where('subjectID', $subjectID)
-            ->whereHas('choices')
-            ->orderBy('created_at', 'desc')
+            ->whereHas('choices');
+
+        // Apply program-based filtering for Program Chairs
+        if ($isProgramChair) {
+            $query->whereHas('user', function($q) use ($user) {
+                $q->where('programID', $user->programID);
+            });
+        }
+
+        // Apply campus-based filtering for Associate Deans
+        if ($isAssociateDean) {
+            $query->whereHas('user', function($q) use ($user) {
+                $q->where('campusID', $user->campusID);
+            });
+        }
+
+        $questions = $query->orderBy('created_at', 'desc')
             ->get()
             ->map(fn($q) => $this->formatQuestion($q));
 
@@ -178,7 +199,7 @@ class QuestionController extends Controller
     // Delete a specific question
     public function destroy($questionID)
     {
-        $this->authorizeRoles([2, 3, 4]);
+        $this->authorizeRoles([2, 3, 4, 5]);
 
         $question = Question::find($questionID);
         if (!$question) {
@@ -223,7 +244,7 @@ class QuestionController extends Controller
     // Approve a question if it's pending and not edited by the current user
     public function updateStatus($questionID)
     {
-        $this->authorizeRoles([3, 4]);
+        $this->authorizeRoles([3, 4, 5]);
 
         $question = Question::find($questionID);
         if (!$question) {
@@ -240,7 +261,7 @@ class QuestionController extends Controller
 
         // Check if the current user is the creator and the question hasn't been edited yet
         if (Auth::id() === $question->userID && !$question->editedBy) {
-            return response()->json(['message' => 'You cannot approve your own question until it has been edited by someone else.'], 403);
+            return response()->json(['message' => 'You cannot approve your own question.'], 403);
         }
 
         // Check if the current user is the one who last edited the question
@@ -303,7 +324,7 @@ class QuestionController extends Controller
      */
     public function duplicate(Request $request, $questionID)
     {
-        $this->authorizeRoles([2, 3, 4]);
+        $this->authorizeRoles([2, 3, 4, 5]);
 
         try {
             // Validate optional modifications
@@ -522,7 +543,7 @@ class QuestionController extends Controller
      */
     public function previewAllQuestions(Request $request)
     {
-        $this->authorizeRoles([2, 3, 4]); // Only faculty, program chair, and dean
+        $this->authorizeRoles([2, 3, 4, 5]); // Only faculty, program chair, and dean
 
         try {
             $query = Question::with([

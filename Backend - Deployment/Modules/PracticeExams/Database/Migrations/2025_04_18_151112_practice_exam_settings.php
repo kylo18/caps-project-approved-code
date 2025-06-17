@@ -20,6 +20,7 @@ return new class extends Migration
             $table->integer('easy_percentage')->default(30);
             $table->integer('moderate_percentage')->default(50);
             $table->integer('hard_percentage')->default(20);
+            $table->integer('total_items')->default(100);
             $table->unsignedBigInteger('createdBy');
             $table->timestamps();
 
@@ -33,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        Schema::dropIfExists('practice_exam_settings');
     }
 };

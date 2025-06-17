@@ -12,7 +12,7 @@ class PracticeExamSettingController extends Controller
 {
     /**
      * Store or update practice exam settings for a subject.
-     * Accessible only by Program Chair (roleID 3) or Dean (roleID 4).
+     * Accessible only by Program Chair (roleID 3) or Dean (roleID 4) or Associate Dean (roleID 5).
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -22,20 +22,22 @@ class PracticeExamSettingController extends Controller
         try {
             $user = Auth::user();
 
-            // Authorization check: Only Program Chair or Dean allowed
-            if (!in_array($user->roleID, [3, 4])) {
+            // Authorization check: Only Program Chair, Dean, or Associate Dean allowed
+            if (!in_array($user->roleID, [3, 4, 5])) {
                 return response()->json(['message' => 'Unauthorized.'], 403);
             }
 
             // Validate incoming request
             $validated = $request->validate([
                 'subjectID' => 'required|exists:subjects,subjectID',
+                'isEnabled' => 'required|boolean',
                 'enableTimer' => 'required|boolean',
                 'duration_minutes' => 'nullable|integer|max:240',
                 'coverage' => 'required|in:midterm,final,full',
                 'easy_percentage' => 'required|integer|min:0|max:100',
                 'moderate_percentage' => 'required|integer|min:0|max:100',
                 'hard_percentage' => 'required|integer|min:0|max:100',
+                'total_items' => 'required|integer|min:1|max:100',
             ]);
 
             // Ensure difficulty percentages total exactly 100
@@ -105,3 +107,4 @@ class PracticeExamSettingController extends Controller
         }
     }
 }
+    

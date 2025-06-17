@@ -5,16 +5,21 @@ import Layout from "./components/layout";
 import ProtectedRoute from "./components/protectRoute";
 import TutorialLayout from "./components/TutorialLayout";
 
+import Credits from "./pages/Credits";
+
 import StudentDashboard from "./pages/StudentDashboard";
 import FacultyDashboard from "./pages/FacultyDashboard";
 import ProgramChairDashboard from "./pages/ProgramChairDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import AssoDeanDashboard from "./pages/AssoDeanDashboard";
 
 import Users from "./pages/Users";
 
 import AdminContent from "./pages/AdminContent";
 import ProgramChairContent from "./pages/ProgramChairContent";
 import FacultyContent from "./pages/FacultyContent";
+import AssoDeanContent from "./pages/AssoDeanContent";
+
 import PracticeExamResults from "./pages/PracticeExamResults";
 import PracticeExam from "./pages/PracticeExam";
 
@@ -34,6 +39,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+        <Route path="/team-caps" element={<Credits />} />
 
         <Route path="/help" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<TutorialLayout />} />
@@ -109,6 +115,22 @@ function App() {
         </Route>
 
         <Route
+          path="/asso-dean/subjects"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AssoDeanContent />} />
+          <Route path="content" element={<AssoDeanContent />} />
+        </Route>
+
+        <Route
+          path="/asso-dean-dashboard"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AssoDeanDashboard />} />
+          <Route path="dashboard" element={<AssoDeanDashboard />} />
+        </Route>
+
+        <Route
           path="/dean/subjects"
           element={<ProtectedRoute element={<Layout />} />}
         >
@@ -117,7 +139,7 @@ function App() {
         </Route>
 
         <Route
-          path="/admin-dashboard"
+          path="/dean-dashboard"
           element={<ProtectedRoute element={<Layout />} />}
         >
           <Route index element={<AdminDashboard />} />

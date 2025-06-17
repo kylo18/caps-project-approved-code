@@ -6,7 +6,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, message, isLoading }) => {
 
   return (
     <div className="bg-opacity-50 lightbox-bg fixed inset-0 z-57 flex items-center justify-center">
-      <div className="w-full max-w-md rounded-md bg-white shadow-lg">
+      <div className="w-full max-w-sm rounded-md bg-white shadow-lg sm:max-w-md">
         {/* Yellow top border */}
         <div className="h-2 w-full rounded-t-md bg-[rgb(249,115,22)]" />
         <div className="flex flex-row items-center gap-6 px-6 py-6">
@@ -75,7 +75,9 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, message, isLoading }) => {
             disabled={isLoading}
           >
             {isLoading ? (
-              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+              <div className="flex items-center justify-center">
+                <span className="loader-white"></span>
+              </div>
             ) : (
               <span className="inline text-[14px]">Confirm</span>
             )}

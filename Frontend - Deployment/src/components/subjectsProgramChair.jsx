@@ -5,6 +5,8 @@ import SideBarToolTip from "./sidebarTooltip";
 import { Tooltip } from "flowbite-react";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import { createPortal } from "react-dom";
+import Toast from "./Toast";
+import useToast from "../hooks/useToast";
 
 const SideBarDropDown = ({
   item,
@@ -26,6 +28,7 @@ const SideBarDropDown = ({
   const navigate = useNavigate();
   const [openMenuID, setOpenMenuID] = useState(null);
   const [subjectLoading, setSubjectLoading] = useState(false);
+  const { toast, showToast } = useToast();
 
   const [editingSubject, setEditingSubject] = useState(null);
   const [editedSubject, setEditedSubject] = useState({
@@ -68,27 +71,6 @@ const SideBarDropDown = ({
     });
   };
 
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
-
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
-
   const handleSaveEdit = async (subjectID) => {
     const token = localStorage.getItem("token");
 
@@ -103,7 +85,6 @@ const SideBarDropDown = ({
         yearLevelID: String(editedSubject.yearLevelID),
       };
 
-      console.log("Sending update data:", updateData);
 
       const response = await fetch(`${apiUrl}/subjects/${subjectID}/update`, {
         method: "PUT",
@@ -121,7 +102,6 @@ const SideBarDropDown = ({
       }
 
       const result = await response.json();
-      console.log("Update response:", result);
 
       if (response.ok) {
         // Update the subjects list with the new data including relationships
@@ -145,68 +125,45 @@ const SideBarDropDown = ({
         setOpenMenuID(null);
         setSelectedSubject(null);
 
-        setToast({
-          message: result.message || "Subject updated successfully",
-          type: "success",
-          show: true,
-        });
+        showToast(result.message || "Subject updated successfully", "success");
       } else {
         // Handle different error cases
         switch (response.status) {
           case 401:
-            setToast({
-              message: "You are not authenticated. Please log in again.",
-              type: "error",
-              show: true,
-            });
+            showToast(
+              "You are not authenticated. Please log in again.",
+              "error",
+            );
             break;
           case 403:
-            setToast({
-              message: "You are not authorized to modify subjects.",
-              type: "error",
-              show: true,
-            });
+            showToast("You are not authorized to modify subjects.", "error");
             break;
           case 404:
-            setToast({
-              message: "Subject not found.",
-              type: "error",
-              show: true,
-            });
+            showToast("Subject not found.", "error");
             break;
           case 409:
-            setToast({
-              message:
-                result.message ||
-                "A subject with these details already exists.",
-              type: "error",
-              show: true,
-            });
+            showToast(
+              result.message || "A subject with these details already exists.",
+              "error",
+            );
             break;
           case 500:
             console.error("Server error details:", result);
-            setToast({
-              message:
-                "An error occurred while updating the subject. Please try again.",
-              type: "error",
-              show: true,
-            });
+            showToast(
+              "An error occurred while updating the subject. Please try again.",
+              "error",
+            );
             break;
           default:
-            setToast({
-              message: result.message || "Failed to update subject.",
-              type: "error",
-              show: true,
-            });
+            showToast(result.message || "Failed to update subject.", "error");
         }
       }
     } catch (error) {
       console.error("Error updating subject:", error);
-      setToast({
-        message: "An unexpected error occurred while connecting to the server.",
-        type: "error",
-        show: true,
-      });
+      showToast(
+        "An unexpected error occurred while connecting to the server.",
+        "error",
+      );
     } finally {
       setIsEditing(false);
       setEditingSubject(null);
@@ -298,11 +255,7 @@ const SideBarDropDown = ({
       setFilteredSubjects(sortedSubjects);
     } catch (error) {
       console.error("Error fetching subjects:", error);
-      setToast({
-        message: error.message || "Failed to fetch subjects",
-        type: "error",
-        show: true,
-      });
+      showToast(error.message || "Failed to fetch subjects", "error");
     } finally {
       setSubjectLoading(false);
     }
@@ -343,39 +296,23 @@ const SideBarDropDown = ({
         setSelectedProgramID("");
         setSelectedYearLevelID("");
 
-        setToast({
-          message: "Subject added successfully",
-          type: "success",
-          show: true,
-        });
+        showToast("Subject added successfully", "success");
       } else {
         // Handle specific error if subject already exists
         if (result.message && result.message.includes("already exists")) {
-          setToast({
-            message: "Subject already exists",
-            type: "error",
-            show: true,
-          });
+          showToast("Subject already exists", "error");
         } else {
           // General error case
           console.error(
             "Failed to add subject:",
             result.message || "Unknown error",
           );
-          setToast({
-            message: "Failed to add subject",
-            type: "error",
-            show: true,
-          });
+          showToast("Failed to add subject", "error");
         }
       }
     } catch (error) {
       console.error("Error adding subject:", error);
-      setToast({
-        message: "An error occurred while adding subject",
-        type: "error",
-        show: true,
-      });
+      showToast("An error occurred while adding subject", "error");
     } finally {
       setIsAdding(false);
     }
@@ -543,12 +480,11 @@ const SideBarDropDown = ({
           className={`scrollbar-show-on-hover mx-auto mt-2 w-full flex-grow pr-2 text-[14px] font-semibold text-gray-700 transition-all duration-100 ease-in-out ${!isExpanded ? "hidden" : ""}`}
         >
           {subjectLoading ? (
-            <li className="animate-pulse p-2 text-center text-[14px] text-[rgb(168,168,168)]">
-              <div className="flex items-center justify-center">
-                <span>Loading</span>
-                <div className="ml-2 size-4 animate-spin rounded-full border-3 border-t-transparent"></div>
+            <div className="flex h-[300px] items-start justify-center">
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <div className="loader"></div>
               </div>
-            </li>
+            </div>
           ) : searchTerm.trim() ? (
             // Show filtered subjects when searching
             filteredSubjects.map((subject) => (
@@ -650,7 +586,7 @@ const SideBarDropDown = ({
             />
             {/* Mobile Modal */}
             <div
-              className="lightbox-bg fixed inset-0 z-55 flex items-center justify-center p-5 sm:hidden"
+              className="lightbox-bg fixed inset-0 z-55 flex items-end justify-center min-[448px]:items-center sm:hidden"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowYearSubjects(false);
@@ -658,7 +594,7 @@ const SideBarDropDown = ({
               }}
             >
               <div
-                className="max-h-[90vh] w-full max-w-sm rounded-lg bg-white shadow-lg"
+                className="max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-lg min-[448px]:rounded-md"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
@@ -1008,11 +944,7 @@ const SideBarDropDown = ({
                   setEditingSubject(null);
                 }}
               >
-                {isEditing ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                ) : (
-                  "Update"
-                )}
+                {isEditing ? <span className="loader-white"></span> : "Update"}
               </button>
             </div>
           </div>
@@ -1093,15 +1025,11 @@ const SideBarDropDown = ({
                   await handleDeleteSubject(subjectToDelete.subjectID);
                   setShowDeleteModal(false);
                   setSubjectToDelete(null);
-                  setToast({
-                    message: "Subject deleted successfully",
-                    type: "success",
-                    show: true,
-                  });
+                  showToast("Subject deleted successfully", "success");
                 }}
               >
                 {isDeleting ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  <span className="loader-white"></span>
                 ) : (
                   <span className="inline text-[14px]">Confirm</span>
                 )}
@@ -1111,33 +1039,7 @@ const SideBarDropDown = ({
         </div>
       )}
 
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-            toast.show ? "opacity-100" : "opacity-0"
-          } ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-x-circle text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-nowrap text-gray-600">
-                {toast.message}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>
   );
 };

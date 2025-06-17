@@ -22,6 +22,7 @@ class RolesTableSeeder extends Seeder
             ['roleName' => 'Instructor'],
             ['roleName' => 'Program Chair'],
             ['roleName' => 'Dean'],
+            ['roleName' => 'Associate Dean'],
         ]);
 
         // Enable foreign key checks again

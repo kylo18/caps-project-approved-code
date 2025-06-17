@@ -13,12 +13,12 @@ class FacultySubjectController extends Controller
 {
     /**
      * Check if the authenticated user has one of the allowed roles.
-     * Allowed roles: Instructor (2), Program Chair (3), Dean (4).
+     * Allowed roles: Instructor (2), Program Chair (3), Dean (4), Associate Dean (5).
      *
      * @param array $roles
      * @return \Illuminate\Http\JsonResponse|\Illuminate\Contracts\Auth\Authenticatable|null
      */
-    private function checkUserRole($roles = [2, 3, 4])
+    private function checkUserRole($roles = [2, 3, 4, 5])
     {
         $user = Auth::user();
 

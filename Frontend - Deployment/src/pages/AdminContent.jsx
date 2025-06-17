@@ -10,8 +10,10 @@ import Sort from "../components/sort";
 import SearchQuery from "../components/SearchQuery";
 import Button from "../components/button";
 import ScrollToTopButton from "../components/scrollToTopButton";
-import LoadingOverlay from "../components/loadingOverlay";
 import SortCustomDropdown from "../components/sortCustomDropdown";
+import PracticeExamConfig from "../components/practiceExamConfig";
+import Toast from "../components/Toast";
+import useToast from "../hooks/useToast";
 
 // Main admin dashboard component for managing questions and subjects
 const AdminContent = () => {
@@ -70,31 +72,14 @@ const AdminContent = () => {
   // State for question addition
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
 
-  // State for toast notifications
-  const [toast, setToast] = useState({
-    message: "",
-    type: "",
-    show: false,
-  });
+  // Use the toast hook
+  const { toast, showToast } = useToast();
 
   // State for question duplication
   const [duplicatingQuestion, setDuplicatingQuestion] = useState(null);
 
-  // Effect to handle toast auto-dismiss
-  useEffect(() => {
-    if (toast.message) {
-      setToast((prev) => ({ ...prev, show: true }));
-
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, show: false }));
-        setTimeout(() => {
-          setToast({ message: "", type: "", show: false });
-        }, 500);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.message]);
+  // State for loading
+  const [isLoading, setIsLoading] = useState(true);
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -113,11 +98,7 @@ const AdminContent = () => {
   const handleQuestionAdded = () => {
     setSubmittedQuestion(null);
     fetchQuestions();
-    setToast({
-      message: "Question is now pending for approval!",
-      type: "success",
-      show: true,
-    });
+    showToast("Question is now pending for approval!", "success");
   };
 
   // Function to handle question editing
@@ -129,18 +110,13 @@ const AdminContent = () => {
   const handleEditComplete = () => {
     setEditingQuestion(null);
     fetchQuestions();
-    setToast({
-      message: "Question is now pending for approval!",
-      type: "success",
-      show: true,
-    });
+    showToast("Question is now pending for approval!", "success");
   };
 
   // Function to handle question deletion
   const handleDeleteQuestion = async (questionID) => {
     try {
       const token = localStorage.getItem("token");
-      setShowConfirmModal(false);
       setIsDeleting(true);
       const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
         method: "DELETE",
@@ -157,15 +133,13 @@ const AdminContent = () => {
         prevQuestions.filter((question) => question.questionID !== questionID),
       );
       setDeleteQuestionID(null);
-      setToast({
-        message: "Question deleted successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("Question deleted successfully!", "success");
     } catch (error) {
       console.error("Error deleting question:", error);
+      showToast("Failed to delete question", "error");
     } finally {
       setIsDeleting(false);
+      setShowConfirmModal(false);
     }
   };
 
@@ -199,17 +173,12 @@ const AdminContent = () => {
       }
 
       const data = await response.json();
-      console.log("Fetched Questions:", data);
 
       // Update questions with the formatted data from backend
       setQuestions(data.data || []);
     } catch (error) {
       console.error("Error fetching questions:", error);
-      setToast({
-        message: "Failed to fetch questions. Please try again.",
-        type: "error",
-        show: true,
-      });
+      showToast("Failed to fetch questions. Please try again.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -283,14 +252,6 @@ const AdminContent = () => {
     setShowConfirmModal(true);
   };
 
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-  }, []);
-
   useEffect(() => {
     if (submittedQuestion && formRef.current) {
       formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -318,21 +279,16 @@ const AdminContent = () => {
       }
 
       fetchQuestions();
-      setToast({
-        message: "Question approved successfully!",
-        type: "success",
-        show: true,
-      });
+      showToast("Question approved successfully!", "success");
     } catch (error) {
       console.error("Error approving question:", error);
-      setToast({
-        message:
-          error.message || "An error occurred while approving the question.",
-        type: "error",
-        show: true,
-      });
+      showToast(
+        error.message || "An error occurred while approving the question.",
+        "error",
+      );
     } finally {
       setIsApproving(false);
+      setShowApproveModal(false);
     }
   };
 
@@ -376,11 +332,10 @@ const AdminContent = () => {
   const handleDuplicateComplete = () => {
     setDuplicatingQuestion(null);
     fetchQuestions();
-    setToast({
-      message: "Question copied successfully! now waiting for approval",
-      type: "success",
-      show: true,
-    });
+    showToast(
+      "Question copied successfully! now waiting for approval",
+      "success",
+    );
   };
 
   return (
@@ -405,101 +360,120 @@ const AdminContent = () => {
             </div>
             {/*Search bar div here*/}
             <div className="mt-2 mb-4 flex flex-col justify-end gap-[5.5px] sm:flex-row">
-              <SearchQuery
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-              />
-              <div className="flex items-center justify-end">
-                {activeTab === 4 && (
-                  <SortCustomDropdown
-                    name="pendingSort"
-                    value={pendingSort}
-                    onChange={(e) => setPendingSort(e.target.value)}
-                    placeholder="Filter by Type"
-                    options={[
-                      { value: "", label: "All Types" },
-                      {
-                        value: "practiceQuestions",
-                        label: "Practice  ",
-                      },
-                      { value: "examQuestions", label: "Qualifying Exam " },
-                    ]}
-                    className="w-full sm:w-35"
+              {isLoading ? (
+                <>
+                  <div className="flex w-full justify-start">
+                    <div className="h-10 w-full animate-pulse rounded-md bg-gray-200 sm:w-64"></div>
+                  </div>
+                  <div className="hidden items-center justify-start sm:flex sm:justify-end">
+                    {activeTab === 4 && (
+                      <div className="h-10 w-32 animate-pulse rounded-md bg-gray-200"></div>
+                    )}
+                  </div>
+                  <div className="flex flex-row items-center justify-between gap-2 sm:justify-center">
+                    <div className="h-10 w-32 animate-pulse rounded-md bg-gray-200"></div>
+                    <div className="h-10 w-32 animate-pulse rounded-md bg-gray-200"></div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <SearchQuery
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
                   />
-                )}
-              </div>
+                  <div className="flex items-center justify-end">
+                    {activeTab === 4 && (
+                      <SortCustomDropdown
+                        name="pendingSort"
+                        value={pendingSort}
+                        onChange={(e) => setPendingSort(e.target.value)}
+                        placeholder="Filter by Type"
+                        options={[
+                          { value: "", label: "All Types" },
+                          {
+                            value: "practiceQuestions",
+                            label: "Practice  ",
+                          },
+                          { value: "examQuestions", label: "Qualifying Exam " },
+                        ]}
+                        className="w-full sm:w-35"
+                      />
+                    )}
+                  </div>
 
-              <div className="flex flex-row items-center justify-center gap-2">
-                <span className="text-[14px] text-nowrap text-gray-700 sm:ml-10">
-                  Sort by
-                </span>
-                {/* Sort - takes 1/2 width on small screens */}
-                <div className="-mr-8 w-full sm:w-auto sm:flex-1">
-                  <Sort
-                    sortOption={sortOption}
-                    setSortOption={setSortOption}
-                    subSortOption={subSortOption}
-                    setSubSortOption={setSubSortOption}
-                  />
-                </div>
-
-                {/* View Button - takes 1/2 width on small screens */}
-                <div
-                  ref={dropdownRef}
-                  className="relative w-full text-left sm:w-auto sm:flex-1"
-                >
-                  <button
-                    ref={buttonRef}
-                    onClick={() => setDropdownOpen((prev) => !prev)}
-                    className="border-color flex w-full cursor-pointer items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100 sm:w-auto"
-                  >
-                    <span className="mr-5 text-[14px]">View</span>
-                    <i
-                      className={`bx absolute right-2 text-[18px] transition-transform duration-200 ${
-                        dropdownOpen
-                          ? "bx-chevron-down rotate-180"
-                          : "bx-chevron-down rotate-0"
-                      }`}
-                      style={{ marginLeft: "auto" }}
-                    />
-                  </button>
-
-                  {dropdownOpen && (
-                    <div className="open-sans border-color absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm">
-                      <button
-                        onClick={() => {
-                          setListViewOnly(true);
-                          setExpandedQuestionId(null);
-                          setDropdownOpen(false);
-                        }}
-                        className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
-                          listViewOnly
-                            ? "text-orange-500 hover:bg-gray-200"
-                            : "text-black hover:bg-gray-200"
-                        }`}
-                      >
-                        <i className="bx bx-list-ul text-[18px]" />
-                        <span>List View</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setListViewOnly(false);
-                          setExpandedQuestionId(null);
-                          setDropdownOpen(false);
-                        }}
-                        className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
-                          !listViewOnly
-                            ? "text-orange-500 hover:bg-gray-200"
-                            : "text-black hover:bg-gray-200"
-                        }`}
-                      >
-                        <i className="bx bx-list-ul-square text-[18px]" />
-                        <span>Detailed View</span>
-                      </button>
+                  <div className="flex flex-row items-center justify-center gap-2">
+                    <span className="text-[14px] text-nowrap text-gray-700 sm:ml-10">
+                      Sort by
+                    </span>
+                    {/* Sort - takes 1/2 width on small screens */}
+                    <div className="-mr-8 w-full sm:w-auto sm:flex-1">
+                      <Sort
+                        sortOption={sortOption}
+                        setSortOption={setSortOption}
+                        subSortOption={subSortOption}
+                        setSubSortOption={setSubSortOption}
+                      />
                     </div>
-                  )}
-                </div>
-              </div>
+
+                    {/* View Button - takes 1/2 width on small screens */}
+                    <div
+                      ref={dropdownRef}
+                      className="relative w-full text-left sm:w-auto sm:flex-1"
+                    >
+                      <button
+                        ref={buttonRef}
+                        onClick={() => setDropdownOpen((prev) => !prev)}
+                        className="border-color flex w-full cursor-pointer items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100 sm:w-auto"
+                      >
+                        <span className="mr-5 text-[14px]">View</span>
+                        <i
+                          className={`bx absolute right-2 text-[18px] transition-transform duration-200 ${
+                            dropdownOpen
+                              ? "bx-chevron-down rotate-180"
+                              : "bx-chevron-down rotate-0"
+                          }`}
+                          style={{ marginLeft: "auto" }}
+                        />
+                      </button>
+
+                      {dropdownOpen && (
+                        <div className="open-sans border-color absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm">
+                          <button
+                            onClick={() => {
+                              setListViewOnly(true);
+                              setExpandedQuestionId(null);
+                              setDropdownOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
+                              listViewOnly
+                                ? "text-orange-500 hover:bg-gray-200"
+                                : "text-black hover:bg-gray-200"
+                            }`}
+                          >
+                            <i className="bx bx-list-ul text-[18px]" />
+                            <span>List View</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setListViewOnly(false);
+                              setExpandedQuestionId(null);
+                              setDropdownOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition ${
+                              !listViewOnly
+                                ? "text-orange-500 hover:bg-gray-200"
+                                : "text-black hover:bg-gray-200"
+                            }`}
+                          >
+                            <i className="bx bx-list-ul-square text-[18px]" />
+                            <span>Detailed View</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Add Question Section */}
@@ -543,6 +517,7 @@ const AdminContent = () => {
                         subjectID={selectedSubject.subjectID}
                         onComplete={handleQuestionAdded}
                         onCancel={() => setSubmittedQuestion(null)}
+                        activeTab={activeTab}
                       />
                     </div>
                   )}
@@ -554,7 +529,73 @@ const AdminContent = () => {
             {(activeTab === 0 || activeTab === 1 || activeTab === 4) && (
               <div className="flex">
                 <div className="flex-1">
-                  {filteredQuestions.length > 0 ? (
+                  {isLoading ? (
+                    <div className="flex flex-col gap-2">
+                      {[1, 2, 3].map((index) => (
+                        <div
+                          key={index}
+                          className="relative mx-auto w-full max-w-3xl rounded-md border border-[rgb(200,200,200)] bg-white p-4 shadow-md sm:px-4"
+                        >
+                          {/* Question header skeleton */}
+                          <div className="flex items-center justify-between text-[14px] text-gray-500">
+                            <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                            <div className="flex items-center gap-2">
+                              <div className="h-4 w-16 animate-pulse rounded bg-gray-200"></div>
+                              <div className="h-4 w-4 animate-pulse rounded-full bg-gray-200"></div>
+                              <div className="h-4 w-16 animate-pulse rounded bg-gray-200"></div>
+                              <div className="h-4 w-12 animate-pulse rounded bg-gray-200"></div>
+                            </div>
+                          </div>
+
+                          {/* Question text skeleton */}
+                          <div className="mt-4 space-y-2">
+                            <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200"></div>
+                            <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200"></div>
+                          </div>
+
+                          {/* Choices skeleton */}
+                          <div className="mt-3 space-y-3 p-3">
+                            {[1, 2, 3, 4].map((choiceIndex) => (
+                              <div
+                                key={choiceIndex}
+                                className="flex items-center space-x-2"
+                              >
+                                <div className="h-5 w-5 animate-pulse rounded-full bg-gray-200"></div>
+                                <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200"></div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Divider */}
+                          <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+
+                          {/* Metadata skeleton */}
+                          <div className="ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex">
+                                <div className="h-4 w-[100px] animate-pulse rounded bg-gray-200"></div>
+                                <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+                              </div>
+                              <div className="flex">
+                                <div className="h-4 w-[100px] animate-pulse rounded bg-gray-200"></div>
+                                <div className="h-4 w-40 animate-pulse rounded bg-gray-200"></div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex">
+                                <div className="h-4 w-[100px] animate-pulse rounded bg-gray-200"></div>
+                                <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+                              </div>
+                              <div className="flex">
+                                <div className="h-4 w-[100px] animate-pulse rounded bg-gray-200"></div>
+                                <div className="h-4 w-40 animate-pulse rounded bg-gray-200"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : filteredQuestions.length > 0 ? (
                     <>
                       <div className="border-color relative mx-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-t-md border border-b-0 bg-white">
                         <div className="flex items-center gap-2">
@@ -754,21 +795,25 @@ const AdminContent = () => {
                                           readOnly
                                           className={`size-5 cursor-not-allowed focus:ring-0 ${
                                             choice.isCorrect
-                                              ? "border-orange-500 text-orange-500"
-                                              : "border-gray-300 text-gray-500"
+                                              ? "border-orange-500"
+                                              : "border-gray-300"
                                           }`}
+                                          style={{
+                                            accentColor: "#f97316",
+                                          }}
                                         />
 
-                                        {choice.choiceText?.trim() && (
+                                        {choice.choiceText !== null && (
                                           <span
                                             className={`w-[90%] rounded-md p-2 text-[14px] ${
                                               choice.isCorrect
                                                 ? "font-semibold text-orange-500"
                                                 : "text-gray-700"
                                             }`}
-                                          >
-                                            {choice.choiceText}
-                                          </span>
+                                            dangerouslySetInnerHTML={{
+                                              __html: choice.choiceText,
+                                            }}
+                                          />
                                         )}
 
                                         {choice.image && (
@@ -898,6 +943,15 @@ const AdminContent = () => {
                                     {question.status_id === 1 ? ( // 1 is pending
                                       <>
                                         <AltButton
+                                          text="Edit"
+                                          textres="Edit"
+                                          icon="bx bx-edit-alt"
+                                          className="hover:text-orange-500"
+                                          onClick={() =>
+                                            handleEditClick(question)
+                                          }
+                                        />
+                                        <AltButton
                                           text="Remove"
                                           icon="bx bx-trash"
                                           className="hover:text-red-500"
@@ -905,7 +959,6 @@ const AdminContent = () => {
                                             confirmDelete(question.questionID)
                                           }
                                         />
-
                                         <AltButton
                                           text="Approve"
                                           textres="Approve"
@@ -991,18 +1044,15 @@ const AdminContent = () => {
           </p>
         )}
 
-        {isDeleting && <LoadingOverlay show={isDeleting} />}
-        {isApproving && <LoadingOverlay show={isApproving} />}
-
         {/* Confirmation Modals */}
         <ConfirmModal
           isOpen={showApproveModal}
           onClose={() => setShowApproveModal(false)}
           onConfirm={() => {
             approveQuestion(selectedQuestionID);
-            setShowApproveModal(false);
           }}
           message="Are you sure you want to approve this question?"
+          isLoading={isApproving}
         />
 
         <ConfirmModal
@@ -1010,6 +1060,7 @@ const AdminContent = () => {
           onClose={() => setShowConfirmModal(false)}
           onConfirm={() => handleDeleteQuestion(deleteQuestionID)}
           message="Are you sure you want to delete this question?"
+          isLoading={isDeleting}
         />
 
         {/* Image Modal (Full Size) */}
@@ -1057,33 +1108,7 @@ const AdminContent = () => {
         )}
         <ScrollToTopButton />
       </div>
-      {toast.message && (
-        <div
-          className={`fixed top-6 left-1/2 z-56 mx-auto flex max-w-md -translate-x-1/2 transform items-center justify-between rounded border border-l-4 bg-white px-4 py-2 shadow-md transition-opacity duration-1000 ease-in-out ${
-            toast.show ? "opacity-100" : "opacity-0"
-          } ${
-            toast.type === "success" ? "border-green-400" : "border-red-400"
-          }`}
-        >
-          <div className="flex items-center">
-            <i
-              className={`mr-3 text-[24px] ${
-                toast.type === "success"
-                  ? "bx bxs-check-circle text-green-400"
-                  : "bx bxs-x-circle text-red-400"
-              }`}
-            ></i>
-            <div>
-              <p className="font-semibold text-gray-800">
-                {toast.type === "success" ? "Success" : "Error"}
-              </p>
-              <p className="mb-1 text-sm text-nowrap text-gray-600">
-                {toast.message}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>
   );
 };

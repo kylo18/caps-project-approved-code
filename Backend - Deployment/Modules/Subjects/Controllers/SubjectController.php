@@ -77,11 +77,11 @@ class SubjectController extends Controller
                 ], 401);
             }
 
-            // Only allow Dean (4), Program Chair (3), and Instructors (2) to access
-            if (!in_array($user->roleID, [2, 3, 4])) {
+            // Only allow Dean (4), Associate Dean (5), Program Chair (3), and Instructors (2) to access
+            if (!in_array($user->roleID, [2, 3, 4, 5])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Forbidden. Only Dean, Program Chair, and Instructors can view subjects.'
+                    'message' => 'Forbidden. Only Dean, Associate Dean, Program Chair, and Instructors can view subjects.'
                 ], 403);
             }
 
@@ -247,13 +247,13 @@ class SubjectController extends Controller
             ];
         }
 
-        if ($user->roleID !== 4) {
+        if (!in_array($user->roleID, [4, 5])) {
             Log::warning('Unauthorized access attempt', ['userRole' => $user->roleID]);
             return [
                 'success' => false,
                 'response' => [
                     'success' => false,
-                    'message' => 'Unauthorized. Only the Dean can modify subjects.'
+                    'message' => 'Unauthorized. Only the Dean or Associate Dean can modify subjects.'
                 ],
                 'status' => 403
             ];
@@ -353,10 +353,10 @@ class SubjectController extends Controller
     {
         $user = Auth::user();
 
-        // Only Dean can delete subjects
-        if ($user->roleID !== 4) {
+        // Only Dean or Associate Dean can delete subjects
+        if (!in_array($user->roleID, [4, 5])) {
             return response()->json([
-                'message' => 'Unauthorized. Only the Dean can delete subjects.'
+                'message' => 'Unauthorized. Only the Dean or Associate Dean can delete subjects.'
             ], 403);
         }
 

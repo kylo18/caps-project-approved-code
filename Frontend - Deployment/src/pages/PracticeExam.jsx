@@ -2,14 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import QuestionListModal from "../components/QuestionListModal";
-import DOMPurify from "dompurify";
-
-const sanitizeHtml = (html) => {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ["b", "i", "u", "strong", "em", "p", "br", "span"],
-    ALLOWED_ATTR: ["class", "style"],
-  });
-};
 
 const TimerCompletionModal = ({
   isOpen,
@@ -564,12 +556,12 @@ const PracticeExam = ({ closeModal }) => {
 
       <div className="open-sans border-color mx-auto mt-2 w-full max-w-3xl rounded-t-lg border-b-[0.5px] bg-white px-3 py-3 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="text-[14px] font-medium text-gray-500">
+          <h3 className="text-[14px] font-medium text-nowrap text-gray-500">
             Question {currentQuestionIndex + 1} of {examData.questions.length}
           </h3>
 
           {/* Right Side Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setIsQuestionListOpen(true)}
               className="mr-3 inline-flex cursor-pointer items-center gap-[6px] text-[14px] font-medium text-gray-500 hover:text-gray-700"
@@ -588,7 +580,7 @@ const PracticeExam = ({ closeModal }) => {
                 bookmarkedQuestions.includes(
                   examData.questions[currentQuestionIndex].questionID,
                 )
-                  ? "text-yellow-400 hover:text-yellow-600"
+                  ? "text-yellow-400 hover:text-yellow-500"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -601,11 +593,13 @@ const PracticeExam = ({ closeModal }) => {
                     : "bx-bookmark"
                 } text-[18px]`}
               ></i>
-              {bookmarkedQuestions.includes(
-                examData.questions[currentQuestionIndex].questionID,
-              )
-                ? "Bookmarked"
-                : "Bookmark"}
+              <span className="hidden sm:inline">
+                {bookmarkedQuestions.includes(
+                  examData.questions[currentQuestionIndex].questionID,
+                )
+                  ? "Bookmarked"
+                  : "Bookmark"}
+              </span>
             </button>
           </div>
         </div>
@@ -634,9 +628,7 @@ const PracticeExam = ({ closeModal }) => {
           <div
             className="text-sm leading-relaxed text-gray-800 sm:text-[15px] md:text-base"
             dangerouslySetInnerHTML={{
-              __html: sanitizeHtml(
-                examData.questions[currentQuestionIndex].questionText,
-              ),
+              __html: examData.questions[currentQuestionIndex].questionText,
             }}
           />
           {examData.questions[currentQuestionIndex].questionImage && (
@@ -675,7 +667,11 @@ const PracticeExam = ({ closeModal }) => {
                 <span
                   className={`flex items-center gap-2 text-xs sm:gap-3 sm:text-[12px] md:text-sm ${isSelected ? "text-orange-500" : "text-gray-700"}`}
                 >
-                  {choice.choiceText}
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: choice.choiceText,
+                    }}
+                  />
                   {choice.choiceImage && (
                     <img
                       src={choice.choiceImage}
@@ -771,7 +767,7 @@ const PracticeExam = ({ closeModal }) => {
           {areAllQuestionsAnswered() && (
             <button
               onClick={handleSubmitAnswers}
-              className={`mt-8 mb-1 w-[30%] cursor-pointer rounded-xl py-[9px] text-base font-semibold text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm ${
+              className={`mt-8 mb-1 w-[30%] cursor-pointer rounded-xl py-[9px] text-base font-semibold text-nowrap text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm ${
                 isPreview
                   ? "bg-gradient-to-r from-blue-500 to-blue-600"
                   : "bg-gradient-to-r from-[#ed3700] to-[#FE6902]"
@@ -780,12 +776,12 @@ const PracticeExam = ({ closeModal }) => {
             >
               {isSubmitting ? (
                 <div className="flex items-center justify-center">
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  <span className="loader-white"></span>
                 </div>
               ) : isPreview ? (
                 "View Results"
               ) : (
-                "Submit Test"
+                "Submit"
               )}
             </button>
           )}

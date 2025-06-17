@@ -10,7 +10,7 @@ class AppController extends Controller
     public function getVersion(): JsonResponse
     {
         return response()->json([
-            'version' => 'v1.3.1'  // Hardcoded version number
+            'version' => 'v1.3.4'
         ]);
     }
 }

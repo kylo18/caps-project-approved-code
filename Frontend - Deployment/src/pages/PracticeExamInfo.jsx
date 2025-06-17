@@ -1,9 +1,9 @@
 import { useNavigate, useLocation } from "react-router-dom";
 
-const ExamPreview = () => {
+const PracticeExamInfo = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { subjectID, examData } = location.state || {};
+  const { subjectID, examData, examKey } = location.state || {};
 
   if (!examData) {
     return <div>No exam data found. Please select a subject first.</div>;
@@ -16,6 +16,7 @@ const ExamPreview = () => {
       state: {
         subjectID,
         examData,
+        examKey,
       },
     });
   };
@@ -30,6 +31,10 @@ const ExamPreview = () => {
             </h3>
             <div className="space-y-2 text-[12px]">
               <p className="text-gray-600">
+                <span className="font-medium">Subject:</span>{" "}
+                {examData.subjectName}
+              </p>
+              <p className="text-gray-600">
                 <span className="font-medium">Total Items:</span>{" "}
                 {totalQuestions}
               </p>
@@ -37,6 +42,16 @@ const ExamPreview = () => {
                 <span className="font-medium">Total Points:</span>{" "}
                 {examData.totalPoints}
               </p>
+              {examData.enableTimer ? (
+                <p className="text-gray-600">
+                  <span className="font-medium">Duration:</span>{" "}
+                  {examData.durationMinutes} minutes
+                </p>
+              ) : (
+                <p className="text-gray-600">
+                  <span className="font-medium">Duration:</span> No time limit
+                </p>
+              )}
             </div>
           </div>
 
@@ -45,13 +60,19 @@ const ExamPreview = () => {
               Instructions
             </h3>
             <ul className="list-inside list-disc space-y-2 text-[12px] text-gray-600">
-              <li>You will have unlimited attempts to complete this exam</li>
               <li>Make sure to answer all questions before submitting</li>
-
-              <li>
-                Your progress will be saved automatically if you log out, unless
-                timer is enabled
-              </li>
+              {examData.enableTimer ? (
+                <li>
+                  This exam has a time limit. Make sure to complete it within
+                  the given duration
+                </li>
+              ) : (
+                <li>
+                  This exam has no time limit. Take your time to complete it
+                </li>
+              )}
+              <li>You can bookmark questions to review them later</li>
+              <li>Use the navigation buttons to move between questions</li>
             </ul>
           </div>
         </div>
@@ -75,4 +96,4 @@ const ExamPreview = () => {
   );
 };
 
-export default ExamPreview;
+export default PracticeExamInfo;

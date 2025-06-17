@@ -16,6 +16,7 @@ const Layout = () => {
     2: "Faculty",
     3: "Program Chair",
     4: "Dean",
+    5: "Associate Dean",
   };
 
   useEffect(() => {
