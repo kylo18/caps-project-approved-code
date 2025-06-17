@@ -642,7 +642,7 @@ class PrintController extends Controller
                 'isRemoteEnabled' => true,
                 'isPhpEnabled' => true,
                 'isHtml5ParserEnabled' => true,
-                'dpi' => 120,  // Reduced for server performance
+                'dpi' => 120,
                 'defaultFont' => 'times',
                 'chroot' => [
                     public_path('storage'),
@@ -690,24 +690,75 @@ class PrintController extends Controller
                 'fontHeightRatio' => 1,
                 'isFontSubsettingEnabled' => true,
                 'memory_limit' => '1024M',
+                'max_execution_time' => 1800,
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => [
+                    public_path('storage'),
+                    public_path(),
+                    storage_path('app/public')
+                ],
+                'enable_remote' => true,
+                'enable_php' => true,
+                'enable_javascript' => false,
+                'images' => true,
+                'enable_html5_parser' => true,
+                'debugPng' => false,
+                'debugKeepTemp' => false,
+                'logOutputFile' => storage_path('logs/pdf.log'),
+                'fontCache' => storage_path('fonts'),
+                'tempDir' => storage_path('app/temp'),
+                'image_cache_enabled' => true,
+                'defaultMediaType' => 'print',
+                'defaultPaperSize' => 'a4',
+                'fontHeightRatio' => 1,
+                'isFontSubsettingEnabled' => true,
+                'memory_limit' => '1024M',
                 'max_execution_time' => 1800
             ];
 
-            // Dispatch the PDF generation job
-            \Modules\Print\Jobs\GenerateExamPDF::dispatch($jobId, $storedPreviewData)
-                ->onQueue('pdf-generation')
-                ->delay(now()->addSeconds(2));
+            $pdf->setOptions($pdfOptions);
+            $pdf->setPaper('A4', 'portrait');
 
-            // Clear the preview data
-                    session()->forget($previewKey);
-                    Cache::forget($previewKey);
-                    session()->save();
+            // Ensure storage directory exists
+            $this->ensureStorageDirectoryExists();
+            $filename = $this->generateUniqueFilename();
+            $filePath = storage_path($this->pdfStoragePath . '/' . $filename);
+
+            // Clear temp files before generation
+            $this->clearTempFiles();
+
+            // Generate PDF with error handling
+            try {
+                $pdf->save($filePath);
+            } catch (\Exception $e) {
+                Log::error('PDF Generation Error:', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'PDF Generation Failed',
+                    'details' => 'Failed to generate PDF. Please try again or contact support.',
+                    'code' => 'PDF_GENERATION_ERROR'
+                ], 500);
+            }
+
+            if (!file_exists($filePath)) {
+                throw new \Exception("Failed to generate PDF file");
+            }
+
+            // Update job status
+            $this->updateJobStatus('completed', [
+                'downloadUrl' => url('storage/generated-exams/' . $filename),
+                'filename' => $filename
+            ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'PDF generation started',
-                'jobId' => $jobId,
-                'pollUrl' => route('api.print.check-status', ['jobId' => $jobId]) // Updated route name
+                'message' => 'PDF generated successfully',
+                'downloadUrl' => url('storage/generated-exams/' . $filename)
             ]);
 
         } catch (\Exception $e) {
