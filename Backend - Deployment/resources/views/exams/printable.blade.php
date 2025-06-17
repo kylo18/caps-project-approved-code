@@ -1,6 +1,6 @@
 @ -1,275 +1,277 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
@@ -195,7 +195,7 @@
   <body>
     <div class="paper">
       <div class="header">
-        <img src="{{ $leftLogoPath }}" class="header-logo left" alt="University Seal" onerror="this.style.display='none'" />
+        <img src="/univLogo.png.jpg" class="header-logo left" alt="University Seal" onerror="this.style.display='none'" />
         <div class="header-center">
           <div class="gov-line">Republic of the Philippines</div>
           <div class="univ-name">JOSE RIZAL MEMORIAL STATE UNIVERSITY</div>
@@ -203,7 +203,7 @@
           <div class="college">COLLEGE OF ENGINEERING</div>
           <div class="qe-exam-title">{{ $examTitle }}</div>
         </div>
-        <img src="{{ $rightLogoPath }}" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
+        <img src="/college-logo.png.jpg" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
       </div>
 
       @php $questionNumber = 1; @endphp 
