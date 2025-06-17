@@ -43,24 +43,25 @@ const QuestionListModal = ({
 
   return (
     <>
-      <div className="font-inter bg-opacity-50 lightbox-bg fixed inset-0 z-56 flex items-center justify-center p-7">
+      <div className="font-inter bg-opacity-50 lightbox-bg fixed inset-0 z-56 flex items-center justify-center p-3">
         <div className="w-full max-w-2xl rounded-md bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex rounded-lg border border-gray-200 p-1">
+              <div className="flex rounded-lg border border-gray-200 p-[2px]">
                 <button
                   onClick={() => setActiveTab("all")}
-                  className={`rounded-md px-3 py-1 text-sm transition-colors ${
+                  className={`rounded-md px-5 py-[8px] text-sm transition-colors ${
                     activeTab === "all"
                       ? "bg-orange-100 text-gray-600"
                       : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  All Questions
+                  <span className="sm:hidden">All</span>
+                  <span className="hidden sm:inline">All Questions</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("bookmarked")}
-                  className={`rounded-md px-3 py-1 text-sm transition-colors ${
+                  className={`rounded-md px-3 text-sm text-nowrap transition-colors ${
                     activeTab === "bookmarked"
                       ? "bg-orange-100 text-gray-600"
                       : "text-gray-600 hover:bg-gray-50"

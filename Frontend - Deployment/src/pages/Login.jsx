@@ -393,7 +393,7 @@ export default function LoginPage() {
                   tabIndex={-1}
                 >
                   <i
-                    className={`bx ${passwordVisible ? "bx-show text-orange-500" : "bx-hide"} text-[25px]`}
+                    className={`bx ${passwordVisible ? "bx-eye-alt text-orange-500" : "bx-eye-slash"} text-[25px]`}
                   ></i>
                 </button>
               </div>

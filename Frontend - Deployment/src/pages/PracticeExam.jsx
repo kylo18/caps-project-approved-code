@@ -556,12 +556,12 @@ const PracticeExam = ({ closeModal }) => {
 
       <div className="open-sans border-color mx-auto mt-2 w-full max-w-3xl rounded-t-lg border-b-[0.5px] bg-white px-3 py-3 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="text-[14px] font-medium text-gray-500">
+          <h3 className="text-[14px] font-medium text-nowrap text-gray-500">
             Question {currentQuestionIndex + 1} of {examData.questions.length}
           </h3>
 
           {/* Right Side Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setIsQuestionListOpen(true)}
               className="mr-3 inline-flex cursor-pointer items-center gap-[6px] text-[14px] font-medium text-gray-500 hover:text-gray-700"
@@ -580,7 +580,7 @@ const PracticeExam = ({ closeModal }) => {
                 bookmarkedQuestions.includes(
                   examData.questions[currentQuestionIndex].questionID,
                 )
-                  ? "text-yellow-400 hover:text-yellow-600"
+                  ? "text-yellow-400 hover:text-yellow-500"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -593,11 +593,13 @@ const PracticeExam = ({ closeModal }) => {
                     : "bx-bookmark"
                 } text-[18px]`}
               ></i>
-              {bookmarkedQuestions.includes(
-                examData.questions[currentQuestionIndex].questionID,
-              )
-                ? "Bookmarked"
-                : "Bookmark"}
+              <span className="hidden sm:inline">
+                {bookmarkedQuestions.includes(
+                  examData.questions[currentQuestionIndex].questionID,
+                )
+                  ? "Bookmarked"
+                  : "Bookmark"}
+              </span>
             </button>
           </div>
         </div>
@@ -765,7 +767,7 @@ const PracticeExam = ({ closeModal }) => {
           {areAllQuestionsAnswered() && (
             <button
               onClick={handleSubmitAnswers}
-              className={`mt-8 mb-1 w-[30%] cursor-pointer rounded-xl py-[9px] text-base font-semibold text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm ${
+              className={`mt-8 mb-1 w-[30%] cursor-pointer rounded-xl py-[9px] text-base font-semibold text-nowrap text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm ${
                 isPreview
                   ? "bg-gradient-to-r from-blue-500 to-blue-600"
                   : "bg-gradient-to-r from-[#ed3700] to-[#FE6902]"
@@ -779,7 +781,7 @@ const PracticeExam = ({ closeModal }) => {
               ) : isPreview ? (
                 "View Results"
               ) : (
-                "Submit Test"
+                "Submit"
               )}
             </button>
           )}
