@@ -59,7 +59,7 @@ class PrintController extends Controller
                             // Handle local storage path
                             $imagePath = str_replace('storage/', '', $q->image);
                             if (Storage::disk('public')->exists($imagePath)) {
-                                $questionImage = url('storage/' . $imagePath);
+                                $questionImage = asset('storage/' . $imagePath);
                             }
                         }
                     }
@@ -80,7 +80,7 @@ class PrintController extends Controller
                                 } else {
                                     $imagePath = str_replace('storage/', '', $choice->image);
                                     if (Storage::disk('public')->exists($imagePath)) {
-                                        $choiceImage = url('storage/' . $imagePath);
+                                        $choiceImage = asset('storage/' . $imagePath);
                                     }
                                 }
                             }
@@ -629,6 +629,69 @@ class PrintController extends Controller
                 'preview_data' => $storedPreviewData,
                 'created_at' => now()->timestamp
             ], 3600); // Store for 1 hour
+
+            // Configure PDF with server-optimized settings
+            $pdf = PDF::loadView('exams.printable', [
+                'questionsBySubject' => $questionsBySubject,
+                'examTitle' => $storedPreviewData['examTitle'],
+                'leftLogoPath' => $storedPreviewData['logos']['left'],
+                'rightLogoPath' => $storedPreviewData['logos']['right']
+            ]);
+
+            $pdfOptions = [
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'isHtml5ParserEnabled' => true,
+                'dpi' => 120,  // Reduced for server performance
+                'defaultFont' => 'times',
+                'chroot' => [
+                    public_path('storage'),
+                    public_path(),
+                    storage_path('app/public')
+                ],
+                'enable_remote' => true,
+                'enable_php' => true,
+                'enable_javascript' => false,
+                'images' => true,
+                'enable_html5_parser' => true,
+                'debugPng' => false,
+                'debugKeepTemp' => false,
+                'logOutputFile' => storage_path('logs/pdf.log'),
+                'fontCache' => storage_path('fonts'),
+                'tempDir' => storage_path('app/temp'),
+                'image_cache_enabled' => true,
+                'defaultMediaType' => 'print',
+                'defaultPaperSize' => 'a4',
+                'fontHeightRatio' => 1,
+                'isFontSubsettingEnabled' => true,
+                'memory_limit' => '1024M',
+                'max_execution_time' => 1800,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'isHtml5ParserEnabled' => true,
+                'chroot' => [
+                    public_path('storage'),
+                    public_path(),
+                    storage_path('app/public')
+                ],
+                'enable_remote' => true,
+                'enable_php' => true,
+                'enable_javascript' => false,
+                'images' => true,
+                'enable_html5_parser' => true,
+                'debugPng' => false,
+                'debugKeepTemp' => false,
+                'logOutputFile' => storage_path('logs/pdf.log'),
+                'fontCache' => storage_path('fonts'),
+                'tempDir' => storage_path('app/temp'),
+                'image_cache_enabled' => true,
+                'defaultMediaType' => 'print',
+                'defaultPaperSize' => 'a4',
+                'fontHeightRatio' => 1,
+                'isFontSubsettingEnabled' => true,
+                'memory_limit' => '1024M',
+                'max_execution_time' => 1800
+            ];
 
             // Dispatch the PDF generation job
             \Modules\Print\Jobs\GenerateExamPDF::dispatch($jobId, $storedPreviewData)
