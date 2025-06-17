@@ -77,10 +77,7 @@ const Sidebar = ({
     {
       icon: "bx-printer",
       label: "Print",
-      onClick: () => {
-        alert("Under development");
-      },
-
+      onClick: () => setShowPrintModal(true),
       isButton: true,
     },
   ];

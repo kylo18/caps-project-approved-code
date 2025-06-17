@@ -220,6 +220,12 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
     setLoading(true);
     try {
       const endpoint = `${apiUrl}/generate-multi-subject-exam`;
+      console.log("Starting PDF generation request:", {
+        endpoint,
+        settings,
+        selectedSubjects,
+        previewKey,
+      });
 
       const requestBody = {
         total_items: settings.total_items,
@@ -246,58 +252,105 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         body: JSON.stringify(requestBody),
       });
 
-      // First check if the response is JSON (error case)
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const errorData = await response.json();
+      const data = await response.json();
+      console.log("Initial response from server:", {
+        status: response.status,
+        ok: response.ok,
+        data,
+      });
+
+      if (!response.ok) {
+        console.error("PDF generation request failed:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: data,
+          requestBody,
+        });
         throw new Error(
-          errorData.message || errorData.error || "Failed to generate exam",
+          data.message || data.error || "Failed to generate exam",
         );
       }
 
-      // If not JSON, it should be a PDF
-      if (!contentType || !contentType.includes("application/pdf")) {
-        throw new Error("Invalid response format from server");
-      }
+      // Start polling for status
+      const pollStatus = async (jobId) => {
+        try {
+          console.log("Polling status for job:", { jobId });
+          const statusResponse = await fetch(
+            `${apiUrl}/print/check-status/${jobId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            },
+          );
 
-      // Get the blob from the response
-      const blob = await response.blob();
+          const statusData = await statusResponse.json();
+          console.log("Status check response:", {
+            jobId,
+            status: statusResponse.status,
+            data: statusData,
+          });
 
-      // Create a URL for the blob
-      const url = window.URL.createObjectURL(blob);
+          if (!statusResponse.ok) {
+            console.error("Status check failed:", {
+              jobId,
+              status: statusResponse.status,
+              statusText: statusResponse.statusText,
+              error: statusData,
+            });
+            throw new Error(statusData.message || "Failed to check status");
+          }
 
-      // Create a temporary link element
-      const link = document.createElement("a");
-      link.href = url;
-
-      // Get filename from Content-Disposition header or use default
-      const disposition = response.headers.get("content-disposition");
-      let filename = "exam.pdf";
-      if (disposition && disposition.includes("filename=")) {
-        const filenameMatch = disposition.match(
-          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/,
-        );
-        if (filenameMatch && filenameMatch[1]) {
-          filename = filenameMatch[1].replace(/['"]/g, "");
+          if (statusData.status === "completed" && statusData.downloadUrl) {
+            console.log("PDF generation completed:", {
+              jobId,
+              downloadUrl: statusData.downloadUrl,
+            });
+            // Download the PDF
+            window.location.href = statusData.downloadUrl;
+            setShowPreview(false);
+            onClose();
+            return;
+          } else if (statusData.status === "error") {
+            console.error("PDF generation failed:", {
+              jobId,
+              error: statusData.error,
+              status: statusData.status,
+            });
+            throw new Error(statusData.error || "PDF generation failed");
+          } else {
+            console.log("Continuing to poll:", {
+              jobId,
+              status: statusData.status,
+              nextPollIn: "2 seconds",
+            });
+            // Continue polling
+            setTimeout(() => pollStatus(jobId), 2000); // Poll every 2 seconds
+          }
+        } catch (error) {
+          console.error("Status check error:", {
+            jobId,
+            error: error.message,
+            stack: error.stack,
+            timestamp: new Date().toISOString(),
+          });
+          setError(error.message);
+          setLoading(false);
         }
-      }
+      };
 
-      link.download = filename;
-
-      // Append to body, click, and remove
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // Clean up the URL object
-      window.URL.revokeObjectURL(url);
-
-      setShowPreview(false);
-      onClose();
+      // Start polling with the job ID
+      console.log("Starting status polling for job:", { jobId: data.jobId });
+      pollStatus(data.jobId);
     } catch (err) {
-      console.error("Download error:", err);
+      console.error("Download error:", {
+        error: err.message,
+        stack: err.stack,
+        timestamp: new Date().toISOString(),
+        settings,
+        selectedSubjects,
+      });
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
