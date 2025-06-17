@@ -30,6 +30,8 @@
 
     practice_exam_settings
 
+    jobs
+
     Note: Inside practice_exam_settings table, there should be another field named isEnabled. If that field exist, it means it is good to go. 
 
          Inside programs table, there should be a field named programName2. If that field exist, it is good to go.
