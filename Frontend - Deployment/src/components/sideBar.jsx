@@ -77,10 +77,7 @@ const Sidebar = ({
     {
       icon: "bx-printer",
       label: "Print",
-      onClick: () => {
-        alert("Under development, Stay Tuned!");
-      },
-
+      onClick: () => setShowPrintModal(true),
       isButton: true,
     },
   ];
@@ -94,7 +91,7 @@ const Sidebar = ({
     menuItems = [...baseMenuItems];
 
     if (parsedRoleId >= 2) menuItems = [...menuItems, ...facultyItems];
-    if (parsedRoleId >= 4) menuItems = [...menuItems, ...adminItems];
+    if (parsedRoleId >= 2) menuItems = [...menuItems, ...adminItems];
   }
 
   const isActive = (path) => location.pathname === path;
@@ -224,7 +221,7 @@ const Sidebar = ({
             >
               <ul className="space-y-[10px]">
                 {classes.map((item, index) => (
-                  <AllSubjectsDropDown
+                  <AllSubjectsDropDownProgramChair
                     key={index}
                     item={item}
                     isExpanded={isExpanded}
