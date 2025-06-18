@@ -156,6 +156,10 @@ class PrintController extends Controller
 
     /**
      * Generate a multi-subject examination with customizable distribution of questions
+     * This function supports both qualifying and regular exams with configurable subject and difficulty distributions
+     * 
+     * @param Request $request The HTTP request containing exam configuration
+     * @return \Illuminate\Http\Response Returns either a PDF download or JSON preview
      */
     public function generateMultiSubjectExam(Request $request)
     {
@@ -201,7 +205,9 @@ class PrintController extends Controller
                     'difficulty_distribution' => 'required|array',
                     'difficulty_distribution.easy' => 'required|integer|min:0|max:100',
                     'difficulty_distribution.moderate' => 'required|integer|min:0|max:100',
-                    'difficulty_distribution.hard' => 'required|integer|min:0|max:100'
+                    'difficulty_distribution.hard' => 'required|integer|min:0|max:100',
+                    'preview' => 'boolean',
+                    'previewKey' => 'nullable|string'
                 ]);
             } catch (\Illuminate\Validation\ValidationException $e) {
                 Log::error('Validation Error:', [
@@ -491,42 +497,190 @@ class PrintController extends Controller
                 $rightLogoBase64 = $this->getBase64Image(resource_path('assets/images/default-right-logo.jpg'));
             }
 
-            // Prepare the data for PDF generation
-            $examData = [
-                'questionsBySubject' => $questionsBySubject,
-                'totalItems' => array_sum(array_map(fn($subject) => $subject['totalItems'], $questionsBySubject)),
-                'requestedItems' => $totalItems,
-                'purpose' => $validated['purpose'],
-                'examTitle' => 'Qualifying Examination',
-                'logos' => [
-                    'left' => $leftLogoBase64,
-                    'right' => $rightLogoBase64
-                ],
-                'timestamp' => now()->timestamp,
+            // Handle preview request
+            if ($request->input('preview', false)) {
+                $previewData = [
+                    'questionsBySubject' => $questionsBySubject,
+                    'totalItems' => array_sum(array_map(fn($subject) => $subject['totalItems'], $questionsBySubject)),
+                    'requestedItems' => $totalItems,
+                    'purpose' => $validated['purpose'],
+                    'examTitle' => match($validated['purpose']) {
+                        'examQuestions' => 'Qualifying Examination',
+                        'practiceQuestions' => 'Practice Examination',
+                        'personalQuestions' => 'Quiz',
+                        default => 'Multi-Subject Questions'
+                    },
+                    'logos' => [
+                        'left' => $leftLogoBase64,
+                        'right' => $rightLogoBase64
+                    ],
+                    'timestamp' => now()->timestamp,
+                    'user_id' => Auth::id() // Add user ID to track ownership
+                ];
+
+                // Store preview data in session with a unique key
+                $previewKey = 'exam_preview_' . Auth::id() . '_' . now()->timestamp;
+                
+                // Store in both session and cache for redundancy
+                session([$previewKey => $previewData]);
+                Cache::put($previewKey, $previewData, $this->sessionLifetime);
+                
+                // Ensure session is saved
+                session()->save();
+
+                // Log the session data for debugging
+                Log::info('Preview data stored:', [
+                    'previewKey' => $previewKey,
+                    'session_id' => session()->getId(),
+                    'data_size' => strlen(json_encode($previewData)),
+                    'user_id' => Auth::id(),
+                    'timestamp' => now()->timestamp
+                ]);
+
+                return response()->json([
+                    'previewData' => $previewData,
+                    'previewKey' => $previewKey
+                ]);
+            }
+
+            // For download request, use the stored preview data
+            $previewKey = $request->input('previewKey');
+            if (!$previewKey) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Preview Required',
+                    'details' => 'You must generate a preview before downloading the exam.',
+                    'code' => 'PREVIEW_REQUIRED',
+                    'action' => 'Please click the "Preview" button first to generate a preview of the exam.'
+                ], 400);
+            }
+
+            // Log session information for debugging
+            Log::info('Attempting to retrieve preview data:', [
+                'previewKey' => $previewKey,
+                'session_id' => session()->getId(),
+                'all_session_keys' => array_keys(session()->all()),
                 'user_id' => Auth::id()
-            ];
+            ]);
+
+            // Try to get preview data from both session and cache
+            $storedPreviewData = session($previewKey) ?? Cache::get($previewKey);
+
+            if (!$storedPreviewData) {
+                Log::error('Preview data not found:', [
+                    'previewKey' => $previewKey,
+                    'session_id' => session()->getId(),
+                    'all_session_keys' => array_keys(session()->all()),
+                    'user_id' => Auth::id()
+                ]);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Preview Expired',
+                    'details' => 'The preview has expired or is no longer available.',
+                    'code' => 'PREVIEW_EXPIRED',
+                    'action' => 'Please generate a new preview by clicking the "Preview" button.'
+                ], 410);
+            }
+
+            // Validate that the preview data belongs to the current user
+            if ($storedPreviewData['user_id'] !== Auth::id()) {
+                Log::error('Preview data ownership mismatch:', [
+                    'previewKey' => $previewKey,
+                    'stored_user_id' => $storedPreviewData['user_id'],
+                    'current_user_id' => Auth::id()
+                ]);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid Preview Access',
+                    'details' => 'You are trying to access a preview that does not belong to you.',
+                    'code' => 'INVALID_PREVIEW',
+                    'action' => 'Please generate your own preview by clicking the "Preview" button.'
+                ], 403);
+            }
+
+            // Validate that the preview data is not too old
+            if (now()->timestamp - $storedPreviewData['timestamp'] > $this->sessionLifetime) {
+                session()->forget($previewKey);
+                Cache::forget($previewKey);
+                session()->save();
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Preview Session Expired',
+                    'details' => 'Your preview session has expired due to inactivity.',
+                    'code' => 'PREVIEW_EXPIRED',
+                    'action' => 'Please generate a new preview by clicking the "Preview" button.'
+                ], 410);
+            }
 
             // Generate a unique job ID
             $jobId = Str::uuid()->toString();
-            
+
             // Store the job data in cache
             Cache::put('pdf_generation_' . $jobId, [
                 'status' => 'pending',
                 'user_id' => Auth::id(),
-                'exam_data' => $examData,
+                'preview_data' => $storedPreviewData,
                 'created_at' => now()->timestamp
             ], 3600); // Store for 1 hour
 
+            // Configure PDF with server-optimized settings
+            $pdf = PDF::loadView('exams.printable', [
+                'questionsBySubject' => $questionsBySubject,
+                'examTitle' => $storedPreviewData['examTitle'],
+                'leftLogoPath' => $storedPreviewData['logos']['left'],
+                'rightLogoPath' => $storedPreviewData['logos']['right']
+            ]);
+
+            $pdfOptions = [
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'isHtml5ParserEnabled' => true,
+                'dpi' => 120,
+                'defaultFont' => 'times',
+                'chroot' => [
+                    public_path('storage'),
+                    public_path('storage/choices'),
+                    public_path('storage/question_images'),
+                    public_path(),
+                    base_path('public'),
+                    base_path('public/storage')
+                ],
+                'enable_remote' => true,
+                'enable_php' => true,
+                'enable_javascript' => false,
+                'images' => true,
+                'enable_html5_parser' => true,
+                'debugPng' => false,
+                'debugKeepTemp' => false,
+                'logOutputFile' => storage_path('logs/pdf.log'),
+                'fontCache' => storage_path('fonts'),
+                'tempDir' => storage_path('app/temp'),
+                'image_cache_enabled' => true,
+                'defaultMediaType' => 'print',
+                'defaultPaperSize' => 'a4',
+                'fontHeightRatio' => 1,
+                'isFontSubsettingEnabled' => true,
+                'memory_limit' => '1024M',
+                'max_execution_time' => 1800
+            ];
+
+            $pdf->setOptions($pdfOptions);
+
             // Dispatch the PDF generation job
-            \Modules\Print\Jobs\GenerateExamPDF::dispatch($jobId, $examData)
+            \Modules\Print\Jobs\GenerateExamPDF::dispatch($jobId, $storedPreviewData)
                 ->onQueue('pdf-generation')
                 ->delay(now()->addSeconds(2));
+
+            // Clear the preview data
+                    session()->forget($previewKey);
+                    Cache::forget($previewKey);
+                    session()->save();
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'PDF generation started',
                 'jobId' => $jobId,
-                'pollUrl' => route('api.print.check-status', ['jobId' => $jobId])
+                'pollUrl' => route('api.print.check-status', ['jobId' => $jobId]) // Updated route name
             ]);
 
         } catch (\Exception $e) {
