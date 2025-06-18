@@ -18,113 +18,16 @@ class UserController extends Controller
     public function index(Request $request)
     {
         try {
-            $user = Auth::user();
-    
-            if (!$user) {
-                return response()->json(['message' => 'Unauthorized'], 401);
-            }
-    
-            // Only Dean (roleID = 4) or Associate Dean (roleID = 5) can access the user list
-            if (!in_array($user->roleID, [4, 5])) {
-                return response()->json(['message' => 'Forbidden'], 403);
-            }
-    
-            // Get query parameters with defaults
-            $perPage = $request->input('limit', 50);
-            $page = $request->input('page', 1);
-            $search = $request->input('search', '');
-            $status = $request->input('status');
-            $campus = $request->input('campus');
-            $role = $request->input('role');
-            $position = $request->input('position');
-            $program = $request->input('program');
-            $state = $request->input('state');
-    
-            // Start building the query
-            $query = User::with(['role', 'campus', 'program', 'status']);
-    
-            // If user is Associate Dean, only show users from their campus
-            if ($user->roleID === 5) {
-                $query->where('campusID', $user->campusID);
-            }
-    
-            // Apply search filter
-            if ($search) {
-                $query->where(function($q) use ($search) {
-                    $q->where('firstName', 'like', "%{$search}%")
-                      ->orWhere('lastName', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('userCode', 'like', "%{$search}%");
-                });
-            }
-    
-            // Apply other filters
-            if ($status && $status !== 'all') {
-                $query->whereHas('status', function($q) use ($status) {
-                    $q->where('name', $status);
-                });
-            }
-    
-            if ($campus) {
-                $query->whereHas('campus', function($q) use ($campus) {
-                    $q->where('campusName', $campus);
-                });
-            }
-    
-            if ($role) {
-                $query->whereHas('role', function($q) use ($role) {
-                    $q->where('roleName', $role);
-                });
-            }
-    
-            if ($position) {
-                $query->whereHas('role', function($q) use ($position) {
-                    $q->where('roleName', $position);
-                });
-            }
-    
-            if ($program) {
-                $query->whereHas('program', function($q) use ($program) {
-                    $q->where('programName', $program);
-                });
-            }
-    
-            if ($state) {
-                $query->where('isActive', $state === 'Active');
-            }
-    
-            // Get total count before pagination
-            $total = $query->count();
-    
-            // Apply pagination
-            $users = $query->orderBy('userID', 'desc')
-                          ->skip(($page - 1) * $perPage)
-                          ->take($perPage)
-                          ->get()
-                          ->map(function ($user) {
-                              return [
-                                  'userID' => $user->userID,
-                                  'userCode' => $user->userCode,
-                                  'firstName' => $user->firstName,
-                                  'lastName' => $user->lastName,
-                                  'email' => $user->email,
-                                  'roleID' => $user->roleID,
-                                  'campusID' => $user->campusID,
-                                  'programID' => $user->programID,
-                                  'role' => $user->role ? $user->role->roleName : 'Unknown',
-                                  'campus' => $user->campus ? $user->campus->campusName : 'Unknown',
-                                  'program' => $user->program ? $user->program->programName : 'Not Assigned',
-                                  'isActive' => $user->isActive,
-                                  'status_id' => $user->status_id,
-                                  'status' => $user->status ? $user->status->name : 'Unknown',
-                              ];
-                          });
-    
+            $this->authorizeUserAccess();
+            
+            $query = $this->buildUserQuery($request);
+            $pagination = $this->paginateResults($query, $request);
+            
             return response()->json([
-                'users' => $users,
-                'total' => $total,
-                'page' => (int)$page,
-                'totalPages' => ceil($total / $perPage)
+                'users' => $pagination['users'],
+                'total' => $pagination['total'],
+                'page' => $pagination['page'],
+                'totalPages' => $pagination['totalPages']
             ], 200);
     
         } catch (\Exception $e) {
@@ -141,8 +44,7 @@ class UserController extends Controller
         $authUser = Auth::user();
         $user = User::findOrFail($id);
 
-        // Only Admins can update any user, but users can update their own profile
-        if ($authUser->roleID < 3 && $authUser->userID != $id) {
+        if (!$this->canUpdateUser($authUser, $id)) {
             return response()->json(['message' => 'Unauthorized: You can only update your own profile'], 403);
         }
 
@@ -168,15 +70,11 @@ class UserController extends Controller
     }
 
     /**
-     * Deactivate user instead of deleting (Only Dean can do this).
+     * Deactivate user (Only Dean can do this).
      */
     public function deactivate($id)
     {
-        $authUser = Auth::user();
-        if (!in_array($authUser->roleID, [4, 5])) {
-            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can deactivate users'], 403);
-        }
-
+        $this->authorizeDeanAccess();
         $user = User::findOrFail($id);
         $user->isActive = false;
         $user->save();
@@ -189,11 +87,7 @@ class UserController extends Controller
      */
     public function activate($id)
     {
-        $authUser = Auth::user();
-        if (!in_array($authUser->roleID, [4, 5])) {
-            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can reactivate users'], 403);
-        }
-
+        $this->authorizeDeanAccess();
         $user = User::findOrFail($id);
         $user->isActive = true;
         $user->save();
@@ -206,27 +100,10 @@ class UserController extends Controller
      */
     public function activateMultipleUsers(Request $request)
     {
-        $authUser = Auth::user();
-        if (!in_array($authUser->roleID, [4, 5])) {
-            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can activate users'], 403);
-        }
-
-        // Validate incoming array of user IDs
-        $validated = $request->validate([
-            'userIDs' => 'required|array',
-            'userIDs.*' => 'integer|exists:users,userID'
-        ]);
-
-        $activatedUsers = [];
-
-        foreach ($validated['userIDs'] as $userID) {
-            $user = User::find($userID);
-            if ($user && !$user->isActive) {
-                $user->isActive = true;
-                $user->save();
-                $activatedUsers[] = $userID;
-            }
-        }
+        $this->authorizeDeanAccess();
+        $validated = $this->validateUserIDs($request);
+        
+        $activatedUsers = $this->processMultipleUsers($validated['userIDs'], true);
 
         return response()->json([
             'message' => 'Selected users activated successfully.',
@@ -239,26 +116,10 @@ class UserController extends Controller
      */
     public function deactivateMultipleUsers(Request $request)
     {
-        $authUser = Auth::user();
-        if (!in_array($authUser->roleID, [4, 5])) {
-            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can deactivate users'], 403);
-        }
-
-        $validated = $request->validate([
-            'userIDs' => 'required|array',
-            'userIDs.*' => 'integer|exists:users,userID'
-        ]);
-
-        $deactivatedUsers = [];
-
-        foreach ($validated['userIDs'] as $userID) {
-            $user = User::find($userID);
-            if ($user && $user->isActive) {
-                $user->isActive = false;
-                $user->save();
-                $deactivatedUsers[] = $userID;
-            }
-        }
+        $this->authorizeDeanAccess();
+        $validated = $this->validateUserIDs($request);
+        
+        $deactivatedUsers = $this->processMultipleUsers($validated['userIDs'], false);
 
         return response()->json([
             'message' => 'Selected users deactivated successfully.',
@@ -271,31 +132,14 @@ class UserController extends Controller
      */
     public function approveUser(Request $request, $userID)
     {
-        $authUser = Auth::user();
+        $this->authorizeDeanAccess();
+        $user = User::findOrFail($userID);
 
-        if (!in_array($authUser->roleID, [4, 5])) {
-            return response()->json(['message' => 'Unauthorized. Only the Dean or Associate Dean can approve users.'], 403);
-        }
-
-        $user = User::find($userID);
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found.'], 404);
-        }
-
-        // Get status IDs
-        $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
-        $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;
-
-        if ($user->status_id !== $pendingStatusId) {
+        if (!$this->isUserPending($user)) {
             return response()->json(['message' => 'User is already registered.'], 400);
         }
 
-        $user->update([
-            'status_id' => $registeredStatusId,
-            'isActive' => true
-        ]);
-
+        $this->updateUserStatus($user, 'registered', true);
         return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
     }
 
@@ -304,26 +148,10 @@ class UserController extends Controller
      */
     public function disapproveUser(Request $request, $userID)
     {
-        $authUser = Auth::user();
+        $this->authorizeDeanAccess();
+        $user = User::findOrFail($userID);
 
-        if (!in_array($authUser->roleID, [4, 5])) {
-            return response()->json(['message' => 'Unauthorized. Only the Dean or Associate Dean can disapprove users.'], 403);
-        }
-
-        $user = User::find($userID);
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found.'], 404);
-        }
-
-        // Get disapproved status ID
-        $disapprovedStatusId = DB::table('statuses')->where('name', 'disapproved')->first()->id;
-
-        $user->update([
-            'status_id' => $disapprovedStatusId,
-            'isActive' => false
-        ]);
-
+        $this->updateUserStatus($user, 'disapproved', false);
         return response()->json(['message' => 'User has been disapproved.', 'user' => $user], 200);
     }
 
@@ -332,55 +160,16 @@ class UserController extends Controller
      */
     public function approveMultipleUsers(Request $request)
     {
-        $authUser = Auth::user();
+        $this->authorizeDeanAccess();
+        $validated = $this->validateUserIDs($request);
 
-        if (!in_array($authUser->roleID, [4, 5])) {
-            return response()->json(['message' => 'Unauthorized. Only the Dean or Associate Dean can approve users.'], 403);
-        }
-
-        $validated = $request->validate([
-            'userIDs' => 'required|array',
-            'userIDs.*' => 'integer|exists:users,userID'
-        ]);
-
-        // Get status IDs
-        $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
-        $registeredStatusId = DB::table('statuses')->where('name', 'registered')->first()->id;
-        $disapprovedStatusId = DB::table('statuses')->where('name', 'disapproved')->first()->id;
-
-        $approvedUsers = [];
-        $skippedUsers = [];
-
-        foreach ($validated['userIDs'] as $userID) {
-            $user = User::find($userID);
-
-            if (!$user) {
-                $skippedUsers[] = $userID;
-                continue;
-            }
-
-            if ($user->status_id === $disapprovedStatusId) {
-                $skippedUsers[] = $userID;
-                continue;
-            }
-
-            if ($user->status_id !== $pendingStatusId) {
-                $skippedUsers[] = $userID;
-                continue;
-            }
-
-            $user->update([
-                'status_id' => $registeredStatusId,
-                'isActive' => true
-            ]);
-
-            $approvedUsers[] = $user;
-        }
+        $statusIds = $this->getStatusIds();
+        $results = $this->processMultipleApprovals($validated['userIDs'], $statusIds);
 
         return response()->json([
             'message' => 'Bulk approval completed.',
-            'approved_users' => $approvedUsers,
-            'skipped_users' => $skippedUsers
+            'approved_users' => $results['approved'],
+            'skipped_users' => $results['skipped']
         ], 200);
     }
 
@@ -391,76 +180,349 @@ class UserController extends Controller
     {
         try {
             $user = Auth::user();
-
             if (!$user) {
                 return response()->json(['message' => 'User not authenticated.'], 401);
             }
 
-            $validated = $request->validate([
-                'firstName' => 'sometimes|required|string|max:100',
-                'lastName' => 'sometimes|required|string|max:100',
-                'email' => [
-                    'sometimes',
-                    'required',
-                    'email',
-                    Rule::unique('users', 'email')->ignore($user->userID, 'userID')
-                ],
-                'userCode' => [
-                    'sometimes',
-                    'required',
-                    'string',
-                    'max:50',
-                    Rule::unique('users', 'userCode')->ignore($user->userID, 'userID')
-                ],
-            ]);
-
-            foreach ($validated as $field => $value) {
-                $user->$field = $value;
-            }
-
-            // Handle non-eloquent instances
-            if (!$user instanceof User) {
-                $eloquentUser = User::find($user->userID);
-                if (!$eloquentUser) {
-                    return response()->json(['message' => 'User record not found.'], 404);
-                }
-
-                foreach ($validated as $field => $value) {
-                    $eloquentUser->$field = $value;
-                }
-
-                $eloquentUser->save();
-                $user = $eloquentUser;
-            } else {
-                $user->save();
-            }
+            $validated = $this->validateProfileUpdate($request, $user);
+            $this->updateUserProfile($user, $validated);
 
             return response()->json([
                 'message' => 'Profile updated successfully.',
                 'user' => $user
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            $customErrors = [];
-
-            if (isset($e->errors()['email'])) {
-                $customErrors['email'] = ['The email is already in use by another account.'];
-            }
-
-            if (isset($e->errors()['userCode'])) {
-                $customErrors['userCode'] = ['The user code is already taken.'];
-            }
-
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => count($customErrors) ? $customErrors : $e->errors()
-            ], 422);
+            return $this->handleValidationError($e);
         } catch (\Exception $e) {
             Log::error('Profile update error: ' . $e->getMessage());
-
             return response()->json([
                 'message' => 'An unexpected error occurred while updating your profile.',
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Change user role with specific permissions.
+     */
+    public function changeUserRole(Request $request, $userID)
+    {
+        try {
+            $authUser = Auth::user();
+            $this->validateRoleChangePermission($authUser);
+
+            $validated = $request->validate(['roleID' => 'required|integer|exists:roles,roleID']);
+            $user = User::findOrFail($userID);
+
+            $this->validateRoleChangeScope($authUser, $user, $validated['roleID']);
+            $this->updateUserRole($user, $validated['roleID']);
+
+            return response()->json([
+                'message' => 'User role updated successfully.',
+                'user' => $user
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['message' => 'Validation failed.', 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            Log::error('Role change error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An unexpected error occurred while changing the user role.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Private helper methods
+
+    private function authorizeUserAccess()
+    {
+        $user = Auth::user();
+        if (!$user || !in_array($user->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+    }
+
+    private function authorizeDeanAccess()
+    {
+        $authUser = Auth::user();
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can perform this action'], 403);
+        }
+    }
+
+    private function buildUserQuery(Request $request)
+    {
+        $query = User::with(['role', 'campus', 'program', 'status']);
+        $user = Auth::user();
+
+        if ($user->roleID === 5) {
+            $query->where('campusID', $user->campusID);
+        }
+
+        $this->applySearchFilters($query, $request);
+        return $query;
+    }
+
+    private function applySearchFilters($query, Request $request)
+    {
+        $filters = [
+            'search' => function($q, $value) {
+                $q->where(function($q) use ($value) {
+                    $q->where('firstName', 'like', "%{$value}%")
+                      ->orWhere('lastName', 'like', "%{$value}%")
+                      ->orWhere('email', 'like', "%{$value}%")
+                      ->orWhere('userCode', 'like', "%{$value}%");
+                });
+            },
+            'status' => function($q, $value) {
+                if ($value && $value !== 'all') {
+                    $q->whereHas('status', function($q) use ($value) {
+                        $q->where('name', $value);
+                    });
+                }
+            },
+            'campus' => function($q, $value) {
+                $q->whereHas('campus', function($q) use ($value) {
+                    $q->where('campusName', $value);
+                });
+            },
+            'role' => function($q, $value) {
+                $q->whereHas('role', function($q) use ($value) {
+                    $q->where('roleName', $value);
+                });
+            },
+            'position' => function($q, $value) {
+                $q->whereHas('role', function($q) use ($value) {
+                    $q->where('roleName', $value);
+                });
+            },
+            'program' => function($q, $value) {
+                $q->whereHas('program', function($q) use ($value) {
+                    $q->where('programName', $value);
+                });
+            },
+            'state' => function($q, $value) {
+                $q->where('isActive', $value === 'Active');
+            }
+        ];
+
+        foreach ($filters as $key => $callback) {
+            if ($value = $request->input($key)) {
+                $callback($query, $value);
+            }
+        }
+    }
+
+    private function paginateResults($query, Request $request)
+    {
+        $perPage = $request->input('limit', 50);
+        $page = $request->input('page', 1);
+        $total = $query->count();
+
+        $users = $query->orderBy('userID', 'desc')
+                      ->skip(($page - 1) * $perPage)
+                      ->take($perPage)
+                      ->get()
+                      ->map(function ($user) {
+                          return [
+                              'userID' => $user->userID,
+                              'userCode' => $user->userCode,
+                              'firstName' => $user->firstName,
+                              'lastName' => $user->lastName,
+                              'email' => $user->email,
+                              'roleID' => $user->roleID,
+                              'campusID' => $user->campusID,
+                              'programID' => $user->programID,
+                              'role' => $user->role ? $user->role->roleName : 'Unknown',
+                              'campus' => $user->campus ? $user->campus->campusName : 'Unknown',
+                              'program' => $user->program ? $user->program->programName : 'Not Assigned',
+                              'isActive' => $user->isActive,
+                              'status_id' => $user->status_id,
+                              'status' => $user->status ? $user->status->name : 'Unknown',
+                          ];
+                      });
+
+        return [
+            'users' => $users,
+            'total' => $total,
+            'page' => (int)$page,
+            'totalPages' => ceil($total / $perPage)
+        ];
+    }
+
+    private function canUpdateUser($authUser, $userId)
+    {
+        return $authUser->roleID < 3 || $authUser->userID == $userId;
+    }
+
+    private function validateUserIDs(Request $request)
+    {
+        return $request->validate([
+            'userIDs' => 'required|array',
+            'userIDs.*' => 'integer|exists:users,userID'
+        ]);
+    }
+
+    private function processMultipleUsers($userIDs, $activate)
+    {
+        $processedUsers = [];
+        foreach ($userIDs as $userID) {
+            $user = User::find($userID);
+            if ($user && $user->isActive !== $activate) {
+                $user->isActive = $activate;
+                $user->save();
+                $processedUsers[] = $userID;
+            }
+        }
+        return $processedUsers;
+    }
+
+    private function isUserPending($user)
+    {
+        $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()->id;
+        return $user->status_id === $pendingStatusId;
+    }
+
+    private function updateUserStatus($user, $status, $isActive)
+    {
+        $statusId = DB::table('statuses')->where('name', $status)->first()->id;
+        $user->update([
+            'status_id' => $statusId,
+            'isActive' => $isActive
+        ]);
+    }
+
+    private function getStatusIds()
+    {
+        return [
+            'pending' => DB::table('statuses')->where('name', 'pending')->first()->id,
+            'registered' => DB::table('statuses')->where('name', 'registered')->first()->id,
+            'disapproved' => DB::table('statuses')->where('name', 'disapproved')->first()->id
+        ];
+    }
+
+    private function processMultipleApprovals($userIDs, $statusIds)
+    {
+        $approved = [];
+        $skipped = [];
+
+        foreach ($userIDs as $userID) {
+            $user = User::find($userID);
+            if (!$user || $user->status_id === $statusIds['disapproved'] || $user->status_id !== $statusIds['pending']) {
+                $skipped[] = $userID;
+                continue;
+            }
+
+            $user->update([
+                'status_id' => $statusIds['registered'],
+                'isActive' => true
+            ]);
+
+            $approved[] = $user;
+        }
+
+        return ['approved' => $approved, 'skipped' => $skipped];
+    }
+
+    private function validateProfileUpdate(Request $request, $user)
+    {
+        return $request->validate([
+            'firstName' => 'sometimes|required|string|max:100',
+            'lastName' => 'sometimes|required|string|max:100',
+            'email' => [
+                'sometimes',
+                'required',
+                'email',
+                Rule::unique('users', 'email')->ignore($user->userID, 'userID')
+            ],
+            'userCode' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('users', 'userCode')->ignore($user->userID, 'userID')
+            ],
+        ]);
+    }
+
+    private function updateUserProfile($user, $validated)
+    {
+        if (!$user instanceof User) {
+            $eloquentUser = User::find($user->userID);
+            if (!$eloquentUser) {
+                throw new \Exception('User record not found.');
+            }
+            foreach ($validated as $field => $value) {
+                $eloquentUser->$field = $value;
+            }
+            $eloquentUser->save();
+        } else {
+            foreach ($validated as $field => $value) {
+                $user->$field = $value;
+            }
+            $user->save();
+        }
+    }
+
+    private function handleValidationError($e)
+    {
+        $customErrors = [];
+        if (isset($e->errors()['email'])) {
+            $customErrors['email'] = ['The email is already in use by another account.'];
+        }
+        if (isset($e->errors()['userCode'])) {
+            $customErrors['userCode'] = ['The user code is already taken.'];
+        }
+        return response()->json([
+            'message' => 'Validation failed.',
+            'errors' => count($customErrors) ? $customErrors : $e->errors()
+        ], 422);
+    }
+
+    private function validateRoleChangePermission($authUser)
+    {
+        if (!in_array($authUser->roleID, [3, 4, 5])) {
+            throw new \Exception('Unauthorized. Only Dean, Associate Dean, or Program Chair can change user roles.');
+        }
+    }
+
+    private function validateRoleChangeScope($authUser, $user, $newRoleID)
+    {
+        $allowedRoleChanges = $this->getAllowedRoleChanges($authUser->roleID);
+        
+        if (!in_array($newRoleID, $allowedRoleChanges)) {
+            throw new \Exception('You are not authorized to assign this role.');
+        }
+
+        if ($authUser->roleID !== 4) {
+            if ($user->roleID <= $authUser->roleID) {
+                throw new \Exception('You cannot change the role of users with higher or equal role level.');
+            }
+
+            if ($authUser->roleID === 5 && $user->campusID !== $authUser->campusID) {
+                throw new \Exception('You can only change roles of users within your campus.');
+            }
+
+            if ($authUser->roleID === 3 && $user->programID !== $authUser->programID) {
+                throw new \Exception('You can only change roles of users within your program.');
+            }
+        }
+    }
+
+    private function getAllowedRoleChanges($roleID)
+    {
+        return match($roleID) {
+            4 => [1, 2, 3, 4, 5], // Dean
+            5 => [1, 2, 3],      // Associate Dean
+            3 => [1, 2],         // Program Chair
+            default => []
+        };
+    }
+
+    private function updateUserRole($user, $newRoleID)
+    {
+        $user->roleID = $newRoleID;
+        $user->save();
     }
 }

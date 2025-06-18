@@ -53,14 +53,10 @@ class PrintController extends Controller
                     // Handle question image
                     $questionImage = null;
                     if ($q->image) {
-                        if (filter_var($q->image, FILTER_VALIDATE_URL)) {
-                            $questionImage = $q->image;
-                        } else {
-                            // Handle local storage path
-                            $imagePath = str_replace('storage/', '', $q->image);
-                            if (Storage::disk('public')->exists($imagePath)) {
-                                $questionImage = asset('storage/' . $imagePath);
-                            }
+                        // Handle the specific question_images path
+                        $imagePath = 'question_images/' . basename($q->image);
+                        if (file_exists(public_path('storage/' . $imagePath))) {
+                            $questionImage = asset('storage/' . $imagePath);
                         }
                     }
 
@@ -75,13 +71,10 @@ class PrintController extends Controller
                             $choiceImage = null;
                             
                             if ($choice->image) {
-                                if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
-                                    $choiceImage = $choice->image;
-                                } else {
-                                    $imagePath = str_replace('storage/', '', $choice->image);
-                                    if (Storage::disk('public')->exists($imagePath)) {
-                                        $choiceImage = asset('storage/' . $imagePath);
-                                    }
+                                // Handle the specific choices path
+                                $imagePath = 'choices/' . basename($choice->image);
+                                if (file_exists(public_path('storage/' . $imagePath))) {
+                                    $choiceImage = asset('storage/' . $imagePath);
                                 }
                             }
 
@@ -642,37 +635,15 @@ class PrintController extends Controller
                 'isRemoteEnabled' => true,
                 'isPhpEnabled' => true,
                 'isHtml5ParserEnabled' => true,
-                'dpi' => 120,  // Reduced for server performance
+                'dpi' => 120,
                 'defaultFont' => 'times',
                 'chroot' => [
                     public_path('storage'),
+                    public_path('storage/choices'),
+                    public_path('storage/question_images'),
                     public_path(),
-                    storage_path('app/public')
-                ],
-                'enable_remote' => true,
-                'enable_php' => true,
-                'enable_javascript' => false,
-                'images' => true,
-                'enable_html5_parser' => true,
-                'debugPng' => false,
-                'debugKeepTemp' => false,
-                'logOutputFile' => storage_path('logs/pdf.log'),
-                'fontCache' => storage_path('fonts'),
-                'tempDir' => storage_path('app/temp'),
-                'image_cache_enabled' => true,
-                'defaultMediaType' => 'print',
-                'defaultPaperSize' => 'a4',
-                'fontHeightRatio' => 1,
-                'isFontSubsettingEnabled' => true,
-                'memory_limit' => '1024M',
-                'max_execution_time' => 1800,
-                'isRemoteEnabled' => true,
-                'isPhpEnabled' => true,
-                'isHtml5ParserEnabled' => true,
-                'chroot' => [
-                    public_path('storage'),
-                    public_path(),
-                    storage_path('app/public')
+                    base_path('public'),
+                    base_path('public/storage')
                 ],
                 'enable_remote' => true,
                 'enable_php' => true,
@@ -692,6 +663,8 @@ class PrintController extends Controller
                 'memory_limit' => '1024M',
                 'max_execution_time' => 1800
             ];
+
+            $pdf->setOptions($pdfOptions);
 
             // Dispatch the PDF generation job
             \Modules\Print\Jobs\GenerateExamPDF::dispatch($jobId, $storedPreviewData)
