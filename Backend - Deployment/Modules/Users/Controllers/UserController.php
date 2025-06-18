@@ -18,7 +18,26 @@ class UserController extends Controller
     public function index(Request $request)
     {
         try {
-            $this->authorizeUserAccess();
+            $user = Auth::user();
+            
+            // Check if user is authenticated
+            if (!$user) {
+                return response()->json(['message' => 'Unauthenticated'], 401);
+            }
+            
+            // Check if user has appropriate role
+            if (!in_array($user->roleID, [2, 3, 4, 5])) {
+                return response()->json(['message' => 'Unauthorized: Insufficient permissions'], 403);
+            }
+
+            // Verify faculty has required data
+            if ($user->roleID === 2) {
+                if (!$user->campusID || !$user->programID) {
+                    return response()->json([
+                        'message' => 'Faculty account is missing required campus or program assignment'
+                    ], 403);
+                }
+            }
             
             $query = $this->buildUserQuery($request);
             $pagination = $this->paginateResults($query, $request);
@@ -29,7 +48,6 @@ class UserController extends Controller
                 'page' => $pagination['page'],
                 'totalPages' => $pagination['totalPages']
             ], 200);
-    
         } catch (\Exception $e) {
             Log::error("Error fetching users: " . $e->getMessage());
             return response()->json(['message' => 'An error occurred while fetching users. Please try again later.'], 500);
@@ -128,19 +146,76 @@ class UserController extends Controller
     }
 
     /**
-     * Approve single user (Only Dean can do this).
+     * Approve single user with role-based hierarchy:
+     * - Dean (4) can approve all roles
+     * - Associate Dean (5) can approve Program Chair (3), Instructor (2), and Student (1)
+     * - Program Chair (3) can approve Instructor (2) and Student (1)
+     * - Faculty (2) can approve Student (1)
      */
     public function approveUser(Request $request, $userID)
     {
-        $this->authorizeDeanAccess();
-        $user = User::findOrFail($userID);
+        try {
+            $authUser = Auth::user();
+            $user = User::findOrFail($userID);
 
-        if (!$this->isUserPending($user)) {
-            return response()->json(['message' => 'User is already registered.'], 400);
+            // Validate if user has permission to approve
+            if (!in_array($authUser->roleID, [2, 3, 4, 5])) {
+                return response()->json(['message' => 'Unauthorized. You do not have permission to approve users.'], 403);
+            }
+
+            // Check if user is pending
+            if (!$this->isUserPending($user)) {
+                return response()->json(['message' => 'User is already registered.'], 400);
+            }
+
+            // Validate role hierarchy for approval
+            if (!$this->canApproveUser($authUser, $user)) {
+                return response()->json([
+                    'message' => 'You are not authorized to approve users with this role level.'
+                ], 403);
+            }
+
+            $this->updateUserStatus($user, 'registered', true);
+            return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
+
+        } catch (\Exception $e) {
+            Log::error('User approval error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An error occurred while approving the user.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if the authenticated user can approve the target user based on role hierarchy
+     */
+    private function canApproveUser($authUser, $targetUser)
+    {
+        // Dean can approve anyone
+        if ($authUser->roleID === 4) {
+            return true;
         }
 
-        $this->updateUserStatus($user, 'registered', true);
-        return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
+        // Get allowed roles for approval based on auth user's role
+        $allowedRoles = $this->getAllowedApprovalRoles($authUser->roleID);
+
+        // Check if target user's role is in the allowed roles
+        return in_array($targetUser->roleID, $allowedRoles);
+    }
+
+    /**
+     * Get the list of roles that can be approved by a given role
+     */
+    private function getAllowedApprovalRoles($roleID)
+    {
+        return match($roleID) {
+            4 => [1, 2, 3, 4, 5], // Dean can approve all
+            5 => [1, 2, 3],      // Associate Dean can approve Program Chair, Instructor, and Student
+            3 => [1, 2],         // Program Chair can approve Instructor and Student
+            2 => [1],            // Faculty can approve Student
+            default => []
+        };
     }
 
     /**
@@ -209,25 +284,85 @@ class UserController extends Controller
     {
         try {
             $authUser = Auth::user();
-            $this->validateRoleChangePermission($authUser);
+            if (!$authUser) {
+                return response()->json(['message' => 'Unauthenticated'], 401);
+            }
 
-            $validated = $request->validate(['roleID' => 'required|integer|exists:roles,roleID']);
+            // Validate role change permission
+            if (!in_array($authUser->roleID, [3, 4, 5])) {
+                return response()->json([
+                    'message' => 'Unauthorized: Only Dean, Associate Dean, or Program Chair can change user roles'
+                ], 403);
+            }
+
+            // Validate request data
+            $validated = $request->validate([
+                'roleID' => 'required|integer|exists:roles,roleID'
+            ]);
+
+            // Get target user
             $user = User::findOrFail($userID);
 
-            $this->validateRoleChangeScope($authUser, $user, $validated['roleID']);
-            $this->updateUserRole($user, $validated['roleID']);
+            // Role hierarchy restrictions
+            if ($authUser->roleID === 3) { // Program Chair
+                // Program Chair cannot edit Associate Dean (5) or Dean (4)
+                if ($user->roleID >= 4) {
+                    return response()->json([
+                        'message' => 'Program Chair cannot modify roles of Associate Dean or Dean'
+                    ], 403);
+                }
+                // Can only edit users in their program
+                if ($user->programID !== $authUser->programID) {
+                    return response()->json([
+                        'message' => 'You can only change roles of users within your program'
+                    ], 403);
+                }
+            } elseif ($authUser->roleID === 5) { // Associate Dean
+                // Associate Dean cannot edit Dean (4)
+                if ($user->roleID === 4) {
+                    return response()->json([
+                        'message' => 'Associate Dean cannot modify Dean\'s role'
+                    ], 403);
+                }
+                // Can only edit users in their campus
+                if ($user->campusID !== $authUser->campusID) {
+                    return response()->json([
+                        'message' => 'You can only change roles of users within your campus'
+                    ], 403);
+                }
+            }
+            // Dean (roleID 4) can edit everyone, no restrictions needed
+
+            // Validate role change scope
+            $allowedRoleChanges = $this->getAllowedRoleChanges($authUser->roleID);
+            if (!in_array($validated['roleID'], $allowedRoleChanges)) {
+                return response()->json([
+                    'message' => 'You are not authorized to assign this role'
+                ], 403);
+            }
+
+            // Update the role
+            $user->roleID = $validated['roleID'];
+            $user->save();
 
             return response()->json([
-                'message' => 'User role updated successfully.',
+                'message' => 'User role updated successfully',
                 'user' => $user
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['message' => 'Validation failed.', 'errors' => $e->errors()], 422);
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'User not found'
+            ], 404);
         } catch (\Exception $e) {
             Log::error('Role change error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An unexpected error occurred while changing the user role.',
+                'message' => 'An unexpected error occurred while changing the user role',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -235,18 +370,10 @@ class UserController extends Controller
 
     // Private helper methods
 
-    private function authorizeUserAccess()
-    {
-        $user = Auth::user();
-        if (!$user || !in_array($user->roleID, [4, 5])) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-    }
-
     private function authorizeDeanAccess()
     {
         $authUser = Auth::user();
-        if (!in_array($authUser->roleID, [4, 5])) {
+        if (!in_array($authUser->roleID, [3, 4, 5])) {
             return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can perform this action'], 403);
         }
     }
@@ -256,9 +383,36 @@ class UserController extends Controller
         $query = User::with(['role', 'campus', 'program', 'status']);
         $user = Auth::user();
 
+        // Apply role-based filters
         if ($user->roleID === 5) {
-            $query->where('campusID', $user->campusID);
+            // Associate Dean can only view users from their campus
+            if ($user->campusID) {
+                $query->where('campusID', $user->campusID);
+            } else {
+                Log::warning("Associate Dean {$user->userID} has no campus assigned");
+                $query->where('campusID', 0); // This will return no results
+            }
+        } elseif ($user->roleID === 3) {
+            // Program Chair can only view users from their campus and program
+            if ($user->campusID && $user->programID) {
+                $query->where('campusID', $user->campusID)
+                      ->where('programID', $user->programID);
+            } else {
+                Log::warning("Program Chair {$user->userID} has missing campus or program assignment");
+                $query->where('campusID', 0); // This will return no results
+            }
+        } elseif ($user->roleID === 2) {
+            // Faculty can only view students from their campus and program
+            if ($user->campusID && $user->programID) {
+                $query->where('campusID', $user->campusID)
+                      ->where('programID', $user->programID)
+                      ->where('roleID', 1); // Only show students (roleID 1)
+            } else {
+                Log::warning("Faculty {$user->userID} has missing campus or program assignment");
+                $query->where('campusID', 0); // This will return no results
+            }
         }
+        // Dean (roleID 4) can view all users, so no additional filters needed
 
         $this->applySearchFilters($query, $request);
         return $query;
@@ -480,49 +634,13 @@ class UserController extends Controller
         ], 422);
     }
 
-    private function validateRoleChangePermission($authUser)
-    {
-        if (!in_array($authUser->roleID, [3, 4, 5])) {
-            throw new \Exception('Unauthorized. Only Dean, Associate Dean, or Program Chair can change user roles.');
-        }
-    }
-
-    private function validateRoleChangeScope($authUser, $user, $newRoleID)
-    {
-        $allowedRoleChanges = $this->getAllowedRoleChanges($authUser->roleID);
-        
-        if (!in_array($newRoleID, $allowedRoleChanges)) {
-            throw new \Exception('You are not authorized to assign this role.');
-        }
-
-        if ($authUser->roleID !== 4) {
-            if ($user->roleID <= $authUser->roleID) {
-                throw new \Exception('You cannot change the role of users with higher or equal role level.');
-            }
-
-            if ($authUser->roleID === 5 && $user->campusID !== $authUser->campusID) {
-                throw new \Exception('You can only change roles of users within your campus.');
-            }
-
-            if ($authUser->roleID === 3 && $user->programID !== $authUser->programID) {
-                throw new \Exception('You can only change roles of users within your program.');
-            }
-        }
-    }
-
     private function getAllowedRoleChanges($roleID)
     {
         return match($roleID) {
-            4 => [1, 2, 3, 4, 5], // Dean
-            5 => [1, 2, 3],      // Associate Dean
-            3 => [1, 2],         // Program Chair
+            4 => [1, 2, 3, 4, 5], // Dean can change all roles
+            5 => [1, 2, 3],      // Associate Dean can change Program Chair, Instructor, and Student
+            3 => [1, 2],         // Program Chair can change Instructor and Student
             default => []
         };
-    }
-
-    private function updateUserRole($user, $newRoleID)
-    {
-        $user->roleID = $newRoleID;
-        $user->save();
     }
 }
