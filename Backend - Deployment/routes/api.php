@@ -40,9 +40,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user/profile', [UserController::class, 'getProfile']);
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
-
-    Route::get('/print/check-status/{jobId}', [PrintController::class, 'checkGenerationStatus'])
-        ->name('api.print.check-status'); // Changed the route name to be unique
 });
 
 /*
@@ -151,3 +148,20 @@ Route::middleware(['auth:sanctum', 'role:4,5'])->group(function () {
     Route::delete('/subjects/{subjectID}/delete', [SubjectController::class, 'destroy']);
     Route::put('/subjects/{subjectID}/update', [SubjectController::class, 'update']);
 });
+
+// Serve question_images and choices with CORS headers for frontend PDF rendering
+Route::get('storage/question_images/{filename}', function ($filename) {
+    $path = public_path('storage/question_images/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path);
+})->middleware('image.cors');
+
+Route::get('storage/choices/{filename}', function ($filename) {
+    $path = public_path('storage/choices/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path);
+})->middleware('image.cors');
