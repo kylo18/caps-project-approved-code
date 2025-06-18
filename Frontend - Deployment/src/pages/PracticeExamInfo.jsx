@@ -74,6 +74,10 @@ const PracticeExamInfo = () => {
               )}
               <li>You can bookmark questions to review them later</li>
               <li>Use the navigation buttons to move between questions</li>
+              <li className="mt-4">
+                The qualifying exam will consist of 100 items to be completed
+                within 3 hours.
+              </li>
             </ul>
           </div>
         </div>

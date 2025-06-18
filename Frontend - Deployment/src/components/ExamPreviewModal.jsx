@@ -1,17 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import univLogo from "../assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
+import html2pdf from "html2pdf.js";
 
-export default function ExamPreviewModal({
-  previewData,
-  onClose,
-  onDownload,
-  loading,
-}) {
+export default function ExamPreviewModal({ previewData, onClose, loading }) {
   const [scale, setScale] = useState(1);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const PAGE_WIDTH = 793.7; // 210mm in px at 96dpi
+  const modalContentRef = useRef(null);
 
   useEffect(() => {
     // Validate preview data
@@ -49,23 +46,46 @@ export default function ExamPreviewModal({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    // Handle Ctrl+A to select only modal content
+    function handleCtrlA(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+        if (modalContentRef.current) {
+          e.preventDefault();
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          const range = document.createRange();
+          range.selectNodeContents(modalContentRef.current);
+          selection.addRange(range);
+        }
+      }
+    }
+    document.addEventListener("keydown", handleCtrlA);
+    return () => document.removeEventListener("keydown", handleCtrlA);
+  }, []);
+
   const handleDownload = async () => {
     try {
       setError(null);
-      await onDownload();
+      const element = modalContentRef.current;
+      if (!element) throw new Error("Content not found");
+      await waitForImagesToLoad(element); // Wait for all images to load
+      await html2pdf()
+        .set({
+          html2canvas: { useCORS: true, allowTaint: true },
+          filename: "exam-preview.pdf",
+        })
+        .from(element)
+        .save();
       setRetryCount(0); // Reset retry count on success
     } catch (err) {
       console.error("Download error:", err);
-
-      // Check if it's a PDF generation error
       if (err.message.includes("Failed to generate PDF")) {
         if (retryCount < 2) {
-          // Allow up to 2 retries
           setRetryCount((prev) => prev + 1);
           setError(
             `PDF generation failed. Retrying... (Attempt ${retryCount + 1}/2)`,
           );
-          // Wait a bit before retrying
           setTimeout(() => {
             handleDownload();
           }, 2000);
@@ -80,6 +100,23 @@ export default function ExamPreviewModal({
       }
     }
   };
+
+  // Helper to wait for all images in the modal to load
+  function waitForImagesToLoad(container) {
+    const images = container.querySelectorAll("img");
+    const promises = Array.from(images).map(
+      (img) =>
+        new Promise((resolve) => {
+          if (img.complete && img.naturalHeight !== 0) {
+            resolve();
+          } else {
+            img.onload = resolve;
+            img.onerror = resolve; // resolve even if image fails to load
+          }
+        }),
+    );
+    return Promise.all(promises);
+  }
 
   const handleRetry = () => {
     setRetryCount(0);
@@ -176,6 +213,7 @@ export default function ExamPreviewModal({
       )}
       <div className="flex h-screen min-h-screen items-start justify-center overflow-y-auto p-10">
         <div
+          ref={modalContentRef}
           className="mx-auto inline-block w-[210mm] transform overflow-hidden bg-white text-left align-bottom shadow-xl transition-all"
           style={{
             transform: `scale(${scale})`,
