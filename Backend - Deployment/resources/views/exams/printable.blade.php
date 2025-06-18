@@ -262,7 +262,7 @@
         <div class="question">
           <div class="question-text">
             <div class="question-text-content">
-              {{ $questionNumber }}. {!! html_entity_decode($question['questionText'] ?? 'Question text not available', ENT_QUOTES | ENT_HTML5, 'UTF-8') !!}
+              {{ $questionNumber }}. {!! $question['questionText'] ?? 'Question text not available' !!}
             </div>
             @if (!empty($question['questionImage']))
             <div class="image-container">
@@ -281,7 +281,7 @@
             <div class="choice">
               <span class="choice-letter">{{ chr(65 + $choiceIndex) }}.</span>
               <div class="choice-content">
-                {!! html_entity_decode($choice['choiceText'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8') !!}
+                {!! $choice['choiceText'] ?? '' !!}
 
                 @if(!empty($choice['choiceImage']))
                 <div class="image-container">

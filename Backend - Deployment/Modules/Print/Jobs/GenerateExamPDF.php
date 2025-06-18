@@ -96,12 +96,8 @@ class GenerateExamPDF implements ShouldQueue
                 'defaultFont' => 'times',
                 'chroot' => [
                     public_path('storage'),
-                    public_path('storage/choices'),
-                    public_path('storage/question_images'),
                     public_path(),
-                    storage_path('app/public'),
-                    storage_path('app/public/choices'),
-                    storage_path('app/public/question_images')
+                    storage_path('app/public')
                 ],
                 'enable_remote' => true,
                 'enable_php' => true,
@@ -119,8 +115,7 @@ class GenerateExamPDF implements ShouldQueue
                 'fontHeightRatio' => 1,
                 'isFontSubsettingEnabled' => true,
                 'memory_limit' => '1024M',
-                'max_execution_time' => 1800,
-                'fontDir' => storage_path('fonts/')
+                'max_execution_time' => 1800
             ];
 
             $pdf->setOptions($pdfOptions);
@@ -211,34 +206,7 @@ class GenerateExamPDF implements ShouldQueue
                 return $imageUrl;
             }
 
-            // Handle different image URL formats
-            $imagePath = null;
-            
-            if (filter_var($imageUrl, FILTER_VALIDATE_URL)) {
-                // External URL
-                $imagePath = $imageUrl;
-            } else {
-                // Local storage path
-                $path = str_replace(['storage/', 'public/'], '', $imageUrl);
-                $fullPath = storage_path('app/public/' . $path);
-                
-                if (file_exists($fullPath)) {
-                    $imagePath = $fullPath;
-                } else {
-                    // Try public storage path
-                    $publicPath = public_path('storage/' . $path);
-                    if (file_exists($publicPath)) {
-                        $imagePath = $publicPath;
-                    }
-                }
-            }
-
-            if (!$imagePath) {
-                Log::warning('Image not found:', ['url' => $imageUrl]);
-                return $imageUrl;
-            }
-
-            $image = Image::make($imagePath);
+            $image = Image::make($imageUrl);
             
             // Resize if larger than max dimensions
             if ($image->width() > $this->maxImageWidth || $image->height() > $this->maxImageHeight) {

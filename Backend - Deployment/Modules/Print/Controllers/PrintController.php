@@ -53,14 +53,10 @@ class PrintController extends Controller
                     // Handle question image
                     $questionImage = null;
                     if ($q->image) {
-                        if (filter_var($q->image, FILTER_VALIDATE_URL)) {
-                            $questionImage = $q->image;
-                        } else {
-                            // Handle local storage path
-                            $imagePath = str_replace('storage/', '', $q->image);
-                            if (Storage::disk('public')->exists($imagePath)) {
-                                $questionImage = url('storage/' . $imagePath);
-                            }
+                        // Handle the specific question_images path
+                        $imagePath = 'question_images/' . basename($q->image);
+                        if (file_exists(public_path('storage/' . $imagePath))) {
+                            $questionImage = asset('storage/' . $imagePath);
                         }
                     }
 
@@ -75,14 +71,10 @@ class PrintController extends Controller
                             $choiceImage = null;
                             
                             if ($choice->image) {
-                                if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
-                                    $choiceImage = $choice->image;
-                                } else {
-                                    // Handle local storage path
-                                    $imagePath = str_replace('storage/', '', $choice->image);
-                                    if (Storage::disk('public')->exists($imagePath)) {
-                                        $choiceImage = url('storage/' . $imagePath);
-                                    }
+                                // Handle the specific choices path
+                                $imagePath = 'choices/' . basename($choice->image);
+                                if (file_exists(public_path('storage/' . $imagePath))) {
+                                    $choiceImage = asset('storage/' . $imagePath);
                                 }
                             }
 
@@ -145,29 +137,16 @@ class PrintController extends Controller
     private function getBase64Image($path)
     {
         try {
-            // Try multiple possible paths for the logo
-            $possiblePaths = [
-                $path,
-                public_path('univLogo.png.jpg'),
-                public_path('college-logo.png.jpg'),
-                public_path('storage/logo/JRMSU.jpg'),
-                public_path('storage/logo/COE.jpg'),
-                resource_path('assets/images/JRMSU.jpg'),
-                resource_path('assets/images/COE.jpg'),
-                public_path('JRMSU.jpg'),
-                public_path('COE.jpg')
-            ];
-
-            foreach ($possiblePaths as $tryPath) {
-                if (file_exists($tryPath)) {
-                    // Return the URL for the file
-                    $relativePath = str_replace(public_path(), '', $tryPath);
-                    return url($relativePath);
-                }
+            if (file_exists($path)) {
+                $imagePath = str_replace('storage/', '', $path);
+                return url('storage/' . $imagePath);
             }
-
-            // If no file found, return null
-            Log::warning('Logo file not found in any of the expected locations:', ['paths' => $possiblePaths]);
+            // Try alternative path if first path doesn't exist
+            $altPath = resource_path('assets/images/' . basename($path));
+            if (file_exists($altPath)) {
+                return url('storage/images/' . basename($path));
+            }
+            Log::warning('Logo file not found:', ['path' => $path, 'altPath' => $altPath]);
             return null;
         } catch (\Exception $e) {
             Log::error('Error reading image:', ['path' => $path, 'error' => $e->getMessage()]);
@@ -499,8 +478,8 @@ class PrintController extends Controller
             }
 
             // Get base64 encoded logos
-            $leftLogoPath = public_path('univLogo.png.jpg');
-            $rightLogoPath = public_path('college-logo.png.jpg');
+            $leftLogoPath = public_path('storage/logo/JRMSU.jpg');
+            $rightLogoPath = public_path('storage/logo/COE.jpg');
             
             $leftLogoBase64 = $this->getBase64Image($leftLogoPath);
             $rightLogoBase64 = $this->getBase64Image($rightLogoPath);
