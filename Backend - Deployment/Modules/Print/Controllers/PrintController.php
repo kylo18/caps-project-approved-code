@@ -53,11 +53,9 @@ class PrintController extends Controller
                     // Handle question image
                     $questionImage = null;
                     if ($q->image) {
-                        // Handle the specific question_images path
+                        // Always return the public asset URL for preview
                         $imagePath = 'question_images/' . basename($q->image);
-                        if (file_exists(public_path('storage/' . $imagePath))) {
-                            $questionImage = asset('storage/' . $imagePath);
-                        }
+                        $questionImage = asset('storage/' . $imagePath);
                     }
 
                     // Format choices with proper image handling
@@ -71,11 +69,9 @@ class PrintController extends Controller
                             $choiceImage = null;
                             
                             if ($choice->image) {
-                                // Handle the specific choices path
+                                // Always return the public asset URL for preview
                                 $imagePath = 'choices/' . basename($choice->image);
-                                if (file_exists(public_path('storage/' . $imagePath))) {
-                                    $choiceImage = asset('storage/' . $imagePath);
-                                }
+                                $choiceImage = asset('storage/' . $imagePath);
                             }
 
                             $formattedChoice = [
@@ -499,6 +495,25 @@ class PrintController extends Controller
 
             // Handle preview request
             if ($request->input('preview', false)) {
+                // Collect correct answers for all questions by subject
+                $correctAnswers = [];
+                foreach ($questionsBySubject as $subjectName => $subjectData) {
+                    $correctAnswers[$subjectName] = [];
+                    foreach ($subjectData['questions'] as $qIndex => $question) {
+                        $correctChoices = [];
+                        foreach ($question['choices'] as $choiceIndex => $choice) {
+                            if ($choice['isCorrect']) {
+                                $correctChoices[] = [
+                                    'choiceIndex' => $choiceIndex,
+                                    'choiceText' => $choice['choiceText'],
+                                    'choiceImage' => $choice['choiceImage'] ?? null
+                                ];
+                            }
+                        }
+                        $correctAnswers[$subjectName][$qIndex] = $correctChoices;
+                    }
+                }
+
                 $previewData = [
                     'questionsBySubject' => $questionsBySubject,
                     'totalItems' => array_sum(array_map(fn($subject) => $subject['totalItems'], $questionsBySubject)),
@@ -515,7 +530,8 @@ class PrintController extends Controller
                         'right' => $rightLogoBase64
                     ],
                     'timestamp' => now()->timestamp,
-                    'user_id' => Auth::id() // Add user ID to track ownership
+                    'user_id' => Auth::id(), // Add user ID to track ownership
+                    'correctAnswers' => $correctAnswers // Add correct answers for preview
                 ];
 
                 // Store preview data in session with a unique key
