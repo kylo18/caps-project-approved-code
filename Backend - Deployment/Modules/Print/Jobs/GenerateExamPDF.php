@@ -18,7 +18,7 @@ class GenerateExamPDF implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $jobId;
-    protected $previewData;
+    protected $examData;
     protected $pdfStoragePath = 'app/public/generated-exams';
     protected $maxImageWidth = 600;  // Reduced for server performance
     protected $maxImageHeight = 400; // Reduced for server performance
@@ -49,10 +49,10 @@ class GenerateExamPDF implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct($jobId, $previewData)
+    public function __construct($jobId, $examData)
     {
         $this->jobId = $jobId;
-        $this->previewData = $previewData;
+        $this->examData = $examData;
         $this->onQueue('pdf-generation');
     }
 
@@ -82,10 +82,10 @@ class GenerateExamPDF implements ShouldQueue
 
             // Configure PDF with server-optimized settings
             $pdf = PDF::loadView('exams.printable', [
-                'questionsBySubject' => $this->previewData['questionsBySubject'],
-                'examTitle' => $this->previewData['examTitle'],
-                'leftLogoPath' => $this->previewData['logos']['left'],
-                'rightLogoPath' => $this->previewData['logos']['right']
+                'questionsBySubject' => $this->examData['questionsBySubject'],
+                'examTitle' => $this->examData['examTitle'],
+                'leftLogoPath' => $this->examData['logos']['left'],
+                'rightLogoPath' => $this->examData['logos']['right']
             ]);
 
             $pdfOptions = [
@@ -176,7 +176,7 @@ class GenerateExamPDF implements ShouldQueue
     protected function optimizeImages()
     {
         try {
-            foreach ($this->previewData['questionsBySubject'] as &$subject) {
+            foreach ($this->examData['questionsBySubject'] as &$subject) {
                 foreach ($subject['questions'] as &$question) {
                     if (!empty($question['questionImage'])) {
                         $question['questionImage'] = $this->optimizeImage($question['questionImage']);
@@ -239,7 +239,7 @@ class GenerateExamPDF implements ShouldQueue
      */
     protected function generatePDFInChunks($pdf, $filePath)
     {
-        $subjects = $this->previewData['questionsBySubject'];
+        $subjects = $this->examData['questionsBySubject'];
         $totalChunks = ceil(count($subjects) / $this->chunkSize);
         
         for ($i = 0; $i < $totalChunks; $i++) {
@@ -248,9 +248,9 @@ class GenerateExamPDF implements ShouldQueue
             // Update the view data for this chunk
             $pdf->loadView('exams.printable', [
                 'questionsBySubject' => $chunk,
-                'examTitle' => $this->previewData['examTitle'],
-                'leftLogoPath' => $this->previewData['logos']['left'],
-                'rightLogoPath' => $this->previewData['logos']['right'],
+                'examTitle' => $this->examData['examTitle'],
+                'leftLogoPath' => $this->examData['logos']['left'],
+                'rightLogoPath' => $this->examData['logos']['right'],
                 'isChunk' => true,
                 'chunkNumber' => $i + 1,
                 'totalChunks' => $totalChunks

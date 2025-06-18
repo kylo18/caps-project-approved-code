@@ -31,10 +31,13 @@ class PracticeExamController extends Controller
             }
 
             // Fetch subject (must be assigned to the user's program or general subject)
-            $subject = Subject::where('subjectID', $subjectID)
-                ->where('programID', $user->programID)
-                ->orWhere('programID', 6)
-                ->first();
+            $subject = Subject::where(function($query) use ($user, $subjectID) {
+                $query->where('subjectID', $subjectID)
+                    ->where(function($q) use ($user) {
+                        $q->where('programID', $user->programID)
+                          ->orWhere('programID', 6); // 6 is for general subjects
+                    });
+            })->first();
 
             if (!$subject) {
                 return response()->json(['message' => 'Subject not found or not assigned to your program.'], 404);
