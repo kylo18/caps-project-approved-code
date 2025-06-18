@@ -61,6 +61,7 @@ const PracticeExamInfo = () => {
             </h3>
             <ul className="list-inside list-disc space-y-2 text-[12px] text-gray-600">
               <li>Make sure to answer all questions before submitting</li>
+              <li>Progress will not be saved if you exit</li>
               {examData.enableTimer ? (
                 <li>
                   This exam has a time limit. Make sure to complete it within

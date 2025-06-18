@@ -338,6 +338,15 @@ const AdminContent = () => {
     );
   };
 
+  // Add this new function to count questions by difficulty
+  const getDifficultyCounts = (questions) => {
+    return questions.reduce((acc, question) => {
+      const difficulty = question.difficulty?.name?.toLowerCase() || "easy";
+      acc[difficulty] = (acc[difficulty] || 0) + 1;
+      return acc;
+    }, {});
+  };
+
   return (
     <div className="relative mt-9 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
       <div className="flex-1">
@@ -527,8 +536,43 @@ const AdminContent = () => {
 
             {/* Questions List */}
             {(activeTab === 0 || activeTab === 1 || activeTab === 4) && (
-              <div className="flex">
-                <div className="flex-1">
+              <div className="relative">
+                {/* Difficulty Counts - Floating Box
+                <div className="border-color open-sans absolute top-0 left-0 z-10 h-fit rounded-md border bg-white p-2">
+                  <div className="flex flex-col gap-2">
+                    {["easy", "moderate", "hard"].map((difficulty) => {
+                      const counts = getDifficultyCounts(
+                        filteredQuestions.filter(
+                          (question) =>
+                            (activeTab === 4 && question.status_id === 1) || // 1 is pending
+                            (activeTab === 0 &&
+                              question.purpose_id === 2 && // 1 for practice questions
+                              question.status_id === 2) || // 2 is approved
+                            (activeTab === 1 &&
+                              question.purpose_id === 1 && // 2 for exam questions
+                              question.status_id === 2), // 2 is approved
+                        ),
+                      );
+                      return (
+                        <div
+                          key={difficulty}
+                          className="sha flex items-center justify-between gap-4 rounded-md px-3 py-1"
+                        >
+                          <span className="text-[12px] font-medium text-gray-700">
+                            {difficulty.charAt(0).toUpperCase() +
+                              difficulty.slice(1)}{" "}
+                            :
+                          </span>
+                          <span className="rounded-full px-2 py-1 text-[12px] font-medium text-gray-700">
+                            {counts[difficulty] || 0}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div> */}
+
+                <div className="w-full">
                   {isLoading ? (
                     <div className="flex flex-col gap-2">
                       {[1, 2, 3].map((index) => (
@@ -597,10 +641,10 @@ const AdminContent = () => {
                     </div>
                   ) : filteredQuestions.length > 0 ? (
                     <>
-                      <div className="border-color relative mx-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-t-md border border-b-0 bg-white">
-                        <div className="flex items-center gap-2">
+                      <div className="border-color relative mx-auto flex w-full max-w-3xl flex-col rounded-t-md border border-b-0 bg-white sm:flex-row">
+                        <div className="flex flex-col gap-2 p-4">
                           {/* Question Count */}
-                          <div className="ml-4 text-sm font-medium text-gray-600">
+                          <div className="text-sm font-medium text-gray-600">
                             {
                               filteredQuestions.filter(
                                 (question) =>
@@ -665,7 +709,7 @@ const AdminContent = () => {
                                   setExpandedQuestionId(question.questionID);
                                 }
                               }}
-                              className={`relative mx-auto w-full max-w-3xl cursor-pointer border border-[rgb(200,200,200)] bg-white p-4 shadow-md sm:px-4 ${listViewOnly && expandedQuestionId !== question.questionID ? "hover:bg-gray-100" : ""} ${
+                              className={`relative mx-auto w-full max-w-3xl cursor-pointer border border-[rgb(200,200,200)] bg-white p-4 sm:px-4 ${listViewOnly && expandedQuestionId !== question.questionID ? "hover:bg-gray-100" : ""} ${
                                 listViewOnly
                                   ? expandedQuestionId === question.questionID
                                     ? `rounded-sm ${index === 0 ? "" : "mt-2"} mb-2`

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import univLogo from "/src/assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
@@ -30,6 +30,21 @@ export default function Register() {
   const navigate = useNavigate();
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [message, setMessage] = useState("");
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (tooltipRef.current && !tooltipRef.current.contains(event.target)) {
+        setShowTooltip(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const allPrograms = [
     { id: "1", name: "Bachelor of Science in Computer Engineering" },
@@ -447,6 +462,21 @@ export default function Register() {
                               >
                                 Instructor Code/Student ID Number
                               </label>
+                              <div className="relative" ref={tooltipRef}>
+                                <button
+                                  type="button"
+                                  className="absolute -right-8 bottom-[-12px] -translate-y-1/2 cursor-pointer text-gray-400 hover:text-gray-600"
+                                  onClick={() => setShowTooltip(!showTooltip)}
+                                  tabIndex={-1}
+                                >
+                                  <i className="bx bx-help-circle text-[24px]"></i>
+                                </button>
+                                {showTooltip && (
+                                  <div className="absolute top-[-70px] -right-40 z-50 -translate-y-1/2 rounded-lg bg-gray-800 px-3 py-2 text-sm text-white">
+                                    Format: XX-X-XXXXX (e.g., 23-A-12345)
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
                             {errors.userCode && (
@@ -885,7 +915,7 @@ export default function Register() {
             </p>
 
             <form
-              className="mt-2 w-full space-y-4 sm:max-w-md md:max-w-xl"
+              className="mt-2 w-full max-w-sm space-y-4 sm:max-w-md md:max-w-xl"
               onSubmit={handleSubmit}
             >
               <div
@@ -988,8 +1018,23 @@ export default function Register() {
                           htmlFor="User Code"
                           className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
                         >
-                          User Code (e.g 23-A-XXXXX)
+                          Instructor Code/Student ID Number
                         </label>
+                        <div className="relative" ref={tooltipRef}>
+                          <button
+                            type="button"
+                            className="absolute -right-8 bottom-[-5px] -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            onClick={() => setShowTooltip(!showTooltip)}
+                            tabIndex={-1}
+                          >
+                            <i className="bx bx-help-circle text-[20px]"></i>
+                          </button>
+                          {showTooltip && (
+                            <div className="absolute top-[-70px] -right-10 z-50 -translate-y-1/2 rounded-lg bg-gray-800 px-3 py-2 text-sm text-white">
+                              For Students (e.g., 23-A-12345)
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {errors.userCode && (
