@@ -28,18 +28,19 @@ class PrintController extends Controller
             return null;
         }
 
-        // If it's already a full URL, return as is
-        if (Str::startsWith($path, ['http://', 'https://'])) {
-            return $path;
+        // If it's already a full URL, return as is, but force HTTPS
+        if (\Illuminate\Support\Str::startsWith($path, ['http://', 'https://'])) {
+            return preg_replace('/^http:/i', 'https:', $path);
         }
 
         // Check if the file exists in storage
-        if (!Storage::disk('public')->exists($path)) {
+        if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
             return null;
         }
 
-        // Generate the full URL for the existing file
-        return asset('storage/' . $path);
+        // Generate the full URL for the existing file, force HTTPS
+        $url = asset('storage/' . $path);
+        return preg_replace('/^http:/i', 'https:', $url);
     }
 
     private function formatQuestions($questions, $subject = null)
