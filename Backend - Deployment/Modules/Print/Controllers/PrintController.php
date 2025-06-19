@@ -53,9 +53,7 @@ class PrintController extends Controller
                     // Handle question image
                     $questionImage = null;
                     if ($q->image) {
-                        // Always return the public asset URL for preview
-                        $imagePath = 'question_images/' . basename($q->image);
-                        $questionImage = asset('storage/' . $imagePath);
+                        $questionImage = $this->generateUrl('question_images/' . basename($q->image));
                     }
 
                     // Format choices with proper image handling
@@ -69,9 +67,7 @@ class PrintController extends Controller
                             $choiceImage = null;
                             
                             if ($choice->image) {
-                                // Always return the public asset URL for preview
-                                $imagePath = 'choices/' . basename($choice->image);
-                                $choiceImage = asset('storage/' . $imagePath);
+                                $choiceImage = $this->generateUrl('choices/' . basename($choice->image));
                             }
 
                             $formattedChoice = [
