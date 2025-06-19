@@ -336,6 +336,15 @@ const AssoDeanContent = () => {
     );
   };
 
+  // Add this new function to count questions by difficulty
+  const getDifficultyCounts = (questions) => {
+    return questions.reduce((acc, question) => {
+      const difficulty = question.difficulty?.name?.toLowerCase() || "easy";
+      acc[difficulty] = (acc[difficulty] || 0) + 1;
+      return acc;
+    }, {});
+  };
+
   return (
     <div className="relative mt-9 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
       <div className="flex-1">
@@ -598,21 +607,52 @@ const AssoDeanContent = () => {
                       <div className="border-color relative mx-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-t-md border border-b-0 bg-white">
                         <div className="flex items-center gap-2">
                           {/* Question Count */}
-                          <div className="ml-4 text-sm font-medium text-gray-600">
-                            {
-                              filteredQuestions.filter(
-                                (question) =>
-                                  (activeTab === 4 &&
-                                    question.status_id === 1) || // 1 is pending
-                                  (activeTab === 0 &&
-                                    question.purpose_id === 2 && // 1 for practice questions
-                                    question.status_id === 2) || // 2 is approved
-                                  (activeTab === 1 &&
-                                    question.purpose_id === 1 && // 2 for exam questions
-                                    question.status_id === 2), // 2 is approved
-                              ).length
-                            }{" "}
-                            QUESTIONS
+                          <div className="ml-4 flex items-center gap-4 text-sm font-medium text-nowrap text-gray-600">
+                            <span>
+                              {
+                                filteredQuestions.filter(
+                                  (question) =>
+                                    (activeTab === 4 &&
+                                      question.status_id === 1) ||
+                                    (activeTab === 0 &&
+                                      question.purpose_id === 2 &&
+                                      question.status_id === 2) ||
+                                    (activeTab === 1 &&
+                                      question.purpose_id === 1 &&
+                                      question.status_id === 2),
+                                ).length
+                              }{" "}
+                              QUESTIONS
+                            </span>
+                            {/* Difficulty Counters */}
+                            {(() => {
+                              const counts = getDifficultyCounts(
+                                filteredQuestions.filter(
+                                  (question) =>
+                                    (activeTab === 4 &&
+                                      question.status_id === 1) ||
+                                    (activeTab === 0 &&
+                                      question.purpose_id === 2 &&
+                                      question.status_id === 2) ||
+                                    (activeTab === 1 &&
+                                      question.purpose_id === 1 &&
+                                      question.status_id === 2),
+                                ),
+                              );
+                              return (
+                                <span className="flex gap-2 text-xs text-gray-500">
+                                  <span className="rounded bg-white px-2 py-1 font-semibold text-green-700">
+                                    Easy: {counts.easy || 0}
+                                  </span>
+                                  <span className="rounded bg-white px-2 py-1 font-semibold text-yellow-700">
+                                    Moderate: {counts.moderate || 0}
+                                  </span>
+                                  <span className="rounded bg-white px-2 py-1 font-semibold text-red-700">
+                                    Hard: {counts.hard || 0}
+                                  </span>
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
 

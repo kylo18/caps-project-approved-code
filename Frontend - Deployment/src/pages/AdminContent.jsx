@@ -537,41 +537,6 @@ const AdminContent = () => {
             {/* Questions List */}
             {(activeTab === 0 || activeTab === 1 || activeTab === 4) && (
               <div className="relative">
-                {/* Difficulty Counts - Floating Box
-                <div className="border-color open-sans absolute top-0 left-0 z-10 h-fit rounded-md border bg-white p-2">
-                  <div className="flex flex-col gap-2">
-                    {["easy", "moderate", "hard"].map((difficulty) => {
-                      const counts = getDifficultyCounts(
-                        filteredQuestions.filter(
-                          (question) =>
-                            (activeTab === 4 && question.status_id === 1) || // 1 is pending
-                            (activeTab === 0 &&
-                              question.purpose_id === 2 && // 1 for practice questions
-                              question.status_id === 2) || // 2 is approved
-                            (activeTab === 1 &&
-                              question.purpose_id === 1 && // 2 for exam questions
-                              question.status_id === 2), // 2 is approved
-                        ),
-                      );
-                      return (
-                        <div
-                          key={difficulty}
-                          className="sha flex items-center justify-between gap-4 rounded-md px-3 py-1"
-                        >
-                          <span className="text-[12px] font-medium text-gray-700">
-                            {difficulty.charAt(0).toUpperCase() +
-                              difficulty.slice(1)}{" "}
-                            :
-                          </span>
-                          <span className="rounded-full px-2 py-1 text-[12px] font-medium text-gray-700">
-                            {counts[difficulty] || 0}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div> */}
-
                 <div className="w-full">
                   {isLoading ? (
                     <div className="flex flex-col gap-2">
@@ -644,27 +609,58 @@ const AdminContent = () => {
                       <div className="border-color relative mx-auto flex w-full max-w-3xl flex-col rounded-t-md border border-b-0 bg-white sm:flex-row">
                         <div className="flex flex-col gap-2 p-4">
                           {/* Question Count */}
-                          <div className="text-sm font-medium text-gray-600">
-                            {
-                              filteredQuestions.filter(
-                                (question) =>
-                                  (activeTab === 4 &&
-                                    question.status_id === 1) || // 1 is pending
-                                  (activeTab === 0 &&
-                                    question.purpose_id === 2 && // 1 for practice questions
-                                    question.status_id === 2) || // 2 is approved
-                                  (activeTab === 1 &&
-                                    question.purpose_id === 1 && // 2 for exam questions
-                                    question.status_id === 2), // 2 is approved
-                              ).length
-                            }{" "}
-                            QUESTIONS
+                          <div className="flex items-center gap-4 text-sm font-medium text-nowrap text-gray-600">
+                            <span>
+                              {
+                                filteredQuestions.filter(
+                                  (question) =>
+                                    (activeTab === 4 &&
+                                      question.status_id === 1) || // 1 is pending
+                                    (activeTab === 0 &&
+                                      question.purpose_id === 2 && // 1 for practice questions
+                                      question.status_id === 2) || // 2 is approved
+                                    (activeTab === 1 &&
+                                      question.purpose_id === 1 && // 2 for exam questions
+                                      question.status_id === 2), // 2 is approved
+                                ).length
+                              }{" "}
+                              QUESTIONS
+                            </span>
+                            {/* Difficulty Counters */}
+                            {(() => {
+                              const counts = getDifficultyCounts(
+                                filteredQuestions.filter(
+                                  (question) =>
+                                    (activeTab === 4 &&
+                                      question.status_id === 1) ||
+                                    (activeTab === 0 &&
+                                      question.purpose_id === 2 &&
+                                      question.status_id === 2) ||
+                                    (activeTab === 1 &&
+                                      question.purpose_id === 1 &&
+                                      question.status_id === 2),
+                                ),
+                              );
+                              return (
+                                <span className="flex gap-2 text-xs text-gray-500">
+                                  <span className="rounded bg-white px-2 py-1 font-semibold text-green-700">
+                                    Easy: {counts.easy || 0}
+                                  </span>
+                                  <span className="rounded bg-white px-2 py-1 font-semibold text-yellow-700">
+                                    Moderate: {counts.moderate || 0}
+                                  </span>
+                                  <span className="rounded bg-white px-2 py-1 font-semibold text-red-700">
+                                    Hard: {counts.hard || 0}
+                                  </span>
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
 
                         <div className="ml-auto flex items-center px-4 py-3">
-                          <span className="mr-4 ml-2 items-center text-sm font-medium text-gray-500">
-                            Show Answer Options
+                          <span className="mr-4 ml-2 items-center text-sm font-medium text-nowrap text-gray-500">
+                            Show Choices
                           </span>
                           <label
                             className={`relative inline-flex cursor-pointer items-center ${

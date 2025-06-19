@@ -73,14 +73,26 @@ const Sidebar = ({
   const baseMenuItems = [
     { icon: "bx-dashboard-alt", label: "Dashboard", path: homePath },
   ];
-  const facultyItems = [
-    {
-      icon: "bx-printer",
-      label: "Print",
-      onClick: () => setShowPrintModal(true),
-      isButton: true,
-    },
-  ];
+  let facultyItems = [];
+  if (parsedRoleId === 2) {
+    facultyItems = [
+      {
+        icon: "bx-printer",
+        label: "Print",
+        onClick: () => alert("The print feature for faculty is coming soon!"),
+        isButton: true,
+      },
+    ];
+  } else {
+    facultyItems = [
+      {
+        icon: "bx-printer",
+        label: "Print",
+        onClick: () => setShowPrintModal(true),
+        isButton: true,
+      },
+    ];
+  }
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
   const classes = [{ icon: "bx-book-bookmark", label: "Classes" }];
 
@@ -336,7 +348,7 @@ const Sidebar = ({
         </div>
       </div>
       <PrintExamModal
-        isOpen={showPrintModal}
+        isOpen={showPrintModal === true}
         onClose={() => setShowPrintModal(false)}
       />
     </>
