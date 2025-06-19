@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import SubjectSearchInput from "./SubjectSearchInput";
 import ExamPreviewModal from "./ExamPreviewModal";
 import RegisterDropDownSmall from "./registerDropDownSmall";
-import { Tooltip } from "flowbite-react";
 import ConfirmModal from "./confirmModal";
 
 export default function ExamGenerator({ auth, isOpen, onClose }) {
@@ -445,18 +444,12 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                                       {subject.subjectName}
                                     </div>
                                     {subject.subjectName.length > 15 && (
-                                      <Tooltip
-                                        content={subject.subjectName}
-                                        placement="right"
-                                        className="z-50"
+                                      <button
+                                        type="button"
+                                        className="text-gray-500 hover:text-gray-700"
                                       >
-                                        <button
-                                          type="button"
-                                          className="text-gray-500 hover:text-gray-700"
-                                        >
-                                          <i className="bx bx-show text-[16px]"></i>
-                                        </button>
-                                      </Tooltip>
+                                        <i className="bx bx-show text-[16px]"></i>
+                                      </button>
                                     )}
                                   </div>
                                   <div className="flex items-center gap-3">
@@ -657,18 +650,12 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                                       {subject.subjectName}
                                     </div>
                                     {subject.subjectName.length > 15 && (
-                                      <Tooltip
-                                        content={subject.subjectName}
-                                        placement="right"
-                                        className="z-50"
+                                      <button
+                                        type="button"
+                                        className="text-gray-500 hover:text-gray-700"
                                       >
-                                        <button
-                                          type="button"
-                                          className="text-gray-500 hover:text-gray-700"
-                                        >
-                                          <i className="bx bx-show text-[16px]"></i>
-                                        </button>
-                                      </Tooltip>
+                                        <i className="bx bx-show text-[16px]"></i>
+                                      </button>
                                     )}
                                   </div>
                                 </td>

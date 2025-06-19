@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import Button from "./button";
 import { useNavigate } from "react-router-dom";
 import SideBarToolTip from "./sidebarTooltip";
-import { Tooltip } from "flowbite-react";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import { createPortal } from "react-dom";
 import Toast from "./Toast";
@@ -476,21 +475,15 @@ const SideBarDropDown = ({
             />
           </div>
 
-          <Tooltip
-            content={<span className="whitespace-nowrap">Add Subject</span>}
-            placement="left"
-            className="z-70"
+          <div
+            className="cursor-pointer justify-center rounded-sm bg-orange-500 px-[7px] py-[3px] text-center text-white transition-all hover:bg-orange-600"
+            onClick={() => {
+              setShowAddModal(true);
+              setShowYearSubjects(false);
+            }}
           >
-            <div
-              className="cursor-pointer justify-center rounded-sm bg-orange-500 px-[7px] py-[3px] text-center text-white transition-all hover:bg-orange-600"
-              onClick={() => {
-                setShowAddModal(true);
-                setShowYearSubjects(false);
-              }}
-            >
-              <i className="bx bx-plus mt-[1px] text-[16px]"></i>
-            </div>
-          </Tooltip>
+            <i className="bx bx-plus mt-[1px] text-[16px]"></i>
+          </div>
         </div>
 
         {/* Year Level List or Search Results */}

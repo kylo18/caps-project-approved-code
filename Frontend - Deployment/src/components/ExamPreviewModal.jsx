@@ -64,59 +64,165 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
     return () => document.removeEventListener("keydown", handleCtrlA);
   }, []);
 
+  const convertImageToBase64 = async (url) => {
+    try {
+      console.log("Starting image conversion for:", url);
+
+      // Convert HTTP to HTTPS if needed
+      const secureUrl = url.replace("http://", "https://");
+
+      // First try: Direct XHR request with credentials
+      try {
+        const result = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.onload = function () {
+            if (xhr.status === 200) {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(xhr.response);
+            } else {
+              reject(new Error(`HTTP ${xhr.status}`));
+            }
+          };
+          xhr.onerror = () => reject(new Error("XHR request failed"));
+          xhr.open("GET", secureUrl);
+          xhr.responseType = "blob";
+          xhr.withCredentials = true;
+          xhr.send();
+        });
+        console.log("Successfully converted via XHR");
+        return result;
+      } catch (xhrError) {
+        console.log("XHR attempt failed:", xhrError);
+      }
+
+      // Second try: Fetch with specific headers
+      try {
+        const response = await fetch(secureUrl, {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            Accept: "image/*, */*",
+            Origin: window.location.origin,
+          },
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const blob = await response.blob();
+        const result = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        console.log("Successfully converted via fetch");
+        return result;
+      } catch (fetchError) {
+        console.log("Fetch attempt failed:", fetchError);
+      }
+
+      // Third try: Proxy through your backend
+      try {
+        // Assuming you have a proxy endpoint at your backend
+        const proxyUrl = `${window.location.origin}/api/proxy-image?url=${encodeURIComponent(secureUrl)}`;
+        const response = await fetch(proxyUrl);
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (proxyError) {
+        console.log("Proxy attempt failed:", proxyError);
+        throw new Error(`Failed to load image after all attempts: ${url}`);
+      }
+    } catch (error) {
+      console.error("Fatal error in convertImageToBase64:", {
+        error: error,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        url: url,
+      });
+      return null;
+    }
+  };
+
   const handleDownload = async () => {
     try {
       setError(null);
       const element = modalContentRef.current;
       if (!element) throw new Error("Content not found");
-      await waitForImagesToLoad(element); // Wait for all images to load
+
+      console.log("Starting PDF generation process...");
+
+      // Create a clone of the content to avoid modifying the displayed content
+      const clone = element.cloneNode(true);
+
+      // Pre-process all images in the clone
+      const images = clone.getElementsByTagName("img");
+      console.log("Found images:", images.length);
+
+      // Convert all images to base64
+      const imagePromises = Array.from(images).map(async (img, index) => {
+        try {
+          console.log(
+            `Processing image ${index + 1}/${images.length}:`,
+            img.src,
+          );
+          const base64Url = await convertImageToBase64(img.src);
+
+          if (base64Url) {
+            img.src = base64Url; // Update image source in clone
+            console.log(`Successfully processed image ${index + 1}`);
+          } else {
+            console.error(`Failed to convert image ${index + 1}`);
+            // Optionally remove failed images or replace with placeholder
+            img.style.display = "none";
+          }
+        } catch (err) {
+          console.error(`Error processing image ${index + 1}:`, err);
+          img.style.display = "none";
+        }
+      });
+
+      // Wait for all images to be processed
+      await Promise.all(imagePromises);
+      console.log("All images processed");
+
+      // Generate PDF from the clone
       await html2pdf()
         .set({
-          html2canvas: { useCORS: true, allowTaint: true },
-          filename: "exam-preview.pdf",
+          html2canvas: {
+            useCORS: true,
+            allowTaint: true,
+            scale: 2,
+            letterRendering: true,
+            imageTimeout: 5000,
+            logging: true,
+          },
+          jsPDF: {
+            unit: "pt",
+            format: "a4",
+            orientation: "portrait",
+          },
+          filename: "qualifying-exam.pdf",
         })
-        .from(element)
+        .from(clone)
         .save();
-      setRetryCount(0); // Reset retry count on success
+
+      setRetryCount(0);
     } catch (err) {
-      console.error("Download error:", err);
-      if (err.message.includes("Failed to generate PDF")) {
-        if (retryCount < 2) {
-          setRetryCount((prev) => prev + 1);
-          setError(
-            `PDF generation failed. Retrying... (Attempt ${retryCount + 1}/2)`,
-          );
-          setTimeout(() => {
-            handleDownload();
-          }, 2000);
-        } else {
-          setError(
-            "PDF generation failed after multiple attempts. This might be due to large images or complex content. " +
-              "Please try reducing the number of questions or images and try again.",
-          );
-        }
-      } else {
-        setError(err.message || "Failed to download the exam");
-      }
+      console.error("PDF generation error:", err);
+      setError(`PDF generation failed: ${err.message}`);
     }
   };
-
-  // Helper to wait for all images in the modal to load
-  function waitForImagesToLoad(container) {
-    const images = container.querySelectorAll("img");
-    const promises = Array.from(images).map(
-      (img) =>
-        new Promise((resolve) => {
-          if (img.complete && img.naturalHeight !== 0) {
-            resolve();
-          } else {
-            img.onload = resolve;
-            img.onerror = resolve; // resolve even if image fails to load
-          }
-        }),
-    );
-    return Promise.all(promises);
-  }
 
   const handleRetry = () => {
     setRetryCount(0);
@@ -225,7 +331,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
           <div className="bg-white">
             <div className="w-full">
               {/* Header with logos */}
-              <div className="flex items-center justify-between px-8 pt-3">
+              <div className="flex items-center justify-between px-8 pt-7">
                 {/* Left Logo and code */}
                 <div className="flex w-32 flex-col items-center">
                   {previewData.logos?.left && (
@@ -263,6 +369,10 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
                   <div className="mt-2 text-[18.67px] leading-tight font-extrabold uppercase">
                     COLLEGE OF ENGINEERING
                   </div>
+
+                  <div className="mt-6 text-[13.33px] leading-tight font-extrabold uppercase">
+                    QUALIFYING EXAMINATION
+                  </div>
                 </div>
                 {/* Right Logo */}
                 <div className="flex w-32 flex-col items-center">
@@ -279,13 +389,6 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
                   )}
                 </div>
               </div>
-              {/* Name and Date row */}
-              <div className="mt-3 flex items-center justify-between px-8 pb-1">
-                <span className="text-[14px] font-bold text-black">Name:</span>
-                <span className="pr-20 text-[14px] font-bold text-black">
-                  Date:
-                </span>
-              </div>
 
               <div className="space-y-3">
                 {Object.entries(previewData.questionsBySubject).map(
@@ -301,11 +404,11 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
                         marginBottom: "1rem",
                       }}
                     >
-                      <h4 className="text-[14px] font-medium text-black">
+                      <h4 className="ml-2 text-[14px] font-medium text-black">
                         {subjectName}
                       </h4>
 
-                      <div className="space-y-2">
+                      <div className="-space-y-3">
                         {subjectData.questions.map((question, index) => (
                           <div key={index} className="rounded p-4">
                             <p
@@ -320,7 +423,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
                                 <img
                                   src={question.questionImage}
                                   alt={`Question ${index + 1} image`}
-                                  className="h-80 max-w-full rounded-lg"
+                                  className="h-40 max-w-full rounded-lg"
                                   onError={(e) => {
                                     e.target.onerror = null;
                                     e.target.style.display = "none";
@@ -391,7 +494,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
                                                 <img
                                                   src={choice.choiceImage}
                                                   alt={`Choice ${String.fromCharCode(65 + choiceIndex)} image`}
-                                                  className="h-60 max-w-full rounded-lg"
+                                                  className="h-30 max-w-full rounded-lg"
                                                   onError={(e) => {
                                                     e.target.onerror = null;
                                                     e.target.style.display =
