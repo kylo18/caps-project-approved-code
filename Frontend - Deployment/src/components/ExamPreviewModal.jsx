@@ -3,30 +3,10 @@ import univLogo from "../assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
 import html2pdf from "html2pdf.js";
 
-const toBase64 = async (url) => {
-  try {
-    const response = await fetch(url, {
-      mode: "cors",
-      credentials: "include",
-    });
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  } catch (error) {
-    console.error("Error converting image to base64:", error);
-    return null;
-  }
-};
-
 export default function ExamPreviewModal({ previewData, onClose, loading }) {
   const [scale, setScale] = useState(1);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [processedData, setProcessedData] = useState(null);
   const PAGE_WIDTH = 793.7; // 210mm in px at 96dpi
   const modalContentRef = useRef(null);
 
@@ -53,39 +33,6 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
     }
 
     setError(null);
-  }, [previewData]);
-
-  useEffect(() => {
-    // Process and convert images when previewData changes
-    const processImages = async () => {
-      if (!previewData || !previewData.questionsBySubject) return;
-
-      const processed = { ...previewData };
-      for (const subject of Object.values(processed.questionsBySubject)) {
-        if (!subject.questions) continue;
-
-        for (const question of subject.questions) {
-          // Convert question image if exists
-          if (question.questionImage) {
-            const base64Image = await toBase64(question.questionImage);
-            if (base64Image) question.questionImage = base64Image;
-          }
-
-          // Convert choice images if they exist
-          if (question.choices) {
-            for (const choice of question.choices) {
-              if (choice.choiceImage) {
-                const base64Image = await toBase64(choice.choiceImage);
-                if (base64Image) choice.choiceImage = base64Image;
-              }
-            }
-          }
-        }
-      }
-      setProcessedData(processed);
-    };
-
-    processImages();
   }, [previewData]);
 
   useEffect(() => {
@@ -117,15 +64,139 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
     return () => document.removeEventListener("keydown", handleCtrlA);
   }, []);
 
+  const convertImageToBase64 = async (url) => {
+    try {
+      console.log("Starting image conversion for:", url);
+
+      // Convert HTTP to HTTPS if needed
+      const secureUrl = url.replace("http://", "https://");
+
+      // First try: Direct XHR request with credentials
+      try {
+        const result = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.onload = function () {
+            if (xhr.status === 200) {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(xhr.response);
+            } else {
+              reject(new Error(`HTTP ${xhr.status}`));
+            }
+          };
+          xhr.onerror = () => reject(new Error("XHR request failed"));
+          xhr.open("GET", secureUrl);
+          xhr.responseType = "blob";
+          xhr.withCredentials = true;
+          xhr.send();
+        });
+        console.log("Successfully converted via XHR");
+        return result;
+      } catch (xhrError) {
+        console.log("XHR attempt failed:", xhrError);
+      }
+
+      // Second try: Fetch with specific headers
+      try {
+        const response = await fetch(secureUrl, {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            Accept: "image/*, */*",
+            Origin: window.location.origin,
+          },
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const blob = await response.blob();
+        const result = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        console.log("Successfully converted via fetch");
+        return result;
+      } catch (fetchError) {
+        console.log("Fetch attempt failed:", fetchError);
+      }
+
+      // Third try: Proxy through your backend
+      try {
+        // Assuming you have a proxy endpoint at your backend
+        const proxyUrl = `${window.location.origin}/api/proxy-image?url=${encodeURIComponent(secureUrl)}`;
+        const response = await fetch(proxyUrl);
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (proxyError) {
+        console.log("Proxy attempt failed:", proxyError);
+        throw new Error(`Failed to load image after all attempts: ${url}`);
+      }
+    } catch (error) {
+      console.error("Fatal error in convertImageToBase64:", {
+        error: error,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        url: url,
+      });
+      return null;
+    }
+  };
+
   const handleDownload = async () => {
     try {
       setError(null);
       const element = modalContentRef.current;
       if (!element) throw new Error("Content not found");
 
-      // Wait for all images to load
-      await waitForImagesToLoad(element);
+      console.log("Starting PDF generation process...");
 
+      // Create a clone of the content to avoid modifying the displayed content
+      const clone = element.cloneNode(true);
+
+      // Pre-process all images in the clone
+      const images = clone.getElementsByTagName("img");
+      console.log("Found images:", images.length);
+
+      // Convert all images to base64
+      const imagePromises = Array.from(images).map(async (img, index) => {
+        try {
+          console.log(
+            `Processing image ${index + 1}/${images.length}:`,
+            img.src,
+          );
+          const base64Url = await convertImageToBase64(img.src);
+
+          if (base64Url) {
+            img.src = base64Url; // Update image source in clone
+            console.log(`Successfully processed image ${index + 1}`);
+          } else {
+            console.error(`Failed to convert image ${index + 1}`);
+            // Optionally remove failed images or replace with placeholder
+            img.style.display = "none";
+          }
+        } catch (err) {
+          console.error(`Error processing image ${index + 1}:`, err);
+          img.style.display = "none";
+        }
+      });
+
+      // Wait for all images to be processed
+      await Promise.all(imagePromises);
+      console.log("All images processed");
+
+      // Generate PDF from the clone
       await html2pdf()
         .set({
           html2canvas: {
@@ -133,6 +204,8 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
             allowTaint: true,
             scale: 2,
             letterRendering: true,
+            imageTimeout: 5000,
+            logging: true,
           },
           jsPDF: {
             unit: "pt",
@@ -141,31 +214,15 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
           },
           filename: "qualifying-exam.pdf",
         })
-        .from(element)
+        .from(clone)
         .save();
+
       setRetryCount(0);
     } catch (err) {
-      console.error("Download error:", err);
-      setError(err.message || "Failed to download the exam");
+      console.error("PDF generation error:", err);
+      setError(`PDF generation failed: ${err.message}`);
     }
   };
-
-  // Helper to wait for all images in the modal to load
-  function waitForImagesToLoad(container) {
-    const images = container.querySelectorAll("img");
-    const promises = Array.from(images).map(
-      (img) =>
-        new Promise((resolve) => {
-          if (img.complete && img.naturalHeight !== 0) {
-            resolve();
-          } else {
-            img.onload = resolve;
-            img.onerror = resolve; // resolve even if image fails to load
-          }
-        }),
-    );
-    return Promise.all(promises);
-  }
 
   const handleRetry = () => {
     setRetryCount(0);
@@ -209,7 +266,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
     );
   }
 
-  if (!processedData || !processedData.questionsBySubject) return null;
+  if (!previewData || !previewData.questionsBySubject) return null;
 
   return (
     <div className="lightbox-bg fixed inset-0 z-60 overflow-hidden bg-gray-100">
@@ -277,7 +334,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
               <div className="flex items-center justify-between px-8 pt-7">
                 {/* Left Logo and code */}
                 <div className="flex w-32 flex-col items-center">
-                  {processedData.logos?.left && (
+                  {previewData.logos?.left && (
                     <img
                       src={univLogo}
                       alt="Left Logo"
@@ -319,7 +376,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
                 </div>
                 {/* Right Logo */}
                 <div className="flex w-32 flex-col items-center">
-                  {processedData.logos?.right && (
+                  {previewData.logos?.right && (
                     <img
                       src={collegeLogo}
                       alt="Right Logo"
@@ -334,7 +391,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
               </div>
 
               <div className="space-y-3">
-                {Object.entries(processedData.questionsBySubject).map(
+                {Object.entries(previewData.questionsBySubject).map(
                   ([subjectName, subjectData], subjectIndex) => (
                     <div
                       key={subjectName}
