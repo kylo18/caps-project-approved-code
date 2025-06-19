@@ -3,10 +3,30 @@ import univLogo from "../assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
 import html2pdf from "html2pdf.js";
 
+const toBase64 = async (url) => {
+  try {
+    const response = await fetch(url, {
+      mode: "cors",
+      credentials: "include",
+    });
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Error converting image to base64:", error);
+    return null;
+  }
+};
+
 export default function ExamPreviewModal({ previewData, onClose, loading }) {
   const [scale, setScale] = useState(1);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [processedData, setProcessedData] = useState(null);
   const PAGE_WIDTH = 793.7; // 210mm in px at 96dpi
   const modalContentRef = useRef(null);
 
@@ -33,6 +53,39 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
     }
 
     setError(null);
+  }, [previewData]);
+
+  useEffect(() => {
+    // Process and convert images when previewData changes
+    const processImages = async () => {
+      if (!previewData || !previewData.questionsBySubject) return;
+
+      const processed = { ...previewData };
+      for (const subject of Object.values(processed.questionsBySubject)) {
+        if (!subject.questions) continue;
+
+        for (const question of subject.questions) {
+          // Convert question image if exists
+          if (question.questionImage) {
+            const base64Image = await toBase64(question.questionImage);
+            if (base64Image) question.questionImage = base64Image;
+          }
+
+          // Convert choice images if they exist
+          if (question.choices) {
+            for (const choice of question.choices) {
+              if (choice.choiceImage) {
+                const base64Image = await toBase64(choice.choiceImage);
+                if (base64Image) choice.choiceImage = base64Image;
+              }
+            }
+          }
+        }
+      }
+      setProcessedData(processed);
+    };
+
+    processImages();
   }, [previewData]);
 
   useEffect(() => {
@@ -69,35 +122,31 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
       setError(null);
       const element = modalContentRef.current;
       if (!element) throw new Error("Content not found");
-      await waitForImagesToLoad(element); // Wait for all images to load
+
+      // Wait for all images to load
+      await waitForImagesToLoad(element);
+
       await html2pdf()
         .set({
-          html2canvas: { useCORS: true, allowTaint: true },
-          filename: "exam-preview.pdf",
+          html2canvas: {
+            useCORS: true,
+            allowTaint: true,
+            scale: 2,
+            letterRendering: true,
+          },
+          jsPDF: {
+            unit: "pt",
+            format: "a4",
+            orientation: "portrait",
+          },
+          filename: "qualifying-exam.pdf",
         })
         .from(element)
         .save();
-      setRetryCount(0); // Reset retry count on success
+      setRetryCount(0);
     } catch (err) {
       console.error("Download error:", err);
-      if (err.message.includes("Failed to generate PDF")) {
-        if (retryCount < 2) {
-          setRetryCount((prev) => prev + 1);
-          setError(
-            `PDF generation failed. Retrying... (Attempt ${retryCount + 1}/2)`,
-          );
-          setTimeout(() => {
-            handleDownload();
-          }, 2000);
-        } else {
-          setError(
-            "PDF generation failed after multiple attempts. This might be due to large images or complex content. " +
-              "Please try reducing the number of questions or images and try again.",
-          );
-        }
-      } else {
-        setError(err.message || "Failed to download the exam");
-      }
+      setError(err.message || "Failed to download the exam");
     }
   };
 
@@ -160,7 +209,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
     );
   }
 
-  if (!previewData || !previewData.questionsBySubject) return null;
+  if (!processedData || !processedData.questionsBySubject) return null;
 
   return (
     <div className="lightbox-bg fixed inset-0 z-60 overflow-hidden bg-gray-100">
@@ -225,10 +274,10 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
           <div className="bg-white">
             <div className="w-full">
               {/* Header with logos */}
-              <div className="flex items-center justify-between px-8 pt-3">
+              <div className="flex items-center justify-between px-8 pt-7">
                 {/* Left Logo and code */}
                 <div className="flex w-32 flex-col items-center">
-                  {previewData.logos?.left && (
+                  {processedData.logos?.left && (
                     <img
                       src={univLogo}
                       alt="Left Logo"
@@ -263,10 +312,14 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
                   <div className="mt-2 text-[18.67px] leading-tight font-extrabold uppercase">
                     COLLEGE OF ENGINEERING
                   </div>
+
+                  <div className="mt-6 text-[13.33px] leading-tight font-extrabold uppercase">
+                    QUALIFYING EXAMINATION
+                  </div>
                 </div>
                 {/* Right Logo */}
                 <div className="flex w-32 flex-col items-center">
-                  {previewData.logos?.right && (
+                  {processedData.logos?.right && (
                     <img
                       src={collegeLogo}
                       alt="Right Logo"
@@ -279,16 +332,9 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
                   )}
                 </div>
               </div>
-              {/* Name and Date row */}
-              <div className="mt-3 flex items-center justify-between px-8 pb-1">
-                <span className="text-[14px] font-bold text-black">Name:</span>
-                <span className="pr-20 text-[14px] font-bold text-black">
-                  Date:
-                </span>
-              </div>
 
               <div className="space-y-3">
-                {Object.entries(previewData.questionsBySubject).map(
+                {Object.entries(processedData.questionsBySubject).map(
                   ([subjectName, subjectData], subjectIndex) => (
                     <div
                       key={subjectName}
@@ -301,11 +347,11 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
                         marginBottom: "1rem",
                       }}
                     >
-                      <h4 className="text-[14px] font-medium text-black">
+                      <h4 className="ml-2 text-[14px] font-medium text-black">
                         {subjectName}
                       </h4>
 
-                      <div className="space-y-2">
+                      <div className="-space-y-3">
                         {subjectData.questions.map((question, index) => (
                           <div key={index} className="rounded p-4">
                             <p
@@ -320,7 +366,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
                                 <img
                                   src={question.questionImage}
                                   alt={`Question ${index + 1} image`}
-                                  className="h-80 max-w-full rounded-lg"
+                                  className="h-40 max-w-full rounded-lg"
                                   onError={(e) => {
                                     e.target.onerror = null;
                                     e.target.style.display = "none";
@@ -391,7 +437,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
                                                 <img
                                                   src={choice.choiceImage}
                                                   alt={`Choice ${String.fromCharCode(65 + choiceIndex)} image`}
-                                                  className="h-60 max-w-full rounded-lg"
+                                                  className="h-30 max-w-full rounded-lg"
                                                   onError={(e) => {
                                                     e.target.onerror = null;
                                                     e.target.style.display =
