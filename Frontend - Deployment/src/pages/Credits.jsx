@@ -43,7 +43,7 @@ const Credits = () => {
       },
     },
     {
-      name: "Carlos Miguel S. Sabijon",
+      name: "Carlos Miguel P. Sabijon",
       role: "QA Tester, Documentation and Deployment Specialist",
       course: "BSCPE 2",
 
