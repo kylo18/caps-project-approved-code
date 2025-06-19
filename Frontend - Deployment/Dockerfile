@@ -1,4 +1,4 @@
-FROM node:20-bulleye as builder
+FROM node:20-alpine as builder
 WORKDIR /app
 
 # Copy only package files first for caching
