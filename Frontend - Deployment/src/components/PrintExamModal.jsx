@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import SubjectSearchInput from "./SubjectSearchInput";
 import ExamPreviewModal from "./ExamPreviewModal";
 import RegisterDropDownSmall from "./registerDropDownSmall";
-import { Tooltip } from "flowbite-react";
 import ConfirmModal from "./confirmModal";
 
 export default function ExamGenerator({ auth, isOpen, onClose }) {
@@ -216,145 +215,6 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
     }
   };
 
-  const handleDownload = async () => {
-    setLoading(true);
-    try {
-      const endpoint = `${apiUrl}/generate-multi-subject-exam`;
-      console.log("Starting PDF generation request:", {
-        endpoint,
-        settings,
-        selectedSubjects,
-        previewKey,
-      });
-
-      const requestBody = {
-        total_items: settings.total_items,
-        subjects: selectedSubjects.map((subject) => ({
-          subjectID: subject.subjectID,
-          percentage: subject.percentage,
-        })),
-        difficulty_distribution: {
-          easy: settings.easy_percentage,
-          moderate: settings.moderate_percentage,
-          hard: settings.hard_percentage,
-        },
-        preview: false,
-        purpose: "examQuestions",
-        previewKey: previewKey,
-      };
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const data = await response.json();
-      console.log("Initial response from server:", {
-        status: response.status,
-        ok: response.ok,
-        data,
-      });
-
-      if (!response.ok) {
-        console.error("PDF generation request failed:", {
-          status: response.status,
-          statusText: response.statusText,
-          error: data,
-          requestBody,
-        });
-        throw new Error(
-          data.message || data.error || "Failed to generate exam",
-        );
-      }
-
-      // Start polling for status
-      const pollStatus = async (jobId) => {
-        try {
-          console.log("Polling status for job:", { jobId });
-          const statusResponse = await fetch(
-            `${apiUrl}/print/check-status/${jobId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            },
-          );
-
-          const statusData = await statusResponse.json();
-          console.log("Status check response:", {
-            jobId,
-            status: statusResponse.status,
-            data: statusData,
-          });
-
-          if (!statusResponse.ok) {
-            console.error("Status check failed:", {
-              jobId,
-              status: statusResponse.status,
-              statusText: statusResponse.statusText,
-              error: statusData,
-            });
-            throw new Error(statusData.message || "Failed to check status");
-          }
-
-          if (statusData.status === "completed" && statusData.downloadUrl) {
-            console.log("PDF generation completed:", {
-              jobId,
-              downloadUrl: statusData.downloadUrl,
-            });
-            // Download the PDF
-            window.location.href = statusData.downloadUrl;
-            setShowPreview(false);
-            onClose();
-            return;
-          } else if (statusData.status === "error") {
-            console.error("PDF generation failed:", {
-              jobId,
-              error: statusData.error,
-              status: statusData.status,
-            });
-            throw new Error(statusData.error || "PDF generation failed");
-          } else {
-            console.log("Continuing to poll:", {
-              jobId,
-              status: statusData.status,
-              nextPollIn: "2 seconds",
-            });
-            // Continue polling
-            setTimeout(() => pollStatus(jobId), 2000); // Poll every 2 seconds
-          }
-        } catch (error) {
-          console.error("Status check error:", {
-            jobId,
-            error: error.message,
-            stack: error.stack,
-            timestamp: new Date().toISOString(),
-          });
-          setError(error.message);
-          setLoading(false);
-        }
-      };
-
-      // Start polling with the job ID
-      console.log("Starting status polling for job:", { jobId: data.jobId });
-      pollStatus(data.jobId);
-    } catch (err) {
-      console.error("Download error:", {
-        error: err.message,
-        stack: err.stack,
-        timestamp: new Date().toISOString(),
-        settings,
-        selectedSubjects,
-      });
-      setError(err.message);
-      setLoading(false);
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -445,18 +305,12 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                                       {subject.subjectName}
                                     </div>
                                     {subject.subjectName.length > 15 && (
-                                      <Tooltip
-                                        content={subject.subjectName}
-                                        placement="right"
-                                        className="z-50"
+                                      <button
+                                        type="button"
+                                        className="text-gray-500 hover:text-gray-700"
                                       >
-                                        <button
-                                          type="button"
-                                          className="text-gray-500 hover:text-gray-700"
-                                        >
-                                          <i className="bx bx-show text-[16px]"></i>
-                                        </button>
-                                      </Tooltip>
+                                        <i className="bx bx-show text-[16px]"></i>
+                                      </button>
                                     )}
                                   </div>
                                   <div className="flex items-center gap-3">
@@ -657,18 +511,12 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
                                       {subject.subjectName}
                                     </div>
                                     {subject.subjectName.length > 15 && (
-                                      <Tooltip
-                                        content={subject.subjectName}
-                                        placement="right"
-                                        className="z-50"
+                                      <button
+                                        type="button"
+                                        className="text-gray-500 hover:text-gray-700"
                                       >
-                                        <button
-                                          type="button"
-                                          className="text-gray-500 hover:text-gray-700"
-                                        >
-                                          <i className="bx bx-show text-[16px]"></i>
-                                        </button>
-                                      </Tooltip>
+                                        <i className="bx bx-show text-[16px]"></i>
+                                      </button>
                                     )}
                                   </div>
                                 </td>
@@ -718,8 +566,6 @@ export default function ExamGenerator({ auth, isOpen, onClose }) {
         <ExamPreviewModal
           previewData={previewData}
           onClose={() => setShowPreview(false)}
-          onDownload={handleDownload}
-          loading={loading}
         />
       )}
 

@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import SortCustomDropdown from "./sortCustomDropdown";
 import ConfirmModal from "./confirmModal";
 import LoadingOverlay from "./loadingOverlay";
-import { Tooltip } from "flowbite-react";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
@@ -33,6 +32,10 @@ const UserList = () => {
   const [isApproving, setIsApproving] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState(null);
+  const [otherDeansCount, setOtherDeansCount] = useState(0);
+  const [roleError, setRoleError] = useState("");
 
   // State for bulk action loading states
   const [isApprovingMultiple, setIsApprovingMultiple] = useState(false);
@@ -83,6 +86,21 @@ const UserList = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
+      setCurrentUserRole(user.roleID ?? user.roleId);
+    }
+  }, []);
+
+  // Count other deans when users are fetched
+  useEffect(() => {
+    if (users.length > 0) {
+      const deansCount = users.filter((user) => user.roleID === 4).length;
+      setOtherDeansCount(deansCount);
+    }
+  }, [users]);
 
   // Add debounce effect for search
   useEffect(() => {
@@ -438,6 +456,76 @@ const UserList = () => {
     fetchUsers(newPage);
   };
 
+  // Function to handle role update
+  const handleRoleUpdate = async (userID, newRoleID) => {
+    const token = localStorage.getItem("token");
+    setIsUpdatingRole(true);
+    setRoleError(""); // Clear any previous errors
+    try {
+      // Check if current user is trying to demote themselves from Dean
+      const currentUser = JSON.parse(localStorage.getItem("user"));
+      if (
+        currentUser.roleID === 4 &&
+        userID === currentUser.userID &&
+        newRoleID !== 4
+      ) {
+        if (otherDeansCount <= 1) {
+          throw new Error(
+            "Cannot demote yourself. There must be at least one other Dean in the system.",
+          );
+        }
+      }
+
+      const response = await fetch(`${apiUrl}/users/${userID}/role`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ roleID: newRoleID }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update user role");
+      }
+
+      const data = await response.json();
+      showToast(data.message || "User role updated successfully!", "success");
+
+      // Update the user in the local state
+      setUsers((prevUsers) =>
+        prevUsers.map((user) =>
+          user.userID === userID
+            ? { ...user, roleID: newRoleID, role: data.user.role }
+            : user,
+        ),
+      );
+
+      // Update the selected user in the modal
+      setSelectedUser((prev) => ({
+        ...prev,
+        roleID: newRoleID,
+        role: data.user.role,
+      }));
+
+      // Refresh the user list
+      fetchUsers(currentPage);
+
+      // Close the modal after successful update
+      setShowModal(false);
+      setRoleError("");
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      setRoleError(
+        error.message || "Failed to update user role. Please try again.",
+      );
+    } finally {
+      setIsUpdatingRole(false);
+    }
+  };
+
   //Skeleton Table
   if (loading) {
     return (
@@ -781,16 +869,14 @@ const UserList = () => {
 
         {/* Refresh Button */}
         <div>
-          <Tooltip content="Refresh" placement="bottom">
-            <button
-              onClick={() => {
-                window.location.reload();
-              }}
-              className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-2xl text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
-            >
-              <i className="bx bx-refresh-ccw"></i>
-            </button>
-          </Tooltip>
+          <button
+            onClick={() => {
+              window.location.reload();
+            }}
+            className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-2xl text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+          >
+            <i className="bx bx-refresh-ccw"></i>
+          </button>
         </div>
 
         {/* Search Bar */}
@@ -809,15 +895,13 @@ const UserList = () => {
 
         {/* Filter Button */}
         <div className="flex items-center justify-center gap-4">
-          <Tooltip content="Filters" placement="bottom">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="border-color flex cursor-pointer items-center justify-center gap-1 rounded-md border bg-white px-[10px] py-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
-            >
-              <i className="bx bx-menu-filter text-2xl"></i>
-              <span className="text-[12px] font-medium">Filters</span>
-            </button>
-          </Tooltip>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="border-color flex cursor-pointer items-center justify-center gap-1 rounded-md border bg-white px-[10px] py-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+          >
+            <i className="bx bx-menu-filter text-2xl"></i>
+            <span className="text-[12px] font-medium">Filters</span>
+          </button>
         </div>
 
         {/* Filter Dropdown */}
@@ -945,84 +1029,58 @@ const UserList = () => {
         )}
 
         <div className="relative" ref={dropdownRef}>
-          <Tooltip content="Actions" placement="bottom">
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
-            >
-              <i className="bx bx-dots-vertical-rounded text-2xl"></i>
-            </button>
-          </Tooltip>
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            title="Actions"
+            className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+          >
+            <i className="bx bx-dots-vertical-rounded text-2xl"></i>
+          </button>
 
           {dropdownOpen && (
             <div className="absolute right-0 z-50 mt-2 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
               <div className="text-sm text-gray-700">
-                <Tooltip
-                  content={
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleActionClick("approve");
+                  }}
+                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
                     selectedUsers.length === 0
-                      ? "Select users first"
-                      : "Approve selected users"
-                  }
-                  placement="left"
+                      ? "cursor-not-allowed text-gray-400"
+                      : "hover:bg-gray-200"
+                  }`}
                 >
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleActionClick("approve");
-                    }}
-                    className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
-                      selectedUsers.length === 0
-                        ? "cursor-not-allowed text-gray-400"
-                        : "hover:bg-gray-200"
-                    }`}
-                  >
-                    <span className="block w-full">Approve</span>
-                  </button>
-                </Tooltip>
-                <Tooltip
-                  content={
+                  <span className="block w-full">Approve</span>
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleActionClick("activate");
+                  }}
+                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
                     selectedUsers.length === 0
-                      ? "Select users first"
-                      : "Activate selected users"
-                  }
-                  placement="left"
+                      ? "cursor-not-allowed text-gray-400"
+                      : "hover:bg-gray-200"
+                  }`}
                 >
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleActionClick("activate");
-                    }}
-                    className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
-                      selectedUsers.length === 0
-                        ? "cursor-not-allowed text-gray-400"
-                        : "hover:bg-gray-200"
-                    }`}
-                  >
-                    <span className="block w-full">Activate</span>
-                  </button>
-                </Tooltip>
-                <Tooltip
-                  content={
+                  <span className="block w-full">Activate</span>
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleActionClick("deactivate");
+                  }}
+                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
                     selectedUsers.length === 0
-                      ? "Select users first"
-                      : "Deactivate selected users"
-                  }
-                  placement="left"
+                      ? "cursor-not-allowed text-gray-400"
+                      : "hover:bg-gray-200"
+                  }`}
                 >
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleActionClick("deactivate");
-                    }}
-                    className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
-                      selectedUsers.length === 0
-                        ? "cursor-not-allowed text-gray-400"
-                        : "hover:bg-gray-200"
-                    }`}
-                  >
-                    <span className="block w-full">Deactivate</span>
-                  </button>
-                </Tooltip>
+                  <span className="block w-full">Deactivate</span>
+                </button>
               </div>
             </div>
           )}
@@ -1041,7 +1099,10 @@ const UserList = () => {
                 </h2>
 
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setRoleError(""); // Clear the error when modal is closed
+                  }}
                   className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
                   title="Close"
                 >
@@ -1078,10 +1139,10 @@ const UserList = () => {
                   </div>
                   <div>
                     <span className="mt-2 block text-[14px] text-gray-700">
-                      Position
+                      User Code
                     </span>
                     <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                      {selectedUser.role}
+                      {selectedUser.userCode}
                     </div>
                   </div>
                 </div>
@@ -1106,12 +1167,100 @@ const UserList = () => {
                 <div className="mb-4">
                   <div className="grid grid-cols-2 gap-x-4">
                     <div>
-                      <span className="block text-start text-[14px] text-gray-700">
-                        User Code
+                      <span className="mb-1 block text-start text-[14px] text-gray-700">
+                        Position
                       </span>
-                      <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                        {selectedUser.userCode}
-                      </div>
+                      <RegisterDropDownSmall
+                        name="role"
+                        value={selectedUser.roleID}
+                        onChange={(e) =>
+                          handleRoleUpdate(
+                            selectedUser.userID,
+                            parseInt(e.target.value),
+                          )
+                        }
+                        placeholder={(() => {
+                          if (isUpdatingRole) {
+                            return (
+                              <div className="ml-18 flex items-center justify-center p-[3px]">
+                                <span className="loader"></span>
+                              </div>
+                            );
+                          }
+                          switch (selectedUser.roleID) {
+                            case 1:
+                              return "Student";
+                            case 2:
+                              return "Faculty";
+                            case 3:
+                              return "Program Chair";
+                            case 4:
+                              return "Dean";
+                            case 5:
+                              return "Associate Dean";
+                            default:
+                              return "Select Position";
+                          }
+                        })()}
+                        options={(() => {
+                          if (isUpdatingRole) {
+                            return [];
+                          }
+                          // If current user is Program Chair, only show Student and Faculty
+                          if (currentUserRole === 3) {
+                            // Don't show any options if the selected user is a Program Chair
+                            if (selectedUser.roleID === 3) {
+                              return [];
+                            }
+                            return [
+                              ...(selectedUser.roleID !== 1
+                                ? [{ value: "1", label: "Student" }]
+                                : []),
+                              ...(selectedUser.roleID !== 2
+                                ? [{ value: "2", label: "Faculty" }]
+                                : []),
+                            ];
+                          }
+                          // If current user is Dean, show all roles except current user's role
+                          const currentUser = JSON.parse(
+                            localStorage.getItem("user"),
+                          );
+                          const isCurrentUser =
+                            selectedUser.userID === currentUser.userID;
+                          const isDean = selectedUser.roleID === 4;
+
+                          return [
+                            ...(selectedUser.roleID !== 1
+                              ? [{ value: "1", label: "Student" }]
+                              : []),
+                            ...(selectedUser.roleID !== 2
+                              ? [{ value: "2", label: "Faculty" }]
+                              : []),
+                            ...(selectedUser.roleID !== 3
+                              ? [{ value: "3", label: "Program Chair" }]
+                              : []),
+                            ...(currentUserRole === 4 &&
+                            selectedUser.roleID !== 4
+                              ? [{ value: "4", label: "Dean" }]
+                              : []),
+                            ...(selectedUser.roleID !== 5
+                              ? [{ value: "5", label: "Associate Dean" }]
+                              : []),
+                          ].filter((option) => {
+                            // If this is the current user and they're a Dean, only allow demotion if there are other Deans
+                            if (
+                              isCurrentUser &&
+                              isDean &&
+                              option.value !== "4"
+                            ) {
+                              return otherDeansCount > 1;
+                            }
+                            return true;
+                          });
+                        })()}
+                        disabled={isUpdatingRole}
+                        isLoading={isUpdatingRole}
+                      />
                     </div>
                     <div>
                       <span className="block text-start text-[14px] text-gray-700">
@@ -1122,6 +1271,11 @@ const UserList = () => {
                       </div>
                     </div>
                   </div>
+                  {roleError && (
+                    <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                      {roleError}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
@@ -1413,21 +1567,12 @@ const UserList = () => {
                     {user.userCode}
                   </td>
 
-                  {/* Name with Tooltip */}
                   <td className="max-w-[120px] truncate px-2 py-2 text-left text-nowrap">
-                    <Tooltip
-                      content={`${user.firstName} ${user.lastName}`}
-                      placement="top"
-                    >
-                      <span>{`${user.firstName} ${user.lastName}`}</span>
-                    </Tooltip>
+                    <span>{`${user.firstName} ${user.lastName}`}</span>
                   </td>
 
-                  {/* Email with Tooltip */}
                   <td className="max-w-[120px] truncate px-2 py-2 text-left">
-                    <Tooltip content={user.email} placement="top">
-                      <span>{user.email}</span>
-                    </Tooltip>
+                    <span>{user.email}</span>
                   </td>
 
                   <td className="px-2 py-2 text-left text-nowrap">

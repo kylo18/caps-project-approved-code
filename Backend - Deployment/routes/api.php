@@ -40,9 +40,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user/profile', [UserController::class, 'getProfile']);
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
-
-    Route::get('/print/check-status/{jobId}', [PrintController::class, 'checkGenerationStatus'])
-        ->name('api.print.check-status'); // Changed the route name to be unique
 });
 
 /*
@@ -51,6 +48,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4,5'])->group(function () {
+    // User management
+    Route::get('/users', [UserController::class, 'index']);
+    Route::patch('/users/{userID}/approve', [UserController::class, 'approveUser']);
+    Route::patch('/users/{userID}/disapprove', [UserController::class, 'disapproveUser']);
+    Route::post('/users/approve-multiple', [UserController::class, 'approveMultipleUsers']);
+    Route::post('/users/activate-multiple', [UserController::class, 'activateMultipleUsers']);
+    Route::post('/users/deactivate-multiple', [UserController::class, 'deactivateMultipleUsers']);
+    Route::patch('users/{id}/deactivate', [UserController::class, 'deactivate']);
+    Route::patch('users/{id}/activate', [UserController::class, 'activate']);
+
     // Choices
     Route::post('/questions/choices', [ChoiceController::class, 'store']);
     Route::get('/questions/{questionID}/choices', [ChoiceController::class, 'showChoices']);
@@ -124,6 +131,9 @@ Route::middleware(['auth:sanctum', 'role:3,4,5'])->group(function () {
 
     // Multi-subject exam generation
     Route::post('/generate-multi-subject-exam', [PrintController::class, 'generateMultiSubjectExam']);
+
+
+    Route::patch('/users/{userID}/role', [UserController::class, 'changeUserRole']);
 });
 
 /*
@@ -132,18 +142,26 @@ Route::middleware(['auth:sanctum', 'role:3,4,5'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:4,5'])->group(function () {
-    // User management
-    Route::get('/users', [UserController::class, 'index']);
-    Route::patch('/users/{userID}/approve', [UserController::class, 'approveUser']);
-    Route::patch('/users/{userID}/disapprove', [UserController::class, 'disapproveUser']);
-    Route::post('/users/approve-multiple', [UserController::class, 'approveMultipleUsers']);
-    Route::post('/users/activate-multiple', [UserController::class, 'activateMultipleUsers']);
-    Route::post('/users/deactivate-multiple', [UserController::class, 'deactivateMultipleUsers']);
-    Route::patch('users/{id}/deactivate', [UserController::class, 'deactivate']);
-    Route::patch('users/{id}/activate', [UserController::class, 'activate']);
 
     // Subject management
     Route::post('/add-subjects', [SubjectController::class, 'store']);
     Route::delete('/subjects/{subjectID}/delete', [SubjectController::class, 'destroy']);
     Route::put('/subjects/{subjectID}/update', [SubjectController::class, 'update']);
 });
+
+// Serve question_images and choices with CORS headers for frontend PDF rendering
+Route::get('storage/question_images/{filename}', function ($filename) {
+    $path = public_path('storage/question_images/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path);
+})->middleware('image.cors');
+
+Route::get('storage/choices/{filename}', function ($filename) {
+    $path = public_path('storage/choices/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path);
+})->middleware('image.cors');

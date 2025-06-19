@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "postinstall": "flowbite-react patch"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@fontsource/open-sans": "^5.2.5",
@@ -20,16 +19,16 @@
     "boxicons": "^2.1.4",
     "chart.js": "^4.4.9",
     "dompurify": "^3.2.5",
-    "flowbite-react": "^0.11.7",
+    "html2pdf.js": "^0.10.3",
     "i18next": "^25.0.2",
     "jwt-decode": "^4.0.0",
+    "katex": "^0.16.22",
     "nprogress": "^0.2.0",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^15.5.1",
     "react-icons": "^5.5.0",
-    "react-joyride": "^2.9.3",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.2.0",
     "tailwind-scrollbar": "^4.0.2",

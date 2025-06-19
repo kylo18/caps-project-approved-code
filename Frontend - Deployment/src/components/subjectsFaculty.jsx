@@ -269,6 +269,7 @@ const AssignedSubjectsDropDown = ({
         await fetchAssignedSubjects();
 
         setSelectedSubjectForAssignment(null);
+        setShowAddModal(false);
 
         showToast(result.message || "Subject assigned successfully", "success");
       } else {

@@ -1,6 +1,5 @@
-@ -1,275 +1,277 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
@@ -190,12 +189,54 @@
         border: 1px dashed #ccc;
         margin: 5px 0;
       }
+
+      /* Answer Key Styles */
+      .answer-key {
+        page-break-before: always;
+        margin-top: 20px;
+      }
+      .answer-key-header {
+        text-align: center;
+        font-size: 14pt;
+        font-weight: bold;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 5px;
+      }
+      .answer-key-section {
+        margin-bottom: 15px;
+      }
+      .answer-key-subject {
+        font-weight: bold;
+        font-size: 12pt;
+        margin-bottom: 5px;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 3px;
+      }
+      .answer-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .answer-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .answer-number {
+        font-weight: bold;
+        min-width: 25px;
+      }
+      .answer-letter {
+        font-weight: bold;
+      }
     </style>
   </head>
   <body>
     <div class="paper">
       <div class="header">
-        <img src="/univLogo.png.jpg" class="header-logo left" alt="University Seal" onerror="this.style.display='none'" />
+        <img src="{{ $leftLogoPath }}" class="header-logo left" alt="University Seal" onerror="this.style.display='none'" />
         <div class="header-center">
           <div class="gov-line">Republic of the Philippines</div>
           <div class="univ-name">JOSE RIZAL MEMORIAL STATE UNIVERSITY</div>
@@ -203,7 +244,7 @@
           <div class="college">COLLEGE OF ENGINEERING</div>
           <div class="qe-exam-title">{{ $examTitle }}</div>
         </div>
-        <img src="/college-logo.png.jpg" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
+        <img src="{{ $rightLogoPath }}" class="header-logo right" alt="College Logo" onerror="this.style.display='none'" />
       </div>
 
       @php $questionNumber = 1; @endphp 
@@ -261,6 +302,45 @@
         @endforeach
       </div> 
       @endforeach
+
+      <!-- Answer Key Section -->
+      <div class="answer-key">
+        <div class="answer-key-header">ANSWER KEY</div>
+        
+        @foreach ($questionsBySubject as $subjectData)
+        <div class="answer-key-section">
+          <div class="answer-key-subject">{{ $subjectData['subject'] }}</div>
+          <div class="answer-grid">
+            @php 
+              $startNumber = 1;
+              foreach ($questionsBySubject as $prevSubject) {
+                if ($prevSubject['subject'] === $subjectData['subject']) {
+                  break;
+                }
+                $startNumber += $prevSubject['totalItems'];
+              }
+            @endphp
+            
+            @foreach ($subjectData['questions'] as $index => $question)
+              @php
+                $questionNumber = $startNumber + $index;
+                $correctChoice = null;
+                foreach ($question['choices'] as $choiceIndex => $choice) {
+                  if ($choice['isCorrect']) {
+                    $correctChoice = chr(65 + $choiceIndex);
+                    break;
+                  }
+                }
+              @endphp
+              <div class="answer-item">
+                <span class="answer-number">{{ $questionNumber }}.</span>
+                <span class="answer-letter">{{ $correctChoice }}</span>
+              </div>
+            @endforeach
+          </div>
+        </div>
+        @endforeach
+      </div>
     </div>
   </body>
 </html>

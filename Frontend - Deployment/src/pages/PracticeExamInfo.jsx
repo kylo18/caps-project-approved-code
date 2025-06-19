@@ -61,6 +61,7 @@ const PracticeExamInfo = () => {
             </h3>
             <ul className="list-inside list-disc space-y-2 text-[12px] text-gray-600">
               <li>Make sure to answer all questions before submitting</li>
+              <li>Progress will not be saved if you exit</li>
               {examData.enableTimer ? (
                 <li>
                   This exam has a time limit. Make sure to complete it within
@@ -73,6 +74,10 @@ const PracticeExamInfo = () => {
               )}
               <li>You can bookmark questions to review them later</li>
               <li>Use the navigation buttons to move between questions</li>
+              <li className="mt-4">
+                The qualifying exam will consist of 100 items to be completed
+                within 3 hours.
+              </li>
             </ul>
           </div>
         </div>

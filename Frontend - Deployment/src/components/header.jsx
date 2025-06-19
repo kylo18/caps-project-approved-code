@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import LoadingOverlay from "./loadingOverlay";
-import { Tooltip } from "flowbite-react";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 
@@ -301,38 +300,27 @@ const AdminHeader = ({ title }) => {
           <span className="text-[14px] text-gray-500">{title}</span>
 
           {/* Help Button */}
-          <Tooltip
-            content={
+          <button
+            onClick={() => {
+              if (title !== "Student") {
+                window.open(
+                  "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
+                  "_blank",
+                );
+              } else {
+                alert("Under Maintenance");
+              }
+            }}
+            className={`border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-black ${
               title === "student"
-                ? "Help not available for students"
-                : "Need help?"
-            }
-            placement="bottom"
-            trigger="hover"
-            className="bg-gray-800"
+                ? "cursor-not-allowed opacity-50"
+                : "hover:bg-gray-200"
+            }`}
+            disabled={title === "student"}
           >
-            <button
-              onClick={() => {
-                if (title !== "Student") {
-                  window.open(
-                    "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
-                    "_blank",
-                  );
-                } else {
-                  alert("Under Maintenance");
-                }
-              }}
-              className={`border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-black ${
-                title === "student"
-                  ? "cursor-not-allowed opacity-50"
-                  : "hover:bg-gray-200"
-              }`}
-              disabled={title === "student"}
-            >
-              <i className="bx bx-message-question-mark text-md ml-1"></i>
-              <span className="pr-1.5 text-[14px]">Help</span>
-            </button>
-          </Tooltip>
+            <i className="bx bx-message-question-mark text-md ml-1"></i>
+            <span className="pr-1.5 text-[14px]">Help</span>
+          </button>
 
           {/* Three-dot Dropdown */}
           <div className="relative" ref={dropdownRef}>
@@ -432,14 +420,7 @@ const AdminHeader = ({ title }) => {
                 }}
                 className="absolute top-2 right-5 cursor-pointer text-3xl text-gray-700 hover:text-gray-700"
               >
-                <Tooltip
-                  content="Close"
-                  placement="bottom"
-                  trigger="hover"
-                  className="bg-gray-800"
-                >
-                  <i className="bx bx-x text-[20px]"></i>
-                </Tooltip>
+                <i className="bx bx-x text-[20px]"></i>
               </button>
 
               {/* Profile Picture and Name */}
@@ -600,14 +581,7 @@ const AdminHeader = ({ title }) => {
                   onClick={handleCloseChangePassword}
                   className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
                 >
-                  <Tooltip
-                    content="Close"
-                    placement="bottom"
-                    trigger="hover"
-                    className="bg-gray-800"
-                  >
-                    <i className="bx bx-x text-[20px]"></i>
-                  </Tooltip>
+                  <i className="bx bx-x text-[20px]"></i>
                 </button>
               </div>
 

@@ -73,17 +73,26 @@ const Sidebar = ({
   const baseMenuItems = [
     { icon: "bx-dashboard-alt", label: "Dashboard", path: homePath },
   ];
-  const facultyItems = [
-    {
-      icon: "bx-printer",
-      label: "Print",
-      onClick: () => {
-        alert("Under development, Stay Tuned!");
+  let facultyItems = [];
+  if (parsedRoleId === 2) {
+    facultyItems = [
+      {
+        icon: "bx-printer",
+        label: "Print",
+        onClick: () => alert("The print feature for faculty is coming soon!"),
+        isButton: true,
       },
-
-      isButton: true,
-    },
-  ];
+    ];
+  } else {
+    facultyItems = [
+      {
+        icon: "bx-printer",
+        label: "Print",
+        onClick: () => setShowPrintModal(true),
+        isButton: true,
+      },
+    ];
+  }
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
   const classes = [{ icon: "bx-book-bookmark", label: "Classes" }];
 
@@ -94,7 +103,7 @@ const Sidebar = ({
     menuItems = [...baseMenuItems];
 
     if (parsedRoleId >= 2) menuItems = [...menuItems, ...facultyItems];
-    if (parsedRoleId >= 4) menuItems = [...menuItems, ...adminItems];
+    if (parsedRoleId >= 2) menuItems = [...menuItems, ...adminItems];
   }
 
   const isActive = (path) => location.pathname === path;
@@ -224,7 +233,7 @@ const Sidebar = ({
             >
               <ul className="space-y-[10px]">
                 {classes.map((item, index) => (
-                  <AllSubjectsDropDown
+                  <AllSubjectsDropDownProgramChair
                     key={index}
                     item={item}
                     isExpanded={isExpanded}
@@ -339,7 +348,7 @@ const Sidebar = ({
         </div>
       </div>
       <PrintExamModal
-        isOpen={showPrintModal}
+        isOpen={showPrintModal === true}
         onClose={() => setShowPrintModal(false)}
       />
     </>
