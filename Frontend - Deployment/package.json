@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "postinstall": "flowbite-react patch"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@fontsource/open-sans": "^5.2.5",
@@ -20,7 +19,6 @@
     "boxicons": "^2.1.4",
     "chart.js": "^4.4.9",
     "dompurify": "^3.2.5",
-    "flowbite-react": "^0.11.7",
     "html2pdf.js": "^0.10.3",
     "i18next": "^25.0.2",
     "jwt-decode": "^4.0.0",

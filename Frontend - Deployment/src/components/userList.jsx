@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import SortCustomDropdown from "./sortCustomDropdown";
 import ConfirmModal from "./confirmModal";
 import LoadingOverlay from "./loadingOverlay";
-import { Tooltip } from "flowbite-react";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
@@ -870,16 +869,14 @@ const UserList = () => {
 
         {/* Refresh Button */}
         <div>
-          <Tooltip content="Refresh" placement="bottom">
-            <button
-              onClick={() => {
-                window.location.reload();
-              }}
-              className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-2xl text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
-            >
-              <i className="bx bx-refresh-ccw"></i>
-            </button>
-          </Tooltip>
+          <button
+            onClick={() => {
+              window.location.reload();
+            }}
+            className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-2xl text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+          >
+            <i className="bx bx-refresh-ccw"></i>
+          </button>
         </div>
 
         {/* Search Bar */}
@@ -898,15 +895,13 @@ const UserList = () => {
 
         {/* Filter Button */}
         <div className="flex items-center justify-center gap-4">
-          <Tooltip content="Filters" placement="bottom">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="border-color flex cursor-pointer items-center justify-center gap-1 rounded-md border bg-white px-[10px] py-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
-            >
-              <i className="bx bx-menu-filter text-2xl"></i>
-              <span className="text-[12px] font-medium">Filters</span>
-            </button>
-          </Tooltip>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="border-color flex cursor-pointer items-center justify-center gap-1 rounded-md border bg-white px-[10px] py-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+          >
+            <i className="bx bx-menu-filter text-2xl"></i>
+            <span className="text-[12px] font-medium">Filters</span>
+          </button>
         </div>
 
         {/* Filter Dropdown */}
@@ -1034,84 +1029,58 @@ const UserList = () => {
         )}
 
         <div className="relative" ref={dropdownRef}>
-          <Tooltip content="Actions" placement="bottom">
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
-            >
-              <i className="bx bx-dots-vertical-rounded text-2xl"></i>
-            </button>
-          </Tooltip>
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            title="Actions"
+            className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+          >
+            <i className="bx bx-dots-vertical-rounded text-2xl"></i>
+          </button>
 
           {dropdownOpen && (
             <div className="absolute right-0 z-50 mt-2 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
               <div className="text-sm text-gray-700">
-                <Tooltip
-                  content={
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleActionClick("approve");
+                  }}
+                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
                     selectedUsers.length === 0
-                      ? "Select users first"
-                      : "Approve selected users"
-                  }
-                  placement="left"
+                      ? "cursor-not-allowed text-gray-400"
+                      : "hover:bg-gray-200"
+                  }`}
                 >
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleActionClick("approve");
-                    }}
-                    className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
-                      selectedUsers.length === 0
-                        ? "cursor-not-allowed text-gray-400"
-                        : "hover:bg-gray-200"
-                    }`}
-                  >
-                    <span className="block w-full">Approve</span>
-                  </button>
-                </Tooltip>
-                <Tooltip
-                  content={
+                  <span className="block w-full">Approve</span>
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleActionClick("activate");
+                  }}
+                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
                     selectedUsers.length === 0
-                      ? "Select users first"
-                      : "Activate selected users"
-                  }
-                  placement="left"
+                      ? "cursor-not-allowed text-gray-400"
+                      : "hover:bg-gray-200"
+                  }`}
                 >
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleActionClick("activate");
-                    }}
-                    className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
-                      selectedUsers.length === 0
-                        ? "cursor-not-allowed text-gray-400"
-                        : "hover:bg-gray-200"
-                    }`}
-                  >
-                    <span className="block w-full">Activate</span>
-                  </button>
-                </Tooltip>
-                <Tooltip
-                  content={
+                  <span className="block w-full">Activate</span>
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleActionClick("deactivate");
+                  }}
+                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
                     selectedUsers.length === 0
-                      ? "Select users first"
-                      : "Deactivate selected users"
-                  }
-                  placement="left"
+                      ? "cursor-not-allowed text-gray-400"
+                      : "hover:bg-gray-200"
+                  }`}
                 >
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleActionClick("deactivate");
-                    }}
-                    className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
-                      selectedUsers.length === 0
-                        ? "cursor-not-allowed text-gray-400"
-                        : "hover:bg-gray-200"
-                    }`}
-                  >
-                    <span className="block w-full">Deactivate</span>
-                  </button>
-                </Tooltip>
+                  <span className="block w-full">Deactivate</span>
+                </button>
               </div>
             </div>
           )}
@@ -1598,21 +1567,12 @@ const UserList = () => {
                     {user.userCode}
                   </td>
 
-                  {/* Name with Tooltip */}
                   <td className="max-w-[120px] truncate px-2 py-2 text-left text-nowrap">
-                    <Tooltip
-                      content={`${user.firstName} ${user.lastName}`}
-                      placement="top"
-                    >
-                      <span>{`${user.firstName} ${user.lastName}`}</span>
-                    </Tooltip>
+                    <span>{`${user.firstName} ${user.lastName}`}</span>
                   </td>
 
-                  {/* Email with Tooltip */}
                   <td className="max-w-[120px] truncate px-2 py-2 text-left">
-                    <Tooltip content={user.email} placement="top">
-                      <span>{user.email}</span>
-                    </Tooltip>
+                    <span>{user.email}</span>
                   </td>
 
                   <td className="px-2 py-2 text-left text-nowrap">

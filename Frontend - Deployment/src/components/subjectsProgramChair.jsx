@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import Button from "./button";
 import { useNavigate } from "react-router-dom";
 import SideBarToolTip from "./sidebarTooltip";
-import { Tooltip } from "flowbite-react";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import { createPortal } from "react-dom";
 import Toast from "./Toast";
@@ -84,7 +83,6 @@ const SideBarDropDown = ({
         programID: editedSubject.programID,
         yearLevelID: String(editedSubject.yearLevelID),
       };
-
 
       const response = await fetch(`${apiUrl}/subjects/${subjectID}/update`, {
         method: "PUT",
