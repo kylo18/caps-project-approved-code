@@ -169,6 +169,21 @@ class AuthController extends Controller
                 'status_id' => $statusId,
             ]);
 
+            // Automatically assign student to student_curricula table if roleID is 1
+            if ($user->roleID == 1) {
+                // Assign New Curriculum (2) if userCode starts with 24- or higher, else Old (1)
+                $yearPrefix = intval(substr($user->userCode, 0, 2));
+                $curriculumID = ($yearPrefix >= 24) ? 2 : 1;
+                \DB::table('student_curricula')->updateOrInsert(
+                    ['userID' => $user->userID],
+                    [
+                        'curriculumID' => $curriculumID,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+            }
+
             Log::info('User registered successfully: ' . $validated['userCode']);
 
             // Return the newly created user

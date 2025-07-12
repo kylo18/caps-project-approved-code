@@ -81,9 +81,29 @@ class UserController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
+        // Fetch remarks and curriculum for students
+        $remarks = null;
+        $curriculum = null;
+        if ($user->roleID == 1) {
+            $remarksRow = \DB::table('student_remarks')
+                ->join('remarks', 'student_remarks.remarksID', '=', 'remarks.id')
+                ->where('student_remarks.userID', $user->userID)
+                ->select('remarks.remarksType')
+                ->first();
+            $remarks = $remarksRow ? $remarksRow->remarksType : null;
+            $curriculumRow = \DB::table('student_curricula')
+                ->join('curriculum', 'student_curricula.curriculumID', '=', 'curriculum.id')
+                ->where('student_curricula.userID', $user->userID)
+                ->select('curriculum.curriculumType')
+                ->first();
+            $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
+        }
+
         return response()->json([
             'email' => $user->email,
             'fullName' => $user->firstName . ' ' . $user->lastName,
+            'remarks' => $remarks,
+            'curriculum' => $curriculum,
         ], 200);
     }
 
@@ -368,6 +388,50 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Delete a specific user (Only Dean and Associate Dean).
+     */
+    public function deleteUser($id)
+    {
+        $authUser = Auth::user();
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can delete users'], 403);
+        }
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+        $user->delete();
+        return response()->json(['message' => 'User deleted successfully'], 200);
+    }
+
+    /**
+     * Delete multiple users (Only Dean and Associate Dean).
+     */
+    public function deleteMultipleUsers(Request $request)
+    {
+        $authUser = Auth::user();
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can delete users'], 403);
+        }
+        $validated = $request->validate([
+            'userIDs' => 'required|array',
+            'userIDs.*' => 'integer|exists:users,userID'
+        ]);
+        $deleted = [];
+        foreach ($validated['userIDs'] as $userID) {
+            $user = User::find($userID);
+            if ($user) {
+                $user->delete();
+                $deleted[] = $userID;
+            }
+        }
+        return response()->json([
+            'message' => 'Selected users deleted successfully.',
+            'deleted_users' => $deleted
+        ], 200);
+    }
+
     // Private helper methods
 
     private function authorizeDeanAccess()
@@ -479,6 +543,23 @@ class UserController extends Controller
                       ->take($perPage)
                       ->get()
                       ->map(function ($user) {
+                          // Fetch remarks and curriculum for students
+                          $remarks = null;
+                          $curriculum = null;
+                          if ($user->roleID == 1) {
+                              $remarksRow = \DB::table('student_remarks')
+                                  ->join('remarks', 'student_remarks.remarksID', '=', 'remarks.id')
+                                  ->where('student_remarks.userID', $user->userID)
+                                  ->select('remarks.remarksType')
+                                  ->first();
+                              $remarks = $remarksRow ? $remarksRow->remarksType : null;
+                              $curriculumRow = \DB::table('student_curricula')
+                                  ->join('curriculum', 'student_curricula.curriculumID', '=', 'curriculum.id')
+                                  ->where('student_curricula.userID', $user->userID)
+                                  ->select('curriculum.curriculumType')
+                                  ->first();
+                              $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
+                          }
                           return [
                               'userID' => $user->userID,
                               'userCode' => $user->userCode,
@@ -494,6 +575,8 @@ class UserController extends Controller
                               'isActive' => $user->isActive,
                               'status_id' => $user->status_id,
                               'status' => $user->status ? $user->status->name : 'Unknown',
+                              'remarks' => $remarks,
+                              'curriculum' => $curriculum,
                           ];
                       });
 

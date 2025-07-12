@@ -46,6 +46,7 @@ class SubjectController extends Controller
                     'subjectCode' => $request->subjectCode,
                     'subjectName' => $request->subjectName,
                     'yearLevelID' => $request->yearLevelID,
+                    'is_enabled_for_exam_questions' => true,
                 ]);
                 return response()->json([
                     'message' => 'Subject created successfully.',
@@ -424,5 +425,85 @@ class SubjectController extends Controller
             'message' => 'Subjects available for practice exam.',
             'data' => $formattedSubjects
         ], 200);
+    }
+
+    /**
+     * Enable exam questions (purpose_id 3) for a subject. Only accessible by the Dean (roleID 4).
+     */
+    public function enableExamQuestions($subjectID)
+    {
+        $user = Auth::user();
+        if (!$user || $user->roleID !== 4) {
+            return response()->json(['success' => false, 'message' => 'Forbidden. Only the Dean can enable exam questions.'], 403);
+        }
+        $subject = Subject::find($subjectID);
+        if (!$subject) {
+            return response()->json(['success' => false, 'message' => 'Subject not found.'], 404);
+        }
+        $subject->is_enabled_for_exam_questions = true;
+        $subject->save();
+        return response()->json(['success' => true, 'message' => 'Exam questions enabled for this subject.', 'subjectID' => $subjectID]);
+    }
+
+    /**
+     * Disable exam questions (purpose_id 3) for a subject. Only accessible by the Dean (roleID 4).
+     */
+    public function disableExamQuestions($subjectID)
+    {
+        $user = Auth::user();
+        if (!$user || $user->roleID !== 4) {
+            return response()->json(['success' => false, 'message' => 'Forbidden. Only the Dean can disable exam questions.'], 403);
+        }
+        $subject = Subject::find($subjectID);
+        if (!$subject) {
+            return response()->json(['success' => false, 'message' => 'Subject not found.'], 404);
+        }
+        $subject->is_enabled_for_exam_questions = false;
+        $subject->save();
+        return response()->json(['success' => true, 'message' => 'Exam questions disabled for this subject.', 'subjectID' => $subjectID]);
+    }
+
+    /**
+     * Get the exam questions status for a subject. Accessible by all authenticated users.
+     */
+    public function getExamQuestionsStatus($subjectID)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            $subject = Subject::find($subjectID);
+            if (!$subject) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Subject not found.'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Exam questions status retrieved successfully.',
+                'data' => [
+                    'subjectID' => $subject->subjectID,
+                    'subjectCode' => $subject->subjectCode,
+                    'subjectName' => $subject->subjectName,
+                    'is_enabled_for_exam_questions' => (bool) $subject->is_enabled_for_exam_questions
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error retrieving exam questions status: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving exam questions status.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

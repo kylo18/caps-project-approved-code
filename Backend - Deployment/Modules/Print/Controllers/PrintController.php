@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Crypt;
 use Modules\Subjects\Models\Subject;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Modules\Users\Models\User;
 
 class PrintController extends Controller
 {
@@ -277,9 +278,17 @@ class PrintController extends Controller
                             ->whereHas('status', function($query) {
                                 $query->where('name', 'approved');
                             });
-                        if ($user->roleID === 3) {
-                            $validUserIDs = \Modules\Users\Models\User::whereIn('programID', [$user->programID, 6])->pluck('userID');
+                        // Role-based filtering
+                        if ($user->roleID === 2) { // Faculty/Instructor
+                            $baseQuery->where('userID', $user->userID);
+                        } elseif ($user->roleID === 3) { // Program Chair
+                            $validUserIDs = User::where('programID', $user->programID)->pluck('userID');
                             $baseQuery->whereIn('userID', $validUserIDs);
+                        } elseif ($user->roleID === 5) { // Associate Dean
+                            $validUserIDs = User::where('campusID', $user->campusID)->pluck('userID');
+                            $baseQuery->whereIn('userID', $validUserIDs);
+                        } else if ($user->roleID === 4) {
+                            // Dean: no additional filtering, can access all questions for the subject
                         }
                         $allQuestions = $baseQuery->get();
                         if ($allQuestions->isEmpty()) {
@@ -436,59 +445,62 @@ class PrintController extends Controller
                 $leftLogoBase64 = $this->getBase64Image(resource_path('assets/images/default-left-logo.jpg'));
                 $rightLogoBase64 = $this->getBase64Image(resource_path('assets/images/default-right-logo.jpg'));
             }
-            // Always handle preview request (no PDF generation)
-                // Collect correct answers for all questions by subject
-                $correctAnswers = [];
-                foreach ($questionsBySubject as $subjectName => $subjectData) {
-                    $correctAnswers[$subjectName] = [];
-                    foreach ($subjectData['questions'] as $qIndex => $question) {
-                        $correctChoices = [];
-                        foreach ($question['choices'] as $choiceIndex => $choice) {
-                            if ($choice['isCorrect']) {
-                                $correctChoices[] = [
-                                    'choiceIndex' => $choiceIndex,
-                                    'choiceText' => $choice['choiceText'],
-                                    'choiceImage' => $choice['choiceImage'] ?? null
-                                ];
-                            }
-                        }
-                        $correctAnswers[$subjectName][$qIndex] = $correctChoices;
+            $allQuestionsFlat = [];
+            $allCorrectAnswers = [];
+            foreach ($questionsBySubject as $subjectName => $subjectData) {
+                foreach ($subjectData['questions'] as $q) {
+                    $allQuestionsFlat[] = $q;
+                }
+            }
+            shuffle($allQuestionsFlat);
+            // Collect correct answers for all questions (flat)
+            foreach ($allQuestionsFlat as $qIndex => $question) {
+                $correctChoices = [];
+                foreach ($question['choices'] as $choiceIndex => $choice) {
+                    if ($choice['isCorrect']) {
+                        $correctChoices[] = [
+                            'choiceIndex' => $choiceIndex,
+                            'choiceText' => $choice['choiceText'],
+                            'choiceImage' => $choice['choiceImage'] ?? null
+                        ];
                     }
                 }
-                $previewData = [
-                    'questionsBySubject' => $questionsBySubject,
-                    'totalItems' => array_sum(array_map(fn($subject) => $subject['totalItems'], $questionsBySubject)),
-                    'requestedItems' => $totalItems,
-                    'purpose' => $validated['purpose'],
-                    'examTitle' => match($validated['purpose']) {
-                        'examQuestions' => 'Qualifying Examination',
-                        'practiceQuestions' => 'Practice Examination',
-                        'personalQuestions' => 'Quiz',
-                        default => 'Multi-Subject Questions'
-                    },
-                    'logos' => [
-                        'left' => $leftLogoBase64,
-                        'right' => $rightLogoBase64
-                    ],
-                    'timestamp' => now()->timestamp,
+                $allCorrectAnswers[$qIndex] = $correctChoices;
+            }
+            $previewData = [
+                'questions' => $allQuestionsFlat,
+                'totalItems' => count($allQuestionsFlat),
+                'requestedItems' => $totalItems,
+                'purpose' => $validated['purpose'],
+                'examTitle' => match($validated['purpose']) {
+                    'examQuestions' => 'Qualifying Examination',
+                    'practiceQuestions' => 'Practice Examination',
+                    'personalQuestions' => 'Quiz',
+                    default => 'Multi-Subject Questions'
+                },
+                'logos' => [
+                    'left' => $leftLogoBase64,
+                    'right' => $rightLogoBase64
+                ],
+                'timestamp' => now()->timestamp,
                 'user_id' => Auth::id(),
-                'correctAnswers' => $correctAnswers
-                ];
-                $previewKey = 'exam_preview_' . Auth::id() . '_' . now()->timestamp;
-                session([$previewKey => $previewData]);
-                Cache::put($previewKey, $previewData, $this->sessionLifetime);
-                session()->save();
-                Log::info('Preview data stored:', [
-                    'previewKey' => $previewKey,
-                    'session_id' => session()->getId(),
-                    'data_size' => strlen(json_encode($previewData)),
-                    'user_id' => Auth::id(),
-                    'timestamp' => now()->timestamp
-                ]);
-                return response()->json([
-                    'previewData' => $previewData,
-                    'previewKey' => $previewKey
-                ]);
+                'correctAnswers' => $allCorrectAnswers
+            ];
+            $previewKey = 'exam_preview_' . Auth::id() . '_' . now()->timestamp;
+            session([$previewKey => $previewData]);
+            Cache::put($previewKey, $previewData, $this->sessionLifetime);
+            session()->save();
+            Log::info('Preview data stored:', [
+                'previewKey' => $previewKey,
+                'session_id' => session()->getId(),
+                'data_size' => strlen(json_encode($previewData)),
+                'user_id' => Auth::id(),
+                'timestamp' => now()->timestamp
+            ]);
+            return response()->json([
+                'previewData' => $previewData,
+                'previewKey' => $previewKey
+            ]);
         } catch (\Exception $e) {
             Log::error('Multi-Subject Exam Print Error:', [
                 'error' => $e->getMessage(),
@@ -496,6 +508,138 @@ class PrintController extends Controller
                 'request' => $request->all()
             ]);
             return response()->json([
+                'status' => 'error',
+                'message' => 'System Error',
+                'details' => 'An unexpected error occurred while processing your request.',
+                'code' => 'SYSTEM_ERROR',
+                'action' => 'Please try again later. If the problem persists, contact system administrator.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate a single-subject personal questions preview (JSON only)
+     */
+    public function generateSingleSubjectPersonalPreview(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                throw new \Exception('User not authenticated');
+            }
+            // Validate input
+            $validated = $request->validate([
+                'subjectID' => 'required|exists:subjects,subjectID',
+                'total_items' => 'required|integer|min:1',
+                'difficulty_distribution' => 'required|array',
+                'difficulty_distribution.easy' => 'required|integer|min:0|max:100',
+                'difficulty_distribution.moderate' => 'required|integer|min:0|max:100',
+                'difficulty_distribution.hard' => 'required|integer|min:0|max:100',
+            ]);
+            $purpose = \Modules\Questions\Models\Purpose::where('name', 'personalQuestions')->first();
+            if (!$purpose) {
+                throw new \Exception('personalQuestions purpose not found in database');
+            }
+            $subject = Subject::find($validated['subjectID']);
+            if (!$subject) {
+                throw new \Exception('Subject not found');
+            }
+            $baseQuery = Question::with(['choices', 'difficulty', 'status', 'purpose'])
+                ->where('subjectID', $validated['subjectID'])
+                ->where('purpose_id', $purpose->id)
+                ->where('userID', $user->userID)
+                ->whereHas('status', function($query) {
+                    $query->where('name', 'approved');
+                });
+            $allQuestions = $baseQuery->get();
+            if ($allQuestions->isEmpty()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No personal questions found for this subject',
+                    'code' => 'NO_QUESTIONS'
+                ], 422);
+            }
+            $totalItems = $validated['total_items'];
+            $numEasy = round($totalItems * ($validated['difficulty_distribution']['easy'] / 100));
+            $numModerate = round($totalItems * ($validated['difficulty_distribution']['moderate'] / 100));
+            $numHard = $totalItems - ($numEasy + $numModerate);
+            $easyQuestions = $allQuestions->filter(fn($q) => $q->difficulty && $q->difficulty->name === 'easy')->shuffle();
+            $moderateQuestions = $allQuestions->filter(fn($q) => $q->difficulty && $q->difficulty->name === 'moderate')->shuffle();
+            $hardQuestions = $allQuestions->filter(fn($q) => $q->difficulty && $q->difficulty->name === 'hard')->shuffle();
+            $insufficientQuestions = [];
+            if ($easyQuestions->count() < $numEasy) {
+                $insufficientQuestions[] = [
+                    'difficulty' => 'Easy',
+                    'required' => $numEasy,
+                    'available' => $easyQuestions->count(),
+                    'deficit' => $numEasy - $easyQuestions->count()
+                ];
+            }
+            if ($moderateQuestions->count() < $numModerate) {
+                $insufficientQuestions[] = [
+                    'difficulty' => 'Moderate',
+                    'required' => $numModerate,
+                    'available' => $moderateQuestions->count(),
+                    'deficit' => $numModerate - $moderateQuestions->count()
+                ];
+            }
+            if ($hardQuestions->count() < $numHard) {
+                $insufficientQuestions[] = [
+                    'difficulty' => 'Hard',
+                    'required' => $numHard,
+                    'available' => $hardQuestions->count(),
+                    'deficit' => $numHard - $hardQuestions->count()
+                ];
+            }
+            if (!empty($insufficientQuestions)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Insufficient Questions Available',
+                    'details' => $insufficientQuestions,
+                    'code' => 'INSUFFICIENT_QUESTIONS',
+                ], 422);
+            }
+            $selectedQuestions = collect()
+                ->merge($easyQuestions->take($numEasy))
+                ->merge($moderateQuestions->take($numModerate))
+                ->merge($hardQuestions->take($numHard))
+                ->shuffle();
+            $subjectQuestions = $this->formatQuestions($selectedQuestions, $subject);
+            $correctAnswers = [];
+            foreach ($subjectQuestions as $qIndex => $question) {
+                $correctChoices = [];
+                foreach ($question['choices'] as $choiceIndex => $choice) {
+                    if ($choice['isCorrect']) {
+                        $correctChoices[] = [
+                            'choiceIndex' => $choiceIndex,
+                            'choiceText' => $choice['choiceText'],
+                            'choiceImage' => $choice['choiceImage'] ?? null
+                        ];
+                    }
+                }
+                $correctAnswers[$qIndex] = $correctChoices;
+            }
+            $previewData = [
+                'subject' => $subject->subjectName,
+                'questions' => $subjectQuestions,
+                'totalItems' => count($subjectQuestions),
+                'requestedItems' => $totalItems,
+                'purpose' => 'personalQuestions',
+                'examTitle' => 'Quiz',
+                'timestamp' => now()->timestamp,
+                'user_id' => Auth::id(),
+                'correctAnswers' => $correctAnswers
+            ];
+            return response()->json([
+                'previewData' => $previewData
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Single-Subject Personal Preview Error:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+            return response()->json([   
                 'status' => 'error',
                 'message' => 'System Error',
                 'details' => 'An unexpected error occurred while processing your request.',

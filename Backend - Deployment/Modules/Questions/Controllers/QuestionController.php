@@ -36,6 +36,14 @@ class QuestionController extends Controller
             'purpose_id' => 'required|exists:purposes,id'
         ]);
 
+        // Restrict exam questions (purpose_id 3) if subject is disabled
+        if ($validated['purpose_id'] == 3) {
+            $subject = Subject::find($validated['subjectID']);
+            if (!$subject || !$subject->is_enabled_for_exam_questions) {
+                return response()->json(['message' => 'Adding exam questions is currently disabled for this subject.'], 403);
+            }
+        }
+
         return DB::transaction(function () use ($validated, $request) {
             $imagePath = $this->handleImageUpload($request, 'image', 'question_images');
             $question = Question::create([
@@ -71,6 +79,14 @@ class QuestionController extends Controller
             'status_id' => 'sometimes|required|exists:statuses,id',
             'purpose_id' => 'sometimes|required|exists:purposes,id'
         ]);
+
+        // Restrict editing exam questions (purpose_id 3) if subject is disabled
+        if ($question->purpose_id == 3) {
+            $subject = Subject::find($question->subjectID);
+            if (!$subject || !$subject->is_enabled_for_exam_questions) {
+                return response()->json(['message' => 'Editing exam questions is currently disabled for this subject.'], 403);
+            }
+        }
 
         if (isset($validated['questionText'])) {
             $question->questionText = Crypt::encryptString($validated['questionText']);
@@ -204,6 +220,14 @@ class QuestionController extends Controller
         $question = Question::find($questionID);
         if (!$question) {
             return response()->json(['message' => 'Question not found.'], 404);
+        }
+
+        // Restrict deleting exam questions (purpose_id 3) if subject is disabled
+        if ($question->purpose_id == 3) {
+            $subject = Subject::find($question->subjectID);
+            if (!$subject || !$subject->is_enabled_for_exam_questions) {
+                return response()->json(['message' => 'Deleting exam questions is currently disabled for this subject.'], 403);
+            }
         }
 
         if ($question->image) {
