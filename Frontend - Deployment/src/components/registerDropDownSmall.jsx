@@ -56,11 +56,11 @@ const RegisterDropDown = ({ name, value, onChange, options, placeholder }) => {
         {/* Dropdown Options */}
         {isOpen && (
           <ul
-            className={`border-color absolute z-50 w-full max-w-full border bg-white shadow-md sm:min-w-[180px] ${
+            className={`animate-dropdown animate-fadein absolute left-0 z-10 mx-2 mt-1 w-[calc(100%-16px)] rounded border border-gray-300 bg-white p-1 shadow-lg ${
               dropdownPosition === "bottom"
                 ? "top-full mt-1"
                 : "bottom-full mb-1"
-            } max-h-[200px] overflow-y-auto rounded-md`}
+            } custom-scrollbar max-h-[200px] overflow-y-auto rounded-md`}
           >
             {options.map((option) => (
               <li
@@ -69,7 +69,7 @@ const RegisterDropDown = ({ name, value, onChange, options, placeholder }) => {
                   onChange({ target: { name, value: option.value } });
                   setIsOpen(false);
                 }}
-                className={`border-color cursor-pointer px-3 py-2 text-start text-[14px] hover:bg-[rgb(255,230,214)] ${value === option.value ? "bg-orange-500 text-white hover:bg-orange-500" : ""} first:rounded-t-md last:rounded-b-md`}
+                className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-[13px] hover:bg-gray-100"
               >
                 {option.label}
               </li>

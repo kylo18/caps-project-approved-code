@@ -14,12 +14,17 @@
   font-family: "Roboto", sans-serif;
 }
 
-.open-sans {
-  font-family: "Open Sans";
-  font-weight: 500;
-}
 .font-inter {
   font-family: "Inter";
+}
+.font-gg-sans {
+  font-family:
+    "Segoe UI",
+    "SF Pro Display",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Roboto",
+    sans-serif;
 }
 .font-medium {
   font-weight: 550;
@@ -30,8 +35,11 @@
 }
 
 .lightbox-bg {
-  backdrop-filter: blur(2px);
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.lightbox-bg-image {
+  background-color: rgba(0, 0, 0, 0.8);
 }
 
 .lightbox-bg-sb {
@@ -54,7 +62,7 @@ select option:hover {
 }
 
 .border-color {
-  border-color: rgb(200, 200, 200);
+  border-color: rgb(209, 213, 219);
 }
 
 .font-color-gray {
@@ -73,6 +81,21 @@ select option:hover {
   100% {
     background-position: 200% 0;
   }
+}
+
+@keyframes fade-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in-left {
+  animation: fade-in-left 0.09s ease-in;
 }
 
 .scrollbar-show-on-hover {
@@ -172,7 +195,7 @@ select option:hover {
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.3s ease-out forwards;
+  animation: fade-in-up 0.2s ease-out forwards;
 }
 
 @media (orientation: landscape) {
@@ -225,6 +248,42 @@ select option:hover {
 
 /* HTML: <div class="loader"></div> */
 /* HTML: <div class="loader"></div> */
+
+/* Correct answer selection animation */
+@keyframes correct-answer-select {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-correct-select {
+  animation: correct-answer-select 0.3s ease-in-out;
+}
+
+/* Pulse animation for selected correct answer */
+@keyframes correct-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.animate-correct-pulse {
+  animation: correct-pulse 2s ease-in-out infinite;
+}
+
 .loader {
   width: 30px;
   aspect-ratio: 2;
@@ -274,29 +333,78 @@ select option:hover {
   background-size: calc(100% / 3) 50%;
   animation: l3 1s infinite linear;
 }
-@keyframes l3 {
-  20% {
-    background-position:
-      0% 0%,
-      50% 50%,
-      100% 50%;
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
   }
-  40% {
-    background-position:
-      0% 100%,
-      50% 0%,
-      100% 50%;
+  to {
+    opacity: 1;
   }
-  60% {
-    background-position:
-      0% 50%,
-      50% 100%,
-      100% 0%;
+}
+
+.fade-in {
+  animation: fade-in 0.18s ease;
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
   }
-  80% {
-    background-position:
-      0% 50%,
-      50% 50%,
-      100% 100%;
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
+}
+
+.animate-fadein {
+  animation: fadein 0.2s ease-out forwards;
+}
+
+.open-sans {
+  font-family: "Open Sans", sans-serif;
+}
+
+@keyframes search-popup {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-search-popup {
+  animation: search-popup 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes search-popout {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+.animate-search-popout {
+  animation: search-popout 0.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.2s ease-out forwards;
 }

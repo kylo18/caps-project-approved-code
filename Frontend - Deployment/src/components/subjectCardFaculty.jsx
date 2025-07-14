@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
 import PracticeExamConfig from "./practiceExamConfig";
 import { useNavigate } from "react-router-dom";
-import RegisterDropDownSmall from "./registerDropDownSmall";
 import SearchQuery from "./SearchQuery";
 import ConfirmModal from "./confirmModal";
 
@@ -25,14 +24,40 @@ const SubjectCard = ({
   showToast,
   searchQuery,
   setSearchQuery,
-  isExamQuestionsEnabled,
-  setIsExamQuestionsEnabled,
 }) => {
+  const [showSearchInput, setShowSearchInput] = useState(false);
+  const [searchAnim, setSearchAnim] = useState("");
+  const searchTimeoutRef = useRef(null);
+  const searchInputRef = useRef(null);
+
   const mobileTabRefs = useRef([]);
   const [mobileIndicatorStyle, setMobileIndicatorStyle] = useState({
     left: 0,
     width: 0,
   });
+
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeTimeoutRef = useRef(null);
+
+  // Prevent background scrolling when modals are open
+  useEffect(() => {
+    if (showDropdown || editingSubject || showDeleteModal || isFormOpen) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+
+    // Cleanup function to restore scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [showDropdown, editingSubject, showDeleteModal, isFormOpen]);
 
   useEffect(() => {
     const updateMobileIndicatorPosition = () => {
@@ -151,7 +176,6 @@ const SubjectCard = ({
 
   // Edit subject modal state
   const [editingSubject, setEditingSubject] = useState(false);
-  const editModalRef = useRef(null); // Add this ref for the edit modal
   const [editedSubject, setEditedSubject] = useState({
     subjectCode: "",
     subjectName: "",
@@ -244,82 +268,9 @@ const SubjectCard = ({
   };
 
   // Save edit handler
-  const handleSaveEdit = async () => {
-    const token = localStorage.getItem("token");
-    setIsEditing(true);
-    try {
-      const updateData = {
-        subjectCode: editedSubject.subjectCode,
-        subjectName: editedSubject.subjectName,
-        programID: editedSubject.programID,
-        yearLevelID: String(editedSubject.yearLevelID),
-      };
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/subjects/${subjectID}/update`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(updateData),
-        },
-      );
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server returned non-JSON response");
-      }
-      const result = await response.json();
-      if (response.ok) {
-        showToast(result.message || "Subject updated successfully", "success");
-        if (refreshSubjects) refreshSubjects();
-        window.dispatchEvent(new Event("refreshSubjectsList"));
-        if (onFetchQuestions) onFetchQuestions();
-        if (setSelectedSubject) setSelectedSubject(null);
-        setEditingSubject(false);
-      } else {
-        switch (response.status) {
-          case 401:
-            showToast(
-              "You are not authenticated. Please log in again.",
-              "error",
-            );
-            break;
-          case 403:
-            showToast("You are not authorized to modify subjects.", "error");
-            break;
-          case 404:
-            showToast("Subject not found.", "error");
-            break;
-          case 409:
-            showToast(
-              result.message || "A subject with these details already exists.",
-              "error",
-            );
-            break;
-          case 500:
-            showToast(
-              "An error occurred while updating the subject. Please try again.",
-              "error",
-            );
-            break;
-          default:
-            showToast(result.message || "Failed to update subject.", "error");
-        }
-      }
-    } catch (error) {
-      showToast(
-        "An unexpected error occurred while connecting to the server.",
-        "error",
-      );
-    } finally {
-      setIsEditing(false);
-    }
-  };
 
   // Function to refresh questions list
   const handleRefresh = () => {
-    // Close search input when refreshing
     setShowSearchInput(false);
     setSearchAnim("");
     onFetchQuestions();
@@ -441,25 +392,30 @@ const SubjectCard = ({
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/subjects/${subjectID}/delete`,
+        `${import.meta.env.VITE_API_BASE_URL}/remove-assigned-subject/${subjectID}`,
         {
           method: "DELETE",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         },
       );
+      const result = await response.json();
       if (response.ok) {
         if (setSelectedSubject) setSelectedSubject(null);
-        if (refreshSubjects) refreshSubjects();
-        window.dispatchEvent(new Event("refreshSubjectsList"));
-        showToast("Subject deleted successfully", "success");
+        // Add a small delay to ensure the delete operation is complete
+        setTimeout(() => {
+          if (refreshSubjects) refreshSubjects();
+          window.dispatchEvent(new Event("refreshSubjectsList"));
+        }, 100);
+        showToast(result.message || "Subject removed successfully", "success");
       } else {
-        showToast("Failed to delete subject", "error");
+        showToast(result.message || "Failed to remove subject", "error");
+        console.error("Failed to delete subject:", result.message);
       }
     } catch (error) {
       showToast("Error deleting subject", "error");
+      console.error("Error deleting subject:", error);
     } finally {
       setIsDeleting(false);
     }
@@ -470,6 +426,40 @@ const SubjectCard = ({
   useEffect(() => {
     setTabIndicatorUpdate((n) => n + 1);
   }, [activeIndex, subjectName]); // subjectName in case the tab bar changes width
+
+  // Handle open/close with animation
+  const handleToggleSearch = () => {
+    if (showSearchInput) {
+      setSearchAnim("animate-search-popout");
+      searchTimeoutRef.current = setTimeout(() => {
+        setShowSearchInput(false);
+        setSearchAnim("");
+      }, 100); // match animation duration in index.css
+    } else {
+      setShowSearchInput(true);
+      setSearchAnim("animate-search-popup");
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+    };
+  }, []);
+
+  // Scroll search input into view on small screens when it appears
+  useEffect(() => {
+    if (showSearchInput && searchInputRef.current && window.innerWidth < 768) {
+      setTimeout(() => {
+        const rect = searchInputRef.current.getBoundingClientRect();
+        const scrollTop =
+          window.pageYOffset || document.documentElement.scrollTop;
+        const targetY = rect.top + scrollTop - 100; // 100px from top
+        window.scrollTo({ top: targetY, behavior: "smooth" });
+      }, 10); // allow render
+    }
+  }, [showSearchInput]);
 
   const SkeletonLoader = () => (
     <>
@@ -522,100 +512,6 @@ const SubjectCard = ({
     </>
   );
 
-  const [showSearchInput, setShowSearchInput] = useState(false);
-  const [searchAnim, setSearchAnim] = useState("");
-  const searchTimeoutRef = useRef(null);
-  const searchInputRef = useRef(null);
-  const [isResizing, setIsResizing] = useState(false);
-  const resizeTimeoutRef = useRef(null);
-
-  // Prevent background scrolling when modals are open
-  useEffect(() => {
-    if (showDropdown || editingSubject || showDeleteModal || isFormOpen) {
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
-    } else {
-      document.body.style.overflow = "unset";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    }
-
-    // Cleanup function to restore scrolling when component unmounts
-    return () => {
-      document.body.style.overflow = "unset";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    };
-  }, [showDropdown, editingSubject, showDeleteModal, isFormOpen]);
-
-  // Close dropdown when any modal is open
-  useEffect(() => {
-    if (editingSubject || showDeleteModal || isFormOpen) {
-      setShowDropdown(false);
-    }
-  }, [editingSubject, showDeleteModal, isFormOpen]);
-
-  // Reset search input state on mount and subject change
-  useEffect(() => {
-    setShowSearchInput(false);
-    setSearchAnim("");
-  }, [subjectID, subjectName]);
-
-  // Handle open/close with animation
-  const handleToggleSearch = () => {
-    if (showSearchInput) {
-      setSearchAnim("animate-search-popout");
-      searchTimeoutRef.current = setTimeout(() => {
-        setShowSearchInput(false);
-        setSearchAnim("");
-      }, 250); // match animation duration
-    } else {
-      setShowSearchInput(true);
-      setSearchAnim("animate-search-popup");
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
-    };
-  }, []);
-
-  // Scroll search input into view on small screens when it appears
-  useEffect(() => {
-    if (showSearchInput && searchInputRef.current && window.innerWidth < 768) {
-      setTimeout(() => {
-        const rect = searchInputRef.current.getBoundingClientRect();
-        const scrollTop =
-          window.pageYOffset || document.documentElement.scrollTop;
-        const targetY = rect.top + scrollTop - 44; // 100px from top
-        window.scrollTo({ top: targetY, behavior: "smooth" });
-      }, 10); // allow render
-    }
-  }, [showSearchInput]);
-
-  // Add this useEffect to close edit modal on outside click for min-[448px]
-  useEffect(() => {
-    if (!editingSubject) return;
-    function handleClickOutside(event) {
-      if (window.innerWidth <= 448) {
-        if (
-          editModalRef.current &&
-          !editModalRef.current.contains(event.target)
-        ) {
-          setEditingSubject(false);
-          setValidationError("");
-        }
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [editingSubject]);
-
   return (
     <div>
       {isLoading ? (
@@ -626,7 +522,7 @@ const SubjectCard = ({
           <div className="relative z-48 -mx-2 overflow-visible border border-gray-300 bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
             <div className="flex flex-wrap items-start justify-between sm:hidden">
               <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-                <h1 className="open-sans mt-2 ml-2 text-[18px] font-bold break-words">
+                <h1 className="font-inter mt-2 ml-2 text-[18px] font-bold break-words">
                   {subjectName}
                 </h1>
                 <div className="mt-2 ml-2 flex gap-1 text-gray-500">
@@ -658,7 +554,7 @@ const SubjectCard = ({
                 className="mr-5 size-18 rounded-md border border-gray-300 object-cover"
               />
               <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-                <h1 className="open-sans text-[15px] font-bold break-words md:text-[18px]">
+                <h1 className="font-inter text-[15px] font-bold break-words md:text-[18px]">
                   {subjectName}
                 </h1>
                 <div className="mt-1 flex gap-1 text-gray-500">
@@ -690,21 +586,32 @@ const SubjectCard = ({
                 <i className="bx bx-eye text-lg"></i>
                 <span className="text-[14px]">Preview</span>
               </button>
+
               <button
-                onClick={handleAssignClick}
-                className="mb-6 hidden items-center justify-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
+                onClick={() => {
+                  setSubjectToDelete({ subjectID, subjectName, subjectCode });
+                  setShowDeleteModal(true);
+                }}
+                className="mb-6 flex cursor-pointer items-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
               >
-                <i className="bx bx-cog text-lg"></i>
-                <span>Configure</span>
+                <i className="bx bx-trash text-lg"></i>
+                <span className="text-[14px]">Remove</span>
               </button>
+
               <button
                 onClick={handleRefresh}
-                className="mb-6 flex cursor-pointer items-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
+                className="mb-6 flex cursor-pointer items-center justify-center rounded-md border border-gray-300 px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 min-[500px]:hidden md:hidden"
+              >
+                <i className="bx bx-refresh-ccw text-2xl"></i>
+              </button>
+
+              <button
+                onClick={handleRefresh}
+                className="mb-6 hidden cursor-pointer items-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
               >
                 <i className="bx bx-refresh-ccw text-lg"></i>
                 <span className="text-[14px]">Refresh</span>
               </button>
-
               {/* Mobile/tablet search button */}
               <button
                 ref={actionButtonRef}
@@ -715,19 +622,11 @@ const SubjectCard = ({
                   className={`bx ${showSearchInput ? "bx-x" : "bx-search-big"} text-2xl`}
                 ></i>
               </button>
-
-              <button
-                ref={actionButtonRef}
-                onClick={() => setShowDropdown((prev) => !prev)}
-                className="mb-6 flex cursor-pointer items-center justify-center rounded-md border border-gray-300 px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 md:hidden"
-              >
-                <i className="bx bx-dots-vertical-rounded text-2xl"></i>
-              </button>
             </div>
           </div>
 
           {/* Tablet Tabs Bar (below card) */}
-          <div className="open-sans relative z-48 -mx-2 -mt-2 mb-2 h-[50px] overflow-visible border border-gray-300 bg-gray-50 pt-2 font-semibold sm:mx-0 sm:block sm:rounded-b-md md:hidden">
+          <div className="open-sans relative z-48 -mx-2 -mt-2 mb-1 h-[50px] overflow-visible border border-gray-300 bg-gray-50 pt-2 font-semibold sm:mx-0 sm:block sm:rounded-b-md md:hidden">
             <ul className="mt-[6px] flex h-full w-full justify-between text-center">
               {tabs.map((tab) => (
                 <li
@@ -736,7 +635,7 @@ const SubjectCard = ({
                   className={`relative flex-1 cursor-pointer text-[13px] font-semibold transition-colors duration-200 ${
                     activeIndex === tab.index
                       ? "text-orange-500"
-                      : "text-gray-600 hover:text-gray-900"
+                      : "text-gray-600"
                   }`}
                   onClick={() => setActiveIndex(tab.index)}
                 >
@@ -778,7 +677,7 @@ const SubjectCard = ({
                 className="mr-5 size-18 rounded-md border border-gray-300 object-cover"
               />
               <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-                <h1 className="open-sans text-[15px] font-bold break-words md:text-[18px]">
+                <h1 className="font-inter text-[15px] font-bold break-words md:text-[18px]">
                   {subjectName}
                 </h1>
                 <div className="mt-1 flex gap-1 text-gray-500">
@@ -847,59 +746,26 @@ const SubjectCard = ({
 
               <div className="fixed right-5 bottom-5 z-51 mt-4 flex gap-3 md:relative md:right-0 md:mt-3">
                 {/* Configure Button */}
-                <button
-                  ref={actionButtonRef}
-                  onClick={() => setShowActionDropdownDesk((prev) => !prev)}
-                  className="hidden cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-2 py-2 text-gray-700 transition-all duration-100 hover:bg-gray-100 md:flex"
-                >
-                  <i className="bx bx-dots-vertical-rounded text-2xl"></i>
-                </button>
                 {/* Desktop search button */}
                 <button
                   ref={actionButtonRef}
                   onClick={handleToggleSearch}
-                  className="-ml-1 hidden cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-2 py-2 text-gray-700 transition-all duration-100 hover:bg-gray-100 md:flex"
+                  className="hidden cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-2 py-2 text-gray-700 transition-all duration-100 hover:bg-gray-100 md:flex"
                 >
                   <i
                     className={`bx ${showSearchInput ? "bx-x" : "bx-search-big"} text-2xl`}
                   ></i>
                 </button>
-                {showActionDropdownDesk && (
-                  <div
-                    ref={actionDropdownRef}
-                    className="border-color animate-dropdown animate-fadein absolute top-12 right-[300px] z-50 w-32 origin-top scale-95 cursor-pointer rounded-md border bg-white p-1 text-gray-700 opacity-0 shadow-lg transition-all duration-200 ease-out"
-                  >
-                    <button
-                      onClick={handleEdit}
-                      className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
-                    >
-                      <i className="bx bx-edit-alt text-base"></i>
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSubjectToDelete({
-                          subjectID,
-                          subjectName,
-                          subjectCode,
-                        });
-                        setShowActionDropdownDesk(false);
-                        setShowDeleteModal(true);
-                      }}
-                      className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
-                    >
-                      <i className="bx bx-trash text-base"></i>
-                      Remove
-                    </button>
-                  </div>
-                )}
 
                 <button
-                  onClick={handleAssignClick}
-                  className="hidden cursor-pointer items-center gap-2 rounded-lg border border-b-4 border-orange-300 bg-orange-100 px-4 py-2 text-orange-600 transition-all duration-100 hover:bg-orange-200 hover:text-orange-500 active:translate-y-[2px] active:border-b-2 md:flex"
+                  className="border-color hidden cursor-pointer items-center gap-2 rounded-lg border bg-white px-4 py-2 text-gray-700 transition-all duration-100 hover:bg-gray-200 active:translate-y-[2px] active:border-b-2 md:flex"
+                  onClick={() => {
+                    setSubjectToDelete({ subjectID, subjectName, subjectCode });
+                    setShowDeleteModal(true);
+                  }}
                 >
-                  <i className="bx bx-cog text-lg"></i>
-                  <span className="text-[14px]">Configure</span>
+                  <i className="bx bx-trash text-lg"></i>
+                  <span className="text-[14px]">Remove</span>
                 </button>
 
                 {/* Preview Button */}
@@ -933,238 +799,6 @@ const SubjectCard = ({
         </>
       )}
 
-      {showDropdown && (
-        <div
-          ref={dropdownRef}
-          className="open-sans lightbox-bg fixed inset-0 z-100 flex items-end justify-center md:hidden"
-          onClick={() => setShowDropdown(false)}
-        >
-          <div
-            className="animate-fade-in-up w-full rounded-t-2xl bg-white shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-4 pt-3 pb-3">
-              <h2 className="text-[16px] font-semibold sm:text-[14px]">
-                Select an option
-              </h2>
-            </div>
-            <div className="h-[0.5px] w-full bg-gray-300" />
-            <div className="flex flex-col py-2 text-[16px] sm:text-[14px]">
-              <button
-                onClick={handleAssignClick}
-                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100 min-[500px]:hidden"
-              >
-                <i className="bx bx-cog text-xl"></i>
-                Configure
-              </button>
-              <button
-                onClick={handleEdit}
-                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100"
-              >
-                <i className="bx bx-edit-alt text-xl"></i>
-                Edit
-              </button>
-              <button
-                onClick={() => {
-                  setSubjectToDelete({
-                    subjectID,
-                    subjectName,
-                    subjectCode,
-                  });
-                  setShowDropdown(false);
-                  setShowDeleteModal(true);
-                }}
-                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-red-500 hover:bg-gray-100"
-              >
-                <i className="bx bx-trash text-xl"></i>
-                Remove
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isFormOpen && (
-        <PracticeExamConfig
-          isFormOpen={isFormOpen}
-          setIsFormOpen={setIsFormOpen}
-          subjectID={subjectID}
-          onSuccess={handleFormSuccess}
-          isExamQuestionsEnabled={isExamQuestionsEnabled}
-          setIsExamQuestionsEnabled={setIsExamQuestionsEnabled}
-        />
-      )}
-
-      {editingSubject && (
-        <div
-          ref={editModalRef} // Attach the ref here
-          className="open-sans bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center"
-        >
-          <div className="animate-fade-in-up relative max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
-            <div className="border-color flex items-center justify-between border-b px-4 py-2">
-              <h2 className="text-[16px] font-semibold text-black">
-                Edit Subject
-              </h2>
-              <button
-                onClick={() => {
-                  setEditingSubject(false);
-                  setValidationError("");
-                }}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-700 transition duration-100 hover:bg-gray-100 hover:text-gray-900"
-              >
-                <i className="bx bx-x text-lg"></i>
-              </button>
-            </div>
-            <div className="px-5 py-4">
-              <div className="mb-4 text-start">
-                <div className="mb-4">
-                  <span className="block text-[14px] text-gray-700">
-                    Subject Name
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Name"
-                      value={editedSubject.subjectName}
-                      onChange={(e) =>
-                        setEditedSubject((prev) => ({
-                          ...prev,
-                          subjectName: e.target.value,
-                        }))
-                      }
-                      className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="mb-4 text-start">
-                <div className="mb-4">
-                  <span className="block text-[14px] text-gray-700">
-                    Subject Code
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Code"
-                      value={editedSubject.subjectCode}
-                      onChange={(e) =>
-                        setEditedSubject((prev) => ({
-                          ...prev,
-                          subjectCode: e.target.value,
-                        }))
-                      }
-                      className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                    />
-                  </div>
-                  <div className="mt-1 text-start text-[11px] text-gray-400">
-                    Enter the subject code of the subject you want to edit (e.g
-                    MATH123)
-                  </div>
-                </div>
-              </div>
-              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <div className="mb-2 flex items-start gap-1">
-                    <span className="block text-[14px] text-gray-700">
-                      Program
-                    </span>
-                  </div>
-                  <RegisterDropDownSmall
-                    name="Program"
-                    value={editedSubject.programID}
-                    onChange={(e) =>
-                      setEditedSubject((prev) => ({
-                        ...prev,
-                        programID: e.target.value,
-                      }))
-                    }
-                    placeholder="Select Program"
-                    options={programs.map((program) => ({
-                      value: program.programID,
-                      label: program.programName,
-                    }))}
-                  />
-                  <div className="text-start text-[11px] text-gray-400">
-                    Enter the program of the subject you want to edit
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="mb-2 flex items-start gap-1">
-                    <span className="block text-[14px] text-gray-700">
-                      Year Level
-                    </span>
-                  </div>
-                  <RegisterDropDownSmall
-                    name="Year Level"
-                    value={editedSubject.yearLevelID}
-                    onChange={(e) =>
-                      setEditedSubject((prev) => ({
-                        ...prev,
-                        yearLevelID: e.target.value,
-                      }))
-                    }
-                    placeholder={`${editedSubject.yearLevelID}${Number(editedSubject.yearLevelID) === 1 ? "st" : Number(editedSubject.yearLevelID) === 2 ? "nd" : Number(editedSubject.yearLevelID) === 3 ? "rd" : "th"} Year`}
-                    options={yearLevelOptions.map((yearLevel) => ({
-                      value: yearLevel,
-                      label: `${yearLevel}${Number(yearLevel) === 1 ? "st" : Number(yearLevel) === 2 ? "nd" : Number(yearLevel) === 3 ? "rd" : "th"} Year`,
-                    }))}
-                  />
-                  <div className="text-start text-[11px] text-gray-400">
-                    Enter the year level of the subject
-                  </div>
-                </div>
-              </div>
-              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-              {validationError && (
-                <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                  {validationError}
-                </div>
-              )}
-              {editedSubject.subjectCode.length > 20 && (
-                <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                  Code must be 20 characters or less.
-                </div>
-              )}
-              <div className="flex justify-end gap-2">
-                <button
-                  type="submit"
-                  disabled={isEditing}
-                  onClick={async () => {
-                    const isNameValid = editedSubject.subjectName.trim() !== "";
-                    const isCodeValid =
-                      editedSubject.subjectCode.trim() !== "" &&
-                      editedSubject.subjectCode.length <= 20;
-                    const isProgramValid = editedSubject.programID !== "";
-                    const isYearLevelValid = editedSubject.yearLevelID !== "";
-                    if (
-                      !isNameValid ||
-                      !isCodeValid ||
-                      !isProgramValid ||
-                      !isYearLevelValid
-                    ) {
-                      setValidationError("Please fill in all required fields");
-                      return;
-                    }
-                    setValidationError("");
-                    await handleSaveEdit();
-                  }}
-                  className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isEditing ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
-                >
-                  {isEditing ? (
-                    <div className="flex items-center justify-center">
-                      <span className="loader-white"></span>
-                    </div>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showDeleteModal && subjectToDelete && (
         <ConfirmModal
           isOpen={showDeleteModal}
@@ -1180,12 +814,21 @@ const SubjectCard = ({
               <span className="font-bold text-red-500">
                 {subjectToDelete.subjectName} ({subjectToDelete.subjectCode})
               </span>
-              ? Removing this subject will also wipe out its contents.
+              ? Assigning this subject again will restore your data.
             </>
           }
           isLoading={isDeleting}
           showCountdown={true}
           countdownSeconds={6}
+        />
+      )}
+
+      {isFormOpen && (
+        <PracticeExamConfig
+          isFormOpen={isFormOpen}
+          setIsFormOpen={setIsFormOpen}
+          subjectID={subjectID}
+          onSuccess={handleFormSuccess}
         />
       )}
     </div>

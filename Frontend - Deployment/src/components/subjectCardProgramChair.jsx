@@ -4,7 +4,6 @@ import PracticeExamConfig from "./practiceExamConfig";
 import { useNavigate } from "react-router-dom";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import SearchQuery from "./SearchQuery";
-import ConfirmModal from "./confirmModal";
 
 // Component to display subject information and tabs for admin/faculty view
 const SubjectCard = ({
@@ -25,15 +24,75 @@ const SubjectCard = ({
   showToast,
   searchQuery,
   setSearchQuery,
-  isExamQuestionsEnabled,
-  setIsExamQuestionsEnabled,
 }) => {
+  const [showSearchInput, setShowSearchInput] = useState(false);
+  const [searchAnim, setSearchAnim] = useState("");
+  const searchTimeoutRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeTimeoutRef = useRef(null);
+
+  // Prevent background scrolling when modals are open
+  useEffect(() => {
+    if (showDropdown || editingSubject || showDeleteModal || isFormOpen) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+
+    // Cleanup function to restore scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [showDropdown, editingSubject, showDeleteModal, isFormOpen]);
+
+  // Handle open/close with animation
+  const handleToggleSearch = () => {
+    if (showSearchInput) {
+      setSearchAnim("animate-search-popout");
+      searchTimeoutRef.current = setTimeout(() => {
+        setShowSearchInput(false);
+        setSearchAnim("");
+      }, 100); // match animation duration in index.css
+    } else {
+      setShowSearchInput(true);
+      setSearchAnim("animate-search-popup");
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+    };
+  }, []);
+
+  // Scroll search input into view on small screens when it appears
+  useEffect(() => {
+    if (showSearchInput && searchInputRef.current && window.innerWidth < 768) {
+      setTimeout(() => {
+        const rect = searchInputRef.current.getBoundingClientRect();
+        const scrollTop =
+          window.pageYOffset || document.documentElement.scrollTop;
+        const targetY = rect.top + scrollTop - 100; // 100px from top
+        window.scrollTo({ top: targetY, behavior: "smooth" });
+      }, 10); // allow render
+    }
+  }, [showSearchInput]);
+
   const mobileTabRefs = useRef([]);
   const [mobileIndicatorStyle, setMobileIndicatorStyle] = useState({
     left: 0,
     width: 0,
   });
 
+  // Mobile indicator
   useEffect(() => {
     const updateMobileIndicatorPosition = () => {
       const el = mobileTabRefs.current[activeIndex];
@@ -44,11 +103,7 @@ const SubjectCard = ({
         });
       }
     };
-
-    // Update position immediately
     updateMobileIndicatorPosition();
-
-    // Add resize listener
     const handleResize = () => {
       setIsResizing(true);
       updateMobileIndicatorPosition();
@@ -81,6 +136,7 @@ const SubjectCard = ({
     width: 0,
   });
 
+  // Tablet indicator
   useEffect(() => {
     const updateTabletIndicatorPosition = () => {
       const el = tabletTabRefs.current[activeIndex];
@@ -91,10 +147,7 @@ const SubjectCard = ({
         });
       }
     };
-
-    // Update position immediately
     updateTabletIndicatorPosition();
-
     // Add resize listener
     const handleResize = () => {
       setIsResizing(true);
@@ -151,7 +204,6 @@ const SubjectCard = ({
 
   // Edit subject modal state
   const [editingSubject, setEditingSubject] = useState(false);
-  const editModalRef = useRef(null); // Add this ref for the edit modal
   const [editedSubject, setEditedSubject] = useState({
     subjectCode: "",
     subjectName: "",
@@ -319,7 +371,6 @@ const SubjectCard = ({
 
   // Function to refresh questions list
   const handleRefresh = () => {
-    // Close search input when refreshing
     setShowSearchInput(false);
     setSearchAnim("");
     onFetchQuestions();
@@ -336,10 +387,7 @@ const SubjectCard = ({
         });
       }
     };
-
-    // Update position immediately
     updateIndicatorPosition();
-
     // Add resize listener
     const handleResize = () => {
       setIsResizing(true);
@@ -522,100 +570,6 @@ const SubjectCard = ({
     </>
   );
 
-  const [showSearchInput, setShowSearchInput] = useState(false);
-  const [searchAnim, setSearchAnim] = useState("");
-  const searchTimeoutRef = useRef(null);
-  const searchInputRef = useRef(null);
-  const [isResizing, setIsResizing] = useState(false);
-  const resizeTimeoutRef = useRef(null);
-
-  // Prevent background scrolling when modals are open
-  useEffect(() => {
-    if (showDropdown || editingSubject || showDeleteModal || isFormOpen) {
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
-    } else {
-      document.body.style.overflow = "unset";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    }
-
-    // Cleanup function to restore scrolling when component unmounts
-    return () => {
-      document.body.style.overflow = "unset";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    };
-  }, [showDropdown, editingSubject, showDeleteModal, isFormOpen]);
-
-  // Close dropdown when any modal is open
-  useEffect(() => {
-    if (editingSubject || showDeleteModal || isFormOpen) {
-      setShowDropdown(false);
-    }
-  }, [editingSubject, showDeleteModal, isFormOpen]);
-
-  // Reset search input state on mount and subject change
-  useEffect(() => {
-    setShowSearchInput(false);
-    setSearchAnim("");
-  }, [subjectID, subjectName]);
-
-  // Handle open/close with animation
-  const handleToggleSearch = () => {
-    if (showSearchInput) {
-      setSearchAnim("animate-search-popout");
-      searchTimeoutRef.current = setTimeout(() => {
-        setShowSearchInput(false);
-        setSearchAnim("");
-      }, 250); // match animation duration
-    } else {
-      setShowSearchInput(true);
-      setSearchAnim("animate-search-popup");
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
-    };
-  }, []);
-
-  // Scroll search input into view on small screens when it appears
-  useEffect(() => {
-    if (showSearchInput && searchInputRef.current && window.innerWidth < 768) {
-      setTimeout(() => {
-        const rect = searchInputRef.current.getBoundingClientRect();
-        const scrollTop =
-          window.pageYOffset || document.documentElement.scrollTop;
-        const targetY = rect.top + scrollTop - 44; // 100px from top
-        window.scrollTo({ top: targetY, behavior: "smooth" });
-      }, 10); // allow render
-    }
-  }, [showSearchInput]);
-
-  // Add this useEffect to close edit modal on outside click for min-[448px]
-  useEffect(() => {
-    if (!editingSubject) return;
-    function handleClickOutside(event) {
-      if (window.innerWidth <= 448) {
-        if (
-          editModalRef.current &&
-          !editModalRef.current.contains(event.target)
-        ) {
-          setEditingSubject(false);
-          setValidationError("");
-        }
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [editingSubject]);
-
   return (
     <div>
       {isLoading ? (
@@ -626,7 +580,7 @@ const SubjectCard = ({
           <div className="relative z-48 -mx-2 overflow-visible border border-gray-300 bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
             <div className="flex flex-wrap items-start justify-between sm:hidden">
               <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-                <h1 className="open-sans mt-2 ml-2 text-[18px] font-bold break-words">
+                <h1 className="font-inter mt-2 ml-2 text-[18px] font-bold break-words">
                   {subjectName}
                 </h1>
                 <div className="mt-2 ml-2 flex gap-1 text-gray-500">
@@ -658,7 +612,7 @@ const SubjectCard = ({
                 className="mr-5 size-18 rounded-md border border-gray-300 object-cover"
               />
               <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-                <h1 className="open-sans text-[15px] font-bold break-words md:text-[18px]">
+                <h1 className="font-inter text-[15px] font-bold break-words md:text-[18px]">
                   {subjectName}
                 </h1>
                 <div className="mt-1 flex gap-1 text-gray-500">
@@ -692,19 +646,26 @@ const SubjectCard = ({
               </button>
               <button
                 onClick={handleAssignClick}
-                className="mb-6 hidden items-center justify-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
+                className="mb-6 flex items-center justify-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100"
               >
                 <i className="bx bx-cog text-lg"></i>
                 <span>Configure</span>
               </button>
+
               <button
                 onClick={handleRefresh}
-                className="mb-6 flex cursor-pointer items-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
+                className="mb-6 flex cursor-pointer items-center justify-center rounded-md border border-gray-300 px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 min-[500px]:hidden md:hidden"
+              >
+                <i className="bx bx-refresh-ccw text-2xl"></i>
+              </button>
+
+              <button
+                onClick={handleRefresh}
+                className="mb-6 hidden cursor-pointer items-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
               >
                 <i className="bx bx-refresh-ccw text-lg"></i>
                 <span className="text-[14px]">Refresh</span>
               </button>
-
               {/* Mobile/tablet search button */}
               <button
                 ref={actionButtonRef}
@@ -715,19 +676,11 @@ const SubjectCard = ({
                   className={`bx ${showSearchInput ? "bx-x" : "bx-search-big"} text-2xl`}
                 ></i>
               </button>
-
-              <button
-                ref={actionButtonRef}
-                onClick={() => setShowDropdown((prev) => !prev)}
-                className="mb-6 flex cursor-pointer items-center justify-center rounded-md border border-gray-300 px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 md:hidden"
-              >
-                <i className="bx bx-dots-vertical-rounded text-2xl"></i>
-              </button>
             </div>
           </div>
 
           {/* Tablet Tabs Bar (below card) */}
-          <div className="open-sans relative z-48 -mx-2 -mt-2 mb-2 h-[50px] overflow-visible border border-gray-300 bg-gray-50 pt-2 font-semibold sm:mx-0 sm:block sm:rounded-b-md md:hidden">
+          <div className="open-sans relative z-48 -mx-2 -mt-2 mb-1 h-[50px] overflow-visible border border-gray-300 bg-gray-50 pt-2 font-semibold sm:mx-0 sm:block sm:rounded-b-md md:hidden">
             <ul className="mt-[6px] flex h-full w-full justify-between text-center">
               {tabs.map((tab) => (
                 <li
@@ -736,7 +689,7 @@ const SubjectCard = ({
                   className={`relative flex-1 cursor-pointer text-[13px] font-semibold transition-colors duration-200 ${
                     activeIndex === tab.index
                       ? "text-orange-500"
-                      : "text-gray-600 hover:text-gray-900"
+                      : "text-gray-600"
                   }`}
                   onClick={() => setActiveIndex(tab.index)}
                 >
@@ -778,7 +731,7 @@ const SubjectCard = ({
                 className="mr-5 size-18 rounded-md border border-gray-300 object-cover"
               />
               <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-                <h1 className="open-sans text-[15px] font-bold break-words md:text-[18px]">
+                <h1 className="font-inter text-[15px] font-bold break-words md:text-[18px]">
                   {subjectName}
                 </h1>
                 <div className="mt-1 flex gap-1 text-gray-500">
@@ -847,53 +800,16 @@ const SubjectCard = ({
 
               <div className="fixed right-5 bottom-5 z-51 mt-4 flex gap-3 md:relative md:right-0 md:mt-3">
                 {/* Configure Button */}
-                <button
-                  ref={actionButtonRef}
-                  onClick={() => setShowActionDropdownDesk((prev) => !prev)}
-                  className="hidden cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-2 py-2 text-gray-700 transition-all duration-100 hover:bg-gray-100 md:flex"
-                >
-                  <i className="bx bx-dots-vertical-rounded text-2xl"></i>
-                </button>
                 {/* Desktop search button */}
                 <button
                   ref={actionButtonRef}
                   onClick={handleToggleSearch}
-                  className="-ml-1 hidden cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-2 py-2 text-gray-700 transition-all duration-100 hover:bg-gray-100 md:flex"
+                  className="hidden cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-2 py-2 text-gray-700 transition-all duration-100 hover:bg-gray-100 md:flex"
                 >
                   <i
                     className={`bx ${showSearchInput ? "bx-x" : "bx-search-big"} text-2xl`}
                   ></i>
                 </button>
-                {showActionDropdownDesk && (
-                  <div
-                    ref={actionDropdownRef}
-                    className="border-color animate-dropdown animate-fadein absolute top-12 right-[300px] z-50 w-32 origin-top scale-95 cursor-pointer rounded-md border bg-white p-1 text-gray-700 opacity-0 shadow-lg transition-all duration-200 ease-out"
-                  >
-                    <button
-                      onClick={handleEdit}
-                      className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
-                    >
-                      <i className="bx bx-edit-alt text-base"></i>
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSubjectToDelete({
-                          subjectID,
-                          subjectName,
-                          subjectCode,
-                        });
-                        setShowActionDropdownDesk(false);
-                        setShowDeleteModal(true);
-                      }}
-                      className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
-                    >
-                      <i className="bx bx-trash text-base"></i>
-                      Remove
-                    </button>
-                  </div>
-                )}
-
                 <button
                   onClick={handleAssignClick}
                   className="hidden cursor-pointer items-center gap-2 rounded-lg border border-b-4 border-orange-300 bg-orange-100 px-4 py-2 text-orange-600 transition-all duration-100 hover:bg-orange-200 hover:text-orange-500 active:translate-y-[2px] active:border-b-2 md:flex"
@@ -933,76 +849,20 @@ const SubjectCard = ({
         </>
       )}
 
-      {showDropdown && (
-        <div
-          ref={dropdownRef}
-          className="open-sans lightbox-bg fixed inset-0 z-100 flex items-end justify-center md:hidden"
-          onClick={() => setShowDropdown(false)}
-        >
-          <div
-            className="animate-fade-in-up w-full rounded-t-2xl bg-white shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-4 pt-3 pb-3">
-              <h2 className="text-[16px] font-semibold sm:text-[14px]">
-                Select an option
-              </h2>
-            </div>
-            <div className="h-[0.5px] w-full bg-gray-300" />
-            <div className="flex flex-col py-2 text-[16px] sm:text-[14px]">
-              <button
-                onClick={handleAssignClick}
-                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100 min-[500px]:hidden"
-              >
-                <i className="bx bx-cog text-xl"></i>
-                Configure
-              </button>
-              <button
-                onClick={handleEdit}
-                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100"
-              >
-                <i className="bx bx-edit-alt text-xl"></i>
-                Edit
-              </button>
-              <button
-                onClick={() => {
-                  setSubjectToDelete({
-                    subjectID,
-                    subjectName,
-                    subjectCode,
-                  });
-                  setShowDropdown(false);
-                  setShowDeleteModal(true);
-                }}
-                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-red-500 hover:bg-gray-100"
-              >
-                <i className="bx bx-trash text-xl"></i>
-                Remove
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {isFormOpen && (
         <PracticeExamConfig
           isFormOpen={isFormOpen}
           setIsFormOpen={setIsFormOpen}
           subjectID={subjectID}
           onSuccess={handleFormSuccess}
-          isExamQuestionsEnabled={isExamQuestionsEnabled}
-          setIsExamQuestionsEnabled={setIsExamQuestionsEnabled}
         />
       )}
 
       {editingSubject && (
-        <div
-          ref={editModalRef} // Attach the ref here
-          className="open-sans bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center"
-        >
-          <div className="animate-fade-in-up relative max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
-            <div className="border-color flex items-center justify-between border-b px-4 py-2">
-              <h2 className="text-[16px] font-semibold text-black">
+        <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+          <div className="relative max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
+            <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
+              <h2 className="text-[14px] font-medium text-gray-700">
                 Edit Subject
               </h2>
               <button
@@ -1010,9 +870,10 @@ const SubjectCard = ({
                   setEditingSubject(false);
                   setValidationError("");
                 }}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-700 transition duration-100 hover:bg-gray-100 hover:text-gray-900"
+                className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
+                title="Close"
               >
-                <i className="bx bx-x text-lg"></i>
+                <i className="bx bx-x text-[20px]"></i>
               </button>
             </div>
             <div className="px-5 py-4">
@@ -1166,27 +1027,90 @@ const SubjectCard = ({
       )}
 
       {showDeleteModal && subjectToDelete && (
-        <ConfirmModal
-          isOpen={showDeleteModal}
-          onClose={() => setShowDeleteModal(false)}
-          onConfirm={async () => {
-            await handleDeleteSubject(subjectToDelete.subjectID);
-            setShowDeleteModal(false);
-            setSubjectToDelete(null);
-          }}
-          message={
-            <>
-              Are you sure you want to remove{" "}
-              <span className="font-bold text-red-500">
-                {subjectToDelete.subjectName} ({subjectToDelete.subjectCode})
-              </span>
-              ? Removing this subject will also wipe out its contents.
-            </>
-          }
-          isLoading={isDeleting}
-          showCountdown={true}
-          countdownSeconds={6}
-        />
+        <div className="bg-opacity-50 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
+          <div className="mx-3 w-full max-w-md rounded-md bg-white shadow-lg">
+            {/* Yellow top border */}
+            <div className="h-2 w-full rounded-t-md bg-[rgb(249,115,22)]" />
+            <div className="flex flex-row items-center gap-6 px-6 py-6">
+              {/* Warning icon - diamond with exclamation mark */}
+              <div
+                className="flex flex-shrink-0 items-center justify-center overflow-visible p-1"
+                style={{ height: "64px", width: "64px" }}
+              >
+                <svg
+                  width="56"
+                  height="56"
+                  viewBox="0 0 56 56"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    x="28"
+                    y="4"
+                    width="36"
+                    height="36"
+                    rx="5"
+                    transform="rotate(45 28 4)"
+                    fill="#f97316"
+                    stroke="#f97316"
+                    strokeWidth="2"
+                  />
+                  <text
+                    x="28"
+                    y="38"
+                    textAnchor="middle"
+                    fontSize="26"
+                    fontWeight="bold"
+                    fill="#FFF"
+                  >
+                    !
+                  </text>
+                </svg>
+              </div>
+              {/* Text content */}
+              <div className="flex min-w-0 flex-1 flex-col items-start justify-center">
+                <h2 className="mb-2 text-xl font-semibold text-gray-800">
+                  Confirmation
+                </h2>
+                <p className="mb-2 text-sm text-gray-700">
+                  Are you sure you want to remove
+                  <span className="font-bold">
+                    {" "}
+                    {subjectToDelete.subjectName} ({subjectToDelete.subjectCode}
+                    )
+                  </span>
+                  ?
+                </p>
+              </div>
+            </div>
+            {/* Divider */}
+            <div className="h-[0.5px] bg-[rgb(200,200,200)]" />
+            {/* Buttons row */}
+            <div className="flex w-full justify-end gap-2 px-4 py-3">
+              <button
+                className="bg-whie border-color flex cursor-pointer items-center gap-1 rounded-md border px-[12px] py-[6px] text-gray-700 hover:bg-gray-200"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                <span className="inline text-[14px]">Cancel</span>
+              </button>
+              <button
+                className="flex cursor-pointer items-center gap-1 rounded-md bg-orange-500 px-[18px] py-[6px] text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-70"
+                onClick={async () => {
+                  await handleDeleteSubject(subjectToDelete.subjectID);
+                  setShowDeleteModal(false);
+                  setSubjectToDelete(null);
+                }}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <span className="loader-white"></span>
+                ) : (
+                  <span className="inline text-[14px]">Confirm</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

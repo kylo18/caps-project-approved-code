@@ -45,24 +45,25 @@ const Layout = () => {
           <Sidebar
             role_id={role_id}
             setSelectedSubject={setSelectedSubject}
+            selectedSubject={selectedSubject}
             isExpanded={isExpanded}
             setIsExpanded={setIsExpanded}
           />
         )}
         <div
-          className={`flex flex-1 flex-col transition-all duration-300 ${
+          className={`flex flex-1 flex-col transition-all duration-200 ${
             isStudent || isTutorialPage
               ? "ml-0"
               : isMobile
                 ? "ml-0"
                 : isExpanded
-                  ? "ml-[200px]"
-                  : "ml-[64.5px]"
+                  ? "ml-[307px]"
+                  : "ml-[55.5px]"
           }`}
         >
           <Header title={roleTitle} />
-          <main className={isTutorialPage ? "" : "p-4"}>
-            <Outlet context={{ selectedSubject }} />
+          <main className={isTutorialPage ? "" : "p-2 pb-30"}>
+            <Outlet context={{ selectedSubject, setSelectedSubject }} />
           </main>
         </div>
       </div>

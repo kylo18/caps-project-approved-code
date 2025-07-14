@@ -4,6 +4,7 @@ import AllSubjectsDropDown from "./subjectsDean";
 import AllSubjectsDropDownProgramChair from "./subjectsProgramChair";
 import AssignedSubjectsDropDown from "./subjectsFaculty";
 import SideBarToolTip from "./sidebarTooltip";
+import Questionnare from "./Questionnare";
 import PrintExamModal from "./PrintExamModal";
 import AppVersion from "./appVersion";
 
@@ -13,10 +14,10 @@ const Sidebar = ({
   setSelectedSubject,
   isExpanded,
   setIsExpanded,
+  selectedSubject,
 }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
-  const collegeLogo = new URL("../assets/college-logo.png", import.meta.url)
-    .href;
+  const collegeLogo = new URL("/college-logo.png", import.meta.url).href;
   const [isSubjectFocused, setIsSubjectFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -32,24 +33,6 @@ const Sidebar = ({
 
     return () => clearTimeout(timer);
   }, [location]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        sidebarRef.current &&
-        !sidebarRef.current.contains(event.target) &&
-        isMobile &&
-        isExpanded
-      ) {
-        setIsExpanded(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isMobile, isExpanded]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 640);
@@ -71,7 +54,7 @@ const Sidebar = ({
             : "/";
 
   const baseMenuItems = [
-    { icon: "bx-dashboard-alt", label: "Dashboard", path: homePath },
+    { icon: "bx-home-alt-3", label: "Dashboard", path: homePath },
   ];
   let facultyItems = [];
   if (parsedRoleId === 2) {
@@ -108,156 +91,300 @@ const Sidebar = ({
 
   const isActive = (path) => location.pathname === path;
 
+  const handleMenuClick = () => {
+    setIsExpanded(false);
+    setIsSubjectFocused(false);
+    setSelectedSubject(null);
+  };
+
+  // Mobile bottom navigation
+  if (isMobile) {
+    return (
+      <>
+        <div className="fixed right-0 bottom-0 left-0 z-50 border-t border-gray-300 bg-white px-6 py-2 min-[500px]:px-9">
+          <div className="flex items-center justify-between">
+            {/* Left side - Users and Print */}
+            <div className="flex items-center gap-5 min-[345px]:gap-8 min-[500px]:gap-18">
+              {menuItems
+                .filter(
+                  (item) => item.label === "Users" || item.label === "Print",
+                )
+                .map((item, index) => (
+                  <div key={index} className="flex flex-col items-center">
+                    {item.isButton ? (
+                      <button
+                        onClick={item.onClick}
+                        className="flex flex-col items-center p-2 text-gray-700 transition-colors hover:text-gray-800"
+                      >
+                        <i className={`bx ${item.icon} mb-[5px] text-2xl`}></i>
+                        <span className="text-xs">{item.label}</span>
+                      </button>
+                    ) : (
+                      <Link
+                        to={item.path}
+                        onClick={handleMenuClick}
+                        className={`flex flex-col items-center p-2 transition-colors ${
+                          isActive(item.path)
+                            ? "text-orange-600"
+                            : "text-gray-700 hover:text-gray-800"
+                        }`}
+                      >
+                        <i className={`bx ${item.icon} mb-[5px] text-2xl`}></i>
+                        <span className="text-xs">{item.label}</span>
+                      </Link>
+                    )}
+                  </div>
+                ))}
+            </div>
+
+            {/* Center - Dashboard with circle background */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+              {menuItems
+                .filter((item) => item.label === "Dashboard")
+                .map((item, index) => (
+                  <div key={index} className="flex flex-col items-center">
+                    <div className="mb-3 flex size-13 items-center justify-center rounded-full bg-orange-500 shadow-lg">
+                      <Link
+                        to={item.path}
+                        onClick={handleMenuClick}
+                        className={`flex size-13 items-center justify-center rounded-full transition-colors ${
+                          isActive(item.path)
+                            ? "text-white"
+                            : "text-white hover:text-orange-100"
+                        }`}
+                      >
+                        <i className={`bx mb-1 ${item.icon} text-2xl`}></i>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            {/* Right side - Subjects */}
+            <div className="flex items-center gap-5 hover:text-gray-800 min-[345px]:gap-8 min-[500px]:gap-18">
+              {/* Subjects for different roles */}
+              {parsedRoleId === 5 && (
+                <>
+                  <div className="-mt-[5px] flex flex-col items-center">
+                    <AllSubjectsDropDown
+                      item={classes[0]}
+                      isExpanded={isExpanded}
+                      parsedRoleId={parsedRoleId}
+                      setIsExpanded={setIsExpanded}
+                      setSelectedSubject={setSelectedSubject}
+                      isSubjectFocused={isSubjectFocused}
+                      setIsSubjectFocused={setIsSubjectFocused}
+                      homePath={"/Dean/subjects"}
+                      className="bx bx-newspaper"
+                      selectedSubject={selectedSubject}
+                      refreshSubjects={() => {}}
+                    />
+                    <span className="-mt-[6px] text-xs text-gray-600">
+                      Subjects
+                    </span>
+                  </div>
+                  <div className="-mt-[5px] flex flex-col items-center">
+                    <Questionnare
+                      selectedSubject={selectedSubject}
+                      setSelectedSubject={setSelectedSubject}
+                      item={classes[0]}
+                      isExpanded={isExpanded}
+                      parsedRoleId={parsedRoleId}
+                      setIsExpanded={setIsExpanded}
+                      isSubjectFocused={isSubjectFocused}
+                      setIsSubjectFocused={setIsSubjectFocused}
+                      homePath={"/Dean/subjects"}
+                      className="bx bx-file-detail"
+                    />
+                    <span className="-mt-[6px] text-xs text-gray-600">
+                      Quizzes
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {parsedRoleId === 4 && (
+                <>
+                  <div className="-mt-[5px] flex flex-col items-center">
+                    <AllSubjectsDropDown
+                      item={classes[0]}
+                      selectedSubject={selectedSubject}
+                      setSelectedSubject={setSelectedSubject}
+                      isExpanded={isExpanded}
+                      parsedRoleId={parsedRoleId}
+                      setIsExpanded={setIsExpanded}
+                      isSubjectFocused={isSubjectFocused}
+                      setIsSubjectFocused={setIsSubjectFocused}
+                      homePath={"/Dean/subjects"}
+                      className="bx bx-newspaper"
+                    />
+                    <span className="-mt-[6px] text-xs text-gray-600">
+                      Subjects
+                    </span>
+                  </div>
+                  <div className="-mt-[5px] flex flex-col items-center">
+                    <Questionnare
+                      item={classes[0]}
+                      selectedSubject={selectedSubject}
+                      parsedRoleId={parsedRoleId}
+                      isExpanded={isExpanded}
+                      setIsExpanded={setIsExpanded}
+                      setSelectedSubject={setSelectedSubject}
+                      isSubjectFocused={isSubjectFocused}
+                      setIsSubjectFocused={setIsSubjectFocused}
+                      className="bx bx-file-detail"
+                      homePath={"/Dean/subjects"}
+                    />
+                    <span className="-mt-[6px] text-xs text-gray-600">
+                      Quizzes
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {parsedRoleId === 3 && (
+                <>
+                  <div className="-mt-[5px] flex flex-col items-center">
+                    <AllSubjectsDropDownProgramChair
+                      item={classes[0]}
+                      isExpanded={isExpanded}
+                      selectedSubject={selectedSubject}
+                      setSelectedSubject={setSelectedSubject}
+                      parsedRoleId={parsedRoleId}
+                      setIsExpanded={setIsExpanded}
+                      isSubjectFocused={isSubjectFocused}
+                      setIsSubjectFocused={setIsSubjectFocused}
+                      homePath={"/program-chair/subjects"}
+                      className="bx bx-newspaper"
+                    />
+                    <span className="-mt-[6px] text-xs text-gray-600">
+                      Subjects
+                    </span>
+                  </div>
+                  <div className="-mt-[5px] flex flex-col items-center">
+                    <Questionnare
+                      item={classes[0]}
+                      isExpanded={isExpanded}
+                      selectedSubject={selectedSubject}
+                      parsedRoleId={parsedRoleId}
+                      setIsExpanded={setIsExpanded}
+                      setSelectedSubject={setSelectedSubject}
+                      isSubjectFocused={isSubjectFocused}
+                      setIsSubjectFocused={setIsSubjectFocused}
+                      homePath={"/program-chair/subjects"}
+                      className="bx bx-file-detail"
+                    />
+                    <span className="-mt-[6px] text-xs text-gray-600">
+                      Quizzes
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {parsedRoleId === 2 && (
+                <>
+                  <div className="-mt-[5px] flex flex-col items-center">
+                    <AssignedSubjectsDropDown
+                      item={classes[0]}
+                      isExpanded={isExpanded}
+                      selectedSubject={selectedSubject}
+                      parsedRoleId={parsedRoleId}
+                      setIsExpanded={setIsExpanded}
+                      setSelectedSubject={setSelectedSubject}
+                      isSubjectFocused={isSubjectFocused}
+                      setIsSubjectFocused={setIsSubjectFocused}
+                      homePath={"/faculty/subjects"}
+                      className="bx bx-newspaper"
+                    />
+                    <span className="-mt-[6px] text-xs text-gray-600">
+                      Subjects
+                    </span>
+                  </div>
+                  <div className="-mt-[5px] flex flex-col items-center">
+                    <Questionnare
+                      item={classes[0]}
+                      isExpanded={isExpanded}
+                      selectedSubject={selectedSubject}
+                      parsedRoleId={parsedRoleId}
+                      setIsExpanded={setIsExpanded}
+                      setSelectedSubject={setSelectedSubject}
+                      isSubjectFocused={isSubjectFocused}
+                      setIsSubjectFocused={setIsSubjectFocused}
+                      homePath={"/faculty/subjects"}
+                      className="bx bx-file-detail"
+                    />
+                    <span className="-mt-[6px] text-xs text-gray-600">
+                      Quizzes
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        <PrintExamModal
+          isOpen={showPrintModal === true}
+          onClose={() => setShowPrintModal(false)}
+        />
+      </>
+    );
+  }
+
+  // Desktop sidebar (unchanged)
   return (
     <>
-      {isMobile && !isExpanded && (
-        <button
-          onClick={() => {
-            setIsExpanded(true);
-            setIsSubjectFocused(false);
-          }}
-          className="fixed top-2 left-3 z-55 cursor-pointer rounded"
-        >
-          <i className="bx bx-menu text-3xl"></i>
-        </button>
-      )}
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className={`border-color fixed top-0 z-55 h-screen border-r bg-white p-4 text-gray-700 transition-all duration-300 ease-in-out ${
-          isMobile ? (isExpanded ? "left-0" : "-left-full") : "left-0"
-        } ${isExpanded ? "w-[200px]" : "w-[64.5px]"}`}
+        className={`fixed top-0 left-0 z-55 h-[100vh] border-r border-gray-300 bg-white px-2 py-3 text-gray-700 transition-all duration-300 ease-in-out ${
+          isExpanded ? "w-[55.5px]" : "w-[55.5px]"
+        }`}
       >
         {/* Logo & CAPS text */}
-        {!isMobile && (
-          <div className="flex gap-4">
-            <img
-              key={role_id}
-              src={collegeLogo}
-              alt="College Logo"
-              className="-mt-1.5 mb-5 size-[32px]"
-            />
-            <span
-              className={`-mt-[5px] text-lg font-semibold text-black transition-all duration-200 ease-in-out ${
-                isExpanded ? "ml-0 opacity-100" : "ml-[-20px] opacity-0"
-              }`}
-            >
-              CAPS
-            </span>
-          </div>
-        )}
-
-        {/* Sidebar Toggle Button */}
-        {!isMobile && (
-          <button
-            onClick={() => {
-              setIsExpanded(!isExpanded);
-              setIsSubjectFocused(false);
-            }}
-            className="mb-[22px] flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] hover:bg-[rgb(255,230,214)]"
-          >
-            <i
-              className={`bx ${isExpanded ? "bx-chevron-left" : "bx-menu"} text-2xl`}
-            ></i>
-          </button>
-        )}
-
-        {/* Mobile Close Button */}
-        {isMobile && isExpanded && (
-          <button
-            onClick={() => setIsExpanded(false)}
-            className="mb-5 flex cursor-pointer items-center gap-3 rounded px-[4px] py-[4px] hover:bg-[rgb(255,230,214)]"
-          >
-            <i className="bx bx-chevron-left text-3xl"></i>
-          </button>
-        )}
+        <div className="flex cursor-pointer gap-4 rounded-md px-1 py-[4px] hover:bg-gray-100">
+          <img
+            key={role_id}
+            src={collegeLogo}
+            alt="College Logo"
+            className="size-[32px]"
+          />
+        </div>
 
         {/* Sidebar menu items */}
-        {!isSubjectFocused && (
-          <ul className="-mt-2 mb-5 space-y-[14px]">
-            {menuItems.map((item, index) => (
-              <li key={index}>
-                <SideBarToolTip label={item.label} isExpanded={isExpanded}>
-                  {item.isButton ? (
-                    <button
-                      onClick={item.onClick}
-                      className={`flex w-full items-center gap-3 rounded px-[4px] py-[4px] transition-colors hover:text-gray-700`}
-                    >
-                      <i className={`bx ${item.icon} text-2xl`}></i>
-                      <span
-                        className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
-                          isExpanded
-                            ? "pointer-events-auto visible ml-0 opacity-100"
-                            : "pointer-events-none invisible ml-0 opacity-0"
-                        }`}
-                      >
-                        {item.label}
-                      </span>
-                    </button>
-                  ) : (
-                    <Link
-                      to={item.path}
-                      className={`flex items-center gap-3 rounded px-[4px] py-[4px] transition-colors ${
-                        isActive(item.path)
-                          ? "bg-orange-500 text-white"
-                          : "hover:text-gray-700"
-                      }`}
-                    >
-                      <i className={`bx ${item.icon} text-2xl`}></i>
-                      <span
-                        className={`text-sm font-semibold transition-all duration-150 ease-in-out ${
-                          isExpanded
-                            ? "pointer-events-auto visible ml-0 opacity-100"
-                            : "pointer-events-none invisible ml-0 opacity-0"
-                        }`}
-                      >
-                        {item.label}
-                      </span>
-                    </Link>
-                  )}
-                </SideBarToolTip>
-              </li>
-            ))}
-          </ul>
-        )}
+        <ul className="mt-3 mb-3 space-y-[5px]">
+          {menuItems.map((item, index) => (
+            <li key={index}>
+              <SideBarToolTip label={item.label} isExpanded={isExpanded}>
+                {item.isButton ? (
+                  <button
+                    onClick={item.onClick}
+                    className={`flex w-full cursor-pointer items-center gap-3 rounded px-[8px] py-[8px] transition-colors hover:bg-gray-100 hover:text-gray-800`}
+                  >
+                    <i className={`bx ${item.icon} text-2xl`}></i>
+                  </button>
+                ) : (
+                  <Link
+                    to={item.path}
+                    onClick={handleMenuClick}
+                    className={`flex cursor-pointer items-center gap-3 rounded-md px-[8px] py-[8px] transition-colors hover:bg-gray-100 hover:text-gray-800${
+                      isActive(item.path) ? "" : "hover:text-gray-800"
+                    }`}
+                  >
+                    <i
+                      className={`bx ${item.icon} text-2xl hover:text-gray-800`}
+                    ></i>
+                  </Link>
+                )}
+              </SideBarToolTip>
+            </li>
+          ))}
+        </ul>
 
         {parsedRoleId === 5 && (
-          <>
-            {!isSubjectFocused && (
-              <>
-                <div className="mb-7 h-[1px] w-full bg-[rgb(168,168,168)]"></div>
-              </>
-            )}
-            <div
-              className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
-            >
-              <ul className="space-y-[10px]">
-                {classes.map((item, index) => (
-                  <AllSubjectsDropDownProgramChair
-                    key={index}
-                    item={item}
-                    isExpanded={isExpanded}
-                    parsedRoleId={parsedRoleId}
-                    setIsExpanded={setIsExpanded}
-                    setSelectedSubject={setSelectedSubject}
-                    isSubjectFocused={isSubjectFocused}
-                    setIsSubjectFocused={setIsSubjectFocused}
-                    homePath={"/Dean/subjects"}
-                  />
-                ))}
-              </ul>
-            </div>
-          </>
-        )}
-
-        {/* Different Dropdowns for Different Roles*/}
-        {parsedRoleId === 4 && (
-          <>
-            {!isSubjectFocused && (
-              <>
-                <div className="mb-7 h-[1px] w-full bg-[rgb(168,168,168)]"></div>
-              </>
-            )}
+          <div className="flex flex-col space-y-[5px]">
+            <>
+              <div className="mb-3 h-[1px] w-full bg-[rgb(200,200,200)]"></div>
+            </>
             <div
               className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
             >
@@ -273,21 +400,93 @@ const Sidebar = ({
                     isSubjectFocused={isSubjectFocused}
                     setIsSubjectFocused={setIsSubjectFocused}
                     homePath={"/Dean/subjects"}
+                    className="bx bx-newspaper"
+                    selectedSubject={selectedSubject}
                   />
                 ))}
               </ul>
             </div>
-          </>
+            <div
+              className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
+            >
+              <ul className="space-y-[10px]">
+                {classes.map((item, index) => (
+                  <Questionnare
+                    key={index}
+                    item={item}
+                    isExpanded={isExpanded}
+                    selectedSubject={selectedSubject}
+                    parsedRoleId={parsedRoleId}
+                    setIsExpanded={setIsExpanded}
+                    setSelectedSubject={setSelectedSubject}
+                    isSubjectFocused={isSubjectFocused}
+                    setIsSubjectFocused={setIsSubjectFocused}
+                    homePath={"/Dean/subjects"}
+                    className="bx bx-file-detail"
+                  />
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Different Dropdowns for Different Roles*/}
+        {parsedRoleId === 4 && (
+          <div className="flex flex-col space-y-[5px]">
+            <>
+              <div className="mb-3 flex h-[1px] w-full bg-[rgb(200,200,200)]"></div>
+            </>
+            <div
+              className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
+            >
+              <ul className="space-y-[10px]">
+                {classes.map((item, index) => (
+                  <AllSubjectsDropDown
+                    key={index}
+                    item={item}
+                    isExpanded={isExpanded}
+                    parsedRoleId={parsedRoleId}
+                    selectedSubject={selectedSubject}
+                    setIsExpanded={setIsExpanded}
+                    setSelectedSubject={setSelectedSubject}
+                    isSubjectFocused={isSubjectFocused}
+                    setIsSubjectFocused={setIsSubjectFocused}
+                    homePath={"/Dean/subjects"}
+                    className="bx bx-newspaper"
+                  />
+                ))}
+              </ul>
+            </div>
+            <div
+              className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
+            >
+              <ul className="space-y-[10px]">
+                {classes.map((item, index) => (
+                  <Questionnare
+                    key={index}
+                    item={item}
+                    isExpanded={isExpanded}
+                    selectedSubject={selectedSubject}
+                    parsedRoleId={parsedRoleId}
+                    setIsExpanded={setIsExpanded}
+                    setSelectedSubject={setSelectedSubject}
+                    isSubjectFocused={isSubjectFocused}
+                    setIsSubjectFocused={setIsSubjectFocused}
+                    homePath={"/Dean/subjects"}
+                    className="bx bx-file-detail"
+                  />
+                ))}
+              </ul>
+            </div>
+          </div>
         )}
 
         {parsedRoleId === 3 && (
-          <>
-            {!isSubjectFocused && (
-              <>
-                {/* Focused Subject Dropdown (move to top if focused) */}
-                <div className="mb-7 h-[1px] w-full bg-[rgb(168,168,168)]"></div>
-              </>
-            )}
+          <div className="flex flex-col space-y-[5px]">
+            <>
+              {/* Focused Subject Dropdown (move to top if focused) */}
+              <div className="mb-3 h-[1px] w-full bg-[rgb(200,200,200)]"></div>
+            </>
             <div
               className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
             >
@@ -297,26 +496,47 @@ const Sidebar = ({
                     key={index}
                     item={item}
                     isExpanded={isExpanded}
+                    selectedSubject={selectedSubject}
                     parsedRoleId={parsedRoleId}
                     setIsExpanded={setIsExpanded}
                     setSelectedSubject={setSelectedSubject}
                     isSubjectFocused={isSubjectFocused}
                     setIsSubjectFocused={setIsSubjectFocused}
                     homePath={"/program-chair/subjects"}
+                    className="bx bx-newspaper"
                   />
                 ))}
               </ul>
             </div>
-          </>
+            <div
+              className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
+            >
+              <ul className="space-y-[10px]">
+                {classes.map((item, index) => (
+                  <Questionnare
+                    key={index}
+                    item={item}
+                    isExpanded={isExpanded}
+                    selectedSubject={selectedSubject}
+                    parsedRoleId={parsedRoleId}
+                    setIsExpanded={setIsExpanded}
+                    setSelectedSubject={setSelectedSubject}
+                    isSubjectFocused={isSubjectFocused}
+                    setIsSubjectFocused={setIsSubjectFocused}
+                    homePath={"/program-chair/subjects"}
+                    className="bx bx-file-detail"
+                  />
+                ))}
+              </ul>
+            </div>
+          </div>
         )}
 
         {parsedRoleId === 2 && (
-          <>
-            {!isSubjectFocused && (
-              <>
-                <div className="mb-7 h-[1px] w-full bg-[rgb(168,168,168)]"></div>
-              </>
-            )}
+          <div className="flex flex-col space-y-[5px]">
+            <>
+              <div className="mb-3 h-[1px] w-full bg-[rgb(200,200,200)]"></div>
+            </>
             <div
               className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
             >
@@ -330,22 +550,45 @@ const Sidebar = ({
                     setIsExpanded={setIsExpanded}
                     setSelectedSubject={setSelectedSubject}
                     isSubjectFocused={isSubjectFocused}
+                    selectedSubject={selectedSubject}
                     setIsSubjectFocused={setIsSubjectFocused}
                     homePath={"/faculty/subjects"}
+                    className="bx bx-newspaper"
                   />
                 ))}
               </ul>
             </div>
-          </>
+            <div
+              className={`${isSubjectFocused ? "top-[75px] z-50 w-full" : ""}`}
+            >
+              <ul className="space-y-[10px]">
+                {classes.map((item, index) => (
+                  <Questionnare
+                    key={index}
+                    item={item}
+                    isExpanded={isExpanded}
+                    parsedRoleId={parsedRoleId}
+                    setIsExpanded={setIsExpanded}
+                    selectedSubject={selectedSubject}
+                    setSelectedSubject={setSelectedSubject}
+                    isSubjectFocused={isSubjectFocused}
+                    setIsSubjectFocused={setIsSubjectFocused}
+                    homePath={"/faculty/subjects"}
+                    className="bx bx-file-detail"
+                  />
+                ))}
+              </ul>
+            </div>
+          </div>
         )}
 
-        <div
+        {/*<div
           className={`fixed bottom-4 ${isExpanded ? "left-[75px]" : "left-[14px]"} transition-all duration-300 ease-in-out ${
             isMobile && !isExpanded ? "hidden" : ""
           }`}
         >
           <AppVersion />
-        </div>
+        </div>*/}
       </div>
       <PrintExamModal
         isOpen={showPrintModal === true}

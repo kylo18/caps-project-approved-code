@@ -1,44 +1,49 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 // Confirmation Modal
-const ConfirmModal = ({ isOpen, onClose, onConfirm, message, isLoading }) => {
+const ConfirmModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  message,
+  isLoading,
+  showCountdown = false,
+  countdownSeconds = 6,
+}) => {
+  const [countdown, setCountdown] = useState(countdownSeconds);
+
+  useEffect(() => {
+    if (!isOpen || !showCountdown) {
+      setCountdown(countdownSeconds);
+      return;
+    }
+    setCountdown(countdownSeconds);
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isOpen, showCountdown, countdownSeconds]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="bg-opacity-50 lightbox-bg fixed inset-0 z-57 flex items-center justify-center">
-      <div className="w-full max-w-sm rounded-md bg-white shadow-lg sm:max-w-md">
-        {/* Yellow top border */}
-        <div className="h-2 w-full rounded-t-md bg-[rgb(249,115,22)]" />
-        <div className="flex flex-row items-center gap-6 px-6 py-6">
-          {/* Warning icon - diamond with exclamation mark */}
-          <div
-            className="flex flex-shrink-0 items-center justify-center overflow-visible p-1"
-            style={{ height: "64px", width: "64px" }}
-          >
-            <svg
-              width="56"
-              height="56"
-              viewBox="0 0 56 56"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect
-                x="28"
-                y="4"
-                width="36"
-                height="36"
-                rx="5"
-                transform="rotate(45 28 4)"
-                fill="#f97316"
-                stroke="#f97316"
-                strokeWidth="2"
-              />
-
+    <div className="lightbox-bg fixed inset-0 z-55 flex items-center justify-center">
+      <div className="animate-fade-in-up relative mx-3 flex w-80 max-w-sm flex-col items-center rounded-xl bg-white p-5 shadow-xl sm:max-w-md">
+        <div className="mt-2 mb-4 flex items-center justify-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="16" fill="orange" />
               <text
-                x="28"
-                y="38"
+                x="16"
+                y="23"
                 textAnchor="middle"
-                fontSize="26"
+                fontSize="20"
                 fontWeight="bold"
                 fill="#FFF"
               >
@@ -46,40 +51,38 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, message, isLoading }) => {
               </text>
             </svg>
           </div>
-          {/* Text content */}
-          <div className="flex min-w-0 flex-1 flex-col items-start justify-center">
-            <h2 className="mb-2 text-xl font-semibold text-gray-800">
-              Confirmation
-            </h2>
-            <p className="mb-2 text-sm text-gray-700">
-              {message ||
-                "You are about to leave this page without saving. All changes will be lost. Do you really want to leave without saving?"}
-            </p>
-          </div>
         </div>
-        {/* Divider */}
-        <div className="h-[0.5px] bg-[rgb(200,200,200)]" />
-
+        {/* Title */}
+        <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">
+          Are you sure?
+        </h2>
+        {/* Description */}
+        <p className="mb-6 text-center text-sm text-gray-500">
+          {message ||
+            "This action can't be undone. Please confirm if you want to proceed."}
+        </p>
         {/* Buttons row */}
-        <div className="flex w-full justify-end gap-2 px-4 py-3">
+        <div className="flex w-full justify-center gap-3">
           <button
-            className="bg-whie border-color flex cursor-pointer items-center gap-1 rounded-md border px-[12px] py-[6px] text-gray-700 hover:bg-gray-200"
+            className="flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-6 py-2 text-[15px] font-medium text-gray-700 hover:bg-gray-100 focus:ring-orange-200 focus:outline-none"
             onClick={onClose}
             disabled={isLoading}
           >
-            <span className="inline text-[14px]">Cancel</span>
+            Cancel
           </button>
           <button
-            className="flex cursor-pointer items-center gap-1 rounded-md bg-orange-500 px-[18px] py-[6px] text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex cursor-pointer items-center justify-center rounded-lg bg-orange-500 px-6 py-2 text-[15px] font-medium text-white hover:bg-orange-600 focus:ring-orange-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
             onClick={onConfirm}
-            disabled={isLoading}
+            disabled={isLoading || (showCountdown && countdown > 0)}
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
                 <span className="loader-white"></span>
               </div>
+            ) : showCountdown && countdown > 0 ? (
+              <>Confirm ({countdown})</>
             ) : (
-              <span className="inline text-[14px]">Confirm</span>
+              "Confirm"
             )}
           </button>
         </div>

@@ -17,18 +17,22 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
       return;
     }
 
-    if (!previewData.questionsBySubject) {
+    // Support both new and old structures
+    if (Array.isArray(previewData.questions)) {
+      if (previewData.questions.length === 0) {
+        setError("No questions available in the preview");
+        return;
+      }
+    } else if (previewData.questionsBySubject) {
+      const hasQuestions = Object.values(previewData.questionsBySubject).some(
+        (subject) => subject.questions && subject.questions.length > 0,
+      );
+      if (!hasQuestions) {
+        setError("No questions available in the preview");
+        return;
+      }
+    } else {
       setError("Invalid preview data structure");
-      return;
-    }
-
-    // Validate that we have questions
-    const hasQuestions = Object.values(previewData.questionsBySubject).some(
-      (subject) => subject.questions && subject.questions.length > 0,
-    );
-
-    if (!hasQuestions) {
-      setError("No questions available in the preview");
       return;
     }
 
@@ -185,7 +189,22 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
     );
   }
 
-  if (!previewData || !previewData.questionsBySubject) return null;
+  if (
+    !previewData ||
+    (!previewData.questionsBySubject && !previewData.questions)
+  )
+    return null;
+
+  // Helper to get questions in the correct order
+  let questions = [];
+  if (Array.isArray(previewData.questions)) {
+    questions = previewData.questions;
+  } else if (previewData.questionsBySubject) {
+    // fallback for old structure: flatten and preserve order by subject
+    questions = Object.values(previewData.questionsBySubject).flatMap(
+      (subject) => subject.questions || [],
+    );
+  }
 
   return (
     <div className="lightbox-bg fixed inset-0 z-60 overflow-hidden bg-gray-100">
@@ -369,286 +388,236 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
               </div>
 
               <div className="-mt-15 space-y-2">
-                {Object.entries(previewData.questionsBySubject).map(
-                  ([subjectName, subjectData], subjectIndex) => (
-                    <div
-                      key={subjectName}
-                      style={{
-                        minHeight: "297mm", // A4 height
-                        pageBreakAfter: "always",
-                        position: "relative",
-                        backgroundColor: "white",
-                        padding: "2rem",
-                        marginTop: "1cm",
-                        marginBottom: "2cm",
-                      }}
-                    >
-                      <div className="-space-y-2">
-                        {subjectData.questions.map((question, index) => (
-                          <div
-                            key={index}
-                            className="rounded p-4"
+                {/* Render all questions in order, not grouped by subject */}
+                {questions.map((question, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      breakInside: "auto",
+                      pageBreakInside: "auto",
+                      backgroundColor: "white",
+                      padding: "2rem 0",
+                      marginTop: "0.5cm",
+                      marginBottom: "0.5cm",
+                    }}
+                  >
+                    <div className="rounded p-4">
+                      <p
+                        className="text-[13.33px] text-black"
+                        style={{
+                          fontFamily: "'Times New Roman', Times, serif",
+                        }}
+                        dangerouslySetInnerHTML={{
+                          __html: `${index + 1}. ${question.questionText} `,
+                        }}
+                      />
+                      {question.questionImage && (
+                        <div className="mt-2">
+                          <img
+                            src={question.questionImage}
+                            alt={`Question ${index + 1} image`}
                             style={{
-                              marginBottom: "0.3em",
-                              breakInside: "auto",
-                              pageBreakInside: "auto",
+                              maxHeight: "150px",
+                              width: "auto",
+                              maxWidth: "100%",
                             }}
-                          >
-                            <p
-                              className="text-[13.33px] text-black"
-                              style={{
-                                fontFamily: "'Times New Roman', Times, serif",
-                              }}
-                              dangerouslySetInnerHTML={{
-                                __html: `${index + 1}. ${question.questionText} `,
-                              }}
-                            />
-                            {question.questionImage && (
-                              <div className="mt-2">
-                                <img
-                                  src={question.questionImage}
-                                  alt={`Question ${index + 1} image`}
-                                  style={{
-                                    maxHeight: "150px",
-                                    width: "auto",
-                                    maxWidth: "100%",
-                                  }}
-                                  className="rounded-lg"
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.style.display = "none";
-                                  }}
-                                />
-                              </div>
-                            )}
-                            {question.choices &&
-                              question.choices.length > 0 &&
-                              (() => {
-                                const allShort = question.choices.every(
-                                  (choice) =>
-                                    (choice.choiceText?.length || 0) < 20 &&
-                                    !choice.choiceImage,
-                                );
-                                if (allShort) {
-                                  const columns = 3;
-                                  const rows = Math.ceil(
-                                    question.choices.length / columns,
-                                  );
-                                  // Build rows for column-major order
-                                  const gridRows = [];
-                                  for (let row = 0; row < rows; row++) {
-                                    const rowChoices = [];
-                                    for (let col = 0; col < columns; col++) {
-                                      const idx = row + col * rows;
-                                      if (idx < question.choices.length) {
-                                        rowChoices.push(
-                                          <div
-                                            key={col}
-                                            className="flex items-center"
-                                          >
-                                            <p
-                                              className="ml-5 text-[13.33px] text-black"
-                                              style={{
-                                                fontFamily:
-                                                  "'Times New Roman', Times, serif",
-                                              }}
-                                            >
-                                              {String.fromCharCode(65 + idx)}.{" "}
-                                              {question.choices[idx].choiceText}
-                                            </p>
-                                          </div>,
-                                        );
-                                      } else {
-                                        rowChoices.push(<div key={col} />);
-                                      }
-                                    }
-                                    gridRows.push(
-                                      <div
-                                        key={row}
-                                        className="grid grid-cols-3 gap-x-2 gap-y-0.5"
+                            className="rounded-lg"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.style.display = "none";
+                            }}
+                          />
+                        </div>
+                      )}
+                      {question.choices &&
+                        question.choices.length > 0 &&
+                        (() => {
+                          const allShort = question.choices.every(
+                            (choice) =>
+                              (choice.choiceText?.length || 0) < 20 &&
+                              !choice.choiceImage,
+                          );
+                          if (allShort) {
+                            const columns = 3;
+                            const rows = Math.ceil(
+                              question.choices.length / columns,
+                            );
+                            const gridRows = [];
+                            for (let row = 0; row < rows; row++) {
+                              const rowChoices = [];
+                              for (let col = 0; col < columns; col++) {
+                                const idx = row + col * rows;
+                                if (idx < question.choices.length) {
+                                  rowChoices.push(
+                                    <div
+                                      key={col}
+                                      className="flex items-center"
+                                    >
+                                      <p
+                                        className="ml-5 text-[13.33px] text-black"
                                         style={{
-                                          pageBreakInside: "avoid",
-                                          breakInside: "avoid",
+                                          fontFamily:
+                                            "'Times New Roman', Times, serif",
                                         }}
                                       >
-                                        {rowChoices}
-                                      </div>,
-                                    );
-                                  }
-                                  return <div className="mt-3">{gridRows}</div>;
-                                } else {
-                                  return (
-                                    <div
-                                      className="mt-3 space-y-2"
-                                      style={{
-                                        pageBreakInside: "avoid",
-                                        breakInside: "avoid",
-                                      }}
-                                    >
-                                      {/* Check if all choices have images and if all images are small, display them side by side */}
-                                      {(() => {
-                                        const allHaveImages =
-                                          question.choices.every(
-                                            (choice) => !!choice.choiceImage,
-                                          );
-                                        // Assume all images are small if allHaveImages is true (since we can't measure width before render)
-                                        // We'll use maxWidth: 300px for the check
-                                        if (allHaveImages) {
-                                          // Render images in a row if all images are small
-                                          return (
-                                            <div
-                                              style={{
-                                                display: "flex",
-                                                gap: "32px",
-                                                alignItems: "flex-start",
-                                                flexWrap: "wrap",
-                                              }}
-                                            >
-                                              {question.choices.map(
-                                                (choice, choiceIndex) => (
-                                                  <div
-                                                    key={choiceIndex}
-                                                    style={{
-                                                      textAlign: "center",
-                                                      minWidth: 0,
-                                                      maxWidth: "300px",
-                                                      flex: "1 1 0",
-                                                    }}
-                                                  >
-                                                    <img
-                                                      src={choice.choiceImage}
-                                                      alt={`Choice ${String.fromCharCode(65 + choiceIndex)} image`}
-                                                      style={{
-                                                        maxHeight: "120px",
-                                                        maxWidth: "300px",
-                                                        width: "auto",
-                                                        display: "inline-block",
-                                                        borderRadius: "0.5rem",
-                                                      }}
-                                                      className="rounded-lg"
-                                                      onError={(e) => {
-                                                        e.target.onerror = null;
-                                                        e.target.style.display =
-                                                          "none";
-                                                      }}
-                                                    />
-                                                    <p
-                                                      className="text-[13.33px] text-black"
-                                                      style={{
-                                                        fontFamily:
-                                                          "'Times New Roman', Times, serif",
-                                                        marginTop: 4,
-                                                      }}
-                                                    >
-                                                      {String.fromCharCode(
-                                                        65 + choiceIndex,
-                                                      )}
-                                                      . {choice.choiceText}
-                                                    </p>
-                                                  </div>
-                                                ),
-                                              )}
-                                            </div>
-                                          );
-                                        } else {
-                                          // Default layout: stacked
-                                          return question.choices.map(
-                                            (choice, choiceIndex) => (
-                                              <div
-                                                key={choiceIndex}
-                                                className="mb-2 flex items-center gap-4"
-                                              >
-                                                <div>
-                                                  <span className="mr-2 ml-5 text-black">
-                                                    {String.fromCharCode(
-                                                      65 + choiceIndex,
-                                                    )}
-                                                    .
-                                                  </span>
-                                                  <span
-                                                    className="text-[13.33px] text-black"
-                                                    style={{
-                                                      fontFamily:
-                                                        "'Times New Roman', Times, serif",
-                                                    }}
-                                                  >
-                                                    {choice.choiceText}
-                                                  </span>
-                                                </div>
-                                                {choice.choiceImage && (
-                                                  <img
-                                                    src={choice.choiceImage}
-                                                    alt={`Choice ${String.fromCharCode(65 + choiceIndex)} image`}
-                                                    style={{
-                                                      maxHeight: "120px",
-                                                      width: "auto",
-                                                      maxWidth: "300px",
-                                                      borderRadius: "0.5rem",
-                                                    }}
-                                                    className="rounded-lg"
-                                                    onError={(e) => {
-                                                      e.target.onerror = null;
-                                                      e.target.style.display =
-                                                        "none";
-                                                    }}
-                                                  />
-                                                )}
-                                              </div>
-                                            ),
-                                          );
-                                        }
-                                      })()}
-                                    </div>
+                                        {String.fromCharCode(65 + idx)}.{" "}
+                                        {question.choices[idx].choiceText}
+                                      </p>
+                                    </div>,
                                   );
+                                } else {
+                                  rowChoices.push(<div key={col} />);
                                 }
-                              })()}
-                          </div>
-                        ))}
-                      </div>
+                              }
+                              gridRows.push(
+                                <div
+                                  key={row}
+                                  className="grid grid-cols-3 gap-x-2 gap-y-0.5"
+                                  style={{
+                                    pageBreakInside: "avoid",
+                                    breakInside: "avoid",
+                                  }}
+                                >
+                                  {rowChoices}
+                                </div>,
+                              );
+                            }
+                            return <div className="mt-3">{gridRows}</div>;
+                          } else {
+                            const allHaveImages = question.choices.every(
+                              (choice) => !!choice.choiceImage,
+                            );
+                            if (allHaveImages) {
+                              // Render images in a row if all images are small
+                              return (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: "32px",
+                                    alignItems: "flex-start",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  {question.choices.map(
+                                    (choice, choiceIndex) => (
+                                      <div
+                                        key={choiceIndex}
+                                        style={{
+                                          textAlign: "center",
+                                          minWidth: 0,
+                                          maxWidth: "300px",
+                                          flex: "1 1 0",
+                                        }}
+                                      >
+                                        <img
+                                          src={choice.choiceImage}
+                                          alt={`Choice ${String.fromCharCode(65 + choiceIndex)} image`}
+                                          style={{
+                                            maxHeight: "120px",
+                                            maxWidth: "300px",
+                                            width: "auto",
+                                            display: "inline-block",
+                                            borderRadius: "0.5rem",
+                                          }}
+                                          className="rounded-lg"
+                                          onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.style.display = "none";
+                                          }}
+                                        />
+                                        <p
+                                          className="text-[13.33px] text-black"
+                                          style={{
+                                            fontFamily:
+                                              "'Times New Roman', Times, serif",
+                                            marginTop: 4,
+                                          }}
+                                        >
+                                          {String.fromCharCode(
+                                            65 + choiceIndex,
+                                          )}
+                                          . {choice.choiceText}
+                                        </p>
+                                      </div>
+                                    ),
+                                  )}
+                                </div>
+                              );
+                            } else {
+                              // Default layout: stacked
+                              return question.choices.map(
+                                (choice, choiceIndex) => (
+                                  <div
+                                    key={choiceIndex}
+                                    className="mb-2 flex items-center gap-4"
+                                  >
+                                    <div>
+                                      <span className="mr-2 ml-5 text-black">
+                                        {String.fromCharCode(65 + choiceIndex)}.
+                                      </span>
+                                      <span
+                                        className="text-[13.33px] text-black"
+                                        style={{
+                                          fontFamily:
+                                            "'Times New Roman', Times, serif",
+                                        }}
+                                      >
+                                        {choice.choiceText}
+                                      </span>
+                                    </div>
+                                    {choice.choiceImage && (
+                                      <img
+                                        src={choice.choiceImage}
+                                        alt={`Choice ${String.fromCharCode(65 + choiceIndex)} image`}
+                                        style={{
+                                          maxHeight: "120px",
+                                          width: "auto",
+                                          maxWidth: "300px",
+                                          borderRadius: "0.5rem",
+                                        }}
+                                        className="rounded-lg"
+                                        onError={(e) => {
+                                          e.target.onerror = null;
+                                          e.target.style.display = "none";
+                                        }}
+                                      />
+                                    )}
+                                  </div>
+                                ),
+                              );
+                            }
+                          }
+                        })()}
                     </div>
-                  ),
-                )}
-
+                  </div>
+                ))}
+                {/* Answer Key */}
                 <div className="answer-key-page-break">
                   <h2 className="mb-4 text-center text-2xl font-bold text-black">
                     Answer Key
                   </h2>
-                  {Object.entries(previewData.questionsBySubject).map(
-                    ([subjectName, subjectData], subjectIndex) => (
-                      <div key={subjectName} className="mb-6 text-center">
-                        <h3
-                          className="mb-2 text-lg font-semibold text-black"
-                          style={{
-                            fontFamily: "'Times New Roman', Times, serif",
-                          }}
-                        >
-                          {subjectName}
-                        </h3>
-                        <div
-                          className="ml-4"
-                          style={{
-                            fontFamily: "'Times New Roman', Times, serif",
-                            fontSize: "15px",
-                          }}
-                        >
-                          {subjectData.questions.map((question, qIdx) => {
-                            const correctIdx = question.choices?.findIndex(
-                              (c) => c.isCorrect,
-                            );
-                            const correctLetter =
-                              correctIdx !== -1
-                                ? String.fromCharCode(65 + correctIdx)
-                                : "-";
-                            return (
-                              <div key={qIdx} className="mb-1">
-                                {qIdx + 1}. {correctLetter}
-                              </div>
-                            );
-                          })}
+                  <div
+                    className="ml-4"
+                    style={{
+                      fontFamily: "'Times New Roman', Times, serif",
+                      fontSize: "15px",
+                    }}
+                  >
+                    {questions.map((question, idx) => {
+                      const correctIdx = question.choices?.findIndex(
+                        (c) => c.isCorrect,
+                      );
+                      const correctLetter =
+                        correctIdx !== -1
+                          ? String.fromCharCode(65 + correctIdx)
+                          : "-";
+                      return (
+                        <div key={idx} className="mb-1">
+                          {idx + 1}. {correctLetter}
                         </div>
-                      </div>
-                    ),
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
               {/* Answer Key Page - now INSIDE the main content div */}

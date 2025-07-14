@@ -1,9 +1,24 @@
 import SortCustomDropdown from "./sortCustomDropdown";
+import { useState, useRef, useEffect } from "react";
 
 // Displays a Sort Button
 const Sort = ({ sortOption, setSortOption }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const mainSortOptions = [
-    { value: "", label: "Default" },
     { value: "difficulty", label: "Difficulty" },
     { value: "coverage", label: "Coverage" },
     { value: "score", label: "Score" },
@@ -51,23 +66,46 @@ const Sort = ({ sortOption, setSortOption }) => {
   };
 
   return (
-    <div className="flex flex-row gap-2">
-      <SortCustomDropdown
-        name="sortOption"
-        value={sortOption}
-        onChange={handleSortChange}
-        options={mainSortOptions.map((option) => ({
-          ...option,
-          label: getDropdownLabel(option),
-        }))}
-        buttonLabel={
-          mainSortOptions.find(
-            (opt) =>
-              opt.value === sortOption || opt.value + "_desc" === sortOption,
-          )?.label || "Sort By"
-        }
-        placeholder="Sort By"
-      />
+    <div className="open-sans flex flex-row gap-2">
+      {/* Inline dropdown implementation, mimicking SortCustomDropdown */}
+      <div className="flex items-center gap-2 text-[13px]">
+        <div className="relative" ref={dropdownRef}>
+          {/* Dropdown Button */}
+          <button
+            type="button"
+            onClick={() => setIsOpen((prev) => !prev)}
+            className={`border-color relative flex cursor-pointer items-center rounded-lg px-3 py-2`}
+          >
+            {/* Add icon before label */}
+            <span className={`truncate`}>Sort by</span>
+            <i className="bx bx-carets-up-down ml-2 text-[18px] text-gray-500"></i>
+          </button>
+          {/* Dropdown Options */}
+          {isOpen && (
+            <ul
+              className={`animate-dropdown animate-fadein border-color absolute top-full right-0 z-50 mt-1 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm`}
+            >
+              {mainSortOptions.map((option) => (
+                <li
+                  key={option.value}
+                  onClick={() => {
+                    handleSortChange({ target: { value: option.value } });
+                    setIsOpen(false);
+                  }}
+                  className={`cursor-pointer rounded-sm px-3 py-[10px] text-[14px] text-black transition hover:bg-gray-200 ${
+                    sortOption === option.value ||
+                    sortOption === option.value + "_desc"
+                      ? "text-orange-500"
+                      : ""
+                  }`}
+                >
+                  {getDropdownLabel(option)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

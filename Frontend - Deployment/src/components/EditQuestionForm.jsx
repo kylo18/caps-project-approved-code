@@ -5,7 +5,12 @@ import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 
 // Edit Question Form
-const EditQuestionForm = ({ question, onComplete, onCancel }) => {
+const EditQuestionForm = ({
+  question,
+  onComplete,
+  onCancel,
+  isExamQuestionsEnabled: propIsExamQuestionsEnabled,
+}) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const { toast, showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
@@ -22,6 +27,22 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
   const [choiceModalImage, setchoiceModalImage] = useState(null);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [error, setError] = useState(null);
+  const [animatingChoice, setAnimatingChoice] = useState(null);
+
+  // Prevent background scrolling when Edit Question Form modal is open
+  useEffect(() => {
+    // The modal is always open when this component is rendered
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.width = "100%";
+
+    // Cleanup function to restore scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, []);
 
   // Replace formData state with separate form and choices states
   const [form, setForm] = useState({
@@ -211,6 +232,18 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
       return;
     }
 
+    // Check if exam questions are enabled for qualifying exam questions
+    if (form.purpose_id === 1 && !propIsExamQuestionsEnabled) {
+      setError(
+        "Adding of qualifying exam questions is currently disabled by the Dean",
+      );
+      showToast(
+        "Adding of qualifying exam questions is currently disabled by the Dean",
+        "error",
+      );
+      return;
+    }
+
     // Check if any choice is correct
     const hasCorrectChoice = choices.some((choice) => choice.isCorrect);
     if (!hasCorrectChoice) {
@@ -312,74 +345,43 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
     }
   };
 
+  // Helper function to check if editor is empty
+  const isEditorEmpty = () => {
+    if (!editorRef.current) return true;
+    const content =
+      editorRef.current.textContent || editorRef.current.innerText || "";
+    return content.trim() === "";
+  };
+
   return (
     <>
-      {/* Question Image Modal */}
-      {isQuestionModalOpen && imagePreview && (
-        <div
-          className="lightbox-bg bg-opacity-70 fixed inset-0 z-[9999] flex h-full items-center justify-center bg-black"
-          onClick={() => setisQuestionModalOpen(false)}
-        >
-          <div className="relative max-h-full max-w-full">
-            <img
-              src={imagePreview}
-              alt="Full View"
-              className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Choice Image Modal */}
-      {isChoiceModalOpen && (
-        <div
-          className="lightbox-bg bg-opacity-70 fixed inset-0 z-[9999] flex h-screen items-center justify-center bg-black"
-          onClick={() => setIsChoiceModalOpen(false)}
-        >
-          <div className="relative max-h-full max-w-full">
-            <img
-              src={choiceModalImage}
-              alt="Full View"
-              className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Toast notification */}
-      <div className="fixed top-4 right-4 z-[99999]">
-        <Toast message={toast.message} type={toast.type} show={toast.show} />
-      </div>
-
-      <div className="lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
-        <div className="scrollbar-hide animate-fade-in-up flex max-h-[95vh] overflow-y-auto p-3">
+      <div className="open-sans lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
+        <div className="scrollbar-hide animate-fade-in-up flex h-[100%] overflow-y-auto sm:h-[99%]">
           <div className="flex-1">
             {/* Header */}
-            <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
+            <div className="border-color relative mx-auto max-w-5xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-800 shadow-lg sm:rounded-t-md md:w-[110vh] lg:w-[135vh]">
               <div className="flex items-center justify-between pr-4">
-                <span>EDIT QUESTION</span>
+                <span className="text-[14px] font-semibold">EDIT QUESTION</span>
                 <button
-                  type="button"
                   onClick={onCancel}
-                  className="cursor-pointer text-gray-500 hover:text-gray-700"
+                  className="-mr-3 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-gray-500 transition duration-100 hover:bg-gray-100 hover:text-gray-700"
                 >
-                  <i className="bx bx-x text-[24px]"></i>
+                  <i className="bx bx-x text-2xl"></i>
                 </button>
               </div>
             </div>
-
             {/* Question Card */}
-            <div className="border-color relative mx-auto mb-3 w-full max-w-3xl rounded-b-md border border-t-0 bg-white p-4 shadow-lg sm:px-4">
+            <div className="border-color relative mx-auto mb-3 w-full max-w-5xl border border-t-0 bg-white p-5 shadow-lg sm:rounded-b-md sm:px-5 md:w-[110vh] lg:w-[135vh]">
               {/* Question Header */}
               <div className="flex items-start gap-3">
-                <div className="mt-[6px] flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
+                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                   1
                 </div>
                 <div>
-                  <h3 className="text-[16px] font-semibold text-black">
+                  <h3 className="text-[14px] font-semibold text-black">
                     Write your question
                   </h3>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-[12px] text-gray-500">
                     Input your question in the designated field.
                   </p>
                 </div>
@@ -395,7 +397,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                   style={{ width: "4px", transform: "translateY(-50%)" }}
                 ></div>
 
-                {!isFocused && !form.questionText && (
+                {!isFocused && isEditorEmpty() && (
                   <span className="pointer-events-none absolute top-[14px] left-4 text-[14px] text-gray-400">
                     Enter question...
                   </span>
@@ -420,7 +422,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
               </div>
 
               {/* Text Formatting Options */}
-              <div className="mt-2 flex gap-2 text-[24px] text-[rgb(120,120,120)] sm:gap-6">
+              <div className="mt-3 ml-5 flex gap-5 text-[24px] text-[rgb(120,120,120)] sm:gap-6">
                 <button
                   type="button"
                   onMouseDown={(e) => {
@@ -470,38 +472,42 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
 
               {/* Question Image Preview */}
               {imagePreview && (
-                <div className="relative mt-3 inline-block max-w-[300px]">
+                <div className="relative mt-3 ml-5 inline-block max-w-[300px]">
                   <div className="flex flex-col items-start">
                     <img
                       src={imagePreview}
                       alt="Uploaded"
-                      className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md"
+                      className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md hover:opacity-80"
                       onClick={() => setisQuestionModalOpen(true)}
                     />
                     <button
                       type="button"
-                      onClick={handleRemoveImage}
-                      className="absolute top-4 right-4 translate-x-1/2 -translate-y-1/2 transform rounded-full bg-black px-[2px] pt-[2px] text-xs text-white opacity-70 hover:cursor-pointer"
+                      onClick={() => {
+                        setForm((prev) => ({ ...prev, image: null }));
+                        setImagePreview(null);
+                      }}
+                      className="absolute top-4 right-4 flex h-6 w-6 translate-x-1/2 -translate-y-1/2 transform items-center justify-center rounded-full bg-black text-white opacity-70 hover:cursor-pointer"
                     >
-                      <i className="bx bx-x text-[20px]"></i>
+                      <i className="bx bx-x text-[16px] leading-none"></i>
                     </button>
                   </div>
                 </div>
               )}
 
-              <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
+              <div className="mx-1 mt-3 mb-5 h-[0.5px] bg-gray-300" />
 
+              {/* Choices Section */}
               <div className="flex max-w-[850px] items-start gap-3">
                 <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                   2
                 </div>
                 <div>
-                  <h3 className="text-[16px] font-semibold text-black">
+                  <h3 className="text-[14px] font-semibold text-black">
                     Add your multiple-choice options
                   </h3>
-                  <p className="max-w-[90%] text-sm text-gray-500">
+                  <p className="max-w-[90%] text-[12px] text-gray-500">
                     Enter the answer options of your question and select the
-                    correct answer using the radio buttons below.
+                    correct answer by pressing the circle buttons below.
                   </p>
                 </div>
               </div>
@@ -512,64 +518,105 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                     key={index}
                     className="relative flex items-center space-x-2"
                   >
-                    {/* Radio Button for isCorrect */}
-                    <input
-                      type="radio"
-                      name="correctChoice"
-                      checked={choice.isCorrect}
-                      onChange={() => {
-                        const updatedChoices = choices.map((c, i) => ({
-                          ...c,
-                          isCorrect: i === index,
-                        }));
-                        setChoices(updatedChoices);
-                      }}
-                      className="size-5 cursor-pointer accent-orange-500"
-                    />
+                    {/* Boxicon for correct answer selection */}
+                    <i
+                      className={`bx ${choice.isCorrect ? "bxs-check-circle text-orange-500" : "bx-circle text-gray-300"} cursor-pointer text-[24px] transition-all duration-300 ease-in-out hover:scale-110 ${
+                        choice.isCorrect ? "animate-correct-pulse" : ""
+                      } ${
+                        animatingChoice === index
+                          ? "animate-correct-select"
+                          : ""
+                      }`}
+                      style={{ minWidth: 22 }}
+                      title={
+                        choice.isCorrect ? "Correct answer" : "Mark as correct"
+                      }
+                      onClick={() => {
+                        // Trigger animation
+                        setAnimatingChoice(index);
+                        setTimeout(() => {
+                          setAnimatingChoice(null);
+                        }, 300);
 
-                    {/* Text input shown only if no image */}
+                        handleChoiceChange(index, "isCorrect", true);
+                      }}
+                      data-choice-index={index}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ")
+                          handleChoiceChange(index, "isCorrect", true);
+                      }}
+                      role="button"
+                      aria-label={
+                        choice.isCorrect ? "Correct answer" : "Mark as correct"
+                      }
+                    ></i>
+                    {/* Input Choice */}
                     {!choice.image && (
-                      <input
-                        type="text"
-                        value={choice.choiceText || ""}
-                        placeholder={`Option ${index + 1}`}
-                        onChange={(e) =>
-                          handleChoiceChange(
-                            index,
-                            "choiceText",
-                            e.target.value,
-                          )
-                        }
-                        className={`w-[80%] rounded-none border-0 border-gray-300 p-2 text-[14px] transition-all duration-100 ${
-                          choice.isFixed
-                            ? "cursor-not-allowed"
-                            : "hover:border-b hover:border-b-gray-500 focus:border-b-2 focus:border-b-orange-500 focus:outline-none"
+                      <div
+                        className={`relative ml-2 w-[80%] rounded-sm bg-gray-50 p-1 transition-all duration-150 hover:bg-gray-100 ${
+                          focusedChoice === index ? "bg-gray-200" : ""
                         }`}
-                        onFocus={() =>
-                          !choice.isFixed && setFocusedChoice(index)
-                        }
-                        onBlur={(e) => {
-                          if (
-                            !e.relatedTarget ||
-                            !e.relatedTarget.classList.contains(
-                              "image-upload-btn",
-                            )
-                          ) {
-                            setFocusedChoice(null);
-                          }
+                        onClick={() => {
+                          if (!choice.isFixed) setFocusedChoice(index);
                         }}
-                        disabled={choice.isFixed}
-                        required
-                      />
+                      >
+                        <div
+                          className={`absolute top-1/2 left-0 rounded-l-sm bg-orange-500 transition-all duration-200 ${
+                            focusedChoice === index
+                              ? "animate-expand-border h-full"
+                              : "h-0"
+                          }`}
+                          style={{
+                            width: "4px",
+                            transform: "translateY(-50%)",
+                          }}
+                        ></div>
+                        {/* Only show custom placeholder if not focused and empty */}
+                        {focusedChoice !== index &&
+                          choice.choiceText === "" && (
+                            <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-[14px] text-gray-400">
+                              {`Option ${index + 1}`}
+                            </span>
+                          )}
+                        <input
+                          type="text"
+                          value={choice.choiceText}
+                          onChange={(e) =>
+                            handleChoiceChange(
+                              index,
+                              "choiceText",
+                              e.target.value,
+                            )
+                          }
+                          className={`min-h-[40px] w-full max-w-full resize-none overflow-hidden border-none bg-inherit py-[6px] pl-3 text-[14px] break-words break-all whitespace-pre-wrap focus:outline-none ${
+                            choice.isFixed ? "cursor-not-allowed" : ""
+                          }`}
+                          onFocus={() =>
+                            !choice.isFixed && setFocusedChoice(index)
+                          }
+                          onBlur={(e) => {
+                            if (
+                              !e.relatedTarget ||
+                              !e.relatedTarget.classList.contains(
+                                "image-upload-btn",
+                              )
+                            ) {
+                              setFocusedChoice(null);
+                            }
+                          }}
+                          disabled={choice.isFixed}
+                          required
+                        />
+                      </div>
                     )}
 
-                    {/* Image Upload Trigger */}
+                    {/* Image Upload Button */}
                     {!choice.image &&
                       focusedChoice === index &&
                       !choice.isFixed && (
                         <>
                           <button
-                            type="button"
                             onClick={() =>
                               document
                                 .getElementById(`fileInput-${index}`)
@@ -591,35 +638,28 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                         </>
                       )}
 
-                    {/* Preview Uploaded Image */}
+                    {/* Choice Image Preview */}
                     {choice.image && (
                       <div className="relative mt-3">
                         <img
-                          src={
-                            typeof choice.image === "string"
-                              ? choice.image
-                              : URL.createObjectURL(choice.image)
-                          }
+                          src={URL.createObjectURL(choice.image)}
                           alt={`Choice ${index + 1}`}
-                          className="max-h-[150px] max-w-[150px] rounded-md object-contain shadow-md hover:cursor-pointer hover:opacity-80"
+                          className={`max-h-[300px] max-w-[300px] rounded-md object-contain shadow-lg hover:cursor-pointer hover:opacity-80 ${choice.isCorrect ? "border-2 border-orange-500" : ""}`}
                           onClick={() => {
                             setchoiceModalImage(
-                              typeof choice.image === "string"
-                                ? choice.image
-                                : URL.createObjectURL(choice.image),
+                              URL.createObjectURL(choice.image),
                             );
                             setIsChoiceModalOpen(true);
                           }}
                         />
                         <button
-                          type="button"
                           onClick={() => {
                             removeChoiceImage(index);
                             setFocusedChoice(null);
                           }}
-                          className="absolute top-4 right-4 translate-x-1/2 -translate-y-1/2 transform rounded-full bg-black px-[2px] pt-[2px] text-xs text-white opacity-70 hover:cursor-pointer"
+                          className="absolute top-4 right-4 flex h-6 w-6 translate-x-1/2 -translate-y-1/2 transform items-center justify-center rounded-full bg-black text-white opacity-70 hover:cursor-pointer"
                         >
-                          <i className="bx bx-x text-[20px]"></i>
+                          <i className="bx bx-x text-[16px] leading-none"></i>
                         </button>
                       </div>
                     )}
@@ -627,18 +667,17 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                 ))}
               </div>
 
-              <div className="-mx-2 mt-6 mb-3 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-4" />
+              <div className="mx-1 mt-3 mb-5 h-[0.5px] bg-gray-300" />
 
-              {/* Question Settings Section */}
               <div className="flex items-start gap-3">
-                <div className="mt-[6px] flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
+                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
                   3
                 </div>
                 <div>
-                  <h3 className="text-[16px] font-semibold text-black">
-                    Question settings
+                  <h3 className="text-[14px] font-semibold text-black">
+                    Question Settings
                   </h3>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-[12px] text-gray-500">
                     Configure the question's score, difficulty level, and
                     coverage.
                   </p>
@@ -646,7 +685,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
               </div>
 
               {/* Form Controls */}
-              <div className="mt-8 mb-1 flex flex-col gap-4 px-2 sm:flex-col">
+              <div className="mt-8 mb-1 ml-3 flex flex-col gap-4 px-2 sm:flex-col">
                 {/* Score Input */}
                 <div className="relative flex w-[20%] items-center gap-2 sm:w-auto">
                   <label htmlFor="score" className="text-[14px] text-gray-700">
@@ -659,7 +698,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                     max="100"
                     onChange={handleQuestionChange}
                     value={form.score}
-                    className="ml-3 w-10 border-0 border-b border-gray-300 p-1 text-[14px] transition-all duration-100 outline-none focus:border-b-2 focus:border-orange-500 sm:w-[50px]"
+                    className="ml-[60px] w-40 border-0 border-b border-gray-300 px-3 py-1 text-[14px] transition-all duration-100 outline-none focus:border-b-2 focus:border-orange-500"
                     required
                     onInput={(e) => {
                       const val = parseInt(e.target.value);
@@ -667,22 +706,6 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                       if (val > 100) e.target.value = 100;
                     }}
                   />
-
-                  {/* Boxicons Help Icon */}
-                  <button
-                    type="button"
-                    onClick={() => setShowTip(!showTip)}
-                    className="ml-2 cursor-pointer text-gray-500 hover:text-orange-500 focus:outline-none"
-                  >
-                    <i className="bx bx-help-circle text-[18px]"></i>
-                  </button>
-
-                  {/* Tooltip */}
-                  {showTip && (
-                    <div className="absolute bottom-7 left-35 z-10 w-[200px] rounded-md bg-gray-700 p-2 text-[12px] text-white shadow-md">
-                      Enter a score between 1 and 100 for this question.
-                    </div>
-                  )}
                 </div>
 
                 {/* Difficulty Dropdown */}
@@ -697,6 +720,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                     { value: 2, label: "Moderate" },
                     { value: 3, label: "Hard" },
                   ]}
+                  classname="ml-10"
                 />
 
                 {/* Coverage Dropdown */}
@@ -709,6 +733,7 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                     { value: 1, label: "Midterms" },
                     { value: 2, label: "Finals" },
                   ]}
+                  classname="ml-[38px]"
                 />
 
                 {/* Purpose Dropdown */}
@@ -718,58 +743,100 @@ const EditQuestionForm = ({ question, onComplete, onCancel }) => {
                   value={form.purpose_id}
                   onChange={handleQuestionChange}
                   options={[
-                    { value: 2, label: "Practice Question" },
-                    { value: 1, label: "Qualifying Exam Question" },
+                    { value: 2, label: "Practice " },
+                    { value: 1, label: "Qualifying Exam " },
                   ]}
+                  classname="ml-[45px]"
                 />
+              </div>
 
-                <div className="-mx-2 mt-6 h-[0.5px] bg-[rgb(200,200,200)] sm:-mx-6" />
-                <div className="flex w-full items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-[6px] -ml-2 flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
-                      4
-                    </div>
-                    <div>
-                      <h3 className="mt-[8px] text-[13px] font-semibold text-black sm:mt-0 sm:text-[16px]">
-                        Update Question
-                      </h3>
-                      <p className="hidden text-sm text-gray-500 sm:block">
-                        Save your changes or cancel to exit without updating.
-                      </p>
-                    </div>
-                  </div>
+              <div className="mx-1 mt-5 mb-5 h-[0.5px] bg-gray-300" />
 
-                  <div className="flex gap-2 text-[14px] sm:mt-2">
-                    <button
-                      type="button"
-                      onClick={onCancel}
-                      className="border-color mt-1 cursor-pointer rounded-md border px-4 py-1 text-gray-700 hover:bg-gray-200"
-                    >
-                      <span className="text-[14px]">Cancel</span>
-                    </button>
-                    <button
-                      onClick={handleSubmit}
-                      disabled={isLoading}
-                      className={`mt-1 flex cursor-pointer items-center justify-center gap-[5px] rounded-md px-5 py-[6px] text-white ${
-                        isLoading
-                          ? "cursor-not-allowed bg-orange-300"
-                          : "bg-orange-500 hover:bg-orange-600"
-                      }`}
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center justify-center">
-                          <span className="loader-white"></span>
-                        </div>
-                      ) : (
-                        "Update"
-                      )}
-                    </button>
+              <div className="flex w-full items-start justify-between">
+                {/* Left Side: Number and Text */}
+                <div className="flex items-start gap-3 px-2">
+                  <div className="mt-[6px] -ml-2 flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
+                    4
                   </div>
+                  <div>
+                    <h3 className="mt-[7px] text-[14px] font-semibold text-black sm:-mt-0">
+                      Save Question
+                    </h3>
+                    <p className="hidden text-[12px] text-gray-500 sm:block">
+                      Proceed to save your question, or cancel to exit without
+                      saving.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right Side: Buttons */}
+                <div className="flex gap-2 px-2 text-[14px]">
+                  <button
+                    type="button"
+                    onClick={onCancel}
+                    className="border-color mt-1 cursor-pointer rounded-md border px-4 py-1 text-gray-700 hover:bg-gray-200"
+                  >
+                    <span className="text-[14px]">Cancel</span>
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isLoading}
+                    className={`mt-1 flex cursor-pointer items-center justify-center gap-[5px] rounded-md px-5 py-[6px] text-white ${
+                      isLoading
+                        ? "cursor-not-allowed bg-orange-300"
+                        : "bg-orange-500 hover:bg-orange-600"
+                    }`}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center justify-center">
+                        <span className="loader-white"></span>
+                      </div>
+                    ) : (
+                      "Update"
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Question Image Modal */}
+      {isQuestionModalOpen && imagePreview && (
+        <div
+          className="bg-opacity-70 lightbox-bg-image fixed inset-0 z-[9999] flex items-center justify-center"
+          onClick={() => setisQuestionModalOpen(false)}
+        >
+          <div className="relative">
+            <img
+              src={imagePreview}
+              alt="Full View"
+              className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Choice Image Modal */}
+      {isChoiceModalOpen && (
+        <div
+          className="bg-opacity-70 lightbox-bg-image fixed inset-0 z-[9999] flex items-center justify-center"
+          onClick={() => setIsChoiceModalOpen(false)}
+        >
+          <div className="relative">
+            <img
+              src={choiceModalImage}
+              alt="Full View"
+              className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      <div className="fixed top-4 right-4 z-[99999]">
+        <Toast message={toast.message} type={toast.type} show={toast.show} />
       </div>
     </>
   );

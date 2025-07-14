@@ -831,7 +831,7 @@ export default function Register() {
               </div>
             </div>
           </div>
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 transform items-center space-x-2 text-black lg:left-8">
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 transform items-center space-x-2 text-gray-400 lg:left-8">
             <AppVersion />
           </div>
         </div>

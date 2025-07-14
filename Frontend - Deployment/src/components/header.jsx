@@ -3,6 +3,44 @@ import { useNavigate, useLocation } from "react-router-dom";
 import LoadingOverlay from "./loadingOverlay";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
+import collegeLogo from "/src/assets/college-logo.png";
+import { logoutUser } from "../utils/logoutUser";
+
+// Utility to get a random color from a palette
+const AVATAR_COLORS = [
+  "bg-orange-500",
+  "bg-green-700",
+  "bg-blue-600",
+  "bg-purple-600",
+  "bg-pink-500",
+  "bg-yellow-500",
+  "bg-red-500",
+  "bg-teal-600",
+  "bg-indigo-600",
+];
+function getRandomAvatarColor() {
+  return AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
+}
+
+function getAvatarColorKey(userInfo) {
+  // Prefer email, fallback to userCode, fallback to 'default'
+  return userInfo?.email || userInfo?.userCode || "default";
+}
+
+function getPersistedAvatarColor(userInfo) {
+  const key = getAvatarColorKey(userInfo);
+  return localStorage.getItem("avatarColor_" + key);
+}
+
+function setPersistedAvatarColor(userInfo, color) {
+  const key = getAvatarColorKey(userInfo);
+  localStorage.setItem("avatarColor_" + key, color);
+}
+
+function clearPersistedAvatarColor(userInfo) {
+  const key = getAvatarColorKey(userInfo);
+  localStorage.removeItem("avatarColor_" + key);
+}
 
 // Web App Header
 const AdminHeader = ({ title }) => {
@@ -51,6 +89,132 @@ const AdminHeader = ({ title }) => {
 
   const [wasProfileModalOpen, setWasProfileModalOpen] = useState(false);
 
+  // Store a persistent color for the avatar per user
+  const [avatarColor, setAvatarColor] = useState("bg-gray-300");
+
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Refs for modal content
+  const profileModalRef = useRef(null);
+  const changePasswordModalRef = useRef(null);
+  const logoutModalRef = useRef(null);
+
+  // Close dropdown if logout modal is opened
+  useEffect(() => {
+    if (showLogoutModal || showProfileModal || showChangePassword)
+      setDropdownOpen(false);
+  }, [showLogoutModal, showProfileModal, showChangePassword]);
+
+  // Close Profile Modal on outside click for <=448px
+  useEffect(() => {
+    if (!showProfileModal) return;
+    function handleClickOutside(event) {
+      if (
+        window.innerWidth <= 448 &&
+        profileModalRef.current &&
+        !profileModalRef.current.contains(event.target)
+      ) {
+        setShowProfileModal(false);
+        setProfileError("");
+        setProfileSuccess("");
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showProfileModal]);
+
+  // Close Change Password Modal on outside click for <=448px
+  useEffect(() => {
+    if (!showChangePassword) return;
+    function handleClickOutside(event) {
+      if (
+        window.innerWidth <= 448 &&
+        changePasswordModalRef.current &&
+        !changePasswordModalRef.current.contains(event.target)
+      ) {
+        handleCloseChangePassword();
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showChangePassword]);
+
+  // Close Logout Modal on outside click for <=448px
+  useEffect(() => {
+    if (!showLogoutModal) return;
+    function handleClickOutside(event) {
+      if (
+        window.innerWidth <= 448 &&
+        logoutModalRef.current &&
+        !logoutModalRef.current.contains(event.target)
+      ) {
+        setShowLogoutModal(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showLogoutModal]);
+
+  // Prevent background scrolling when profile modal is open
+  useEffect(() => {
+    if (showProfileModal) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+
+    // Cleanup function to restore scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [showProfileModal]);
+
+  // Prevent background scrolling when change password modal is open
+  useEffect(() => {
+    if (showChangePassword) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+
+    // Cleanup function to restore scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [showChangePassword]);
+
+  // Prevent background scrolling when logout modal is open
+  useEffect(() => {
+    if (showLogoutModal) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+
+    // Cleanup function to restore scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [showLogoutModal]);
+
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
@@ -77,29 +241,36 @@ const AdminHeader = ({ title }) => {
     fetchUserInfo();
   }, [apiUrl]);
 
+  useEffect(() => {
+    if (userInfo) {
+      let color = getPersistedAvatarColor(userInfo);
+      if (!color) {
+        color = getRandomAvatarColor();
+        setPersistedAvatarColor(userInfo, color);
+      }
+      setAvatarColor(color);
+    }
+  }, [userInfo]);
+
   // Handle the logout process
   const handleLogout = async () => {
+    setIsLoggingOut(true);
+    const token = localStorage.getItem("token");
     try {
-      setIsLoggingOut(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${apiUrl}/logout`, {
+      await fetch(`${apiUrl}/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
-
-      if (response.ok) {
-        localStorage.removeItem("token");
-        navigate("/");
-      } else {
-        console.error("Logout failed");
-        setIsLoggingOut(false);
-      }
     } catch (error) {
-      console.error("Error logging out:", error);
+      // Ignore network/backend errors, always log out
+    } finally {
+      if (userInfo) clearPersistedAvatarColor(userInfo);
+      logoutUser(showToast, navigate);
       setIsLoggingOut(false);
+      setShowLogoutModal(false);
     }
   };
 
@@ -279,20 +450,9 @@ const AdminHeader = ({ title }) => {
 
   return (
     <div>
-      <div className="open-sans fixed top-0 left-0 z-52 flex h-[44px] w-full items-center justify-between border-b border-gray-300 bg-white px-6 py-[10px]">
-        <div className="flex items-center">
-          {isTutorialPage && (
-            <div className="flex items-center gap-2">
-              <img
-                src={collegeLogo}
-                alt="College Logo"
-                className="size-[30px]"
-              />
-              <span className="font-sans text-lg font-semibold text-black">
-                CAPS
-              </span>
-            </div>
-          )}
+      <div className="open-sans fixed top-0 left-0 z-49 flex h-[44px] w-full items-center justify-between border-b border-gray-300 bg-white px-6 py-[10px] sm:z-52">
+        <div className="-ml-3 flex items-center gap-2">
+          <img src={collegeLogo} alt="College Logo" className="size-[30px]" />
         </div>
 
         {/* Actions */}
@@ -308,7 +468,10 @@ const AdminHeader = ({ title }) => {
                   "_blank",
                 );
               } else {
-                alert("Under Maintenance");
+                window.open(
+                  "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&gid=1756766640#gid=1756766640",
+                  "_blank",
+                );
               }
             }}
             className={`border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-black ${
@@ -325,19 +488,26 @@ const AdminHeader = ({ title }) => {
           {/* Three-dot Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
-              className="-mr-4 flex cursor-pointer items-center justify-end rounded-full p-0.5 hover:bg-gray-300"
+              className="-mr-3 flex cursor-pointer items-center rounded-full border-2 border-gray-300 bg-white transition hover:border-gray-400 hover:bg-gray-100"
               onClick={() => setDropdownOpen(!dropdownOpen)}
             >
-              <i className="bx bx-dots-vertical-rounded text-[25px]"></i>
+              {/* Circle with initial */}
+              <div
+                className={`flex size-[28px] items-center justify-center rounded-full font-semibold text-white ${avatarColor}`}
+              >
+                {userInfo?.fullName ? userInfo.fullName[0].toUpperCase() : "-"}
+              </div>
+
+              {/* Chevron */}
+              <i className="bx bx-chevron-down mr-[3px] text-2xl text-gray-700"></i>
             </button>
 
             {/* Dropdown Buttons */}
-
             {dropdownOpen && (
-              <div className="absolute top-[44px] right-[-10px] w-60 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
+              <div className="fade-in absolute top-[44px] right-[-10px] z-51 w-60 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
                 <div className="flex items-center gap-3 border-gray-200 px-2 py-3">
                   <div
-                    className={`flex h-8 w-10 items-center justify-center rounded-full ${userInfo ? "bg-orange-500" : "bg-gray-300"} text-sm font-bold text-white`}
+                    className={`flex h-8 w-10 items-center justify-center rounded-full ${userInfo ? avatarColor : "bg-gray-300"} text-sm font-bold text-white`}
                   >
                     {userInfo?.fullName ? (
                       (() => {
@@ -353,7 +523,7 @@ const AdminHeader = ({ title }) => {
                   </div>
 
                   <div className="flex w-full flex-col overflow-hidden text-sm">
-                    <span className="font-inter overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-gray-800">
+                    <span className="open-sans overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-gray-800">
                       {userInfo?.fullName ? (
                         userInfo.fullName
                       ) : (
@@ -375,8 +545,7 @@ const AdminHeader = ({ title }) => {
                   onClick={() => setShowProfileModal(true)}
                   className="mt-1 flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i className="bx bx-user-circle mr-2 text-[16px]"></i> Edit
-                  Profile
+                  <i className="bx bx-cog mr-2 text-[16px]"></i> Settings
                 </button>
 
                 <button
@@ -389,7 +558,7 @@ const AdminHeader = ({ title }) => {
                 </button>
 
                 <button
-                  onClick={handleLogout}
+                  onClick={() => setShowLogoutModal(true)}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
                   <i className="bx bx-arrow-out-right-square-half mr-2 text-[16px]"></i>{" "}
@@ -398,7 +567,7 @@ const AdminHeader = ({ title }) => {
                       <span className="">Logging out...</span>
                     </div>
                   ) : (
-                    "Logout"
+                    "Log out"
                   )}
                 </button>
               </div>
@@ -409,8 +578,11 @@ const AdminHeader = ({ title }) => {
 
       {showProfileModal && (
         <>
-          <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
-            <div className="edit-profile-modal-scrollbar relative mx-0 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-6 py-4 shadow-2xl min-[448px]:mx-2 min-[448px]:rounded-md">
+          <div className="open-sans bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+            <div
+              ref={profileModalRef}
+              className="animate-fade-in-up edit-profile-modal-scrollbar relative mx-0 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-6 py-4 shadow-2xl min-[448px]:mx-2 min-[448px]:rounded-md"
+            >
               <button
                 onClick={() => {
                   setShowProfileModal(false);
@@ -427,7 +599,7 @@ const AdminHeader = ({ title }) => {
               <div className="mb-3 flex items-center gap-4 p-4">
                 <div className="relative">
                   <div
-                    className={`flex size-11 items-center justify-center rounded-full ${userInfo ? "bg-orange-500" : "bg-gray-300"} font-bold text-white`}
+                    className={`flex size-11 items-center justify-center rounded-full ${userInfo ? avatarColor : "bg-gray-300"} font-bold text-white`}
                   >
                     {userInfo?.fullName ? (
                       (() => {
@@ -569,19 +741,22 @@ const AdminHeader = ({ title }) => {
 
       {showChangePassword && (
         <>
-          <div className="font-inter lightbox-bg bg-opacity-40 fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
-            <div className="edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
+          <div className="open-sans lightbox-bg bg-opacity-40 fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+            <div
+              ref={changePasswordModalRef}
+              className="animate-fade-in-up edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md"
+            >
               {/* Header */}
-              <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
-                <h2 className="text-[14px] font-medium text-gray-700">
-                  Change Password
+              <div className="border-color flex items-center justify-between border-b px-4 py-2">
+                <h2 className="text-[16px] font-semibold">
+                  Change your Password
                 </h2>
 
                 <button
                   onClick={handleCloseChangePassword}
-                  className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-700 transition duration-100 hover:bg-gray-100 hover:text-gray-900"
                 >
-                  <i className="bx bx-x text-[20px]"></i>
+                  <i className="bx bx-x text-lg"></i>
                 </button>
               </div>
 
@@ -703,6 +878,57 @@ const AdminHeader = ({ title }) => {
             </div>
           </div>
         </>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="lightbox-bg fixed inset-0 z-[200] flex items-center justify-center">
+          <div
+            ref={logoutModalRef}
+            className="animate-fade-in-up flex w-[90vw] max-w-xs flex-col items-center rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-50">
+              <svg
+                width="36"
+                height="36"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="orange"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"
+                />
+              </svg>
+            </div>
+            <div className="mb-1 text-[20px] font-bold">Log out</div>
+            <div className="mb-5 text-center text-[14px] text-gray-500">
+              Are you sure you want to log out?
+            </div>
+            <button
+              className="mb-2 w-full cursor-pointer rounded-lg bg-orange-500 py-2 text-[16px] font-semibold text-white transition hover:bg-orange-700"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? (
+                <span className="flex items-center justify-center">
+                  <span className="loader-white mr-2"></span>
+                </span>
+              ) : (
+                "Yes, Log out"
+              )}
+            </button>
+            <button
+              className="border-color w-full cursor-pointer rounded-lg border py-2 text-[16px] font-semibold text-gray-800 transition hover:bg-gray-200"
+              onClick={() => setShowLogoutModal(false)}
+              disabled={isLoggingOut}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       <Toast message={toast.message} type={toast.type} show={toast.show} />

@@ -528,7 +528,6 @@ const CombinedExamQuestionForm = ({ subjectID, onComplete, onCancel }) => {
                   <i className="bx bx-help-circle text-[18px]"></i>
                 </button>
 
-                {/* Tooltip */}
                 {showTip && (
                   <div className="absolute bottom-7 left-35 z-10 w-[200px] rounded-md bg-gray-700 p-2 text-[12px] text-white shadow-md">
                     Enter a score between 1 and 100 for this question.
