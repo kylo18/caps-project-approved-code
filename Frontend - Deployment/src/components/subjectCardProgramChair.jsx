@@ -25,12 +25,48 @@ const SubjectCard = ({
   searchQuery,
   setSearchQuery,
 }) => {
+  // Move all useState declarations to the top
   const [showSearchInput, setShowSearchInput] = useState(false);
   const [searchAnim, setSearchAnim] = useState("");
   const searchTimeoutRef = useRef(null);
   const searchInputRef = useRef(null);
   const [isResizing, setIsResizing] = useState(false);
   const resizeTimeoutRef = useRef(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showActionDropdown, setShowActionDropdown] = useState(false);
+  const [showActionDropdownDesk, setShowActionDropdownDesk] = useState(false);
+  const [showActionDropdownTablet, setShowActionDropdownTablet] =
+    useState(false);
+  const [editingSubject, setEditingSubject] = useState(false);
+  const [editedSubject, setEditedSubject] = useState({
+    subjectCode: "",
+    subjectName: "",
+    subjectID: "",
+    programID: "",
+    yearLevelID: "",
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [validationError, setValidationError] = useState("");
+  const [programs, setPrograms] = useState([]);
+  const yearLevelOptions = ["1", "2", "3", "4"];
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [subjectToDelete, setSubjectToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [mobileIndicatorStyle, setMobileIndicatorStyle] = useState({
+    left: 0,
+    width: 0,
+  });
+  const [tabletIndicatorStyle, setTabletIndicatorStyle] = useState({
+    left: 0,
+    width: 0,
+  });
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    right: 0,
+  });
+  const [, setTabIndicatorUpdate] = useState(0);
 
   // Prevent background scrolling when modals are open
   useEffect(() => {
@@ -87,10 +123,6 @@ const SubjectCard = ({
   }, [showSearchInput]);
 
   const mobileTabRefs = useRef([]);
-  const [mobileIndicatorStyle, setMobileIndicatorStyle] = useState({
-    left: 0,
-    width: 0,
-  });
 
   // Mobile indicator
   useEffect(() => {
@@ -131,10 +163,6 @@ const SubjectCard = ({
   }, [activeIndex]);
 
   const tabletTabRefs = useRef([]);
-  const [tabletIndicatorStyle, setTabletIndicatorStyle] = useState({
-    left: 0,
-    width: 0,
-  });
 
   // Tablet indicator
   useEffect(() => {
@@ -182,44 +210,16 @@ const SubjectCard = ({
   ];
 
   // State for tab indicator animation
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   // State for practice exam configuration modal
-  const [isFormOpen, setIsFormOpen] = useState(false);
   // State for mobile dropdown menu
-  const [showDropdown, setShowDropdown] = useState(false);
   // Refs for tab elements and dropdown positioning
   const tabRefs = useRef([]);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
-  const navigate = useNavigate();
-
-  // Dropdown for edit/remove
-  const [showActionDropdown, setShowActionDropdown] = useState(false);
-  const [showActionDropdownDesk, setShowActionDropdownDesk] = useState(false);
-  const [showActionDropdownTablet, setShowActionDropdownTablet] =
-    useState(false);
-
   const actionDropdownRef = useRef(null);
   const actionButtonRef = useRef(null);
 
-  // Edit subject modal state
-  const [editingSubject, setEditingSubject] = useState(false);
-  const [editedSubject, setEditedSubject] = useState({
-    subjectCode: "",
-    subjectName: "",
-    subjectID: "",
-    programID: "",
-    yearLevelID: "",
-  });
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [validationError, setValidationError] = useState("");
-  const [programs, setPrograms] = useState([]);
-  const yearLevelOptions = ["1", "2", "3", "4"];
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [subjectToDelete, setSubjectToDelete] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -238,11 +238,6 @@ const SubjectCard = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  const [dropdownPosition, setDropdownPosition] = useState({
-    top: 0,
-    right: 0,
-  });
 
   useEffect(() => {
     function updatePosition() {
@@ -512,8 +507,6 @@ const SubjectCard = ({
       setIsDeleting(false);
     }
   };
-
-  const [, setTabIndicatorUpdate] = useState(0);
 
   useEffect(() => {
     setTabIndicatorUpdate((n) => n + 1);
