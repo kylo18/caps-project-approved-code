@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
-import PracticeExamConfig from "./practiceExamConfig";
+import PracticeExamConfigProgChair from "./SubjectSettingsDeanProgChair";
 import { useNavigate } from "react-router-dom";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import SearchQuery from "./SearchQuery";
@@ -24,6 +24,8 @@ const SubjectCard = ({
   showToast,
   searchQuery,
   setSearchQuery,
+  isExamQuestionsEnabled,
+  setIsExamQuestionsEnabled,
 }) => {
   // Move all useState declarations to the top
   const [showSearchInput, setShowSearchInput] = useState(false);
@@ -843,11 +845,18 @@ const SubjectCard = ({
       )}
 
       {isFormOpen && (
-        <PracticeExamConfig
+        <PracticeExamConfigProgChair
           isFormOpen={isFormOpen}
           setIsFormOpen={setIsFormOpen}
           subjectID={subjectID}
           onSuccess={handleFormSuccess}
+          isExamQuestionsEnabled={isExamQuestionsEnabled?.[subjectID] ?? false}
+          setIsExamQuestionsEnabled={(value) =>
+            setIsExamQuestionsEnabled((prev) => ({
+              ...prev,
+              [subjectID]: value,
+            }))
+          }
         />
       )}
 
