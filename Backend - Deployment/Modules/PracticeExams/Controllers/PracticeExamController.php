@@ -485,11 +485,6 @@ class PracticeExamController extends Controller
         try {
             $user = Auth::user();
 
-            // Only Dean, Program Chair, or Instructor can preview
-            if (!in_array($user->roleID, [2, 3, 4])) {
-                return response()->json(['message' => 'Unauthorized.'], 403);
-            }
-
             $subject = Subject::find($subjectID);
             if (!$subject) {
                 return response()->json(['message' => 'Subject not found.'], 404);
@@ -503,124 +498,175 @@ class PracticeExamController extends Controller
             // Get difficulty IDs
             $difficulties = Difficulty::all()->pluck('id', 'name');
 
-            // Fetch and group questions by difficulty
-            $questions = Question::with(['choices' => function($query) {
+            // Build base query for questions
+            $questionQuery = Question::with(['choices' => function($query) {
                 $query->orderBy('position', 'asc');
-            }])
+            }, 'user'])
                 ->where('subjectID', $subjectID)
+                ->where('purpose_id', 2)
                 ->whereHas('status', function($query) {
                     $query->where('name', '!=', 'pending');
-                })
-                ->get()
-                ->shuffle();
+                });
 
+            // Apply coverage filter from settings
+            if (!empty($settings->coverage)) {
+                $coverage = strtolower(trim($settings->coverage));
+                if ($coverage === 'full') {
+                    $questionQuery->whereIn('coverage_id', [1, 2]);
+                } else {
+                    $questionQuery->where('coverage_id', $coverage === 'midterm' ? 1 : 2);
+                }
+            }
+
+            // Role-based filtering
+            switch ($user->roleID) {
+                case 5: // Associate Dean
+                    $questionQuery->whereHas('user', function($q) use ($user) {
+                        $q->where('campusID', $user->campusID);
+                    });
+                    break;
+                case 3: // Program Chair
+                    $questionQuery->whereHas('user', function($q) use ($user) {
+                        $q->where('campusID', $user->campusID)
+                          ->where('programID', $user->programID);
+                    });
+                    break;
+                case 2: // Faculty
+                    $questionQuery->where('userID', $user->userID);
+                    break;
+                case 1: // Student
+                    // Only allow questions for their program or general (programID == user.programID or programID == 6)
+                    $questionQuery->whereHas('user', function($q) use ($user) {
+                        $q->where(function($subQ) use ($user) {
+                            $subQ->where('programID', $user->programID)
+                                 ->orWhere('programID', 6);
+                        });
+                    });
+                    break;
+                // Dean (4) and others: no extra filter
+            }
+
+            $questions = $questionQuery->get()->shuffle();
+
+            // Group questions by difficulty
             $grouped = [
-                $difficulties['easy'] => [], 
-                $difficulties['moderate'] => [], 
+                $difficulties['easy'] => [],
+                $difficulties['moderate'] => [],
                 $difficulties['hard'] => []
             ];
-
             foreach ($questions as $q) {
                 if (isset($grouped[$q->difficulty_id])) {
                     $grouped[$q->difficulty_id][] = $q;
                 }
             }
 
-            // Calculate quotas
+            // Calculate quotas (use total_items for quotas, like generate)
+            $targetItems = $settings->total_items;
             $difficultyMap = [
                 $difficulties['easy'] => $settings->easy_percentage,
                 $difficulties['moderate'] => $settings->moderate_percentage,
                 $difficulties['hard'] => $settings->hard_percentage,
             ];
-
             $difficultyQuotas = [];
-            $targetPoints = 100;
-            $remainingPoints = $targetPoints;
-
+            $remainingItems = $targetItems;
             foreach (array_keys($difficultyMap) as $i => $difficultyId) {
                 if ($i === count($difficultyMap) - 1) {
-                    $difficultyQuotas[$diffi6cultyId] = $remainingPoints;
+                    $difficultyQuotas[$difficultyId] = $remainingItems;
                 } else {
-                    $portion = round(($difficultyMap[$difficultyId] / 100) * $targetPoints);
+                    $portion = round(($difficultyMap[$difficultyId] / 100) * $targetItems);
                     $difficultyQuotas[$difficultyId] = $portion;
-                    $remainingPoints -= $portion;
+                    $remainingItems -= $portion;
                 }
             }
 
-            // Select and prepare questions
+            // Select and prepare questions (same as generate, but hide isCorrect in preview)
             $selectedQuestions = [];
             $totalPoints = 0;
-
-            foreach ($difficultyQuotas as $difficultyId => $pointsQuota) {
-                $currentPoints = 0;
+            $totalItems = 0;
+            foreach ($difficultyQuotas as $difficultyId => $itemsQuota) {
+                $currentItems = 0;
                 $availableQuestions = collect($grouped[$difficultyId])->shuffle();
-
                 foreach ($availableQuestions as $q) {
-                    if ($currentPoints + $q->score > $pointsQuota) {
-                        continue;
+                    if ($currentItems >= $itemsQuota) {
+                        break;
                     }
-
-                    // Get regular choices (excluding "None of the above")
                     $regularChoices = $q->choices->where('position', '!=', 5);
                     $noneChoice = $q->choices->where('position', 5)->first();
-
-                    // Ensure one correct and at least three incorrect choices
-                    $correct = $regularChoices->where('isCorrect', true)->first();
-                    $incorrect = $regularChoices->where('isCorrect', false)->take(3);
-
-                    if (!$correct || $incorrect->count() < 3) {
-                        continue;
-                    }
-
-                    try {
-                        // First shuffle and process regular choices (hide isCorrect for preview)
-                        $regularFinalChoices = $incorrect->push($correct)
-                            ->shuffle()
-                            ->take(4)
-                            ->map(function ($choice) use ($q) {
-                                $formatted = $this->formatChoice($choice, $q);
-                                unset($formatted['isCorrect']); // Hide correct answer in preview
-                                return $formatted;
-                            })->values();
-
-                        // Add "None of the above" as the fifth choice
-                        if ($noneChoice) {
-                            $noneFormatted = $this->formatChoice($noneChoice, $q);
-                            unset($noneFormatted['isCorrect']);
-                            $finalChoices = $regularFinalChoices->push($noneFormatted);
-                        } else {
-                            $finalChoices = $regularFinalChoices;
+                    $isNoneCorrect = $noneChoice && $noneChoice->isCorrect;
+                    if ($isNoneCorrect) {
+                        if ($regularChoices->where('isCorrect', false)->count() < 4) {
+                            continue;
                         }
-
+                        try {
+                            $finalRegularChoices = $regularChoices->where('isCorrect', false)
+                                ->shuffle()
+                                ->take(4)
+                                ->map(function ($choice) use ($q) {
+                                    $formatted = $this->formatChoice($choice, $q);
+                                    unset($formatted['isCorrect']);
+                                    return $formatted;
+                                })->values();
+                            $noneOfTheAbove = $this->formatChoice($noneChoice, $q);
+                            unset($noneOfTheAbove['isCorrect']);
+                            $finalChoices = $finalRegularChoices->push($noneOfTheAbove);
+                        } catch (\Exception $e) {
+                            continue;
+                        }
+                    } else {
+                        $correct = $regularChoices->where('isCorrect', true)->first();
+                        $incorrect = $regularChoices->where('isCorrect', false)->take(3);
+                        if (!$correct || $incorrect->count() < 3) {
+                            continue;
+                        }
+                        try {
+                            $finalRegularChoices = $incorrect->push($correct)
+                                ->shuffle()
+                                ->take(4)
+                                ->map(function ($choice) use ($q) {
+                                    $formatted = $this->formatChoice($choice, $q);
+                                    unset($formatted['isCorrect']);
+                                    return $formatted;
+                                })->values();
+                            if ($noneChoice) {
+                                $noneOfTheAbove = $this->formatChoice($noneChoice, $q);
+                                unset($noneOfTheAbove['isCorrect']);
+                                $finalChoices = $finalRegularChoices->push($noneOfTheAbove);
+                            } else {
+                                $finalChoices = $finalRegularChoices;
+                            }
+                        } catch (\Exception $e) {
+                            continue;
+                        }
+                    }
+                    try {
                         $questionText = Crypt::decryptString($q->questionText);
+                        $questionImage = null;
+                        if ($q->image) {
+                            if (filter_var($q->image, FILTER_VALIDATE_URL)) {
+                                $questionImage = $q->image;
+                            } elseif (Storage::disk('public')->exists($q->image)) {
+                                $questionImage = asset('storage/' . $q->image);
+                            }
+                        }
+                        $selectedQuestions[] = [
+                            'questionID' => $q->questionID,
+                            'questionText' => $questionText,
+                            'questionImage' => $questionImage,
+                            'score' => $q->score,
+                            'choices' => $finalChoices,
+                        ];
+                        $currentItems++;
+                        $totalItems++;
+                        $totalPoints += $q->score;
                     } catch (\Exception $e) {
                         continue;
                     }
-
-                    $questionImage = $q->image && Storage::disk('public')->exists($q->image)
-                        ? asset('storage/' . $q->image)
-                        : null;
-
-                    $selectedQuestions[] = [
-                        'questionID' => $q->questionID,
-                        'questionText' => $questionText,
-                        'questionImage' => $questionImage,
-                        'score' => $q->score,
-                        'choices' => $finalChoices,
-                    ];
-
-                    $currentPoints += $q->score;
-                    $totalPoints += $q->score;
-
-                    if ($currentPoints >= $pointsQuota) {
-                        break;
-                    }
                 }
             }
-
             return response()->json([
                 'message' => 'Preview loaded successfully.',
                 'questions' => $selectedQuestions,
+                'totalItems' => $totalItems,
                 'totalPoints' => $totalPoints,
                 'durationMinutes' => $settings->duration_minutes,
             ]);

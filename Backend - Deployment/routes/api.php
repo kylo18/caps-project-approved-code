@@ -87,7 +87,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::post('/generate-printable-exam/{subjectID}', [PrintController::class, 'generatePrintableExam']);
 
     // Practice exam preview (Dean/Chair/Instructor can preview)
-    Route::get('/api/exam/preview/{subjectID}', [PracticeExamController::class, 'generate']);
+    Route::get('/practice-exam/preview/{subjectID}', [PracticeExamController::class, 'previewPracticeExam']);
 
     // Single-subject personal questions preview (Quiz)
     Route::post('/generate-single-subject-personal-preview', [PrintController::class, 'generateSingleSubjectPersonalPreview']);
@@ -101,6 +101,9 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
 
     // Get all students enrolled under the authenticated teacher
     Route::get('/my-students', [StudentTeacherEnrollmentController::class, 'myStudents']);
+
+    // Get exam questions status
+    Route::get('/subjects/{subjectID}/exam-questions-status', [SubjectController::class, 'getExamQuestionsStatus']);
 });
 
 /*
@@ -177,7 +180,6 @@ Route::middleware(['auth:sanctum', 'role:4,5'])->group(function () {
     // Exam questions management
     Route::patch('/subjects/{subjectID}/enable-exam-questions', [SubjectController::class, 'enableExamQuestions']);
     Route::patch('/subjects/{subjectID}/disable-exam-questions', [SubjectController::class, 'disableExamQuestions']);
-    Route::get('/subjects/{subjectID}/exam-questions-status', [SubjectController::class, 'getExamQuestionsStatus']);
 });
 
 // Serve question_images and choices with CORS headers for frontend PDF rendering
