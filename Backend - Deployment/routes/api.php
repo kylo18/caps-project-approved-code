@@ -82,6 +82,8 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/faculty/my-questions/{subjectID}', [QuestionController::class, 'mySubjectQuestions']);
     Route::post('/choices/update', [ChoiceController::class, 'updateChoices']);
     Route::post('/questions/{questionID}/duplicate', [QuestionController::class, 'duplicate']);
+    // New route: Get all questions without choices
+    Route::get('/questions/count', [QuestionController::class, 'questionCount']);
 
     // Printable exam (PDF preview/download)
     Route::post('/generate-printable-exam/{subjectID}', [PrintController::class, 'generatePrintableExam']);
