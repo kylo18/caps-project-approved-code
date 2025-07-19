@@ -63,6 +63,11 @@ export default function LoginPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
+      // Redirect to /dashboard/:userId after login
+      navigate(
+        `/dashboard/${data.user.userID || data.user.id || data.user._id}`,
+      );
+
       const roleId = Number(data.user.roleID);
       switch (roleId) {
         case 1:

@@ -80,6 +80,34 @@ const FacultyContent = () => {
   // State for loading
   const [isLoading, setIsLoading] = useState(true);
 
+  const [isExamQuestionsEnabled, setIsExamQuestionsEnabled] = useState({});
+
+  // Fetch QE enabled status when subject changes
+  useEffect(() => {
+    if (selectedSubject && selectedSubject.subjectID) {
+      const fetchExamQuestionsStatus = async () => {
+        const token = localStorage.getItem("token");
+        try {
+          const res = await fetch(
+            `${apiUrl}/subjects/${selectedSubject.subjectID}/exam-questions-status`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setIsExamQuestionsEnabled((prev) => ({
+              ...prev,
+              [selectedSubject.subjectID]:
+                !!data.data?.is_enabled_for_exam_questions,
+            }));
+          }
+        } catch (err) {
+          // Optionally handle error
+        }
+      };
+      fetchExamQuestionsStatus();
+    }
+  }, [selectedSubject, apiUrl]);
+
   // Effect to fetch questions when subject changes
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
@@ -448,6 +476,12 @@ const FacultyContent = () => {
                 setSelectedSubject={setSelectedSubject}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
+                setIsExamQuestionsEnabled={(value) => {
+                  setIsExamQuestionsEnabled((prev) => ({
+                    ...prev,
+                    [selectedSubject?.subjectID]: value,
+                  }));
+                }}
               />
             </div>
             {/*Search bar div here*/}
@@ -534,6 +568,9 @@ const FacultyContent = () => {
                         onComplete={handleQuestionAdded}
                         onCancel={() => setSubmittedQuestion(null)}
                         activeTab={activeTab}
+                        isExamQuestionsEnabled={
+                          isExamQuestionsEnabled[selectedSubject?.subjectID]
+                        }
                       />
                     </div>
                   )}

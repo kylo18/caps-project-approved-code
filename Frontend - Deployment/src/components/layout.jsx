@@ -6,7 +6,11 @@ import { Outlet, useLocation } from "react-router-dom";
 // Main Layout
 const Layout = () => {
   const [role_id, setRoleId] = useState(null);
-  const [selectedSubject, setSelectedSubject] = useState(null);
+  // Load selectedSubject from localStorage on mount
+  const [selectedSubject, setSelectedSubject] = useState(() => {
+    const saved = localStorage.getItem("selectedSubject");
+    return saved ? JSON.parse(saved) : null;
+  });
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
   const location = useLocation();
@@ -31,6 +35,15 @@ const Layout = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Persist selectedSubject to localStorage whenever it changes
+  useEffect(() => {
+    if (selectedSubject) {
+      localStorage.setItem("selectedSubject", JSON.stringify(selectedSubject));
+    } else {
+      localStorage.removeItem("selectedSubject");
+    }
+  }, [selectedSubject]);
 
   const roleTitle =
     role_id !== null && roleMap[role_id] ? roleMap[role_id] : "User";

@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
-import PracticeExamConfig from "./practiceExamConfig";
-import { useNavigate } from "react-router-dom";
 import SearchQuery from "./SearchQuery";
 import ConfirmModal from "./confirmModal";
 
@@ -807,15 +805,6 @@ const SubjectCard = ({
           isLoading={isDeleting}
           showCountdown={true}
           countdownSeconds={6}
-        />
-      )}
-
-      {isFormOpen && (
-        <PracticeExamConfig
-          isFormOpen={isFormOpen}
-          setIsFormOpen={setIsFormOpen}
-          subjectID={subjectID}
-          onSuccess={handleFormSuccess}
         />
       )}
     </div>

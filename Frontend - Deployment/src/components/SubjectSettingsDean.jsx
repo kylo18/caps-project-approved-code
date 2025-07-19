@@ -228,35 +228,6 @@ const PracticeExamConfig = ({
 
   const { toast, showToast } = useToast();
 
-  // Handler for toggling exam questions
-  const handleExamQuestionsToggle = async (e) => {
-    const checked = e.target.checked;
-    setIsExamQuestionsLoading(true);
-    // setErrorMessage("");
-    try {
-      const token = localStorage.getItem("token");
-      const endpoint = checked
-        ? `${apiUrl}/subjects/${subjectID}/enable-exam-questions`
-        : `${apiUrl}/subjects/${subjectID}/disable-exam-questions`;
-      const response = await fetch(endpoint, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Failed to update setting.");
-      }
-      setIsExamQuestionsEnabled(checked);
-    } catch (err) {
-      showToast(err.message || "Failed to update setting.", "error");
-    } finally {
-      setIsExamQuestionsLoading(false);
-    }
-  };
-
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setSettings((prev) => ({
