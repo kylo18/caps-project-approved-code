@@ -651,7 +651,7 @@ const SubjectCard = ({
             {/* Button row for Tablet and Mobile (Configure, Preview, Refresh) */}
             <div className="open-sans mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold sm:flex md:hidden">
               <button
-                onClick={() => navigate(`/practice-exam/preview/${subjectID}`)}
+                onClick={() => alert("Feature is coming in the next update")}
                 className="mb-6 flex cursor-pointer items-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
               >
                 <i className="bx bx-eye text-lg"></i>
@@ -871,9 +871,7 @@ const SubjectCard = ({
 
                 {/* Preview Button */}
                 <button
-                  onClick={() =>
-                    navigate(`/practice-exam/preview/${subjectID}`)
-                  }
+                  onClick={() => alert("Feature is coming in the next update")}
                   className="hidden cursor-pointer items-center gap-2 rounded-lg border border-b-4 border-orange-600 bg-orange-500 px-4 py-2 text-white transition-all duration-100 hover:bg-orange-600 active:translate-y-[2px] active:border-b-2 md:flex"
                 >
                   <i className="bx bx-eye-big text-xl"></i>
