@@ -81,30 +81,53 @@ const FacultyContent = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isExamQuestionsEnabled, setIsExamQuestionsEnabled] = useState({});
+  const [practiceExamSettings, setPracticeExamSettings] = useState({});
 
-  // Fetch QE enabled status when subject changes
+  // Fetch QE enabled status and practice exam settings when subject changes
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
-      const fetchExamQuestionsStatus = async () => {
+      const fetchSubjectSettings = async () => {
         const token = localStorage.getItem("token");
         try {
-          const res = await fetch(
+          // Fetch QE status
+          const qeResponse = await fetch(
             `${apiUrl}/subjects/${selectedSubject.subjectID}/exam-questions-status`,
             { headers: { Authorization: `Bearer ${token}` } },
           );
-          if (res.ok) {
-            const data = await res.json();
+
+          // Fetch practice exam settings
+          const practiceResponse = await fetch(
+            `${apiUrl}/practice-settings/${selectedSubject.subjectID}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+
+          if (qeResponse.ok) {
+            const qeData = await qeResponse.json();
             setIsExamQuestionsEnabled((prev) => ({
               ...prev,
               [selectedSubject.subjectID]:
-                !!data.data?.is_enabled_for_exam_questions,
+                !!qeData.data?.is_enabled_for_exam_questions,
+            }));
+          }
+
+          if (practiceResponse.ok) {
+            const practiceData = await practiceResponse.json();
+            console.log(
+              "Fetched practice settings for subject",
+              selectedSubject.subjectID,
+              ":",
+              practiceData.data,
+            );
+            setPracticeExamSettings((prev) => ({
+              ...prev,
+              [selectedSubject.subjectID]: practiceData.data || null,
             }));
           }
         } catch (err) {
-          // Optionally handle error
+          console.error("Error fetching subject settings:", err);
         }
       };
-      fetchExamQuestionsStatus();
+      fetchSubjectSettings();
     }
   }, [selectedSubject, apiUrl]);
 

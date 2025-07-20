@@ -16,6 +16,8 @@ const PracticeExamConfig = ({
   onSuccess,
   isExamQuestionsEnabled,
   setIsExamQuestionsEnabled,
+  practiceExamSettings,
+  setPracticeExamSettings,
 }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [mode, setMode] = useState("default");
@@ -54,6 +56,108 @@ const PracticeExamConfig = ({
       setLocalExamQuestionsEnabled(isExamQuestionsEnabled);
     }
   }, [isFormOpen, isExamQuestionsEnabled, subjectID]);
+
+  // Sync settings from parent when modal opens or subjectID changes
+  useEffect(() => {
+    if (isFormOpen && practiceExamSettings) {
+      setSettings({
+        subjectID: practiceExamSettings.subjectID || subjectID,
+        isEnabled: practiceExamSettings.isEnabled ?? false,
+        enableTimer: (practiceExamSettings.duration_minutes ?? 0) > 0,
+        duration_minutes: practiceExamSettings.duration_minutes ?? 30,
+        coverage: practiceExamSettings.coverage ?? "midterm",
+        easy_percentage: practiceExamSettings.easy_percentage ?? 30,
+        moderate_percentage: practiceExamSettings.moderate_percentage ?? 50,
+        hard_percentage: practiceExamSettings.hard_percentage ?? 20,
+        total_items: practiceExamSettings.total_items ?? 100,
+      });
+      // Set mode
+      const isDefaultDistribution =
+        (practiceExamSettings.easy_percentage ?? 30) === 30 &&
+        (practiceExamSettings.moderate_percentage ?? 50) === 50 &&
+        (practiceExamSettings.hard_percentage ?? 20) === 20;
+      setMode(isDefaultDistribution ? "default" : "custom");
+    }
+  }, [isFormOpen, subjectID, practiceExamSettings]);
+
+  // Fetch current settings when form opens
+  useEffect(() => {
+    const fetchCurrentSettings = async () => {
+      if (isFormOpen && subjectID) {
+        try {
+          setLoading(true);
+          const token = localStorage.getItem("token");
+
+          // Fetch QE status
+          const qeResponse = await fetch(
+            `${apiUrl}/subjects/${subjectID}/exam-questions-status`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            },
+          );
+
+          // Fetch practice settings
+          const practiceResponse = await fetch(
+            `${apiUrl}/practice-settings/${subjectID}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            },
+          );
+
+          if (qeResponse.ok) {
+            const qeData = await qeResponse.json();
+            setLocalExamQuestionsEnabled(
+              !!qeData.data?.is_enabled_for_exam_questions,
+            );
+          }
+
+          if (practiceResponse.ok) {
+            const practiceResult = await practiceResponse.json();
+
+            console.log("Practice settings response:", practiceResult);
+
+            if (practiceResult.data) {
+              // Update settings with fetched data
+              setSettings({
+                subjectID: practiceResult.data.subjectID,
+                isEnabled: practiceResult.data.isEnabled,
+                enableTimer: practiceResult.data.duration_minutes > 0,
+                duration_minutes: practiceResult.data.duration_minutes || 30,
+                coverage: practiceResult.data.coverage,
+                easy_percentage: practiceResult.data.easy_percentage,
+                moderate_percentage: practiceResult.data.moderate_percentage,
+                hard_percentage: practiceResult.data.hard_percentage,
+                total_items: practiceResult.data.total_items || 100,
+              });
+
+              // Set mode based on percentages
+              const isDefaultDistribution =
+                practiceResult.data.easy_percentage === 30 &&
+                practiceResult.data.moderate_percentage === 50 &&
+                practiceResult.data.hard_percentage === 20;
+
+              setMode(isDefaultDistribution ? "default" : "custom");
+            } else {
+              console.log("No practice settings data found");
+            }
+          } else {
+            console.log("Practice response status:", practiceResponse.status);
+          }
+        } catch (error) {
+          console.error("Error fetching settings:", error);
+          showToast("Failed to load current settings", "error");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchCurrentSettings();
+  }, [isFormOpen, subjectID, apiUrl]);
 
   // Local dropdown state for Coverage
   const [isCoverageOpen, setIsCoverageOpen] = useLocalState(false);
@@ -94,137 +198,6 @@ const PracticeExamConfig = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  // Fetch current settings when form opens
-  useEffect(() => {
-    const fetchCurrentSettings = async () => {
-      if (isFormOpen && subjectID) {
-        try {
-          setLoading(true);
-          setIsExamQuestionsLoading(true);
-          const token = localStorage.getItem("token");
-
-          // Fetch practice settings
-          const practiceResponse = await fetch(
-            `${apiUrl}/practice-settings/${subjectID}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-          // Fetch exam questions status
-          const examQuestionsResponse = await fetch(
-            `${apiUrl}/subjects/${subjectID}/exam-questions-status`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-          if (practiceResponse.ok && examQuestionsResponse.ok) {
-            const practiceResult = await practiceResponse.json();
-            const examQuestionsResult = await examQuestionsResponse.json();
-
-            console.log("Practice settings response:", practiceResult);
-            console.log("Exam questions response:", examQuestionsResult);
-
-            if (practiceResult.data) {
-              // Update settings with fetched data
-              setSettings({
-                subjectID: practiceResult.data.subjectID,
-                isEnabled: practiceResult.data.isEnabled,
-                enableTimer: practiceResult.data.duration_minutes > 0,
-                duration_minutes: practiceResult.data.duration_minutes || 30,
-                coverage: practiceResult.data.coverage,
-                easy_percentage: practiceResult.data.easy_percentage,
-                moderate_percentage: practiceResult.data.moderate_percentage,
-                hard_percentage: practiceResult.data.hard_percentage,
-                total_items: practiceResult.data.total_items || 100,
-              });
-
-              // Set mode based on percentages and update the dropdown
-              const isDefaultDistribution =
-                practiceResult.data.easy_percentage === 30 &&
-                practiceResult.data.moderate_percentage === 50 &&
-                practiceResult.data.hard_percentage === 20;
-
-              setMode(isDefaultDistribution ? "default" : "custom");
-
-              // If it's custom, ensure the custom distribution is visible
-              if (!isDefaultDistribution) {
-                // Force a small delay to ensure the mode change is processed
-                setTimeout(() => {
-                  const customOption = document.querySelector(
-                    'select[name="difficultyMode"] option[value="custom"]',
-                  );
-                  if (customOption) {
-                    customOption.selected = true;
-                  }
-                }, 0);
-              }
-            } else {
-              console.log("No practice settings data found");
-            }
-
-            if (examQuestionsResult.data) {
-              // Update exam questions status
-              const examQuestionsEnabled =
-                !!examQuestionsResult.data.is_enabled_for_exam_questions;
-              setIsExamQuestionsEnabled(examQuestionsEnabled);
-              setLocalExamQuestionsEnabled(examQuestionsEnabled);
-            } else {
-              console.log("No exam questions data found");
-            }
-          } else {
-            console.log("Practice response status:", practiceResponse.status);
-            console.log(
-              "Exam questions response status:",
-              examQuestionsResponse.status,
-            );
-
-            // Handle individual endpoint failures
-            if (practiceResponse.ok) {
-              const practiceResult = await practiceResponse.json();
-              if (practiceResult.data) {
-                setSettings({
-                  subjectID: practiceResult.data.subjectID,
-                  isEnabled: practiceResult.data.isEnabled,
-                  enableTimer: practiceResult.data.duration_minutes > 0,
-                  duration_minutes: practiceResult.data.duration_minutes || 30,
-                  coverage: practiceResult.data.coverage,
-                  easy_percentage: practiceResult.data.easy_percentage,
-                  moderate_percentage: practiceResult.data.moderate_percentage,
-                  hard_percentage: practiceResult.data.hard_percentage,
-                  total_items: practiceResult.data.total_items || 100,
-                });
-              }
-            }
-
-            if (examQuestionsResponse.ok) {
-              const examQuestionsResult = await examQuestionsResponse.json();
-              if (examQuestionsResult.data) {
-                const examQuestionsEnabled =
-                  !!examQuestionsResult.data.is_enabled_for_exam_questions;
-                setIsExamQuestionsEnabled(examQuestionsEnabled);
-                setLocalExamQuestionsEnabled(examQuestionsEnabled);
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching settings:", error);
-          showToast("Failed to load current settings", "error");
-        } finally {
-          setLoading(false);
-          setIsExamQuestionsLoading(false);
-        }
-      }
-    };
-
-    fetchCurrentSettings();
-  }, [isFormOpen, subjectID, apiUrl]);
 
   const { toast, showToast } = useToast();
 
@@ -331,18 +304,17 @@ const PracticeExamConfig = ({
       }
 
       if (res.ok) {
-        // Reset settings after success
-        setSettings({
-          subjectID: subjectID,
-          isEnabled: true,
-          enableTimer: false,
-          duration_minutes: 30,
-          coverage: "midterm",
-          easy_percentage: 30,
-          moderate_percentage: 50,
-          hard_percentage: 20,
-          total_items: 100,
-        });
+        // Update parent state with the saved settings
+        if (setPracticeExamSettings) {
+          setPracticeExamSettings((prev) => ({
+            ...prev,
+            [subjectID]: payload,
+          }));
+        }
+
+        // Dispatch refresh event to update the subjects list
+        window.dispatchEvent(new Event("refreshSubjectsList"));
+
         if (onSuccess) onSuccess();
         setIsFormOpen(false);
         // setErrorMessage("");

@@ -14,14 +14,12 @@ const PracticeExamConfig = ({
   isFormOpen,
   setIsFormOpen,
   onSuccess,
-  isExamQuestionsEnabled,
-  setIsExamQuestionsEnabled,
+  practiceExamSettings,
+  setPracticeExamSettings,
 }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [mode, setMode] = useState("default");
   const [isEditing, setIsEditing] = useState(false);
-  // Remove errorMessage state
-  // const [errorMessage, setErrorMessage] = useState("");
 
   // State of Practice Settings
   const [settings, setSettings] = useState({
@@ -38,22 +36,6 @@ const PracticeExamConfig = ({
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-
-  // Add at the top, after useState imports
-  const [isExamQuestionsLoading, setIsExamQuestionsLoading] = useState(false);
-
-  // In the props, keep isExamQuestionsEnabled and setIsExamQuestionsEnabled
-  // Add a local state for the toggle:
-  const [localExamQuestionsEnabled, setLocalExamQuestionsEnabled] = useState(
-    isExamQuestionsEnabled,
-  );
-
-  // Sync local state with prop when modal opens or subjectID changes
-  useEffect(() => {
-    if (isFormOpen) {
-      setLocalExamQuestionsEnabled(isExamQuestionsEnabled);
-    }
-  }, [isFormOpen, isExamQuestionsEnabled, subjectID]);
 
   // Local dropdown state for Coverage
   const [isCoverageOpen, setIsCoverageOpen] = useLocalState(false);
@@ -101,7 +83,6 @@ const PracticeExamConfig = ({
       if (isFormOpen && subjectID) {
         try {
           setLoading(true);
-          setIsExamQuestionsLoading(true);
           const token = localStorage.getItem("token");
 
           // Fetch practice settings
@@ -114,22 +95,10 @@ const PracticeExamConfig = ({
             },
           );
 
-          // Fetch exam questions status
-          const examQuestionsResponse = await fetch(
-            `${apiUrl}/subjects/${subjectID}/exam-questions-status`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-          if (practiceResponse.ok && examQuestionsResponse.ok) {
+          if (practiceResponse.ok) {
             const practiceResult = await practiceResponse.json();
-            const examQuestionsResult = await examQuestionsResponse.json();
 
             console.log("Practice settings response:", practiceResult);
-            console.log("Exam questions response:", examQuestionsResult);
 
             if (practiceResult.data) {
               // Update settings with fetched data
@@ -168,57 +137,14 @@ const PracticeExamConfig = ({
             } else {
               console.log("No practice settings data found");
             }
-
-            if (examQuestionsResult.data) {
-              // Update exam questions status
-              const examQuestionsEnabled =
-                !!examQuestionsResult.data.is_enabled_for_exam_questions;
-              setIsExamQuestionsEnabled(examQuestionsEnabled);
-              setLocalExamQuestionsEnabled(examQuestionsEnabled);
-            } else {
-              console.log("No exam questions data found");
-            }
           } else {
             console.log("Practice response status:", practiceResponse.status);
-            console.log(
-              "Exam questions response status:",
-              examQuestionsResponse.status,
-            );
-
-            // Handle individual endpoint failures
-            if (practiceResponse.ok) {
-              const practiceResult = await practiceResponse.json();
-              if (practiceResult.data) {
-                setSettings({
-                  subjectID: practiceResult.data.subjectID,
-                  isEnabled: practiceResult.data.isEnabled,
-                  enableTimer: practiceResult.data.duration_minutes > 0,
-                  duration_minutes: practiceResult.data.duration_minutes || 30,
-                  coverage: practiceResult.data.coverage,
-                  easy_percentage: practiceResult.data.easy_percentage,
-                  moderate_percentage: practiceResult.data.moderate_percentage,
-                  hard_percentage: practiceResult.data.hard_percentage,
-                  total_items: practiceResult.data.total_items || 100,
-                });
-              }
-            }
-
-            if (examQuestionsResponse.ok) {
-              const examQuestionsResult = await examQuestionsResponse.json();
-              if (examQuestionsResult.data) {
-                const examQuestionsEnabled =
-                  !!examQuestionsResult.data.is_enabled_for_exam_questions;
-                setIsExamQuestionsEnabled(examQuestionsEnabled);
-                setLocalExamQuestionsEnabled(examQuestionsEnabled);
-              }
-            }
           }
         } catch (error) {
           console.error("Error fetching settings:", error);
           showToast("Failed to load current settings", "error");
         } finally {
           setLoading(false);
-          setIsExamQuestionsLoading(false);
         }
       }
     };
@@ -312,18 +238,13 @@ const PracticeExamConfig = ({
       }
 
       if (res.ok) {
-        // Reset settings after success
-        setSettings({
-          subjectID: subjectID,
-          isEnabled: true,
-          enableTimer: false,
-          duration_minutes: 30,
-          coverage: "midterm",
-          easy_percentage: 30,
-          moderate_percentage: 50,
-          hard_percentage: 20,
-          total_items: 100,
-        });
+        // Update parent state with the saved settings
+        if (setPracticeExamSettings) {
+          setPracticeExamSettings((prev) => ({
+            ...prev,
+            [subjectID]: payload,
+          }));
+        }
         if (onSuccess) onSuccess();
         setIsFormOpen(false);
         // setErrorMessage("");
@@ -448,26 +369,6 @@ const PracticeExamConfig = ({
                     </div>
                   ) : (
                     <>
-                      <label className="mb-5 block cursor-pointer">
-                        <div className="flex items-center justify-between">
-                          <span className="block text-[14px] text-gray-700">
-                            Enable Qualifying Exam Question Entry
-                          </span>
-                          <label className="relative inline-flex cursor-pointer items-center">
-                            <input
-                              type="checkbox"
-                              name="isExamQuestionsEnabled"
-                              checked={localExamQuestionsEnabled}
-                              onChange={(e) =>
-                                setLocalExamQuestionsEnabled(e.target.checked)
-                              }
-                              disabled={isExamQuestionsLoading}
-                              className="peer sr-only"
-                            />
-                            <div className="peer h-6 w-11 rounded-full bg-gray-300 peer-checked:bg-orange-500 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
-                          </label>
-                        </div>
-                      </label>
                       <label className="mb-2 block cursor-pointer">
                         <div className="flex items-center justify-between">
                           <span className="block text-[14px] text-gray-700">
@@ -721,13 +622,13 @@ const PracticeExamConfig = ({
                 {/* Right Panel */}
                 <div className="practice-config-scrollable custom-scrollbar flex min-h-screen flex-1 flex-col overflow-y-auto px-5 py-4 pb-24">
                   {/* One loader for the entire settings panel */}
-                  {(loading || isExamQuestionsLoading) && (
+                  {loading && (
                     <div className="bg-opacity-70 absolute top-0 left-0 z-20 flex h-full w-full items-center justify-center bg-white">
                       <span className="loader"></span>
                     </div>
                   )}
                   {/* Practice Exam Section only */}
-                  {!loading && !isExamQuestionsLoading && (
+                  {!loading && (
                     <>
                       <div ref={practiceRef} className="scroll-mt-[16px]">
                         <form

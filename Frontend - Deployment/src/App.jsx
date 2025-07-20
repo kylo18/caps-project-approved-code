@@ -22,6 +22,7 @@ import AssoDeanContent from "./pages/AssoDeanContent";
 
 import PracticeExamResults from "./pages/PracticeExamResults";
 import PracticeExam from "./pages/PracticeExam";
+import PracticeExamPreview from "./pages/PracticeExamPreview";
 
 import ResetPasswordPage from "./components/resetPassForm";
 import ForgotPasswordForm from "./components/forgotPassForm";
@@ -61,6 +62,13 @@ function App() {
         >
           <Route index element={<PracticeExam />} />
           <Route path="content" element={<PracticeExam />} />
+        </Route>
+
+        <Route
+          path="/practice-exam/preview/:subjectID"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<PracticeExamPreview />} />
         </Route>
 
         <Route

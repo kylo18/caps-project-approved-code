@@ -19,13 +19,12 @@ const SubjectCard = ({
   yearLevel,
   programID,
   yearLevelID,
-  refreshSubjects,
   setSelectedSubject,
   showToast,
   searchQuery,
   setSearchQuery,
-  isExamQuestionsEnabled,
-  setIsExamQuestionsEnabled,
+  practiceExamSettings,
+  setPracticeExamSettings,
 }) => {
   // Move all useState declarations to the top
   const [showSearchInput, setShowSearchInput] = useState(false);
@@ -321,8 +320,6 @@ const SubjectCard = ({
       const result = await response.json();
       if (response.ok) {
         showToast(result.message || "Subject updated successfully", "success");
-        if (refreshSubjects) refreshSubjects();
-        window.dispatchEvent(new Event("refreshSubjectsList"));
         if (onFetchQuestions) onFetchQuestions();
         if (setSelectedSubject) setSelectedSubject(null);
         setEditingSubject(false);
@@ -497,7 +494,6 @@ const SubjectCard = ({
       );
       if (response.ok) {
         if (setSelectedSubject) setSelectedSubject(null);
-        if (refreshSubjects) refreshSubjects();
         window.dispatchEvent(new Event("refreshSubjectsList"));
         showToast("Subject deleted successfully", "success");
       } else {
@@ -850,13 +846,8 @@ const SubjectCard = ({
           setIsFormOpen={setIsFormOpen}
           subjectID={subjectID}
           onSuccess={handleFormSuccess}
-          isExamQuestionsEnabled={isExamQuestionsEnabled?.[subjectID] ?? false}
-          setIsExamQuestionsEnabled={(value) =>
-            setIsExamQuestionsEnabled((prev) => ({
-              ...prev,
-              [subjectID]: value,
-            }))
-          }
+          practiceExamSettings={practiceExamSettings}
+          setPracticeExamSettings={setPracticeExamSettings}
         />
       )}
 

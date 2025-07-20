@@ -45,17 +45,17 @@ export default function SubjectSearchInput({ options, onChange, placeholder }) {
   };
 
   return (
-    <div className="relative" ref={wrapperRef}>
+    <div className="open-sans relative" ref={wrapperRef}>
       <input
         type="text"
         value={searchTerm}
         onChange={handleInputChange}
         onFocus={() => setShowSuggestions(true)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-700 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+        className="open-sans mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[12px] text-gray-700 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none sm:w-85"
       />
       {showSuggestions && (
-        <div className="ring-opacity-5 border-color absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-white py-1 shadow-lg">
+        <div className="open-sans animate-fadein ring-opacity-5 border-color custom-scrollbar absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-white p-1 shadow-lg">
           {isLoading ? (
             <div className="flex items-center justify-center py-2">
               <span className="loader"></span>
@@ -69,13 +69,13 @@ export default function SubjectSearchInput({ options, onChange, placeholder }) {
               return (
                 <React.Fragment key={option.value}>
                   {showYearLabel && (
-                    <div className="sticky top-[-4px] bg-gray-200 px-4 py-2 text-xs font-medium text-gray-500">
+                    <div className="sticky top-[-4px] bg-gray-100 px-4 py-2 text-[12px] font-medium text-gray-900">
                       {option.yearLevel}
                     </div>
                   )}
                   <div
                     onClick={() => handleSuggestionClick(option)}
-                    className="cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    className="cursor-pointer rounded-sm px-4 py-2 text-[12px] text-gray-700 hover:bg-gray-100"
                   >
                     {option.subjectCode} - {option.label}
                   </div>
@@ -83,7 +83,7 @@ export default function SubjectSearchInput({ options, onChange, placeholder }) {
               );
             })
           ) : (
-            <div className="px-4 py-2 text-center text-sm text-gray-500">
+            <div className="px-4 py-2 text-center text-[12px] text-gray-500">
               No subjects found
             </div>
           )}
