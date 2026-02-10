@@ -128,3 +128,14 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Ignore Docker volumes
+docker-data/mysql_data/
+docker-data
+
+# docker compose
+docker-compose.yml
+Questions for Testing/Sample Questions.txt
+Questions for Testing/EE SAMPLE QUESTIONS.txt
+Questions for Testing/CPE SAMPLE QUESTIONS.txt
+Questions for Testing/CE SAMPLE QUESITONS.txt

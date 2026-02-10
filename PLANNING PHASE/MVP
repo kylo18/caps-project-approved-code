@@ -1,0 +1,62 @@
+MVP (Minimum Viable Product) in CAPS
+Definition of MVP (Minimum Viable Product):
+MVP is the simplest version of a product that delivers core functionalities to users while minimizing development time and effort. It allows early user feedback and validation before investing in full-scale development.
+________________________________________
+MVP for CAPS (Comprehensive Assessment and Preparation System)
+In the CAPS project, the MVP focuses on essential features that allow students to take tests, faculty to manage questions, and administrators to oversee the process efficiently.
+
+These core features provide the most value while keeping effort manageable.
+
+1. User Registration & Login System
+	Secure login for students, faculty, program chairs, and super admins.
+	Role-Based Access Control (RBAC) – Users have different permissions.
+	Basic password recovery via email.
+
+2. Question Bank Management
+	Faculty can add, modify, remove but changes require approval from Program Chair/Dean.
+	Categorization of questions by subject, difficulty, and coverage.
+	Search function to quickly find questions.
+
+3. Question Approval System
+	All added, modified, or removed questions require Program Chair/Dean approval.
+	Approval requests are logged for transparency.
+	Approved questions become available for test creation.
+
+4. Basic Test Creation & Management (Including Randomization)
+	Faculty can create assessments from an approved question bank.
+	Randomization feature to avoid repetitive test patterns.
+	Save test drafts for future editing.
+
+5. Student Dashboard and UI
+	Students experience the easiest UI/UX of the system.
+	Students can view test history, and performance reports.
+	Visual indicators (charts/graphs) for strengths and weaknesses.
+
+6. Automated Scoring for Objective Questions
+	System auto-grades multiple-choice questions.
+	Students receive immediate feedback.
+	Scores are stored for performance tracking.
+
+7. Question Printing System
+	Super Admins can print and authorize exam questions.
+	Faculty can print school-level exams.
+	Generates well-formatted PDFs.
+
+
+🔹 Why this MVP?
+	High Value & Low Effort – These features deliver immediate functionality with minimal complexity.
+	Early User Testing – Allows faculty and students to interact with the system and provide feedback.
+	Foundation for Future Enhancements – More advanced features (e.g., Secure Online Testing, Approval System) can be added later.
+	Ensures Question Quality – Prevents invalid or duplicate questions.
+	Maintains Academic Integrity – Faculty cannot bypass the review process.
+	Regulatory Compliance – Aligns with institutional policies.
+	High Impact, Moderate Effort – Key for system credibility.
+
+
+🚀 Next Steps After MVP
+Once the MVP is stable, the next priorities will be:
+🔹 Secure Online Testing – Anti-cheating measures (full-screen mode, time tracking)
+🔹 Faculty Assignment & Subject Difficulty Control – Super Admins manage system settings
+🔹 Gamification & UI Enhancements – Boosts student engagement
+
+With these MVP, CAPS will launch with a strong foundation while ensuring academic integrity.

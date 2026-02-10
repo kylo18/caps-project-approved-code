@@ -1,0 +1,12 @@
+1. Go to your project directory in the server.
+
+2. Grant execute privilege to the script.
+
+ chmod u+x pull_code.sh
+
+ 3. Run the pull_code.sh script. 
+
+ ./pull_code.sh
+
+ 4. Press Y if you want to rebuild.
+

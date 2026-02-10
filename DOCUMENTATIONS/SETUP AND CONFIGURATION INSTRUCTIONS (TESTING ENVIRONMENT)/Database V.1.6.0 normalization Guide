@@ -1,0 +1,53 @@
+1. Navigate to /home/ubuntu/CAPS/Testing_final
+
+    cd /home/ubuntu/CAPS/Testing_final
+
+2. Navigate to the backend container and randomize first the answer
+
+    docker exec -it caps_backend bash
+
+    (NOTE: SKIP THIS PART IN PRODUCTION!!): php artisan choices:randomize-correct 
+
+
+3. Type this command:
+
+    php artisan migrate
+
+    php artisan migrate --path=Modules/Users/Database/Migrations/2025_06_21_000002_create_student_remarks_table.php
+
+    php artisan migrate --path=Modules/Users/Database/Migrations/2025_06_22_000001_create_student_curricula_table.php
+
+    php artisan migrate --path=Modules/PracticeExams/Database/Migrations/2025_06_22_000002_create_personal_exam_settings_table.php
+
+    php artisan migrate --path=Modules/Users/Database/Migrations/2025_06_22_000003_create_student_teacher_enrollments_table.php 
+
+    php artisan migrate --path=Modules/PracticeExams/Database/Migrations/2025_06_22_000004_create_personal_practice_exam_results_table.php
+
+It will migrate the table named:
+
+- remarks
+- curriculum
+- student_grades
+- student_curricula
+- personal_exam_setting
+- student_teacher_enrollments
+- student_remarks
+- personal_practice_exam_result
+- practice_exam_drafts_table
+
+Another field will be added in the subjects table named:
+- is_enabled_for_exam_questions
+
+4. Seed the database for the new migrations:
+    php artisan db:seed
+
+5. It should show errors only in the users table:
+
+ - Duplicate Data (Due to test accounts.) This error is acceptable
+
+
+6. After running the commands above, run this specific command 
+
+- php artisan student-grades:import
+- php artisan students:sync-curricula
+- php artisan students:assign-remarks
