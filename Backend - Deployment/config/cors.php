@@ -15,7 +15,10 @@ return [
         'X-Requested-With',
         'Authorization',
         'Accept',
-        'Origin'
+        'Origin',
+        'X-CSRF-TOKEN',
+        'X-XSRF-TOKEN',
+        'Cookie',
     ],
 
     'exposed_headers' => [],
