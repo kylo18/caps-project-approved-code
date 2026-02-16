@@ -1,0 +1,170 @@
+NOTE: THIS IS THE INSTRUCTIONS FROM V.1.6 - 2.0 TRANSITION
+
+1. Navigate to /home/ubuntu/CAPS/Testing_final
+
+    cd /home/ubuntu/CAPS/Testing_final
+
+2. Navigate to the backend container and randomize first the answer
+
+    docker exec -it caps_backend bash
+
+    (NOTE: SKIP THIS PART IN PRODUCTION!!): php artisan choices:randomize-correct 
+
+
+3. Type this command:
+
+    php artisan migrate
+
+    php artisan migrate --path=Modules/Users/Database/Migrations/2025_06_21_000002_create_student_remarks_table.php
+
+    php artisan migrate --path=Modules/Users/Database/Migrations/2025_06_22_000001_create_student_curricula_table.php
+
+    php artisan migrate --path=Modules/PracticeExams/Database/Migrations/2025_06_22_000002_create_personal_exam_settings_table.php
+
+    php artisan migrate --path=Modules/Users/Database/Migrations/2025_06_22_000003_create_student_teacher_enrollments_table.php 
+
+    php artisan migrate --path=Modules/PracticeExams/Database/Migrations/2025_06_22_000004_create_personal_practice_exam_results_table.php
+
+NOTE: THIS IS FOR 1.6 DATABASE CHANGES SO PLEASE DOUBLE CHECK!!
+
+It will migrate the table named:
+- remarks
+- curriculum
+- student_grades
+- student_curricula
+- personal_exam_setting
+- student_teacher_enrollments
+- student_remarks
+- personal_practice_exam_result
+- practice_exam_drafts
+
+Another field will be added in the subjects table named:
+- is_enabled_for_exam_questions
+
+NOTE: THIS THE CHANGES FOR 2.0 DATABASE CHANGES SO PLEASE DOUBLE CHECK!!
+It will migrate the table named:
+
+
+classes:            //This is the name of the table, This is not migrated  
+    -classID        // This is the name of the fields, follow this format to read the table names and their fields 
+    -facultyID
+    -subjectID
+    -className
+    -classCode
+    -inviteToken
+    -inviteLink
+    -description
+    -schedule
+    -isActive
+
+class_enrollments: //Not migrated
+    -enrollmentID
+    -classID
+    -studentID
+    -enrolledAt
+    -unique_class_student
+
+class_personal_quizzes: //Not Migrated
+    -classPersonalQuizID
+    -classID
+    -personalQuizID
+    -startDate
+    -deadlineDate
+
+class_quiz_attempts: //Not migrated
+    -attemptID
+    -classID
+    -personalQuizID
+    -studentID
+    -score
+    -totalScore
+    -accuracy
+    -isCompleted
+    -startedAt
+    -completedAt
+
+personal_quizzes:
+    -personalQuizID
+    -title
+    -description
+    -instruction
+    -quiz_type_id
+    -subjectID
+    -coverage_id
+    -created_by
+    -isArchived
+
+personal_quiz_questions:
+    -personalQuizQuestionID
+    -personalQuizID
+    -questionID
+    -personalQuizSubjectID
+    -personalQuizUserID
+    -personalQuizQuestionText
+    -personalQuizImage
+    -personalQuizScore
+    -personalQuizCoverageId
+    -personalQuizID
+    -questionID
+
+
+personal_quiz_settings:
+    -personalQuizID
+    -startTime
+    -endTime
+    -quizAttempts
+    -quizTimer
+    -quizTimerEnabled
+    -shuffleQuestions
+    -shuffleChoices
+    -showCorrectAnswers
+    -showCorrectQuestion
+    -autoSubmitOnTimeout
+    -allowLateSubmission
+    -showScoreAfterQuiz
+    -enableTimer
+    -duration_minutes
+
+personal_quiz_choices:
+    -personalQuizChoiceID
+    -personalQuizQuestionID
+    -choiceText
+    -isCorrect
+    -image
+    -position
+
+student_quiz_attempts:
+    -attemptID
+    -personalQuizID
+    -studentID
+    -attemptNumber
+    -startedAt
+    -completedAt
+
+student_quiz_results: 
+    -class_quiz_assignment_id
+    -studentID
+    -score
+    -total_score
+    -percentage
+    -attempt_number
+    -started_at
+    -submitted_at
+    -time_taken_seconds
+    -isRecorded
+    -isPassed
+
+4. Seed the database for the new migrations:
+    php artisan db:seed
+
+5. It should show errors only in the users table:
+
+ - Duplicate Data (Due to test accounts.) This error is acceptable
+
+
+6. After running the commands above, run this specific command 
+
+- php artisan student-grades:import
+- php artisan students:sync-curricula
+- php artisan students:assign-remarks
+
