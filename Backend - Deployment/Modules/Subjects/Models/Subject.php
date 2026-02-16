@@ -9,7 +9,6 @@ use Modules\PracticeExams\Models\PracticeExamSetting;
 use Modules\Users\Models\Program;
 use Modules\PracticeExams\Models\PracticeExamResult;
 use Modules\Subjects\Models\YearLevel;
-use Modules\PersonalExams\Models\PersonalQuiz;
 
 /**
  * Subject Model
@@ -60,18 +59,5 @@ class Subject extends Model
     public function practiceExamResults()
     {
         return $this->hasMany(PracticeExamResult::class, 'subjectID');
-    }
-
-    public function personalQuizzes()
-    {
-        return $this->hasMany(PersonalQuiz::class, 'subjectID', 'subjectID');
-    }
-
-    /**
-     * Relationship: Subject has many Classes
-     */
-    public function classes()
-    {
-        return $this->hasMany(\Modules\PersonalClasses\Models\ClassModel::class, 'subjectID', 'subjectID');
     }
 }

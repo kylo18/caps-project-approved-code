@@ -7,15 +7,15 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
-        Schema::create('semester', function (Blueprint $table) {
-            $table->id('semesterID');
-            $table->string('semesterDescription', 50);
+        Schema::create('curriculum', function (Blueprint $table) {
+            $table->id();
+            $table->enum('curriculumType', ['Old', 'New']);
             $table->timestamps();
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('semester');
+        Schema::dropIfExists('curriculum');
     }
-};
+}; 

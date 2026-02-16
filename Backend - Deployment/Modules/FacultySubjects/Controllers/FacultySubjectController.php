@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Routing\Controller;
 use Modules\Subjects\Models\Subject;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
 
 class FacultySubjectController extends Controller
 {
@@ -17,19 +16,14 @@ class FacultySubjectController extends Controller
      * Allowed roles: Instructor (2), Program Chair (3), Dean (4), Associate Dean (5).
      *
      * @param array $roles
-     * @return \Illuminate\Contracts\Auth\Authenticatable
-     * @throws \Exception
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Contracts\Auth\Authenticatable|null
      */
     private function checkUserRole($roles = [2, 3, 4, 5])
     {
         $user = Auth::user();
 
-        if (!$user) {
-            throw new \Exception('User not authenticated');
-        }
-
         if (!in_array($user->roleID, $roles)) {
-            throw new \Exception('Unauthorized access');
+            return response()->json(['error' => 'Unauthorized'], 403);
         }
 
         return $user;
@@ -94,17 +88,9 @@ class FacultySubjectController extends Controller
         try {
             $user = $this->checkUserRole();
 
-            try {
-                $request->validate([
-                    'subjectID' => 'required|exists:subjects,subjectID',
-                ]);
-            } catch (ValidationException $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $e->errors()
-                ], 422);
-            }
+            $request->validate([
+                'subjectID' => 'required|exists:subjects,subjectID',
+            ]);
 
             $subjectID = $request->subjectID;
 
@@ -189,30 +175,14 @@ class FacultySubjectController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to assign subject', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
                 'subjectID' => $subjectID ?? null,
                 'userID' => $user->userID ?? null
             ]);
 
-            // Handle authentication/authorization errors
-            if (strpos($e->getMessage(), 'not authenticated') !== false) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You are not authenticated. Please log in again.'
-                ], 401);
-            }
-
-            if (strpos($e->getMessage(), 'Unauthorized') !== false) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to perform this action.'
-                ], 403);
-            }
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to assign subject. Please try again.',
-                'error' => config('app.debug') ? $e->getMessage() : 'An internal error occurred.'
+                'message' => 'Failed to assign subject.',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -233,7 +203,6 @@ class FacultySubjectController extends Controller
                 ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
                 ->where('fs.facultyID', $user->userID)
                 ->select(
-                    'fs.facultySubjectsID',
                     's.subjectID',
                     's.subjectCode',
                     's.subjectName',
@@ -245,13 +214,12 @@ class FacultySubjectController extends Controller
                 ->orderBy('s.subjectID')
                 ->get();
 
-            // Return 200 with empty array if no subjects found
             if ($subjects->isEmpty()) {
                 return response()->json([
-                    'success' => true,
+                    'success' => false,
                     'message' => 'No subjects assigned',
                     'subjects' => []
-                ], 200);
+                ], 404);
             }
 
             $formattedSubjects = $subjects->map(function ($subject) {
@@ -261,7 +229,6 @@ class FacultySubjectController extends Controller
                 }
 
                 return [
-                    'facultySubjectsID' => $subject->facultySubjectsID,
                     'subjectID' => $subject->subjectID,
                     'subjectCode' => $subject->subjectCode,
                     'subjectName' => $subject->subjectName,
@@ -279,33 +246,12 @@ class FacultySubjectController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            Log::error('Error retrieving faculty subjects', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            // Handle authentication/authorization errors
-            if (strpos($e->getMessage(), 'not authenticated') !== false) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You are not authenticated. Please log in again.',
-                    'subjects' => []
-                ], 401);
-            }
-
-            if (strpos($e->getMessage(), 'Unauthorized') !== false) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to perform this action.',
-                    'subjects' => []
-                ], 403);
-            }
+            Log::error('Error retrieving faculty subjects: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving subjects',
-                'subjects' => [],
-                'error' => config('app.debug') ? $e->getMessage() : 'An internal error occurred.'
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -386,9 +332,8 @@ class FacultySubjectController extends Controller
     }
 
     /**
-     * Retrieve all subjects available to the authenticated user.
-     * For Dean (4) and Associate Dean (5): all subjects are available.
-     * For others: subjects under the user's program and general education subjects.
+     * Retrieve all subjects available to the authenticated user
+     * (those under the user's program and general education subjects).
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -398,9 +343,8 @@ class FacultySubjectController extends Controller
         try {
             $user = $this->checkUserRole();
             $userProgramID = $user->programID;
-            $isDeanOrAssociateDean = in_array($user->roleID, [4, 5]);
 
-            $query = DB::table('subjects as s')
+            $subjects = DB::table('subjects as s')
                 ->join('programs as p', 'p.programID', '=', 's.programID')
                 ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
                 ->leftJoin('faculty_subjects as fs', function($join) use ($user) {
@@ -416,18 +360,13 @@ class FacultySubjectController extends Controller
                     's.yearLevelID',
                     'yl.name as yearLevel',
                     DB::raw('CASE WHEN fs.subjectID IS NOT NULL THEN true ELSE false END as isAssigned')
-                );
-
-            // Dean and Associate Dean can see all subjects
-            if (!$isDeanOrAssociateDean) {
-                // For other roles, filter by program
-                $query->where(function ($q) use ($userProgramID) {
-                    $q->where('s.programID', $userProgramID)
-                      ->orWhere('s.programID', 6); // Include general subjects
-                });
-            }
-
-            $subjects = $query->orderBy('s.subjectID')->get();
+                )
+                ->where(function ($query) use ($userProgramID) {
+                    $query->where('s.programID', $userProgramID)
+                          ->orWhere('s.programID', 6); // Include general subjects
+                })
+                ->orderBy('s.subjectID')
+                ->get();
 
             if ($subjects->isEmpty()) {
                 return response()->json([

@@ -100,22 +100,6 @@ class SubjectController extends Controller
                     'yl.name as yearLevel'
                 );
 
-            // Add subquery to get last question added date by any faculty (roleID 2) for this subject
-            // This applies to all roles (1,2,3,4,5)
-            $query->addSelect(DB::raw("(
-                SELECT MAX(q.created_at) 
-                FROM questions q
-                INNER JOIN users u ON q.userID = u.userID
-                WHERE q.subjectID = s.subjectID 
-                AND u.roleID = 2
-            ) as lastQuestionAdded"));
-
-            // Instructors (Faculty): show only subjects assigned to them
-            if ($user->roleID === 2) {
-                $query->join('faculty_subjects as fs', 's.subjectID', '=', 'fs.subjectID')
-                      ->where('fs.facultyID', $user->userID);
-            }
-
             // Program Chair: show only their program subjects + general subjects
             if ($user->roleID === 3) {
                 $query->where(function ($q) use ($user) {
@@ -123,8 +107,6 @@ class SubjectController extends Controller
                       ->orWhere('s.programID', 6); // General subjects
                 });
             }
-
-            // Dean (4) and Associate Dean (5): see all subjects (no additional filter needed)
 
             $subjects = $query->orderBy('s.subjectID')->get();
 
@@ -138,8 +120,8 @@ class SubjectController extends Controller
 
             // Format the subjects
             $formattedSubjects = $subjects->map(function ($subject) {
-                $programName = $subject->programName ?? '';
-                if ($programName !== '' && strpos($programName, 'BS-') === 0) {
+                $programName = $subject->programName;
+                if (strpos($programName, 'BS-') === 0) {
                     $programName = substr($programName, 3);
                 }
 
@@ -150,10 +132,7 @@ class SubjectController extends Controller
                     'programID' => $subject->programID,
                     'programName' => $programName,
                     'yearLevelID' => $subject->yearLevelID,
-                    'yearLevel' => $subject->yearLevel,
-                    'lastQuestionAdded' => $subject->lastQuestionAdded 
-                        ? \Carbon\Carbon::parse($subject->lastQuestionAdded)->toDateTimeString() 
-                        : null,
+                    'yearLevel' => $subject->yearLevel
                 ];
             });
 
@@ -170,110 +149,6 @@ class SubjectController extends Controller
                 'success' => false,
                 'message' => 'An error occurred while retrieving subjects',
                 'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Retrieve all subjects without role-based restrictions,
-     * except that user with userID = 1 is not allowed to access this.
-     */
-    public function allSubjects(Request $request)
-    {
-        try {
-            // The auth:sanctum middleware should have already authenticated the user
-            $user = Auth::user();
-
-            if (!$user) {
-                Log::warning('Unauthorized access attempt to allSubjects', [
-                    'ip' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'has_token' => $request->bearerToken() ? 'yes' : 'no',
-                    'has_session' => $request->hasSession() ? 'yes' : 'no',
-                    'auth_guard' => Auth::getDefaultDriver(),
-                ]);
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized. Please log in again.',
-                ], 401);
-            }
-
-            if ((int) $user->userID === 1) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Forbidden. This endpoint is not available for this user.',
-                ], 403);
-            }
-
-            $subjects = DB::table('subjects as s')
-                ->leftJoin('programs as p', 'p.programID', '=', 's.programID')
-                ->leftJoin('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
-                ->select(
-                    's.subjectID',
-                    's.subjectCode',
-                    's.subjectName',
-                    's.programID',
-                    'p.programName',
-                    's.yearLevelID',
-                    'yl.name as yearLevel'
-                )
-                ->addSelect(DB::raw("(
-                    SELECT MAX(q.created_at) 
-                    FROM questions q
-                    INNER JOIN users u ON q.userID = u.userID
-                    WHERE q.subjectID = s.subjectID 
-                    AND u.roleID = 2
-                ) as lastQuestionAdded"))
-                ->orderBy('s.subjectID')
-                ->get();
-
-            if ($subjects->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No subjects found',
-                    'subjects' => [],
-                ], 404);
-            }
-
-            $formattedSubjects = $subjects->map(function ($subject) {
-                $programName = $subject->programName ?? '';
-                if ($programName !== '' && strpos($programName, 'BS-') === 0) {
-                    $programName = substr($programName, 3);
-                }
-
-                return [
-                    'subjectID' => $subject->subjectID ?? null,
-                    'subjectCode' => $subject->subjectCode ?? '',
-                    'subjectName' => $subject->subjectName ?? '',
-                    'programID' => $subject->programID ?? null,
-                    'programName' => $programName,
-                    'yearLevelID' => $subject->yearLevelID ?? null,
-                    'yearLevel' => $subject->yearLevel ?? '',
-                    'lastQuestionAdded' => $subject->lastQuestionAdded 
-                        ? \Carbon\Carbon::parse($subject->lastQuestionAdded)->toDateTimeString() 
-                        : null,
-                ];
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'All subjects retrieved successfully',
-                'subjects' => $formattedSubjects,
-            ], 200);
-        } catch (\Throwable $e) {
-            Log::error('Error retrieving all subjects', [
-                'user_id' => optional(Auth::user())->userID,
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while retrieving all subjects',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -534,17 +409,7 @@ class SubjectController extends Controller
             ->select('subjectID', 'subjectName', 'subjectCode', 'programID', 'yearLevelID')
             ->get();
 
-        // Get last question added dates for all subjects
-        $subjectIDs = $subjects->pluck('subjectID')->toArray();
-        $lastQuestionDates = DB::table('questions as q')
-            ->join('users as u', 'q.userID', '=', 'u.userID')
-            ->whereIn('q.subjectID', $subjectIDs)
-            ->where('u.roleID', 2) // Only faculty questions
-            ->select('q.subjectID', DB::raw('MAX(q.created_at) as lastQuestionAdded'))
-            ->groupBy('q.subjectID')
-            ->pluck('lastQuestionAdded', 'subjectID');
-
-        $formattedSubjects = $subjects->map(function ($subject) use ($lastQuestionDates) {
+        $formattedSubjects = $subjects->map(function ($subject) {
             return [
                 'subjectID' => $subject->subjectID,
                 'subjectName' => $subject->subjectName,
@@ -553,9 +418,6 @@ class SubjectController extends Controller
                 'programName' => $subject->program ? $subject->program->programName : null,
                 'yearLevelID' => $subject->yearLevelID,
                 'yearLevel' => $subject->yearLevel ? $subject->yearLevel->name : null,
-                'lastQuestionAdded' => isset($lastQuestionDates[$subject->subjectID]) && $lastQuestionDates[$subject->subjectID]
-                    ? \Carbon\Carbon::parse($lastQuestionDates[$subject->subjectID])->toDateTimeString()
-                    : null,
             ];
         });
 
