@@ -4,18 +4,21 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up()
     {
-        Schema::create('remarks', function (Blueprint $table) {
+        Schema::create('quiz_types', function (Blueprint $table) {
             $table->id();
-            $table->enum('remarksType', ['Regular', 'Probationary', 'Advised to Shift']);
+            $table->string('name')->unique(); // e.g., subject, custom
+            $table->string('description')->nullable();
             $table->timestamps();
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('remarks');
+        Schema::dropIfExists('quiz_types');
     }
-}; 
+};
+
