@@ -654,9 +654,225 @@ class PrintController extends Controller
     }
 
     /**
+     * Get all questions and choices for a personal quiz.
+     * Used for the question selection UI before PDF generation.
+     * Only accessible by faculty (roleID 2,3,4,5).
+     */
+    public function getPersonalQuizQuestions(Request $request, $personalQuizID)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 401);
+            }
+
+            // Check if user is faculty (roleID 2,3,4,5)
+            if (!in_array($user->roleID, [2, 3, 4, 5])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only faculty members can access this feature.',
+                ], 403);
+            }
+
+            // Get personal quiz
+            $personalQuiz = PersonalQuiz::with(['subject', 'quizType', 'creator', 'classes'])
+                ->find($personalQuizID);
+
+            if (!$personalQuiz) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Personal quiz not found.',
+                ], 404);
+            }
+
+            // Verify user has access to this quiz
+            // User can access if:
+            // 1. They created it, OR
+            // 2. They are Program Chair/Dean/Associate Dean (roleID 3,4,5)
+            $hasAccess = false;
+            if ($personalQuiz->created_by === $user->userID) {
+                $hasAccess = true;
+            } elseif (in_array($user->roleID, [3, 4, 5])) {
+                $hasAccess = true;
+            }
+
+            if (!$hasAccess) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to access this quiz.',
+                ], 403);
+            }
+
+            // Get all questions for this quiz with choices
+            $questions = PersonalQuizQuestion::with(['personalQuizChoices' => function($query) {
+                $query->orderBy('position', 'asc');
+            }])
+                ->where('personalQuizID', $personalQuizID)
+                ->orderBy('personalQuizQuestionID', 'asc')
+                ->get();
+
+            if ($questions->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This quiz has no questions.',
+                ], 404);
+            }
+
+            // Format questions and choices for selection UI
+            $formattedQuestions = [];
+            foreach ($questions as $index => $question) {
+                try {
+                    // Decrypt question text
+                    $questionText = null;
+                    if ($question->personalQuizQuestionText) {
+                        try {
+                            $questionText = Crypt::decryptString($question->personalQuizQuestionText);
+                        } catch (\Exception $e) {
+                            Log::warning('Failed to decrypt question text', [
+                                'question_id' => $question->personalQuizQuestionID,
+                                'error' => $e->getMessage(),
+                            ]);
+                            $questionText = '[Decryption Error]';
+                        }
+                    }
+
+                    // Get question image URL
+                    $questionImageUrl = null;
+                    if ($question->personalQuizImage) {
+                        if (filter_var($question->personalQuizImage, FILTER_VALIDATE_URL)) {
+                            $questionImageUrl = $question->personalQuizImage;
+                        } else {
+                            $imagePath = $question->personalQuizImage;
+                            if (Storage::disk('public')->exists($imagePath)) {
+                                $questionImageUrl = asset('storage/' . $imagePath);
+                            }
+                        }
+                    }
+
+                    // Format choices
+                    $formattedChoices = [];
+                    foreach ($question->personalQuizChoices as $choice) {
+                        try {
+                            // Decrypt choice text
+                            $choiceText = null;
+                            if ($choice->choiceText) {
+                                try {
+                                    $choiceText = Crypt::decryptString($choice->choiceText);
+                                } catch (\Exception $e) {
+                                    Log::warning('Failed to decrypt choice text', [
+                                        'choice_id' => $choice->personalQuizChoiceID,
+                                        'error' => $e->getMessage(),
+                                    ]);
+                                    $choiceText = '[Decryption Error]';
+                                }
+                            }
+
+                            // Get choice image URL
+                            $choiceImageUrl = null;
+                            if ($choice->image) {
+                                if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
+                                    $choiceImageUrl = $choice->image;
+                                } else {
+                                    $imagePath = $choice->image;
+                                    if (Storage::disk('public')->exists($imagePath)) {
+                                        $choiceImageUrl = asset('storage/' . $imagePath);
+                                    }
+                                }
+                            }
+
+                            $formattedChoices[] = [
+                                'personalQuizChoiceID' => $choice->personalQuizChoiceID,
+                                'choiceText' => $choiceText,
+                                'choiceImageUrl' => $choiceImageUrl,
+                                'isCorrect' => $choice->isCorrect,
+                                'position' => $choice->position,
+                            ];
+                        } catch (\Exception $e) {
+                            Log::error('Error formatting choice', [
+                                'choice_id' => $choice->personalQuizChoiceID,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
+
+                    $formattedQuestions[] = [
+                        'personalQuizQuestionID' => $question->personalQuizQuestionID,
+                        'questionText' => $questionText,
+                        'questionImageUrl' => $questionImageUrl,
+                        'score' => $question->personalQuizScore ?? 0,
+                        'choices' => $formattedChoices,
+                        'choicesCount' => count($formattedChoices),
+                    ];
+                } catch (\Exception $e) {
+                    Log::error('Error formatting question', [
+                        'question_id' => $question->personalQuizQuestionID,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Personal quiz questions retrieved successfully.',
+                'data' => [
+                    'quiz' => [
+                        'personalQuizID' => $personalQuiz->personalQuizID,
+                        'title' => $personalQuiz->title,
+                        'description' => $personalQuiz->description,
+                        'instruction' => $personalQuiz->instruction,
+                        'subject' => $personalQuiz->subject ? [
+                            'subjectID' => $personalQuiz->subject->subjectID,
+                            'subjectCode' => $personalQuiz->subject->subjectCode,
+                            'subjectName' => $personalQuiz->subject->subjectName,
+                        ] : null,
+                        'quizType' => $personalQuiz->quizType ? [
+                            'id' => $personalQuiz->quizType->id,
+                            'name' => $personalQuiz->quizType->name,
+                        ] : null,
+                        'createdBy' => $personalQuiz->creator ? [
+                            'userID' => $personalQuiz->creator->userID,
+                            'name' => trim($personalQuiz->creator->firstName . ' ' . $personalQuiz->creator->lastName),
+                        ] : null,
+                        'isAssignedToClass' => $personalQuiz->classes->isNotEmpty(),
+                        'assignedClasses' => $personalQuiz->classes->map(function($class) {
+                            return [
+                                'classID' => $class->classID,
+                                'className' => $class->className,
+                                'startDate' => $class->pivot->startDate,
+                                'deadlineDate' => $class->pivot->deadlineDate,
+                            ];
+                        }),
+                    ],
+                    'questions' => $formattedQuestions,
+                    'totalQuestions' => count($formattedQuestions),
+                ],
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Error retrieving personal quiz questions', [
+                'user_id' => optional(Auth::user())->userID,
+                'personal_quiz_id' => $personalQuizID,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving quiz questions.',
+                'error' => app()->environment('local') ? $e->getMessage() : null,
+            ], 500);
+        }
+    }
+
+    /**
      * Generate printable data for a personal quiz.
-     * Returns questions and choices formatted for PDF generation.
+     * Returns selected questions and choices formatted for PDF generation.
      * Frontend will handle the actual PDF generation.
+     * Only accessible by faculty (roleID 2,3,4,5).
      */
     public function generatePersonalQuizPDF(Request $request)
     {
@@ -669,10 +885,19 @@ class PrintController extends Controller
                 ], 401);
             }
 
+            // Check if user is faculty (roleID 2,3,4,5)
+            if (!in_array($user->roleID, [2, 3, 4, 5])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only faculty members can generate PDFs.',
+                ], 403);
+            }
+
             // Validate input
             $validated = $request->validate([
                 'personalQuizID' => 'required|integer|exists:personal_quizzes,personalQuizID',
-                'number_of_items' => 'required|integer|min:1',
+                'selectedQuestionIDs' => 'required|array|min:1',
+                'selectedQuestionIDs.*' => 'required|integer|exists:personal_quiz_questions,personalQuizQuestionID',
                 'title' => 'required|string|max:255',
                 'instructions' => 'nullable|string',
                 'shuffle_questions' => 'nullable|boolean',
@@ -691,40 +916,52 @@ class PrintController extends Controller
                 ], 404);
             }
 
-            // Verify user owns this quiz (unless admin)
-            if ($personalQuiz->created_by !== $user->userID && !in_array($user->roleID, [3, 4, 5])) {
+            // Verify user has access to this quiz
+            $hasAccess = false;
+            if ($personalQuiz->created_by === $user->userID) {
+                $hasAccess = true;
+            } elseif (in_array($user->roleID, [3, 4, 5])) {
+                $hasAccess = true;
+            }
+
+            if (!$hasAccess) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You do not have permission to access this quiz.',
                 ], 403);
             }
 
-            // Get all questions for this quiz
-            $questions = PersonalQuizQuestion::with(['personalQuizChoices' => function($query) {
+            // Get selected questions with choices
+            $selectedQuestions = PersonalQuizQuestion::with(['personalQuizChoices' => function($query) {
                 $query->orderBy('position', 'asc');
             }])
                 ->where('personalQuizID', $validated['personalQuizID'])
+                ->whereIn('personalQuizQuestionID', $validated['selectedQuestionIDs'])
                 ->get();
 
-            if ($questions->isEmpty()) {
+            if ($selectedQuestions->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This quiz has no questions.',
+                    'message' => 'No valid questions found for the selected IDs.',
                 ], 404);
             }
 
-            // Limit to requested number of items
-            $numberOfItems = min($validated['number_of_items'], $questions->count());
-            
-            // Shuffle questions if requested
+            // Shuffle questions if requested (maintain order based on selectedQuestionIDs if not shuffled)
             if ($validated['shuffle_questions'] ?? false) {
-                $questions = $questions->shuffle();
+                $selectedQuestions = $selectedQuestions->shuffle();
+            } else {
+                // Maintain order based on selectedQuestionIDs array
+                $orderedQuestions = collect();
+                foreach ($validated['selectedQuestionIDs'] as $questionID) {
+                    $question = $selectedQuestions->firstWhere('personalQuizQuestionID', $questionID);
+                    if ($question) {
+                        $orderedQuestions->push($question);
+                    }
+                }
+                $selectedQuestions = $orderedQuestions;
             }
 
-            // Take only the requested number
-            $selectedQuestions = $questions->take($numberOfItems);
-
-            // Format questions and choices
+            // Format questions and choices for PDF
             $formattedQuestions = [];
             $totalPoints = 0;
 
@@ -744,7 +981,7 @@ class PrintController extends Controller
                         }
                     }
 
-                    // Get question image URL
+                    // Get question image URL and base64
                     $questionImageUrl = null;
                     $questionImageBase64 = null;
                     if ($question->personalQuizImage) {
@@ -754,7 +991,6 @@ class PrintController extends Controller
                             $imagePath = $question->personalQuizImage;
                             if (Storage::disk('public')->exists($imagePath)) {
                                 $questionImageUrl = asset('storage/' . $imagePath);
-                                // Also provide base64 for PDF generation
                                 $questionImageBase64 = $this->getBase64ImageData($imagePath);
                             }
                         }
@@ -788,7 +1024,7 @@ class PrintController extends Controller
                                 }
                             }
 
-                            // Get choice image URL
+                            // Get choice image URL and base64
                             $choiceImageUrl = null;
                             $choiceImageBase64 = null;
                             if ($choice->image) {
@@ -798,7 +1034,6 @@ class PrintController extends Controller
                                     $imagePath = $choice->image;
                                     if (Storage::disk('public')->exists($imagePath)) {
                                         $choiceImageUrl = asset('storage/' . $imagePath);
-                                        // Also provide base64 for PDF generation
                                         $choiceImageBase64 = $this->getBase64ImageData($imagePath);
                                     }
                                 }
@@ -881,8 +1116,7 @@ class PrintController extends Controller
                     'questions' => $formattedQuestions,
                     'statistics' => [
                         'totalQuestions' => count($formattedQuestions),
-                        'requestedItems' => $validated['number_of_items'],
-                        'availableItems' => $questions->count(),
+                        'selectedQuestions' => count($validated['selectedQuestionIDs']),
                         'totalPoints' => $totalPoints,
                     ],
                     'settings' => [

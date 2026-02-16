@@ -22,6 +22,7 @@ use Modules\PersonalExams\Controllers\PersonalQuizController;
 use Modules\PersonalExams\Controllers\PersonalQuizQuestionController;
 use Modules\PersonalExams\Controllers\PersonalQuizChoiceController;
 use Modules\PersonalExams\Controllers\PersonalQuizSettingController;
+use Modules\PersonalExams\Controllers\PersonalQuizLeaderboardController;
 use Modules\PersonalClasses\Controllers\ClassController;
 use Modules\PersonalClasses\Controllers\ClassEnrollmentController;
 use Modules\PersonalClasses\Controllers\ClassPersonalQuizController;
@@ -120,6 +121,9 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
 
     // Printable exam (PDF preview/download)
     Route::post('/generate-printable-exam/{subjectID}', [PrintController::class, 'generatePrintableExam']);
+    
+    // Personal Quiz PDF Generation (Faculty only)
+    Route::get('/personal-quiz/{personalQuizID}/questions', [PrintController::class, 'getPersonalQuizQuestions']);
     Route::post('/generate-personal-quiz-pdf', [PrintController::class, 'generatePersonalQuizPDF']);
 
     // Practice exam preview (Dean/Chair/Instructor can preview)
@@ -139,6 +143,10 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::patch('/personal-quizzes/{personalQuizID}/archive', [PersonalQuizController::class, 'archive']);
     Route::patch('/personal-quizzes/{personalQuizID}/unarchive', [PersonalQuizController::class, 'unarchive']);
     Route::delete('/personal-quizzes/{personalQuizID}', [PersonalQuizController::class, 'destroy']);
+    
+    // Personal Quiz Leaderboard and Recent Takers (Faculty only - returns data across all classes)
+    Route::get('/personal-quiz/{personalQuizID}/leaderboard', [PersonalQuizLeaderboardController::class, 'leaderboard']);
+    Route::get('/personal-quiz/{personalQuizID}/recent-takers', [PersonalQuizLeaderboardController::class, 'recentTakers']);
     // Personal Quiz Questions
     Route::get('/personal-quiz-questions/{personalQuizID}', [PersonalQuizQuestionController::class, 'index']);
     Route::post('/personal-quiz-questions', [PersonalQuizQuestionController::class, 'store']);
