@@ -257,7 +257,7 @@ const EditQuestionForm = ({
     }
 
     setIsLoading(true);
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     try {
       // Prepare question data
@@ -276,6 +276,11 @@ const EditQuestionForm = ({
         }
       });
 
+      // Log questionData for debugging
+      for (let pair of questionData.entries()) {
+        console.log("questionData", pair[0], pair[1]);
+      }
+
       // Update question
       const questionResponse = await fetch(
         `${apiUrl}/questions/update/${question.questionID}`,
@@ -286,8 +291,10 @@ const EditQuestionForm = ({
         },
       );
 
+      console.log("questionResponse status", questionResponse.status);
       if (!questionResponse.ok) {
         const errorData = await questionResponse.json();
+        console.error("questionResponse error", errorData);
         throw new Error(errorData.message || "Failed to update question.");
       }
 
@@ -305,9 +312,10 @@ const EditQuestionForm = ({
         if (choice.choiceID) {
           choicesData.append(`choices[${i}][choiceID]`, choice.choiceID);
         }
-        if (choice.choiceText) {
-          choicesData.append(`choices[${i}][choiceText]`, choice.choiceText);
-        }
+        choicesData.append(
+          `choices[${i}][choiceText]`,
+          choice.choiceText || "",
+        );
         choicesData.append(
           `choices[${i}][isCorrect]`,
           choice.isCorrect ? "1" : "0",
@@ -319,14 +327,22 @@ const EditQuestionForm = ({
         }
       });
 
+      // Log choicesData for debugging
+      for (let pair of choicesData.entries()) {
+        console.log("choicesData", pair[0], pair[1]);
+      }
+
       const choicesResponse = await fetch(`${apiUrl}/choices/update`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: choicesData,
       });
 
+      console.log("choicesResponse status", choicesResponse.status);
       if (!choicesResponse.ok) {
-        throw new Error("Failed to update choices.");
+        let errorText = await choicesResponse.text();
+        console.error("choicesResponse error", errorText);
+        throw new Error("Failed to update choices. Response: " + errorText);
       }
 
       showToast("Question updated successfully!", "success");
@@ -355,7 +371,7 @@ const EditQuestionForm = ({
 
   return (
     <>
-      <div className="open-sans lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
+      <div className="outfit lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
         <div className="scrollbar-hide animate-fade-in-up flex h-[100%] overflow-y-auto sm:h-[99%]">
           <div className="flex-1">
             {/* Header */}
@@ -642,12 +658,18 @@ const EditQuestionForm = ({
                     {choice.image && (
                       <div className="relative mt-3">
                         <img
-                          src={URL.createObjectURL(choice.image)}
+                          src={
+                            typeof choice.image === "string"
+                              ? choice.image
+                              : URL.createObjectURL(choice.image)
+                          }
                           alt={`Choice ${index + 1}`}
                           className={`max-h-[300px] max-w-[300px] rounded-md object-contain shadow-lg hover:cursor-pointer hover:opacity-80 ${choice.isCorrect ? "border-2 border-orange-500" : ""}`}
                           onClick={() => {
                             setchoiceModalImage(
-                              URL.createObjectURL(choice.image),
+                              typeof choice.image === "string"
+                                ? choice.image
+                                : URL.createObjectURL(choice.image),
                             );
                             setIsChoiceModalOpen(true);
                           }}

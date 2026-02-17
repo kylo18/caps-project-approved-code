@@ -60,8 +60,8 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      sessionStorage.setItem("token", data.token);
+      sessionStorage.setItem("user", JSON.stringify(data.user));
 
       // Redirect to /dashboard/:userId after login
       navigate(
@@ -130,7 +130,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="font-inter mt-12 flex flex-col items-center justify-center lg:hidden">
+            <div className="outfit mt-12 flex flex-col items-center justify-center lg:hidden">
               <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
                 <span>
                   <span className="text-3xl text-orange-500">C</span>
@@ -199,7 +199,7 @@ export default function LoginPage() {
                         autoComplete="current-password"
                       />
                       <label
-                        htmlFor="userCode"
+                        htmlFor="password"
                         className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
                       >
                         Password
@@ -282,7 +282,7 @@ export default function LoginPage() {
         <div className="flex w-full flex-col items-center justify-center bg-gradient-to-br from-[#101010] to-[#3c3c3c]">
           {/* Purple Gradient Header */}
           <div className="relative flex h-60 w-full flex-col items-center justify-center">
-            <div className="font-inter absolute top-5 right-5">
+            <div className="outfit absolute top-5 right-5">
               <span className="mr-2 text-[12px] text-white">
                 Don't have an account?{" "}
               </span>
@@ -386,7 +386,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                 />
                 <label
-                  htmlFor="userCode"
+                  htmlFor="password"
                   className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
                 >
                   Password

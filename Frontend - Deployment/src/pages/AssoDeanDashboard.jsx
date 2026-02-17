@@ -16,7 +16,7 @@ const AssoDeanDashboard = () => {
       </div>
     </div>
 
-    /*<div className="font-inter mt-2 min-h-screen bg-[#f7f7f8] px-4 py-8">
+    /*<div className="outfit mt-2 min-h-screen bg-[#f7f7f8] px-4 py-8">
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-4">
         <div className="rounded-xl bg-gradient-to-tr from-[#ed3700] to-[#FE6902] p-6 text-white shadow">
           <div className="flex items-center justify-between">

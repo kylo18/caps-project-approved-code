@@ -144,7 +144,7 @@ const ResetPasswordPage = () => {
               </p>
             </div>
 
-            <div className="font-inter mt-12 flex flex-col items-center justify-center lg:hidden">
+            <div className="outfit mt-12 flex flex-col items-center justify-center lg:hidden">
               <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
                 <span>
                   <span className="text-3xl text-orange-500">C</span>

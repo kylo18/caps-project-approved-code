@@ -50,8 +50,8 @@ const PracticeTestResult = () => {
   });
 
   return (
-    <div className="open-sans min-h-screen p-1 sm:p-3">
-      <div className="mx-auto mt-8 max-w-7xl">
+    <div className="outfit min-h-screen p-1 sm:p-3">
+      <div className="mx-auto mt-12 max-w-7xl">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-10">
           {/* Left Box - Score Details (30%) */}
 
@@ -104,7 +104,7 @@ const PracticeTestResult = () => {
             <div className="mt-4 flex justify-center">
               <button
                 onClick={() => navigate("/student-dashboard")}
-                className="font-inter flex items-center gap-2 px-8 py-3 text-[14px] text-gray-700"
+                className="outfit flex items-center gap-2 px-8 py-3 text-[14px] text-gray-700"
               >
                 <i className="bx bx-chevron-left text-[18px]"></i>
                 <span className="hover:underline">Back to Dashboard </span>
@@ -168,7 +168,7 @@ const PracticeTestResult = () => {
                       <div className="flex-1">
                         <div className="flex items-start gap-4">
                           {/* Question Number */}
-                          <span className="font-inter mt-1 flex shrink-0 items-center justify-center text-sm font-semibold text-gray-600">
+                          <span className="outfit mt-1 flex shrink-0 items-center justify-center text-sm font-semibold text-gray-600">
                             {index + 1}.
                           </span>
 

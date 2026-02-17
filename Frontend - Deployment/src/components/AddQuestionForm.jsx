@@ -1,8 +1,72 @@
 import React, { useState, useRef, useEffect } from "react";
-import CustomDropdown from "./customDropdown";
 import WarnOnExit from "../hooks/WarnOnExit";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
+import ImageSelectionModal from "./ImageSelectionModal";
+
+// Compact Header Dropdown Component
+const HeaderDropdown = ({ name, value, onChange, options, show = true, label }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  if (!show) return null;
+
+  const selectedOption = options.find((opt) => opt.value === value);
+
+  return (
+    <div className="flex items-center gap-2">
+      {label && <span className="text-[14px] text-gray-700">{label}</span>}
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="gap-2 flex items-center justify-between px-3 py-1
+                    border border-gray-200 rounded-lg text-[14px]
+                    transition-all duration-100 outline-none
+                    focus:border focus:border-orange-500 cursor-pointer mr-3"
+        >
+          <span className="flex-1 text-center">
+            {selectedOption?.label || options[0]?.label}
+          </span>
+          <i
+            className={`bx text-sm ${
+              isOpen ? "bx-caret-up" : "bx-caret-down"
+            }`}
+          />
+        </button>
+
+      {isOpen && (
+        <ul className="absolute right-0 top-full z-50 mt-1 w-40 mr-3 rounded-md border border-gray-200 bg-white p-1 shadow-lg">
+          {options.map((option) => (
+            <li
+              key={option.value}
+              onClick={() => {
+                onChange({ target: { name, value: option.value } });
+                setIsOpen(false);
+              }}
+              className={`cursor-pointer rounded-sm px-3 py-2 text-[14px] transition hover:bg-gray-100 ${
+                value === option.value ? "bg-gray-50 text-orange-500" : "text-gray-700"
+              }`}
+            >
+              {option.label}
+            </li>
+          ))}
+        </ul>
+      )}
+      </div>
+    </div>
+  );
+};
 
 // Combined Question Form for both Practice and Exam Questions
 const CombinedQuestionForm = ({
@@ -11,6 +75,9 @@ const CombinedQuestionForm = ({
   onCancel,
   activeTab,
   isExamQuestionsEnabled: propIsExamQuestionsEnabled,
+  mode = "subject", // "subject" (default) or "quiz"
+  personalQuizID = null,
+  quizTypeId = null, // 1 = subject-based, 2 = custom
 }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const { toast, showToast } = useToast();
@@ -20,9 +87,11 @@ const CombinedQuestionForm = ({
   const [isLoading, setIsLoading] = useState(false);
   const [image, setImage] = useState(null);
   const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
+  const [isStrikethrough, setIsStrikethrough] = useState(false);
   const fileInputRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [focusedChoice, setFocusedChoice] = useState(null);
@@ -32,6 +101,9 @@ const CombinedQuestionForm = ({
   const choiceEditors = useRef({});
   const [isExamQuestionsLoading, setIsExamQuestionsLoading] = useState(false);
   const [animatingChoice, setAnimatingChoice] = useState(null);
+  const [isImageSelectionModalOpen, setIsImageSelectionModalOpen] = useState(false);
+  const [imageSelectionType, setImageSelectionType] = useState(null); // "question" or choice index number
+  const [choiceImagePreviews, setChoiceImagePreviews] = useState({}); // Store preview URLs for choice images
 
   // Prevent background scrolling when Add Question Form modal is open
   useEffect(() => {
@@ -48,27 +120,31 @@ const CombinedQuestionForm = ({
     };
   }, []);
 
+  // Cleanup preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      Object.values(choiceImagePreviews).forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+    };
+  }, [imagePreview, choiceImagePreviews]);
+
   // Fetch the state on mount or when subjectID changes
   useEffect(() => {
     const fetchExamQuestionsEnabled = async () => {
       if (!subjectID) return;
       setIsExamQuestionsLoading(true);
       try {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
         const response = await fetch(`${apiUrl}/subjects/${subjectID}`);
         if (response.ok) {
           const result = await response.json();
-          // This state is now managed by the prop, so we don't update it here.
-          // setIsExamQuestionsEnabled(
-          //   !!result.data?.is_enabled_for_exam_questions,
-          // );
         } else {
-          // This state is now managed by the prop, so we don't update it here.
-          // setIsExamQuestionsEnabled(true); // fallback to allow
         }
       } catch (error) {
-        // This state is now managed by the prop, so we don't update it here.
-        // setIsExamQuestionsEnabled(true); // fallback to allow
       } finally {
         setIsExamQuestionsLoading(false);
       }
@@ -85,7 +161,8 @@ const CombinedQuestionForm = ({
     score: 1,
     difficulty_id: 1, // Default to easy difficulty
     status_id: 1, // 1 is pending
-    purpose_id: activeTab === 0 ? 2 : 1, // 2 for practice questions, 1 for exam questions
+    // For quiz mode we don't expose purpose; keep default to practice to satisfy legacy state shape.
+    purpose_id: mode === "quiz" ? 2 : activeTab === 0 ? 2 : 1,
     choices: [
       { choiceText: "", isCorrect: false, image: null },
       { choiceText: "", isCorrect: false, image: null },
@@ -108,6 +185,7 @@ const CombinedQuestionForm = ({
       setIsBold(document.queryCommandState("bold"));
       setIsItalic(document.queryCommandState("italic"));
       setIsUnderline(document.queryCommandState("underline"));
+      setIsStrikethrough(document.queryCommandState("strikeThrough"));
     };
 
     document.addEventListener("selectionchange", handleSelectionChange);
@@ -118,6 +196,10 @@ const CombinedQuestionForm = ({
   const handleFormat = (command, setState) => {
     document.execCommand(command, false, null);
     setState(document.queryCommandState(command));
+    // Ensure text stays centered after formatting
+    if (editorRef.current) {
+      editorRef.current.style.textAlign = "center";
+    }
     editorRef.current.focus();
   };
 
@@ -126,6 +208,7 @@ const CombinedQuestionForm = ({
       setIsBold(document.queryCommandState("bold"));
       setIsItalic(document.queryCommandState("italic"));
       setIsUnderline(document.queryCommandState("underline"));
+      setIsStrikethrough(document.queryCommandState("strikeThrough"));
     }, 10);
   };
 
@@ -134,9 +217,68 @@ const CombinedQuestionForm = ({
       editorRef.current.addEventListener("focus", () => setIsFocused(true));
       editorRef.current.addEventListener("blur", () => setIsFocused(false));
       editorRef.current.addEventListener("mouseup", checkFormatting);
-      editorRef.current.addEventListener("keyup", checkFormatting);
+      editorRef.current.addEventListener("keyup", (e) => {
+        checkFormatting();
+        // Ensure text stays centered
+        if (editorRef.current) {
+          editorRef.current.style.textAlign = "center";
+        }
+      });
+      // Auto-expand on mount
+      autoExpandEditor(editorRef.current);
+      // Ensure initial centering
+      editorRef.current.style.textAlign = "center";
     }
   }, []);
+
+  // Auto-expand editor when content changes
+  useEffect(() => {
+    if (editorRef.current && formData.questionText) {
+      autoExpandEditor(editorRef.current);
+      // Ensure any divs created are block-level, not inline
+      const divs = editorRef.current.querySelectorAll('div');
+      divs.forEach(div => {
+        div.style.display = 'block';
+      });
+    }
+  }, [formData.questionText]);
+
+  // Auto-expand choice editors when content changes and sync innerHTML
+  useEffect(() => {
+    formData.choices.forEach((choice, index) => {
+      const editor = choiceEditors.current[index];
+      if (editor) {
+        // Only update if content is different to avoid cursor jumping
+        const currentHTML = editor.innerHTML.trim();
+        const newHTML = (choice.choiceText || '').trim();
+        
+        if (currentHTML !== newHTML) {
+          const selection = window.getSelection();
+          const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+          const wasFocused = document.activeElement === editor;
+          
+          editor.innerHTML = newHTML || '';
+          
+          // Restore cursor position if it was focused
+          if (
+            wasFocused &&
+            range &&
+            (range.commonAncestorContainer === editor ||
+              editor.contains(range.commonAncestorContainer))
+          ) {
+            try {
+              selection.removeAllRanges();
+              selection.addRange(range);
+            } catch (e) {
+              // Ignore if range is invalid
+            }
+          }
+        }
+        
+        autoExpandTextarea(editor);
+      }
+    });
+  }, [formData.choices]);
 
   // Question handlers
   const handleQuestionChange = (e) => {
@@ -148,6 +290,38 @@ const CombinedQuestionForm = ({
       setImagePreview(previewUrl);
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  // Handle image selected from modal
+  const handleImageSelected = (file) => {
+    if (imageSelectionType === "question") {
+      setFormData((prev) => ({ ...prev, image: file }));
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+    } else if (typeof imageSelectionType === "number") {
+      // It's a choice image
+      const index = imageSelectionType;
+      const updatedChoices = [...formData.choices];
+      
+      // Revoke old preview URL if it exists
+      if (choiceImagePreviews[index]) {
+        URL.revokeObjectURL(choiceImagePreviews[index]);
+      }
+      
+      // Create new preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setChoiceImagePreviews((prev) => ({
+        ...prev,
+        [index]: previewUrl,
+      }));
+      
+      updatedChoices[index] = {
+        ...updatedChoices[index],
+        image: file,
+        // Preserve existing choiceText
+      };
+      setFormData((prev) => ({ ...prev, choices: updatedChoices }));
     }
   };
 
@@ -167,16 +341,28 @@ const CombinedQuestionForm = ({
     const file = event.target.files[0];
     if (file) {
       const updatedChoices = [...formData.choices];
+      // Preserve existing choiceText instead of clearing it
       updatedChoices[index] = {
         ...updatedChoices[index],
         image: file,
-        choiceText: "",
+        // Keep existing choiceText - don't clear it
       };
       setFormData((prev) => ({ ...prev, choices: updatedChoices }));
+      // Don't clear the contentEditable div - preserve the text
     }
   };
 
   const removeChoiceImage = (index) => {
+    // Revoke preview URL if it exists
+    if (choiceImagePreviews[index]) {
+      URL.revokeObjectURL(choiceImagePreviews[index]);
+      setChoiceImagePreviews((prev) => {
+        const newPreviews = { ...prev };
+        delete newPreviews[index];
+        return newPreviews;
+      });
+    }
+    
     const updatedChoices = [...formData.choices];
     updatedChoices[index] = { choiceText: "", isCorrect: false, image: null };
     setFormData((prev) => ({ ...prev, choices: updatedChoices }));
@@ -194,10 +380,29 @@ const CombinedQuestionForm = ({
       return;
     }
 
-    // Validate choices
+    if (mode === "quiz" && !personalQuizID) {
+      setError("Quiz ID is missing. Please reopen the quiz and try again.");
+      showToast(
+        "Quiz ID is missing. Please reopen the quiz and try again.",
+        "error",
+      );
+      return;
+    }
+
+    // Validate choices for both modes
+    // For quiz mode, only validate first 4 choices (5th is "None of the above" added by backend)
+    const choicesToValidate =
+      mode === "quiz" ? formData.choices.slice(0, 4) : formData.choices;
+
     if (
-      !formData.choices.every(
-        (choice) => choice.choiceText.trim() !== "" || choice.image,
+      !choicesToValidate.every(
+        (choice) => {
+          // Extract text content from HTML if it's HTML
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = choice.choiceText || '';
+          const textContent = tempDiv.textContent || tempDiv.innerText || '';
+          return textContent.trim() !== "" || choice.image;
+        }
       )
     ) {
       setError("Each choice must have either text or an image.");
@@ -206,7 +411,7 @@ const CombinedQuestionForm = ({
     }
 
     // Check if exactly one choice is correct
-    const correctChoices = formData.choices.filter(
+    const correctChoices = choicesToValidate.filter(
       (choice) => choice.isCorrect,
     );
     if (correctChoices.length !== 1) {
@@ -215,7 +420,11 @@ const CombinedQuestionForm = ({
       return;
     }
 
-    if (formData.purpose_id === 1 && !propIsExamQuestionsEnabled) {
+    if (
+      mode !== "quiz" &&
+      formData.purpose_id === 1 &&
+      !propIsExamQuestionsEnabled
+    ) {
       setError(
         "Adding of qualifying exam questions is currently disabled by the Dean",
       );
@@ -228,69 +437,165 @@ const CombinedQuestionForm = ({
 
     // Directly proceed with submission
     setIsLoading(true);
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     try {
-      // First, submit the question
-      const questionFormData = new FormData();
-      questionFormData.append("subjectID", formData.subjectID);
-      questionFormData.append("coverage_id", formData.coverage_id);
-      questionFormData.append(
-        "questionText",
-        editorRef.current.innerHTML.trim(),
-      );
-      questionFormData.append("score", formData.score);
-      questionFormData.append("difficulty_id", formData.difficulty_id);
-      questionFormData.append("status_id", formData.status_id);
-      questionFormData.append("purpose_id", formData.purpose_id);
-
-      if (formData.image) {
-        questionFormData.append("image", formData.image);
-      }
-
-      const questionResponse = await fetch(`${apiUrl}/questions/add`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: questionFormData,
-      });
-
-      const questionResult = await questionResponse.json();
-
-      if (!questionResponse.ok) {
-        throw new Error(questionResult.message || "Failed to add question.");
-      }
-
-      // Then, submit the choices
-      const choicesFormData = new FormData();
-      choicesFormData.append("questionID", questionResult.data.questionID);
-
-      // Send all 4 choices to the backend
-      formData.choices.forEach((choice, index) => {
-        choicesFormData.append(
-          `choices[${index}][choiceText]`,
-          choice.choiceText.trim(),
+      if (mode === "quiz") {
+        // Personal/custom quiz question path
+        // Step 1: Create the question
+        const quizQuestionFormData = new FormData();
+        quizQuestionFormData.append("personalQuizID", personalQuizID);
+        quizQuestionFormData.append(
+          "questionText",
+          editorRef.current.innerHTML.trim(),
         );
-        choicesFormData.append(
-          `choices[${index}][isCorrect]`,
-          choice.isCorrect ? "1" : "0",
-        );
-        if (choice.image instanceof File) {
-          choicesFormData.append(`choices[${index}][image]`, choice.image);
+        quizQuestionFormData.append("score", formData.score);
+        // Only send coverage_id for subject-based quiz questions
+        if (quizTypeId === 1 && formData.coverage_id) {
+          quizQuestionFormData.append("coverage_id", formData.coverage_id);
         }
-      });
 
-      const choicesResponse = await fetch(`${apiUrl}/questions/choices`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: choicesFormData,
-      });
+        if (formData.image) {
+          quizQuestionFormData.append("image", formData.image);
+        }
 
-      if (!choicesResponse.ok) {
-        throw new Error("Failed to add choices.");
+        const questionResponse = await fetch(
+          `${apiUrl}/personal-quiz-questions`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: quizQuestionFormData,
+          },
+        );
+
+        const questionData = await questionResponse.json();
+
+        if (!questionResponse.ok) {
+          throw new Error(
+            questionData.message || "Failed to add quiz question.",
+          );
+        }
+
+        // Step 2: Create the choices using the returned personalQuizQuestionID
+        const personalQuizQuestionID =
+          questionData.quizQuestion?.personalQuizQuestionID;
+
+        if (!personalQuizQuestionID) {
+          throw new Error(
+            "Question was created but personalQuizQuestionID is missing.",
+          );
+        }
+
+        // Prepare choices data - only send first 4 choices (backend adds 5th automatically)
+        const choicesFormData = new FormData();
+        choicesFormData.append(
+          "personalQuizQuestionID",
+          personalQuizQuestionID,
+        );
+
+        // Send only the first 4 choices (exclude "None of the above" which is 5th)
+        const choicesToSend = formData.choices.slice(0, 4);
+
+        choicesToSend.forEach((choice, index) => {
+          // Append choice text (nullable)
+          if (choice.choiceText && choice.choiceText.trim() !== "") {
+            choicesFormData.append(
+              `choices[${index}][choiceText]`,
+              choice.choiceText.trim(),
+            );
+          } else {
+            choicesFormData.append(`choices[${index}][choiceText]`, "");
+          }
+
+          // Append isCorrect (required boolean)
+          choicesFormData.append(
+            `choices[${index}][isCorrect]`,
+            choice.isCorrect ? "true" : "false",
+          );
+
+          // Append image if it's a File
+          if (choice.image instanceof File) {
+            choicesFormData.append(`choices[${index}][image]`, choice.image);
+          }
+        });
+
+        const choicesResponse = await fetch(`${apiUrl}/personal-quiz-choices`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: choicesFormData,
+        });
+
+        const choicesData = await choicesResponse.json();
+
+        if (!choicesResponse.ok) {
+          throw new Error(choicesData.message || "Failed to add choices.");
+        }
+
+        showToast("Question and choices added to quiz!", "success");
+        onComplete(questionData.quizQuestion);
+      } else {
+        // Subject-based question path (existing behavior)
+        // First, submit the question
+        const questionFormData = new FormData();
+        questionFormData.append("subjectID", formData.subjectID);
+        questionFormData.append("coverage_id", formData.coverage_id);
+        questionFormData.append(
+          "questionText",
+          editorRef.current.innerHTML.trim(),
+        );
+        questionFormData.append("score", formData.score);
+        questionFormData.append("difficulty_id", formData.difficulty_id);
+        questionFormData.append("status_id", formData.status_id);
+        questionFormData.append("purpose_id", formData.purpose_id);
+
+        if (formData.image) {
+          questionFormData.append("image", formData.image);
+        }
+
+        const questionResponse = await fetch(`${apiUrl}/questions/add`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: questionFormData,
+        });
+
+        const questionResult = await questionResponse.json();
+
+        if (!questionResponse.ok) {
+          throw new Error(questionResult.message || "Failed to add question.");
+        }
+
+        // Then, submit the choices
+        const choicesFormData = new FormData();
+        choicesFormData.append("questionID", questionResult.data.questionID);
+
+        // Send all 4 choices to the backend
+        formData.choices.forEach((choice, index) => {
+          choicesFormData.append(
+            `choices[${index}][choiceText]`,
+            choice.choiceText.trim(),
+          );
+          choicesFormData.append(
+            `choices[${index}][isCorrect]`,
+            choice.isCorrect ? "1" : "0",
+          );
+          if (choice.image instanceof File) {
+            choicesFormData.append(`choices[${index}][image]`, choice.image);
+          }
+        });
+
+        const choicesResponse = await fetch(`${apiUrl}/questions/choices`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: choicesFormData,
+        });
+
+        if (!choicesResponse.ok) {
+          throw new Error("Failed to add choices.");
+        }
+
+        showToast("Question added successfully!", "success");
+        onComplete();
       }
-
-      showToast("Question added successfully!", "success");
-      onComplete();
     } catch (err) {
       console.error("Error submitting:", err);
       setError(
@@ -313,452 +618,813 @@ const CombinedQuestionForm = ({
     return content.trim() === "";
   };
 
+  // Helper function to get text length from HTML (strips HTML tags)
+  const getTextLength = (html) => {
+    if (!html) return 0;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    return (tempDiv.textContent || tempDiv.innerText || '').length;
+  };
+
+  // Get question character count
+  const questionCharCount = getTextLength(formData.questionText);
+
+  // Get choice character counts
+  const getChoiceCharCount = (index) => {
+    return getTextLength(formData.choices[index]?.choiceText || '');
+  };
+
+  // Auto-expand contentEditable element
+  const autoExpandEditor = (element) => {
+    if (element) {
+      // Reset height to get accurate scrollHeight
+      element.style.height = "auto";
+      // Get the computed width to ensure proper wrapping
+      const computedStyle = window.getComputedStyle(element);
+      const width = element.offsetWidth || parseInt(computedStyle.width);
+      // Set height based on scrollHeight, ensuring it respects container width
+      element.style.height = `${Math.max(120, element.scrollHeight)}px`;
+      // Force reflow to ensure proper wrapping
+      element.style.maxWidth = "100%";
+    }
+  };
+
+  // Auto-expand textarea
+  const autoExpandTextarea = (element) => {
+    if (element) {
+      element.style.height = "auto";
+      element.style.height = `${Math.max(40, element.scrollHeight)}px`;
+    }
+  };
+
+  // Helper function to clean HTML while preserving superscript/subscript
+  const cleanPastedHTML = (html) => {
+    if (!html) return '';
+    
+    // Create a temporary div to parse HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Remove background colors, fonts, and other unwanted styles from all elements
+    const allElements = tempDiv.querySelectorAll('*');
+    allElements.forEach(el => {
+      // Remove background-related styles
+      el.style.backgroundColor = '';
+      el.style.background = '';
+      el.style.color = '';
+      el.style.fontFamily = '';
+      el.style.fontSize = '';
+      el.style.fontWeight = '';
+      el.style.fontStyle = '';
+      // Remove other unwanted styles but keep superscript/subscript positioning
+      const style = el.getAttribute('style');
+      if (style) {
+        const cleanedStyle = style
+          .split(';')
+          .filter(prop => {
+            const propName = prop.split(':')[0].trim().toLowerCase();
+            return !['background', 'background-color', 'color', 'font-family', 'font-size', 'font-weight', 'font-style'].includes(propName);
+          })
+          .join(';');
+        if (cleanedStyle) {
+          el.setAttribute('style', cleanedStyle);
+        } else {
+          el.removeAttribute('style');
+        }
+      }
+      // Remove background and font-related attributes
+      el.removeAttribute('bgcolor');
+      el.removeAttribute('face');
+      el.removeAttribute('size');
+    });
+    
+    // Get cleaned HTML
+    let cleanedHTML = tempDiv.innerHTML;
+    
+    // Replace line breaks with spaces (but preserve structure)
+    cleanedHTML = cleanedHTML.replace(/\r?\n/g, ' ').replace(/\r/g, ' ');
+    // Replace multiple spaces with single space (but preserve &nbsp;)
+    cleanedHTML = cleanedHTML.replace(/[ \t]+/g, ' ');
+    
+    return cleanedHTML;
+  };
+
+  // Get label for dropdowns
+  const getDifficultyLabel = () => {
+    const option = [
+      { value: 1, label: "Easy" },
+      { value: 2, label: "Moderate" },
+      { value: 3, label: "Hard" },
+    ].find((opt) => opt.value === formData.difficulty_id);
+    return option?.label || "Easy";
+  };
+
+  const getCoverageLabel = () => {
+    const option = [
+      { value: 1, label: "Midterms" },
+      { value: 2, label: "Finals" },
+    ].find((opt) => opt.value === formData.coverage_id);
+    return option?.label || "Midterms";
+  };
+
+  const getPurposeLabel = () => {
+    const option = [
+      { value: 2, label: "Practice" },
+      { value: 1, label: "Qualifying Exam" },
+    ].find((opt) => opt.value === formData.purpose_id);
+    return option?.label || "Practice";
+  };
+
+  // Choice colors - white and gray
+  const choiceColors = [
+    "bg-white border border-gray-300", // White
+    "bg-gray-100 border border-gray-300", // Light gray
+    "bg-white border border-gray-300", // White
+    "bg-gray-100 border border-gray-300", // Light gray
+    "bg-white border border-gray-300", // White 
+  ];
+
   return (
     <>
-      <div className="open-sans lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
-        <div className="scrollbar-hide animate-fade-in-up flex h-[100%] overflow-y-auto sm:h-[99%]">
-          <div className="flex-1">
-            {/* Header */}
-            <div className="border-color relative mx-auto max-w-5xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-800 shadow-lg sm:rounded-t-md md:w-[110vh] lg:w-[135vh]">
-              <div className="flex items-center justify-between pr-4">
-                <span className="text-[14px] font-semibold">
-                  ADD A QUESTION
-                </span>
-                <button
-                  onClick={onCancel}
-                  className="-mr-3 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-gray-500 transition duration-100 hover:bg-gray-100 hover:text-gray-700"
-                >
-                  <i className="bx bx-x text-2xl"></i>
-                </button>
+      <div className="fade-in outfit lightbox-bg fixed inset-0 z-105 flex flex-col overflow-hidden bg-gray-100">
+        {/* Full Screen Header */}
+        <div className=" outfit-400 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
+          {/* Left Side: Back arrow and Multiple Choice */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onCancel}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl text-gray-800 transition duration-100 hover:bg-gray-100 hover:text-gray-800"
+            >
+              <i className="bx bx-arrow-left-stroke text-2xl"></i>
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-[16px] font-medium text-gray-800">
+                Create a Question
+              </span>
+            </div>
+          </div>
+
+          {/* Right Side: Difficulty, Coverage, Purpose, Save Button */}
+          <div className="flex items-center gap-4">
+            {/* Mobile Settings Button - Hidden on desktop */}
+            <button
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="md:hidden flex items-center gap-2 rounded-lg cursor-pointer bg-gray-200 px-3 py-1.5 text-[14px] font-medium text-gray-700 transition hover:bg-gray-300"
+            >
+              <i className="bx bx-cog text-[18px]"></i>
+            </button>
+
+            {/* Desktop Dropdowns - Hidden on mobile */}
+            <div className="hidden md:flex items-center gap-4">
+              <HeaderDropdown
+                name="difficulty_id"
+                value={formData.difficulty_id}
+                onChange={handleQuestionChange}
+                options={[
+                  { value: 1, label: "Easy" },
+                  { value: 2, label: "Moderate" },
+                  { value: 3, label: "Hard" },
+                ]}
+                show={mode !== "quiz" || (mode === "quiz" && quizTypeId === 1)}
+                label="Difficulty"
+              />
+
+              <HeaderDropdown
+                name="coverage_id"
+                value={formData.coverage_id}
+                onChange={handleQuestionChange}
+                options={[
+                  { value: 1, label: "Midterms" },
+                  { value: 2, label: "Finals" },
+                ]}
+                show={mode !== "quiz" || (mode === "quiz" && quizTypeId === 1)}
+                label="Coverage"
+              />
+
+              <HeaderDropdown
+                name="purpose_id"
+                value={formData.purpose_id}
+                onChange={handleQuestionChange}
+                options={[
+                  { value: 2, label: "Practice" },
+                  { value: 1, label: "Qualifying Exam" },
+                ]}
+                show={mode !== "quiz"}
+                label="Purpose"
+              />
+            </div>
+
+            {/* Save Question Button */}
+            <button
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className={`flex items-center gap-2 rounded-lg cursor-pointer bg-orange-500 px-4 py-1.5 text-[14px] font-medium text-white transition ${
+                isLoading
+                  ? "cursor-not-allowed bg-orange-500"
+                  : "hover:bg-orange-600"
+              }`}
+            >
+              <i className="bx bx-save text-[18px]"></i>
+              <span className="hidden sm:inline">{isLoading ? "Saving..." : "Save"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Second Header - Text Formatting */}
+        <div className="flex h-12 items-center justify-between border-b border-gray-300 bg-gray-50 px-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            {/* Text Formatting Buttons */}
+            <div className="flex items-center gap-1 text-[20px] text-gray-600">
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleFormat("bold", setIsBold);
+              }}
+              className={`flex items-center justify-center size-8 cursor-pointer rounded p-1 transition
+                          hover:bg-gray-100 hover:text-gray-900
+                          ${isBold ? "bg-gray-200 text-gray-900" : ""}`}
+            >
+              <i className="bx bx-bold text-[18px]"></i>
+            </button>
+
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleFormat("italic", setIsItalic);
+              }}
+              className={`flex items-center justify-center size-8 cursor-pointer rounded p-1 transition
+                          hover:bg-gray-100 hover:text-gray-900
+                          ${isItalic ? "bg-gray-200 text-gray-900" : ""}`}
+            >
+              <i className="bx bx-italic text-[18px]"></i>
+            </button>
+
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleFormat("underline", setIsUnderline);
+              }}
+              className={`flex items-center justify-center size-8 cursor-pointer rounded p-1 transition
+                          hover:bg-gray-100 hover:text-gray-900
+                          ${isUnderline ? "bg-gray-200 text-gray-900" : ""}`}
+            >
+              <i className="bx bx-underline text-[18px]"></i>
+            </button>
+
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleFormat("strikeThrough", setIsStrikethrough);
+              }}
+              className={`flex items-center justify-center size-8 cursor-pointer rounded p-1 transition
+                          hover:bg-gray-100 hover:text-gray-900
+                          ${isStrikethrough ? "bg-gray-200 text-gray-900" : ""}`}
+            >
+              <i className="bx bx-strikethrough text-[18px]"></i>
+            </button>
+          </div>
+
+            
+            {/* Vertical Separator */}
+            <div className="h-6 w-px bg-gray-300"></div>
+            
+            {/* Points Input */}
+            <div className="flex items-center gap-2">
+              <span className="text-[14px] text-gray-700">Point{formData.score !== 1 ? "s" : ""}</span>
+              <input
+                name="score"
+                type="number"
+                min="1"
+                max="100"
+                onChange={handleQuestionChange}
+                value={formData.score}
+                className="w-16 px-3 py-1 border border-gray-200 rounded-lg text-[14px] transition-all duration-100 outline-none focus:border focus:border-orange-500"
+                required
+                onInput={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (val < 1) e.target.value = 1;
+                  if (val > 100) e.target.value = 100;
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
+          <div className="mx-auto max-w-7xl">
+            {/* Question Input Section - Dark Purple Box */}
+            <div className="mb-3 rounded-xl bg-white p-6 border border-gray-200">
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* Question Input Area */}
+                <div className="flex-1 min-w-0">
+                  {/* Question Editor */}
+                  <div
+                    className={`outfit-400 relative min-h-[180px] rounded-lg border border-gray-200 transition-all duration-150
+                      flex items-center justify-center p-15 overflow-hidden`}
+                    onClick={(e) => {
+                      // Only focus if clicking directly on the container background, not on child elements
+                      if (e.target === e.currentTarget) {
+                        editorRef.current?.focus();
+                      }
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+
+                    {/* Media Upload Icon - Inside Editor */}
+                    <div className="absolute top-2 right-2 z-10">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setImageSelectionType("question");
+                          setIsImageSelectionModalOpen(true);
+                        }}
+                        className="relative flex h-8 w-8 items-center justify-center rounded-md cursor-pointer text-gray-700 transition hover:bg-gray-200"
+                        title="Add image"
+                      >
+                        <i className="bx bx-image-alt text-2xl"></i>
+                      </button>
+                      <input
+                        type="file"
+                        name="image"
+                        accept="image/*"
+                        ref={fileInputRef}
+                        className="hidden"
+                        onChange={handleQuestionChange}
+                      />
+                    </div>
+
+                    {!isFocused && isEditorEmpty() && (
+                      <span className="pointer-events-none -mt-25 absolute text-[14px] text-gray-400 whitespace-nowrap overflow-hidden max-w-full">
+                        Type question here
+                      </span>
+                    )}
+
+                    <div
+                      ref={editorRef}
+                      contentEditable
+                      suppressContentEditableWarning
+                      className="w-full bg-transparent border-none
+                                 text-[14px] text-gray-800 text-center
+                                 break-words whitespace-pre-wrap
+                                 focus:outline-none
+                                 max-w-full overflow-wrap-anywhere"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      onFocus={() => {
+                        setIsFocused(true);
+                        // Ensure text stays centered when typing
+                        if (editorRef.current) {
+                          editorRef.current.style.textAlign = "center";
+                        }
+                      }}
+                      onBlur={() => setIsFocused(false)}
+                      onKeyDown={(e) => {
+                        // Allow Enter key to create new lines
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          // Prevent default to control the behavior
+                          e.preventDefault();
+                          // Insert a line break
+                          const selection = window.getSelection();
+                          if (selection.rangeCount > 0) {
+                            const range = selection.getRangeAt(0);
+                            const br = document.createElement('br');
+                            range.deleteContents();
+                            range.insertNode(br);
+                            // Move cursor after the br
+                            range.setStartAfter(br);
+                            range.collapse(true);
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                            
+                            // Trigger input event to update state
+                            const inputEvent = new Event('input', { bubbles: true });
+                            if (editorRef.current) {
+                              editorRef.current.dispatchEvent(inputEvent);
+                            }
+                          }
+                          // Ensure text stays centered and expand height
+                          setTimeout(() => {
+                            if (editorRef.current) {
+                              editorRef.current.style.textAlign = "center";
+                              autoExpandEditor(editorRef.current);
+                            }
+                          }, 0);
+                        }
+                      }}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        const selection = window.getSelection();
+                        if (selection.rangeCount === 0) return;
+                        
+                        const range = selection.getRangeAt(0);
+                        const currentText = editorRef.current?.textContent || '';
+                        const currentLength = currentText.length;
+                        const remainingChars = 1000 - currentLength;
+                        
+                        if (remainingChars <= 0) return; // Already at limit
+                        
+                        range.deleteContents();
+                        
+                        // Try to get HTML first to preserve superscript/subscript
+                        let html = e.clipboardData.getData('text/html');
+                        let text = e.clipboardData.getData('text/plain');
+                        
+                        if (html) {
+                          // Clean HTML while preserving superscript/subscript
+                          html = cleanPastedHTML(html);
+                          // Create a temporary container to parse and insert the cleaned HTML
+                          const tempDiv = document.createElement('div');
+                          tempDiv.innerHTML = html;
+                          
+                          // Normalize spaces in all text nodes
+                          const normalizeTextNodes = (node) => {
+                            if (node.nodeType === Node.TEXT_NODE) {
+                              node.textContent = node.textContent.replace(/\s+/g, ' ');
+                            } else {
+                              node.childNodes.forEach(normalizeTextNodes);
+                            }
+                          };
+                          normalizeTextNodes(tempDiv);
+                          
+                          const pastedText = tempDiv.textContent || tempDiv.innerText || '';
+                          
+                          // Truncate if needed
+                          if (pastedText.length > remainingChars) {
+                            const truncatedText = pastedText.substring(0, remainingChars);
+                            const textNode = document.createTextNode(truncatedText);
+                            range.insertNode(textNode);
+                          } else {
+                            const fragment = document.createDocumentFragment();
+                            while (tempDiv.firstChild) {
+                              fragment.appendChild(tempDiv.firstChild);
+                            }
+                            range.insertNode(fragment);
+                          }
+                        } else if (text) {
+                          // Fallback to plain text if no HTML
+                          // Normalize all whitespace (spaces, tabs, newlines) to single space
+                          text = text.replace(/\s+/g, ' ').trim();
+                          // Truncate if needed
+                          if (text.length > remainingChars) {
+                            text = text.substring(0, remainingChars);
+                          }
+                          const textNode = document.createTextNode(text);
+                          range.insertNode(textNode);
+                        }
+                        
+                        // Move cursor to end of inserted content
+                        range.collapse(false);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                        
+                        // Trigger input event to update state
+                        if (editorRef.current) {
+                          autoExpandEditor(editorRef.current);
+                          setFormData((prev) => ({
+                            ...prev,
+                            questionText: editorRef.current.innerHTML,
+                          }));
+                        }
+                      }}
+                      onInput={(e) => {
+                        const editor = e.target;
+                        const textLength = getTextLength(editor.innerHTML);
+                        
+                        // Enforce 1000 character limit
+                        if (textLength > 1000) {
+                          // Truncate to 1000 characters
+                          const tempDiv = document.createElement('div');
+                          tempDiv.innerHTML = editor.innerHTML;
+                          let text = tempDiv.textContent || tempDiv.innerText || '';
+                          text = text.substring(0, 1000);
+                          editor.innerHTML = text;
+                        }
+                        
+                        autoExpandEditor(editor);
+                        setFormData((prev) => ({
+                          ...prev,
+                          questionText: editor.innerHTML,
+                        }));
+                      }}
+                      style={{ 
+                        color: "black", 
+                        wordWrap: "break-word", 
+                        overflowWrap: "break-word",
+                        maxWidth: "100%",
+                        width: "100%",
+                        textAlign: "center",
+                        lineHeight: "1.5em",  
+                        minHeight: "1.5em",
+                        overflow: "hidden",
+                        display: "block"
+                      }}
+                    ></div>
+                    {/* Character Counter */}
+                    <div className="absolute bottom-2 right-2 text-[12px] text-gray-500">
+                      {getTextLength(formData.questionText)}/1000
+                    </div>
+                  </div>
+                </div>
+
+                {/* Question Image Preview - Beside Question on Desktop, Below on Mobile */}
+                {imagePreview && (
+                  <>
+                    {/* Desktop: Beside Question */}
+                    <div className="hidden md:block relative flex-shrink-0 w-[400px]">
+                      <img
+                        src={imagePreview}
+                        alt="Question"
+                        className="h-auto max-h-[300px] w-full cursor-pointer rounded-lg object-contain shadow-lg hover:opacity-90"
+                        onClick={() => setisQuestionModalOpen(true)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, image: null }));
+                          setImagePreview(null);
+                        }}
+                        className="absolute top-2 right-2 flex cursor-pointer h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black"
+                      >
+                        <i className="bx bx-x text-sm"></i>
+                      </button>
+                    </div>
+                    {/* Mobile: Below Question */}
+                    <div className="md:hidden relative mt-4 w-full flex justify-center">
+                      <div className="relative max-w-full">
+                        <img
+                          src={imagePreview}
+                          alt="Question"
+                          className="h-auto max-h-[300px] w-full cursor-pointer rounded-lg object-contain shadow-lg hover:opacity-90"
+                          onClick={() => setisQuestionModalOpen(true)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData((prev) => ({ ...prev, image: null }));
+                            setImagePreview(null);
+                          }}
+                          className="absolute top-2 right-2 flex cursor-pointer h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black"
+                        >
+                          <i className="bx bx-x text-sm"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Question Card */}
-            <div className="border-color relative mx-auto mb-3 w-full max-w-5xl border border-t-0 bg-white p-5 shadow-lg sm:rounded-b-md sm:px-5 md:w-[110vh] lg:w-[135vh]">
-              {/* Question Header */}
-              <div className="flex items-start gap-3">
-                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
-                  1
-                </div>
-                <div>
-                  <h3 className="text-[14px] font-semibold text-black">
-                    Write your question
-                  </h3>
-                  <p className="text-[12px] text-gray-500">
-                    Input your question in the designated field.
-                  </p>
-                </div>
-              </div>
-
-              {/* Question Input */}
-              <div
-                className={`relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-text hover:bg-gray-200 ${isFocused ? "bg-gray-200" : ""}`}
-                onClick={() => editorRef.current.focus()}
-              >
-                <div
-                  className={`absolute top-1/2 left-0 rounded-l-sm bg-orange-500 transition-all duration-200 ${isFocused ? "animate-expand-border h-full" : "h-0"}`}
-                  style={{ width: "4px", transform: "translateY(-50%)" }}
-                ></div>
-
-                {!isFocused && isEditorEmpty() && (
-                  <span className="pointer-events-none absolute top-[14px] left-4 text-[14px] text-gray-400">
-                    Enter question...
-                  </span>
-                )}
-
-                <div
-                  ref={editorRef}
-                  contentEditable
-                  className="mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words break-all whitespace-pre-wrap focus:border-orange-500 focus:outline-none"
-                  suppressContentEditableWarning={true}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
-                  onInput={(e) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      questionText: e.target.innerHTML,
-                    }));
-                    e.target.style.height = "auto";
-                    e.target.style.height = `${e.target.scrollHeight}px`;
-                  }}
-                ></div>
-              </div>
-
-              {/* Text Formatting Options */}
-              <div className="mt-3 ml-5 flex gap-5 text-[24px] text-[rgb(120,120,120)] sm:gap-6">
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleFormat("bold", setIsBold);
-                  }}
-                  className={`cursor-pointer hover:text-gray-900 ${isBold ? "font-bold text-orange-500" : ""}`}
-                >
-                  <i className="bx bx-bold"></i>
-                </button>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleFormat("italic", setIsItalic);
-                  }}
-                  className={`cursor-pointer hover:text-gray-900 ${isItalic ? "text-orange-500 italic" : ""}`}
-                >
-                  <i className="bx bx-italic"></i>
-                </button>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleFormat("underline", setIsUnderline);
-                  }}
-                  className={`cursor-pointer hover:text-gray-900 ${isUnderline ? "text-orange-500 underline" : ""}`}
-                >
-                  <i className="bx bx-underline"></i>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current.click()}
-                  className="cursor-pointer hover:text-gray-900"
-                >
-                  <i className="bx bx-image-alt"></i>
-                </button>
-                <input
-                  type="file"
-                  name="image"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  className="hidden"
-                  onChange={handleQuestionChange}
-                />
-              </div>
-
-              {/* Question Image Preview */}
-              {imagePreview && (
-                <div className="relative mt-3 ml-5 inline-block max-w-[300px]">
-                  <div className="flex flex-col items-start">
-                    <img
-                      src={imagePreview}
-                      alt="Uploaded"
-                      className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md hover:opacity-80"
-                      onClick={() => setisQuestionModalOpen(true)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData((prev) => ({ ...prev, image: null }));
-                        setImagePreview(null);
-                      }}
-                      className="absolute top-4 right-4 flex h-6 w-6 translate-x-1/2 -translate-y-1/2 transform items-center justify-center rounded-full bg-black text-white opacity-70 hover:cursor-pointer"
-                    >
-                      <i className="bx bx-x text-[16px] leading-none"></i>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="mx-1 mt-3 mb-5 h-[0.5px] bg-gray-300" />
-
-              {/* Choices Section */}
-              <div className="flex max-w-[850px] items-start gap-3">
-                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
-                  2
-                </div>
-                <div>
-                  <h3 className="text-[14px] font-semibold text-black">
-                    Add your multiple-choice options
-                  </h3>
-                  <p className="max-w-[90%] text-[12px] text-gray-500">
-                    Enter the answer options of your question and select the
-                    correct answer by pressing the circle buttons below.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-4 px-3 py-2">
+            {/* Choices Section - Colorful Cards */}
+            <div className="rounded-xl border border-gray-200 bg-white p-6">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 {formData.choices.map((choice, index) => (
                   <div
                     key={index}
-                    className="relative flex items-center space-x-2"
-                  >
-                    {/* Boxicon for correct answer selection */}
-                    <i
-                      className={`bx ${choice.isCorrect ? "bxs-check-circle text-orange-500" : "bx-circle text-gray-300"} cursor-pointer text-[24px] transition-all duration-300 ease-in-out hover:scale-110 ${
-                        choice.isCorrect ? "animate-correct-pulse" : ""
-                      } ${
-                        animatingChoice === index
-                          ? "animate-correct-select"
-                          : ""
-                      }`}
-                      style={{ minWidth: 22 }}
-                      title={
-                        choice.isCorrect ? "Correct answer" : "Mark as correct"
-                      }
-                      onClick={() => {
-                        // Trigger animation
-                        setAnimatingChoice(index);
-                        setTimeout(() => {
-                          setAnimatingChoice(null);
-                        }, 300);
-
-                        handleChoiceChange(index, "isCorrect", true);
-                      }}
-                      data-choice-index={index}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ")
-                          handleChoiceChange(index, "isCorrect", true);
-                      }}
-                      role="button"
-                      aria-label={
-                        choice.isCorrect ? "Correct answer" : "Mark as correct"
-                      }
-                    ></i>
-                    {/* Input Choice */}
-                    {!choice.image && (
-                      <div
-                        className={`relative ml-2 w-[80%] rounded-sm bg-gray-50 p-1 transition-all duration-150 hover:bg-gray-100 ${
-                          focusedChoice === index ? "bg-gray-200" : ""
-                        }`}
-                        onClick={() => {
-                          if (!choice.isFixed) setFocusedChoice(index);
-                        }}
-                      >
-                        <div
-                          className={`absolute top-1/2 left-0 rounded-l-sm bg-orange-500 transition-all duration-200 ${
-                            focusedChoice === index
-                              ? "animate-expand-border h-full"
-                              : "h-0"
-                          }`}
-                          style={{
-                            width: "4px",
-                            transform: "translateY(-50%)",
-                          }}
-                        ></div>
-                        {/* Only show custom placeholder if not focused and empty */}
-                        {focusedChoice !== index &&
-                          choice.choiceText === "" && (
-                            <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-[14px] text-gray-400">
-                              {`Option ${index + 1}`}
-                            </span>
-                          )}
-                        <input
-                          type="text"
-                          value={choice.choiceText}
-                          onChange={(e) =>
-                            handleChoiceChange(
-                              index,
-                              "choiceText",
-                              e.target.value,
-                            )
-                          }
-                          className={`min-h-[40px] w-full max-w-full resize-none overflow-hidden border-none bg-inherit py-[6px] pl-3 text-[14px] break-words break-all whitespace-pre-wrap focus:outline-none ${
-                            choice.isFixed ? "cursor-not-allowed" : ""
-                          }`}
-                          onFocus={() =>
-                            !choice.isFixed && setFocusedChoice(index)
-                          }
-                          onBlur={(e) => {
-                            if (
-                              !e.relatedTarget ||
-                              !e.relatedTarget.classList.contains(
-                                "image-upload-btn",
-                              )
-                            ) {
-                              setFocusedChoice(null);
-                            }
-                          }}
-                          disabled={choice.isFixed}
-                          required
-                        />
-                      </div>
-                    )}
-
-                    {/* Image Upload Button */}
-                    {!choice.image &&
-                      focusedChoice === index &&
-                      !choice.isFixed && (
-                        <>
-                          <button
-                            onClick={() =>
-                              document
-                                .getElementById(`fileInput-${index}`)
-                                .click()
-                            }
-                            className="image-upload-btn cursor-pointer rounded-md px-2 py-1 text-[24px] text-[rgb(120,120,120)] hover:text-gray-900"
-                          >
-                            <i className="bx bx-image-alt"></i>
-                          </button>
-                          <input
-                            id={`fileInput-${index}`}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(event) =>
-                              handleChoiceImageUpload(index, event)
-                            }
-                          />
-                        </>
-                      )}
-
-                    {/* Choice Image Preview */}
-                    {choice.image && (
-                      <div className="relative mt-3">
-                        <img
-                          src={URL.createObjectURL(choice.image)}
-                          alt={`Choice ${index + 1}`}
-                          className={`max-h-[300px] max-w-[300px] rounded-md object-contain shadow-lg hover:cursor-pointer hover:opacity-80 ${choice.isCorrect ? "border-2 border-orange-500" : ""}`}
-                          onClick={() => {
-                            setchoiceModalImage(
-                              URL.createObjectURL(choice.image),
-                            );
-                            setIsChoiceModalOpen(true);
-                          }}
-                        />
-                        <button
-                          onClick={() => {
-                            removeChoiceImage(index);
-                            setFocusedChoice(null);
-                          }}
-                          className="absolute top-4 right-4 flex h-6 w-6 translate-x-1/2 -translate-y-1/2 transform items-center justify-center rounded-full bg-black text-white opacity-70 hover:cursor-pointer"
-                        >
-                          <i className="bx bx-x text-[16px] leading-none"></i>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mx-1 mt-3 mb-5 h-[0.5px] bg-gray-300" />
-
-              <div className="flex items-start gap-3">
-                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
-                  3
-                </div>
-                <div>
-                  <h3 className="text-[14px] font-semibold text-black">
-                    Question Settings
-                  </h3>
-                  <p className="text-[12px] text-gray-500">
-                    Configure the question's score, difficulty level, and
-                    coverage.
-                  </p>
-                </div>
-              </div>
-
-              {/* Form Controls */}
-              <div className="mt-8 mb-1 ml-3 flex flex-col gap-4 px-2 sm:flex-col">
-                {/* Score Input */}
-                <div className="relative flex w-[20%] items-center gap-2 sm:w-auto">
-                  <label htmlFor="score" className="text-[14px] text-gray-700">
-                    Score:
-                  </label>
-                  <input
-                    name="score"
-                    type="number"
-                    min="1"
-                    max="100"
-                    onChange={handleQuestionChange}
-                    value={formData.score}
-                    className="ml-[60px] w-40 border-0 border-b border-gray-300 px-3 py-1 text-[14px] transition-all duration-100 outline-none focus:border-b-2 focus:border-orange-500"
-                    required
-                    onInput={(e) => {
-                      const val = parseInt(e.target.value);
-                      if (val < 1) e.target.value = 1;
-                      if (val > 100) e.target.value = 100;
-                    }}
-                  />
-                </div>
-
-                {/* Difficulty Dropdown */}
-                <CustomDropdown
-                  label="Difficulty"
-                  name="difficulty_id"
-                  value={formData.difficulty_id}
-                  onChange={handleQuestionChange}
-                  placeholder="Select difficulty..."
-                  options={[
-                    { value: 1, label: "Easy" },
-                    { value: 2, label: "Moderate" },
-                    { value: 3, label: "Hard" },
-                  ]}
-                  classname="ml-10"
-                />
-
-                {/* Coverage Dropdown */}
-                <CustomDropdown
-                  label="Coverage"
-                  name="coverage_id"
-                  value={formData.coverage_id}
-                  onChange={handleQuestionChange}
-                  options={[
-                    { value: 1, label: "Midterms" },
-                    { value: 2, label: "Finals" },
-                  ]}
-                  classname="ml-[38px]"
-                />
-
-                {/* Purpose Dropdown */}
-                <CustomDropdown
-                  label="Purpose"
-                  name="purpose_id"
-                  value={formData.purpose_id}
-                  onChange={handleQuestionChange}
-                  options={[
-                    { value: 2, label: "Practice " },
-                    { value: 1, label: "Qualifying Exam " },
-                  ]}
-                  classname="ml-[45px]"
-                />
-              </div>
-
-              <div className="mx-1 mt-5 mb-5 h-[0.5px] bg-gray-300" />
-
-              <div className="flex w-full items-start justify-between">
-                {/* Left Side: Number and Text */}
-                <div className="flex items-start gap-3 px-2">
-                  <div className="mt-[6px] -ml-2 flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
-                    4
-                  </div>
-                  <div>
-                    <h3 className="mt-[7px] text-[14px] font-semibold text-black sm:-mt-0">
-                      Save Question
-                    </h3>
-                    <p className="hidden text-[12px] text-gray-500 sm:block">
-                      Proceed to save your question, or cancel to exit without
-                      saving.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right Side: Buttons */}
-                <div className="flex gap-2 px-2 text-[14px]">
-                  <button
-                    type="button"
-                    onClick={onCancel}
-                    className="border-color mt-1 cursor-pointer rounded-md border px-4 py-1 text-gray-700 hover:bg-gray-200"
-                  >
-                    <span className="text-[14px]">Cancel</span>
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isLoading}
-                    className={`mt-1 flex cursor-pointer items-center justify-center gap-[5px] rounded-md px-5 py-[6px] text-white ${
-                      isLoading
-                        ? "cursor-not-allowed bg-orange-300"
-                        : "bg-orange-500 hover:bg-orange-600"
+                    className={`relative outfit-400 rounded-lg ${choiceColors[index]} p-5 transition-all min-w-0 overflow-hidden ${
+                      choice.isCorrect ? "ring-2 ring-orange-500 ring-offset-2 border-none" : ""
                     }`}
                   >
-                    {isLoading ? (
-                      <div className="flex items-center justify-center">
-                        <span className="loader-white"></span>
-                      </div>
-                    ) : (
-                      "Add"
-                    )}
-                  </button>
-                </div>
+                    {/* Top Right: Correct Answer Checkbox */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAnimatingChoice(index);
+                        setTimeout(() => setAnimatingChoice(null), 300);
+                        handleChoiceChange(index, "isCorrect", true);
+                      }}
+                      className="absolute right-2 top-2 flex size-7 items-center justify-center
+                                rounded-full  text-gray-600
+                                cursor-pointer transition hover:bg-gray-200"
+                      title={choice.isCorrect ? "Correct answer" : "Mark as correct"}
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center">
+                        {choice.isCorrect ? (
+                          <i className="bx bxs-check-circle text-[24px] text-orange-600" />
+                        ) : (
+                          <i className="bx bx-circle text-[24px]" />
+                        )}
+                      </span>
+                    </button>
+
+
+                    {/* Top Left: Delete and Image Upload */}
+                    <div className="absolute left-2 top-2 flex gap-1">
+                      {!choice.isFixed && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setImageSelectionType(index);
+                            setIsImageSelectionModalOpen(true);
+                          }}
+                          className="flex h-6 w-6 items-center justify-center rounded  text-gray-700 transition cursor-pointer hover:bg-gray-200"
+                          title={choice.image ? "Replace image" : "Add image"}
+                        >
+                          <i className="bx bx-image-alt text-[24px]"></i>
+                        </button>
+                      )}
+                      <input
+                        id={`fileInput-${index}`}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(event) => handleChoiceImageUpload(index, event)}
+                      />
+                    </div>
+
+                    {/* Choice Content */}
+                    <div className="mt-8">
+                      {choice.image ? (
+                        // If image exists, show image only (no caption)
+                        <div className="flex flex-col items-center w-full min-w-0">
+                          <div className="relative mb-2 w-full">
+                            <img
+                              src={choiceImagePreviews[index] || (choice.image instanceof File ? URL.createObjectURL(choice.image) : choice.image)}
+                              alt={`Choice ${index + 1}`}
+                              className="h-auto max-h-[200px] w-full cursor-pointer rounded object-contain hover:opacity-90"
+                              onClick={() => {
+                                const imageUrl = choiceImagePreviews[index] || (choice.image instanceof File ? URL.createObjectURL(choice.image) : choice.image);
+                                setchoiceModalImage(imageUrl);
+                                setIsChoiceModalOpen(true);
+                              }}
+                            />
+                            {!choice.isFixed && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeChoiceImage(index);
+                                }}
+                                className="absolute top-1 right-1 flex h-5 w-5 items-center cursor-pointer justify-center rounded-full bg-black/70 text-white transition hover:bg-black"
+                              >
+                                <i className="bx bx-x text-xs"></i>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        // If no image, show contentEditable input
+                        <div className="relative w-full min-h-[60px] flex items-center justify-center">
+                          {focusedChoice !== index && !choice.choiceText && (
+                            <span className="pointer-events-none absolute -mt-2 left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[14px] text-gray-400 text-center whitespace-nowrap overflow-hidden max-w-full">
+                              Type answer option here
+                            </span>
+                          )}
+                          <div
+                            ref={(el) => {
+                              if (el) choiceEditors.current[index] = el;
+                            }}
+                            contentEditable={!choice.isFixed}
+                            suppressContentEditableWarning
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            onPaste={(e) => {
+                              if (choice.isFixed) {
+                                e.preventDefault();
+                                return;
+                              }
+                              e.preventDefault();
+                              const selection = window.getSelection();
+                              if (selection.rangeCount === 0) return;
+                              
+                              const editor = choiceEditors.current[index];
+                              if (!editor) return;
+                              
+                              const currentText = editor.textContent || '';
+                              const currentLength = currentText.length;
+                              const remainingChars = 500 - currentLength;
+                              
+                              if (remainingChars <= 0) return; // Already at limit
+                              
+                              const range = selection.getRangeAt(0);
+                              range.deleteContents();
+                              
+                              // Try to get HTML first to preserve superscript/subscript
+                              let html = e.clipboardData.getData('text/html');
+                              let text = e.clipboardData.getData('text/plain');
+                              
+                              if (html) {
+                                // Clean HTML while preserving superscript/subscript
+                                html = cleanPastedHTML(html);
+                                const tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = html;
+                                
+                                // Normalize spaces in all text nodes
+                                const normalizeTextNodes = (node) => {
+                                  if (node.nodeType === Node.TEXT_NODE) {
+                                    node.textContent = node.textContent.replace(/\s+/g, ' ');
+                                  } else {
+                                    node.childNodes.forEach(normalizeTextNodes);
+                                  }
+                                };
+                                normalizeTextNodes(tempDiv);
+                                
+                                const pastedText = tempDiv.textContent || tempDiv.innerText || '';
+                                
+                                // Truncate if needed
+                                if (pastedText.length > remainingChars) {
+                                  const truncatedText = pastedText.substring(0, remainingChars);
+                                  const textNode = document.createTextNode(truncatedText);
+                                  range.insertNode(textNode);
+                                } else {
+                                  const fragment = document.createDocumentFragment();
+                                  while (tempDiv.firstChild) {
+                                    fragment.appendChild(tempDiv.firstChild);
+                                  }
+                                  range.insertNode(fragment);
+                                }
+                              } else if (text) {
+                                // Fallback to plain text if no HTML
+                                // Normalize all whitespace (spaces, tabs, newlines) to single space
+                                text = text.replace(/\s+/g, ' ').trim();
+                                // Truncate if needed
+                                if (text.length > remainingChars) {
+                                  text = text.substring(0, remainingChars);
+                                }
+                                const textNode = document.createTextNode(text);
+                                range.insertNode(textNode);
+                              }
+                              
+                              range.collapse(false);
+                              selection.removeAllRanges();
+                              selection.addRange(range);
+                              
+                              if (choiceEditors.current[index]) {
+                                autoExpandTextarea(choiceEditors.current[index]);
+                                handleChoiceChange(index, "choiceText", choiceEditors.current[index].innerHTML);
+                              }
+                            }}
+                            onInput={(e) => {
+                              if (choice.isFixed) return;
+                              const editor = e.target;
+                              const textLength = getTextLength(editor.innerHTML);
+                              
+                              // Enforce 500 character limit
+                              if (textLength > 500) {
+                                // Truncate to 500 characters
+                                const tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = editor.innerHTML;
+                                let text = tempDiv.textContent || tempDiv.innerText || '';
+                                text = text.substring(0, 500);
+                                editor.innerHTML = text;
+                              }
+                              
+                              // Auto-expand height
+                              editor.style.height = "auto";
+                              editor.style.height = `${Math.max(60, editor.scrollHeight)}px`;
+                              handleChoiceChange(index, "choiceText", editor.innerHTML);
+                            }}
+                            onKeyDown={(e) => {
+                              // Prevent input if at character limit
+                              const currentLength = getTextLength(choiceEditors.current[index]?.innerHTML || '');
+                              if (currentLength >= 500 && e.key !== 'Backspace' && e.key !== 'Delete' && !e.ctrlKey && !e.metaKey) {
+                                e.preventDefault();
+                                return;
+                              }
+                              
+                              // Allow Enter key to create new lines
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                // Let the default behavior happen
+                                setTimeout(() => {
+                                  if (choiceEditors.current[index]) {
+                                    const editor = choiceEditors.current[index];
+                                    editor.style.height = "auto";
+                                    editor.style.height = `${Math.max(60, editor.scrollHeight)}px`;
+                                  }
+                                }, 0);
+                              }
+                            }}
+                            onFocus={() => {
+                              if (!choice.isFixed) setFocusedChoice(index);
+                            }}
+                            onBlur={() => {
+                              setFocusedChoice(null);
+                              if (choiceEditors.current[index]) {
+                                handleChoiceChange(index, "choiceText", choiceEditors.current[index].innerHTML);
+                              }
+                            }}
+                            className="w-full -mt-4 resize-none overflow-hidden rounded px-2 py-2 text-[14px] text-gray-700 focus:border-gray-300 focus:outline-none text-center break-words"
+                            style={{ 
+                              minHeight: "40px", 
+                              textAlign: "center",
+                              wordWrap: "break-word",
+                              overflowWrap: "break-word"
+                            }}
+                          />
+                          
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -796,6 +1462,104 @@ const CombinedQuestionForm = ({
           </div>
         </div>
       )}
+
+      {/* Settings Modal - Mobile Only */}
+      {isSettingsModalOpen && (
+        <div
+          className="bg-opacity-70 lightbox-bg-image fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          onClick={() => setIsSettingsModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Question Settings</h3>
+              <button
+                onClick={() => setIsSettingsModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 transition"
+              >
+                <i className="bx bx-x text-2xl"></i>
+              </button>
+            </div>
+            <div className="space-y-4">
+              {/* Difficulty */}
+              {(mode !== "quiz" || (mode === "quiz" && quizTypeId === 1)) && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
+                  <HeaderDropdown
+                    name="difficulty_id"
+                    value={formData.difficulty_id}
+                    onChange={handleQuestionChange}
+                    options={[
+                      { value: 1, label: "Easy" },
+                      { value: 2, label: "Moderate" },
+                      { value: 3, label: "Hard" },
+                    ]}
+                    show={true}
+                    label=""
+                  />
+                </div>
+              )}
+
+              {/* Coverage */}
+              {(mode !== "quiz" || (mode === "quiz" && quizTypeId === 1)) && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Coverage</label>
+                  <HeaderDropdown
+                    name="coverage_id"
+                    value={formData.coverage_id}
+                    onChange={handleQuestionChange}
+                    options={[
+                      { value: 1, label: "Midterms" },
+                      { value: 2, label: "Finals" },
+                    ]}
+                    show={true}
+                    label=""
+                  />
+                </div>
+              )}
+
+              {/* Purpose */}
+              {mode !== "quiz" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Purpose</label>
+                  <HeaderDropdown
+                    name="purpose_id"
+                    value={formData.purpose_id}
+                    onChange={handleQuestionChange}
+                    options={[
+                      { value: 2, label: "Practice" },
+                      { value: 1, label: "Qualifying Exam" },
+                    ]}
+                    show={true}
+                    label=""
+                  />
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setIsSettingsModalOpen(false)}
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Selection Modal */}
+      <ImageSelectionModal
+        isOpen={isImageSelectionModalOpen}
+        onClose={() => {
+          setIsImageSelectionModalOpen(false);
+          setImageSelectionType(null);
+        }}
+        onImageSelected={handleImageSelected}
+        title="Add image"
+      />
 
       {/* Toast notification */}
       <div className="fixed top-4 right-4 z-[99999]">

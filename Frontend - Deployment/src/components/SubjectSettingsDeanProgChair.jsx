@@ -83,7 +83,7 @@ const PracticeExamConfig = ({
       if (isFormOpen && subjectID) {
         try {
           setLoading(true);
-          const token = localStorage.getItem("token");
+          const token = sessionStorage.getItem("token");
 
           // Fetch practice settings
           const practiceResponse = await fetch(
@@ -202,7 +202,7 @@ const PracticeExamConfig = ({
     // setErrorMessage("");
 
     try {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       if (!token) {
         showToast(
           "Authentication token not found. Please log in again.",
@@ -339,7 +339,7 @@ const PracticeExamConfig = ({
       <div className="block sm:hidden">
         {/* Form Display - Inside isFormOpen condition */}
         {isFormOpen && (
-          <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+          <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
             {/* Overlay click handler for closing modal on outside click */}
             <div
               className="absolute inset-0 z-0"
@@ -588,7 +588,7 @@ const PracticeExamConfig = ({
         <Toast message={toast.message} type={toast.type} show={toast.show} />
         {(isFormOpen || showModal) && (
           <div
-            className={`open-sans bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex justify-end transition-opacity duration-200 ${isFormOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            className={`outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex justify-end transition-opacity duration-200 ${isFormOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
           >
             {/* Overlay click handler for closing modal on outside click */}
             <div

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
-import SearchQuery from "./SearchQuery";
+import { Textfit } from "react-textfit";
+
 import ConfirmModal from "./confirmModal";
 
 // Component to display subject information and tabs for admin/faculty view
@@ -24,10 +25,6 @@ const SubjectCard = ({
   setSearchQuery,
 }) => {
   // Move all useState declarations to the top
-  const [showSearchInput, setShowSearchInput] = useState(false);
-  const [searchAnim, setSearchAnim] = useState("");
-  const searchTimeoutRef = useRef(null);
-  const searchInputRef = useRef(null);
   const [mobileIndicatorStyle, setMobileIndicatorStyle] = useState({
     left: 0,
     width: 0,
@@ -173,7 +170,7 @@ const SubjectCard = ({
   }, [activeIndex]);
 
   const tabs = [
-    { label: "Practice", index: 0 },
+    { label: "Practice Exam", index: 0 },
     { label: "Qualifying Exam", index: 1 },
     { label: "Pending", index: 4 },
   ];
@@ -222,7 +219,7 @@ const SubjectCard = ({
   // Fetch programs and year levels
   useEffect(() => {
     const fetchPrograms = async () => {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       try {
         const res = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/programs`,
@@ -258,8 +255,6 @@ const SubjectCard = ({
 
   // Function to refresh questions list
   const handleRefresh = () => {
-    setShowSearchInput(false);
-    setSearchAnim("");
     onFetchQuestions();
   };
 
@@ -345,7 +340,7 @@ const SubjectCard = ({
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
           },
         },
       );
@@ -375,7 +370,7 @@ const SubjectCard = ({
 
   // Delete subject handler
   const handleDeleteSubject = async (subjectID) => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     setIsDeleting(true);
     try {
       const response = await fetch(
@@ -392,8 +387,7 @@ const SubjectCard = ({
         if (setSelectedSubject) setSelectedSubject(null);
         // Add a small delay to ensure the delete operation is complete
         setTimeout(() => {
-          if (refreshSubjects) refreshSubjects();
-          window.dispatchEvent(new Event("refreshSubjectsList"));
+          window.location.reload();
         }, 100);
         showToast(result.message || "Subject removed successfully", "success");
       } else {
@@ -412,44 +406,16 @@ const SubjectCard = ({
     setTabIndicatorUpdate((n) => n + 1);
   }, [activeIndex, subjectName]); // subjectName in case the tab bar changes width
 
-  // Handle open/close with animation
-  const handleToggleSearch = () => {
-    if (showSearchInput) {
-      setSearchAnim("animate-search-popout");
-      searchTimeoutRef.current = setTimeout(() => {
-        setShowSearchInput(false);
-        setSearchAnim("");
-      }, 100); // match animation duration in index.css
-    } else {
-      setShowSearchInput(true);
-      setSearchAnim("animate-search-popup");
-    }
-  };
-
   useEffect(() => {
     return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
       if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
     };
   }, []);
 
-  // Scroll search input into view on small screens when it appears
-  useEffect(() => {
-    if (showSearchInput && searchInputRef.current && window.innerWidth < 768) {
-      setTimeout(() => {
-        const rect = searchInputRef.current.getBoundingClientRect();
-        const scrollTop =
-          window.pageYOffset || document.documentElement.scrollTop;
-        const targetY = rect.top + scrollTop - 100; // 100px from top
-        window.scrollTo({ top: targetY, behavior: "smooth" });
-      }, 10); // allow render
-    }
-  }, [showSearchInput]);
-
   const SkeletonLoader = () => (
     <>
       {/* Desktop skeleton */}
-      <div className="relative z-51 -mt-3 hidden h-45 overflow-hidden rounded-sm border border-gray-300 bg-white px-4 pt-4 sm:block lg:h-40">
+      <div className="border-color relative z-51 mx-auto mb-6 hidden h-45 max-w-6xl overflow-hidden rounded-xl border bg-white px-4 pt-4 sm:block lg:h-40">
         <div className="flex animate-pulse items-center space-x-4">
           <div className="skeleton shimmer h-18 w-18 rounded-md"></div>
           <div className="flex-1">
@@ -457,7 +423,7 @@ const SubjectCard = ({
             <div className="skeleton shimmer h-4 w-2/8 rounded"></div>
           </div>
         </div>
-        <div className="open-sans mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold md:hidden">
+        <div className="outfit mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold md:hidden">
           <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
           <div className="skeleton shimmer mb-6 hidden h-9 w-28 items-center justify-center rounded-md min-[500px]:flex"></div>
           <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
@@ -466,16 +432,13 @@ const SubjectCard = ({
         </div>
 
         <div className="absolute right-5 bottom-5 z-51 mt-4 hidden gap-3 md:flex">
-          <div className="skeleton shimmer h-10 w-10 rounded-xl bg-gray-300"></div>
-          <div className="skeleton shimmer h-10 w-10 rounded-xl bg-gray-300"></div>
-          <div className="skeleton shimmer h-10 w-28 rounded-xl bg-gray-300"></div>
-          <div className="skeleton shimmer h-10 w-28 rounded-xl bg-gray-300"></div>
+          <div className="skeleton shimmer bg-color h-10 w-28 rounded-xl"></div>
+          <div className="skeleton shimmer bg-color h-10 w-28 rounded-xl"></div>
         </div>
       </div>
-      <div className="relative z-51 -mx-2 -mt-2 hidden h-12 overflow-visible border-r border-b border-l border-gray-300 bg-gray-100 px-4 pt-6 sm:mx-0 sm:block sm:rounded-b-md sm:pt-4 lg:hidden"></div>
 
       {/* Mobile skeleton */}
-      <div className="relative z-48 -mx-2 overflow-visible border border-gray-300 bg-white px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden">
+      <div className="border-color relative z-48 -mx-2 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden">
         <div className="flex flex-wrap items-start justify-between">
           <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
             <div className="skeleton shimmer mt-2 mb-2 ml-2 h-8 w-58 rounded"></div>
@@ -485,7 +448,7 @@ const SubjectCard = ({
           </div>
           <div className="skeleton shimmer mt-1 size-20 rounded-md"></div>
         </div>
-        <div className="open-sans mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold">
+        <div className="outfit mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold">
           <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
           <div className="skeleton shimmer mb-6 hidden h-9 w-28 items-center justify-center rounded-md min-[500px]:flex"></div>
           <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
@@ -493,7 +456,7 @@ const SubjectCard = ({
           <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
         </div>
       </div>
-      <div className="relative z-48 -mx-2 -mt-2 h-12 overflow-visible border-b border-gray-300 bg-gray-100 px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden"></div>
+      <div className="border-color relative z-48 -mx-2 -mt-2 mb-5 h-12 overflow-visible border-b bg-gray-100 px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden"></div>
     </>
   );
 
@@ -503,11 +466,33 @@ const SubjectCard = ({
         <SkeletonLoader />
       ) : (
         <>
+          {/* Top search bar (desktop & mobile) */}
+          <div className="outfit-500 relative mx-auto -mt-1 mb-5 w-full max-w-[1250px] px-2 text-[14px]">
+            <i className="bx bx-search absolute top-1/2 left-5 -translate-y-1/2 text-lg text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search questions..."
+              className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+              value={searchQuery || ""}
+              maxLength={50}
+              onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
+            />
+            {searchQuery && setSearchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute top-4.5 right-5 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
+                aria-label="Clear search"
+              >
+                <i className="bx bx-x text-xl" />
+              </button>
+            )}
+          </div>
+
           {/* Mobile & Tablet */}
-          <div className="relative z-48 -mx-2 overflow-visible border border-gray-300 bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
+          <div className="border-color relative z-48 -mx-2 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
             <div className="flex flex-wrap items-start justify-between sm:hidden">
               <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-                <h1 className="font-inter mt-2 ml-2 text-[18px] font-bold break-words">
+                <h1 className="outfit mt-2 ml-2 text-[18px] font-bold break-words">
                   {subjectName}
                 </h1>
                 <div className="mt-2 ml-2 flex gap-1 text-gray-500">
@@ -528,7 +513,7 @@ const SubjectCard = ({
               <img
                 src={SubPhoto}
                 alt="Subject"
-                className="mt-1 size-20 rounded-md border border-gray-300 object-cover"
+                className="border-color mt-1 size-20 rounded-md border object-cover"
               />
             </div>
 
@@ -536,10 +521,10 @@ const SubjectCard = ({
               <img
                 src={SubPhoto}
                 alt="Subject"
-                className="mr-5 size-18 rounded-md border border-gray-300 object-cover"
+                className="border-color mr-5 size-18 rounded-md border object-cover"
               />
               <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-                <h1 className="font-inter text-[15px] font-bold break-words md:text-[18px]">
+                <h1 className="outfit text-[15px] font-bold break-words md:text-[18px]">
                   {subjectName}
                 </h1>
                 <div className="mt-1 flex gap-1 text-gray-500">
@@ -563,10 +548,10 @@ const SubjectCard = ({
             </div>
 
             {/* Button row for Tablet and Mobile (Configure, Preview, Refresh) */}
-            <div className="open-sans mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold sm:flex md:hidden">
+            <div className="outfit mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold sm:flex md:hidden">
               <button
                 onClick={() => alert("Feature under development")}
-                className="mb-6 flex cursor-pointer items-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
+                className="border-color outfit-500 mb-6 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
               >
                 <i className="bx bx-eye text-lg"></i>
                 <span className="text-[14px]">Preview</span>
@@ -577,7 +562,7 @@ const SubjectCard = ({
                   setSubjectToDelete({ subjectID, subjectName, subjectCode });
                   setShowDeleteModal(true);
                 }}
-                className="mb-6 flex cursor-pointer items-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
+                className="border-color mb-6 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
               >
                 <i className="bx bx-trash text-lg"></i>
                 <span className="text-[14px]">Remove</span>
@@ -585,33 +570,24 @@ const SubjectCard = ({
 
               <button
                 onClick={handleRefresh}
-                className="mb-6 flex cursor-pointer items-center justify-center rounded-md border border-gray-300 px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 min-[500px]:hidden md:hidden"
+                className="border-color mb-6 flex cursor-pointer items-center justify-center rounded-xl border px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 min-[500px]:hidden md:hidden"
               >
                 <i className="bx bx-refresh-ccw text-2xl"></i>
               </button>
 
               <button
                 onClick={handleRefresh}
-                className="mb-6 hidden cursor-pointer items-center gap-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
+                className="border-color mb-6 hidden cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
               >
                 <i className="bx bx-refresh-ccw text-lg"></i>
                 <span className="text-[14px]">Refresh</span>
               </button>
               {/* Mobile/tablet search button */}
-              <button
-                ref={actionButtonRef}
-                onClick={handleToggleSearch}
-                className="mb-6 flex cursor-pointer items-center justify-center rounded-md border border-gray-300 px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 md:hidden"
-              >
-                <i
-                  className={`bx ${showSearchInput ? "bx-x" : "bx-search-big"} text-2xl`}
-                ></i>
-              </button>
             </div>
           </div>
 
           {/* Tablet Tabs Bar (below card) */}
-          <div className="open-sans relative z-48 -mx-2 -mt-2 mb-1 h-[50px] overflow-visible border border-gray-300 bg-gray-50 pt-2 font-semibold sm:mx-0 sm:block sm:rounded-b-md md:hidden">
+          <div className="outfit border-color relative z-48 -mx-2 -mt-2 mb-1 h-[50px] overflow-visible border bg-gray-50 pt-2 font-semibold sm:mx-0 sm:block sm:rounded-b-md md:hidden">
             <ul className="mt-[6px] flex h-full w-full justify-between text-center">
               {tabs.map((tab) => (
                 <li
@@ -644,143 +620,107 @@ const SubjectCard = ({
           </div>
 
           {/* Desktop */}
-          <div className="relative z-48 -mt-3 mb-2 hidden overflow-visible rounded-sm border border-gray-300 bg-white px-4 pt-4 sm:z-51 md:block">
-            <div className="flex">
-              <button
-                onClick={handleRefresh}
-                className="border-color absolute top-2 right-2 flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-sm text-gray-700 transition hover:bg-gray-100 sm:absolute"
-              >
-                <i className="bx bx-refresh-ccw text-base text-gray-500"></i>
-                <span className="hidden text-[14px] sm:inline">Refresh</span>
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center">
-              <img
-                src={SubPhoto}
-                alt="Subject"
-                className="mr-5 size-18 rounded-md border border-gray-300 object-cover"
-              />
-              <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-                <h1 className="font-inter text-[15px] font-bold break-words md:text-[18px]">
-                  {subjectName}
-                </h1>
-                <div className="mt-1 flex gap-1 text-gray-500">
-                  <i className="bx bx-book mt-[1px] text-lg"></i>
-
-                  <p className="text-[14px]">{subjectCode}</p>
-                  <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
+          <div className="border-color relative z-48 mx-auto -mt-3 hidden max-w-[1200px] overflow-visible border-b bg-white px-6 pt-6 pb-0 md:block">
+            {/* Card header/content */}
+            <div className="flex w-full flex-col items-center pb-4 md:flex-row md:flex-nowrap md:items-center">
+              <div className="relative ml-2 flex flex-col items-center md:mr-5">
+                <img
+                  src={SubPhoto}
+                  alt="Subject"
+                  className="border-color size-21 rounded-md border object-cover"
+                />
+              </div>
+              <div className="outfit flex max-w-full min-w-0 flex-col flex-wrap md:max-w-[calc(100%-200px)]">
+                <div className="outfit line-clamp-2">
+                  <Textfit
+                    mode="multi"
+                    min={14}
+                    max={20}
+                    style={{
+                      fontWeight: 600,
+                      lineHeight: "1.2",
+                      fontFamily: "Outfit, sans-serif",
+                    }}
+                  >
+                    <span className="text-[18px]">{subjectName}</span>
+                  </Textfit>
+                </div>
+                <div className="mt-2 flex gap-1 text-gray-500">
+                  <i className="bx bx-book mt-[1px] text-[16px]"></i>
+                  <p className="outfit-400 text-[14px]">{subjectCode}</p>
+                  <span className="mx-1 mt-[2px] align-middle leading-none text-gray-400">
                     •
                   </span>
-                  <p className="text-[14px]">
+                  <i className="bx bx-cog mt-[1px] text-[16px]"></i>
+                  <p className="outfit-400 text-[14px]">
                     {programName === "GE"
                       ? "General Subject"
                       : programName || "-"}
                   </p>
-                  <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
+                  <span className="mx-1 mt-[2px] align-middle leading-none text-gray-400">
                     •
                   </span>
-                  <p className="text-[14px]">{yearLevel || "-"}</p>
+                  <i className="bx bx-people-diversity mt-[1px] text-[16px]"></i>
+                  <p className="outfit-400 text-[14px]">{yearLevel || "-"}</p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-[14px] flex w-full items-center justify-between">
-              <div className="relative mt-[2px] ml-5 flex w-full justify-start lg:ml-10">
-                <ul className="relative flex flex-wrap justify-center gap-7 text-sm font-semibold text-gray-600">
-                  {["Practice", "Qualifying Exam"].map((item, index) => (
-                    <li
-                      key={index}
-                      ref={(el) => (tabRefs.current[index] = el)}
-                      className={`cursor-pointer ${
-                        activeIndex === index
-                          ? "text-orange-500"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
-                      onClick={() => setActiveIndex(index)}
-                    >
-                      <span className="block min-[1150px]:hidden">{item}</span>
-                      <span className="hidden min-[1150px]:block">
-                        {item} Questions
-                      </span>
-                    </li>
-                  ))}
-                  <li
-                    ref={(el) => (tabRefs.current[4] = el)}
-                    className={`cursor-pointer ${
-                      activeIndex === 4
-                        ? "text-orange-500"
-                        : "hover:text-gray-900"
-                    }`}
-                    onClick={() => setActiveIndex(4)}
-                  >
-                    Pending
-                  </li>
-                </ul>
-
-                <div
-                  className={`absolute bottom-[-13px] h-1 bg-orange-500 md:bottom-[-16px] md:ml-0 ${
-                    isResizing ? "" : "transition-all duration-300"
-                  }`}
-                  style={{
-                    left: `${indicatorStyle.left}px`,
-                    width: `${indicatorStyle.width}px`,
-                  }}
-                ></div>
-              </div>
-
-              <div className="fixed right-5 bottom-5 z-51 mt-4 flex gap-3 md:relative md:right-0 md:mt-3">
-                {/* Configure Button */}
-                {/* Desktop search button */}
+            {/* Desktop Button Row */}
+            <div className="outfit-500 mb-0 flex w-full flex-row items-center justify-end gap-2 pb-1 font-semibold">
+              <div className="flex flex-row gap-2">
+                {/* Remove */}
                 <button
-                  ref={actionButtonRef}
-                  onClick={handleToggleSearch}
-                  className="hidden cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-2 py-2 text-gray-700 transition-all duration-100 hover:bg-gray-100 md:flex"
-                >
-                  <i
-                    className={`bx ${showSearchInput ? "bx-x" : "bx-search-big"} text-2xl`}
-                  ></i>
-                </button>
-
-                <button
-                  className="border-color hidden cursor-pointer items-center gap-2 rounded-lg border bg-white px-4 py-2 text-gray-700 transition-all duration-100 hover:bg-gray-200 active:translate-y-[2px] active:border-b-2 md:flex"
                   onClick={() => {
                     setSubjectToDelete({ subjectID, subjectName, subjectCode });
                     setShowDeleteModal(true);
                   }}
+                  className="border-color flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-red-500 transition hover:bg-gray-100"
                 >
-                  <i className="bx bx-trash text-lg"></i>
+                  <i className="bx bx-trash text-[16px]"></i>
                   <span className="text-[14px]">Remove</span>
                 </button>
 
-                {/* Preview Button */}
+                {/* Preview */}
                 <button
-                  onClick={() => alert("Feature under development")}
-                  className="hidden cursor-pointer items-center gap-2 rounded-lg border border-b-4 border-orange-600 bg-orange-500 px-4 py-2 text-white transition-all duration-100 hover:bg-orange-600 active:translate-y-[2px] active:border-b-2 md:flex"
+                  onClick={() => alert("Feature is coming in the next update")}
+                  className="outfit-500 flex cursor-pointer items-center gap-2 rounded-xl border border-b-4 border-orange-600 bg-orange-500 px-4 py-2 text-white transition-all duration-100 hover:bg-orange-600 active:translate-y-[2px] active:border-b-2"
                 >
                   <i className="bx bx-eye-big text-xl"></i>
-                  <span className="text-[14px]">Preview</span>
+                  <span className="outfit text-[14px] font-semibold">
+                    Preview
+                  </span>
                 </button>
               </div>
             </div>
-          </div>
 
-          {showSearchInput && (
-            <div
-              className="flex w-full justify-center px-1 py-2"
-              ref={searchInputRef}
-            >
-              <div
-                className={`w-full transform transition-all duration-300 lg:w-[80%] ${searchAnim}`}
-              >
-                <SearchQuery
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  placeholder="Search questions"
-                />
+            {/* Desktop Tabs Bar (bottom-left of SubjectCard, flush with bottom border) */}
+            <div className="outfit-500 -mt-4 flex w-full justify-start">
+              <div className="relative">
+                {tabs.map((tab, index) => {
+                  const isActive = activeIndex === tab.index;
+                  return (
+                    <button
+                      key={tab.index}
+                      ref={(el) => (tabRefs.current[tab.index] = el)}
+                      onClick={() => setActiveIndex(tab.index)}
+                      className={
+                        "relative mr-3 cursor-pointer px-2 pb-2 text-[14px]" +
+                        (isActive
+                          ? " border-b-3 border-orange-500 text-orange-500"
+                          : " text-gray-500 hover:text-gray-700")
+                      }
+                      style={{
+                        marginRight: index !== tabs.length - 1 ? "0.5rem" : 0,
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          )}
+          </div>
         </>
       )}
 
@@ -805,6 +745,7 @@ const SubjectCard = ({
           isLoading={isDeleting}
           showCountdown={true}
           countdownSeconds={6}
+          shiftHintText={undefined}
         />
       )}
     </div>

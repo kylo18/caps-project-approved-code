@@ -157,7 +157,7 @@ export default function LoginPage() {
     <div className="flex flex-col">
       <div className="flex w-full flex-col items-center justify-center bg-gradient-to-br from-[#101010] to-[#3c3c3c]">
         <div className="relative flex h-60 w-full flex-col items-center justify-center">
-          <div className="font-inter absolute top-5 right-5">
+          <div className="outfit absolute top-5 right-5">
             <span className="mr-2 text-[12px] text-white">
               Already have an account?{" "}
             </span>
