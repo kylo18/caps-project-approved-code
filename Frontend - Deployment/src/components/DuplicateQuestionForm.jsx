@@ -251,7 +251,7 @@ const DuplicateQuestionForm = ({
     }
 
     setIsLoading(true);
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     try {
       // Prepare form data
@@ -334,7 +334,7 @@ const DuplicateQuestionForm = ({
 
   return (
     <>
-      <div className="open-sans lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
+      <div className="outfit lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
         <div className="scrollbar-hide animate-fade-in-up flex h-[100%] overflow-y-auto sm:h-[99%]">
           <div className="flex-1">
             {/* Header */}

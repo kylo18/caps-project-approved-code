@@ -538,7 +538,7 @@ const AssignedSubjectsDropDown = ({
                         >
                           <div className="flex items-center justify-center gap-2 px-2 py-1">
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
-                            <span className="open-sans min-w-[60px] text-center text-sm font-bold text-gray-700">
+                            <span className="outfit min-w-[60px] text-center text-sm font-bold text-gray-700">
                               {programName}
                             </span>
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
@@ -716,7 +716,7 @@ const AssignedSubjectsDropDown = ({
                         <div key={programName}>
                           <div className="flex items-center justify-center gap-2 px-2 py-1">
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
-                            <span className="open-sans min-w-[60px] text-center text-sm font-bold text-gray-700">
+                            <span className="outfit min-w-[60px] text-center text-sm font-bold text-gray-700">
                               {programName}
                             </span>
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
@@ -911,7 +911,7 @@ const AssignedSubjectsDropDown = ({
       {/* Add Assign Subject Modal */}
       {showAddModal && (
         <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center p-2">
-          <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
+          <div className="outfit border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
             <span>Assign a Subject</span>
           </div>
 

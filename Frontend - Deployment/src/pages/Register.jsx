@@ -322,7 +322,7 @@ export default function Register() {
               </p>
             </div>
 
-            <div className="font-inter mt-12 flex flex-col items-center justify-center lg:hidden">
+            <div className="outfit mt-12 flex flex-col items-center justify-center lg:hidden">
               <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
                 <span>
                   <span className="text-3xl text-orange-500">C</span>
@@ -842,7 +842,7 @@ export default function Register() {
         <div className="flex flex-col">
           <div className="flex w-full flex-col items-center justify-center bg-gradient-to-br from-[#101010] to-[#3c3c3c]">
             <div className="relative flex h-60 w-full flex-col items-center justify-center">
-              <div className="font-inter absolute top-5 right-5">
+              <div className="outfit absolute top-5 right-5">
                 <span className="mr-2 text-[12px] text-white">
                   Already have an account?{" "}
                 </span>

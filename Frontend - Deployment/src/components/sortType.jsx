@@ -42,9 +42,9 @@ const SortType = ({
   };
 
   return (
-    <div className="open-sans flex flex-row gap-2">
+    <div className="outfit flex flex-row gap-2">
       <div
-        className="relative flex items-center gap-2 text-[13px]"
+        className="relative flex items-center gap-2 text-[13px] md:-mt-2"
         ref={dropdownRef}
       >
         {/* Dropdown Button */}
@@ -54,7 +54,14 @@ const SortType = ({
           onClick={handleOpenDropdown}
           className={`border-color relative flex cursor-pointer items-center rounded-lg px-3 py-2`}
         >
-          <span className={`truncate`}>{buttonLabel || placeholder}</span>
+          <span className="truncate">
+            {options.find(
+              (option) =>
+                value === option.value || value === option.value + "_desc",
+            )?.label ||
+              buttonLabel ||
+              placeholder}
+          </span>
           <i
             className={`bx bx-chevron-down ml-2 text-[18px] text-gray-500 ${isOpen ? "rotate-180" : "rotate-0"}`}
           ></i>

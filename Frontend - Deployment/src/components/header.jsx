@@ -43,7 +43,7 @@ function clearPersistedAvatarColor(userInfo) {
 }
 
 // Web App Header
-const AdminHeader = ({ title }) => {
+const AdminHeader = ({ title, className = "" }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -157,7 +157,7 @@ const AdminHeader = ({ title }) => {
 
   // Prevent background scrolling when profile modal is open
   useEffect(() => {
-    if (showProfileModal) {
+    if (showProfileModal || showChangePassword) {
       document.body.style.overflow = "hidden";
       document.body.style.position = "fixed";
       document.body.style.width = "100%";
@@ -173,52 +173,12 @@ const AdminHeader = ({ title }) => {
       document.body.style.position = "";
       document.body.style.width = "";
     };
-  }, [showProfileModal]);
-
-  // Prevent background scrolling when change password modal is open
-  useEffect(() => {
-    if (showChangePassword) {
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
-    } else {
-      document.body.style.overflow = "unset";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    }
-
-    // Cleanup function to restore scrolling when component unmounts
-    return () => {
-      document.body.style.overflow = "unset";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    };
-  }, [showChangePassword]);
-
-  // Prevent background scrolling when logout modal is open
-  useEffect(() => {
-    if (showLogoutModal) {
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
-    } else {
-      document.body.style.overflow = "unset";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    }
-
-    // Cleanup function to restore scrolling when component unmounts
-    return () => {
-      document.body.style.overflow = "unset";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    };
-  }, [showLogoutModal]);
+  }, [showProfileModal, showChangePassword]);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
         const response = await fetch(`${apiUrl}/user/profile`, {
           method: "GET",
           headers: {
@@ -255,7 +215,7 @@ const AdminHeader = ({ title }) => {
   // Handle the logout process
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     try {
       await fetch(`${apiUrl}/logout`, {
         method: "POST",
@@ -318,7 +278,7 @@ const AdminHeader = ({ title }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
         },
         body: JSON.stringify(formData),
       });
@@ -370,7 +330,7 @@ const AdminHeader = ({ title }) => {
         }
       });
 
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       const profileResponse = await fetch(`${apiUrl}/user/update-profile`, {
         method: "POST",
         headers: {
@@ -444,13 +404,15 @@ const AdminHeader = ({ title }) => {
     setError("");
     setMessage("");
     if (wasProfileModalOpen) {
-      setShowProfileModal(true);
+      setTimeout(() => {
+        setShowProfileModal(true);
+      }, 50);
     }
   };
 
   return (
-    <div>
-      <div className="open-sans fixed top-0 left-0 z-49 flex h-[44px] w-full items-center justify-between border-b border-gray-300 bg-white px-6 py-[10px] sm:z-52">
+    <div className={className}>
+      <div className="outfit border-color fixed top-0 left-0 z-49 flex h-[44px] w-full items-center justify-between border-b bg-white px-6 py-[10px] sm:z-52">
         <div className="-ml-3 flex items-center gap-2">
           <img src={collegeLogo} alt="College Logo" className="size-[30px]" />
         </div>
@@ -523,7 +485,7 @@ const AdminHeader = ({ title }) => {
                   </div>
 
                   <div className="flex w-full flex-col overflow-hidden text-sm">
-                    <span className="open-sans overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-gray-800">
+                    <span className="outfit overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-gray-800">
                       {userInfo?.fullName ? (
                         userInfo.fullName
                       ) : (
@@ -578,10 +540,10 @@ const AdminHeader = ({ title }) => {
 
       {showProfileModal && (
         <>
-          <div className="open-sans bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+          <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
             <div
               ref={profileModalRef}
-              className="animate-fade-in-up edit-profile-modal-scrollbar relative mx-0 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-6 py-4 shadow-2xl min-[448px]:mx-2 min-[448px]:rounded-md"
+              className="animate-fade-in-up edit-profile-modal-scrollbar relative mx-0 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-6 py-4 shadow-2xl min-[448px]:mx-2 min-[448px]:rounded-2xl"
             >
               <button
                 onClick={() => {
@@ -590,9 +552,9 @@ const AdminHeader = ({ title }) => {
                   setProfileError("");
                   setProfileSuccess("");
                 }}
-                className="absolute top-2 right-5 cursor-pointer text-3xl text-gray-700 hover:text-gray-700"
+                className="absolute top-3 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition duration-100 hover:bg-gray-100 hover:text-gray-700"
               >
-                <i className="bx bx-x text-[20px]"></i>
+                <i className="bx bx-x text-3xl"></i>
               </button>
 
               {/* Profile Picture and Name */}
@@ -635,16 +597,16 @@ const AdminHeader = ({ title }) => {
               <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
 
               <form className="rounded-b-md" onSubmit={handleProfileSubmit}>
-                <div className="mb-4 space-y-3">
+                <div className="mb-4 space-y-2">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="relative w-full">
                       <div className="relative">
-                        <span className="block text-[14px] text-gray-700">
-                          First Name
+                        <span className="block text-[12px] font-semibold text-gray-700">
+                          FIRST NAME
                         </span>
                         <input
                           type="text"
-                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                          className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-[7px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
                           name="firstName"
                           placeholder="Enter"
                           value={profileFormData.firstName}
@@ -655,11 +617,11 @@ const AdminHeader = ({ title }) => {
                     </div>
                     <div className="relative w-full">
                       <div className="relative">
-                        <span className="block text-[14px] text-gray-700">
-                          Last Name
+                        <span className="block text-[12px] font-semibold text-gray-700">
+                          LAST NAME
                         </span>
                         <input
-                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                          className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-[7px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
                           type="text"
                           name="lastName"
                           placeholder="Enter"
@@ -674,11 +636,11 @@ const AdminHeader = ({ title }) => {
                   <div>
                     <div className="relative w-full">
                       <div className="relative">
-                        <span className="block text-[14px] text-gray-700">
-                          Email Address
+                        <span className="block text-[12px] font-semibold text-gray-700">
+                          EMAIL ADDRESS{" "}
                         </span>
                         <input
-                          className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                          className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-[7px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
                           type="email"
                           name="email"
                           placeholder="Enter"
@@ -695,26 +657,26 @@ const AdminHeader = ({ title }) => {
                     </div>
                   </div>
 
-                  <div className="mt-2 h-[0.5px] bg-[rgb(200,200,200)]" />
+                  <div className="mt-3 h-[0.5px] bg-[rgb(200,200,200)]" />
                   <div>
-                    <div className="flex items-center justify-between">
+                    <div
+                      onClick={handleOpenChangePassword}
+                      className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-1 hover:bg-gray-100"
+                    >
                       <h3 className="text-[14px] font-medium text-gray-700">
                         Change Password
                       </h3>
                       <button
                         type="button"
-                        className="flex items-center gap-1 rounded-lg px-3 text-[13px] text-gray-700"
+                        className="flex items-center rounded-lg p-1 text-gray-700"
                       >
-                        <i
-                          onClick={handleOpenChangePassword}
-                          className="bx bx-chevron-right mt-1 cursor-pointer text-[30px] hover:text-gray-500 active:scale-95"
-                        ></i>
+                        <i className="bx bx-chevron-right cursor-pointer text-[24px] hover:text-gray-500 active:scale-95"></i>
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-2 mb-2 h-[0.5px] bg-[rgb(200,200,200)]" />
+                <div className="-mt-1 mb-2 h-[0.5px] bg-[rgb(200,200,200)]" />
                 {profileError && (
                   <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
                     {profileError}
@@ -723,7 +685,7 @@ const AdminHeader = ({ title }) => {
                 <button
                   type="submit"
                   disabled={isProfileSubmitting}
-                  className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isProfileSubmitting ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                  className={`mt-2 h-9 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isProfileSubmitting ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
                 >
                   {isProfileSubmitting ? (
                     <div className="flex items-center justify-center">
@@ -741,129 +703,131 @@ const AdminHeader = ({ title }) => {
 
       {showChangePassword && (
         <>
-          <div className="open-sans lightbox-bg bg-opacity-40 fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+          <div className="outfit lightbox-bg bg-opacity-40 fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
             <div
               ref={changePasswordModalRef}
-              className="animate-fade-in-up edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md"
+              className="animate-fade-in-up edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-[480px] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-xl"
             >
-              {/* Header */}
-              <div className="border-color flex items-center justify-between border-b px-4 py-2">
-                <h2 className="text-[16px] font-semibold">
-                  Change your Password
-                </h2>
+              {/* X Button (top-right corner) */}
+              <button
+                onClick={handleCloseChangePassword}
+                className="absolute top-3 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition duration-100 hover:bg-gray-100 hover:text-gray-700"
+              >
+                <i className="bx bx-x text-3xl"></i>
+              </button>
 
-                <button
-                  onClick={handleCloseChangePassword}
-                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-700 transition duration-100 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  <i className="bx bx-x text-lg"></i>
-                </button>
+              {/* Header */}
+              <div className="flex flex-col gap-1 pr-10">
+                <h2 className="text-[18px] font-bold text-gray-800">
+                  Change Password
+                </h2>
+                <div className="text-[14px] font-normal text-gray-400">
+                  For your account’s safety, we recommend changing your password
+                  to prevent unauthorized access.
+                </div>
               </div>
 
-              <form className="px-5 py-4" onSubmit={handleSubmit}>
-                <div className="mb-4 text-start">
-                  <div className="mb-4">
-                    <span className="block text-[14px] text-gray-700">
-                      Current Password
-                    </span>
+              <form className="" onSubmit={handleSubmit}>
+                <div className="space-y-5">
+                  {/* Current Password */}
+                  <div>
+                    <label className="mt-6 block text-[12px] font-semibold text-gray-200">
+                      <span className="text-gray-700">CURRENT PASSWORD</span>
+                      <span className="ml-1 text-orange-500">*</span>
+                    </label>
                     <div className="relative">
                       <input
                         type={passwordVisible ? "text" : "password"}
                         name="password"
-                        placeholder="Enter"
                         value={formData.password}
                         onChange={handleChange}
                         required
-                        className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                        className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 pr-12 text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
                       />
                       <button
                         type="button"
                         onClick={() => setPasswordVisible(!passwordVisible)}
-                        className="absolute top-[63%] right-3 -translate-y-[50%] text-gray-500 hover:text-gray-700"
+                        className="absolute top-1/2 right-3 mt-[2px] flex h-full -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
                       >
                         <i
-                          className={`bx ${passwordVisible ? "bx-eye-alt" : "bx-eye-slash"} text-xl`}
+                          className={`bx ${passwordVisible ? "bx-eye-alt" : "bx-eye-slash"} text-[24px] leading-none`}
                         ></i>
                       </button>
                     </div>
-                    <div className="mt-1 text-start text-[11px] text-gray-400">
-                      Enter your current password to confirm your identity
-                      before making changes.
-                    </div>
                   </div>
-
+                  {/* New Password */}
                   <div>
-                    <span className="block text-[14px] text-gray-700">
-                      New Password
-                    </span>
+                    <label className="mt-6 block text-[12px] font-semibold text-gray-200">
+                      <span className="text-gray-700">NEW PASSWORD</span>
+                      <span className="ml-1 text-orange-500">*</span>
+                    </label>
                     <div className="relative">
                       <input
                         type={newPasswordVisible ? "text" : "password"}
                         name="new_password"
-                        placeholder="Enter"
                         value={formData.new_password}
                         onChange={handleChange}
                         required
-                        className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                        className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 pr-12 text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
                       />
                       <button
                         type="button"
                         onClick={() =>
                           setNewPasswordVisible(!newPasswordVisible)
                         }
-                        className="absolute top-[63%] right-3 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        className="absolute top-1/2 right-3 mt-[2px] flex h-full -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
                       >
                         <i
-                          className={`bx ${newPasswordVisible ? "bx-eye-alt" : "bx-eye-slash"} text-xl`}
+                          className={`bx ${newPasswordVisible ? "bx-eye-alt" : "bx-eye-slash"} text-[24px] leading-none`}
                         ></i>
                       </button>
                     </div>
-                    <div className="mt-1 text-start text-[11px] text-gray-400">
-                      Enter a new password with a minimum of 8 characters.
-                      Ensure it is secure and distinct from your current
-                      password.
+                    <div className="mt-1 text-[11px] text-gray-400">
+                      Password must contain at least 8 characters{" "}
                     </div>
                   </div>
-
+                  {/* Confirm New Password */}
                   <div>
-                    <span className="mt-5 block text-[14px] text-gray-700">
-                      Confirm New Password
-                    </span>
+                    <label className="mt-6 block text-[12px] font-semibold text-gray-200">
+                      <span className="text-gray-700">
+                        CONFIRM NEW PASSWORD
+                      </span>
+                      <span className="ml-1 text-orange-500">*</span>
+                    </label>
                     <div className="relative">
                       <input
                         type={confirmPasswordVisible ? "text" : "password"}
                         name="new_password_confirmation"
-                        placeholder="Enter"
                         value={formData.new_password_confirmation}
                         onChange={handleChange}
                         required
-                        className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                        className="peer mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 pr-12 text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
                       />
                       <button
                         type="button"
                         onClick={() =>
                           setConfirmPasswordVisible(!confirmPasswordVisible)
                         }
-                        className="absolute top-[63%] right-3 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        className="absolute top-1/2 right-3 mt-[2px] flex h-full -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
                       >
                         <i
-                          className={`bx ${confirmPasswordVisible ? "bx-eye-alt" : "bx-eye-slash"} text-xl`}
+                          className={`bx ${confirmPasswordVisible ? "bx-eye-alt" : "bx-eye-slash"} text-[24px] leading-none`}
                         ></i>
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
                 {error && (
-                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                  <div className="mt-4 rounded-md bg-red-50 p-2 text-center text-[12px] text-red-500">
                     {error}
                   </div>
                 )}
-                <div className="flex justify-end gap-2">
+                {/* Action Buttons */}
+                <div className="mt-8 flex items-end justify-end gap-2">
                   <button
                     type="submit"
                     disabled={isChangePasswordSubmitting}
-                    className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isChangePasswordSubmitting ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                    className={`h-9 cursor-pointer rounded-lg px-5 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isChangePasswordSubmitting ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
                   >
                     {isChangePasswordSubmitting ? (
                       <div className="flex items-center justify-center">

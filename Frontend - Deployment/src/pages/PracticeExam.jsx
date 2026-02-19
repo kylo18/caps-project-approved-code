@@ -80,6 +80,8 @@ const PracticeExam = ({ closeModal }) => {
     savedAnswers,
     savedBookmarks,
     examKey: providedExamKey,
+    resumeExam,
+    lastQuestionIndex,
   } = location.state || {};
 
   // Add isPreview flag from examData
@@ -182,8 +184,29 @@ const PracticeExam = ({ closeModal }) => {
           setSecondsLeft(examData.durationMinutes * 60);
         }
       }
+
+      // Load saved current question index
+      // Priority: 1) lastQuestionIndex from navigation state, 2) saved from localStorage
+      if (resumeExam && lastQuestionIndex !== undefined) {
+        const index = parseInt(lastQuestionIndex);
+        if (!isNaN(index) && index >= 0 && index < examData.questions.length) {
+          setCurrentQuestionIndex(index);
+        }
+      } else {
+        const savedLastQuestion = localStorage.getItem(`${examKey}_last_question`);
+        if (savedLastQuestion !== null) {
+          try {
+            const savedIndex = parseInt(savedLastQuestion);
+            if (!isNaN(savedIndex) && savedIndex >= 0 && savedIndex < examData.questions.length) {
+              setCurrentQuestionIndex(savedIndex);
+            }
+          } catch (err) {
+            console.error("Error loading saved question index:", err);
+          }
+        }
+      }
     }
-  }, [examKey, savedAnswers, savedBookmarks, examData]);
+  }, [examKey, savedAnswers, savedBookmarks, examData, resumeExam, lastQuestionIndex]);
 
   // Timer effect
   useEffect(() => {
@@ -227,17 +250,52 @@ const PracticeExam = ({ closeModal }) => {
     }
   }, [bookmarkedQuestions, examKey]);
 
-  // Add cleanup effect when component unmounts
+  // Save current question index whenever it changes
+  useEffect(() => {
+    if (examKey && examData && currentQuestionIndex !== undefined) {
+      localStorage.setItem(`${examKey}_last_question`, currentQuestionIndex.toString());
+    }
+  }, [currentQuestionIndex, examKey, examData]);
+
+  // Save exam state when component unmounts (user exits)
   useEffect(() => {
     return () => {
-      // Clear exam data if we're navigating away from a completed exam
-      if (examKey && secondsLeft === 0) {
+      // Only save state if exam is not completed (timer not at 0)
+      if (examKey && secondsLeft !== 0) {
+        // Save current question index
+        if (currentQuestionIndex !== undefined && examData) {
+          localStorage.setItem(`${examKey}_last_question`, currentQuestionIndex.toString());
+        }
+        // Save current position (scroll position if needed)
+        localStorage.setItem(`${examKey}_last_position`, "0");
+      } else if (examKey && secondsLeft === 0) {
+        // Clear exam data if we're navigating away from a completed exam
         localStorage.removeItem(examKey);
         localStorage.removeItem(`${examKey}_bookmarks`);
         localStorage.removeItem(`${examKey}_timer`);
+        localStorage.removeItem(`${examKey}_last_question`);
+        localStorage.removeItem(`${examKey}_last_position`);
+        localStorage.removeItem(`${examKey}_completed`);
       }
     };
-  }, [examKey, secondsLeft]);
+  }, [examKey, secondsLeft, currentQuestionIndex, examData]);
+
+  // Add beforeunload handler to save state when user closes tab/window
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (examKey && secondsLeft !== 0 && currentQuestionIndex !== undefined && examData) {
+        // Save current state
+        localStorage.setItem(`${examKey}_last_question`, currentQuestionIndex.toString());
+        localStorage.setItem(`${examKey}_last_position`, "0");
+        // Answers and bookmarks are already saved via their respective useEffects
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [examKey, secondsLeft, currentQuestionIndex, examData]);
 
   // Add effect to reset image modal states when question changes
   useEffect(() => {
@@ -291,7 +349,7 @@ const PracticeExam = ({ closeModal }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
         },
         body: JSON.stringify(payload),
       });
@@ -316,6 +374,7 @@ const PracticeExam = ({ closeModal }) => {
             `${key}_last_question`,
             `${key}_last_position`,
             `${key}_settings`,
+            `${key}_exam_data`,
           ];
           keysToRemove.forEach((k) => localStorage.removeItem(k));
         });
@@ -430,7 +489,7 @@ const PracticeExam = ({ closeModal }) => {
   };
 
   return (
-    <div className="font-inter mt-5 flex min-h-screen flex-col py-5">
+    <div className="outfit mt-5 flex min-h-screen flex-col py-5">
       <TimerCompletionModal
         isOpen={showTimerCompletionModal}
         onClose={() => setShowTimerCompletionModal(false)}
@@ -554,7 +613,7 @@ const PracticeExam = ({ closeModal }) => {
         </div>
       </div>
 
-      <div className="open-sans border-color mx-auto mt-2 w-full max-w-3xl rounded-t-lg border-b-[0.5px] bg-white px-3 py-3 shadow-sm">
+      <div className="outfit border-color mx-auto mt-2 w-full max-w-3xl rounded-t-lg border-b-[0.5px] bg-white px-3 py-3 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="text-[14px] font-medium text-nowrap text-gray-500">
             Question {currentQuestionIndex + 1} of {examData.questions.length}

@@ -79,7 +79,7 @@ const PracticeExamPreview = () => {
       `${import.meta.env.VITE_API_BASE_URL}/practice-exam/preview/${subjectID}`,
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
         },
       },
     )
@@ -226,7 +226,7 @@ const PracticeExamPreview = () => {
   };
 
   return (
-    <div className="font-inter mt-5 flex min-h-screen flex-col py-5">
+    <div className="outfit mt-5 flex min-h-screen flex-col py-5">
       <TimerCompletionModal
         isOpen={showTimerCompletionModal}
         onClose={() => setShowTimerCompletionModal(false)}
@@ -347,7 +347,7 @@ const PracticeExamPreview = () => {
         </div>
       </div>
 
-      <div className="open-sans border-color mx-auto mt-2 w-full max-w-3xl rounded-t-lg border-b-[0.5px] bg-white px-3 py-3 shadow-sm">
+      <div className="outfit border-color mx-auto mt-2 w-full max-w-3xl rounded-t-lg border-b-[0.5px] bg-white px-3 py-3 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="text-[14px] font-medium text-nowrap text-gray-500">
             Question {currentQuestionIndex + 1} of {examData.questions.length}
