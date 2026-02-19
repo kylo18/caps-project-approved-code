@@ -653,7 +653,7 @@ class PrintController extends Controller
         }
     }
 
-    /**
+        /**
      * Get all questions and choices for a personal quiz.
      * Used for the question selection UI before PDF generation.
      * Only accessible by faculty (roleID 2,3,4,5).
