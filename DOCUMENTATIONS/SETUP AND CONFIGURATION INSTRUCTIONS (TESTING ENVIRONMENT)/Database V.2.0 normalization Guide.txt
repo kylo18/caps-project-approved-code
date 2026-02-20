@@ -36,7 +36,7 @@ classes:            //This is the name of the table
     -schedule
     -isActive
 
-class_enrollments: //Not migrated
+class_enrollments: 
     -enrollmentID
     -classID
     -studentID
@@ -50,7 +50,7 @@ class_personal_quizzes:
     -startDate
     -deadlineDate
 
-class_quiz_attempts: //Not migrated
+class_quiz_attempts: 
     -attemptID
     -classID
     -personalQuizID
@@ -133,7 +133,7 @@ student_quiz_results:
     -isRecorded
     -isPassed
 
-4. Seed the database for the new migrations: // still early to confirm, fix the migration error first before heading here
+4. Seed the database for the new migrations: 
     php artisan db:seed
 
 5. It should show errors only in the users table:
