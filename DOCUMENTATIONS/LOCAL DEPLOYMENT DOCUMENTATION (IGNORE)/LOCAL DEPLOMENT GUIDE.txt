@@ -274,7 +274,7 @@ LOCAL DEPLOMENT GUIDE
         adddb95a3ebe   mysql:8                      "docker-entrypoint.s…"   6 seconds ago   Up 5 seconds   33060/tcp, 0.0.0.0:4406->3306/tcp   mysql
 
 14. Go to the backend container 
-    - Type: docker exec -it caps backend bash
+    - Type: docker exec -it backend bash
     - Type: php artisan key:generate
     - It should show that the key is successfully generated
     - Type: exit 
@@ -287,7 +287,7 @@ LOCAL DEPLOMENT GUIDE
     - Go inside .env and paste the app key there and save it
 
 15. Go back to backend container
-    - Type: docker exec -it caps backend bash
+    - Type: docker exec -it backend bash
     - Type: php artisan migrate 
     - It will show all the tables migrated. Wait for it and it should migrate smoothly.
     - Type: php artisan db:seed 
