@@ -956,13 +956,13 @@ function Libraries() {
               }}
             >
               <div
-                className="animate-fade-in-up relative mx-auto flex w-full max-w-3xl flex-col rounded-2xl bg-white shadow-2xl"
+                className="animate-fade-in-up relative mx-auto flex w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Modal Header */}
-                <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Create New Quiz
+                <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                  <h2 className="text-[18px] outfit-500 text-gray-900">
+                    Create a quiz
                   </h2>
                   <button
                     type="button"
@@ -970,7 +970,7 @@ function Libraries() {
                       resetForm();
                       setShowForm(false);
                     }}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    className="flex h-8 w-8 items-center cursor-pointer justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                     aria-label="Close modal"
                   >
                     <i className="bx bx-x text-2xl"></i>
@@ -985,11 +985,84 @@ function Libraries() {
                     show={toast.show}
                   />
 
-                  {/* Progress Indicator */}
-                  <div className="mb-8">
-                    <div className="flex items-center justify-between">
-                      {Array.from({ length: totalSteps }, (_, i) => i + 1).map(
-                        (step, index) => {
+                  <div className="mt-2 flex flex-col gap-8 md:flex-row">
+                    {/* Stepper section */}
+                    <div className="md:w-1/3">
+                      {/* Mobile (horizontal) stepper – existing behavior */}
+                      <div className="mb-8 md:hidden">
+                        <div className="flex items-center justify-between">
+                          {Array.from(
+                            { length: totalSteps },
+                            (_, i) => i + 1,
+                          ).map((step, index) => {
+                            const isActive = step === currentStep;
+                            const isCompleted = step < currentStep;
+                            const stepLabel =
+                              step === 1
+                                ? "Basic Info"
+                                : step === 2
+                                  ? "Quiz Type"
+                                  : step === 3 && formData.quiz_type_id === "1"
+                                    ? "Subject"
+                                    : step === 3 &&
+                                        formData.quiz_type_id === "2"
+                                      ? "Review"
+                                      : step === 4 &&
+                                          formData.quiz_type_id === "1"
+                                        ? "Coverage"
+                                        : "Review";
+
+                            return (
+                              <React.Fragment key={step}>
+                                <div className="flex flex-col items-center">
+                                  <div
+                                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
+                                      isActive
+                                        ? "border-orange-500 bg-orange-500 text-white"
+                                        : isCompleted
+                                          ? "border-orange-500 bg-orange-500 text-white"
+                                          : "border-gray-300 bg-white text-gray-400"
+                                    }`}
+                                  >
+                                    {isCompleted ? (
+                                      <i className="bx bx-check text-xl "></i>
+                                    ) : (
+                                      <span className="text-[18px] outfit-400 font-medium">
+                                        {step}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span
+                                    className={`mt-2 text-[12px] outfit-500 ${
+                                      isActive
+                                        ? "text-orange-600"
+                                        : "text-gray-500"
+                                    }`}
+                                  >
+                                    {stepLabel}
+                                  </span>
+                                </div>
+                                {index < totalSteps - 1 && (
+                                  <div
+                                    className={`mx-2 h-0.5 -mt-5 flex-1 ${
+                                      step < currentStep
+                                        ? "bg-orange-500"
+                                        : "bg-gray-300"
+                                    }`}
+                                  />
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Desktop (vertical) stepper */}
+                      <div className="hidden md:flex md:flex-col md:space-y-4">
+                        {Array.from(
+                          { length: totalSteps },
+                          (_, i) => i + 1,
+                        ).map((step, index) => {
                           const isActive = step === currentStep;
                           const isCompleted = step < currentStep;
                           const stepLabel =
@@ -1007,10 +1080,10 @@ function Libraries() {
                                       : "Review";
 
                           return (
-                            <React.Fragment key={step}>
+                            <div className="flex items-start gap-3" key={step}>
                               <div className="flex flex-col items-center">
                                 <div
-                                  className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
+                                  className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-colors ${
                                     isActive
                                       ? "border-orange-500 bg-orange-500 text-white"
                                       : isCompleted
@@ -1021,42 +1094,45 @@ function Libraries() {
                                   {isCompleted ? (
                                     <i className="bx bx-check text-lg"></i>
                                   ) : (
-                                    <span className="text-sm font-medium">
+                                    <span className="text-[15px] outfit-400 font-medium">
                                       {step}
                                     </span>
                                   )}
                                 </div>
-                                <span
-                                  className={`mt-2 text-xs font-medium ${
+                                {index < totalSteps - 1 && (
+                                  <div
+                                    className={`mt-1 h-8 w-px ${
+                                      step < currentStep
+                                        ? "bg-orange-500"
+                                        : "bg-gray-300"
+                                    }`}
+                                  />
+                                )}
+                              </div>
+                              <div className="pt-1">
+                                <div
+                                  className={`text-[13px] outfit-500 ${
                                     isActive
                                       ? "text-orange-600"
-                                      : "text-gray-500"
+                                      : "text-gray-800"
                                   }`}
                                 >
                                   {stepLabel}
-                                </span>
+                                </div>
                               </div>
-                              {index < totalSteps - 1 && (
-                                <div
-                                  className={`mx-2 h-0.5 flex-1 ${
-                                    step < currentStep
-                                      ? "bg-orange-500"
-                                      : "bg-gray-300"
-                                  }`}
-                                />
-                              )}
-                            </React.Fragment>
+                            </div>
                           );
-                        },
-                      )}
+                        })}
+                      </div>
                     </div>
-                  </div>
 
-                  <form onSubmit={handleSubmit}>
+                    {/* Form section */}
+                    <div className="md:w-2/3">
+                      <form onSubmit={handleSubmit}>
                     {/* Step 1: Basic Information */}
                     {currentStep === 1 && (
                       <div className="space-y-4">
-                        <h3 className="mb-4 text-lg font-semibold text-gray-900">
+                        <h3 className="mb-4 text-[16px] outfit-500 text-gray-900">
                           Basic Information
                         </h3>
                         <div>
@@ -1084,19 +1160,6 @@ function Libraries() {
                             onChange={handleChange}
                             className="min-h-[100px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
                             placeholder="Short description of this quiz (optional)"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-gray-700">
-                            Instruction
-                          </label>
-                          <textarea
-                            name="instruction"
-                            value={formData.instruction}
-                            onChange={handleChange}
-                            className="min-h-[100px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                            placeholder="Instructions for students (optional)"
                           />
                         </div>
                       </div>
@@ -1302,50 +1365,52 @@ function Libraries() {
                       </div>
                     ) : null}
 
-                    {/* Navigation Buttons */}
-                    <div className="mt-8 flex items-center justify-between border-t border-gray-200 pt-6">
-                      <button
-                        type="button"
-                        onClick={handlePrevious}
-                        disabled={currentStep === 1}
-                        className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <i className="bx bx-chevron-left mr-2"></i>
-                        Previous
-                      </button>
-
-                      <div className="flex gap-3">
-                        {currentStep < totalSteps ? (
+                        {/* Navigation Buttons */}
+                        <div className="mt-8 flex items-center justify-between border-t border-gray-200 pt-6">
                           <button
                             type="button"
-                            onClick={handleNext}
-                            className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-600"
+                            onClick={handlePrevious}
+                            disabled={currentStep === 1}
+                            className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            Next
-                            <i className="bx bx-chevron-right ml-2"></i>
+                            <i className="bx bx-chevron-left mr-2"></i>
+                            Previous
                           </button>
-                        ) : (
-                          <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
-                          >
-                            {isSubmitting ? (
-                              <>
-                                <i className="bx bx-loader-alt mr-2 animate-spin"></i>
-                                Saving...
-                              </>
+
+                          <div className="flex gap-3">
+                            {currentStep < totalSteps ? (
+                              <button
+                                type="button"
+                                onClick={handleNext}
+                                className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-600"
+                              >
+                                Next
+                                <i className="bx bx-chevron-right ml-2"></i>
+                              </button>
                             ) : (
-                              <>
-                                <i className="bx bx-check mr-2"></i>
-                                Create Quiz
-                              </>
+                              <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                {isSubmitting ? (
+                                  <>
+                                    <i className="bx bx-loader-alt mr-2 animate-spin"></i>
+                                    Saving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <i className="bx bx-check mr-2"></i>
+                                    Create Quiz
+                                  </>
+                                )}
+                              </button>
                             )}
-                          </button>
-                        )}
-                      </div>
+                          </div>
+                        </div>
+                      </form>
                     </div>
-                  </form>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1354,7 +1419,7 @@ function Libraries() {
           {!showForm && (
             <div>
               {isQuizzesLoading ? (
-                <div className="outfit flex h-64 items-center justify-center">
+                <div className="outfit-400 flex h-64 items-center justify-center">
                   <div className="text-center">
                     <div className="loader mx-auto mb-2"></div>
                     <p className="text-[14px] text-gray-600">
@@ -1363,7 +1428,7 @@ function Libraries() {
                   </div>
                 </div>
               ) : filteredQuizzes.length === 0 ? (
-                <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+                <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
                   <div className="text-center">
                     <img
                       src={emptyImage}
@@ -1379,7 +1444,7 @@ function Libraries() {
                 </div>
               ) : (
                 <>
-                  <div className="outfit mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                  <div className="outfit-400 mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
                     <div className="overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                       <table className="w-full">
                         <thead className="border-b border-gray-200 bg-white">
@@ -1490,6 +1555,7 @@ function Libraries() {
                               <tr
                                 key={quizID}
                                 className="group transition-colors hover:bg-gray-50"
+                                
                               >
                                 <td
                                   className="w-12 px-4 py-3"
@@ -1506,23 +1572,19 @@ function Libraries() {
                                       );
                                     }}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="h-4 w-4 cursor-pointer rounded border-gray-500 text-orange-500"
+                                    className="h-4 w-4 rounded border-gray-500 text-orange-500"
                                   />
                                 </td>
                                 <td
-                                  className="cursor-pointer px-2 py-4 whitespace-nowrap"
-                                  onClick={() => {
-                                    navigate("/quiz-overview", {
-                                      state: { quiz },
-                                    });
-                                  }}
+                                  className="px-2 py-4 whitespace-nowrap"
+                                 
                                 >
                                   <div className="flex items-center gap-3">
                                     <div
                                       className="flex size-10 items-center justify-center overflow-hidden rounded"
                                       style={{ backgroundColor: headerColor }}
                                     >
-                                      <span className="text-[16px] font-semibold text-white">
+                                      <span className="outfit-400 text-[16px] font-semibold text-white">
                                         Q
                                       </span>
                                     </div>
@@ -1575,9 +1637,10 @@ function Libraries() {
                                 <td className="outfit-400 w-35 px-2 py-4 whitespace-nowrap">
                                   <div className="flex items-center justify-center gap-2">
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditClick(quiz);
+                                      onClick={() => {
+                                        navigate("/quiz-overview", {
+                                          state: { quiz },
+                                        });
                                       }}
                                       disabled={archivingQuizId !== null}
                                       className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-300 px-3 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
@@ -1624,7 +1687,7 @@ function Libraries() {
 
           {/* Selection Overlay Banner */}
           {selectedQuizzes.length > 0 && (
-            <div className="outfit fixed right-0 bottom-5 left-[63px] z-50 md:left-[119px] lg:left-[319px]">
+            <div className="outfit-400 fixed right-0 bottom-5 left-[63px] z-50 md:left-[119px] lg:left-[319px]">
               <div className="px-6">
                 <div className="rounded-xl bg-gray-800 px-5 py-4 shadow-lg">
                   <div className="flex items-center justify-between">
@@ -1740,19 +1803,6 @@ function Libraries() {
                           onChange={handleEditChange}
                           className="min-h-[100px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
                           placeholder="Short description of this quiz (optional)"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700">
-                          Instruction
-                        </label>
-                        <textarea
-                          name="instruction"
-                          value={editFormData.instruction}
-                          onChange={handleEditChange}
-                          className="min-h-[100px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                          placeholder="Instructions for students (optional)"
                         />
                       </div>
                     </div>

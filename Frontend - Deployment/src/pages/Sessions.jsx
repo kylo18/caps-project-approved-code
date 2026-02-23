@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
+import EmptyImage from "../assets/icons/empty.png";
 
 const Sessions = () => {
   const navigate = useNavigate();
@@ -266,6 +267,20 @@ const Sessions = () => {
 
   const filteredQuizzes = getFilteredQuizzes();
 
+  // Header colors for Q badge (match Libraries style)
+  const headerColors = [
+    "#1e3a5f",
+    "#7f1d1d",
+    "#1e293b",
+    "#422006",
+    "#312e81",
+  ];
+  const getHeaderColor = (id) => {
+    if (!id) return headerColors[0];
+    const num = typeof id === "number" ? id : String(id).split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+    return headerColors[num % headerColors.length];
+  };
+
   return (
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
@@ -276,7 +291,10 @@ const Sessions = () => {
             {/* Header with title and search */}
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h1 className="outfit-500 text-[20px] text-black">Sessions</h1>
+                <h1 className="outfit-500 text-[18px] text-black">Sessions</h1>
+                <p className=" outfit-400 text-[14px] text-gray-600">
+                View and manage all assigned quiz in one place. 
+              </p>
               </div>
               <div className="outfit-500 relative max-w-md flex-1 text-[14px]">
                 <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-lg text-gray-500"></i>
@@ -289,12 +307,12 @@ const Sessions = () => {
                 />
                 {searchQuery && (
                   <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
-                    aria-label="Clear search"
-                  >
-                    <i className="bx bx-x text-xl" />
-                  </button>
+                  onClick={() => setSearchQuery("")}
+                  className="absolute top-1/2 right-2 -mt-[1px] -translate-y-1/2 flex items-center justify-center text-gray-500 hover:text-gray-700"
+                  aria-label="Clear search"
+                >
+                  <i className="bx bx-x text-xl" />
+                </button>
                 )}
               </div>
             </div>
@@ -332,7 +350,7 @@ const Sessions = () => {
 
             {/* Loading State */}
             {isLoading ? (
-              <div className="flex h-64 items-center justify-center">
+              <div className="flex outfit-400 h-64 items-center justify-center">
                 <div className="text-center">
                   <div className="loader mx-auto mb-2"></div>
                   <p className="text-[14px] text-gray-600">
@@ -341,58 +359,61 @@ const Sessions = () => {
                 </div>
               </div>
             ) : filteredQuizzes.length === 0 ? (
-              <div className="flex h-64 items-center justify-center rounded-xl border border-gray-200 bg-white">
-                <div className="text-center">
-                  <p className="text-sm text-gray-600">
-                    {searchQuery
-                      ? "No quizzes found matching your search."
-                      : `No ${activeTab === "all" ? "" : activeTab} quizzes found.`}
-                  </p>
-                </div>
+              <div className="flex min-h-64  outfit-400 flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-12">
+                <img
+                  src={EmptyImage}
+                  alt="No quizzes found"
+                  className="mx-auto mb-3 h-32 w-32 opacity-80"
+                />
+                <p className="text-center text-sm text-gray-600">
+                  {searchQuery
+                    ? "No quizzes found matching your search."
+                    : `No ${activeTab === "all" ? "" : activeTab} quizzes found.`}
+                </p>
               </div>
             ) : (
               /* Reports Table */
               <div className="outfit overflow-hidden rounded-xl border border-gray-200 bg-white">
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="border-b border-gray-200 bg-white">
+                    <thead className="outfit-400 border-b border-gray-200 bg-white">
                       <tr>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase">
+                        <th className="px-3 py-3 text-left text-[12px] font-medium text-gray-600 uppercase">
                           Quiz name
                         </th>
-                        <th className="px-3 py-3 text-right text-xs font-medium text-gray-600 uppercase">
+                        <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
                           Date hosted
                         </th>
                         {isFaculty && (
                           <>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-600 uppercase">
+                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
                               Completion
                             </th>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-600 uppercase">
+                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
                               Total Attempts
                             </th>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-600 uppercase">
+                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
                               Avg. Score
                             </th>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-600 uppercase">
+                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
                               Pass Rate
                             </th>
                           </>
                         )}
                         {!isFaculty && (
                           <>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-600 uppercase">
+                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
                               Answered
                             </th>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-600 uppercase">
+                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
                               Accuracy
                             </th>
                           </>
                         )}
-                        <th className="px-3 py-3 text-right text-xs font-medium text-gray-600 uppercase">
+                        <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
                           Class
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase">
+                        <th className="px-6 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
                           Actions
                         </th>
                       </tr>
@@ -409,20 +430,20 @@ const Sessions = () => {
                           let statusBadge = null;
                           if (status.isUpcoming) {
                             statusBadge = (
-                              <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-                                Upcoming
+                              <span className="outfit-400 inline-flex items-center text-[12px] font-medium text-blue-600">
+                                Upcoming quiz
                               </span>
                             );
                           } else if (status.isOngoing) {
                             statusBadge = (
-                              <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                                Ongoing
+                              <span className="outfit-400 inline-flex items-center text-[12px] font-medium text-green-600">
+                                Ongoing quiz
                               </span>
                             );
                           } else if (status.isCompleted) {
                             statusBadge = (
-                              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800">
-                                Completed
+                              <span className="outfit-400 inline-flex items-center text-[12px] font-medium text-gray-600">
+                                Completed quiz
                               </span>
                             );
                           }
@@ -430,24 +451,35 @@ const Sessions = () => {
                           return (
                             <tr
                               key={quiz.classPersonalQuizID}
-                              className="group cursor-pointer transition-colors hover:bg-gray-50"
+                              className="outfit-400 group cursor-pointer transition-colors hover:bg-gray-50"
                             >
                               <td className="px-3 py-3">
                                 <div className="flex flex-col">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-gray-900">
-                                      {quiz.quiz?.title || "Untitled Quiz"}
-                                    </span>
-                                    {statusBadge}
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded"
+                                      style={{
+                                        backgroundColor: getHeaderColor(
+                                          quiz.classPersonalQuizID ?? quiz.quiz?.personalQuizID,
+                                        ),
+                                      }}
+                                    >
+                                      <span className="outfit-400 text-[16px] font-semibold text-white">
+                                        Q
+                                      </span>
+                                    </div>
+                                    <div className="min-w-0">
+                                      <span className="text-sm font-semibold text-gray-900">
+                                        {quiz.quiz?.title || "Untitled Quiz"}
+                                      </span>
+                                      <span className="mt-1 block text-xs text-gray-500">
+                                        {statusBadge}
+                                      </span>
+                                    </div>
                                   </div>
-                                  {quiz.quiz?.description && (
-                                    <span className="mt-1 text-xs text-gray-500">
-                                      {quiz.quiz.description}
-                                    </span>
-                                  )}
                                 </div>
                               </td>
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <span className="text-sm text-gray-900">
                                   {formatDateRange(
                                     assignment.effectiveStartDate ||
@@ -457,8 +489,8 @@ const Sessions = () => {
                                   )}
                                 </span>
                               </td>
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
-                                <div className="flex flex-col items-end">
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
+                                <div className="flex flex-col items-center justify-center">
                                   <span className="text-sm font-medium text-gray-900">
                                     {stats.completedCount || 0}/
                                     {stats.totalEnrolled || 0}
@@ -471,12 +503,12 @@ const Sessions = () => {
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <span className="text-sm text-gray-900">
                                   {stats.totalAttempts || 0}
                                 </span>
                               </td>
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <span className="text-sm font-medium text-gray-900">
                                   {stats.averagePercentage
                                     ? stats.averagePercentage.toFixed(1)
@@ -484,7 +516,7 @@ const Sessions = () => {
                                   %
                                 </span>
                               </td>
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <span className="text-sm font-medium text-gray-900">
                                   {stats.passRate
                                     ? stats.passRate.toFixed(1)
@@ -492,33 +524,30 @@ const Sessions = () => {
                                   %
                                 </span>
                               </td>
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <span className="text-sm text-gray-900">
                                   {quiz.class?.className || "—"}
                                 </span>
                               </td>
-                              <td className="px-6 py-3 text-right whitespace-nowrap">
+                              <td className="px-6 py-3 text-center whitespace-nowrap">
                                 <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(
-                                        `/quiz-info/${quiz.classPersonalQuizID}`,
-                                        {
-                                          state: {
-                                            classID: quiz.class?.classID,
-                                            classPersonalQuizID:
-                                              quiz.classPersonalQuizID,
-                                            quiz: quiz.quiz,
-                                          },
-                                        },
-                                      );
-                                    }}
-                                    className="flex cursor-pointer items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                                  >
-                                    <i className="bx bx-caret-right text-lg"></i>
-                                    View
-                                  </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate("/quiz-overview", {
+                                      state: {
+                                        classID: quiz.class?.classID,
+                                        classPersonalQuizID: quiz.classPersonalQuizID,
+                                        quiz: quiz.quiz,
+                                        subject: quiz.quiz?.subject,
+                                      },
+                                    });
+                                  }}
+                                  className="flex cursor-pointer items-center justify-center gap-1 rounded-lg border hover:bg-gray-100 border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                                >
+                                  <i className="bx bx-caret-right text-lg"></i>
+                                  View
+                                </button>
                                 </div>
                               </td>
                             </tr>
@@ -569,20 +598,36 @@ const Sessions = () => {
                             >
                               <td className="px-3 py-3">
                                 <div className="flex flex-col">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-gray-900">
-                                      {quiz.quiz?.title || "Untitled Quiz"}
-                                    </span>
-                                    {statusIcon}
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded"
+                                      style={{
+                                        backgroundColor: getHeaderColor(
+                                          quiz.classPersonalQuizID ?? quiz.quiz?.personalQuizID,
+                                        ),
+                                      }}
+                                    >
+                                      <span className="outfit-400 text-[16px] font-semibold text-white">
+                                        Q
+                                      </span>
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-semibold text-gray-900">
+                                          {quiz.quiz?.title || "Untitled Quiz"}
+                                        </span>
+                                        {statusIcon}
+                                      </div>
+                                      {quiz.quiz?.description && (
+                                        <span className="mt-1 block text-xs text-gray-500">
+                                          {quiz.quiz.description}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
-                                  {quiz.quiz?.description && (
-                                    <span className="mt-1 text-xs text-gray-500">
-                                      {quiz.quiz.description}
-                                    </span>
-                                  )}
                                 </div>
                               </td>
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <span className="text-sm text-gray-900">
                                   {formatDateRange(
                                     quiz.assignment?.startDate,
@@ -590,12 +635,12 @@ const Sessions = () => {
                                   )}
                                 </span>
                               </td>
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <span className="text-sm text-gray-900">
                                   {answeredText}
                                 </span>
                               </td>
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <div className="flex items-center justify-end gap-2">
                                   {accuracy !== null ? (
                                     <div className="relative h-8 w-8">
@@ -639,29 +684,27 @@ const Sessions = () => {
                                   )}
                                 </div>
                               </td>
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <div className="flex items-center justify-end gap-2">
                                   <span className="text-sm text-gray-900">
                                     {quiz.class?.className || "—"}
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-6 py-3 text-right whitespace-nowrap">
+                              <td className="px-6 py-3 text-center whitespace-nowrap">
                                 <div className="flex items-center justify-end gap-2">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      navigate(
-                                        `/quiz-info/${quiz.classPersonalQuizID}`,
-                                        {
-                                          state: {
-                                            classID: quiz.class?.classID,
-                                            classPersonalQuizID:
-                                              quiz.classPersonalQuizID,
-                                            quiz: quiz,
-                                          },
+                                      navigate("/quiz-overview", {
+                                        state: {
+                                          classID: quiz.class?.classID,
+                                          classPersonalQuizID:
+                                            quiz.classPersonalQuizID,
+                                          quiz: quiz.quiz || quiz,
+                                          subject: quiz.quiz?.subject,
                                         },
-                                      );
+                                      });
                                     }}
                                     className="flex cursor-pointer items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                                   >

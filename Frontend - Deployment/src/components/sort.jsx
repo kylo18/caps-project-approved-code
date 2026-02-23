@@ -92,7 +92,7 @@ const Sort = ({ sortOption, setSortOption }) => {
                     handleSortChange({ target: { value: option.value } });
                     setIsOpen(false);
                   }}
-                  className={`cursor-pointer rounded-sm px-3 py-[10px] text-[14px] text-black transition hover:bg-gray-100 ${
+                  className={`mb-1 cursor-pointer rounded-sm px-3 py-[10px] text-[14px] text-gray-700 transition hover:bg-gray-100 ${
                     sortOption === option.value ||
                     sortOption === option.value + "_desc"
                       ? "text-orange-500"

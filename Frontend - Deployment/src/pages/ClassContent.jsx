@@ -1,10 +1,46 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/confirmModal";
+import EditClassModal from "../components/EditClassModal";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import emptyImage from "../assets/icons/empty.png";
 import StudentPfp from "/src/assets/symbols/student.png";
+import ArchiveIcon from "/src/assets/symbols/archive.svg";
+
+import BlueBackground from "/src/assets/backgrounds/blue.png";
+import GreenBackground from "/src/assets/backgrounds/green.png";
+import RedBackground from "/src/assets/backgrounds/red.png";
+import YellowBackground from "/src/assets/backgrounds/yellow.png";
+import PurpleBackground from "/src/assets/backgrounds/purple.png";
+import CyanBackground from "/src/assets/backgrounds/cyan.png";
+
+const headerBackgrounds = [
+  BlueBackground,
+  GreenBackground,
+  RedBackground,
+  YellowBackground,
+  PurpleBackground,
+  CyanBackground,
+];
+
+const getHeaderBackground = (id) => {
+  if (!id) return headerBackgrounds[0];
+  const index = Number(id) % headerBackgrounds.length;
+  return headerBackgrounds[index];
+};
+
+// Deterministic "random" background colors for initials avatar (from string hash)
+const INITIALS_COLORS = [
+  "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4",
+  "#ec4899", "#6366f1", "#f97316", "#14b8a6", "#a855f7",
+];
+const getInitialsBgColor = (str) => {
+  if (!str || typeof str !== "string") return INITIALS_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i);
+  return INITIALS_COLORS[Math.abs(hash) % INITIALS_COLORS.length];
+};
 
 const ClassContent = () => {
   const navigate = useNavigate();
@@ -30,7 +66,7 @@ const ClassContent = () => {
   const [quizStartDate, setQuizStartDate] = useState("");
   const [quizDeadlineDate, setQuizDeadlineDate] = useState("");
   const [isAssigningQuiz, setIsAssigningQuiz] = useState(false);
-  const [activeTab, setActiveTab] = useState("students"); // 'students' | 'quizzes'
+  const [activeTab, setActiveTab] = useState("quizzes"); // 'students' | 'quizzes' | 'results'
   const [assignedQuizzes, setAssignedQuizzes] = useState([]);
   const [isAssignedLoading, setIsAssignedLoading] = useState(false);
   const [assignedError, setAssignedError] = useState(null);
@@ -46,6 +82,64 @@ const ClassContent = () => {
   const [editStartDate, setEditStartDate] = useState("");
   const [editDeadlineDate, setEditDeadlineDate] = useState("");
   const [isUpdatingDates, setIsUpdatingDates] = useState(false);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+  const [archivingClass, setArchivingClass] = useState(null);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const [classes, setClasses] = useState([]);
+
+  // Get user role on mount
+  useEffect(() => {
+    const user = JSON.parse(sessionStorage.getItem("user"));
+    if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
+      setUserRole(user.roleID ?? user.roleId);
+    }
+  }, []);
+
+  // Fetch classes (same API as Class.jsx) to get schedule and class shape for edit/archive
+  useEffect(() => {
+    const fetchClasses = async () => {
+      if (!classID || userRole === null) return;
+
+      try {
+        const token = sessionStorage.getItem("token");
+        if (!token) return;
+
+        const endpoint =
+          userRole === 1
+            ? `${apiUrl}/classes/my-classes`
+            : `${apiUrl}/classes/index`;
+
+        const response = await fetch(endpoint, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (data.success && Array.isArray(data.classes)) {
+          setClasses(data.classes || []);
+        }
+      } catch (err) {
+        console.error("Error loading classes:", err);
+      }
+    };
+
+    fetchClasses();
+  }, [classID, userRole, apiUrl]);
+
+  // Current class from classes list (same shape as Class.jsx) for schedule and modals
+  const currentClass =
+    classes.find(
+      (c) => String(c.classID ?? c.id) === String(classID)
+    ) || null;
 
   // Fetch class students on component mount
   useEffect(() => {
@@ -120,6 +214,43 @@ const ClassContent = () => {
       student.program?.toLowerCase().includes(term)
     );
   });
+
+  // Refresh classes list (same as Class.jsx) so schedule and currentClass stay in sync
+  const refreshClasses = () => {
+    if (!classID || userRole === null) return;
+
+    const doFetch = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+        if (!token) return;
+
+        const endpoint =
+          userRole === 1
+            ? `${apiUrl}/classes/my-classes`
+            : `${apiUrl}/classes/index`;
+
+        const response = await fetch(endpoint, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.classes)) {
+            setClasses(data.classes || []);
+          }
+        }
+      } catch (err) {
+        console.error("Error refreshing classes:", err);
+      }
+    };
+
+    doFetch();
+  };
 
   // Refresh students list
   const refreshStudents = () => {
@@ -398,6 +529,13 @@ const ClassContent = () => {
     }
   };
 
+  // Fetch assigned quizzes when viewing a class (default tab is Quizzes)
+  useEffect(() => {
+    if (classID && activeTab === "quizzes") {
+      fetchAssignedQuizzes();
+    }
+  }, [classID]);
+
   // Handle opening assign quizzes modal
   const handleOpenAssignQuizzes = () => {
     setIsAssignQuizzesModalOpen(true);
@@ -598,6 +736,96 @@ const ClassContent = () => {
     }
   };
 
+  const handleArchiveClick = (e) => {
+    e?.stopPropagation?.();
+    const classItem = currentClass || classInfo;
+    if (!classItem) return;
+    setArchivingClass(classItem);
+    setIsArchiveModalOpen(true);
+  };
+
+  const handleArchiveConfirm = async () => {
+    if (!archivingClass) return;
+
+    setIsArchiving(true);
+    try {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
+        showToast("You are not authenticated. Please log in again.", "error");
+        setIsArchiving(false);
+        setIsArchiveModalOpen(false);
+        setArchivingClass(null);
+        return;
+      }
+
+      const id = archivingClass.classID ?? archivingClass.id ?? classID;
+      if (!id) {
+        showToast("Unable to determine class ID for archiving.", "error");
+        setIsArchiving(false);
+        setIsArchiveModalOpen(false);
+        setArchivingClass(null);
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/classes/archive/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        let message =
+          "There was a problem archiving the class. Please try again.";
+        try {
+          const data = await response.json();
+          if (data?.message) message = data.message;
+        } catch {}
+        throw new Error(message);
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        showToast(data.message || "Class archived successfully.", "success");
+        refreshClasses();
+        navigate("/class");
+      } else {
+        showToast(
+          data.message || "Failed to archive class. Please try again.",
+          "error"
+        );
+      }
+    } catch (err) {
+      showToast(
+        err.message ||
+          "There was a problem archiving the class. Please try again.",
+        "error"
+      );
+    } finally {
+      setIsArchiving(false);
+      setIsArchiveModalOpen(false);
+      setArchivingClass(null);
+    }
+  };
+
+  const handleEditClick = (e) => {
+    e?.stopPropagation?.();
+    const classItem = currentClass || classInfo;
+    setEditingClass(
+      classItem
+        ? { ...classItem, classID: classItem.classID ?? classItem.id ?? classID }
+        : null
+    );
+    setIsEditModalOpen(true);
+  };
+
+  const handleClassUpdated = () => {
+    refreshStudents();
+    refreshClasses();
+  };
+
   const handleConfirmUnassignQuiz = async () => {
     if (!quizToUnassign?.classPersonalQuizID) return;
 
@@ -734,18 +962,157 @@ const ClassContent = () => {
     );
   });
 
+  // Current user from session (for creator card)
+  const sessionUser = (() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  })();
+  const creatorFullName =
+    sessionUser?.firstName != null || sessionUser?.lastName != null
+      ? [sessionUser.firstName, sessionUser.lastName].filter(Boolean).join(" ").trim() || "User"
+      : "User";
+  const creatorInitials =
+    sessionUser?.firstName && sessionUser?.lastName
+      ? `${String(sessionUser.firstName)[0]}${String(sessionUser.lastName)[0]}`.toUpperCase()
+      : sessionUser?.firstName
+        ? String(sessionUser.firstName).slice(0, 2).toUpperCase()
+        : "?";
+  const creatorAvatarBg = getInitialsBgColor(creatorFullName);
+
+  // Class subject from API (same shape as Class.jsx: subject.subjectCode, subject.subjectName)
+  const classSubject = currentClass?.subject ?? classInfo?.subject;
+  const subjectDisplay =
+    classSubject?.subjectCode && classSubject?.subjectName
+      ? `${classSubject.subjectCode} - ${classSubject.subjectName}`
+      : classSubject?.subjectCode
+        ? classSubject.subjectCode
+        : classSubject?.subjectName
+          ? classSubject.subjectName
+          : "—";
+
   return (
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
+      {isLoading ? (
+        <div className="scrollbar-hide outfit-400 flex h-screen flex-1 flex-col items-center justify-center overflow-y-auto p-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="text-center">
+            <div className="loader mx-auto mb-3" />
+            <p className="text-[14px] text-gray-600">Loading class content</p>
+          </div>
+        </div>
+      ) : (
       <div className="scrollbar-hide flex h-screen flex-1 flex-col gap-6 overflow-y-auto p-6 pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="outfit-500 relative text-[14px]">
-            <i className="bx bx-search absolute top-0.5 left-3 text-lg text-gray-500"></i>
+          {/* Two-card header */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
+            {/* Left: Class Information Card with colored background */}
+            <div
+              className="relative min-h-[160px] overflow-hidden rounded-xl bg-cover bg-center bg-no-repeat py-6 px-6"
+              style={{
+                backgroundImage: `url(${getHeaderBackground(classID)})`,
+              }}
+            >
+              <div className="relative z-10 flex h-full flex-col">
+               
+                <div className="pr-16">
+                  <h1 className="outfit-500 text-xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] md:text-2xl">
+                    {classInfo ? classInfo.className : "Class Name"}
+                  </h1>
+                  <p className="mt-1 text-[14px] outfit-400 font-normal text-white/95">
+                    {currentClass?.schedule ?? classInfo?.schedule ?? "Class schedule"}
+                  </p>
+                </div>
+                <div className="mt-auto flex items-end justify-between  ">
+                  <div className="inline-flex max-w-full items-center overflow-hidden rounded-full bg-white px-2 py-0.5">
+                    <span className="truncate text-[12px] font-semibold whitespace-nowrap text-black uppercase">
+                      Class Code - {currentClass?.classCode ?? classInfo?.classCode ?? "—"}
+                    </span>
+                  </div>
+
+                  {/* Button group */}
+                  <div className="flex items-center gap-2 -mb-2">
+                    <button
+                      type="button"
+                      onClick={handleArchiveClick}
+                      className="flex items-center cursor-pointer hover:bg-gray-100 justify-center text-[14px] outfit-400 bg-white rounded-full text-gray-800 py-2 px-4"
+                    >
+                      <i className="bx bx-archive text-gray-800 text-[16px] mr-2"></i>
+                      Archive class
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleEditClick}
+                      className="flex items-center cursor-pointer hover:bg-gray-100 justify-center text-[14px] outfit-400 bg-white rounded-full text-gray-800 py-2 px-4"
+                    >
+                      <i className="bx bx-edit text-gray-800 text-[16px] mr-2"></i>
+                      Edit class details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Class Creator Card - current user from session */}
+            <div className="flex w-full flex-col items-center justify-center rounded-xl border border-gray-200 bg-white p-6 lg:w-56">
+              <div
+                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-3xl font-semibold text-white"
+                style={{ backgroundColor: creatorAvatarBg }}
+              >
+                {creatorInitials}
+              </div>
+              <p className="mt-3 text-center text-[16px] outfit-500 font-normal text-gray-900">
+                {creatorFullName}
+              </p>
+              <p className="mt-1 text-center text-[12px] outfit-500 text-gray-600">
+                {subjectDisplay}
+              </p>
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <nav className="flex items-center gap-6 border-b border-gray-200 pb-0">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("quizzes");
+                if (assignedQuizzes.length === 0) fetchAssignedQuizzes();
+              }}
+              className={`outfit-500 border-b-3 pb-3 cursor-pointer text-[14px] font-medium transition-colors ${
+                activeTab === "quizzes"
+                  ? "border-orange-500 text-orange-500"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Quizzes
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("students")}
+              className={`outfit-500 border-b-3 pb-3 cursor-pointer text-[14px] font-medium transition-colors ${
+                activeTab === "students"
+                  ? "border-orange-500 text-orange-500"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Students
+            </button>
+           
+          </nav>
+
+        </div>
+
+        {/* Search bar - show when on Students tab */}
+        {activeTab === "students" && (
+          <div className="outfit-500 relative -mt-2 mb-2 text-[14px]">
+            <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-lg text-gray-500"></i>
             <input
               type="text"
               placeholder="Search students..."
-              className="-mt-2 w-full rounded-full border border-gray-200 bg-white py-2 pr-4 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+              className="w-full rounded-full border border-gray-200 bg-white py-2 pr-4 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -759,88 +1126,7 @@ const ClassContent = () => {
               </button>
             )}
           </div>
-          
-          {/* Back Button and Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => navigate("/class")}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100"
-                aria-label="Back to classes"
-              >
-                <i className="bx bx-arrow-left-stroke text-3xl" />
-              </button>
-              <div>
-                <p className="outfit-500 mt-1 text-[20px] text-black">
-                  {classInfo ? classInfo.className : "Class Students"}
-                </p>
-                {classInfo && (
-                  <p className="text-sm text-gray-600">
-                    Class Code: {classInfo.classCode}
-                  </p>
-                )}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleOpenAssignQuizzes}
-              className="outfit inline-flex cursor-pointer items-center rounded-xl bg-orange-500 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-orange-600"
-            >
-              <i className="bx bx-plus mr-2 text-lg" />
-              Assign Quizzes
-            </button>
-          </div>
-
-          {/* Tabs */}
-          <div className="mt-4 flex gap-2 rounded-xl bg-gray-100 p-1 text-[13px]">
-            <button
-              type="button"
-              onClick={() => setActiveTab("students")}
-              className={`flex-1 rounded-lg px-3 py-2 font-medium transition-colors ${
-                activeTab === "students"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Students
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("quizzes");
-                if (assignedQuizzes.length === 0) {
-                  fetchAssignedQuizzes();
-                }
-              }}
-              className={`flex-1 rounded-lg px-3 py-2 font-medium transition-colors ${
-                activeTab === "quizzes"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Quizzes
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("results");
-                if (quizResults.length === 0) {
-                  fetchQuizResults();
-                }
-              }}
-              className={`flex-1 rounded-lg px-3 py-2 font-medium transition-colors ${
-                activeTab === "results"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Quiz Results
-            </button>
-          </div>
-
-          <div className="my-3 h-px bg-gray-200" />
-        </div>
+        )}
 
         {/* Tab content */}
         {activeTab === "students" ? (
@@ -852,14 +1138,14 @@ const ClassContent = () => {
             )}
 
             {isLoading ? (
-              <div className="outfit flex h-64 items-center justify-center">
+              <div className="outfit-400 flex h-64 items-center justify-center">
                 <div className="text-center">
                   <div className="loader mx-auto mb-2"></div>
                   <p className="text-[14px] text-gray-600">Loading students...</p>
                 </div>
               </div>
             ) : filteredStudents.length === 0 ? (
-              <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+              <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
                 <div className="text-center">
                   <img
                     src={emptyImage}
@@ -877,35 +1163,27 @@ const ClassContent = () => {
               </div>
             ) : (
               <>
-                {/* Student Count */}
-                <div className="outfit-500 mb-4 flex items-center justify-between">
-                  <p className="text-[14px] text-gray-600">
-                    {filteredStudents.length}{" "}
-                    {filteredStudents.length === 1 ? "Student" : "Students"}
-                    {students.length !== filteredStudents.length &&
-                      ` (of ${students.length} total)`}
-                  </p>
-                </div>
+                
 
                 {/* Students Table */}
-                <div className="outfit overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <div className="outfit-400 overflow-hidden rounded-xl border border-gray-200 bg-white">
                   <div className="overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <table className="w-full">
                       <thead className="border-b border-gray-200 bg-white">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600">
+                          <th className="px-6 py-3 w-[50%] text-left text-[14px] outfit-400 font-medium  tracking-wider text-gray-600">
                             Student
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600">
+                          <th className="px-6 py-3  w-[10%] text-center text-[14px] outfit-400 font-medium  tracking-wider text-gray-600">
                             Program
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600">
+                          <th className="px-6 py-3 w-[15%]  text-center text-[14px] outfit-400 font-medium  tracking-wider text-gray-600">
                             Enrolled Date
                           </th>
-                          <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-600">
+                          <th className="px-6 py-3 w-[15%]  text-center text-[14px] outfit-400 font-medium  tracking-wider text-gray-600">
                             Quizzes Answered
                           </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-600">
+                          <th className="px-6 py-3 w-[10%]  text-right text-[14px] outfit-400 font-medium  tracking-wider text-gray-600">
                             Actions
                           </th>
                         </tr>
@@ -931,10 +1209,10 @@ const ClassContent = () => {
                                     />
                                   </div>
                                   <div>
-                                    <div className="text-sm font-semibold text-gray-900">
+                                    <div className="text-sm outfit-500 text-gray-900">
                                       {student.firstName} {student.lastName}
                                     </div>
-                                    <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-500">
+                                    <div className="mt-0.5 flex outfit-400 items-center gap-2 text-xs text-gray-500">
                                       <span>{student.userCode}</span>
                                       {student.email && (
                                         <>
@@ -948,17 +1226,17 @@ const ClassContent = () => {
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
+                              <td className="px-6 py-4 outfit-400 whitespace-nowrap text-center">
                                 <span className="text-sm text-gray-900">
                                   {student.program || "N/A"}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
+                              <td className="px-6 py-4 outfit-400 whitespace-nowrap text-center">
                                 <span className="text-sm text-gray-600">
                                   {enrolledDate}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <td className="px-6 py-4 outfit-400 whitespace-nowrap text-center">
                                 <span className="text-sm text-gray-900">
                                   {student.quizProgress || 
                                    (student.quizzesCompleted !== undefined && student.totalQuizzes !== undefined
@@ -966,14 +1244,17 @@ const ClassContent = () => {
                                      : "—")}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-right whitespace-nowrap">
-                                <button
-                                  onClick={(e) => handleRemoveClick(student, e)}
-                                  className="flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-red-600"
-                                  title="Remove Student"
-                                >
-                                  <i className="bx bx-trash text-lg"></i>
-                                </button>
+                              <td className="px-6 py-4 outfit-500 whitespace-nowrap text-right">
+                                <div className="flex justify-end">
+                                  <button
+                                    onClick={(e) => handleRemoveClick(student, e)}
+                                    className="flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-gray-600 transition-colors hover:bg-gray-100 cursor-pointer"
+                                    title="Remove Student"
+                                  >
+                                    <i className="bx bx-trash text-[16px]"></i>
+                                    <span className="text-[12px]">Remove</span>
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -996,7 +1277,7 @@ const ClassContent = () => {
             )}
 
             {isAssignedLoading ? (
-              <div className="outfit flex h-64 items-center justify-center">
+              <div className="outfit-400 flex h-64 items-center justify-center">
                 <div className="text-center">
                   <div className="loader mx-auto mb-2"></div>
                   <p className="text-[14px] text-gray-600">
@@ -1005,7 +1286,7 @@ const ClassContent = () => {
                 </div>
               </div>
             ) : assignedQuizzes.length === 0 ? (
-              <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+              <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
                 <div className="text-center">
                   <img
                     src={emptyImage}
@@ -1019,31 +1300,29 @@ const ClassContent = () => {
               </div>
             ) : (
               <>
-                <div className="outfit-500 mb-4 flex items-center justify-between">
-                  <p className="text-[14px] text-gray-600">
-                    {assignedQuizzes.length}{" "}
-                    {assignedQuizzes.length === 1
-                      ? "Assigned Quiz"
-                      : "Assigned Quizzes"}
-                  </p>
-                </div>
+                
 
-                <div className="outfit overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <div className="outfit-400 overflow-hidden rounded-xl border border-gray-200 bg-white">
                   <div className="overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <table className="w-full">
                       <thead className="border-b border-gray-200 bg-white">
                         <tr>
-                          <th className="w-6 px-2 py-2 text-center" />
-                          <th className="px-2 py-2 text-left text-[12px] font-medium tracking-wider text-gray-600 uppercase">
-                            Quiz Information
+                          <th className="px-4 py-2 w-[40%] text-left text-[14px] font-medium tracking-wider text-gray-600 ">
+                            Quiz Name
                           </th>
-                          <th className="px-2 py-2 text-center text-xs font-medium tracking-wider text-gray-600 uppercase">
-                            Schedule
+                          <th className="px-2 py-2 w-[10%] text-center text-[14px] font-medium tracking-wider text-gray-600 ">
+                            Start Date
                           </th>
-                          <th className="px-2 py-2 text-center text-xs font-medium tracking-wider text-gray-600 uppercase">
-                            Stats
+                          <th className="px-2 py-2 w-[10%] text-center text-[14px] font-medium tracking-wider text-gray-600 ">
+                            End Date
                           </th>
-                          <th className="px-2 py-2 text-center text-xs font-medium tracking-wider text-gray-600 uppercase">
+                          <th className="px-2 py-2 w-[10%] text-center text-[14px] font-medium tracking-wider text-gray-600 ">
+                            Attempts
+                          </th>
+                          <th className="px-2 py-2 w-[10%] text-center text-[14px] font-medium tracking-wider text-gray-600 ">
+                            Accuracy
+                          </th>
+                          <th className="px-4 py-2 w-[30%] text-right text-[14px] font-medium tracking-wider text-gray-600 ">
                             Actions
                           </th>
                         </tr>
@@ -1077,75 +1356,32 @@ const ClassContent = () => {
                               key={quiz.classPersonalQuizID}
                               className="group transition-colors hover:bg-gray-50"
                             >
-                              <td
-                                className="w-12 px-4 py-3 text-center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedAssignedQuizIds.includes(quizId)}
-                                  onChange={(e) => {
-                                    e.stopPropagation();
-                                    if (e.target.checked) {
-                                      setSelectedAssignedQuizIds((prev) => [
-                                        ...prev,
-                                        quizId,
-                                      ]);
-                                    } else {
-                                      setSelectedAssignedQuizIds((prev) =>
-                                        prev.filter((id) => id !== quizId)
-                                      );
-                                    }
-                                  }}
-                                  className="h-4 w-4 cursor-pointer rounded border-gray-500 text-orange-500"
-                                />
-                              </td>
-                              <td className="cursor-pointer px-2 py-4 whitespace-nowrap">
+                              
+                              <td className="cursor-pointer px-4 py-4 whitespace-nowrap">
                                 <div className="flex flex-col">
                                   <div className="text-sm font-semibold text-gray-900">
                                     {quiz.quizName || baseQuiz.title || "Untitled Quiz"}
                                   </div>
-                                  {(quiz.description || baseQuiz.description) && (
-                                    <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">
-                                      {quiz.description || baseQuiz.description}
-                                    </div>
-                                  )}
+                                  
                                 </div>
+                              </td>
+                              <td className="px-2 py-4 whitespace-nowrap text-center text-xs text-gray-700">
+                                {quiz.startDate ? start : "Not set"}
+                              </td>
+                              <td className="px-2 py-4 whitespace-nowrap text-center text-xs text-gray-700">
+                                {quiz.deadlineDate ? deadline : "Not set"}
+                              </td>
+                              <td className="px-2 py-4 whitespace-nowrap text-center text-xs text-gray-700">
+                                {totalAttempts}
                               </td>
                               <td className="px-2 py-4 whitespace-nowrap text-center">
                                 <div className="text-xs text-gray-700">
-                                  <div>
-                                    <span className="font-medium text-gray-800">
-                                      Start:
-                                    </span>{" "}
-                                    {quiz.startDate ? start : "Not set"}
-                                  </div>
-                                  <div className="mt-0.5">
-                                    <span className="font-medium text-gray-800">
-                                      Deadline:
-                                    </span>{" "}
-                                    {quiz.deadlineDate ? deadline : "Not set"}
-                                  </div>
+                                 
+                                  {avgAccuracy.toFixed(2)}%
                                 </div>
                               </td>
-                              <td className="px-2 py-4 whitespace-nowrap text-center">
-                                <div className="text-xs text-gray-700">
-                                  <div>
-                                    <span className="font-medium text-gray-800">
-                                      Avg. Accuracy:
-                                    </span>{" "}
-                                    {avgAccuracy.toFixed(2)}%
-                                  </div>
-                                  <div className="mt-0.5">
-                                    <span className="font-medium text-gray-800">
-                                      Attempts:
-                                    </span>{" "}
-                                    {totalAttempts}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-2 py-4 whitespace-nowrap">
-                                <div className="flex flex-col items-center gap-2 md:flex-row md:justify-center">
+                              <td className="px-2 py-4 outfit-500 whitespace-nowrap text-right">
+                                <div className="flex justify-end gap-2">
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1162,38 +1398,45 @@ const ClassContent = () => {
                                         },
                                       });
                                     }}
-                                    className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-700 transition-colors hover:bg-gray-100"
+                                    className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-700 transition-colors hover:bg-gray-100"
                                   >
-                                    <i className="bx bx-show text-sm" />
-                                    <span>View questions</span>
+                                    <i className="bx bx-caret-right text-sm" />
+                                    <span>View</span>
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => handleOpenEditDates(quiz)}
-                                    className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50"
+                                    className="flex cursor-pointer items-center gap-1.5 mr-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
                                   >
-                                    <i className="bx bx-calendar text-sm" />
-                                    <span>Edit Dates</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenUnassignQuiz(quiz)}
-                                    className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50"
-                                  >
-                                    <i className="bx bx-trash text-sm" />
-                                    <span>Unassign</span>
+                                    <i className="bx bx-cog text-sm" />
+                                    <span>Settings</span>
                                   </button>
                                 </div>
                               </td>
+                              
                             </tr>
+                            
                           );
+                          
                         })}
+                        
                       </tbody>
                     </table>
                   </div>
                 </div>
               </>
             )}
+
+            {/* Fixed Assign Quizzes button - only when on quizzes tab */}
+            <button
+              type="button"
+              onClick={handleOpenAssignQuizzes}
+              className="outfit-400 fixed bottom-6 right-6 z-20 inline-flex cursor-pointer items-center rounded-xl bg-orange-500 px-4 py-2 text-[14px] font-medium text-white shadow-lg transition-colors hover:bg-orange-600"
+              aria-label="Assign Quizzes"
+            >
+              <i className="bx bx-plus mr-2 text-lg" />
+              Assign Quizzes
+            </button>
 
             <div className="pb-6" />
           </div>
@@ -1206,7 +1449,7 @@ const ClassContent = () => {
             )}
 
             {isQuizResultsLoading ? (
-              <div className="outfit flex h-64 items-center justify-center">
+              <div className="outfit-400 flex h-64 items-center justify-center">
                 <div className="text-center">
                   <div className="loader mx-auto mb-2"></div>
                   <p className="text-[14px] text-gray-600">
@@ -1215,7 +1458,7 @@ const ClassContent = () => {
                 </div>
               </div>
             ) : quizResults.length === 0 ? (
-              <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+              <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
                 <div className="text-center">
                   <img
                     src={emptyImage}
@@ -1240,7 +1483,7 @@ const ClassContent = () => {
                   {quizResults.map((item) => (
                     <div
                       key={item.classPersonalQuizID}
-                      className="outfit rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                      className="outfit-400 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                     >
                       <div className="mb-4">
                         <h3 className="text-[15px] font-semibold text-gray-900">
@@ -1413,7 +1656,7 @@ const ClassContent = () => {
 
                 {/* Loading / Empty / List */}
                 {isQuizzesLoading ? (
-                  <div className="outfit flex h-40 items-center justify-center">
+                  <div className="outfit-400 flex h-40 items-center justify-center">
                     <div className="text-center">
                       <div className="loader mx-auto mb-2"></div>
                       <p className="text-[14px] text-gray-600">
@@ -1422,7 +1665,7 @@ const ClassContent = () => {
                     </div>
                   </div>
                 ) : filteredQuizzes.length === 0 ? (
-                  <div className="outfit flex h-40 items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50/60">
+                  <div className="outfit-400 flex h-40 items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50/60">
                     <p className="text-[14px] text-gray-600">
                       {quizSearchTerm.trim()
                         ? `No quizzes found matching "${quizSearchTerm}".`
@@ -1457,7 +1700,7 @@ const ClassContent = () => {
                       </div>
                     </div>
 
-                    <div className="outfit overflow-hidden rounded-xl border border-gray-200">
+                    <div className="outfit-400 overflow-hidden rounded-xl border border-gray-200">
                       <div className="max-h-[40vh] overflow-y-auto">
                         <table className="w-full text-sm">
                           <thead className="border-b border-gray-200 bg-gray-50">
@@ -1544,7 +1787,7 @@ const ClassContent = () => {
                 <button
                   type="button"
                   onClick={() => setIsAssignQuizzesModalOpen(false)}
-                  className="outfit inline-flex cursor-pointer items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                  className="outfit-400 inline-flex cursor-pointer items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
                   disabled={isAssigningQuiz}
                 >
                   Close
@@ -1553,7 +1796,7 @@ const ClassContent = () => {
                   type="button"
                   onClick={handleAssignQuiz}
                   disabled={!selectedQuizId || isAssigningQuiz}
-                  className={`outfit inline-flex cursor-pointer items-center rounded-xl px-4 py-2 text-[14px] font-medium text-white transition-colors ${
+                  className={`outfit-400 inline-flex cursor-pointer items-center rounded-xl px-4 py-2 text-[14px] font-medium text-white transition-colors ${
                     !selectedQuizId || isAssigningQuiz
                       ? "bg-orange-300 cursor-not-allowed"
                       : "bg-orange-500 hover:bg-orange-600"
@@ -1565,6 +1808,33 @@ const ClassContent = () => {
             </div>
           </div>
         )}
+
+        {/* Archive Class Confirmation Modal (same as Class.jsx) */}
+        <ConfirmModal
+          isOpen={isArchiveModalOpen}
+          onClose={() => {
+            setIsArchiveModalOpen(false);
+            setArchivingClass(null);
+          }}
+          onConfirm={handleArchiveConfirm}
+          message={
+            archivingClass
+              ? `Are you sure you want to archive "${archivingClass.className}"? This will make the class inactive and it will be moved to archived classes.`
+              : "Are you sure you want to archive this class?"
+          }
+          isLoading={isArchiving}
+        />
+
+        {/* Edit Class Modal (same as Class.jsx) */}
+        <EditClassModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingClass(null);
+          }}
+          onSuccess={handleClassUpdated}
+          classData={editingClass}
+        />
 
         {/* Remove Student Confirmation Modal */}
         <ConfirmModal
@@ -1596,7 +1866,7 @@ const ClassContent = () => {
           }
           isLoading={isUnassigningQuiz}
         />
-        {/* Edit Quiz Dates Modal */}
+        {/* Quiz Settings Modal (dates + unassign) */}
         {isEditDatesModalOpen && quizToEditDates && (
           <div className="fixed inset-0 z-40 flex items-center justify-center lightbox-bg px-4">
             <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
@@ -1604,14 +1874,12 @@ const ClassContent = () => {
               <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                 <div>
                   <h2 className="outfit-500 text-[18px] text-gray-900">
-                    Edit Quiz Dates
+                    Settings
                   </h2>
                   <p className="text-[13px] text-gray-500">
-                    Update start and deadline dates for{" "}
                     <span className="font-semibold text-gray-700">
                       {quizToEditDates.quizName || "this quiz"}
                     </span>
-                    .
                   </p>
                 </div>
                 <button
@@ -1653,6 +1921,23 @@ const ClassContent = () => {
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
                   />
                 </div>
+                <div className="flex flex-col gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuizToUnassign(quizToEditDates);
+                      setIsEditDatesModalOpen(false);
+                      setQuizToEditDates(null);
+                      setEditStartDate("");
+                      setEditDeadlineDate("");
+                      setIsUnassignModalOpen(true);
+                    }}
+                    className="outfit-400 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-200 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+                  >
+                    <i className="bx bx-trash text-sm" />
+                    Unassign
+                  </button>
+                </div>
               </div>
 
               {/* Footer */}
@@ -1665,7 +1950,7 @@ const ClassContent = () => {
                     setEditStartDate("");
                     setEditDeadlineDate("");
                   }}
-                  className="outfit inline-flex cursor-pointer items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                  className="outfit-400 inline-flex cursor-pointer items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
                   disabled={isUpdatingDates}
                 >
                   Cancel
@@ -1674,7 +1959,7 @@ const ClassContent = () => {
                   type="button"
                   onClick={handleUpdateDates}
                   disabled={isUpdatingDates}
-                  className={`outfit inline-flex cursor-pointer items-center rounded-xl px-4 py-2 text-[14px] font-medium text-white transition-colors ${
+                  className={`outfit-400 inline-flex cursor-pointer items-center rounded-xl px-4 py-2 text-[14px] font-medium text-white transition-colors ${
                     isUpdatingDates
                       ? "bg-orange-300 cursor-not-allowed"
                       : "bg-orange-500 hover:bg-orange-600"
@@ -1694,6 +1979,7 @@ const ClassContent = () => {
           </div>
         )}
       </div>
+      )}
     </>
   );
 };

@@ -15,8 +15,60 @@ const QuizCard = ({
   onAssignToClassClick,
   onEditQuiz,
   onArchiveQuiz,
+  isLoading = false,
 }) => {
-  if (!quiz) return null;
+  const SkeletonLoader = () => (
+    <>
+      {/* Desktop skeleton - match SubjectCard */}
+      <div className="border-color relative z-51 mx-auto mb-6 hidden max-w-[1200px] overflow-hidden rounded-xl border-b border bg-white px-6 pt-6 pb-2 sm:block lg:max-w-[1200px]">
+        <div className="flex animate-pulse items-center space-x-4">
+          <div className="skeleton shimmer h-21 w-21 rounded-md"></div>
+          <div className="flex-1">
+            <div className="skeleton shimmer mb-2 h-8 w-1/2"></div>
+            <div className="skeleton shimmer h-4 w-2/8 rounded"></div>
+          </div>
+        </div>
+        <div className="outfit mt-2 mb-3 flex w-full flex-row items-center justify-between gap-4 font-semibold">
+          <div className="flex gap-2">
+            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
+            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
+          </div>
+          <div className="flex gap-2">
+            <div className="skeleton shimmer h-10 w-10 rounded-xl"></div>
+            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
+            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
+            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile skeleton - match SubjectCard */}
+      <div className="border-color relative z-48 -mx-2 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden">
+        <div className="flex flex-wrap items-start justify-between">
+          <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
+            <div className="skeleton shimmer mt-2 mb-2 ml-2 h-8 w-58 rounded"></div>
+            <div className="mt-2 ml-2 flex gap-1">
+              <div className="skeleton shimmer h-5 w-38 rounded"></div>
+            </div>
+          </div>
+          <div className="skeleton shimmer mt-1 size-20 rounded-md"></div>
+        </div>
+        <div className="outfit mt-7 flex w-full flex-row items-center justify-between gap-2 font-semibold">
+          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
+          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
+          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
+          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
+          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
+        </div>
+      </div>
+      <div className="border-color relative z-48 -mx-2 -mt-2 mb-5 h-12 overflow-visible border-b bg-gray-100 px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden"></div>
+    </>
+  );
+
+  if (!quiz && !isLoading) return null;
+  if (isLoading) {
+    return <SkeletonLoader />;
+  }
 
   const hasSubject = !!quiz.subject;
   const [showActionDropdown, setShowActionDropdown] = useState(false);

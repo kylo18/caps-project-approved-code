@@ -562,14 +562,14 @@ const Class = () => {
           )}
 
           {isLoading ? (
-            <div className="outfit flex h-64 items-center justify-center">
+            <div className="outfit-400 flex h-64 items-center justify-center">
               <div className="text-center">
                 <div className="loader mx-auto mb-2"></div>
                 <p className="text-[14px] text-gray-600">Loading classes...</p>
               </div>
             </div>
           ) : filteredClasses.length === 0 ? (
-            <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+            <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
               <div className="text-center">
                 <img
                   src={emptyImage}
@@ -616,7 +616,7 @@ const Class = () => {
                   return (
                     <div
                       key={classItem.classID || classItem.id}
-                      className="group outfit relative flex h-[320px] max-w-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-xl"
+                      className="group outfit-400 relative flex h-[320px] max-w-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-xl"
                     >
                       {/* Background Image Header Section */}
                       <div
@@ -844,7 +844,7 @@ const Class = () => {
         {/* Join Class Modal */}
         {showJoinForm && (
           <>
-            <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
+            <div className="outfit-400 bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
               <div className="relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
                 <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
                   <h2 className="text-[14px] font-medium text-gray-700">

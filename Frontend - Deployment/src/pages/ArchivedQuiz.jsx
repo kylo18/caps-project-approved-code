@@ -529,7 +529,7 @@ const ArchivedQuiz = () => {
         <Toast message={toast.message} type={toast.type} show={toast.show} />
 
         {isLoading ? (
-          <div className="outfit flex h-64 items-center justify-center">
+          <div className="outfit-400 flex h-64 items-center justify-center">
             <div className="text-center">
               <div className="loader mx-auto mb-2"></div>
               <p className="text-[14px] text-gray-600">
@@ -538,7 +538,7 @@ const ArchivedQuiz = () => {
             </div>
           </div>
         ) : filteredQuizzes.length === 0 ? (
-          <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+          <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
             <div className="text-center">
               <img
                 src={emptyImage}
@@ -554,7 +554,7 @@ const ArchivedQuiz = () => {
           </div>
         ) : (
           <>
-            <div className="outfit mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="outfit-400 mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
               <div className="overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <table className="w-full">
                   <thead className="border-b border-gray-200 bg-white">
@@ -793,7 +793,7 @@ const ArchivedQuiz = () => {
 
         {/* Selection Overlay Banner */}
         {selectedQuizzes.length > 0 && (
-          <div className="outfit fixed right-0 bottom-5 left-[63px] z-50 md:left-[119px] lg:left-[319px]">
+          <div className="outfit-400 fixed right-0 bottom-5 left-[63px] z-50 md:left-[119px] lg:left-[319px]">
             <div className="px-6">
               <div className="rounded-xl bg-gray-800 px-5 py-4 shadow-lg">
                 <div className="flex items-center justify-between">

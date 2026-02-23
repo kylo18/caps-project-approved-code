@@ -8,19 +8,27 @@ const ImageSelectionModal = ({
   onImageSelected,
   title = "Add image",
 }) => {
-  const [activeTab, setActiveTab] = useState("upload"); // "upload", "search", "paste"
+  const [activeTab, setActiveTab] = useState("upload"); // "upload", "search"
   const [selectedFile, setSelectedFile] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isCropping, setIsCropping] = useState(false);
-  const [pasteUrl, setPasteUrl] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const fileInputRef = useRef(null);
   const dragCounter = useRef(0);
   const [isDragging, setIsDragging] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [cropSize, setCropSize] = useState({ width: 400, height: 400 });
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeHandle, setResizeHandle] = useState(null);
+  const [resizeStartPos, setResizeStartPos] = useState({ x: 0, y: 0 });
+  const [resizeStartSize, setResizeStartSize] = useState({
+    width: 0,
+    height: 0,
+  });
+  const cropContainerRef = useRef(null);
 
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -37,6 +45,8 @@ const ImageSelectionModal = ({
         // Reset crop and zoom when new image is loaded
         setCrop({ x: 0, y: 0 });
         setZoom(1);
+        // Reset crop size to fit 300px height container
+        setCropSize({ width: 300, height: 300 });
       };
       reader.readAsDataURL(file);
     }
@@ -118,91 +128,31 @@ const ImageSelectionModal = ({
     }
   };
 
-  const handlePasteLink = async () => {
-    if (!pasteUrl.trim()) {
-      alert("Please enter an image URL");
-      return;
-    }
-
-    try {
-      // Validate URL
-      new URL(pasteUrl);
-      
-      // Fetch the image
-      const response = await fetch(pasteUrl);
-      if (!response.ok) throw new Error("Failed to fetch image");
-      
-      const blob = await response.blob();
-      if (!blob.type.startsWith("image/")) {
-        alert("The URL does not point to an image");
-        return;
-      }
-
-      const file = new File([blob], "pasted-image.png", { type: blob.type });
-      handleFileSelect(file);
-      setPasteUrl("");
-    } catch (err) {
-      console.error("Failed to load image from URL:", err);
-      alert("Failed to load image from URL. Please check the URL and try again.");
-    }
-  };
-
   const handleSearch = () => {
     // Placeholder for search functionality
     // You can integrate with an image search API here
     alert("Image search functionality coming soon");
   };
 
-  // Handle Ctrl+V keyboard shortcut
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = async (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "v") {
-        e.preventDefault();
-        try {
-          const clipboardItems = await navigator.clipboard.read();
-          for (const clipboardItem of clipboardItems) {
-            const imageTypes = clipboardItem.types.filter((type) =>
-              type.startsWith("image/"),
-            );
-            if (imageTypes.length > 0) {
-              const blob = await clipboardItem.getType(imageTypes[0]);
-              const file = new File([blob], "pasted-image.png", {
-                type: imageTypes[0],
-              });
-              handleFileSelect(file);
-              return;
-            }
-          }
-          alert("No image found in clipboard");
-        } catch (err) {
-          console.error("Failed to read clipboard:", err);
-          alert("Failed to paste from clipboard. Please try uploading an image.");
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
-
   const handleCropComplete = async () => {
     if (!imageSrc || !croppedAreaPixels) return;
 
     try {
-      const croppedImageBlobUrl = await getCroppedImg(imageSrc, croppedAreaPixels);
-      
+      const croppedImageBlobUrl = await getCroppedImg(
+        imageSrc,
+        croppedAreaPixels,
+      );
+
       // Convert blob URL to File object
       const response = await fetch(croppedImageBlobUrl);
       const blob = await response.blob();
-      
+
       // Determine file type from original or default to png
       const fileType = selectedFile?.type || blob.type || "image/png";
-      const fileName = selectedFile?.name 
+      const fileName = selectedFile?.name
         ? selectedFile.name.replace(/\.[^/.]+$/, "") + "-cropped.png"
         : "cropped-image.png";
-      
+
       const file = new File([blob], fileName, {
         type: fileType,
         lastModified: Date.now(),
@@ -227,41 +177,127 @@ const ImageSelectionModal = ({
     setZoom(1);
     setCroppedAreaPixels(null);
     setIsCropping(false);
-    setPasteUrl("");
     setSearchQuery("");
     setIsDragging(false);
     dragCounter.current = 0;
+    setCropSize({ width: 300, height: 300 });
+    setIsResizing(false);
+    setResizeHandle(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
     onClose();
   };
 
+  // Handle resize start
+  const handleResizeStart = (e, handle) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeHandle(handle);
+
+    if (!cropContainerRef.current) return;
+
+    const containerRect = cropContainerRef.current.getBoundingClientRect();
+    const containerCenterX = containerRect.left + containerRect.width / 2;
+    const containerCenterY = containerRect.top + containerRect.height / 2;
+
+    // Calculate initial mouse position relative to center
+    const initialX = e.clientX - containerCenterX;
+    const initialY = e.clientY - containerCenterY;
+
+    setResizeStartPos({ x: initialX, y: initialY });
+    setResizeStartSize({ ...cropSize });
+  };
+
+  // Handle resize
+  useEffect(() => {
+    if (!isResizing || !resizeHandle) return;
+
+    const handleMouseMove = (e) => {
+      if (!cropContainerRef.current) return;
+
+      const containerRect = cropContainerRef.current.getBoundingClientRect();
+      const containerCenterX = containerRect.left + containerRect.width / 2;
+      const containerCenterY = containerRect.top + containerRect.height / 2;
+
+      // Calculate current mouse position relative to container center
+      const currentX = e.clientX - containerCenterX;
+      const currentY = e.clientY - containerCenterY;
+
+      // Calculate distance from center
+      const distanceX = Math.abs(currentX);
+      const distanceY = Math.abs(currentY);
+
+      let newWidth = resizeStartSize.width;
+      let newHeight = resizeStartSize.height;
+
+      // Calculate new size based on handle
+      // Since react-easy-crop centers the crop box, we resize symmetrically from center
+      switch (resizeHandle) {
+        case "se": // Southeast (bottom-right)
+        case "sw": // Southwest (bottom-left)
+        case "ne": // Northeast (top-right)
+        case "nw": // Northwest (top-left)
+          // For corners, resize both dimensions
+          newWidth = Math.max(100, distanceX * 2);
+          newHeight = Math.max(100, distanceY * 2);
+          break;
+        case "e": // East (right)
+        case "w": // West (left)
+          newWidth = Math.max(100, distanceX * 2);
+          break;
+        case "s": // South (bottom)
+        case "n": // North (top)
+          newHeight = Math.max(100, distanceY * 2);
+          break;
+      }
+
+      // Limit to container size
+      newWidth = Math.min(newWidth, containerRect.width - 20);
+      newHeight = Math.min(newHeight, containerRect.height - 20);
+
+      setCropSize({ width: newWidth, height: newHeight });
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      setResizeHandle(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing, resizeHandle, resizeStartPos, resizeStartSize]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="lightbox-bg fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-70">
+    <div className="lightbox-bg bg-opacity-70 fixed inset-0 z-[9999] flex items-center justify-center bg-black">
       <div
-        className="relative w-full max-w-2xl rounded-lg bg-white shadow-xl"
+        className="relative w-full max-w-2xl rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-pink-100">
-              <i className="bx bx-image-alt text-pink-600 text-lg"></i>
+            <div className="flex size-9 items-center justify-center rounded bg-orange-100">
+              <i className="bx bx-image-alt text-[22px] text-orange-600"></i>
             </div>
-            <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+            <h2 className="outfit-500 text-[16px] font-semibold text-gray-800">
+              {title}
+            </h2>
           </div>
           <div className="flex items-center gap-2">
-            <p className="text-xs text-gray-500">
-              Use ctrl + V to paste image from your clipboard
-            </p>
             <button
               onClick={handleClose}
               className="flex h-8 w-8 cursor-pointer items-center justify-center rounded text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
             >
-              <i className="bx bx-x text-xl"></i>
+              <i className="bx bx-x text-[24px]"></i>
             </button>
           </div>
         </div>
@@ -270,63 +306,235 @@ const ImageSelectionModal = ({
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab("upload")}
-            className={`flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition ${
+            className={`outfit-400 flex flex-1 cursor-pointer items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition ${
               activeTab === "upload"
                 ? "border-b-2 border-gray-800 bg-gray-50 text-gray-800"
                 : "text-gray-600 hover:bg-gray-50"
             }`}
           >
-            <i className="bx bx-upload text-lg"></i>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-upload-icon lucide-upload"
+            >
+              <path d="M12 3v12" />
+              <path d="m17 8-5-5-5 5" />
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            </svg>
             Upload
           </button>
           <button
             onClick={() => setActiveTab("search")}
-            className={`flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition ${
+            className={`outfit-400 flex flex-1 cursor-pointer items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition ${
               activeTab === "search"
                 ? "border-b-2 border-gray-800 bg-gray-50 text-gray-800"
                 : "text-gray-600 hover:bg-gray-50"
             }`}
           >
-            <i className="bx bx-search text-lg"></i>
+            <i className="bx bx-search text-[18px]"></i>
             Search
-          </button>
-          <button
-            onClick={() => setActiveTab("paste")}
-            className={`flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition ${
-              activeTab === "paste"
-                ? "border-b-2 border-gray-800 bg-gray-50 text-gray-800"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <i className="bx bx-link text-lg"></i>
-            Paste Link
           </button>
         </div>
 
         {/* Content */}
         <div className="p-6">
-          {isCropping ? (
+          {isCropping && activeTab === "upload" ? (
             /* Crop View */
             <div className="space-y-4">
-              <div className="relative h-[500px] w-full bg-gray-100 rounded-lg overflow-hidden" style={{ position: "relative" }}>
-                <Cropper
-                  image={imageSrc}
-                  crop={crop}
-                  zoom={zoom}
-                  aspect={undefined}
-                  onCropChange={setCrop}
-                  onZoomChange={setZoom}
-                  onCropComplete={onCropComplete}
-                  restrictPosition={false}
-                  minZoom={0.5}
-                  maxZoom={5}
-                />
+              <div
+                ref={cropContainerRef}
+                className="relative h-[300px] w-full overflow-hidden rounded-lg bg-gray-100"
+                style={{ position: "relative" }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: `${cropSize.width}px`,
+                    height: `${cropSize.height}px`,
+                    border: "2px solid #ec4899",
+                    boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.5)",
+                    zIndex: 10,
+                    pointerEvents: "none",
+                  }}
+                >
+                  {/* Resize handles */}
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, "nw")}
+                    style={{
+                      position: "absolute",
+                      top: "-6px",
+                      left: "-6px",
+                      width: "12px",
+                      height: "12px",
+                      backgroundColor: "#ec4899",
+                      border: "2px solid white",
+                      borderRadius: "50%",
+                      cursor: "nw-resize",
+                      pointerEvents: "all",
+                      zIndex: 11,
+                    }}
+                  />
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, "ne")}
+                    style={{
+                      position: "absolute",
+                      top: "-6px",
+                      right: "-6px",
+                      width: "12px",
+                      height: "12px",
+                      backgroundColor: "#ec4899",
+                      border: "2px solid white",
+                      borderRadius: "50%",
+                      cursor: "ne-resize",
+                      pointerEvents: "all",
+                      zIndex: 11,
+                    }}
+                  />
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, "sw")}
+                    style={{
+                      position: "absolute",
+                      bottom: "-6px",
+                      left: "-6px",
+                      width: "12px",
+                      height: "12px",
+                      backgroundColor: "#ec4899",
+                      border: "2px solid white",
+                      borderRadius: "50%",
+                      cursor: "sw-resize",
+                      pointerEvents: "all",
+                      zIndex: 11,
+                    }}
+                  />
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, "se")}
+                    style={{
+                      position: "absolute",
+                      bottom: "-6px",
+                      right: "-6px",
+                      width: "12px",
+                      height: "12px",
+                      backgroundColor: "#ec4899",
+                      border: "2px solid white",
+                      borderRadius: "50%",
+                      cursor: "se-resize",
+                      pointerEvents: "all",
+                      zIndex: 11,
+                    }}
+                  />
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, "n")}
+                    style={{
+                      position: "absolute",
+                      top: "-6px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: "12px",
+                      height: "12px",
+                      backgroundColor: "#ec4899",
+                      border: "2px solid white",
+                      borderRadius: "50%",
+                      cursor: "n-resize",
+                      pointerEvents: "all",
+                      zIndex: 11,
+                    }}
+                  />
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, "s")}
+                    style={{
+                      position: "absolute",
+                      bottom: "-6px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: "12px",
+                      height: "12px",
+                      backgroundColor: "#ec4899",
+                      border: "2px solid white",
+                      borderRadius: "50%",
+                      cursor: "s-resize",
+                      pointerEvents: "all",
+                      zIndex: 11,
+                    }}
+                  />
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, "e")}
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      right: "-6px",
+                      transform: "translateY(-50%)",
+                      width: "12px",
+                      height: "12px",
+                      backgroundColor: "#ec4899",
+                      border: "2px solid white",
+                      borderRadius: "50%",
+                      cursor: "e-resize",
+                      pointerEvents: "all",
+                      zIndex: 11,
+                    }}
+                  />
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, "w")}
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "-6px",
+                      transform: "translateY(-50%)",
+                      width: "12px",
+                      height: "12px",
+                      backgroundColor: "#ec4899",
+                      border: "2px solid white",
+                      borderRadius: "50%",
+                      cursor: "w-resize",
+                      pointerEvents: "all",
+                      zIndex: 11,
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: "100%",
+                    height: "100%",
+                  }}
+                >
+                  <Cropper
+                    image={imageSrc}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={undefined}
+                    cropSize={cropSize}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={onCropComplete}
+                    restrictPosition={true}
+                    minZoom={0.5}
+                    maxZoom={5}
+                  />
+                </div>
               </div>
-              <p className="text-xs text-gray-500 text-center mt-2">
-                Drag the image to position it, use zoom to adjust size. The crop area can be adjusted by zooming in/out.
+              <p className="outfit-400 mt-2 text-center text-[14px] text-gray-500">
+                Drag the crop handles to resize image. Use zoom to adjust the
+                image size.
               </p>
               <div className="flex items-center gap-4">
-                <label className="text-sm font-medium text-gray-700">Zoom:</label>
+                <label className="outfit-400 text-[14px] font-medium text-gray-700">
+                  Zoom:
+                </label>
                 <input
                   type="range"
                   min="0.5"
@@ -336,7 +544,9 @@ const ImageSelectionModal = ({
                   onChange={(e) => setZoom(parseFloat(e.target.value))}
                   className="flex-1"
                 />
-                <span className="text-sm text-gray-600">{zoom.toFixed(1)}x</span>
+                <span className="outfit-400 text-[14px] text-gray-600">
+                  {zoom.toFixed(1)}x
+                </span>
               </div>
               <div className="flex justify-end gap-3">
                 <button
@@ -347,13 +557,13 @@ const ImageSelectionModal = ({
                     setCrop({ x: 0, y: 0 });
                     setZoom(1);
                   }}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  className="outfit-400 cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCropComplete}
-                  className="rounded-lg bg-pink-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-pink-600"
+                  className="outfit-400 cursor-pointer rounded-xl bg-orange-500 px-4 py-2 text-[14px] font-medium text-white transition hover:bg-orange-600"
                 >
                   Apply Crop
                 </button>
@@ -364,7 +574,7 @@ const ImageSelectionModal = ({
             <div
               className={`relative rounded-lg border-2 border-dashed p-8 transition ${
                 isDragging
-                  ? "border-pink-500 bg-pink-50"
+                  ? "border-orange-500 bg-orange-50"
                   : "border-gray-300 bg-gray-50"
               }`}
               onDrop={handleDrop}
@@ -376,15 +586,15 @@ const ImageSelectionModal = ({
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-200">
                   <i className="bx bx-image-alt text-3xl text-gray-400"></i>
                 </div>
-                <p className="mb-2 text-center text-sm font-medium text-gray-700">
+                <p className="outfit-400 mb-2 text-center text-[14px] font-medium text-gray-700">
                   Upload or drop an image here
                 </p>
-                <p className="mb-4 text-center text-xs text-gray-500">
+                <p className="outfit-400 mb-4 text-center text-[14px] text-gray-500">
                   PNG · jpeg · jpg · GIF
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="rounded-lg bg-pink-500 px-6 py-2 text-sm font-medium text-white transition hover:bg-pink-600"
+                  className="outfit-400 cursor-pointer rounded-xl bg-orange-500 px-6 py-2 text-[14px] font-medium text-white transition hover:bg-orange-600"
                 >
                   Upload from device
                 </button>
@@ -399,61 +609,12 @@ const ImageSelectionModal = ({
             </div>
           ) : activeTab === "search" ? (
             /* Search Tab */
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search for images..."
-                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-pink-500 focus:outline-none"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSearch();
-                  }}
-                />
-                <button
-                  onClick={handleSearch}
-                  className="rounded-lg bg-pink-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-pink-600"
-                >
-                  Search
-                </button>
-              </div>
-              <p className="text-center text-sm text-gray-500">
+            <div className="mt-5 mb-5 space-y-4">
+              <p className="outfit-400 text-center text-[14px] text-gray-500">
                 Image search functionality coming soon
               </p>
             </div>
-          ) : (
-            /* Paste Link Tab */
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={pasteUrl}
-                  onChange={(e) => setPasteUrl(e.target.value)}
-                  placeholder="Paste image URL here..."
-                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-pink-500 focus:outline-none"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handlePasteLink();
-                  }}
-                />
-                <button
-                  onClick={handlePasteLink}
-                  className="rounded-lg bg-pink-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-pink-600"
-                >
-                  Load
-                </button>
-              </div>
-              <div className="flex items-center justify-center">
-                <button
-                  onClick={handlePasteFromClipboard}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                >
-                  <i className="bx bx-clipboard mr-2"></i>
-                  Paste from Clipboard
-                </button>
-              </div>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

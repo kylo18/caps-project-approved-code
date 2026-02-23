@@ -922,14 +922,14 @@ function SubjectList() {
         {/* Subjects List */}
         <div>
           {subjectLoading ? (
-            <div className="outfit flex h-64 items-center justify-center">
+            <div className="outfit-400 flex h-64 items-center justify-center">
               <div className="text-center">
                 <div className="loader mx-auto mb-2"></div>
                 <p className="text-[14px] text-gray-600">Loading subjects...</p>
               </div>
             </div>
           ) : networkError ? (
-            <div className="outfit flex flex-col items-center justify-center py-10">
+            <div className="outfit-400 flex flex-col items-center justify-center py-10">
               <img
                 src={noInternetImage}
                 alt="No internet connection"
@@ -940,7 +940,7 @@ function SubjectList() {
               </span>
             </div>
           ) : filteredSubjects.length === 0 ? (
-            <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+            <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
               <div className="text-center">
                 <img
                   src={emptyImage}
@@ -1102,7 +1102,7 @@ function SubjectList() {
                             <>
                               <div
                                 key={subject.subjectID}
-                                className="group outfit relative flex h-[320px] max-w-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-xl"
+                                className="group outfit-400 relative flex h-[320px] max-w-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-xl"
                               >
                                 {/* Background Image Header Section */}
                                 <div

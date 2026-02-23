@@ -354,7 +354,7 @@ const ArchivedClass = () => {
               >
                 <i className="bx bx-arrow-left-stroke text-3xl" />
               </button>
-              <p className="outfit-500 mt-1 text-[18px] text-black">
+              <p className="outfit-500 mt-1 text-[16px] text-black">
                 {searchTerm.trim()
                   ? `Search results for "${searchTerm}"`
                   : `Archived classes (${filteredArchived.length})`}
@@ -366,7 +366,7 @@ const ArchivedClass = () => {
         {/* Archived classes list / empty state */}
         <div>
           {isLoading ? (
-            <div className="outfit flex h-64 items-center justify-center">
+            <div className="outfit-400 flex h-64 items-center justify-center">
               <div className="text-center">
                 <div className="loader mx-auto mb-2"></div>
                 <p className="text-[14px] text-gray-600">
@@ -375,7 +375,7 @@ const ArchivedClass = () => {
               </div>
             </div>
           ) : filteredArchived.length === 0 ? (
-            <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+            <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
               <div className="text-center">
                 <img
                   src={emptyImage}
@@ -431,7 +431,7 @@ const ArchivedClass = () => {
                   return (
                     <div
                       key={classItem.classID || classItem.id}
-                      className="group outfit relative flex h-[320px] max-w-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-xl"
+                      className="group outfit-400 relative flex h-[320px] max-w-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-xl"
                     >
                       {/* Background Image Header Section */}
                       <div

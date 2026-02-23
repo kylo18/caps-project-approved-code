@@ -816,27 +816,7 @@ const QuizOverview = () => {
                   </div>
                 </div>
 
-                <div className="mb-4 text-start">
-                  <div className="mb-4">
-                    <span className="block text-[14px] text-gray-700">
-                      Instruction (Optional)
-                    </span>
-                    <div className="relative">
-                      <textarea
-                        placeholder="Enter quiz instruction"
-                        value={editedQuiz.instruction}
-                        onChange={(e) =>
-                          setEditedQuiz({
-                            ...editedQuiz,
-                            instruction: e.target.value,
-                          })
-                        }
-                        rows={3}
-                        className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
+                
 
                 <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
 

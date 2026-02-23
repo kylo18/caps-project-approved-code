@@ -545,13 +545,11 @@ const Sidebar = ({
   let menuItems = [];
 
   if (parsedRoleId === 1) {
-    // Student menu items
+    // Student menu items: Home, Sessions, Classes only
     menuItems = [
       ...baseMenuItems,
-      librariesItem,
       sessionsItem,
       classItem,
-      studentSubjectsItem,
     ];
   } else {
     // if NOT student
@@ -623,11 +621,12 @@ const Sidebar = ({
               {menuItems
                 .filter(
                   (item) =>
-                    item.label === "Users" ||
-                    item.label === "Export" ||
-                    item.label === "My Library" ||
-                    item.label === "Classes" ||
-                    (parsedRoleId === 1 && item.label !== "Subjects"),
+                    parsedRoleId === 1
+                      ? item.label === "Sessions" || item.label === "Classes"
+                      : item.label === "Users" ||
+                        item.label === "Export" ||
+                        item.label === "My Library" ||
+                        item.label === "Classes",
                 )
                 .map((item, index) => (
                   <div key={index} className="flex flex-col items-center">
@@ -682,7 +681,7 @@ const Sidebar = ({
                         ) : item.label === "Sessions" ? (
                           <span className="relative flex-shrink-0">
                             <img
-                              src={isItemActive ? SessionsIconH : SessionsIcon}
+                              src={isActive(item.path) ? SessionsIconH : SessionsIcon}
                               alt="Sessions"
                               className="size-[18px] flex-shrink-0"
                             />
@@ -740,46 +739,8 @@ const Sidebar = ({
                 ))}
             </div>
 
-            {/* Right side - Subjects */}
+            {/* Right side - Subjects (not shown for students) */}
             <div className="flex items-center gap-5 hover:text-gray-800 min-[345px]:gap-8 min-[500px]:gap-18">
-              {/* Subjects for different roles */}
-              {parsedRoleId === 1 && (
-                <>
-                  <div className="-mt-[5px] flex flex-col items-center">
-                    <Link
-                      to="/student/subjects"
-                      onClick={handleMenuClick}
-                      className={`flex flex-col items-center transition-colors ${
-                        isActive("/student/subjects")
-                          ? "text-orange-600"
-                          : "text-gray-700 hover:text-gray-800"
-                      }`}
-                    >
-                      <span className="relative mb-[5px] h-6 w-6">
-                        <img
-                          src={
-                            isActive("/student/subjects")
-                              ? SubjectsIconH
-                              : SubjectsIcon
-                          }
-                          alt="Subjects"
-                          className="absolute inset-0 h-6 w-6"
-                        />
-                      </span>
-                    </Link>
-                    <span
-                      className={`-mt-[6px] text-xs ${
-                        isActive("/student/subjects")
-                          ? "text-black"
-                          : "text-gray-600"
-                      }`}
-                    >
-                      Subjects
-                    </span>
-                  </div>
-                </>
-              )}
-
               {(parsedRoleId === 5 || parsedRoleId === 4) && (
                 <>
                   <div className="-mt-[5px] flex flex-col items-center">
@@ -1848,76 +1809,6 @@ const Sidebar = ({
             </ul>
           </div>
         )}
-        {parsedRoleId === 1 && (
-          <div className="flex flex-col space-y-[5px]">
-            <div className="px-3">
-              <div className="mb-4 h-[1.5px] w-full bg-gray-200"></div>{" "}
-              {!isUsersPage && (
-                <div className="outfit-500 px-2 text-[12px] font-semibold text-gray-500">
-                  QUALIFYING EXAM{" "}
-                </div>
-              )}
-            </div>
-            <ul>
-              <li className="relative">
-                {/* Active left indicator - positioned outside */}
-                <span
-                  className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                    isActive("/student/subjects")
-                      ? "bg-orange-500"
-                      : "bg-transparent"
-                  }`}
-                ></span>
-                <div className="mt-1 px-3">
-                  <Link
-                    to="/student/subjects"
-                    onClick={handleMenuClick}
-                    className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                      isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
-                    } ${
-                      isActive("/student/subjects")
-                        ? "bg-gray-100 text-orange-600"
-                        : "hover:text-gray-800"
-                    }`}
-                  >
-                    {/* Icon + label wrapper with padding */}
-                    <div
-                      className={`flex items-center ${
-                        isUsersPage ? "justify-center" : "ml-3 gap-3"
-                      }`}
-                    >
-                      <span className="relative flex-shrink-0">
-                        <img
-                          src={
-                            isActive("/student/subjects")
-                              ? SubjectsIconH
-                              : SubjectsIcon
-                          }
-                          alt="Subjects"
-                          className={`${
-                            isUsersPage ? "size-[20px]" : "size-[18px]"
-                          } flex-shrink-0`}
-                        />
-                      </span>
-                      {!isUsersPage && (
-                        <span
-                          className={`outfit-500 text-[15px] whitespace-nowrap ${
-                            isActive("/student/subjects")
-                              ? "font-[18px] text-black"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          Subjects
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                </div>
-              </li>
-            </ul>
-          </div>
-        )}
-
         {/* Support button at the bottom */}
         <div className="absolute bottom-4 left-0 w-full">
           <div className="px-3">

@@ -93,7 +93,7 @@ const Layout = () => {
                 : "ml-[220px]"
           }`}
         >
-          <Header title={roleTitle} className="sm:hidden" />
+          <Header title={roleTitle} className="sm:hidden " />
           <main
             className={`${isTutorialPage ? "" : "px-2"} h-full `}
           >

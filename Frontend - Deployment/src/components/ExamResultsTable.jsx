@@ -335,6 +335,12 @@ const ExamResultsTable = ({
                           {idx === 0 && (
                             <i className="bx bx-trophy text-yellow-500"></i>
                           )}
+                          {idx === 1 && (
+                            <i className="bx bx-trophy text-gray-400"></i>
+                          )}
+                          {idx === 2 && (
+                            <i className="bx bx-trophy text-amber-600"></i>
+                          )}
                           <span>{idx + 1}</span>
                         </div>
                       </td>

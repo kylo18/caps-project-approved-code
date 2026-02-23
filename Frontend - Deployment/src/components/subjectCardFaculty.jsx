@@ -331,41 +331,9 @@ const SubjectCard = ({
     showToast("Exam successfully configured!", "success");
   };
 
-  // Function to fetch and preview practice exam questions
-  const handlePreviewClick = async () => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/practice-exam/preview/${subjectID}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch preview questions");
-      }
-
-      const examData = await response.json();
-
-      // Navigate to practice exam with preview flag
-      navigate("/practice-exam", {
-        state: {
-          subjectID,
-          examData: {
-            ...examData,
-            subjectName,
-            isPreview: true,
-          },
-        },
-      });
-    } catch (error) {
-      console.error("Error fetching preview questions:", error);
-      showToast("Failed to load preview questions. Please try again.", "error");
-    }
+  // Navigate to practice exam preview page
+  const handlePreviewClick = () => {
+    navigate(`/practice-exam/preview/${subjectID}`);
   };
 
   // Delete subject handler
