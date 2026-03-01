@@ -5,6 +5,7 @@ import LoadingOverlay from "/src/components/loadingOverlay";
 import RegisterDropDownSmall from "/src/components/registerDropDownSmall";
 import Toast from "/src/components/Toast";
 import useToast from "/src/hooks/useToast";
+import SearchBar from "/src/components/SearchBar";
 
 import StudentsIcon from "/src/assets/symbols/students.svg";
 import StudentsIconH from "/src/assets/symbols/studentshover.svg";
@@ -1035,39 +1036,19 @@ const UserList = () => {
     <div className="flex h-screen">
       {/* Main content area */}
       <div className="flex h-full flex-1 flex-col gap-6 overflow-y-auto p-6 pb-0">
-        <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="outfit-400 relative text-[14px]">
-            {/* Search icon */}
-            <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-lg text-gray-500" />
-
-            <input
-              type="text"
-              placeholder="Search users..."
-              className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-              value={searchQuery}
-              maxLength={50}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-
-            {/* Clear button */}
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute top-1/2 right-2 mr-3 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
-                aria-label="Clear search"
-              >
-                <i className="bx bx-x text-xl" />
-              </button>
-            )}
-          </div>
+        <div className="min-w-0 space-y-4">
+          <SearchBar
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search users..."
+          />
 
           <div className="my-4 h-px bg-gray-200" />
 
           {/* Header with title and action buttons */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="outfit-500 mt-1 text-[18px] text-black">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="outfit-500 mt-1 break-words text-[18px] text-black">
                 {selectedUsers.length > 0
                   ? "Select the users you want to modify"
                   : hasActiveFilters()
@@ -1086,7 +1067,7 @@ const UserList = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-shrink-0 items-center gap-3">
               {/* Filter Buttons */}
               <div className="flex items-center justify-center gap-2">
                 {hasActiveFilters() && (
@@ -2242,7 +2223,7 @@ const UserList = () => {
           {/* Pagination */}
           {!loading && !searchLoading && !tabLoading && !error && (
             <div
-              className={`flex justify-center pt-4 ${selectedUsers.length > 0 ? "pb-28" : "pb-6"}`}
+              className={`flex justify-center pt-4 ${selectedUsers.length > 0 ? "pb-28" : "pb-28 lg:pb-6"}`}
             >
               {renderPagination()}
             </div>

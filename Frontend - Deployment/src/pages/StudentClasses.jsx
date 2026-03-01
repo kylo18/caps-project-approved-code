@@ -502,9 +502,7 @@ const StudentClasses = () => {
                             <th className="px-2 py-2 w-[18%] text-center text-[14px] font-medium tracking-wider text-gray-600">
                               Last Submitted
                             </th>
-                            <th className="px-4 py-2 w-[10%] text-right text-[14px] font-medium tracking-wider text-gray-600">
-                              Actions
-                            </th>
+                            
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
@@ -548,25 +546,7 @@ const StudentClasses = () => {
                                     ? formatDateTime(highest.submitted_at)
                                     : "—"}
                                 </td>
-                                <td className="px-4 py-4 outfit-500 whitespace-nowrap text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      navigate(`/quiz-info/${item.classPersonalQuizID}`, {
-                                        state: {
-                                          classID,
-                                          classPersonalQuizID: item.classPersonalQuizID,
-                                          quiz: item.quiz,
-                                          fromHistory: true,
-                                        },
-                                      })
-                                    }
-                                    className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-700 transition-colors hover:bg-gray-100"
-                                  >
-                                    <i className="bx bx-caret-right text-sm" />
-                                    View
-                                  </button>
-                                </td>
+                                
                               </tr>
                             );
                           })}

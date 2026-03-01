@@ -412,7 +412,7 @@ const AdminHeader = ({ title, className = "" }) => {
 
   return (
     <div className={className}>
-      <div className="outfit border-color fixed top-0 left-0 z-49 flex h-[44px] w-full items-center justify-between border-b bg-white px-6 py-[10px] sm:z-52">
+      <div className="outfit-400 border-color fixed top-0 left-0 z-49 flex h-[44px] w-full items-center justify-between border-b bg-white px-6 py-[10px] sm:z-52">
         <div className="-ml-3 flex items-center gap-2">
           <img src={collegeLogo} alt="College Logo" className="size-[30px]" />
         </div>
@@ -421,31 +421,7 @@ const AdminHeader = ({ title, className = "" }) => {
         <div className="flex items-center gap-2">
           <span className="text-[14px] text-gray-500">{title}</span>
 
-          {/* Help Button */}
-          <button
-            onClick={() => {
-              if (title !== "Student") {
-                window.open(
-                  "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
-                  "_blank",
-                );
-              } else {
-                window.open(
-                  "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&gid=1756766640#gid=1756766640",
-                  "_blank",
-                );
-              }
-            }}
-            className={`border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-black ${
-              title === "student"
-                ? "cursor-not-allowed opacity-50"
-                : "hover:bg-gray-200"
-            }`}
-            disabled={title === "student"}
-          >
-            <i className="bx bx-message-question-mark text-md ml-1"></i>
-            <span className="pr-1.5 text-[14px]">Help</span>
-          </button>
+          
 
           {/* Three-dot Dropdown */}
           <div className="relative" ref={dropdownRef}>
@@ -485,7 +461,7 @@ const AdminHeader = ({ title, className = "" }) => {
                   </div>
 
                   <div className="flex w-full flex-col overflow-hidden text-sm">
-                    <span className="outfit overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-gray-800">
+                    <span className="outfit-400 overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-gray-800">
                       {userInfo?.fullName ? (
                         userInfo.fullName
                       ) : (
@@ -520,6 +496,25 @@ const AdminHeader = ({ title, className = "" }) => {
                 </button>
 
                 <button
+                  onClick={() => {
+                    if (title !== "Student") {
+                      window.open(
+                        "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
+                        "_blank",
+                      );
+                    } else {
+                      window.open(
+                        "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&gid=1756766640#gid=1756766640",
+                        "_blank",
+                      );
+                    }
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                >
+                  <i className="bx bx-message-question-mark mr-2 text-[16px]"></i> Support
+                </button>
+
+                <button
                   onClick={() => setShowLogoutModal(true)}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
@@ -540,7 +535,7 @@ const AdminHeader = ({ title, className = "" }) => {
 
       {showProfileModal && (
         <>
-          <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+          <div className="outfit-400 bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
             <div
               ref={profileModalRef}
               className="animate-fade-in-up edit-profile-modal-scrollbar relative mx-0 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-6 py-4 shadow-2xl min-[448px]:mx-2 min-[448px]:rounded-2xl"
@@ -703,7 +698,7 @@ const AdminHeader = ({ title, className = "" }) => {
 
       {showChangePassword && (
         <>
-          <div className="outfit lightbox-bg bg-opacity-40 fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+          <div className="outfit-400 lightbox-bg bg-opacity-40 fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
             <div
               ref={changePasswordModalRef}
               className="animate-fade-in-up edit-profile-modal-scrollbar relative max-h-[90vh] w-full max-w-[480px] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-xl"

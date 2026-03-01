@@ -596,7 +596,7 @@ const ProgramChairContent = () => {
 
             {/* Questions display section */}
             {(activeTab === 0 || activeTab === 1 || activeTab === 4) && (
-              <div className="relative -mx-2 sm:mx-0">
+              <div className="relative sm:mx-0">
                 <div className="w-full">
                   {isLoading ? (
                     <div className="flex flex-col gap-2">

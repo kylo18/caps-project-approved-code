@@ -609,7 +609,7 @@ const QuizContent = () => {
     ((quizDetails || quiz)?.quiz_type_id === 1 ? "Subject-based" : "Custom");
 
   return (
-    <div className="relative mt-2 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
+    <div className="relative mt-10 flex min-h-screen w-full flex-1 flex-col justify-center py-2 md:mt-12 lg:mt-2">
       <div className="flex-1">
         <div className="w-full py-3">
           {/* Quiz header / subject-style card with search */}
@@ -635,7 +635,7 @@ const QuizContent = () => {
           />
 
           {/* Questions List */}
-          <div className="relative -mx-2 mt-3 sm:mx-0">
+          <div className="relative mt-3 mb-30 sm:mx-0">
             <div className="w-full">
               {isLoadingQuestions ? (
                 <div className="flex flex-col gap-2">
@@ -649,7 +649,7 @@ const QuizContent = () => {
                         <span className="skeleton shimmer h-6 w-10 rounded bg-gray-200"></span>
                       </div>
                     </div>
-                    <div className="skeleton shimmer word-break break-word mt-4 min-h-[40px] w-full max-w-full resize-none overflow-hidden rounded border-gray-200 bg-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap"></div>
+                    <div className="skeleton shimmer word-break break-word mt-4 min-h-[40px] w-full max-w-full resize-none overflow-hidden rounded border-gray-200 bg-gray-200 py-2 pl-3 text-[14px] break-words whitespace-pre-wrap"></div>
                     <div className="mt-3 space-y-3 p-3">
                       {[1, 2, 3, 4].map((choiceIndex) => (
                         <div
@@ -662,7 +662,7 @@ const QuizContent = () => {
                       ))}
                     </div>
                     <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
-                    <div className="mt-5 mb-1 flex justify-end gap-2">
+                    <div className="flexse mt-5 mb-1 justify-end gap-2">
                       <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
                       <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
                       <span className="skeleton shimmer h-8 w-20 rounded bg-gray-200"></span>

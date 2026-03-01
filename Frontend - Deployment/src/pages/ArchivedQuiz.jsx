@@ -21,6 +21,7 @@ import EditIcon from "/src/assets/symbols/myquiz.svg";
 import emptyImage from "../assets/icons/empty.png";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
+import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
 
 const ArchivedQuiz = () => {
   const navigate = useNavigate();
@@ -34,6 +35,8 @@ const ArchivedQuiz = () => {
   const kebabMenuRef = useRef(null);
   const kebabButtonRefs = useRef({});
   const [dropdownButtonRect, setDropdownButtonRect] = useState(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const mobileSearchInputRef = useRef(null);
 
   // Multi-selection state
   const [selectedQuizzes, setSelectedQuizzes] = useState([]);
@@ -423,9 +426,9 @@ const ArchivedQuiz = () => {
   };
 
   return (
-    <div className="-ml-2 flex h-screen">
-      {/* Library left panel */}
-      <aside className="fixed top-0 left-[63px] hidden h-screen w-56 overflow-hidden border-r border-gray-200 bg-white px-4 py-4 md:block lg:w-64">
+    <div className="flex h-screen">
+      {/* Library left panel - only visible on md+ */}
+      <aside className="fixed top-0 left-[63px] hidden h-screen w-56 overflow-hidden border-r border-gray-200 bg-white px-4 py-4 lg:block lg:w-64">
         <h2 className="outfit-500 mb-4 text-[16px] tracking-wide text-black">
           Library
         </h2>
@@ -487,41 +490,48 @@ const ArchivedQuiz = () => {
         </div>
       </aside>
 
-      {/* Main content area */}
-      <div className="scrollbar-hide ml-56 flex h-full flex-1 flex-col gap-6 overflow-y-auto p-6 pb-0 [-ms-overflow-style:none] [scrollbar-width:none] lg:ml-64 [&::-webkit-scrollbar]:hidden">
-        <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="outfit-500 relative text-[14px]">
-            <i className="bx bx-search absolute top-2.5 left-4 -translate-y-1/2 text-lg text-gray-500"></i>
-            <input
-              type="text"
-              placeholder="Search archived quizzes..."
-              className="-mt-2 w-full rounded-full border border-gray-200 bg-white py-2 pr-4 pl-10 text-[14px] text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm("")}
-                className="absolute top-2.5 right-3 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
-              >
-                <i className="bx bx-x text-xl"></i>
-              </button>
-            )}
-          </div>
-          <div className="my-4 h-px bg-gray-200" />
+      {/* Main content area - match Libraries mobile layout */}
+      <div className="scrollbar-hide mt-10 flex h-screen flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] md:px-4 lg:mt-0 lg:ml-64 [&::-webkit-scrollbar]:hidden">
+        <div className="min-w-0 space-y-4 px-4 pt-4 md:pt-6">
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search archived quizzes..."
+            mobileCollapsible
+            showMobileSearch={showSearch}
+            onCloseMobileSearch={() => {
+              setSearchTerm("");
+              setShowSearch(false);
+            }}
+            inputRef={mobileSearchInputRef}
+          />
+          <div className="my-4 hidden h-px bg-gray-200 md:block" />
 
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="outfit-500 mt-1 text-[18px] text-black">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigate("/libraries")}
+                className="flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 md:hidden"
+                aria-label="Back to My quizzes"
+              >
+                <i className="bx bx-arrow-left-stroke text-[28px]" />
+              </button>
+              <p className="outfit-500 min-w-0 text-[18px] break-words text-black">
                 {selectedQuizzes.length > 0
                   ? `Select the quizzes you want to restore`
                   : searchTerm.trim()
                     ? `Search results for "${searchTerm}"`
                     : `Archived quizzes (${filteredQuizzes.length})`}
               </p>
+            </div>
+            <div className="flex flex-shrink-0 items-center gap-2">
+              <SearchBarTrigger
+                isOpen={showSearch}
+                onClick={() => setShowSearch((prev) => !prev)}
+                title="Search archived quizzes"
+              />
             </div>
           </div>
         </div>
@@ -532,30 +542,31 @@ const ArchivedQuiz = () => {
           <div className="outfit-400 flex h-64 items-center justify-center">
             <div className="text-center">
               <div className="loader mx-auto mb-2"></div>
-              <p className="text-[14px] text-gray-600">
-                Loading archived quizzes...
-              </p>
             </div>
           </div>
         ) : filteredQuizzes.length === 0 ? (
-          <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+          <div className="outfit-400 flex h-80 flex-1 items-center justify-center rounded-2xl border-dashed border-gray-300 py-16 md:h-130 md:border">
             <div className="text-center">
               <img
                 src={emptyImage}
                 alt="No quizzes available"
-                className="mx-auto mb-3 h-32 w-32 opacity-80"
+                className="mx-auto -mt-20 mb-3 h-32 w-32 opacity-80 md:mt-0"
               />
               <p className="outfit-400 text-[14px] text-gray-600">
-                {searchTerm.trim()
-                  ? `No quizzes found matching "${searchTerm}"`
-                  : "Your quizzes will appear here. Use the Create Quiz button to create one."}
+                {searchTerm.trim() ? (
+                  `No quizzes found matching "${searchTerm}"`
+                ) : (
+                  <>
+                    <span>No archived quizzes yet</span>
+                  </>
+                )}
               </p>
             </div>
           </div>
         ) : (
           <>
-            <div className="outfit-400 mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
-              <div className="overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="outfit-400 mt-2 overflow-hidden bg-white md:mt-4 md:rounded-xl md:border md:border-gray-200">
+              <div className="hidden overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] md:block [&::-webkit-scrollbar]:hidden">
                 <table className="w-full">
                   <thead className="border-b border-gray-200 bg-white">
                     <tr>
@@ -578,12 +589,7 @@ const ArchivedQuiz = () => {
                       <th className="outfit-400 px-2 py-2 text-center text-[14px] text-gray-600">
                         Questions
                       </th>
-                      <th className="outfit-400 w-32 px-2 py-2 text-center text-[14px] text-gray-600">
-                        Date Created
-                      </th>
-                      <th className="outfit-400 w-32 px-2 py-2 text-center text-[14px] text-gray-600">
-                        Last Edited
-                      </th>
+
                       <th className="outfit-400 px-2 py-2 text-center text-[14px] text-gray-600">
                         Actions
                       </th>
@@ -681,10 +687,10 @@ const ArchivedQuiz = () => {
                             />
                           </td>
                           <td
-                            className="cursor-pointer px-2 py-4 whitespace-nowrap"
+                            className="cursor-pointer px-2 py-4"
                             onClick={() => {
                               navigate("/quiz-overview", {
-                                state: { quiz },
+                                state: { quiz, fromArchive: true },
                               });
                             }}
                           >
@@ -719,28 +725,6 @@ const ArchivedQuiz = () => {
                             <div className="text-sm text-gray-900">
                               {quiz.question_count || 0}
                             </div>
-                          </td>
-
-                          <td className="outfit-400 w-32 px-2 py-4 text-center whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {createdDate}
-                            </div>
-                            {createdDate !== "—" && (
-                              <div className="text-xs text-gray-500">
-                                {createdTime}
-                              </div>
-                            )}
-                          </td>
-
-                          <td className="outfit-400 w-32 px-2 py-4 text-center whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {editedDateText}
-                            </div>
-                            {editedDateText !== "—" && updatedDate && (
-                              <div className="text-xs text-gray-500">
-                                {editedTime}
-                              </div>
-                            )}
                           </td>
 
                           <td className="outfit-400 w-40 px-2 py-4 whitespace-nowrap">
@@ -784,6 +768,69 @@ const ArchivedQuiz = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile card list - same layout as Libraries */}
+              <div className="w-full space-y-0 overflow-hidden rounded-t-2xl border-x border-t border-gray-200 bg-white md:hidden">
+                {filteredQuizzes.map((quiz) => {
+                  const quizID =
+                    quiz.id ||
+                    quiz.quizID ||
+                    quiz.personalQuizID ||
+                    quiz.quiz_id;
+                  const createdDate = quiz.created_at
+                    ? new Date(quiz.created_at).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "—";
+                  const quizTypeName =
+                    quiz.quizType?.name ||
+                    (quiz.quiz_type_id === 1 ? "Subject-based" : "Custom");
+                  const headerColor = getHeaderColor(quizID);
+
+                  return (
+                    <button
+                      key={quizID}
+                      type="button"
+                      onClick={() =>
+                        navigate("/quiz-overview", {
+                          state: { quiz, fromArchive: true },
+                        })
+                      }
+                      className="flex w-full cursor-pointer items-center gap-3 rounded-t-2xl border-x border-t border-gray-200 bg-white px-4 py-4 text-left first:border-t-0 hover:bg-gray-100 active:bg-gray-50"
+                    >
+                      <div
+                        className="flex size-12 flex-shrink-0 items-center justify-center overflow-hidden rounded"
+                        style={{ backgroundColor: headerColor }}
+                      >
+                        <span className="outfit-400 text-[16px] font-semibold text-white">
+                          Q
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="outfit-500 text-[14px] font-semibold text-gray-900">
+                          {quiz.title || "Untitled Quiz"}
+                        </div>
+                        <div className="outfit-400 text-[12px] text-gray-500">
+                          {quiz.subject ? (
+                            <>
+                              {quiz.subject.subjectCode} -{" "}
+                              {quiz.subject.subjectName}
+                            </>
+                          ) : (
+                            <span>{quizTypeName}</span>
+                          )}
+                        </div>
+                        <div className="outfit-400 text-[12px] text-gray-500">
+                          {quiz.question_count || 0} questions · {createdDate}
+                        </div>
+                      </div>
+                      <i className="bx bx-chevron-right flex-shrink-0 text-xl text-gray-400"></i>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div
               className={` ${selectedQuizzes.length > 0 ? "pb-28" : "pb-6"}`}
@@ -791,9 +838,9 @@ const ArchivedQuiz = () => {
           </>
         )}
 
-        {/* Selection Overlay Banner */}
+        {/* Selection Overlay Banner - match Libraries positioning */}
         {selectedQuizzes.length > 0 && (
-          <div className="outfit-400 fixed right-0 bottom-5 left-[63px] z-50 md:left-[119px] lg:left-[319px]">
+          <div className="outfit-400 fixed right-0 bottom-5 left-0 z-50 md:left-[119px] lg:left-[319px]">
             <div className="px-6">
               <div className="rounded-xl bg-gray-800 px-5 py-4 shadow-lg">
                 <div className="flex items-center justify-between">

@@ -55,8 +55,7 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess }) => {
         let errorMessage = "Failed to load subjects.";
         try {
           const errorData = await response.json();
-          errorMessage =
-            errorData?.message || errorData?.error || errorMessage;
+          errorMessage = errorData?.message || errorData?.error || errorMessage;
         } catch (parseError) {
           // If JSON parsing fails, use status text
           errorMessage = `HTTP error! Status: ${response.status}`;
@@ -160,17 +159,15 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess }) => {
       if (!response.ok) {
         // Handle validation errors
         if (response.status === 422 && data.errors) {
-          const errorMessages = Object.values(data.errors)
-            .flat()
-            .join(", ");
+          const errorMessages = Object.values(data.errors).flat().join(", ");
           showToast(
             data.message || errorMessages || "Validation failed",
-            "error"
+            "error",
           );
         } else {
           showToast(
             data.message || "Failed to create class. Please try again.",
-            "error"
+            "error",
           );
         }
         setLoading(false);
@@ -198,7 +195,7 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess }) => {
       } else {
         showToast(
           data.message || "Failed to create class. Please try again.",
-          "error"
+          "error",
         );
       }
     } catch (error) {
@@ -227,7 +224,7 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess }) => {
   return (
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
-      <div className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="lightbox-bg bg-opacity-40 fixed inset-0 z-100 flex items-center justify-center bg-black">
         <div
           className="absolute inset-0 z-0"
           onClick={handleCancel}
@@ -236,7 +233,9 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess }) => {
         <div className="relative z-10 mx-4 w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
           {/* Header */}
           <div className="border-b border-gray-200 px-6 py-4">
-            <h2 className="text-2xl font-bold text-gray-900">Create New Class</h2>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Create New Class
+            </h2>
             <p className="mt-1 text-sm text-gray-600">
               Create a new class for your subject
             </p>
@@ -256,7 +255,7 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess }) => {
                   value={formData.className}
                   onChange={handleInputChange}
                   required
-                  maxLength={255}
+                  maxLength={50}
                   placeholder="Enter class name"
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
                 />
@@ -273,7 +272,7 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess }) => {
                   onChange={handleInputChange}
                   required
                   disabled={isSubjectsLoading || subjects.length === 0}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100"
                 >
                   <option value="">
                     {isSubjectsLoading
@@ -302,7 +301,7 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess }) => {
                   onChange={handleInputChange}
                   rows={3}
                   placeholder="Enter class description (optional)"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none resize-none"
+                  className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
                 />
               </div>
 
@@ -331,7 +330,10 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess }) => {
                   onChange={handleInputChange}
                   className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400"
                 />
-                <label htmlFor="isActive" className="ml-2 text-sm text-gray-700">
+                <label
+                  htmlFor="isActive"
+                  className="ml-2 text-sm text-gray-700"
+                >
                   Active (Class will be immediately available)
                 </label>
               </div>
@@ -343,14 +345,14 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess }) => {
                 type="button"
                 onClick={handleCancel}
                 disabled={loading}
-                className="outfit inline-flex cursor-pointer items-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="outfit inline-flex cursor-pointer items-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="outfit inline-flex cursor-pointer items-center rounded-xl bg-orange-500 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="outfit inline-flex cursor-pointer items-center rounded-xl bg-orange-500 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Creating..." : "Create Class"}
               </button>

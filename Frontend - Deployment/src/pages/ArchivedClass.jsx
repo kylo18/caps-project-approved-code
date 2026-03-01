@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/confirmModal";
+import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import emptyImage from "../assets/icons/empty.png";
@@ -35,6 +36,8 @@ const ArchivedClass = () => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const { toast, showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const mobileSearchInputRef = useRef(null);
   const [archivedClasses, setArchivedClasses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
@@ -317,49 +320,43 @@ const ArchivedClass = () => {
   return (
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
-      <div className="scrollbar-hide flex h-screen flex-1 flex-col gap-6 overflow-y-auto p-6 pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="outfit-500 relative text-[14px]">
-            <i className="bx bx-search absolute top-2.5 left-4 -translate-y-1/2 text-lg text-gray-500"></i>
-            <input
-              type="text"
-              placeholder="Search archived classes..."
-              className="-mt-2 w-full rounded-full border border-gray-200 bg-white py-2 pr-6 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-              value={searchTerm}
-              maxLength={50}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm("")}
-                className="absolute top-2.5 right-4 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
-              >
-                <i className="bx bx-x text-xl"></i>
-              </button>
-            )}
-          </div>
+      <div className="scrollbar-hide mt-10 flex h-screen flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] lg:mt-0 [&::-webkit-scrollbar]:hidden">
+        <div className="min-w-0 space-y-4 px-6 pt-6">
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search archived classes..."
+            mobileCollapsible
+            showMobileSearch={showMobileSearch}
+            onCloseMobileSearch={() => setShowMobileSearch(false)}
+            inputRef={mobileSearchInputRef}
+          />
 
-          <div className="my-4 h-px bg-gray-200" />
+          <div className="my-4 hidden h-px bg-gray-200 md:block" />
 
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="-mt-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => navigate("/class")}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100"
+                className="flex flex-shrink-0 cursor-pointer items-center justify-center rounded-xl p-2 text-gray-800 transition-colors hover:bg-gray-100"
                 aria-label="Back to classes"
               >
-                <i className="bx bx-arrow-left-stroke text-3xl" />
+                <i className="bx bx-arrow-left-stroke text-2xl" />
               </button>
-              <p className="outfit-500 mt-1 text-[16px] text-black">
+              <p className="outfit-500 min-w-0 text-[16px] break-words text-black">
                 {searchTerm.trim()
                   ? `Search results for "${searchTerm}"`
                   : `Archived classes (${filteredArchived.length})`}
               </p>
             </div>
+            <SearchBarTrigger
+              isOpen={showMobileSearch}
+              onClick={() => setShowMobileSearch((prev) => !prev)}
+              title="Search archived classes"
+              className="flex-shrink-0"
+            />
           </div>
         </div>
 
@@ -391,13 +388,8 @@ const ArchivedClass = () => {
             </div>
           ) : (
             <>
-              {/* Classes Grid - Dynamic columns */}
-              <div
-                className="mt-4 grid space-y-4 space-x-2"
-                style={{
-                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                }}
-              >
+              {/* Classes Grid - Dynamic columns, full width on mobile */}
+              <div className="mt-4 grid grid-cols-1 space-y-2 space-x-2 px-2 md:grid-cols-[repeat(auto-fill,minmax(20rem,20rem))] md:gap-2 lg:px-4">
                 {filteredArchived.map((classItem) => {
                   const headerBackground = getHeaderBackground(
                     classItem.classID || classItem.id,
@@ -431,11 +423,11 @@ const ArchivedClass = () => {
                   return (
                     <div
                       key={classItem.classID || classItem.id}
-                      className="group outfit-400 relative flex h-[320px] max-w-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-xl"
+                      className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[320px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
                     >
                       {/* Background Image Header Section */}
                       <div
-                        className="relative cursor-pointer bg-cover bg-center bg-no-repeat px-4 pt-4 pb-4"
+                        className="relative cursor-pointer bg-cover bg-center bg-no-repeat px-4 pt-4 pb-4 md:h-[150px]"
                         onClick={() => {
                           const id = classItem.classID || classItem.id;
                           if (!id) return;
@@ -444,29 +436,48 @@ const ArchivedClass = () => {
                         }}
                         style={{ backgroundImage: `url(${headerBackground})` }}
                       >
-                        <div className="relative z-10">
-                          <div className="mb-4 text-xs font-medium text-white opacity-90">
+                        <div className="relative z-10 pr-16 md:flex md:h-full md:flex-col md:justify-between md:pr-0">
+                          <div className="mb-4 hidden text-xs font-medium text-white opacity-90 md:block">
                             Class
                           </div>
-                          <div
-                            className="mb-4 h-12 overflow-hidden leading-6 font-semibold text-white"
-                            style={{
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            <span className="outfit-500 text-[20px] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
-                              {classItem.className}
-                            </span>
+                          <div className="mb-4">
+                            <div
+                              className="max-h-12 overflow-hidden leading-6 font-semibold text-white"
+                              style={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              <span className="outfit-500 text-[20px] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+                                {classItem.className}
+                              </span>
+                            </div>
+                            {classItem.schedule && (
+                              <div className="mt-1 flex items-center gap-1 text-[11px] text-white md:hidden">
+                                <i className="bx bx-history text-sm"></i>
+                                <span className="truncate">
+                                  {classItem.schedule}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                          <div className="inline-flex max-w-full items-center overflow-hidden rounded-full bg-white px-2 py-0.5">
+                          <div className="mt-7 inline-flex max-w-28 items-center overflow-hidden rounded-full bg-white px-2 py-0.5 md:mt-0">
                             <span className="truncate text-xs font-semibold whitespace-nowrap text-black uppercase">
                               Code - {classItem.classCode}
                             </span>
                           </div>
+                        </div>
+
+                        {/* Student count - bottom right (mobile only) */}
+                        <div className="absolute right-3 bottom-3 z-20 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-medium text-white md:hidden">
+                          <i className="bx bx-group text-sm"></i>
+                          <span>
+                            {enrollmentCount}{" "}
+                            {enrollmentCount === 1 ? "Student" : "Students"}
+                          </span>
                         </div>
 
                         {/* Restore and Delete Buttons - Top Right */}
@@ -488,9 +499,9 @@ const ArchivedClass = () => {
                         </div>
                       </div>
 
-                      {/* White Body Section */}
+                      {/* White Body Section (desktop only) */}
                       <div
-                        className="flex flex-1 cursor-pointer flex-col px-4 py-4"
+                        className="hidden flex-1 cursor-pointer flex-col px-4 py-4 md:flex"
                         onClick={() => {
                           const id = classItem.classID || classItem.id;
                           if (!id) return;
@@ -511,14 +522,14 @@ const ArchivedClass = () => {
                         {/* Metadata */}
                         <div className="mb-1 space-y-1">
                           {classItem.schedule && (
-                            <div className="outfit-400 flex items-center gap-2 text-[12px] text-gray-700">
+                            <div className="outfit-400 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
                               <i className="bx bx-history text-sm"></i>
                               <span className="truncate">
                                 {classItem.schedule}
                               </span>
                             </div>
                           )}
-                          <div className="outfit-400 flex items-center gap-2 text-[12px] text-gray-700">
+                          <div className="outfit-400 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
                             <i className="bx bx-group text-sm"></i>
                             <span>
                               {enrollmentCount}{" "}
@@ -548,7 +559,6 @@ const ArchivedClass = () => {
                         {/* Date Information */}
                         <div className="outfit-400 mt-auto space-y-1 text-[12px] text-gray-600">
                           <div>Created: {createdDate}</div>
-                          <div>Archived: {archivedDate}</div>
                         </div>
                       </div>
                     </div>
@@ -558,7 +568,7 @@ const ArchivedClass = () => {
             </>
           )}
 
-          <div className="pb-6" />
+          <div className="pb-28 lg:pb-6" aria-hidden="true" />
         </div>
 
         {/* Restore Confirmation Modal */}

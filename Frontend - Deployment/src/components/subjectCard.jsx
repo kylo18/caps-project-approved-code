@@ -565,13 +565,13 @@ const SubjectCard = ({
           </div>
 
           {/* Mobile & Tablet */}
-          <div className="border-color relative z-48 -mx-2 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
+          <div className="border-color relative z-48 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
             <div className="flex flex-wrap items-start justify-between sm:hidden">
               <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-                <h1 className="outfit mt-2 ml-2 text-[18px] font-bold break-words">
+                <h1 className="outfit-700 mt-2 ml-2 text-[18px] font-bold break-words">
                   {subjectName}
                 </h1>
-                <div className="mt-2 ml-2 flex gap-1 text-gray-500">
+                <div className="outfit-400 mt-2 ml-2 flex gap-1 text-gray-500">
                   <i className="bx bx-book mt-[1px] text-lg"></i>
                   <p className="text-[14px]">{subjectCode}</p>
                   <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
@@ -600,10 +600,10 @@ const SubjectCard = ({
                 className="border-color mr-5 size-18 rounded-md border object-cover"
               />
               <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-                <h1 className="outfit text-[15px] font-bold break-words md:text-[18px]">
+                <h1 className="outfit-700 text-[15px] font-bold break-words md:text-[18px]">
                   {subjectName}
                 </h1>
-                <div className="mt-1 flex gap-1 text-gray-500">
+                <div className="outfit-400 mt-1 flex gap-1 text-gray-500">
                   <i className="bx bx-book mt-[1px] text-lg"></i>
 
                   <p className="text-[14px]">{subjectCode}</p>
@@ -624,7 +624,7 @@ const SubjectCard = ({
             </div>
 
             {/* Button row for Tablet and Mobile (Configure, Preview, Worksheet, Menu) */}
-            <div className="outfit mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold sm:flex md:hidden">
+            <div className="outfit-500 mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold sm:flex md:hidden">
               <button
                 onClick={() => navigate(`/practice-exam/preview/${subjectID}`)}
                 className="border-color mb-6 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
@@ -637,7 +637,7 @@ const SubjectCard = ({
                 className="border-color mb-6 flex items-center justify-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100"
               >
                 <i className="bx bx-cog text-lg"></i>
-                <span>Configure</span>
+                <span>Settings</span>
               </button>
               <button
                 className="border-color mb-6 hidden items-center justify-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
@@ -682,13 +682,13 @@ const SubjectCard = ({
           </div>
 
           {/* Tablet Tabs Bar (below card) */}
-          <div className="outfit border-color relative z-48 -mx-2 -mt-2 mb-2 h-[50px] overflow-visible border bg-gray-50 pt-2 font-semibold sm:mx-0 sm:block sm:rounded-b-md md:hidden">
+          <div className="outfit-400 border-color relative z-48 -mt-2 mb-2 h-[50px] overflow-visible border bg-gray-50 pt-2 sm:mx-0 sm:block sm:rounded-b-md md:hidden">
             <ul className="mt-[6px] flex h-full w-full justify-between text-center">
               {tabs.map((tab) => (
                 <li
                   key={tab.index}
                   ref={(el) => (tabletTabRefs.current[tab.index] = el)}
-                  className={`relative flex-1 cursor-pointer text-[13px] font-semibold transition-colors duration-200 ${
+                  className={`relative flex-1 cursor-pointer text-[13px] transition-colors duration-200 ${
                     activeIndex === tab.index
                       ? "text-orange-500"
                       : "text-gray-600 hover:text-gray-900"
@@ -725,8 +725,8 @@ const SubjectCard = ({
                   className="border-color size-21 rounded-md border object-cover"
                 />
               </div>
-              <div className="outfit flex max-w-full min-w-0 flex-col flex-wrap md:max-w-[calc(100%-200px)]">
-                <div className="outfit line-clamp-2">
+              <div className="outfit-400 flex max-w-full min-w-0 flex-col flex-wrap md:max-w-[calc(100%-200px)]">
+                <div className="outfit-700 line-clamp-2">
                   <Textfit
                     mode="multi"
                     min={14}
@@ -843,7 +843,9 @@ const SubjectCard = ({
                   <span className="text-[14px]">Settings</span>
                 </button>
                 <button
-                  onClick={() => navigate(`/practice-exam/preview/${subjectID}`)}
+                  onClick={() =>
+                    navigate(`/practice-exam/preview/${subjectID}`)
+                  }
                   className="outfit-500 flex cursor-pointer items-center gap-2 rounded-xl border border-b-4 border-orange-600 bg-orange-500 px-4 py-2 text-white transition-all duration-100 hover:bg-orange-600 active:translate-y-[2px] active:border-b-2"
                 >
                   <i className="bx bx-eye-big text-xl"></i>
@@ -901,13 +903,6 @@ const SubjectCard = ({
             </div>
             <div className="bg-color h-[0.5px] w-full" />
             <div className="flex flex-col py-2 text-[16px] sm:text-[14px]">
-              <button
-                onClick={handleAssignClick}
-                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100 min-[500px]:hidden"
-              >
-                <i className="bx bx-cog text-xl"></i>
-                Configure
-              </button>
               <button
                 onClick={handleEdit}
                 className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100"

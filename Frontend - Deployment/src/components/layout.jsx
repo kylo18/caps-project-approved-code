@@ -13,7 +13,7 @@ const Layout = () => {
   });
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSubjectExpanded, setIsSubjectExpanded] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1025);
   const location = useLocation();
 
   const roleMap = {
@@ -32,7 +32,7 @@ const Layout = () => {
   }, []);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 640);
+    const handleResize = () => setIsMobile(window.innerWidth < 1025);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -53,17 +53,19 @@ const Layout = () => {
   const isTutorialPage = location.pathname.includes("/help");
   const isPrintQualifyingExam =
     location.pathname === "/print-qualification-exam";
-  const isPrintPersonalQuiz =
-    location.pathname === "/print-personal-quiz";
+  const isPrintPersonalQuiz = location.pathname === "/print-personal-quiz";
   // Hide sidebar for quiz info, quiz taking, and quiz result pages
-  const isQuizPage = location.pathname.includes("/quiz-info/") || 
+  const isQuizPage =
+    location.pathname.includes("/quiz-info/") ||
     location.pathname.includes("/quiz/") ||
     location.pathname.includes("/quiz-result/");
   // Hide sidebar for practice exam pages
-  const isPracticeExamPage = location.pathname.includes("/practice-exam") ||
+  const isPracticeExamPage =
+    location.pathname.includes("/practice-exam") ||
     location.pathname.includes("/exam-preview");
   // Use collapsed sidebar layout for Libraries page, Archived Quiz page, and SubjectList pages
-  const isLibrariesPage = location.pathname === "/libraries" || 
+  const isLibrariesPage =
+    location.pathname === "/libraries" ||
     location.pathname === "/archived-quiz" ||
     location.pathname === "/dean/subjects" ||
     location.pathname === "/program-chair/subjects" ||
@@ -71,32 +73,39 @@ const Layout = () => {
     location.pathname === "/student/subjects";
 
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
       <div className="flex min-h-screen">
-        {!isTutorialPage && !isPrintQualifyingExam && !isPrintPersonalQuiz && !isQuizPage && !isPracticeExamPage && (
-          <Sidebar
-            role_id={role_id}
-            setSelectedSubject={setSelectedSubject}
-            selectedSubject={selectedSubject}
-            isExpanded={isExpanded}
-            setIsExpanded={setIsExpanded}
-            isSubjectExpanded={isSubjectExpanded}
-            setIsSubjectExpanded={setIsSubjectExpanded}
-          />
-        )}
+        {!isTutorialPage &&
+          !isPrintQualifyingExam &&
+          !isPrintPersonalQuiz &&
+          !isQuizPage &&
+          !isPracticeExamPage && (
+            <Sidebar
+              role_id={role_id}
+              setSelectedSubject={setSelectedSubject}
+              selectedSubject={selectedSubject}
+              isExpanded={isExpanded}
+              setIsExpanded={setIsExpanded}
+              isSubjectExpanded={isSubjectExpanded}
+              setIsSubjectExpanded={setIsSubjectExpanded}
+            />
+          )}
         <div
-          className={`flex flex-1 flex-col  ${
-            isTutorialPage || isPrintQualifyingExam || isPrintPersonalQuiz || isQuizPage || isPracticeExamPage || isMobile
+          className={`flex flex-1 flex-col ${
+            isTutorialPage ||
+            isPrintQualifyingExam ||
+            isPrintPersonalQuiz ||
+            isQuizPage ||
+            isPracticeExamPage ||
+            isMobile
               ? "ml-0"
-              : isLibrariesPage 
+              : isLibrariesPage
                 ? "ml-[63px]"
                 : "ml-[220px]"
           }`}
         >
-          <Header title={roleTitle} className="sm:hidden " />
-          <main
-            className={`${isTutorialPage ? "" : "px-2"} h-full `}
-          >
+          <Header title={roleTitle} className="lg:hidden" />
+          <main className={`${isTutorialPage ? "" : "lg:px-4"} h-full`}>
             <Outlet context={{ selectedSubject, setSelectedSubject }} />
           </main>
         </div>

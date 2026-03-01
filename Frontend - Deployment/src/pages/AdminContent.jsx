@@ -425,7 +425,7 @@ const AdminContent = () => {
   const [hoveredQuestionId, setHoveredQuestionId] = useState(null);
 
   return (
-    <div className="relative mt-2 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
+    <div className="relative mt-10 flex min-h-screen w-full flex-1 flex-col justify-center py-2 md:mt-2">
       <div className="flex-1">
         {selectedSubject ? (
           <div className="w-full py-3">
@@ -463,7 +463,7 @@ const AdminContent = () => {
               />
               {/* Desktop Sort controls (tabs are rendered inside SubjectCard now) */}
               {!isLoading && (
-                <div className="outfit mx-auto max-w-3xl md:mt-4">
+                <div className="outfit-400 mx-auto max-w-3xl md:mt-4">
                   <div className="flex w-full items-center justify-end">
                     {activeTab === 4 && (
                       <SortType
@@ -556,7 +556,7 @@ const AdminContent = () => {
 
             {/* Questions List */}
             {(activeTab === 0 || activeTab === 1 || activeTab === 4) && (
-              <div className="relative -mx-2 sm:mx-0">
+              <div className="relative sm:mx-0">
                 <div className="w-full">
                   {isLoading ? (
                     <div className="flex flex-col gap-2">
@@ -631,7 +631,7 @@ const AdminContent = () => {
                     </div>
                   ) : filteredQuestions.length > 0 ? (
                     <>
-                      <div className="outfit relative mx-0 mt-3 flex w-full max-w-3xl flex-row items-center rounded-t-3xl border border-b-0 border-gray-200 bg-white sm:mx-auto sm:mt-[2px] sm:rounded-t-xl md:rounded-t-xl">
+                      <div className="outfit-400 relative mx-0 mt-3 flex w-full max-w-3xl flex-row items-center rounded-t-3xl border border-b-0 border-gray-200 bg-white sm:mx-auto sm:mt-[2px] sm:rounded-t-xl md:rounded-t-xl">
                         <div className="flex h-full items-center gap-2 px-4 py-2">
                           {/* Question Count */}
                           <div className="outfit-400 flex items-center justify-center gap-2 text-[14px] text-nowrap text-gray-600">
@@ -665,7 +665,7 @@ const AdminContent = () => {
                             </span>
                             <span
                               ref={difficultyIconRef}
-                              className="outfit relative flex items-center"
+                              className="outfit-400 relative flex items-center"
                             >
                               <i
                                 className="bx bx-chevron-right cursor-pointer text-2xl text-gray-400 hover:text-gray-500"
@@ -858,7 +858,7 @@ const AdminContent = () => {
                                         </button>
 
                                         <button
-                                          className="outfit mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Edit"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -871,7 +871,7 @@ const AdminContent = () => {
                                           </span>
                                         </button>
                                         <button
-                                          className="outfit mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Copy"
                                           onClick={(e) => {
                                             if (e.shiftKey) {
@@ -939,7 +939,7 @@ const AdminContent = () => {
                                           </span>
                                         </button>
                                         <button
-                                          className="outfit mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Edit"
                                           onClick={(e) => {
                                             e.stopPropagation();

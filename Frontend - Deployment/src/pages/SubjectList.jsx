@@ -9,6 +9,8 @@ import {
 import RegisterDropDownSmall from "../components/registerDropDownSmall";
 import Toast from "../components/Toast";
 import useToast from "../hooks/useToast";
+import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
+import PrintExamModal from "../components/PrintExamModal";
 import notFoundImage from "../assets/icons/notfound.png";
 import noInternetImage from "../assets/icons/404notfound.png";
 import emptyImage from "../assets/icons/empty.png";
@@ -16,6 +18,7 @@ import AdminContent from "./AdminContent";
 
 import AllSubjectsIcon from "/src/assets/symbols/all.svg";
 import AllSubjectsIconH from "/src/assets/symbols/allhover.svg";
+import ReportsIcon from "/src/assets/symbols/reports.svg";
 
 import BlueBackground from "/src/assets/backgrounds/blue.png";
 import GreenBackground from "/src/assets/backgrounds/green.png";
@@ -208,6 +211,9 @@ function SubjectList() {
 
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const mobileSearchInputRef = useRef(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [openKebabMenu, setOpenKebabMenu] = useState(null);
   const kebabMenuRef = useRef(null);
 
@@ -731,7 +737,7 @@ function SubjectList() {
   return (
     <div className="flex h-screen">
       {/* Left sidebar panel */}
-      <aside className="fixed top-0 left-[63px] hidden h-screen w-56 overflow-hidden border-r border-gray-200 bg-white px-4 py-4 md:block lg:w-64">
+      <aside className="fixed top-0 left-[63px] hidden h-screen w-56 overflow-hidden border-r border-gray-200 bg-white px-4 py-4 lg:block lg:w-64">
         <h2 className="outfit-500 mb-4 text-[16px] tracking-wide text-black">
           Subjects
         </h2>
@@ -792,65 +798,111 @@ function SubjectList() {
       </aside>
 
       {/* Main content area */}
-      <div className="scrollbar-hide ml-56 flex h-full flex-1 flex-col gap-6 overflow-y-auto p-6 pb-0 [-ms-overflow-style:none] [scrollbar-width:none] lg:ml-64 [&::-webkit-scrollbar]:hidden">
-        <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="outfit-500 relative text-[14px]">
-            <i className="bx bx-search absolute top-2.5 left-4 -translate-y-1/2 text-lg text-gray-500"></i>
-            <input
-              type="text"
-              placeholder="Search subjects..."
-              className="-mt-2 w-full rounded-full border border-gray-200 bg-white py-2 pr-6 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-              value={searchTerm}
-              maxLength={50}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute top-2.5 right-4 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
-              >
-                <i className="bx bx-x text-xl"></i>
-              </button>
-            )}
-          </div>
-          <div className="my-4 h-px bg-gray-200" />
+      <div className="scrollbar-hide mt-10 ml-0 flex h-full flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] lg:mt-0 lg:ml-64 [&::-webkit-scrollbar]:hidden">
+        <div className="min-w-0 space-y-4 px-4 pt-4 md:px-6 md:pt-6">
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search subjects..."
+            mobileCollapsible
+            showMobileSearch={showMobileSearch}
+            onCloseMobileSearch={() => setShowMobileSearch(false)}
+            inputRef={mobileSearchInputRef}
+          />
+
+          <div className="my-4 hidden h-px bg-gray-200 md:block" />
 
           {/* Header with title and action buttons */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="outfit-500 mt-1 text-[18px] text-black">
-                {searchTerm.trim()
-                  ? `Search results for "${searchTerm}"`
-                  : selectedProgramFilter === "All"
-                    ? `All subjects (${filteredSubjects.length})`
-                    : `${getDisplayProgramName(selectedProgramFilter)} (${filteredSubjects.length})`}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="outfit-500 mt-1 text-[18px] break-words text-black">
+                {searchTerm.trim() ? (
+                  <>
+                    Search results for &quot;{searchTerm}&quot;
+                    <span className="hidden md:inline">
+                      {" "}
+                      ({filteredSubjects.length})
+                    </span>
+                  </>
+                ) : selectedProgramFilter === "All" ? (
+                  <>
+                    Qualifying exam
+                    <span className="hidden md:inline">
+                      {" "}
+                      ({filteredSubjects.length})
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {getDisplayProgramName(selectedProgramFilter)}
+                    <span className="hidden md:inline">
+                      {" "}
+                      ({filteredSubjects.length})
+                    </span>
+                  </>
+                )}
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Year Level Filter Dropdown */}
+            <div className="flex flex-shrink-0 items-center gap-1 md:gap-2">
+              <SearchBarTrigger
+                isOpen={showMobileSearch}
+                onClick={() => setShowMobileSearch((prev) => !prev)}
+                title="Search subjects"
+              />
+              {/* Print / Generate exam - mobile only, beside search */}
+              <button
+                type="button"
+                onClick={() => setShowPrintModal(true)}
+                title="Print generating exam"
+                className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:hidden md:text-[14px]"
+                aria-label="Print generating exam"
+              >
+                <i className="bx bx-printer text-[22px]" />
+              </button>
+              {/* Reports - mobile only, beside print */}
+              <button
+                type="button"
+                onClick={() => navigate("/reports")}
+                title="Reports"
+                className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:hidden md:text-[14px]"
+                aria-label="Reports"
+              >
+                <img
+                  src={ReportsIcon}
+                  alt="Reports"
+                  className="size-[24px] flex-shrink-0"
+                />
+              </button>
+
+              {/* Year Level Filter Dropdown - icon only on mobile, full button on desktop */}
               <div className="relative" ref={yearLevelDropdownRef}>
                 <button
                   type="button"
                   onClick={() =>
                     setShowYearLevelDropdown(!showYearLevelDropdown)
                   }
-                  className="outfit-500 -mb-4 inline-flex cursor-pointer items-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                  title={
+                    selectedYearLevelFilter === "All"
+                      ? "All Year Levels"
+                      : `${selectedYearLevelFilter}${selectedYearLevelFilter === "1" ? "st" : selectedYearLevelFilter === "2" ? "nd" : selectedYearLevelFilter === "3" ? "rd" : "th"} Year`
+                  }
+                  className="outfit-500 -mb-2 hidden cursor-pointer items-center rounded-xl border-gray-200 bg-white p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:mb-0 md:inline-flex md:border md:px-4 md:py-2 md:text-[14px]"
                 >
-                  <span>
+                  <span className="hidden md:inline">
                     {selectedYearLevelFilter === "All"
                       ? "All Year Levels"
                       : `${selectedYearLevelFilter}${selectedYearLevelFilter === "1" ? "st" : selectedYearLevelFilter === "2" ? "nd" : selectedYearLevelFilter === "3" ? "rd" : "th"} Year`}
                   </span>
                   <i
-                    className={`bx bx-chevron-down ml-2 text-lg transition-transform ${
+                    className={`bx bx-chevron-down ml-0 ml-2 hidden inline text-lg text-[22px] transition-transform ${
                       showYearLevelDropdown ? "rotate-180" : ""
                     }`}
-                  ></i>
+                  />
                 </button>
+
                 {showYearLevelDropdown && (
-                  <div className="outfit-500 fade-in absolute right-0 z-20 mt-3 min-w-[150px] rounded-xl border border-gray-200 bg-white p-1 shadow-lg">
+                  <div className="outfit-500 fade-in absolute right-0 z-99 mt-3 min-w-[150px] rounded-xl border border-gray-200 bg-white p-1 shadow-lg">
                     <button
                       type="button"
                       onClick={() => {
@@ -901,18 +953,21 @@ function SubjectList() {
                   type="button"
                   onClick={() => {
                     if (Number(roleId) === 2) {
-                      // Faculty: show assign modal
                       setShowAssignModal(true);
                       fetchAvailableSubjects();
                     } else {
-                      // Admin/Dean: show create modal
                       setShowAddModal(true);
                     }
                   }}
-                  className="outfit-400 -mb-2 inline-flex cursor-pointer items-center rounded-xl bg-orange-500 px-4 py-2 text-[14px] text-white transition-colors hover:bg-orange-600"
+                  title={
+                    Number(roleId) === 2 ? "Assign subject" : "Create subject"
+                  }
+                  className="outfit-500 -mb-2 hidden cursor-pointer items-center rounded-xl bg-orange-500 p-2 text-[12px] font-medium text-white transition-colors hover:bg-orange-600 md:mb-0 md:inline-flex md:px-4 md:py-2 md:text-[14px]"
                 >
-                  <i className="bx bx-plus mr-2 text-[16px]" />
-                  {Number(roleId) === 2 ? "Assign subject" : "Create subject"}
+                  <i className="bx bx-plus text-[20px] md:mr-2 md:text-[16px]" />
+                  <span className="hidden md:inline">
+                    {Number(roleId) === 2 ? "Assign subject" : "Create subject"}
+                  </span>
                 </button>
               )}
             </div>
@@ -940,7 +995,7 @@ function SubjectList() {
               </span>
             </div>
           ) : filteredSubjects.length === 0 ? (
-            <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+            <div className="outfit-400 flex h-80 flex-1 items-center justify-center rounded-2xl border-dashed border-gray-300 bg-gray-50/60 py-16 md:h-130 md:border">
               <div className="text-center">
                 <img
                   src={emptyImage}
@@ -948,11 +1003,28 @@ function SubjectList() {
                   className="mx-auto mb-3 h-32 w-32 opacity-80"
                 />
                 <p className="outfit-400 text-[14px] text-gray-600">
-                  {selectedProgramFilter === "All"
-                    ? Number(roleId) === 2
-                      ? "No subjects assigned. Use the Assign Subject button to assign one."
-                      : "No subjects available. Use the Create Subject button to create one."
-                    : `No subjects found for ${getDisplayProgramName(selectedProgramFilter)}`}
+                  {selectedProgramFilter === "All" ? (
+                    Number(roleId) === 2 ? (
+                      <>
+                        No subjects assigned.
+                        <br />
+                        Use the Assign Subject button to assign one.
+                      </>
+                    ) : (
+                      <>
+                        No subjects found.
+                        <br />
+                        Use the Create Subject button to create one.
+                      </>
+                    )
+                  ) : (
+                    <>
+                      No subjects found for{" "}
+                      {getDisplayProgramName(selectedProgramFilter)}.
+                      <br />
+                      Use the Create Subject button to create one.
+                    </>
+                  )}
                 </p>
               </div>
             </div>
@@ -970,22 +1042,18 @@ function SubjectList() {
                       className="scroll-mt-4"
                     >
                       {/* Program Header - Only show when "All" is selected */}
-                      {selectedProgramFilter === "All" && (
-                        <div className="mb-4">
-                          <h3 className="outfit-500 text-[14px] text-gray-600">
-                            {getDisplayProgramName(programName)}
-                          </h3>
-                        </div>
-                      )}
+                      <div className="px-4 md:px-6">
+                        {selectedProgramFilter === "All" && (
+                          <div className="mb-4">
+                            <h3 className="outfit-500 text-[14px] text-gray-600">
+                              {getDisplayProgramName(programName)}
+                            </h3>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Subjects Grid for this Program */}
-                      <div
-                        className="mt-4 grid space-y-4 space-x-2"
-                        style={{
-                          gridTemplateColumns:
-                            "repeat(auto-fill, minmax(270px, 1fr))",
-                        }}
-                      >
+                      <div className="mt-4 grid grid-cols-1 space-y-2 space-x-2 px-2 md:grid-cols-[repeat(auto-fill,minmax(20rem,20rem))] md:gap-2 lg:px-4">
                         {programSubjects.map((subject) => {
                           const headerBackground = getHeaderBackground(
                             subject.subjectID,
@@ -1102,45 +1170,68 @@ function SubjectList() {
                             <>
                               <div
                                 key={subject.subjectID}
-                                className="group outfit-400 relative flex h-[320px] max-w-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-xl"
+                                className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[320px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
                               >
                                 {/* Background Image Header Section */}
                                 <div
-                                  className="relative cursor-pointer bg-cover bg-center bg-no-repeat px-4 pt-4 pb-4"
+                                  className="relative cursor-pointer bg-cover bg-center bg-no-repeat px-4 pt-4 pb-4 md:h-[150px]"
                                   onClick={() => handleSubjectClick(subject)}
                                   style={{
                                     backgroundImage: `url(${headerBackground})`,
                                   }}
                                 >
-                                  <div className="relative z-10">
-                                    <div className="mb-4 text-xs font-medium text-white opacity-90">
-                                      Subject
+                                  <div className="relative z-10 pr-16 md:flex md:h-full md:flex-col md:justify-between md:pr-0">
+                                    <div>
+                                      <div className="mb-4 hidden text-xs font-medium text-white opacity-90 md:block">
+                                        Subject
+                                      </div>
+                                      <div className="mb-4">
+                                        <div
+                                          className="min-h-0 overflow-hidden leading-6 font-semibold text-white"
+                                          style={{
+                                            display: "-webkit-box",
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: "vertical",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                          }}
+                                        >
+                                          <span className="outfit-500 text-[20px] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+                                            {subject.subjectName}
+                                          </span>
+                                        </div>
+                                        {subject.yearLevel && (
+                                          <div className="mt-1 flex items-center gap-1 text-[12px] text-white md:hidden">
+                                            <i className="bx bx-people-diversity text-sm"></i>
+                                            <span className="truncate">
+                                              {subject.yearLevel}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div
-                                      className="mb-4 h-12 overflow-hidden leading-6 font-semibold text-white"
-                                      style={{
-                                        display: "-webkit-box",
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: "vertical",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                      }}
-                                    >
-                                      <span className="outfit-500 text-[20px] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
-                                        {subject.subjectName}
-                                      </span>
-                                    </div>
-                                    <div className="inline-flex max-w-full items-center overflow-hidden rounded-full bg-white px-2 py-0.5">
+
+                                    <div className="mt-7 inline-flex w-fit max-w-full items-center rounded-full bg-white px-3 py-0.5 md:mt-0">
                                       <span className="truncate text-xs font-semibold whitespace-nowrap text-black uppercase">
                                         {subject.subjectCode}
                                       </span>
                                     </div>
                                   </div>
 
+                                  {/* Last modified badge - mobile only (like student count in Class) */}
+                                  <div className="absolute right-3 bottom-3 z-20 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-medium text-white md:hidden">
+                                    <i className="bx bx-time-five text-sm"></i>
+                                    <span className="max-w-[120px] truncate">
+                                      {lastQuestionAddedDate !== "—"
+                                        ? `Modified: ${lastQuestionAddedDate}`
+                                        : "No questions yet"}
+                                    </span>
+                                  </div>
+
                                   {/* Edit and Archive Buttons - Top Right (only for Admin/Dean, not faculty) */}
                                   {Number(roleId) !== 3 &&
                                     Number(roleId) !== 2 && (
-                                      <div className="absolute top-2 right-2 z-20 flex items-center gap-1">
+                                      <div className="absolute top-2 right-2 z-20 hidden items-center gap-1 md:flex">
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -1165,12 +1256,13 @@ function SubjectList() {
                                     )}
                                 </div>
 
-                                {/* White Body Section */}
+                                {/* White Body Section - hidden on mobile */}
                                 <div
-                                  className="flex flex-1 cursor-pointer flex-col px-4 py-4"
+                                  className="flex hidden flex-1 cursor-pointer flex-col px-4 py-4 md:block"
                                   onClick={() => handleSubjectClick(subject)}
                                 >
-                                  <div className="mb-3">
+                                  {/* Min height for 2 lines so separator stays at same position when name is 1 line */}
+                                  <div className="mb-3 min-h-[2.5rem]">
                                     <div className="outfit-500 line-clamp-2 overflow-hidden text-[14px] font-medium text-ellipsis text-gray-700">
                                       {subject.subjectCode} -{" "}
                                       {subject.subjectName}
@@ -1194,7 +1286,7 @@ function SubjectList() {
                                   </div>
 
                                   {/* Separator */}
-                                  <div className="mt-auto mb-3 h-px bg-gray-200"></div>
+                                  <div className="mb-3 h-px bg-gray-200"></div>
 
                                   {/* Date Information */}
                                   <div className="outfit-400 space-y-1 text-[12px] text-gray-600">
@@ -1220,11 +1312,31 @@ function SubjectList() {
                   );
                 })}
               </div>
-              <div className="pb-12"></div>
+              <div className="pb-28 lg:pb-12" aria-hidden="true" />
             </>
           )}
         </div>
       </div>
+
+      {/* Floating Create/Assign subject button (mobile only) - same as Class.jsx */}
+      {Number(roleId) !== 3 && (
+        <div className="fixed right-4 bottom-[90px] z-50 md:hidden">
+          <button
+            type="button"
+            onClick={() => {
+              if (Number(roleId) === 2) {
+                setShowAssignModal(true);
+                fetchAvailableSubjects();
+              } else {
+                setShowAddModal(true);
+              }
+            }}
+            className="outfit-400 flex cursor-pointer items-center gap-2 rounded-full bg-orange-500 p-4 text-[14px] font-medium text-white shadow-xl transition-colors hover:bg-orange-600"
+          >
+            <i className="bx bx-plus text-[22px]" />
+          </button>
+        </div>
+      )}
 
       {/* Assign Subject Modal (for Faculty) */}
       {showAssignModal && (
@@ -1750,6 +1862,12 @@ function SubjectList() {
           </div>
         </>
       )}
+
+      {/* Print / Generate exam modal - used by mobile button */}
+      <PrintExamModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+      />
 
       {/* Toast */}
       <Toast message={toast.message} type={toast.type} show={toast.show} />

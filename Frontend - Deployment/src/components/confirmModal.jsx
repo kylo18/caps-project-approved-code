@@ -34,7 +34,7 @@ const ConfirmModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="lightbox-bg outfit fixed inset-0 z-55 flex items-center justify-center">
+    <div className="lightbox-bg outfit fixed inset-0 z-[9999] flex items-center justify-center">
       <div className="animate-fade-in-up relative mx-3 flex w-full max-w-md flex-col rounded-2xl bg-white px-6 py-4 shadow-2xl">
         {/* Title & Description */}
         <div className="">
