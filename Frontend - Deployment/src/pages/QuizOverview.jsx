@@ -427,7 +427,7 @@ const QuizOverview = () => {
                   navigate("/quiz-content", { state: { quiz: quizState } });
                   window.dispatchEvent(new Event("closeSubjectSidebar"));
                 }}
-                className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 transition hover:bg-gray-50"
+                className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 transition hover:bg-gray-50 lg:hidden"
               >
                 <i className="bx bxs-edit text-[15px]"></i>
                 <span className="outfit-500">Manage Questions</span>
@@ -588,7 +588,7 @@ const QuizOverview = () => {
                       </button>
                     )}
                     <button
-                      className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100"
+                      className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100 md:hidden"
                       onClick={() => {
                         navigate("/quiz-content", {
                           state: { quiz: quizState },

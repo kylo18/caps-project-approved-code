@@ -594,49 +594,7 @@ const QuizSettingsModal = ({
                     onSubmit={handleSubmit}
                     id="quizSettingsForm"
                   >
-                    {/* Availability Section */}
-                    <div className="mb-6">
-                      <h3 className="mb-4 text-[16px] font-semibold text-gray-900">
-                        Availability
-                      </h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex min-w-0 flex-1 flex-col">
-                            <div className="text-[12px] font-semibold text-gray-900">
-                              Start Time
-                            </div>
-                            <div className="text-[10px] text-gray-500">
-                              When the quiz becomes available.
-                            </div>
-                          </div>
-                          <input
-                            type="datetime-local"
-                            name="startTime"
-                            value={settings.startTime}
-                            onChange={handleChange}
-                            className="w-48 rounded-xl border border-gray-300 px-4 py-[7px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex min-w-0 flex-1 flex-col">
-                            <div className="text-[12px] font-semibold text-gray-900">
-                              End Time
-                            </div>
-                            <div className="text-[10px] text-gray-500">
-                              When the quiz becomes unavailable.
-                            </div>
-                          </div>
-                          <input
-                            type="datetime-local"
-                            name="endTime"
-                            value={settings.endTime}
-                            onChange={handleChange}
-                            className="w-48 rounded-xl border border-gray-300 px-4 py-[7px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="-mx-5 mb-6 h-[1px] bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+                    
 
                     {/* Quiz Attempts */}
                     <div className="mb-6 flex items-center justify-between gap-4">

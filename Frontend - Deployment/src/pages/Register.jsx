@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import univLogo from "/src/assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
 import RegisterDropDown from "../components/registerDropDown.jsx";
-import AppVersion from "../components/appVersion.jsx";
+import AppVersion from "../components/AppVersion.jsx";
 import RegisterDropDownSmall from "../components/registerDropDownSmall.jsx";
 
 export default function Register() {
