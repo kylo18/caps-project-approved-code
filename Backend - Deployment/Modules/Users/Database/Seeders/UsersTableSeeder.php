@@ -32,7 +32,7 @@ class UsersTableSeeder extends Seeder
 
                 // Dean Account
                 [
-                    'userCode' => '23-A-12345',
+                    'userCode' => '10-A-12345',
                     'firstName' => 'Dean',
                     'lastName' => 'Account',
                     'email' => 'dean.account@university.edu',
@@ -46,7 +46,7 @@ class UsersTableSeeder extends Seeder
 
                 // Associate Dean Account
                 [
-                    'userCode' => '23-A-02087',
+                    'userCode' => '10-A-02087',
                     'firstName' => 'Associate',
                     'lastName' => 'Dean',
                     'email' => 'associate.dean@university.edu',
@@ -60,7 +60,7 @@ class UsersTableSeeder extends Seeder
 
                 // Program Chair Accounts
                 [
-                    'userCode' => '23-A-00000',
+                    'userCode' => '10-A-00000',
                     'firstName' => 'CE',
                     'lastName' => 'Chair',
                     'email' => 'ce.chair@university.edu',
@@ -72,7 +72,7 @@ class UsersTableSeeder extends Seeder
                     'programID' => 3,
                 ],
                 [
-                    'userCode' => '23-A-00001',
+                    'userCode' => '10-A-00001',
                     'firstName' => 'CPE',
                     'lastName' => 'Chair',
                     'email' => 'cpe.chair@university.edu',
@@ -84,7 +84,7 @@ class UsersTableSeeder extends Seeder
                     'programID' => 1,
                 ],
                 [
-                    'userCode' => '23-A-00010',
+                    'userCode' => '10-A-00010',
                     'firstName' => 'EE',
                     'lastName' => 'Chair',
                     'email' => 'ee.chair@university.edu',
@@ -96,7 +96,7 @@ class UsersTableSeeder extends Seeder
                     'programID' => 2,
                 ],
                 [
-                    'userCode' => '23-A-00011',
+                    'userCode' => '10-A-00011',
                     'firstName' => 'ECE',
                     'lastName' => 'Chair',
                     'email' => 'ece.chair@university.edu',
@@ -110,7 +110,7 @@ class UsersTableSeeder extends Seeder
 
                 // Faculty Accounts
                 [
-                    'userCode' => '23-A-00100',
+                    'userCode' => '10-A-00100',
                     'firstName' => 'CE',
                     'lastName' => 'Faculty',
                     'email' => 'ce.faculty@university.edu',
@@ -122,7 +122,7 @@ class UsersTableSeeder extends Seeder
                     'programID' => 3,
                 ],
                 [
-                    'userCode' => '23-A-00101',
+                    'userCode' => '10-A-00101',
                     'firstName' => 'CPE',
                     'lastName' => 'Faculty',
                     'email' => 'cpe.faculty@university.edu',
@@ -134,7 +134,7 @@ class UsersTableSeeder extends Seeder
                     'programID' => 1,
                 ],
                 [
-                    'userCode' => '23-A-00110',
+                    'userCode' => '10-A-00110',
                     'firstName' => 'EE',
                     'lastName' => 'Faculty',
                     'email' => 'ee.faculty@university.edu',
@@ -146,7 +146,7 @@ class UsersTableSeeder extends Seeder
                     'programID' => 2,
                 ],
                 [
-                    'userCode' => '23-A-00111',
+                    'userCode' => '10-A-00111',
                     'firstName' => 'ECE',
                     'lastName' => 'Faculty',
                     'email' => 'ece.faculty@university.edu',
@@ -160,7 +160,7 @@ class UsersTableSeeder extends Seeder
 
                 // Student Accounts
                 [
-                    'userCode' => '23-A-01000',
+                    'userCode' => '10-A-01000',
                     'firstName' => 'CE',
                     'lastName' => 'Student',
                     'email' => 'ce.student@university.edu',
@@ -172,7 +172,7 @@ class UsersTableSeeder extends Seeder
                     'programID' => 3,
                 ],
                 [
-                    'userCode' => '23-A-01001',
+                    'userCode' => '10-A-01001',
                     'firstName' => 'CPE',
                     'lastName' => 'Student',
                     'email' => 'cpe.student@university.edu',
@@ -184,7 +184,7 @@ class UsersTableSeeder extends Seeder
                     'programID' => 1,
                 ],
                 [
-                    'userCode' => '23-A-01010',
+                    'userCode' => '10-A-01010',
                     'firstName' => 'EE',
                     'lastName' => 'Student',
                     'email' => 'ee.student@university.edu',
@@ -196,7 +196,7 @@ class UsersTableSeeder extends Seeder
                     'programID' => 2,
                 ],
                 [
-                    'userCode' => '23-A-01011',
+                    'userCode' => '10-A-01011',
                     'firstName' => 'ECE',
                     'lastName' => 'Student',
                     'email' => 'ece.student@university.edu',
@@ -222,6 +222,7 @@ class UsersTableSeeder extends Seeder
                     'status_id' => $registeredStatusId,
                     'programID' => 4,
                 ],*/
+                /*
                 [
                     'userCode' => '22-A-02087',
                     'firstName' => 'Associate',
@@ -356,7 +357,7 @@ class UsersTableSeeder extends Seeder
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
                     'programID' => 4,
-                ], */
+                ], 
                 
                 [
                     'userCode' => '21-A-02087',
@@ -478,6 +479,7 @@ class UsersTableSeeder extends Seeder
                     'status_id' => $registeredStatusId,
                     'programID' => 1,
                 ],
+                */
             ];
 
             DB::table('users')->insert($users);
