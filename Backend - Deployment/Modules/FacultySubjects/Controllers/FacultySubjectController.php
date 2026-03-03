@@ -233,7 +233,6 @@ class FacultySubjectController extends Controller
                 ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
                 ->where('fs.facultyID', $user->userID)
                 ->select(
-                    'fs.facultySubjectsID',
                     's.subjectID',
                     's.subjectCode',
                     's.subjectName',
@@ -261,7 +260,6 @@ class FacultySubjectController extends Controller
                 }
 
                 return [
-                    'facultySubjectsID' => $subject->facultySubjectsID,
                     'subjectID' => $subject->subjectID,
                     'subjectCode' => $subject->subjectCode,
                     'subjectName' => $subject->subjectName,
