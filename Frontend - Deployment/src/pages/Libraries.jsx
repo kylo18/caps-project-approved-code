@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 
 import MyQuizzezIcon from "/src/assets/symbols/myquiz.svg";
@@ -15,6 +15,7 @@ import CollectionsIcon from "/src/assets/symbols/collection.svg";
 import CollectionsIconH from "/src/assets/symbols/collectionhover.svg";
 
 import ArchiveIcon from "/src/assets/symbols/archive.svg";
+import SessionIcon from "/src/assets/symbols/sessions.svg";
 import ArchiveIconH from "/src/assets/symbols/archivehover.svg";
 
 import EditIcon from "/src/assets/symbols/myquiz.svg";
@@ -25,6 +26,7 @@ import AllActivities from "./AllActivities";
 import Collections from "./Collections";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
+import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
 
 function Libraries() {
   const navigate = useNavigate();
@@ -50,6 +52,8 @@ function Libraries() {
   const [isQuizzesLoading, setIsQuizzesLoading] = useState(false);
   const [filteredQuizzes, setFilteredQuizzes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const mobileSearchInputRef = useRef(null);
   const [openKebabMenu, setOpenKebabMenu] = useState(null);
   const kebabMenuRef = useRef(null);
   const kebabButtonRefs = useRef({});
@@ -66,6 +70,21 @@ function Libraries() {
 
   // Multi-selection state
   const [selectedQuizzes, setSelectedQuizzes] = useState([]);
+  const [roleId, setRoleId] = useState(null);
+
+  useEffect(() => {
+    const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+    if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
+      setRoleId(user.roleID ?? user.roleId);
+    }
+  }, []);
+
+  const subjectsPath =
+    Number(roleId) === 2
+      ? "/faculty/subjects"
+      : Number(roleId) === 3
+        ? "/program-chair/subjects"
+        : "/dean/subjects";
   const [dropdownPositions, setDropdownPositions] = useState({});
 
   // Array of 5 dark colors for header sections
@@ -793,9 +812,9 @@ function Libraries() {
   };
 
   return (
-    <div className="-ml-2 flex h-screen">
+    <div className="flex h-screen">
       {/* Library left panel (only visible on Libraries page) */}
-      <aside className="fixed top-0 left-[63px] hidden h-screen w-56 overflow-hidden border-r border-gray-200 bg-white px-4 py-4 md:block lg:w-64">
+      <aside className="fixed top-0 left-[63px] hidden h-screen w-56 overflow-hidden border-r border-gray-200 bg-white px-4 py-4 lg:block lg:w-64">
         <h2 className="outfit-500 mb-4 text-[16px] tracking-wide text-black">
           Library
         </h2>
@@ -896,52 +915,81 @@ function Libraries() {
 
       {/* Main Libraries content */}
       {activeView === "my-quizzes" && (
-        <div className="scrollbar-hide ml-56 flex h-full flex-1 flex-col gap-6 overflow-y-auto p-6 pb-0 [-ms-overflow-style:none] [scrollbar-width:none] lg:ml-64 [&::-webkit-scrollbar]:hidden">
-          <div className="space-y-4">
-            {/* Search Bar */}
-            <div className="outfit-500 relative text-[14px]">
-              <i className="bx bx-search absolute top-2.5 left-4 -translate-y-1/2 text-lg text-gray-500"></i>
-              <input
-                type="text"
-                placeholder="Search quizzes..."
-                className="-mt-2 w-full rounded-full border border-gray-200 bg-white py-2 pr-4 pl-10 text-[14px] text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
+        <div className="scrollbar-hide mt-10 flex h-screen flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] md:px-4 lg:mt-0 lg:ml-64 [&::-webkit-scrollbar]:hidden">
+          <div className="min-w-0 space-y-4 px-4 pt-4 md:pt-6">
+            <SearchBar
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search quizzes..."
+              mobileCollapsible
+              showMobileSearch={showSearch}
+              onCloseMobileSearch={() => {
+                setSearchTerm("");
+                setShowSearch(false);
+              }}
+              inputRef={mobileSearchInputRef}
+            />
+            <div className="my-4 hidden h-px bg-gray-200 md:block" />
+            {/* Header */}
+
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="outfit-500 min-w-0 flex-1 text-[18px] break-words text-black md:-mt-2">
+                {selectedQuizzes.length > 0
+                  ? `Select the quizzes you want to archive`
+                  : searchTerm.trim()
+                    ? `Search results for "${searchTerm}"`
+                    : `My quizzes (${filteredQuizzes.length})`}
+              </p>
+              <div className="flex flex-shrink-0 items-center gap-1">
+                <SearchBarTrigger
+                  isOpen={showSearch}
+                  onClick={() => setShowSearch((prev) => !prev)}
+                  title="Search quizzes"
+                />
+                {/* Mobile Archive */}
                 <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute top-2.5 right-3 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
+                  type="button"
+                  onClick={() => {
+                    resetForm();
+                    setShowForm(true);
+                  }}
+                  title="Create class"
+                  className="outfit-500 -mb-2 hidden cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:inline-flex md:text-[14px] lg:hidden"
                 >
-                  <i className="bx bx-x text-xl"></i>
+                  <i className="bxx bx-plus text-[20px]"></i>
                 </button>
-              )}
-            </div>
-            <div className="my-4 h-px bg-gray-200" />
 
-            {/* Header with title and action buttons */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="outfit-500 mt-1 text-[18px] text-black">
-                  {selectedQuizzes.length > 0
-                    ? `Select the quizzes you want to archive`
-                    : searchTerm.trim()
-                      ? `Search results for "${searchTerm}"`
-                      : `My quizzes (${filteredQuizzes.length})`}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/sessions")}
+                  title="Create quiz"
+                  className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:text-[14px] lg:hidden"
+                >
+                  <img src={SessionIcon} alt="" className="size-[22px]" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigate("/archived-quiz")}
+                  title="Create class"
+                  className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:text-[14px] lg:hidden"
+                >
+                  <img src={ArchiveIcon} alt="" className="size-[22px]" />
+                </button>
+
+                {/* Desktop Create Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetForm();
+                    setShowForm(true);
+                  }}
+                  className="outfit-400 hidden cursor-pointer items-center rounded-xl bg-orange-500 px-4 py-2 text-[14px] font-medium text-white hover:bg-orange-600 lg:flex"
+                >
+                  <i className="bx bx-plus mr-2 text-[16px]" />
+                  Create Quiz
+                </button>
               </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  resetForm();
-                  setShowForm(true);
-                }}
-                className="outfit-400 -mb-2 inline-flex cursor-pointer items-center rounded-xl bg-orange-500 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-orange-600"
-              >
-                <i className="bx bx-plus mr-2 text-[16px]" />
-                Create Quiz
-              </button>
             </div>
           </div>
 
@@ -956,13 +1004,13 @@ function Libraries() {
               }}
             >
               <div
-                className="animate-fade-in-up relative mx-auto flex w-full max-w-3xl flex-col rounded-2xl bg-white shadow-2xl"
+                className="animate-fade-in-up relative mx-auto flex w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Modal Header */}
-                <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Create New Quiz
+                <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                  <h2 className="outfit-500 text-[18px] text-gray-900">
+                    Create a quiz
                   </h2>
                   <button
                     type="button"
@@ -970,7 +1018,7 @@ function Libraries() {
                       resetForm();
                       setShowForm(false);
                     }}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                     aria-label="Close modal"
                   >
                     <i className="bx bx-x text-2xl"></i>
@@ -985,11 +1033,84 @@ function Libraries() {
                     show={toast.show}
                   />
 
-                  {/* Progress Indicator */}
-                  <div className="mb-8">
-                    <div className="flex items-center justify-between">
-                      {Array.from({ length: totalSteps }, (_, i) => i + 1).map(
-                        (step, index) => {
+                  <div className="mt-2 flex flex-col gap-8 md:flex-row">
+                    {/* Stepper section */}
+                    <div className="md:w-1/3">
+                      {/* Mobile (horizontal) stepper – existing behavior */}
+                      <div className="mb-8 md:hidden">
+                        <div className="flex items-center justify-between">
+                          {Array.from(
+                            { length: totalSteps },
+                            (_, i) => i + 1,
+                          ).map((step, index) => {
+                            const isActive = step === currentStep;
+                            const isCompleted = step < currentStep;
+                            const stepLabel =
+                              step === 1
+                                ? "Basic Info"
+                                : step === 2
+                                  ? "Quiz Type"
+                                  : step === 3 && formData.quiz_type_id === "1"
+                                    ? "Subject"
+                                    : step === 3 &&
+                                        formData.quiz_type_id === "2"
+                                      ? "Review"
+                                      : step === 4 &&
+                                          formData.quiz_type_id === "1"
+                                        ? "Coverage"
+                                        : "Review";
+
+                            return (
+                              <React.Fragment key={step}>
+                                <div className="flex flex-col items-center">
+                                  <div
+                                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
+                                      isActive
+                                        ? "border-orange-500 bg-orange-500 text-white"
+                                        : isCompleted
+                                          ? "border-orange-500 bg-orange-500 text-white"
+                                          : "border-gray-300 bg-white text-gray-400"
+                                    }`}
+                                  >
+                                    {isCompleted ? (
+                                      <i className="bx bx-check text-xl"></i>
+                                    ) : (
+                                      <span className="outfit-400 text-[18px] font-medium">
+                                        {step}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span
+                                    className={`outfit-500 mt-2 text-[12px] ${
+                                      isActive
+                                        ? "text-orange-600"
+                                        : "text-gray-500"
+                                    }`}
+                                  >
+                                    {stepLabel}
+                                  </span>
+                                </div>
+                                {index < totalSteps - 1 && (
+                                  <div
+                                    className={`mx-2 -mt-5 h-0.5 flex-1 ${
+                                      step < currentStep
+                                        ? "bg-orange-500"
+                                        : "bg-gray-300"
+                                    }`}
+                                  />
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Desktop (vertical) stepper */}
+                      <div className="hidden md:flex md:flex-col md:space-y-4">
+                        {Array.from(
+                          { length: totalSteps },
+                          (_, i) => i + 1,
+                        ).map((step, index) => {
                           const isActive = step === currentStep;
                           const isCompleted = step < currentStep;
                           const stepLabel =
@@ -1007,10 +1128,10 @@ function Libraries() {
                                       : "Review";
 
                           return (
-                            <React.Fragment key={step}>
+                            <div className="flex items-start gap-3" key={step}>
                               <div className="flex flex-col items-center">
                                 <div
-                                  className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
+                                  className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-colors ${
                                     isActive
                                       ? "border-orange-500 bg-orange-500 text-white"
                                       : isCompleted
@@ -1021,331 +1142,325 @@ function Libraries() {
                                   {isCompleted ? (
                                     <i className="bx bx-check text-lg"></i>
                                   ) : (
-                                    <span className="text-sm font-medium">
+                                    <span className="outfit-400 text-[15px] font-medium">
                                       {step}
                                     </span>
                                   )}
                                 </div>
-                                <span
-                                  className={`mt-2 text-xs font-medium ${
+                                {index < totalSteps - 1 && (
+                                  <div
+                                    className={`mt-1 h-8 w-px ${
+                                      step < currentStep
+                                        ? "bg-orange-500"
+                                        : "bg-gray-300"
+                                    }`}
+                                  />
+                                )}
+                              </div>
+                              <div className="pt-1">
+                                <div
+                                  className={`outfit-500 text-[13px] ${
                                     isActive
                                       ? "text-orange-600"
-                                      : "text-gray-500"
+                                      : "text-gray-800"
                                   }`}
                                 >
                                   {stepLabel}
-                                </span>
+                                </div>
                               </div>
-                              {index < totalSteps - 1 && (
-                                <div
-                                  className={`mx-2 h-0.5 flex-1 ${
-                                    step < currentStep
-                                      ? "bg-orange-500"
-                                      : "bg-gray-300"
-                                  }`}
-                                />
-                              )}
-                            </React.Fragment>
+                            </div>
                           );
-                        },
-                      )}
+                        })}
+                      </div>
                     </div>
-                  </div>
 
-                  <form onSubmit={handleSubmit}>
-                    {/* Step 1: Basic Information */}
-                    {currentStep === 1 && (
-                      <div className="space-y-4">
-                        <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                          Basic Information
-                        </h3>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-gray-700">
-                            Title <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            name="title"
-                            value={formData.title}
-                            onChange={handleChange}
-                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                            placeholder="Enter quiz title"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-gray-700">
-                            Description
-                          </label>
-                          <textarea
-                            name="description"
-                            value={formData.description}
-                            onChange={handleChange}
-                            className="min-h-[100px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                            placeholder="Short description of this quiz (optional)"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-gray-700">
-                            Instruction
-                          </label>
-                          <textarea
-                            name="instruction"
-                            value={formData.instruction}
-                            onChange={handleChange}
-                            className="min-h-[100px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                            placeholder="Instructions for students (optional)"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Step 2: Quiz Type */}
-                    {currentStep === 2 && (
-                      <div className="space-y-4">
-                        <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                          Select Quiz Type
-                        </h3>
-                        <div className="space-y-3">
-                          <label className="flex cursor-pointer items-start gap-3 rounded-lg border-2 border-gray-200 p-4 transition-colors hover:border-orange-300 hover:bg-orange-50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50">
-                            <input
-                              type="radio"
-                              name="quiz_type_id"
-                              value="1"
-                              checked={formData.quiz_type_id === "1"}
-                              onChange={handleChange}
-                              className="mt-1 h-4 w-4 text-orange-500 focus:ring-orange-400"
-                            />
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900">
-                                Subject-based quiz
-                              </div>
-                              <div className="mt-1 text-sm text-gray-600">
-                                Create a quiz linked to a specific subject
-                              </div>
+                    {/* Form section */}
+                    <div className="md:w-2/3">
+                      <form onSubmit={handleSubmit}>
+                        {/* Step 1: Basic Information */}
+                        {currentStep === 1 && (
+                          <div className="space-y-4">
+                            <h3 className="outfit-500 mb-4 text-[16px] text-gray-900">
+                              Basic Information
+                            </h3>
+                            <div>
+                              <label className="mb-1 block text-sm font-medium text-gray-700">
+                                Title <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                name="title"
+                                value={formData.title}
+                                onChange={handleChange}
+                                maxLength={50}
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+                                placeholder="Enter quiz title"
+                                required
+                              />
                             </div>
-                          </label>
 
-                          <label className="flex cursor-pointer items-start gap-3 rounded-lg border-2 border-gray-200 p-4 transition-colors hover:border-orange-300 hover:bg-orange-50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50">
-                            <input
-                              type="radio"
-                              name="quiz_type_id"
-                              value="2"
-                              checked={formData.quiz_type_id === "2"}
-                              onChange={handleChange}
-                              className="mt-1 h-4 w-4 text-orange-500 focus:ring-orange-400"
-                            />
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900">
-                                Custom quiz
-                              </div>
-                              <div className="mt-1 text-sm text-gray-600">
-                                Create a standalone quiz without a subject
-                              </div>
+                            <div>
+                              <label className="mb-1 block text-sm font-medium text-gray-700">
+                                Description
+                              </label>
+                              <textarea
+                                name="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                className="min-h-[100px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+                                placeholder="Short description of this quiz (optional)"
+                              />
                             </div>
-                          </label>
-                        </div>
-                      </div>
-                    )}
+                          </div>
+                        )}
 
-                    {/* Step 3: Subject Selection (only for subject-based quiz) */}
-                    {currentStep === 3 && formData.quiz_type_id === "1" && (
-                      <div className="space-y-4">
-                        <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                          Select Subject
-                        </h3>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-gray-700">
-                            Subject <span className="text-red-500">*</span>
-                          </label>
-                          <select
-                            name="subjectID"
-                            value={formData.subjectID}
-                            onChange={handleChange}
-                            disabled={
-                              isSubjectsLoading || subjects.length === 0
-                            }
-                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                          >
-                            <option value="">
-                              {isSubjectsLoading
-                                ? "Loading subjects..."
-                                : subjects.length === 0
-                                  ? "No subjects available"
-                                  : "Select a subject"}
-                            </option>
-                            {subjects.map((subject) => (
-                              <option
-                                key={subject.subjectID}
-                                value={subject.subjectID}
+                        {/* Step 2: Quiz Type */}
+                        {currentStep === 2 && (
+                          <div className="space-y-4">
+                            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+                              Select Quiz Type
+                            </h3>
+                            <div className="space-y-3">
+                              <label className="flex cursor-pointer items-start gap-3 rounded-lg border-2 border-gray-200 p-4 transition-colors hover:border-orange-300 hover:bg-orange-50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50">
+                                <input
+                                  type="radio"
+                                  name="quiz_type_id"
+                                  value="1"
+                                  checked={formData.quiz_type_id === "1"}
+                                  onChange={handleChange}
+                                  className="mt-1 h-4 w-4 text-orange-500 focus:ring-orange-400"
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900">
+                                    Subject-based quiz
+                                  </div>
+                                  <div className="mt-1 text-sm text-gray-600">
+                                    Create a quiz linked to a specific subject
+                                  </div>
+                                </div>
+                              </label>
+
+                              <label className="flex cursor-pointer items-start gap-3 rounded-lg border-2 border-gray-200 p-4 transition-colors hover:border-orange-300 hover:bg-orange-50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50">
+                                <input
+                                  type="radio"
+                                  name="quiz_type_id"
+                                  value="2"
+                                  checked={formData.quiz_type_id === "2"}
+                                  onChange={handleChange}
+                                  className="mt-1 h-4 w-4 text-orange-500 focus:ring-orange-400"
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900">
+                                    Custom quiz
+                                  </div>
+                                  <div className="mt-1 text-sm text-gray-600">
+                                    Create a standalone quiz without a subject
+                                  </div>
+                                </div>
+                              </label>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Step 3: Subject Selection (only for subject-based quiz) */}
+                        {currentStep === 3 && formData.quiz_type_id === "1" && (
+                          <div className="space-y-4">
+                            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+                              Select Subject
+                            </h3>
+                            <div>
+                              <label className="mb-1 block text-sm font-medium text-gray-700">
+                                Subject <span className="text-red-500">*</span>
+                              </label>
+                              <select
+                                name="subjectID"
+                                value={formData.subjectID}
+                                onChange={handleChange}
+                                disabled={
+                                  isSubjectsLoading || subjects.length === 0
+                                }
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
                               >
-                                {subject.subjectCode} - {subject.subjectName} (
-                                {subject.programName}, {subject.yearLevel})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Step 4: Coverage Selection (for subject-based quiz only) */}
-                    {currentStep === 4 && formData.quiz_type_id === "1" && (
-                      <div className="space-y-4">
-                        <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                          Select Coverage
-                        </h3>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-gray-700">
-                            Coverage <span className="text-red-500">*</span>
-                          </label>
-                          <select
-                            name="coverage_id"
-                            value={formData.coverage_id}
-                            onChange={handleChange}
-                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                          >
-                            <option value="">Select coverage</option>
-                            <option value="1">Midterms</option>
-                            <option value="2">Finals</option>
-                          </select>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Step 3: Review (for custom quiz) or Step 5: Review (for subject-based quiz) */}
-                    {(currentStep === 3 && formData.quiz_type_id === "2") ||
-                    (currentStep === 5 && formData.quiz_type_id === "1") ? (
-                      <div className="space-y-4">
-                        <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                          Review Your Quiz
-                        </h3>
-                        <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                          <div>
-                            <span className="text-sm font-medium text-gray-700">
-                              Title:
-                            </span>
-                            <p className="mt-1 text-sm text-gray-900">
-                              {formData.title || "—"}
-                            </p>
-                          </div>
-                          {formData.description && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-700">
-                                Description:
-                              </span>
-                              <p className="mt-1 text-sm text-gray-900">
-                                {formData.description}
-                              </p>
+                                <option value="">
+                                  {isSubjectsLoading
+                                    ? "Loading subjects..."
+                                    : subjects.length === 0
+                                      ? "No subjects available"
+                                      : "Select a subject"}
+                                </option>
+                                {subjects.map((subject) => (
+                                  <option
+                                    key={subject.subjectID}
+                                    value={subject.subjectID}
+                                  >
+                                    {subject.subjectCode} -{" "}
+                                    {subject.subjectName} ({subject.programName}
+                                    , {subject.yearLevel})
+                                  </option>
+                                ))}
+                              </select>
                             </div>
-                          )}
-                          {formData.instruction && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-700">
-                                Instruction:
-                              </span>
-                              <p className="mt-1 text-sm text-gray-900">
-                                {formData.instruction}
-                              </p>
-                            </div>
-                          )}
-                          <div>
-                            <span className="text-sm font-medium text-gray-700">
-                              Quiz Type:
-                            </span>
-                            <p className="mt-1 text-sm text-gray-900">
-                              {formData.quiz_type_id === "1"
-                                ? "Subject-based quiz"
-                                : formData.quiz_type_id === "2"
-                                  ? "Custom quiz"
-                                  : "—"}
-                            </p>
                           </div>
-                          {formData.quiz_type_id === "1" &&
-                            formData.subjectID && (
+                        )}
+
+                        {/* Step 4: Coverage Selection (for subject-based quiz only) */}
+                        {currentStep === 4 && formData.quiz_type_id === "1" && (
+                          <div className="space-y-4">
+                            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+                              Select Coverage
+                            </h3>
+                            <div>
+                              <label className="mb-1 block text-sm font-medium text-gray-700">
+                                Coverage <span className="text-red-500">*</span>
+                              </label>
+                              <select
+                                name="coverage_id"
+                                value={formData.coverage_id}
+                                onChange={handleChange}
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+                              >
+                                <option value="">Select coverage</option>
+                                <option value="1">Midterms</option>
+                                <option value="2">Finals</option>
+                              </select>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Step 3: Review (for custom quiz) or Step 5: Review (for subject-based quiz) */}
+                        {(currentStep === 3 && formData.quiz_type_id === "2") ||
+                        (currentStep === 5 && formData.quiz_type_id === "1") ? (
+                          <div className="space-y-4">
+                            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+                              Review Your Quiz
+                            </h3>
+                            <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
                               <div>
                                 <span className="text-sm font-medium text-gray-700">
-                                  Subject:
+                                  Title:
                                 </span>
                                 <p className="mt-1 text-sm text-gray-900">
-                                  {subjects.find(
-                                    (s) =>
-                                      s.subjectID ===
-                                      Number(formData.subjectID),
-                                  )?.subjectCode || "—"}{" "}
-                                  -{" "}
-                                  {subjects.find(
-                                    (s) =>
-                                      s.subjectID ===
-                                      Number(formData.subjectID),
-                                  )?.subjectName || "—"}
+                                  {formData.title || "—"}
                                 </p>
                               </div>
-                            )}
-                          {formData.quiz_type_id === "1" &&
-                            formData.coverage_id && (
+                              {formData.description && (
+                                <div>
+                                  <span className="text-sm font-medium text-gray-700">
+                                    Description:
+                                  </span>
+                                  <p className="mt-1 text-sm text-gray-900">
+                                    {formData.description}
+                                  </p>
+                                </div>
+                              )}
+                              {formData.instruction && (
+                                <div>
+                                  <span className="text-sm font-medium text-gray-700">
+                                    Instruction:
+                                  </span>
+                                  <p className="mt-1 text-sm text-gray-900">
+                                    {formData.instruction}
+                                  </p>
+                                </div>
+                              )}
                               <div>
                                 <span className="text-sm font-medium text-gray-700">
-                                  Coverage:
+                                  Quiz Type:
                                 </span>
                                 <p className="mt-1 text-sm text-gray-900">
-                                  {formData.coverage_id === "1"
-                                    ? "Midterms"
-                                    : formData.coverage_id === "2"
-                                      ? "Finals"
+                                  {formData.quiz_type_id === "1"
+                                    ? "Subject-based quiz"
+                                    : formData.quiz_type_id === "2"
+                                      ? "Custom quiz"
                                       : "—"}
                                 </p>
                               </div>
-                            )}
-                        </div>
-                      </div>
-                    ) : null}
+                              {formData.quiz_type_id === "1" &&
+                                formData.subjectID && (
+                                  <div>
+                                    <span className="text-sm font-medium text-gray-700">
+                                      Subject:
+                                    </span>
+                                    <p className="mt-1 text-sm text-gray-900">
+                                      {subjects.find(
+                                        (s) =>
+                                          s.subjectID ===
+                                          Number(formData.subjectID),
+                                      )?.subjectCode || "—"}{" "}
+                                      -{" "}
+                                      {subjects.find(
+                                        (s) =>
+                                          s.subjectID ===
+                                          Number(formData.subjectID),
+                                      )?.subjectName || "—"}
+                                    </p>
+                                  </div>
+                                )}
+                              {formData.quiz_type_id === "1" &&
+                                formData.coverage_id && (
+                                  <div>
+                                    <span className="text-sm font-medium text-gray-700">
+                                      Coverage:
+                                    </span>
+                                    <p className="mt-1 text-sm text-gray-900">
+                                      {formData.coverage_id === "1"
+                                        ? "Midterms"
+                                        : formData.coverage_id === "2"
+                                          ? "Finals"
+                                          : "—"}
+                                    </p>
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                        ) : null}
 
-                    {/* Navigation Buttons */}
-                    <div className="mt-8 flex items-center justify-between border-t border-gray-200 pt-6">
-                      <button
-                        type="button"
-                        onClick={handlePrevious}
-                        disabled={currentStep === 1}
-                        className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <i className="bx bx-chevron-left mr-2"></i>
-                        Previous
-                      </button>
-
-                      <div className="flex gap-3">
-                        {currentStep < totalSteps ? (
+                        {/* Navigation Buttons */}
+                        <div className="mt-8 flex items-center justify-between border-t border-gray-200 pt-6">
                           <button
                             type="button"
-                            onClick={handleNext}
-                            className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-600"
+                            onClick={handlePrevious}
+                            disabled={currentStep === 1}
+                            className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            Next
-                            <i className="bx bx-chevron-right ml-2"></i>
+                            <i className="bx bx-chevron-left mr-2"></i>
+                            Previous
                           </button>
-                        ) : (
-                          <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
-                          >
-                            {isSubmitting ? (
-                              <>
-                                <i className="bx bx-loader-alt mr-2 animate-spin"></i>
-                                Saving...
-                              </>
+
+                          <div className="flex gap-3">
+                            {currentStep < totalSteps ? (
+                              <button
+                                type="button"
+                                onClick={handleNext}
+                                className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-600"
+                              >
+                                Next
+                                <i className="bx bx-chevron-right ml-2"></i>
+                              </button>
                             ) : (
-                              <>
-                                <i className="bx bx-check mr-2"></i>
-                                Create Quiz
-                              </>
+                              <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                {isSubmitting ? (
+                                  <>
+                                    <i className="bx bx-loader-alt mr-2 animate-spin"></i>
+                                    Saving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <i className="bx bx-check mr-2"></i>
+                                    Create Quiz
+                                  </>
+                                )}
+                              </button>
                             )}
-                          </button>
-                        )}
-                      </div>
+                          </div>
+                        </div>
+                      </form>
                     </div>
-                  </form>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1354,16 +1469,13 @@ function Libraries() {
           {!showForm && (
             <div>
               {isQuizzesLoading ? (
-                <div className="outfit flex h-64 items-center justify-center">
+                <div className="outfit-400 flex h-64 items-center justify-center">
                   <div className="text-center">
                     <div className="loader mx-auto mb-2"></div>
-                    <p className="text-[14px] text-gray-600">
-                      Loading quizzes...
-                    </p>
                   </div>
                 </div>
               ) : filteredQuizzes.length === 0 ? (
-                <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+                <div className="outfit-400 flex h-80 flex-1 items-center justify-center rounded-2xl border-dashed border-gray-300 bg-gray-50/60 py-16 md:h-130 md:border">
                   <div className="text-center">
                     <img
                       src={emptyImage}
@@ -1371,16 +1483,27 @@ function Libraries() {
                       className="mx-auto mb-3 h-32 w-32 opacity-80"
                     />
                     <p className="outfit-400 text-[14px] text-gray-600">
-                      {searchTerm.trim()
-                        ? `No quizzes found matching "${searchTerm}"`
-                        : "Your quizzes will appear here. Use the Create Quiz button to create one."}
+                      {searchTerm.trim() ? (
+                        `No quizzes found matching "${searchTerm}"`
+                      ) : (
+                        <>
+                          <span className="md:hidden">
+                            No quizzes yet, use the plus icon to create one
+                          </span>
+
+                          <span className="hidden md:inline">
+                            Your quizzes will appear here. Use the Create Quiz
+                            button to create one.
+                          </span>
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className="outfit mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
-                    <div className="overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="outfit-400 mt-4 overflow-hidden bg-white md:rounded-xl md:border md:border-gray-200">
+                    <div className="hidden overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] md:block [&::-webkit-scrollbar]:hidden">
                       <table className="w-full">
                         <thead className="border-b border-gray-200 bg-white">
                           <tr>
@@ -1399,19 +1522,14 @@ function Libraries() {
                                 className="mt-1 h-4 w-4 cursor-pointer rounded border-gray-500 text-orange-500"
                               />
                             </th>
-                            <th className="outfit-400 px-2 py-2 text-left text-[14px] text-gray-600">
+                            <th className="outfit-400 w-[75%] px-2 py-2 text-left text-[14px] text-gray-600">
                               Quiz Information
                             </th>
-                            <th className="outfit-400 px-2 py-2 text-center text-[14px] text-gray-600">
+                            <th className="outfit-400 w-[10%] px-2 py-2 text-center text-[14px] text-gray-600">
                               Questions
                             </th>
-                            <th className="outfit-400 w-32 px-2 py-2 text-center text-[14px] text-gray-600">
-                              Date Created
-                            </th>
-                            <th className="outfit-400 w-32 px-2 py-2 text-center text-[14px] text-gray-600">
-                              Last Edited
-                            </th>
-                            <th className="outfit-400 px-2 py-2 text-center text-[14px] text-gray-600">
+
+                            <th className="outfit-400 w-[15%] px-2 py-2 text-center text-[14px] text-gray-600">
                               Actions
                             </th>
                           </tr>
@@ -1506,23 +1624,16 @@ function Libraries() {
                                       );
                                     }}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="h-4 w-4 cursor-pointer rounded border-gray-500 text-orange-500"
+                                    className="h-4 w-4 rounded border-gray-500 text-orange-500"
                                   />
                                 </td>
-                                <td
-                                  className="cursor-pointer px-2 py-4 whitespace-nowrap"
-                                  onClick={() => {
-                                    navigate("/quiz-overview", {
-                                      state: { quiz },
-                                    });
-                                  }}
-                                >
+                                <td className="px-2 py-4">
                                   <div className="flex items-center gap-3">
                                     <div
-                                      className="flex size-10 items-center justify-center overflow-hidden rounded"
+                                      className="flex h-10 w-10 items-center justify-center overflow-hidden rounded"
                                       style={{ backgroundColor: headerColor }}
                                     >
-                                      <span className="text-[16px] font-semibold text-white">
+                                      <span className="outfit-400 text-[16px] font-semibold text-white">
                                         Q
                                       </span>
                                     </div>
@@ -1550,61 +1661,43 @@ function Libraries() {
                                   </div>
                                 </td>
 
-                                <td className="outfit-400 w-32 px-2 py-4 text-center whitespace-nowrap">
-                                  <div className="text-sm text-gray-900">
-                                    {createdDate}
-                                  </div>
-                                  {createdDate !== "—" && (
-                                    <div className="text-xs text-gray-500">
-                                      {createdTime}
+                                <td className="outfit-400 mr-2 w-32 px-2 py-4 whitespace-nowrap">
+                                  <div className="flex items-center justify-center">
+                                    {/* Full buttons on larger screens */}
+                                    <div className="flex items-center justify-center gap-2">
+                                      <button
+                                        onClick={() => {
+                                          navigate("/quiz-overview", {
+                                            state: { quiz },
+                                          });
+                                        }}
+                                        disabled={archivingQuizId !== null}
+                                        className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-300 px-3 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                      >
+                                        <img
+                                          src={EditIcon}
+                                          alt="edit"
+                                          className="size-4"
+                                        />
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (!archivingQuizId) {
+                                            handleArchiveQuiz(quiz);
+                                          }
+                                        }}
+                                        disabled={archivingQuizId !== null}
+                                        className="flex cursor-pointer items-center justify-center rounded-xl border border-gray-300 p-1.5 text-gray-600 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                      >
+                                        <img
+                                          src={ArchiveIcon}
+                                          alt="archive"
+                                          className="size-5"
+                                        />
+                                      </button>
                                     </div>
-                                  )}
-                                </td>
-
-                                <td className="outfit-400 w-32 px-2 py-4 text-center whitespace-nowrap">
-                                  <div className="text-sm text-gray-900">
-                                    {editedDateText}
-                                  </div>
-                                  {editedDateText !== "—" && updatedDate && (
-                                    <div className="text-xs text-gray-500">
-                                      {editedTime}
-                                    </div>
-                                  )}
-                                </td>
-
-                                <td className="outfit-400 w-35 px-2 py-4 whitespace-nowrap">
-                                  <div className="flex items-center justify-center gap-2">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditClick(quiz);
-                                      }}
-                                      disabled={archivingQuizId !== null}
-                                      className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-300 px-3 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                      <img
-                                        src={EditIcon}
-                                        alt="edit"
-                                        className="size-4"
-                                      />
-                                      <span>Edit</span>
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (!archivingQuizId) {
-                                          handleArchiveQuiz(quiz);
-                                        }
-                                      }}
-                                      disabled={archivingQuizId !== null}
-                                      className="flex cursor-pointer items-center justify-center rounded-xl border border-gray-300 p-1.5 text-gray-600 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                      <img
-                                        src={ArchiveIcon}
-                                        alt="archive"
-                                        className="size-5"
-                                      />
-                                    </button>
                                   </div>
                                 </td>
                               </tr>
@@ -1613,10 +1706,84 @@ function Libraries() {
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Mobile card list */}
+                    <div className="w-full space-y-0 overflow-hidden rounded-t-2xl border-x border-t border-gray-200 bg-white md:hidden">
+                      {filteredQuizzes.map((quiz) => {
+                        const quizID =
+                          quiz.id ||
+                          quiz.quizID ||
+                          quiz.personalQuizID ||
+                          quiz.quiz_id;
+
+                        const createdDate = quiz.created_at
+                          ? new Date(quiz.created_at).toLocaleDateString(
+                              "en-US",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )
+                          : "—";
+
+                        const quizTypeName =
+                          quiz.quizType?.name ||
+                          (quiz.quiz_type_id === 1
+                            ? "Subject-based"
+                            : "Custom");
+
+                        const headerColor = getHeaderColor(quizID);
+
+                        return (
+                          <div
+                            key={quizID}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() =>
+                              navigate("/quiz-overview", { state: { quiz } })
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                navigate("/quiz-overview", { state: { quiz } });
+                              }
+                            }}
+                            className="flex cursor-pointer items-center gap-3 rounded-t-2xl border-x border-t border-gray-200 bg-white px-4 py-4 first:border-t-0 hover:bg-gray-100 active:bg-gray-50"
+                          >
+                            <div
+                              className="flex size-12 flex-shrink-0 items-center justify-center overflow-hidden rounded"
+                              style={{ backgroundColor: headerColor }}
+                            >
+                              <span className="outfit-400 text-[16px] font-semibold text-white">
+                                Q
+                              </span>
+                            </div>
+                            <div className="min-w-0 flex-1 space-y-0.5">
+                              <div className="outfit-500 text-[14px] font-semibold text-gray-900">
+                                {quiz.title || "Untitled Quiz"}
+                              </div>
+                              <div className="outfit-400 text-[12px] text-gray-500">
+                                {quiz.subject ? (
+                                  <>
+                                    {quiz.subject.subjectCode} -{" "}
+                                    {quiz.subject.subjectName}
+                                  </>
+                                ) : (
+                                  <span>{quizTypeName} </span>
+                                )}
+                              </div>
+                            </div>
+                            <i className="bx bx-chevron-right flex-shrink-0 text-xl text-gray-400"></i>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div
-                    className={` ${selectedQuizzes.length > 0 ? "pb-28" : "pb-6"}`}
-                  ></div>
+                    className={` ${selectedQuizzes.length > 0 ? "pb-28" : "pb-28 lg:pb-6"}`}
+                    aria-hidden="true"
+                  />
                 </>
               )}
             </div>
@@ -1624,7 +1791,7 @@ function Libraries() {
 
           {/* Selection Overlay Banner */}
           {selectedQuizzes.length > 0 && (
-            <div className="outfit fixed right-0 bottom-5 left-[63px] z-50 md:left-[119px] lg:left-[319px]">
+            <div className="outfit-400 fixed right-0 bottom-5 left-0 z-50 md:left-[119px] lg:left-[319px]">
               <div className="px-6">
                 <div className="rounded-xl bg-gray-800 px-5 py-4 shadow-lg">
                   <div className="flex items-center justify-between">
@@ -1723,6 +1890,7 @@ function Libraries() {
                           type="text"
                           name="title"
                           value={editFormData.title}
+                          maxLength={50}
                           onChange={handleEditChange}
                           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
                           placeholder="Enter quiz title"
@@ -1740,19 +1908,6 @@ function Libraries() {
                           onChange={handleEditChange}
                           className="min-h-[100px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
                           placeholder="Short description of this quiz (optional)"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700">
-                          Instruction
-                        </label>
-                        <textarea
-                          name="instruction"
-                          value={editFormData.instruction}
-                          onChange={handleEditChange}
-                          className="min-h-[100px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                          placeholder="Instructions for students (optional)"
                         />
                       </div>
                     </div>
@@ -1798,6 +1953,22 @@ function Libraries() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Floating Create Quiz button (mobile only) */}
+      {activeView === "my-quizzes" && !showForm && (
+        <div className="fixed right-4 bottom-[90px] z-50 md:hidden">
+          <button
+            type="button"
+            onClick={() => {
+              resetForm();
+              setShowForm(true);
+            }}
+            className="outfit-400 flex cursor-pointer items-center gap-2 rounded-full bg-orange-500 p-4 text-[14px] font-medium text-white shadow-xl transition-colors hover:bg-orange-600"
+          >
+            <i className="bx bx-plus text-[22px]" />
+          </button>
         </div>
       )}
 

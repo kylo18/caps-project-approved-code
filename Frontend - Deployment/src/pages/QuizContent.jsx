@@ -18,6 +18,7 @@ import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import QuizCard from "../components/quizCard";
 import ScrollToTopButton from "../components/scrollToTopButton";
+import EmptyImage from "../assets/icons/empty.png";
 
 const QuizContent = () => {
   const location = useLocation();
@@ -35,7 +36,9 @@ const QuizContent = () => {
   const isFetchingRef = useRef(false);
   const lastQuizIdRef = useRef(null);
   const showToastRef = useRef(showToast);
-  const [showChoices, setShowChoices] = useState(true);
+  const [listViewOnly, setListViewOnly] = useState(false);
+  const [expandedQuestionId, setExpandedQuestionId] = useState(null);
+  const [hoveredQuestionId, setHoveredQuestionId] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingQuestion, setDeletingQuestion] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -46,6 +49,9 @@ const QuizContent = () => {
   const [isSelectQuestionsOpen, setIsSelectQuestionsOpen] = useState(false);
   const [isAssignToClassOpen, setIsAssignToClassOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [modalImage, setModalImage] = useState(null);
+  const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
+  const [choiceModalImage, setChoiceModalImage] = useState(null);
   const [isEditQuizOpen, setIsEditQuizOpen] = useState(false);
   const [editQuizForm, setEditQuizForm] = useState({
     title: quiz?.title || "",
@@ -107,18 +113,31 @@ const QuizContent = () => {
   }, [quizDetails, quiz]);
 
   const filteredQuestions = useMemo(() => {
-    if (!searchQuery.trim()) return questions;
-    const term = searchQuery.toLowerCase();
-    return questions.filter((quizQuestion) => {
-      const question = quizQuestion.question || quizQuestion;
-      const text = (
-        quizQuestion.personalQuizQuestionText ||
-        quizQuestion.questionText ||
-        question?.questionText ||
-        ""
-      ).toLowerCase();
-      return text.includes(term);
-    });
+    const bySearch = !searchQuery.trim()
+      ? questions
+      : questions.filter((quizQuestion) => {
+          const question = quizQuestion.question || quizQuestion;
+          const text = (
+            quizQuestion.personalQuizQuestionText ||
+            quizQuestion.questionText ||
+            question?.questionText ||
+            ""
+          ).toLowerCase();
+          return text.includes(searchQuery.toLowerCase());
+        });
+    // Newest first (added/copied/edited on top)
+    const getDate = (q) => {
+      const t =
+        q.updated_at ||
+        q.created_at ||
+        q.personalQuizUpdatedAt ||
+        q.personalQuizCreatedAt ||
+        q.question?.updated_at ||
+        q.question?.created_at ||
+        0;
+      return new Date(t).getTime();
+    };
+    return [...bySearch].sort((a, b) => getDate(b) - getDate(a));
   }, [questions, searchQuery]);
 
   useEffect(() => {
@@ -559,7 +578,8 @@ const QuizContent = () => {
           data.message || "Question removed from quiz successfully.",
           "success",
         );
-        // Refresh questions list
+        lastQuizIdRef.current = null;
+        isFetchingRef.current = false;
         fetchQuestions();
       } else {
         showToast(
@@ -589,7 +609,7 @@ const QuizContent = () => {
     ((quizDetails || quiz)?.quiz_type_id === 1 ? "Subject-based" : "Custom");
 
   return (
-    <div className="relative mt-2 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
+    <div className="relative mt-10 flex min-h-screen w-full flex-1 flex-col justify-center py-2 md:mt-12 lg:mt-2">
       <div className="flex-1">
         <div className="w-full py-3">
           {/* Quiz header / subject-style card with search */}
@@ -598,6 +618,7 @@ const QuizContent = () => {
             quizTypeLabel={quizTypeLabel}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            isLoading={isLoadingQuestions}
             onSettingsClick={() => setIsSettingsOpen(true)}
             onAddQuestionClick={() => setIsAddOpen(true)}
             onImportQuestionClick={() => setIsImportOpen(true)}
@@ -614,28 +635,65 @@ const QuizContent = () => {
           />
 
           {/* Questions List */}
-          <div className="relative -mx-2 mt-3 sm:mx-0">
+          <div className="relative mt-3 mb-30 sm:mx-0">
             <div className="w-full">
               {isLoadingQuestions ? (
-                <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-white p-8 sm:mx-auto sm:max-w-3xl">
-                  <div className="loader"></div>
-                  <span className="ml-3 text-sm text-gray-600">
-                    Loading questions...
-                  </span>
+                <div className="flex flex-col gap-2">
+                  <div className="border-color relative mx-auto w-full max-w-3xl rounded-xl border bg-white p-4 sm:px-4">
+                    <div className="flex items-center justify-between text-[14px] text-gray-500">
+                      <span className="skeleton shimmer h-6 w-28 rounded bg-gray-200"></span>
+                      <div className="flex items-center gap-2">
+                        <span className="skeleton shimmer h-6 w-16 rounded bg-gray-200"></span>
+                        <span className="skeleton shimmer h-6 w-12 rounded bg-gray-200"></span>
+                        <span className="skeleton shimmer h-6 w-12 rounded bg-gray-200"></span>
+                        <span className="skeleton shimmer h-6 w-10 rounded bg-gray-200"></span>
+                      </div>
+                    </div>
+                    <div className="skeleton shimmer word-break break-word mt-4 min-h-[40px] w-full max-w-full resize-none overflow-hidden rounded border-gray-200 bg-gray-200 py-2 pl-3 text-[14px] break-words whitespace-pre-wrap"></div>
+                    <div className="mt-3 space-y-3 p-3">
+                      {[1, 2, 3, 4].map((choiceIndex) => (
+                        <div
+                          key={choiceIndex}
+                          className="flex items-center space-x-2"
+                        >
+                          <span className="skeleton shimmer h-[22px] w-[22px] rounded-full bg-gray-200"></span>
+                          <span className="skeleton shimmer h-6 w-3/4 rounded bg-gray-200"></span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+                    <div className="flexse mt-5 mb-1 justify-end gap-2">
+                      <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
+                      <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
+                      <span className="skeleton shimmer h-8 w-20 rounded bg-gray-200"></span>
+                    </div>
+                  </div>
                 </div>
               ) : filteredQuestions.length === 0 ? (
-                <div className="outfit border-color mx-auto w-full max-w-3xl rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
-                  No questions added yet. Click{" "}
-                  <span className="font-semibold">Add Question</span> or{" "}
-                  <span className="font-semibold">Import Question</span> to get
-                  started.
+                <div className="outfit-400 border-color mx-auto flex w-full max-w-[1200px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
+                  <img
+                    src={EmptyImage}
+                    alt="No questions"
+                    className="mx-auto mb-3 h-32 w-32 opacity-80"
+                  />
+                  No questions found. Click Add Question or Import questions to
+                  get started.
+                  <button
+                    onClick={() => setIsAddOpen(true)}
+                    className="mt-6 flex cursor-pointer items-center gap-2 rounded-xl border border-b-4 border-orange-300 bg-orange-100 px-4 py-2 text-orange-600 transition-all duration-100 hover:bg-orange-200 hover:text-orange-500 active:translate-y-[2px] active:border-b-2"
+                  >
+                    <i className="bx bx-plus text-lg"></i>
+                    <span className="text-[14px] font-semibold">
+                      Add Question
+                    </span>
+                  </button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col">
                   {/* Header bar similar to AdminContent */}
-                  <div className="outfit border-color relative mx-0 mt-3 flex w-full max-w-3xl flex-row items-center rounded-t-3xl border border-b-0 bg-white sm:mx-auto sm:mt-[2px] sm:rounded-t-xl md:rounded-tl-none">
+                  <div className="outfit-400 relative mx-0 mt-3 flex w-full max-w-3xl flex-row items-center rounded-t-3xl border border-b-0 border-gray-200 bg-white sm:mx-auto sm:mt-[2px] sm:rounded-t-xl md:rounded-t-xl">
                     <div className="flex h-full items-center gap-2 px-4 py-2">
-                      <div className="flex items-center justify-center gap-2 text-[14px] text-nowrap text-gray-600">
+                      <div className="outfit-400 flex items-center justify-center gap-2 text-[14px] text-nowrap text-gray-600">
                         <span>
                           {questions.length}{" "}
                           {questions.length === 1 ? "QUESTION" : "QUESTIONS"}
@@ -644,14 +702,17 @@ const QuizContent = () => {
                     </div>
 
                     <div className="ml-auto flex items-center px-4 py-3">
-                      <span className="mr-4 ml-2 items-center text-sm text-nowrap text-gray-500">
-                        Show Choices
+                      <span className="outfit-400 mr-4 ml-2 items-center text-sm text-nowrap text-gray-500">
+                        Show Details
                       </span>
                       <label className="relative inline-flex cursor-pointer items-center">
                         <input
                           type="checkbox"
-                          checked={showChoices}
-                          onChange={() => setShowChoices((prev) => !prev)}
+                          checked={!listViewOnly}
+                          onChange={() => {
+                            setListViewOnly((prev) => !prev);
+                            setExpandedQuestionId(null);
+                          }}
                           className="peer sr-only"
                         />
                         <div className="peer h-6 w-11 rounded-full bg-gray-300 peer-checked:bg-orange-500 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
@@ -660,14 +721,9 @@ const QuizContent = () => {
                   </div>
 
                   {filteredQuestions.map((quizQuestion, index) => {
-                    // Handle both imported questions (with question property) and manually added questions
                     const question = quizQuestion.question || quizQuestion;
                     const questionNumber = index + 1;
 
-                    // Get choices from multiple possible locations:
-                    // 1. personalQuizChoices (for manually added questions)
-                    // 2. choicesMap (for imported questions fetched separately)
-                    // 3. question.choices (for imported questions with loaded relationship)
                     let choices =
                       quizQuestion.personalQuizChoices ||
                       (quizQuestion.personalQuizQuestionID
@@ -676,26 +732,22 @@ const QuizContent = () => {
                       (question && question.choices) ||
                       [];
 
-                    // Ensure choices is always an array
                     if (!Array.isArray(choices)) {
                       choices = [];
                     }
 
-                    // Get question text - could be from personalQuizQuestionText or questionText
                     const questionText =
                       quizQuestion.personalQuizQuestionText ||
                       quizQuestion.questionText ||
                       question.questionText ||
                       "";
 
-                    // Get question image - could be from personalQuizImage or image
                     const questionImage =
                       quizQuestion.personalQuizImage ||
                       quizQuestion.image ||
                       question.image ||
                       null;
 
-                    // Get score - could be from personalQuizScore or score
                     const score =
                       quizQuestion.personalQuizScore !== undefined
                         ? quizQuestion.personalQuizScore
@@ -703,193 +755,408 @@ const QuizContent = () => {
                           ? quizQuestion.score
                           : null;
 
-                    // Difficulty and coverage labels (for header badges)
-                    const difficultyLabel =
-                      typeof question.difficulty === "string"
-                        ? question.difficulty
-                        : question.difficulty?.difficultyName ||
-                          question.difficulty?.name ||
-                          "N/A";
-
-                    const coverageSource =
-                      quizQuestion.personalQuizCoverage || question.coverage;
-                    const coverageLabel =
-                      typeof coverageSource === "string"
-                        ? coverageSource
-                        : coverageSource?.coverageName ||
-                          coverageSource?.name ||
-                          "N/A";
+                    const questionId =
+                      quizQuestion.personalQuizQuestionID ||
+                      quizQuestion.questionID ||
+                      index;
+                    const prevId =
+                      index > 0
+                        ? (filteredQuestions[index - 1]
+                            .personalQuizQuestionID ??
+                          filteredQuestions[index - 1].questionID ??
+                          index - 1)
+                        : null;
+                    const nextId =
+                      index < filteredQuestions.length - 1
+                        ? (filteredQuestions[index + 1]
+                            .personalQuizQuestionID ??
+                          filteredQuestions[index + 1].questionID ??
+                          index + 1)
+                        : null;
 
                     return (
-                      <div
-                        key={
-                          quizQuestion.personalQuizQuestionID ||
-                          quizQuestion.questionID ||
-                          index
-                        }
-                        className="border-color relative mx-auto w-full max-w-3xl rounded-xl border bg-white p-4 shadow-sm sm:px-5 sm:py-5"
-                      >
-                        <div className="w-full max-w-full overflow-hidden break-words">
-                          {/* Header row with meta badges */}
-                          <div className="outfit flex items-center justify-between text-[14px] text-gray-500">
-                            <span>{questionNumber}. MULTIPLE CHOICE</span>
-                            <div className="relative flex min-h-[32px] items-center gap-3">
-                              <div className="flex items-center">
-                                <span className="rounded-lg px-2 py-1 text-[12px] capitalize">
-                                  {difficultyLabel}
-                                </span>
-                                <span> •</span>
-                                <span className="rounded-lg px-2 py-1 text-[12px] capitalize">
-                                  {coverageLabel}
-                                </span>
-                                <span> •</span>
-                                <span className="rounded-lg px-2 py-1 text-[12px]">
-                                  {score ?? 0} PT
-                                </span>
-                              </div>
-                              {/* Edit, Copy, and Delete buttons */}
-                              <div className="flex items-center gap-2">
-                                {/* Only show edit button for personal quiz questions */}
-                                {quizQuestion.personalQuizQuestionID && (
+                      <div key={questionId}>
+                        <div
+                          onClick={() => {
+                            if (
+                              listViewOnly &&
+                              expandedQuestionId !== questionId
+                            ) {
+                              setExpandedQuestionId(questionId);
+                            }
+                          }}
+                          onMouseEnter={() => setHoveredQuestionId(questionId)}
+                          onMouseLeave={() => setHoveredQuestionId(null)}
+                          className={`border-color relative mx-auto w-full max-w-3xl cursor-pointer border bg-white p-3 sm:px-4 ${
+                            listViewOnly && expandedQuestionId !== questionId
+                              ? ""
+                              : ""
+                          } ${
+                            listViewOnly
+                              ? expandedQuestionId === questionId
+                                ? `${index === 0 ? "rounded-b-xl" : "mt-2 mb-2 rounded-xl"}`
+                                : index > 0 && prevId === expandedQuestionId
+                                  ? `${
+                                      index === filteredQuestions.length - 1
+                                        ? "mt-2 rounded-t-xl rounded-b-xl"
+                                        : index === 1 &&
+                                            filteredQuestions[0] &&
+                                            (filteredQuestions[0]
+                                              .personalQuizQuestionID ??
+                                              filteredQuestions[0].questionID ??
+                                              0) === expandedQuestionId
+                                          ? "mt-2 rounded-t-xl"
+                                          : "rounded-t-xl"
+                                    }`
+                                  : index !== filteredQuestions.length - 1 &&
+                                      nextId === expandedQuestionId
+                                    ? "rounded-b-xl"
+                                    : index === filteredQuestions.length - 1
+                                      ? "rounded-b-xl"
+                                      : ""
+                              : `${index === 0 ? "rounded-t-none" : "rounded-t-xl"} mb-2 rounded-xl`
+                          } `}
+                        >
+                          <div className="w-full max-w-full overflow-hidden break-words">
+                            {/* Header row with meta badges - match AdminContent */}
+                            <div className="flex items-center justify-between text-[14px] text-gray-500">
+                              <span className="outfit-400 text-[12px]">
+                                {questionNumber}. MULTIPLE CHOICE
+                              </span>
+                              <div className="relative flex min-h-[32px] items-center">
+                                {/* Badges */}
+                                <div
+                                  className={`outfit-400 flex items-center transition-opacity duration-150 ${
+                                    listViewOnly &&
+                                    expandedQuestionId !== questionId &&
+                                    hoveredQuestionId === questionId
+                                      ? "sm:pointer-events-none sm:absolute sm:opacity-0"
+                                      : "sm:relative sm:opacity-100"
+                                  }`}
+                                >
+                                  <span className="rounded-lg px-2 py-1 text-[12px]">
+                                    {score ?? 0} PT
+                                  </span>
+                                </div>
+                                {/* Action buttons in header - show on hover in list view */}
+                                <div
+                                  className={`hidden items-center transition-opacity duration-150 sm:flex ${
+                                    listViewOnly &&
+                                    expandedQuestionId !== questionId &&
+                                    hoveredQuestionId === questionId
+                                      ? "sm:relative sm:opacity-100"
+                                      : "sm:pointer-events-none sm:absolute sm:opacity-0"
+                                  }`}
+                                >
                                   <button
-                                    onClick={(e) =>
-                                      handleEditClick(quizQuestion, e)
-                                    }
-                                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                                    title="Edit Question"
+                                    className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                    title="Remove"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteClick(quizQuestion, e);
+                                    }}
                                   >
-                                    <i className="bx bx-edit text-lg"></i>
+                                    <i className="bx bx-trash text-[16px]"></i>
+                                    <span className="outfit-400 text-[12px]">
+                                      Remove
+                                    </span>
                                   </button>
-                                )}
-                                <button
-                                  onClick={(e) =>
-                                    handleCopyClick(quizQuestion, e)
-                                  }
-                                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-600"
-                                  title="Copy Question"
-                                >
-                                  <i className="bx bx-copy text-lg"></i>
-                                </button>
-                                <button
-                                  onClick={(e) =>
-                                    handleDeleteClick(quizQuestion, e)
-                                  }
-                                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600"
-                                  title="Delete Question"
-                                >
-                                  <i className="bx bx-trash text-lg"></i>
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Question text */}
-                          {questionText && (
-                            <div className="outfit relative mt-4 rounded-sm bg-gray-100 p-1">
-                              <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
-                                <span
-                                  dangerouslySetInnerHTML={{
-                                    __html: questionText,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Question image */}
-                          {questionImage && (
-                            <div className="mt-3">
-                              <img
-                                src={getImageUrl(questionImage)}
-                                alt="Question"
-                                className="max-h-64 rounded-md object-contain"
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.style.display = "none";
-                                }}
-                              />
-                            </div>
-                          )}
-
-                          {/* Choices */}
-                          {showChoices && choices && choices.length > 0 && (
-                            <div className="mt-3 space-y-3 p-3">
-                              {choices.map((choice, choiceIndex) => {
-                                const choiceText =
-                                  choice.choiceText ||
-                                  choice.personalQuizChoiceText ||
-                                  "";
-                                const choiceImage =
-                                  choice.image ||
-                                  choice.personalQuizImage ||
-                                  null;
-                                const isCorrect =
-                                  choice.isCorrect !== undefined
-                                    ? choice.isCorrect
-                                    : choice.personalQuizIsCorrect !== undefined
-                                      ? choice.personalQuizIsCorrect
-                                      : false;
-
-                                return (
-                                  <div
-                                    key={
-                                      choice.personalQuizChoiceID ||
-                                      choice.choiceID ||
-                                      choiceIndex
-                                    }
-                                    className="relative flex items-center space-x-2"
+                                  <button
+                                    className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                    title="Copy"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopyClick(quizQuestion, e);
+                                    }}
                                   >
-                                    <i
-                                      className={`bx ${
-                                        isCorrect
-                                          ? "bxs-check-circle text-orange-500"
-                                          : "bx-circle text-gray-300"
-                                      } text-[22px]`}
-                                      style={{ minWidth: 22 }}
-                                      title={isCorrect ? "Correct answer" : ""}
-                                    />
-
-                                    {choiceText && (
-                                      <span
-                                        className={`outfit w-[90%] rounded-md p-2 text-[14px] ${
-                                          isCorrect
-                                            ? "font-semibold text-orange-500"
-                                            : "text-gray-700"
-                                        }`}
-                                        dangerouslySetInnerHTML={{
-                                          __html: choiceText,
-                                        }}
-                                      />
-                                    )}
-
-                                    {choiceImage && (
-                                      <div className="relative max-w-[200px] cursor-pointer rounded-md hover:opacity-80">
-                                        <img
-                                          src={getImageUrl(choiceImage)}
-                                          alt={`Choice ${String.fromCharCode(
-                                            65 + choiceIndex,
-                                          )}`}
-                                          className={`h-auto max-w-full rounded-md border-2 object-cover ${
-                                            isCorrect
-                                              ? "border-orange-500"
-                                              : "border-transparent"
-                                          }`}
-                                          onError={(e) => {
-                                            e.target.onerror = null;
-                                            e.target.style.display = "none";
-                                          }}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                                    <i className="bx bx-copy text-[16px]"></i>
+                                    <span className="outfit-400 text-[12px]">
+                                      Copy
+                                    </span>
+                                  </button>
+                                  {quizQuestion.personalQuizQuestionID && (
+                                    <button
+                                      className="outfit mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                      title="Edit"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditClick(quizQuestion, e);
+                                      }}
+                                    >
+                                      <i className="bx bx-edit-alt text-[16px]"></i>
+                                      <span className="outfit-400 text-[12px]">
+                                        Edit
+                                      </span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          )}
+
+                            {/* Question text - match AdminContent listViewOnly logic */}
+                            {listViewOnly ? (
+                              expandedQuestionId === questionId ? (
+                                <div
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedQuestionId(null);
+                                  }}
+                                  className="relative mt-4 cursor-pointer rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:bg-gray-200"
+                                >
+                                  <div className="word-break outfit-400 break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
+                                    <span
+                                      dangerouslySetInnerHTML={{
+                                        __html: questionText,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="outfit-400 word-break break-word mt-4 flex w-full max-w-full cursor-pointer items-center overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
+                                  <span
+                                    className="ml-2 font-semibold"
+                                    dangerouslySetInnerHTML={{
+                                      __html: questionText,
+                                    }}
+                                  />
+                                  {questionImage && (
+                                    <img
+                                      src={getImageUrl(questionImage)}
+                                      alt="Question"
+                                      className="ml-auto h-10 w-10 cursor-pointer rounded object-cover hover:opacity-80"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setModalImage(
+                                          getImageUrl(questionImage),
+                                        );
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                              )
+                            ) : (
+                              questionText && (
+                                <div className="outfit-400 relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-pointer">
+                                  <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
+                                    <span
+                                      dangerouslySetInnerHTML={{
+                                        __html: questionText,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              )
+                            )}
+
+                            {/* Question image - match AdminContent listViewOnly logic */}
+                            {questionImage &&
+                              (listViewOnly &&
+                              expandedQuestionId === questionId ? (
+                                <div className="relative mt-3 ml-3 inline-block max-w-[300px] rounded-md">
+                                  <img
+                                    src={getImageUrl(questionImage)}
+                                    alt="Question"
+                                    className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-lg hover:opacity-80"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setModalImage(getImageUrl(questionImage));
+                                    }}
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.style.display = "none";
+                                    }}
+                                  />
+                                </div>
+                              ) : !listViewOnly ? (
+                                <div className="relative mt-3 ml-3 inline-block max-w-[300px] rounded-md">
+                                  <img
+                                    src={getImageUrl(questionImage)}
+                                    alt="Question"
+                                    className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-lg hover:opacity-80"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setModalImage(getImageUrl(questionImage));
+                                    }}
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.style.display = "none";
+                                    }}
+                                  />
+                                </div>
+                              ) : null)}
+
+                            {/* Choices - match AdminContent listViewOnly logic */}
+                            {(!listViewOnly ||
+                              (listViewOnly &&
+                                expandedQuestionId === questionId)) &&
+                              choices &&
+                              choices.length > 0 && (
+                                <div className="mt-3 space-y-3 p-3">
+                                  {choices.map((choice, choiceIndex) => {
+                                    const choiceText =
+                                      choice.choiceText ||
+                                      choice.personalQuizChoiceText ||
+                                      "";
+                                    const choiceImage =
+                                      choice.image ||
+                                      choice.personalQuizImage ||
+                                      null;
+                                    const isCorrect =
+                                      choice.isCorrect !== undefined
+                                        ? choice.isCorrect
+                                        : choice.personalQuizIsCorrect !==
+                                            undefined
+                                          ? choice.personalQuizIsCorrect
+                                          : false;
+                                    const hasImage = !!choiceImage;
+                                    const displayText = hasImage
+                                      ? ""
+                                      : choiceText;
+
+                                    return (
+                                      <div
+                                        key={
+                                          choice.personalQuizChoiceID ||
+                                          choice.choiceID ||
+                                          choiceIndex
+                                        }
+                                        className="relative flex items-center space-x-2"
+                                      >
+                                        <i
+                                          className={`bx ${
+                                            isCorrect
+                                              ? "bxs-check-circle text-orange-500"
+                                              : "bx-circle text-gray-300"
+                                          } text-[22px]`}
+                                          style={{ minWidth: 22 }}
+                                          title={
+                                            isCorrect ? "Correct answer" : ""
+                                          }
+                                        />
+
+                                        {displayText ? (
+                                          <span
+                                            className={`outfit-400 w-[90%] rounded-md p-2 text-[14px] ${
+                                              isCorrect
+                                                ? "font-semibold text-orange-500"
+                                                : "text-gray-700"
+                                            }`}
+                                            dangerouslySetInnerHTML={{
+                                              __html: displayText,
+                                            }}
+                                          />
+                                        ) : null}
+
+                                        {hasImage ? (
+                                          <div
+                                            className="relative max-w-[200px] cursor-pointer rounded-md hover:opacity-80"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setChoiceModalImage(
+                                                getImageUrl(choiceImage),
+                                              );
+                                              setIsChoiceModalOpen(true);
+                                            }}
+                                          >
+                                            <img
+                                              src={getImageUrl(choiceImage)}
+                                              alt={`Choice ${String.fromCharCode(
+                                                65 + choiceIndex,
+                                              )}`}
+                                              className={`h-auto max-w-full rounded-md border-2 object-cover ${
+                                                isCorrect
+                                                  ? "border-orange-500"
+                                                  : "border-transparent"
+                                              }`}
+                                              onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.style.display = "none";
+                                              }}
+                                            />
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                            {/* Divider and action buttons below - match AdminContent */}
+                            {(!listViewOnly ||
+                              (listViewOnly &&
+                                expandedQuestionId === questionId)) && (
+                              <>
+                                <div className="my-3 h-px bg-gray-200"></div>
+                                <div className="mt-4 mb-1 flex justify-end gap-1">
+                                  <button
+                                    type="button"
+                                    className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                    title="Remove"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteClick(quizQuestion, e);
+                                    }}
+                                  >
+                                    <i className="bx bx-trash text-[16px]"></i>
+                                    <span className="outfit-400 text-[12px]">
+                                      Remove
+                                    </span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                    title="Copy"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopyClick(quizQuestion, e);
+                                    }}
+                                  >
+                                    <i className="bx bx-copy text-[16px]"></i>
+                                    <span className="outfit-400 text-[12px]">
+                                      Copy
+                                    </span>
+                                  </button>
+                                  {quizQuestion.personalQuizQuestionID && (
+                                    <button
+                                      type="button"
+                                      className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                      title="Edit"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditClick(quizQuestion, e);
+                                      }}
+                                    >
+                                      <i className="bx bx-edit-alt text-[16px]"></i>
+                                      <span className="outfit-400 text-[12px]">
+                                        Edit
+                                      </span>
+                                    </button>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Floating Add Question button - match AdminContent */}
+              {!isAddOpen && filteredQuestions.length > 0 && (
+                <div className="fixed right-[-4px] bottom-[70px] z-49 p-4 text-center sm:right-[-4px] sm:bottom-[-4px]">
+                  <button
+                    onClick={() => setIsAddOpen(true)}
+                    className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-xl hover:bg-orange-600 sm:rounded-xl sm:px-4 sm:py-2"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <i className="bx bx-plus text-[24px] sm:text-[16px]"></i>
+                      <span className="outfit-400 hidden sm:block">
+                        Add Question
+                      </span>
+                    </div>
+                  </button>
                 </div>
               )}
 
@@ -903,7 +1170,9 @@ const QuizContent = () => {
                   onComplete={() => {
                     setIsAddOpen(false);
                     showToast("Question added to quiz!", "success");
-                    fetchQuestions(); // Refresh questions list
+                    lastQuizIdRef.current = null;
+                    isFetchingRef.current = false;
+                    fetchQuestions();
                   }}
                   onCancel={() => setIsAddOpen(false)}
                   isExamQuestionsEnabled
@@ -914,6 +1183,36 @@ const QuizContent = () => {
         </div>
       </div>
 
+      {/* Choice image full-size modal - match AdminContent */}
+      {isChoiceModalOpen && (
+        <div
+          className="lightbox-bg-image fixed inset-0 z-55 flex items-center justify-center"
+          onClick={() => setIsChoiceModalOpen(false)}
+        >
+          <div className="relative max-h-full max-w-full">
+            <img
+              src={choiceModalImage}
+              alt="Full View"
+              className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
+            />
+          </div>
+        </div>
+      )}
+      {/* Question image full-size modal - match AdminContent */}
+      {modalImage && (
+        <div
+          className="lightbox-bg-image bg-opacity-70 fixed inset-0 z-55 flex items-center justify-center hover:cursor-pointer"
+          onClick={() => setModalImage(null)}
+        >
+          <div className="relative max-h-full max-w-full">
+            <img
+              src={modalImage}
+              alt="Question"
+              className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
+            />
+          </div>
+        </div>
+      )}
       <Toast message={toast.message} type={toast.type} show={toast.show} />
       {!isLoadingQuestions && <ScrollToTopButton />}
       {isImportOpen && (
@@ -921,7 +1220,8 @@ const QuizContent = () => {
           isOpen={isImportOpen}
           onClose={() => setIsImportOpen(false)}
           onImport={(importedQuestionIds) => {
-            // Questions are already imported, just refresh the list
+            lastQuizIdRef.current = null;
+            isFetchingRef.current = false;
             fetchQuestions();
           }}
           personalQuizID={quizId}
@@ -958,66 +1258,13 @@ const QuizContent = () => {
         <EditPersonalQuizQuestionForm
           quizQuestion={editingQuestion}
           quiz={quiz}
-          onComplete={async (updatedQuestion) => {
+          onComplete={async () => {
             setIsEditOpen(false);
             setEditingQuestion(null);
-
-            if (updatedQuestion) {
-              const questionId = updatedQuestion.personalQuizQuestionID;
-
-              // Update the question directly in the state
-              setQuestions((prevQuestions) => {
-                return prevQuestions.map((q) => {
-                  const qId = q.personalQuizQuestionID || q.id;
-                  if (qId === questionId) {
-                    // Replace with updated question data
-                    // The response has choices in the 'choices' property
-                    const updatedChoices =
-                      updatedQuestion.choices ||
-                      updatedQuestion.personal_quiz_choices ||
-                      q.personalQuizChoices ||
-                      [];
-
-                    return {
-                      ...q,
-                      personalQuizQuestionText:
-                        updatedQuestion.personalQuizQuestionText ||
-                        updatedQuestion.questionText,
-                      personalQuizImage:
-                        updatedQuestion.personalQuizImage ||
-                        updatedQuestion.image,
-                      personalQuizScore:
-                        updatedQuestion.personalQuizScore ||
-                        updatedQuestion.score,
-                      personalQuizCoverageId:
-                        updatedQuestion.personalQuizCoverageId,
-                      personalQuizChoices: updatedChoices,
-                    };
-                  }
-                  return q;
-                });
-              });
-
-              // Update choices map if needed
-              const choices =
-                updatedQuestion.choices ||
-                updatedQuestion.personal_quiz_choices ||
-                [];
-              if (choices.length > 0) {
-                setChoicesMap((prev) => ({
-                  ...prev,
-                  [questionId]: choices,
-                }));
-              }
-            } else {
-              // Fallback: force refresh if no updated question data
-              lastQuizIdRef.current = null;
-              isFetchingRef.current = false;
-              setQuestions([]);
-              setChoicesMap({});
-              await new Promise((resolve) => setTimeout(resolve, 300));
-              fetchQuestions();
-            }
+            // Auto refresh list after edit
+            lastQuizIdRef.current = null;
+            isFetchingRef.current = false;
+            await fetchQuestions();
           }}
           onCancel={() => {
             setIsEditOpen(false);
@@ -1034,7 +1281,8 @@ const QuizContent = () => {
             setIsDuplicateOpen(false);
             setDuplicatingQuestion(null);
             showToast("Question copied successfully!", "success");
-            // Refresh questions list
+            lastQuizIdRef.current = null;
+            isFetchingRef.current = false;
             fetchQuestions();
           }}
           onCancel={() => {

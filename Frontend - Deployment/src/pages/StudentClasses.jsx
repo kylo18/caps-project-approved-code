@@ -4,6 +4,28 @@ import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import emptyImage from "../assets/icons/empty.png";
 
+import BlueBackground from "/src/assets/backgrounds/blue.png";
+import GreenBackground from "/src/assets/backgrounds/green.png";
+import RedBackground from "/src/assets/backgrounds/red.png";
+import YellowBackground from "/src/assets/backgrounds/yellow.png";
+import PurpleBackground from "/src/assets/backgrounds/purple.png";
+import CyanBackground from "/src/assets/backgrounds/cyan.png";
+
+const headerBackgrounds = [
+  BlueBackground,
+  GreenBackground,
+  RedBackground,
+  YellowBackground,
+  PurpleBackground,
+  CyanBackground,
+];
+
+const getHeaderBackground = (id) => {
+  if (!id) return headerBackgrounds[0];
+  const index = Number(id) % headerBackgrounds.length;
+  return headerBackgrounds[index];
+};
+
 const StudentClasses = () => {
   const navigate = useNavigate();
   const { classID } = useParams();
@@ -18,7 +40,6 @@ const StudentClasses = () => {
   const [error, setError] = useState(null);
   const [classInfo, setClassInfo] = useState(null);
   const [activeTab, setActiveTab] = useState("assigned"); // 'assigned' or 'history'
-  const [expandedQuizzes, setExpandedQuizzes] = useState(new Set()); // Track which quizzes have expanded attempts
 
   // Read basic class info from navigation state (fallback to ID)
   const classItem = location.state?.classItem || null;
@@ -51,16 +72,6 @@ const StudentClasses = () => {
     } catch {
       return "—";
     }
-  };
-
-  const formatTime = (seconds) => {
-    if (!seconds) return "—";
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    if (minutes > 0) {
-      return `${minutes}m ${remainingSeconds}s`;
-    }
-    return `${remainingSeconds}s`;
   };
 
   const fetchAssignedQuizzes = async () => {
@@ -201,18 +212,6 @@ const StudentClasses = () => {
     }
   };
 
-  const toggleQuizExpansion = (quizID) => {
-    setExpandedQuizzes((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(quizID)) {
-        newSet.delete(quizID);
-      } else {
-        newSet.add(quizID);
-      }
-      return newSet;
-    });
-  };
-
   useEffect(() => {
     fetchAssignedQuizzes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -230,53 +229,81 @@ const StudentClasses = () => {
       <Toast message={toast.message} type={toast.type} show={toast.show} />
       <div className="scrollbar-hide flex h-screen flex-1 flex-col gap-6 overflow-y-auto p-6 pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="space-y-4">
-          {/* Back Button and Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => navigate("/class")}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100"
-                aria-label="Back to classes"
-              >
-                <i className="bx bx-arrow-left-stroke text-3xl" />
-              </button>
-              <div>
-                <p className="outfit-500 mt-1 text-[20px] text-black">
-                  {className}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Class Code: {classCode}
-                </p>
+          {/* Two-card header - same as ClassContent */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
+            {/* Left: Class Information Card with colored background */}
+            <div
+              className="relative min-h-[160px] overflow-hidden rounded-xl bg-cover bg-center bg-no-repeat py-6 px-6"
+              style={{
+                backgroundImage: `url(${getHeaderBackground(classID)})`,
+              }}
+            >
+              <div className="relative z-10 flex h-full flex-col">
+                <button
+                  type="button"
+                  onClick={() => navigate("/class")}
+                  className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white transition-colors hover:bg-white/30"
+                  aria-label="Back to classes"
+                >
+                  <i className="bx bx-arrow-left-stroke text-2xl" />
+                </button>
+                <div className="pr-16">
+                  <h1 className="outfit-500 text-xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] md:text-2xl">
+                    {className}
+                  </h1>
+                  <p className="mt-1 text-[14px] outfit-400 font-normal text-white/95">
+                    Class Code: {classCode}
+                  </p>
+                </div>
+                <div className="mt-auto flex items-end">
+                  <div className="inline-flex max-w-full items-center overflow-hidden rounded-full bg-white px-2 py-0.5">
+                    <span className="truncate text-[12px] font-semibold whitespace-nowrap text-black uppercase">
+                      Class Code - {classCode}
+                    </span>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            {/* Right: Simple info card for student view */}
+            <div className="flex w-full flex-col items-center justify-center rounded-xl border border-gray-200 bg-white p-6 lg:w-56">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-100">
+                <i className="bx bx-book-open text-2xl text-gray-600" />
+              </div>
+              <p className="mt-3 text-center text-[16px] outfit-500 font-normal text-gray-900">
+                Assigned Quizzes
+              </p>
+              <p className="mt-1 text-center text-[12px] outfit-500 text-gray-600">
+                {assignedQuizzes.length} quiz{assignedQuizzes.length !== 1 ? "zes" : ""} assigned
+              </p>
             </div>
           </div>
 
-          <div className="my-3 h-px bg-gray-200" />
-        </div>
-
-        {/* Tabs */}
-        <div className="flex space-x-1 border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab("assigned")}
-            className={`px-4 py-2 text-[14px] font-medium transition-colors ${
-              activeTab === "assigned"
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-600 hover:text-gray-800"
-            }`}
-          >
-            Assigned Quizzes
-          </button>
-          <button
-            onClick={() => setActiveTab("history")}
-            className={`px-4 py-2 text-[14px] font-medium transition-colors ${
-              activeTab === "history"
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-600 hover:text-gray-800"
-            }`}
-          >
-            History
-          </button>
+          {/* Navigation Tabs - same style as ClassContent */}
+          <nav className="flex items-center gap-6 border-b border-gray-200 pb-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab("assigned")}
+              className={`outfit-500 border-b-3 pb-3 cursor-pointer text-[14px] font-medium transition-colors ${
+                activeTab === "assigned"
+                  ? "border-orange-500 text-orange-500"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Assigned Quizzes
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("history")}
+              className={`outfit-500 border-b-3 pb-3 cursor-pointer text-[14px] font-medium transition-colors ${
+                activeTab === "history"
+                  ? "border-orange-500 text-orange-500"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              History
+            </button>
+          </nav>
         </div>
 
         <div>
@@ -310,135 +337,123 @@ const StudentClasses = () => {
             </div>
           ) : activeTab === "assigned" ? (
             <>
-              <div className="outfit-500 mb-4 flex items-center justify-between">
-                <p className="text-[14px] text-gray-600">
-                  {assignedQuizzes.length}{" "}
-                  {assignedQuizzes.length === 1
-                    ? "Assigned Quiz"
-                    : "Assigned Quizzes"}
-                </p>
-              </div>
+              <div className="outfit-400 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <div className="overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <table className="w-full">
+                    <thead className="border-b border-gray-200 bg-white">
+                      <tr>
+                        <th className="px-4 py-2 w-[35%] text-left text-[14px] font-medium tracking-wider text-gray-600">
+                          Quiz Name
+                        </th>
+                        <th className="px-2 py-2 w-[12%] text-center text-[14px] font-medium tracking-wider text-gray-600">
+                          Start Date
+                        </th>
+                        <th className="px-2 py-2 w-[12%] text-center text-[14px] font-medium tracking-wider text-gray-600">
+                          End Date
+                        </th>
+                        <th className="px-2 py-2 w-[10%] text-center text-[14px] font-medium tracking-wider text-gray-600">
+                          Status
+                        </th>
+                        <th className="px-2 py-2 w-[11%] text-center text-[14px] font-medium tracking-wider text-gray-600">
+                          Score
+                        </th>
+                        <th className="px-4 py-2 w-[20%] text-right text-[14px] font-medium tracking-wider text-gray-600">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {assignedQuizzes.map((quiz) => {
+                        const start = formatDateTime(quiz.startDate);
+                        const deadline = formatDateTime(quiz.deadlineDate);
+                        const studentAttempt = quiz.studentAttempt;
+                        const maxAttempts = quiz.settings?.quizAttempts;
+                        const isAvailable = quiz.isAvailable && quiz.canAttempt;
+                        const statusLabel = !isAvailable
+                          ? "Unavailable"
+                          : studentAttempt?.isCompleted
+                            ? "Completed"
+                            : studentAttempt
+                              ? "In Progress"
+                              : "Not started";
 
-              <div className="space-y-3">
-                {assignedQuizzes.map((quiz) => {
-                  const start = formatDate(quiz.startDate);
-                  const deadline = formatDate(quiz.deadlineDate);
-                  const studentAttempt = quiz.studentAttempt;
-                  const maxAttempts = quiz.settings?.quizAttempts;
-                  const isAvailable = quiz.isAvailable && quiz.canAttempt;
-
-                  return (
-                    <div
-                      key={quiz.classPersonalQuizID}
-                      className={`outfit rounded-xl border p-4 shadow-sm ${
-                        isAvailable
-                          ? "border-gray-200 bg-white"
-                          : "border-gray-200 bg-gray-50"
-                      }`}
-                    >
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-[15px] font-semibold text-gray-900">
-                              {quiz.quizName || "Untitled Quiz"}
-                            </p>
-                            {!isAvailable && (
-                              <span className="rounded-full bg-gray-200 px-2 py-1 text-[11px] font-medium text-gray-700">
-                                Unavailable
-                              </span>
-                            )}
-                            {isAvailable && studentAttempt?.isCompleted && (
-                              <span className="rounded-full bg-green-100 px-2 py-1 text-[11px] font-medium text-green-700">
-                                Completed
-                              </span>
-                            )}
-                            {isAvailable && !studentAttempt?.isCompleted && studentAttempt && (
-                              <span className="rounded-full bg-yellow-100 px-2 py-1 text-[11px] font-medium text-yellow-700">
-                                In Progress
-                              </span>
-                            )}
-                          </div>
-                          {quiz.description && (
-                            <p className="text-[13px] text-gray-600">
-                              {quiz.description}
-                            </p>
-                          )}
-                          {quiz.availabilityMessage && (
-                            <p className="mt-1 text-[12px] text-amber-600">
-                              {quiz.availabilityMessage}
-                            </p>
-                          )}
-                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-gray-600">
-                            <span>
-                              <span className="font-medium text-gray-700">
-                                Start:
-                              </span>{" "}
+                        return (
+                          <tr
+                            key={quiz.classPersonalQuizID}
+                            className="group transition-colors hover:bg-gray-50"
+                          >
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <div className="flex flex-col">
+                                <div className="text-sm font-semibold text-gray-900">
+                                  {quiz.quizName || "Untitled Quiz"}
+                                </div>
+                                {quiz.description && (
+                                  <div className="mt-0.5 truncate max-w-[280px] text-xs text-gray-500">
+                                    {quiz.description}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-2 py-4 whitespace-nowrap text-center text-xs text-gray-700">
                               {quiz.startDate ? start : "Not set"}
-                            </span>
-                            <span>
-                              <span className="font-medium text-gray-700">
-                                Deadline:
-                              </span>{" "}
+                            </td>
+                            <td className="px-2 py-4 whitespace-nowrap text-center text-xs text-gray-700">
                               {quiz.deadlineDate ? deadline : "Not set"}
-                            </span>
-                            {maxAttempts && (
-                              <span>
-                                <span className="font-medium text-gray-700">
-                                  Max Attempts:
-                                </span>{" "}
-                                {maxAttempts}
+                            </td>
+                            <td className="px-2 py-4 whitespace-nowrap text-center">
+                              <span
+                                className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                  !isAvailable
+                                    ? "bg-gray-200 text-gray-700"
+                                    : statusLabel === "Completed"
+                                      ? "bg-green-100 text-green-700"
+                                      : statusLabel === "In Progress"
+                                        ? "bg-yellow-100 text-yellow-700"
+                                        : "bg-gray-100 text-gray-600"
+                                }`}
+                              >
+                                {statusLabel}
                               </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-start gap-2 md:items-end">
-                          {studentAttempt && (
-                            <div className="flex flex-wrap gap-3 text-[12px] text-gray-600">
-                              {studentAttempt.accuracy !== null && studentAttempt.accuracy !== undefined && (
-                                <span>
-                                  <span className="font-medium text-gray-800">
-                                    Accuracy:
-                                  </span>{" "}
-                                  {studentAttempt.accuracy.toFixed(1)}%
-                                </span>
+                            </td>
+                            <td className="px-2 py-4 whitespace-nowrap text-center text-xs text-gray-700">
+                              {studentAttempt?.score != null && studentAttempt?.totalScore != null
+                                ? `${studentAttempt.score}/${studentAttempt.totalScore}`
+                                : studentAttempt?.accuracy != null
+                                  ? `${studentAttempt.accuracy.toFixed(1)}%`
+                                  : "—"}
+                            </td>
+                            <td className="px-4 py-4 outfit-500 whitespace-nowrap text-right">
+                              {isAvailable ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigate(`/quiz-info/${quiz.classPersonalQuizID}`, {
+                                      state: {
+                                        classID,
+                                        classPersonalQuizID: quiz.classPersonalQuizID,
+                                        quiz: quiz,
+                                      },
+                                    });
+                                  }}
+                                  className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-orange-600"
+                                >
+                                  <i className="bx bx-caret-right text-sm" />
+                                  {studentAttempt && !studentAttempt.isCompleted
+                                    ? "Continue"
+                                    : studentAttempt?.isCompleted
+                                      ? "View Results"
+                                      : "Start Quiz"}
+                                </button>
+                              ) : (
+                                <span className="text-xs text-gray-400">—</span>
                               )}
-                              {studentAttempt.score !== null && studentAttempt.totalScore !== null && (
-                                <span>
-                                  <span className="font-medium text-gray-800">
-                                    Score:
-                                  </span>{" "}
-                                  {studentAttempt.score}/{studentAttempt.totalScore}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          {isAvailable && (
-                            <button
-                              onClick={() => {
-                                // Navigate to quiz info page first
-                                navigate(`/quiz-info/${quiz.classPersonalQuizID}`, {
-                                  state: {
-                                    classID,
-                                    classPersonalQuizID: quiz.classPersonalQuizID,
-                                    quiz: quiz,
-                                  },
-                                });
-                              }}
-                              className="mt-2 rounded-lg bg-blue-600 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-blue-700 md:mt-0"
-                            >
-                              {studentAttempt && !studentAttempt.isCompleted
-                                ? "Continue Quiz"
-                                : studentAttempt?.isCompleted
-                                ? "View Results"
-                                : "Start Quiz"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </>
           ) : activeTab === "history" ? (
@@ -467,238 +482,77 @@ const StudentClasses = () => {
                 </div>
               ) : (
                 <>
-                  <div className="outfit-500 mb-4 flex items-center justify-between">
-                    <p className="text-[14px] text-gray-600">
-                      {quizHistory.length}{" "}
-                      {quizHistory.length === 1
-                        ? "Completed Quiz"
-                        : "Completed Quizzes"}
-                    </p>
-                  </div>
+                  <div className="outfit-400 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    <div className="overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      <table className="w-full">
+                        <thead className="border-b border-gray-200 bg-white">
+                          <tr>
+                            <th className="px-4 py-2 w-[35%] text-left text-[14px] font-medium tracking-wider text-gray-600">
+                              Quiz Name
+                            </th>
+                            <th className="px-2 py-2 w-[15%] text-center text-[14px] font-medium tracking-wider text-gray-600">
+                              Best Score
+                            </th>
+                            <th className="px-2 py-2 w-[12%] text-center text-[14px] font-medium tracking-wider text-gray-600">
+                              Percentage
+                            </th>
+                            <th className="px-2 py-2 w-[10%] text-center text-[14px] font-medium tracking-wider text-gray-600">
+                              Attempts
+                            </th>
+                            <th className="px-2 py-2 w-[18%] text-center text-[14px] font-medium tracking-wider text-gray-600">
+                              Last Submitted
+                            </th>
+                            
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                          {quizHistory.map((item) => {
+                            const highest = item.highestAttempt;
+                            const pct =
+                              typeof highest?.percentage === "number"
+                                ? highest.percentage.toFixed(1)
+                                : parseFloat(highest?.percentage || 0).toFixed(1);
 
-                  <div className="space-y-3">
-                    {quizHistory.map((item) => {
-                      const isExpanded = expandedQuizzes.has(
-                        item.classPersonalQuizID
-                      );
-                      const hasMultipleAttempts =
-                        item.totalAttempts > 1;
-
-                      return (
-                        <div
-                          key={item.classPersonalQuizID}
-                          className="outfit rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                        >
-                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-start justify-between gap-2">
-                                <p className="text-[15px] font-semibold text-gray-900">
-                                  {item.quiz.title || "Untitled Quiz"}
-                                </p>
-                                {item.highestAttempt?.isPassed && (
-                                  <span className="rounded-full bg-green-100 px-2 py-1 text-[11px] font-medium text-green-700">
-                                    Passed
-                                  </span>
-                                )}
-                              </div>
-                              {item.quiz.description && (
-                                <p className="text-[13px] text-gray-600">
-                                  {item.quiz.description}
-                                </p>
-                              )}
-                              {item.quiz.subject && (
-                                <p className="text-[12px] text-gray-500">
-                                  {item.quiz.subject.subjectCode} -{" "}
-                                  {item.quiz.subject.subjectName}
-                                </p>
-                              )}
-                              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-gray-600">
-                                {item.assignment.startDate && (
-                                  <span>
-                                    <span className="font-medium text-gray-700">
-                                      Start:
-                                    </span>{" "}
-                                    {formatDate(item.assignment.startDate)}
-                                  </span>
-                                )}
-                                {item.assignment.deadlineDate && (
-                                  <span>
-                                    <span className="font-medium text-gray-700">
-                                      Deadline:
-                                    </span>{" "}
-                                    {formatDate(item.assignment.deadlineDate)}
-                                  </span>
-                                )}
-                                {hasMultipleAttempts && (
-                                  <span>
-                                    <span className="font-medium text-gray-700">
-                                      Attempts:
-                                    </span>{" "}
-                                    {item.totalAttempts}
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Highest Attempt Info */}
-                              {item.highestAttempt && (
-                                <div className="mt-3 rounded-lg bg-gray-50 p-3">
-                                  <div className="flex flex-wrap items-center gap-4 text-[12px]">
-                                    <div>
-                                      <span className="font-medium text-gray-700">
-                                        Best Score:
-                                      </span>{" "}
-                                      <span className="font-semibold text-gray-900">
-                                        {item.highestAttempt.score}/
-                                        {item.highestAttempt.total_score}
-                                      </span>
+                            return (
+                              <tr
+                                key={item.classPersonalQuizID}
+                                className="group transition-colors hover:bg-gray-50"
+                              >
+                                <td className="px-4 py-4 whitespace-nowrap">
+                                  <div className="flex flex-col">
+                                    <div className="text-sm font-semibold text-gray-900">
+                                      {item.quiz?.title || "Untitled Quiz"}
                                     </div>
-                                    <div>
-                                      <span className="font-medium text-gray-700">
-                                        Percentage:
-                                      </span>{" "}
-                                      <span className="font-semibold text-gray-900">
-                                        {typeof item.highestAttempt.percentage ===
-                                        "number"
-                                          ? item.highestAttempt.percentage.toFixed(
-                                              1
-                                            )
-                                          : parseFloat(
-                                              item.highestAttempt.percentage || 0
-                                            ).toFixed(1)}
-                                        %
-                                      </span>
-                                    </div>
-                                    {item.highestAttempt.time_taken_seconds && (
-                                      <div>
-                                        <span className="font-medium text-gray-700">
-                                          Time:
-                                        </span>{" "}
-                                        {formatTime(
-                                          item.highestAttempt.time_taken_seconds
-                                        )}
+                                    {item.quiz?.subject && (
+                                      <div className="mt-0.5 text-xs text-gray-500">
+                                        {item.quiz.subject.subjectCode} - {item.quiz.subject.subjectName}
                                       </div>
                                     )}
-                                    <div>
-                                      <span className="font-medium text-gray-700">
-                                        Submitted:
-                                      </span>{" "}
-                                      {formatDateTime(
-                                        item.highestAttempt.submitted_at
-                                      )}
-                                    </div>
                                   </div>
-                                </div>
-                              )}
-
-                              {/* All Attempts (Expandable) */}
-                              {hasMultipleAttempts && (
-                                <div className="mt-3">
-                                  <button
-                                    onClick={() =>
-                                      toggleQuizExpansion(
-                                        item.classPersonalQuizID
-                                      )
-                                    }
-                                    className="flex items-center gap-2 text-[12px] font-medium text-blue-600 hover:text-blue-700"
-                                  >
-                                    <i
-                                      className={`bx ${
-                                        isExpanded
-                                          ? "bx-chevron-up"
-                                          : "bx-chevron-down"
-                                      }`}
-                                    ></i>
-                                    {isExpanded
-                                      ? "Hide All Attempts"
-                                      : `Show All Attempts (${item.totalAttempts})`}
-                                  </button>
-
-                                  {isExpanded && (
-                                    <div className="mt-3 space-y-2 border-t border-gray-200 pt-3">
-                                      {item.allAttempts.map((attempt, idx) => (
-                                        <div
-                                          key={attempt.id || idx}
-                                          className={`rounded-lg border p-3 ${
-                                            attempt.attempt_number ===
-                                            item.highestAttempt?.attempt_number
-                                              ? "border-green-300 bg-green-50"
-                                              : "border-gray-200 bg-white"
-                                          }`}
-                                        >
-                                          <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                              <div className="flex items-center gap-2 mb-2">
-                                                <span className="text-[13px] font-semibold text-gray-800">
-                                                  Attempt {attempt.attempt_number}
-                                                </span>
-                                                {attempt.attempt_number ===
-                                                  item.highestAttempt
-                                                    ?.attempt_number && (
-                                                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
-                                                    Best
-                                                  </span>
-                                                )}
-                                                {attempt.isPassed && (
-                                                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
-                                                    Passed
-                                                  </span>
-                                                )}
-                                              </div>
-                                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-gray-600">
-                                                <span>
-                                                  <span className="font-medium text-gray-700">
-                                                    Score:
-                                                  </span>{" "}
-                                                  {attempt.score}/
-                                                  {attempt.total_score}
-                                                </span>
-                                                <span>
-                                                  <span className="font-medium text-gray-700">
-                                                    Percentage:
-                                                  </span>{" "}
-                                                  {typeof attempt.percentage ===
-                                                  "number"
-                                                    ? attempt.percentage.toFixed(
-                                                        1
-                                                      )
-                                                    : parseFloat(
-                                                        attempt.percentage || 0
-                                                      ).toFixed(1)}
-                                                  %
-                                                </span>
-                                                {attempt.time_taken_seconds && (
-                                                  <span>
-                                                    <span className="font-medium text-gray-700">
-                                                      Time:
-                                                    </span>{" "}
-                                                    {formatTime(
-                                                      attempt.time_taken_seconds
-                                                    )}
-                                                  </span>
-                                                )}
-                                                <span>
-                                                  <span className="font-medium text-gray-700">
-                                                    Submitted:
-                                                  </span>{" "}
-                                                  {formatDateTime(
-                                                    attempt.submitted_at
-                                                  )}
-                                                </span>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                                </td>
+                                <td className="px-2 py-4 whitespace-nowrap text-center text-xs text-gray-700">
+                                  {highest
+                                    ? `${highest.score}/${highest.total_score}`
+                                    : "—"}
+                                </td>
+                                <td className="px-2 py-4 whitespace-nowrap text-center text-xs text-gray-700">
+                                  {highest ? `${pct}%` : "—"}
+                                </td>
+                                <td className="px-2 py-4 whitespace-nowrap text-center text-xs text-gray-700">
+                                  {item.totalAttempts ?? "—"}
+                                </td>
+                                <td className="px-2 py-4 whitespace-nowrap text-center text-xs text-gray-600">
+                                  {highest?.submitted_at
+                                    ? formatDateTime(highest.submitted_at)
+                                    : "—"}
+                                </td>
+                                
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </>
               )}

@@ -100,7 +100,7 @@ const Sidebar = ({
   isSubjectExpanded,
   setIsSubjectExpanded,
 }) => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1025);
   const collegeLogo = new URL("/college-logo.png", import.meta.url).href;
   const [isSubjectFocused, setIsSubjectFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -145,7 +145,8 @@ const Sidebar = ({
 
   const location = useLocation();
   // Treat Libraries page, Archived Quiz page, and SubjectList pages as a "collapsed sidebar" layout (like Users used to be)
-  const isUsersPage = location.pathname === "/libraries" || 
+  const isUsersPage =
+    location.pathname === "/libraries" ||
     location.pathname === "/archived-quiz" ||
     location.pathname === "/dean/subjects" ||
     location.pathname === "/program-chair/subjects" ||
@@ -162,7 +163,7 @@ const Sidebar = ({
   }, [location]);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 640);
+    const handleResize = () => setIsMobile(window.innerWidth < 1025);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -172,7 +173,7 @@ const Sidebar = ({
       setIsExpanded(true);
       setIsOpen(true);
       if (typeof setIsSubjectFocused === "function") setIsSubjectFocused(true);
-      if (typeof setIsTabletOpen === "function" && window.innerWidth < 1024)
+      if (typeof setIsTabletOpen === "function" && window.innerWidth < 1025)
         setIsTabletOpen(true);
     };
     window.addEventListener("openSubjectSidebar", openSidebar);
@@ -545,14 +546,8 @@ const Sidebar = ({
   let menuItems = [];
 
   if (parsedRoleId === 1) {
-    // Student menu items
-    menuItems = [
-      ...baseMenuItems,
-      librariesItem,
-      sessionsItem,
-      classItem,
-      studentSubjectsItem,
-    ];
+    // Student menu items: Home, Sessions, Classes only
+    menuItems = [...baseMenuItems, sessionsItem, classItem];
   } else {
     // if NOT student
     menuItems = [...baseMenuItems];
@@ -618,93 +613,61 @@ const Sidebar = ({
       <>
         <div className="border-color fixed right-0 bottom-0 left-0 z-50 border-t bg-white px-6 py-2 min-[500px]:px-9">
           <div className="flex items-center justify-between">
-            {/* Left side - Users, Library, Class, and Export */}
-            <div className="flex items-center gap-5 min-[345px]:gap-8 min-[500px]:gap-18">
-              {menuItems
-                .filter(
-                  (item) =>
-                    item.label === "Users" ||
-                    item.label === "Export" ||
-                    item.label === "My Library" ||
-                    item.label === "Classes" ||
-                    (parsedRoleId === 1 && item.label !== "Subjects"),
-                )
-                .map((item, index) => (
-                  <div key={index} className="flex flex-col items-center">
-                    {item.isButton ? (
-                      <button
-                        onClick={item.onClick}
-                        className="flex flex-col items-center p-2 text-gray-700 transition-colors hover:text-gray-800"
-                      >
-                        {item.label === "Export" ? (
-                          <img
-                            src={PrintIcon}
-                            alt="Export"
-                            className="mb-[5px] h-6 w-6"
-                          />
-                        ) : (
-                          <i
-                            className={`bx ${item.icon} mb-[5px] text-2xl`}
-                          ></i>
-                        )}
-                        <span className="text-xs">{item.label}</span>
-                      </button>
-                    ) : (
-                      <Link
-                        to={item.path}
-                        onClick={handleMenuClick}
-                        className={`flex flex-col items-center p-2 transition-colors ${
-                          isActive(item.path)
-                            ? "text-orange-600"
-                            : "text-gray-700 hover:text-gray-800"
-                        }`}
-                      >
-                        {item.label === "My Library" ? (
-                          <span className="relative mb-[5px] h-6 w-6">
-                            <img
-                              src={
-                                isActive(item.path)
-                                  ? LibrariesIconH
-                                  : LibrariesIcon
-                              }
-                              alt="Library"
-                              className="absolute inset-0 h-6 w-6"
-                            />
-                          </span>
-                        ) : item.label === "Classes" ? (
-                          <span className="relative mb-[5px] h-6 w-6">
-                            <img
-                              src={isActive(item.path) ? ClassIconH : ClassIcon}
-                              alt="Class"
-                              className="absolute inset-0 h-6 w-6"
-                            />
-                          </span>
-                        ) : item.label === "Sessions" ? (
-                          <span className="relative flex-shrink-0">
-                            <img
-                              src={isItemActive ? SessionsIconH : SessionsIcon}
-                              alt="Sessions"
-                              className="size-[18px] flex-shrink-0"
-                            />
-                          </span>
-                        ) : item.label === "Users" ? (
-                          <span className="relative mb-[5px] h-6 w-6">
-                            <img
-                              src={isActive(item.path) ? UsersIconH : UsersIcon}
-                              alt="Users"
-                              className="absolute inset-0 h-6 w-6"
-                            />
-                          </span>
-                        ) : (
-                          <i
-                            className={`bx ${item.icon} mb-[5px] text-2xl`}
-                          ></i>
-                        )}
-                        <span className="text-xs">{item.label}</span>
-                      </Link>
-                    )}
-                  </div>
-                ))}
+            {/* Left side - My Library, Classes */}
+            <div className="flex items-center gap-5 min-[345px]:gap-8 sm:gap-10">
+              {(parsedRoleId === 1
+                ? [
+                    { label: "Sessions", path: "/sessions" },
+                    { label: "Classes", path: "/class" },
+                  ]
+                : [
+                    { label: "My Library", path: "/libraries" },
+                    { label: "Classes", path: "/class" },
+                  ]
+              ).map((item, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <Link
+                    to={item.path}
+                    onClick={handleMenuClick}
+                    className={`flex flex-col items-center p-2 transition-colors ${
+                      isActive(item.path)
+                        ? "text-orange-600"
+                        : "text-gray-700 hover:text-gray-800"
+                    }`}
+                  >
+                    {item.label === "My Library" ? (
+                      <span className="relative mb-[5px] h-6 w-6">
+                        <img
+                          src={
+                            isActive(item.path) ? LibrariesIconH : LibrariesIcon
+                          }
+                          alt="Library"
+                          className="absolute inset-0 h-6 w-6"
+                        />
+                      </span>
+                    ) : item.label === "Classes" ? (
+                      <span className="relative mb-[5px] h-6 w-6">
+                        <img
+                          src={isActive(item.path) ? ClassIconH : ClassIcon}
+                          alt="Class"
+                          className="absolute inset-0 h-6 w-6"
+                        />
+                      </span>
+                    ) : item.label === "Sessions" ? (
+                      <span className="relative flex-shrink-0">
+                        <img
+                          src={
+                            isActive(item.path) ? SessionsIconH : SessionsIcon
+                          }
+                          alt="Sessions"
+                          className="size-[18px] flex-shrink-0"
+                        />
+                      </span>
+                    ) : null}
+                    <span className="text-xs">{item.label}</span>
+                  </Link>
+                </div>
+              ))}
             </div>
 
             {/* Center - Dashboard with circle background */}
@@ -740,46 +703,36 @@ const Sidebar = ({
                 ))}
             </div>
 
-            {/* Right side - Subjects */}
-            <div className="flex items-center gap-5 hover:text-gray-800 min-[345px]:gap-8 min-[500px]:gap-18">
-              {/* Subjects for different roles */}
-              {parsedRoleId === 1 && (
-                <>
-                  <div className="-mt-[5px] flex flex-col items-center">
-                    <Link
-                      to="/student/subjects"
-                      onClick={handleMenuClick}
-                      className={`flex flex-col items-center transition-colors ${
-                        isActive("/student/subjects")
-                          ? "text-orange-600"
-                          : "text-gray-700 hover:text-gray-800"
-                      }`}
-                    >
-                      <span className="relative mb-[5px] h-6 w-6">
-                        <img
-                          src={
-                            isActive("/student/subjects")
-                              ? SubjectsIconH
-                              : SubjectsIcon
-                          }
-                          alt="Subjects"
-                          className="absolute inset-0 h-6 w-6"
-                        />
-                      </span>
-                    </Link>
+            {/* Right side - Users, Subjects (not shown for students) */}
+            <div className="flex items-center gap-5 min-[345px]:gap-8 sm:gap-10">
+              {parsedRoleId >= 2 && (
+                <div className="-mt-[5px] flex flex-col items-center">
+                  <Link
+                    to="/users"
+                    onClick={handleMenuClick}
+                    className={`flex flex-col items-center transition-colors ${
+                      isActive("/users")
+                        ? "text-orange-600"
+                        : "text-gray-700 hover:text-gray-800"
+                    }`}
+                  >
+                    <span className="relative mb-[5px] h-6 w-6">
+                      <img
+                        src={isActive("/users") ? UsersIconH : UsersIcon}
+                        alt="Users"
+                        className="absolute inset-0 h-6 w-6"
+                      />
+                    </span>
                     <span
                       className={`-mt-[6px] text-xs ${
-                        isActive("/student/subjects")
-                          ? "text-black"
-                          : "text-gray-600"
+                        isActive("/users") ? "text-black" : "text-gray-600"
                       }`}
                     >
-                      Subjects
+                      Users
                     </span>
-                  </div>
-                </>
+                  </Link>
+                </div>
               )}
-
               {(parsedRoleId === 5 || parsedRoleId === 4) && (
                 <>
                   <div className="-mt-[5px] flex flex-col items-center">
@@ -900,7 +853,7 @@ const Sidebar = ({
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className={`border-color fixed top-0 left-0 z-55 h-[100vh] border-r border-gray-200 bg-white  ${
+        className={`border-color fixed top-0 left-0 z-55 h-[100vh] border-r border-gray-200 bg-white ${
           isUsersPage ? "w-[63px]" : "w-[220px]"
         }`}
       >
@@ -908,8 +861,10 @@ const Sidebar = ({
         <div className="relative px-3 pt-3" ref={userDropdownRef}>
           <div
             onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-            className={`outfit-500 group flex w-full cursor-pointer items-center rounded-[8px]  transition-colors  ${
-              isUsersPage ? "justify-center px-2 py-1" : "py-2.5 gap-3 px-2 bg-[rgb(245,247,246)] hover:bg-gray-100"
+            className={`outfit-500 group flex w-full cursor-pointer items-center rounded-[8px] transition-colors ${
+              isUsersPage
+                ? "justify-center px-2 py-1"
+                : "gap-3 bg-[rgb(245,247,246)] px-2 py-2.5 hover:bg-gray-100"
             }`}
           >
             {/* Circle with initial */}
@@ -1058,8 +1013,10 @@ const Sidebar = ({
                   <Link
                     to={item.path}
                     onClick={handleMenuClick}
-                    className={`group flex cursor-pointer items-center rounded-lg  transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                      isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]" 
+                    className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
+                      isUsersPage
+                        ? "justify-center py-[10px]"
+                        : "justify-start py-[6px]"
                     } ${
                       isItemActive
                         ? "bg-gray-100 text-orange-600"
@@ -1143,14 +1100,15 @@ const Sidebar = ({
                       {!isUsersPage && (
                         <span
                           className={`outfit-500 text-[15px] whitespace-nowrap ${
-                            isItemActive ? "font-[18px] text-black" : "text-gray-600"
+                            isItemActive
+                              ? "font-[18px] text-black"
+                              : "text-gray-600"
                           }`}
                         >
                           {item.label}
                         </span>
                       )}
                     </div>
-
                   </Link>
                 </div>
               </li>
@@ -1183,7 +1141,9 @@ const Sidebar = ({
                       to="/dean/subjects"
                       onClick={handleMenuClick}
                       className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                        isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                        isUsersPage
+                          ? "justify-center py-[10px]"
+                          : "justify-start py-[6px]"
                       } ${
                         isActive("/dean/subjects")
                           ? "bg-gray-100 text-orange-600"
@@ -1212,7 +1172,8 @@ const Sidebar = ({
                         {!isUsersPage && (
                           <span
                             className={`outfit-500 text-[15px] whitespace-nowrap ${
-                              isActive("/dean/subjects") && activeMenu !== "Print"
+                              isActive("/dean/subjects") &&
+                              activeMenu !== "Print"
                                 ? "font-[18px] text-black"
                                 : "text-gray-600"
                             }`}
@@ -1353,7 +1314,9 @@ const Sidebar = ({
                       to="/dean/subjects"
                       onClick={handleMenuClick}
                       className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                        isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                        isUsersPage
+                          ? "justify-center py-[10px]"
+                          : "justify-start py-[6px]"
                       } ${
                         isActive("/dean/subjects")
                           ? "bg-gray-100 text-orange-600"
@@ -1382,7 +1345,8 @@ const Sidebar = ({
                         {!isUsersPage && (
                           <span
                             className={`outfit-500 text-[15px] whitespace-nowrap ${
-                              isActive("/dean/subjects") && activeMenu !== "Print"
+                              isActive("/dean/subjects") &&
+                              activeMenu !== "Print"
                                 ? "font-[18px] text-black"
                                 : "text-gray-600"
                             }`}
@@ -1412,7 +1376,9 @@ const Sidebar = ({
                         printButton.onClick();
                       }}
                       className={`group mt-[6px] mb-[6px] flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                        isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                        isUsersPage
+                          ? "justify-center py-[10px]"
+                          : "justify-start py-[6px]"
                       } ${
                         activeMenu === "Print" && showPrintModal
                           ? "bg-gray-100 text-orange-600"
@@ -1463,7 +1429,9 @@ const Sidebar = ({
                       navigate("/reports");
                     }}
                     className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                      isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                      isUsersPage
+                        ? "justify-center py-[10px]"
+                        : "justify-start py-[6px]"
                     } ${
                       activeMenu === "Reports"
                         ? "bg-gray-100 text-orange-600"
@@ -1518,7 +1486,8 @@ const Sidebar = ({
                   {/* Active left indicator - positioned outside */}
                   <span
                     className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                      isActive("/program-chair/subjects") && activeMenu !== "Print"
+                      isActive("/program-chair/subjects") &&
+                      activeMenu !== "Print"
                         ? "bg-orange-500"
                         : "bg-transparent"
                     }`}
@@ -1528,7 +1497,9 @@ const Sidebar = ({
                       to="/program-chair/subjects"
                       onClick={handleMenuClick}
                       className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                        isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                        isUsersPage
+                          ? "justify-center py-[10px]"
+                          : "justify-start py-[6px]"
                       } ${
                         isActive("/program-chair/subjects")
                           ? "bg-gray-100 text-orange-600"
@@ -1557,7 +1528,8 @@ const Sidebar = ({
                         {!isUsersPage && (
                           <span
                             className={`outfit-500 text-[15px] whitespace-nowrap ${
-                              isActive("/program-chair/subjects") && activeMenu !== "Print"
+                              isActive("/program-chair/subjects") &&
+                              activeMenu !== "Print"
                                 ? "font-[18px] text-black"
                                 : "text-gray-600"
                             }`}
@@ -1699,7 +1671,9 @@ const Sidebar = ({
                       to="/faculty/subjects"
                       onClick={handleMenuClick}
                       className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                        isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                        isUsersPage
+                          ? "justify-center py-[10px]"
+                          : "justify-start py-[6px]"
                       } ${
                         isActive("/dean/subjects")
                           ? "bg-gray-100 text-orange-600"
@@ -1728,7 +1702,8 @@ const Sidebar = ({
                         {!isUsersPage && (
                           <span
                             className={`outfit-500 text-[15px] whitespace-nowrap ${
-                              isActive("/dean/subjects") && activeMenu !== "Print"
+                              isActive("/dean/subjects") &&
+                              activeMenu !== "Print"
                                 ? "font-[18px] text-black"
                                 : "text-gray-600"
                             }`}
@@ -1758,7 +1733,9 @@ const Sidebar = ({
                         printButton.onClick();
                       }}
                       className={`group mt-[6px] mb-[6px] flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                        isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                        isUsersPage
+                          ? "justify-center py-[10px]"
+                          : "justify-start py-[6px]"
                       } ${
                         activeMenu === "Print" && showPrintModal
                           ? "bg-gray-100 text-orange-600"
@@ -1809,7 +1786,9 @@ const Sidebar = ({
                       navigate("/reports");
                     }}
                     className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                      isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                      isUsersPage
+                        ? "justify-center py-[10px]"
+                        : "justify-start py-[6px]"
                     } ${
                       activeMenu === "Reports"
                         ? "bg-gray-100 text-orange-600"
@@ -1848,76 +1827,6 @@ const Sidebar = ({
             </ul>
           </div>
         )}
-        {parsedRoleId === 1 && (
-          <div className="flex flex-col space-y-[5px]">
-            <div className="px-3">
-              <div className="mb-4 h-[1.5px] w-full bg-gray-200"></div>{" "}
-              {!isUsersPage && (
-                <div className="outfit-500 px-2 text-[12px] font-semibold text-gray-500">
-                  QUALIFYING EXAM{" "}
-                </div>
-              )}
-            </div>
-            <ul>
-              <li className="relative">
-                {/* Active left indicator - positioned outside */}
-                <span
-                  className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                    isActive("/student/subjects")
-                      ? "bg-orange-500"
-                      : "bg-transparent"
-                  }`}
-                ></span>
-                <div className="mt-1 px-3">
-                  <Link
-                    to="/student/subjects"
-                    onClick={handleMenuClick}
-                    className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                      isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
-                    } ${
-                      isActive("/student/subjects")
-                        ? "bg-gray-100 text-orange-600"
-                        : "hover:text-gray-800"
-                    }`}
-                  >
-                    {/* Icon + label wrapper with padding */}
-                    <div
-                      className={`flex items-center ${
-                        isUsersPage ? "justify-center" : "ml-3 gap-3"
-                      }`}
-                    >
-                      <span className="relative flex-shrink-0">
-                        <img
-                          src={
-                            isActive("/student/subjects")
-                              ? SubjectsIconH
-                              : SubjectsIcon
-                          }
-                          alt="Subjects"
-                          className={`${
-                            isUsersPage ? "size-[20px]" : "size-[18px]"
-                          } flex-shrink-0`}
-                        />
-                      </span>
-                      {!isUsersPage && (
-                        <span
-                          className={`outfit-500 text-[15px] whitespace-nowrap ${
-                            isActive("/student/subjects")
-                              ? "font-[18px] text-black"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          Subjects
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                </div>
-              </li>
-            </ul>
-          </div>
-        )}
-
         {/* Support button at the bottom */}
         <div className="absolute bottom-4 left-0 w-full">
           <div className="px-3">

@@ -52,7 +52,7 @@ const SortType = ({
           ref={buttonRef}
           type="button"
           onClick={handleOpenDropdown}
-          className={`border-color relative flex cursor-pointer items-center rounded-lg px-3 py-2`}
+          className={`border-color outfit-400 relative flex cursor-pointer items-center rounded-lg px-3 py-2 text-gray-700`}
         >
           <span className="truncate">
             {options.find(
@@ -63,14 +63,14 @@ const SortType = ({
               placeholder}
           </span>
           <i
-            className={`bx bx-chevron-down ml-2 text-[18px] text-gray-500 ${isOpen ? "rotate-180" : "rotate-0"}`}
+            className={`bx bx-chevron-down ml-2 text-[18px] text-gray-700 ${isOpen ? "rotate-180" : "rotate-0"}`}
           ></i>
         </button>
 
         {/* Dropdown Options */}
         {isOpen && (
           <ul
-            className={`animate-dropdown animate-fadein border-color absolute top-full right-0 z-50 mt-1 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm ${dropdownPosition === "bottom" ? "top-full mt-1" : "bottom-full mb-1"}`}
+            className={`animate-dropdown outfit-400 animate-fadein border-color absolute top-full right-0 z-50 mt-1 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm ${dropdownPosition === "bottom" ? "top-full mt-1" : "bottom-full mb-1"}`}
           >
             {options.map((option) => (
               <li
@@ -79,7 +79,7 @@ const SortType = ({
                   onChange({ target: { name, value: option.value } });
                   setIsOpen(false);
                 }}
-                className={`cursor-pointer rounded-sm px-3 py-[10px] text-[14px] text-black transition hover:bg-gray-200 ${
+                className={`mb-1 cursor-pointer rounded-sm px-3 py-[10px] text-[14px] text-gray-700 transition hover:bg-gray-100 ${
                   value === option.value || value === option.value + "_desc"
                     ? "text-orange-500"
                     : ""

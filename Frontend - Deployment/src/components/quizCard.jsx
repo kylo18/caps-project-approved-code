@@ -15,70 +15,141 @@ const QuizCard = ({
   onAssignToClassClick,
   onEditQuiz,
   onArchiveQuiz,
+  isLoading = false,
 }) => {
-  if (!quiz) return null;
+  const SkeletonLoader = () => (
+    <>
+      {/* Desktop skeleton - match SubjectCard */}
+      <div className="border-color relative z-51 mx-auto mb-6 hidden max-w-[1200px] overflow-hidden rounded-xl border border-b bg-white px-6 pt-6 pb-2 sm:block lg:max-w-[1200px]">
+        <div className="flex animate-pulse items-center space-x-4">
+          <div className="skeleton shimmer h-21 w-21 rounded-md"></div>
+          <div className="flex-1">
+            <div className="skeleton shimmer mb-2 h-8 w-1/2"></div>
+            <div className="skeleton shimmer h-4 w-2/8 rounded"></div>
+          </div>
+        </div>
+        <div className="outfit mt-2 mb-3 flex w-full flex-row items-center justify-between gap-4 font-semibold">
+          <div className="flex gap-2">
+            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
+            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
+          </div>
+          <div className="flex gap-2">
+            <div className="skeleton shimmer h-10 w-10 rounded-xl"></div>
+            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
+            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
+            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile skeleton - match SubjectCard */}
+      <div className="border-color relative z-48 -mx-2 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden">
+        <div className="flex flex-wrap items-start justify-between">
+          <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
+            <div className="skeleton shimmer mt-2 mb-2 ml-2 h-8 w-58 rounded"></div>
+            <div className="mt-2 ml-2 flex gap-1">
+              <div className="skeleton shimmer h-5 w-38 rounded"></div>
+            </div>
+          </div>
+          <div className="skeleton shimmer mt-1 size-20 rounded-md"></div>
+        </div>
+        <div className="outfit mt-7 flex w-full flex-row items-center justify-between gap-2 font-semibold">
+          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
+          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
+          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
+          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
+          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
+        </div>
+      </div>
+      <div className="border-color relative z-48 -mx-2 -mt-2 mb-5 h-12 overflow-visible border-b bg-gray-100 px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden"></div>
+    </>
+  );
+
+  if (!quiz && !isLoading) return null;
+  if (isLoading) {
+    return <SkeletonLoader />;
+  }
 
   const hasSubject = !!quiz.subject;
   const [showActionDropdown, setShowActionDropdown] = useState(false);
-  const actionButtonRef = useRef(null);
-  const actionDropdownRef = useRef(null);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const mobileActionButtonRef = useRef(null);
+  const desktopActionButtonRef = useRef(null);
+  const mobileActionDropdownRef = useRef(null);
+  const desktopActionDropdownRef = useRef(null);
+  const mobileSearchInputRef = useRef(null);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        actionDropdownRef.current &&
-        !actionDropdownRef.current.contains(event.target) &&
-        !actionButtonRef.current.contains(event.target)
-      ) {
-        setShowActionDropdown(false);
-      }
+    const handlePointerDownOutside = (event) => {
+      const target = event.target;
+
+      const dropdowns = [
+        mobileActionDropdownRef.current,
+        desktopActionDropdownRef.current,
+      ].filter(Boolean);
+      const buttons = [
+        mobileActionButtonRef.current,
+        desktopActionButtonRef.current,
+      ].filter(Boolean);
+
+      const isInsideDropdown = dropdowns.some((el) => el.contains(target));
+      const isInsideButton = buttons.some((el) => el.contains(target));
+
+      if (!isInsideDropdown && !isInsideButton) setShowActionDropdown(false);
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handlePointerDownOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("pointerdown", handlePointerDownOutside);
     };
   }, []);
 
+  useEffect(() => {
+    if (showMobileSearch && mobileSearchInputRef.current) {
+      mobileSearchInputRef.current.focus();
+    }
+  }, [showMobileSearch]);
+
   return (
     <>
-      {/* Top search bar (desktop & mobile) - same style as SubjectCard */}
-      <div className="outfit-500 relative mx-auto -mt-3 mb-5 w-full max-w-[1250px] px-2 text-[14px]">
-        <i className="bx bx-search absolute top-1/2 left-5 -translate-y-1/2 text-lg text-gray-500" />
-        <input
-          type="text"
-          placeholder="Search questions in this quiz..."
-          className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-          value={searchQuery || ""}
-          maxLength={50}
-          onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
-        />
-        {searchQuery && setSearchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute top-1/2 right-4 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
-            aria-label="Clear search"
-          >
-            <i className="bx bx-x text-xl" />
-          </button>
-        )}
+      {/* Top search bar (desktop only) - same style as SubjectCard */}
+      <div className="hidden md:block">
+        <div className="outfit-500 relative mx-auto -mt-3 mb-5 w-full max-w-[1250px] px-2 text-[14px]">
+          <i className="bx bx-search absolute top-1/2 left-5 -translate-y-1/2 text-lg text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search questions in this quiz..."
+            className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+            value={searchQuery || ""}
+            maxLength={50}
+            onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
+          />
+          {searchQuery && setSearchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute top-1/2 right-4 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
+              aria-label="Clear search"
+            >
+              <i className="bx bx-x text-xl" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Mobile & Tablet layout (matches SubjectCard structure) */}
-      <div className="border-color relative z-48 -mx-2 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
+      <div className="border-color relative z-48 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
         <div className="flex flex-wrap items-start justify-between sm:hidden">
           <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-            <h1 className="outfit mt-2 ml-2 text-[18px] font-bold break-words">
+            <h1 className="outfit-700 mt-2 ml-2 text-[18px] font-bold break-words">
               {quiz.title || "Untitled Quiz"}
             </h1>
-            <div className="mt-2 ml-2 flex gap-1 text-gray-500">
+            <div className="outfit-400 mt-2 ml-2 flex gap-1 text-gray-500">
               <i className="bx bx-book mt-[1px] text-lg"></i>
-              {quizTypeLabel && <p className="text-[14px]">{quizTypeLabel}</p>}
+              {quizTypeLabel && quizTypeLabel === "Custom" && (
+                <p className="text-[14px]">{quizTypeLabel}</p>
+              )}
               {hasSubject && (
                 <>
-                  <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
-                    •
-                  </span>
                   <p className="text-[14px]">
                     {quiz.subject.subjectCode || "-"}
                   </p>
@@ -107,17 +178,14 @@ const QuizCard = ({
             className="border-color mr-5 size-18 rounded-md border object-cover"
           />
           <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-            <h1 className="outfit text-[15px] font-bold break-words md:text-[18px]">
+            <h1 className="outfit-700 text-[15px] font-bold break-words md:text-[18px]">
               {quiz.title || "Untitled Quiz"}
             </h1>
-            <div className="mt-1 flex gap-1 text-gray-500">
+            <div className="outfit-400 mt-1 flex gap-1 text-gray-500">
               <i className="bx bx-book mt-[1px] text-lg"></i>
-              {quizTypeLabel && <p className="text-[14px]">{quizTypeLabel}</p>}
+
               {hasSubject && (
                 <>
-                  <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
-                    •
-                  </span>
                   <p className="text-[14px]">
                     {quiz.subject.subjectCode || "-"}
                   </p>
@@ -134,26 +202,43 @@ const QuizCard = ({
         </div>
 
         {/* Mobile / Tablet buttons, styled similarly to SubjectCard */}
-        <div className="outfit mt-7 mb-1 flex w-full flex-row flex-wrap items-center justify-between gap-2 font-semibold sm:flex md:hidden">
-          {/* Left side: Worksheet, Import, dropdown */}
+        <div className="mt-7 mb-1 flex w-full flex-row flex-wrap items-center gap-2 font-semibold sm:flex md:hidden">
+          <div className="outfit-500 flex flex-row flex-wrap items-center gap-2">
+            <button
+              onClick={() =>
+                alert("Quiz preview will be available in a future update.")
+              }
+              className="mb-3 flex cursor-pointer items-center gap-1 rounded-xl border border-b-3 border-orange-600 bg-orange-500 px-4 py-2 text-[12px] text-white transition-all duration-100 hover:bg-orange-600 active:translate-y-[2px] active:border-b-2"
+            >
+              <i className="bx bx-eye-big text-[15px]"></i>
+              <span>Preview</span>
+            </button>
+            <button
+              onClick={onSettingsClick}
+              className="border-color mb-3 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-[12px] text-gray-700 transition hover:bg-gray-100"
+            >
+              <i className="bx bx-cog text-[15px]"></i>
+              <span>Settings</span>
+            </button>
+          </div>
           <div className="flex flex-row flex-wrap items-center gap-2">
-            <button
-              onClick={onDownloadWorksheetClick}
-              className="border-color mb-3 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100"
-            >
-              <i className="bx bx-download text-lg"></i>
-              <span>Worksheet</span>
-            </button>
-            <button
-              onClick={onImportQuestionClick}
-              className="border-color mb-3 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100"
-            >
-              <i className="bx bx-import text-lg"></i>
-              <span>Import</span>
-            </button>
-            <div className="relative mb-3">
+            <div className="relative mb-3 flex items-center gap-2">
+              {/* Mobile search toggle button */}
+              {setSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setShowMobileSearch((prev) => !prev)}
+                  className="border-color flex cursor-pointer items-center justify-center rounded-xl border bg-white px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100"
+                  aria-label={showMobileSearch ? "Close search" : "Search in quiz"}
+                >
+                  <i
+                    className={`bx ${showMobileSearch ? "bx-x" : "bx-search"} text-[22px]`}
+                  ></i>
+                </button>
+              )}
               <button
-                ref={actionButtonRef}
+                ref={mobileActionButtonRef}
+                type="button"
                 onClick={() => setShowActionDropdown((prev) => !prev)}
                 className="border-color flex cursor-pointer items-center justify-center rounded-xl border bg-white px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100"
               >
@@ -161,20 +246,89 @@ const QuizCard = ({
               </button>
               {showActionDropdown && (
                 <div
-                  ref={actionDropdownRef}
-                  className="border-color animate-fadein absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-md border bg-white p-1 text-gray-700 shadow-lg"
+                  ref={mobileActionDropdownRef}
+                  className="border-color animate-fadein absolute top-10 right-0 z-50 mt-2 w-44 rounded-md border bg-white p-1 text-gray-700 shadow-lg"
                 >
                   <button
+                    type="button"
                     onClick={() => {
                       setShowActionDropdown(false);
-                      onAddQuestionClick && onAddQuestionClick();
+                      onImportQuestionClick && onImportQuestionClick();
                     }}
                     className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
                   >
-                    <i className="bx bx-plus text-base"></i>
-                    <span>Add Question</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-folder-input-icon lucide-folder-input"
+                    >
+                      <path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1" />
+                      <path d="M2 13h10" />
+                      <path d="m9 16 3-3-3-3" />
+                    </svg>
+                    <span>Import</span>
                   </button>
                   <button
+                    type="button"
+                    onClick={() => {
+                      setShowActionDropdown(false);
+                      onAssignToClassClick && onAssignToClassClick();
+                    }}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-book-marked-icon lucide-book-marked"
+                    >
+                      <path d="M10 2v8l3-3 3 3V2" />
+                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
+                    </svg>
+                    <span>Assign</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowActionDropdown(false);
+                      onDownloadWorksheetClick && onDownloadWorksheetClick();
+                    }}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-download-icon lucide-download"
+                    >
+                      <path d="M12 15V3" />
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <path d="m7 10 5 5 5-5" />
+                    </svg>
+                    <span>Worksheet</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => {
                       setShowActionDropdown(false);
                       onEditQuiz && onEditQuiz();
@@ -185,6 +339,7 @@ const QuizCard = ({
                     <span>Edit Quiz</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setShowActionDropdown(false);
                       onArchiveQuiz && onArchiveQuiz();
@@ -198,35 +353,39 @@ const QuizCard = ({
               )}
             </div>
           </div>
-
-          {/* Right side: Assign, Settings, Preview */}
-          <div className="flex flex-row flex-wrap items-center gap-2">
-            <button
-              onClick={onAssignToClassClick}
-              className="border-color mb-3 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100"
-            >
-              <i className="bx bx-group text-lg"></i>
-              <span>Assign</span>
-            </button>
-            <button
-              onClick={onSettingsClick}
-              className="border-color mb-3 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100"
-            >
-              <i className="bx bx-cog text-lg"></i>
-              <span>Settings</span>
-            </button>
-            <button
-              onClick={() =>
-                alert("Quiz preview will be available in a future update.")
-              }
-              className="border-color mb-3 flex cursor-pointer items-center gap-1 rounded-xl border border-b-4 border-orange-600 bg-orange-500 px-4 py-2 text-[14px] text-white transition-all duration-100 hover:bg-orange-600 active:translate-y-[2px] active:border-b-2"
-            >
-              <i className="bx bx-eye-big text-lg"></i>
-              <span>Preview</span>
-            </button>
-          </div>
         </div>
       </div>
+
+      {/* Mobile-only search bar below the card, similar placement to SubjectCard */}
+      {setSearchQuery && (
+        <div className="mt-3 mb-3 md:hidden">
+          {showMobileSearch && (
+            <div className="outfit-500 relative mx-auto w-full max-w-[1250px] px-2 text-[14px]">
+              <i className="bx bx-search absolute top-1/2 left-5 -translate-y-1/2 text-lg text-gray-500" />
+              <input
+                ref={mobileSearchInputRef}
+                type="text"
+                placeholder="Search questions in this quiz..."
+                className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+                value={searchQuery || ""}
+                maxLength={50}
+                onChange={(e) =>
+                  setSearchQuery && setSearchQuery(e.target.value)
+                }
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute top-1/2 right-4 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
+                  aria-label="Clear search"
+                >
+                  <i className="bx bx-x text-xl" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Desktop layout (matches SubjectCard desktop structure) */}
       <div className="border-color relative z-48 mx-auto -mt-3 hidden max-w-[1200px] overflow-visible border-b bg-white px-6 pt-6 pb-2 md:block">
@@ -334,7 +493,8 @@ const QuizCard = ({
           <div className="flex flex-row items-center gap-2">
             <div className="relative">
               <button
-                ref={actionButtonRef}
+                ref={desktopActionButtonRef}
+                type="button"
                 onClick={() => setShowActionDropdown((prev) => !prev)}
                 className="border-color flex cursor-pointer items-center justify-center rounded-xl border bg-white px-2 py-2 text-gray-700 transition hover:bg-gray-100"
               >
@@ -342,20 +502,11 @@ const QuizCard = ({
               </button>
               {showActionDropdown && (
                 <div
-                  ref={actionDropdownRef}
+                  ref={desktopActionDropdownRef}
                   className="outfit-500 border-color animate-fadein absolute right-0 z-50 mt-2 w-44 origin-top-left rounded-md border bg-white p-1 text-gray-700 shadow-lg"
                 >
                   <button
-                    onClick={() => {
-                      setShowActionDropdown(false);
-                      onAddQuestionClick && onAddQuestionClick();
-                    }}
-                    className="mb-1 flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
-                  >
-                    <i className="bx bx-plus text-base"></i>
-                    <span>Add Question</span>
-                  </button>
-                  <button
+                    type="button"
                     onClick={() => {
                       setShowActionDropdown(false);
                       onEditQuiz && onEditQuiz();
@@ -366,6 +517,7 @@ const QuizCard = ({
                     <span>Edit Quiz</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setShowActionDropdown(false);
                       onArchiveQuiz && onArchiveQuiz();
@@ -390,14 +542,13 @@ const QuizCard = ({
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2.25"
+                stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                class="lucide lucide-bookmark-plus-icon lucide-bookmark-plus"
+                class="lucide lucide-book-marked-icon lucide-book-marked"
               >
-                <path d="M12 7v6" />
-                <path d="M15 10H9" />
-                <path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" />
+                <path d="M10 2v8l3-3 3 3V2" />
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
               </svg>
               <span>Assign</span>
             </button>

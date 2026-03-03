@@ -1,10 +1,78 @@
 import React, { useState, useRef, useEffect } from "react";
-import CustomDropdown from "./customDropdown";
 import WarnOnExit from "../hooks/WarnOnExit";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
+import ImageSelectionModal from "./ImageSelectionModal";
 
-// Edit Question Form
+// Compact Header Dropdown Component
+const HeaderDropdown = ({
+  name,
+  value,
+  onChange,
+  options,
+  show = true,
+  label,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  if (!show) return null;
+
+  const selectedOption = options.find((opt) => opt.value === value);
+
+  return (
+    <div className="flex items-center gap-2">
+      {label && <span className="text-[14px] text-gray-700">{label}</span>}
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="mr-3 flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-1 text-[14px] transition-all duration-100 outline-none focus:border focus:border-orange-500"
+        >
+          <span className="flex-1 text-center">
+            {selectedOption?.label || options[0]?.label}
+          </span>
+          <i
+            className={`bx text-sm ${isOpen ? "bx-caret-up" : "bx-caret-down"}`}
+          />
+        </button>
+
+        {isOpen && (
+          <ul className="absolute top-full right-0 z-50 mt-1 mr-3 w-40 rounded-md border border-gray-200 bg-white p-1 shadow-lg">
+            {options.map((option) => (
+              <li
+                key={option.value}
+                onClick={() => {
+                  onChange({ target: { name, value: option.value } });
+                  setIsOpen(false);
+                }}
+                className={`cursor-pointer rounded-sm px-3 py-2 text-[14px] transition hover:bg-gray-100 ${
+                  value === option.value
+                    ? "bg-gray-50 text-orange-500"
+                    : "text-gray-700"
+                }`}
+              >
+                {option.label}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Edit Question Form - matches AddQuestionForm design and function
 const EditQuestionForm = ({
   question,
   onComplete,
@@ -13,39 +81,34 @@ const EditQuestionForm = ({
 }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const { toast, showToast } = useToast();
-  const [showTip, setShowTip] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
+  const [isStrikethrough, setIsStrikethrough] = useState(false);
   const fileInputRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(question.image || null);
   const [focusedChoice, setFocusedChoice] = useState(null);
   const [choiceModalImage, setchoiceModalImage] = useState(null);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [error, setError] = useState(null);
+  const choiceEditors = useRef({});
   const [animatingChoice, setAnimatingChoice] = useState(null);
+  const [isImageSelectionModalOpen, setIsImageSelectionModalOpen] =
+    useState(false);
+  const [imageSelectionType, setImageSelectionType] = useState(null);
+  const [choiceImagePreviews, setChoiceImagePreviews] = useState({});
 
-  // Prevent background scrolling when Edit Question Form modal is open
-  useEffect(() => {
-    // The modal is always open when this component is rendered
-    document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.width = "100%";
+  const sortedChoices = question.choices
+    .filter((c) => c.position <= 4)
+    .sort((a, b) => a.position - b.position);
+  const noneChoice = question.choices.find((c) => c.position === 5);
 
-    // Cleanup function to restore scrolling when component unmounts
-    return () => {
-      document.body.style.overflow = "unset";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    };
-  }, []);
-
-  // Replace formData state with separate form and choices states
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     coverage_id: question.coverage_id,
     questionText: question.questionText,
     image: null,
@@ -54,49 +117,62 @@ const EditQuestionForm = ({
     difficulty_id: question.difficulty_id,
     status_id: question.status_id,
     purpose_id: question.purpose_id,
-  });
-
-  const [choices, setChoices] = useState(
-    question.choices
-      .filter((choice) => choice.position <= 4) // Only get first 4 choices, excluding "None of the above"
-      .sort((a, b) => a.position - b.position) // Sort by position
-      .map((choice) => ({
-        choiceID: choice.choiceID,
-        choiceText: choice.choiceText,
-        isCorrect: choice.isCorrect,
-        image: choice.image || null,
-        position: choice.position,
-      }))
-      .concat([
-        {
-          choiceID: question.choices.find((c) => c.position === 5)?.choiceID,
+    choices: [
+      ...sortedChoices.map((c) => ({
+        choiceID: c.choiceID,
+        choiceText: c.choiceText,
+        isCorrect: c.isCorrect,
+        image: c.image || null,
+        position: c.position,
+      })),
+      {
+        choiceID: noneChoice?.choiceID,
           choiceText: "None of the above",
-          isCorrect:
-            question.choices.find((c) => c.position === 5)?.isCorrect || false,
+        isCorrect: noneChoice?.isCorrect || false,
           image: null,
           position: 5,
           isFixed: true,
         },
-      ]),
-  );
+    ],
+  });
 
-  // Set initial editor content
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.width = "100%";
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview && typeof imagePreview === "string" && imagePreview.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      Object.values(choiceImagePreviews).forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+    };
+  }, [imagePreview, choiceImagePreviews]);
+
   useEffect(() => {
     if (editorRef.current) {
-      editorRef.current.innerHTML = question.questionText;
+      editorRef.current.innerHTML = question.questionText || "";
     }
-  }, [question.questionText]);
+  }, [question.questionID]);
 
-  WarnOnExit({ ...form, choices });
+  WarnOnExit(formData);
 
-  // Question text formatting handlers
   useEffect(() => {
     const handleSelectionChange = () => {
       setIsBold(document.queryCommandState("bold"));
       setIsItalic(document.queryCommandState("italic"));
       setIsUnderline(document.queryCommandState("underline"));
+      setIsStrikethrough(document.queryCommandState("strikeThrough"));
     };
-
     document.addEventListener("selectionchange", handleSelectionChange);
     return () =>
       document.removeEventListener("selectionchange", handleSelectionChange);
@@ -105,7 +181,10 @@ const EditQuestionForm = ({
   const handleFormat = (command, setState) => {
     document.execCommand(command, false, null);
     setState(document.queryCommandState(command));
-    editorRef.current.focus();
+    if (editorRef.current) {
+      editorRef.current.style.textAlign = "center";
+    }
+    editorRef.current?.focus();
   };
 
   const checkFormatting = () => {
@@ -113,6 +192,7 @@ const EditQuestionForm = ({
       setIsBold(document.queryCommandState("bold"));
       setIsItalic(document.queryCommandState("italic"));
       setIsUnderline(document.queryCommandState("underline"));
+      setIsStrikethrough(document.queryCommandState("strikeThrough"));
     }, 10);
   };
 
@@ -121,110 +201,261 @@ const EditQuestionForm = ({
       editorRef.current.addEventListener("focus", () => setIsFocused(true));
       editorRef.current.addEventListener("blur", () => setIsFocused(false));
       editorRef.current.addEventListener("mouseup", checkFormatting);
-      editorRef.current.addEventListener("keyup", checkFormatting);
+      editorRef.current.addEventListener("keyup", () => {
+        checkFormatting();
+        if (editorRef.current) editorRef.current.style.textAlign = "center";
+      });
+      editorRef.current.style.textAlign = "center";
+      autoExpandEditor(editorRef.current);
     }
   }, []);
 
-  // Update handleQuestionChange
+  useEffect(() => {
+    if (editorRef.current && formData.questionText) {
+      autoExpandEditor(editorRef.current);
+    }
+  }, [formData.questionText]);
+
+  useEffect(() => {
+    formData.choices.forEach((choice, index) => {
+      const editor = choiceEditors.current[index];
+      if (editor) {
+        const currentHTML = editor.innerHTML?.trim() || "";
+        const newHTML = (choice.choiceText || "").trim();
+        if (currentHTML !== newHTML) {
+          editor.innerHTML = newHTML || "";
+        }
+        autoExpandTextarea(editor);
+      }
+    });
+  }, [formData.choices]);
+
   const handleQuestionChange = (e) => {
     const { name, value, files } = e.target;
-    if (name === "image" && files && files[0]) {
+    if (name === "image" && files?.[0]) {
       const file = files[0];
-      setForm((prev) => ({ ...prev, image: file, remove_image: false }));
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
+      setFormData((prev) => ({ ...prev, image: file, remove_image: false }));
+      setImagePreview(URL.createObjectURL(file));
     } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  // Add function to handle image removal
-  const handleRemoveImage = () => {
-    setForm((prev) => ({ ...prev, image: null, remove_image: true }));
+  const handleRemoveQuestionImage = () => {
+    setFormData((prev) => ({ ...prev, image: null, remove_image: true }));
     setImagePreview(null);
   };
 
-  // Update handleChoiceChange
-  const handleChoiceChange = (index, field, value) => {
-    const updated = [...choices];
-    if (field === "isCorrect") {
-      // When setting a choice as correct, ensure all others are false
-      updated.forEach((choice, i) => {
-        if (i !== index) choice.isCorrect = false;
+  const handleImageSelected = (file) => {
+    if (imageSelectionType === "question") {
+      setFormData((prev) => ({ ...prev, image: file, remove_image: false }));
+      setImagePreview(URL.createObjectURL(file));
+      setIsImageSelectionModalOpen(false);
+      setImageSelectionType(null);
+    } else if (typeof imageSelectionType === "number") {
+      const index = imageSelectionType;
+      if (choiceImagePreviews[index]) {
+        URL.revokeObjectURL(choiceImagePreviews[index]);
+      }
+      const previewUrl = URL.createObjectURL(file);
+      setFormData((prev) => {
+        const updated = [...prev.choices];
+      updated[index] = {
+        ...updated[index],
+          image: file,
+          choiceText: "",
+          position: index + 1,
+        };
+        return { ...prev, choices: updated };
       });
-      updated[index].isCorrect = value;
-    } else if (field === "choiceText") {
-      // When updating text, clear the image
-      updated[index] = {
-        ...updated[index],
-        [field]: value,
-        image: null, // Clear the image when text is entered
-        position: index + 1, // Maintain position
-      };
-    } else {
-      updated[index] = {
-        ...updated[index],
-        [field]: value,
-        position: index + 1, // Maintain position
-      };
+      setChoiceImagePreviews((prev) => ({ ...prev, [index]: previewUrl }));
+      const editor = choiceEditors.current[index];
+      if (editor) editor.innerHTML = "";
+      setIsImageSelectionModalOpen(false);
+      setImageSelectionType(null);
     }
-    setChoices(updated);
   };
 
-  // Update handleChoiceImageUpload
+  const handleChoiceChange = (index, field, value) => {
+    const updated = [...formData.choices];
+    if (field === "isCorrect" && value) {
+      updated.forEach((c, i) => {
+        if (i !== index) c.isCorrect = false;
+      });
+    }
+      updated[index] = {
+        ...updated[index],
+        [field]: value,
+      position: index + 1,
+      };
+    setFormData((prev) => ({ ...prev, choices: updated }));
+  };
+
   const handleChoiceImageUpload = (index, event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const updated = [...choices];
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (choiceImagePreviews[index]) {
+      URL.revokeObjectURL(choiceImagePreviews[index]);
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setFormData((prev) => {
+      const updated = [...prev.choices];
       updated[index] = {
         ...updated[index],
         image: file,
         choiceText: "",
-        position: index + 1, // Maintain position
+        position: index + 1,
       };
-      setChoices(updated);
-    }
+      return { ...prev, choices: updated };
+    });
+    setChoiceImagePreviews((prev) => ({ ...prev, [index]: previewUrl }));
+    const editor = choiceEditors.current[index];
+    if (editor) editor.innerHTML = "";
+    event.target.value = "";
   };
 
-  // Update removeChoiceImage
   const removeChoiceImage = (index) => {
-    const updated = [...choices];
+    if (choiceImagePreviews[index]) {
+      URL.revokeObjectURL(choiceImagePreviews[index]);
+      setChoiceImagePreviews((prev) => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
+    }
+    setFormData((prev) => {
+      const updated = [...prev.choices];
     updated[index] = {
       ...updated[index],
       image: null,
-      choiceText: "",
-      isCorrect: updated[index].isCorrect,
-      choiceID: updated[index].choiceID,
-      position: index + 1, // Maintain position
-    };
-    setChoices(updated);
+        position: index + 1,
+      };
+      return { ...prev, choices: updated };
+    });
   };
 
-  // Update handleSubmit
+  const getTextLength = (html) => {
+    if (!html) return 0;
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = html;
+    return (tempDiv.textContent || tempDiv.innerText || "").length;
+  };
+
+  const autoExpandEditor = (element) => {
+    if (element) {
+      element.style.height = "auto";
+      element.style.height = `${Math.max(120, element.scrollHeight)}px`;
+      element.style.maxWidth = "100%";
+    }
+  };
+
+  const autoExpandTextarea = (element) => {
+    if (element) {
+      element.style.height = "auto";
+      element.style.height = `${Math.max(40, element.scrollHeight)}px`;
+    }
+  };
+
+  const cleanPastedHTML = (html) => {
+    if (!html) return "";
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = html;
+    const allElements = tempDiv.querySelectorAll("*");
+    allElements.forEach((el) => {
+      el.style.backgroundColor = "";
+      el.style.background = "";
+      el.style.color = "";
+      el.style.fontFamily = "";
+      el.style.fontSize = "";
+      el.style.fontWeight = "";
+      el.style.fontStyle = "";
+      el.style.transform = "";
+      el.style.webkitTransform = "";
+      el.style.mozTransform = "";
+      el.style.msTransform = "";
+      el.style.direction = "";
+      el.style.writingMode = "";
+      el.style.textOrientation = "";
+      el.style.unicodeBidi = "";
+      const style = el.getAttribute("style");
+      if (style) {
+        const cleanedStyle = style
+          .split(";")
+          .filter((prop) => {
+            const propName = prop.split(":")[0].trim().toLowerCase();
+            return ![
+              "background",
+              "background-color",
+              "color",
+              "font-family",
+              "font-size",
+              "font-weight",
+              "font-style",
+              "transform",
+              "webkit-transform",
+              "moz-transform",
+              "ms-transform",
+              "direction",
+              "writing-mode",
+              "text-orientation",
+              "unicode-bidi",
+            ].includes(propName);
+          })
+          .join(";");
+        el.setAttribute("style", cleanedStyle || "");
+        if (!cleanedStyle) el.removeAttribute("style");
+      }
+      el.removeAttribute("bgcolor");
+      el.removeAttribute("face");
+      el.removeAttribute("size");
+      el.removeAttribute("dir");
+    });
+    let cleanedHTML = tempDiv.innerHTML;
+    cleanedHTML = cleanedHTML.replace(/\r?\n/g, " ").replace(/\r/g, " ");
+    cleanedHTML = cleanedHTML.replace(/[ \t]+/g, " ");
+    return cleanedHTML;
+  };
+
+  const isEditorEmpty = () => {
+    if (!editorRef.current) return true;
+    const c =
+      editorRef.current.textContent || editorRef.current.innerText || "";
+    return c.trim() === "";
+  };
+
+  const choiceColors = [
+    "bg-white border border-gray-300",
+    "bg-gray-100 border border-gray-300",
+    "bg-white border border-gray-300",
+    "bg-gray-100 border border-gray-300",
+    "bg-white border border-gray-300",
+  ];
+
+  const handleCloseForm = () => {
+    setIsBold(false);
+    setIsItalic(false);
+    setIsUnderline(false);
+    setIsStrikethrough(false);
+    onCancel();
+  };
+
   const handleSubmit = async () => {
     setError(null);
     const formattedQuestionText = editorRef.current?.innerHTML?.trim() || "";
 
-    // Validate question
     if (!formattedQuestionText || formattedQuestionText === "<br>") {
       setError("Please enter a question before submitting.");
       showToast("Please enter a question before submitting.", "error");
       return;
     }
 
-    // Validate choices
-    if (choices.length !== 5) {
-      setError("Exactly 5 choices are required.");
-      showToast("Exactly 5 choices are required.", "error");
-      return;
-    }
-
+    const choicesToValidate = formData.choices.slice(0, 4);
     if (
-      !choices.every((choice) => {
-        // If there's an image (either File object or URL string), it's valid
-        if (choice.image) return true;
-        // Otherwise, check if there's non-empty text
-        return choice.choiceText && choice.choiceText.trim() !== "";
+      !choicesToValidate.every((choice) => {
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = choice.choiceText || "";
+        const textContent = tempDiv.textContent || tempDiv.innerText || "";
+        return textContent.trim() !== "" || choice.image;
       })
     ) {
       setError("Each choice must have either text or an image.");
@@ -232,105 +463,75 @@ const EditQuestionForm = ({
       return;
     }
 
-    // Check if exam questions are enabled for qualifying exam questions
-    if (form.purpose_id === 1 && !propIsExamQuestionsEnabled) {
-      setError(
-        "Adding of qualifying exam questions is currently disabled by the Dean",
-      );
-      showToast(
-        "Adding of qualifying exam questions is currently disabled by the Dean",
-        "error",
-      );
+    const correctChoices = formData.choices.filter((c) => c.isCorrect);
+    if (correctChoices.length !== 1) {
+      setError("Please select exactly one correct answer.");
+      showToast("Please select exactly one correct answer.", "error");
       return;
     }
 
-    // Check if any choice is correct
-    const hasCorrectChoice = choices.some((choice) => choice.isCorrect);
-    if (!hasCorrectChoice) {
-      // If no choice is correct, we'll let the backend handle setting "None of the above" as correct
-      // Just ensure all choices are marked as incorrect
-      const updatedChoices = choices.map((choice) => ({
-        ...choice,
-        isCorrect: false,
-      }));
-      setChoices(updatedChoices);
+    if (formData.purpose_id === 1 && !propIsExamQuestionsEnabled) {
+      setError(
+        "Adding of qualifying exam questions is currently disabled by the Dean"
+      );
+      showToast(
+        "Adding of qualifying exam questions is currently disabled by the Dean",
+        "error"
+      );
+      return;
     }
 
     setIsLoading(true);
     const token = sessionStorage.getItem("token");
 
     try {
-      // Prepare question data
       const questionData = new FormData();
-      // Add question text from editor
       questionData.append("questionText", formattedQuestionText);
-
-      // Add all other form fields
-      Object.entries(form).forEach(([key, val]) => {
-        if (val !== null && val !== undefined) {
-          if (key === "remove_image") {
-            questionData.append(key, val ? "1" : "0");
-          } else {
-            questionData.append(key, val);
-          }
-        }
-      });
-
-      // Log questionData for debugging
-      for (let pair of questionData.entries()) {
-        console.log("questionData", pair[0], pair[1]);
+      questionData.append("coverage_id", formData.coverage_id);
+      questionData.append("score", formData.score);
+      questionData.append("difficulty_id", formData.difficulty_id);
+      questionData.append("status_id", formData.status_id);
+      questionData.append("purpose_id", formData.purpose_id);
+      questionData.append("remove_image", formData.remove_image ? "1" : "0");
+      if (formData.image instanceof File) {
+        questionData.append("image", formData.image);
       }
 
-      // Update question
       const questionResponse = await fetch(
         `${apiUrl}/questions/update/${question.questionID}`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: questionData,
-        },
+        }
       );
 
-      console.log("questionResponse status", questionResponse.status);
       if (!questionResponse.ok) {
-        const errorData = await questionResponse.json();
-        console.error("questionResponse error", errorData);
-        throw new Error(errorData.message || "Failed to update question.");
+        const errData = await questionResponse.json();
+        throw new Error(errData.message || "Failed to update question.");
       }
 
-      // Update choices
       const choicesData = new FormData();
       choicesData.append("questionID", question.questionID);
 
-      // Only send the first 5 choices, sorted by position
-      const sortedChoices = [...choices].sort(
-        (a, b) => a.position - b.position,
-      );
-
-      sortedChoices.forEach((choice, i) => {
-        // Only include necessary fields
+      formData.choices.forEach((choice, i) => {
         if (choice.choiceID) {
           choicesData.append(`choices[${i}][choiceID]`, choice.choiceID);
         }
         choicesData.append(
           `choices[${i}][choiceText]`,
-          choice.choiceText || "",
+          (choice.choiceText || "").trim()
         );
         choicesData.append(
           `choices[${i}][isCorrect]`,
-          choice.isCorrect ? "1" : "0",
+          choice.isCorrect ? "1" : "0"
         );
         if (choice.image instanceof File) {
           choicesData.append(`choices[${i}][image]`, choice.image);
-        } else if (choice.image) {
+        } else if (choice.image && typeof choice.image === "string") {
           choicesData.append(`choices[${i}][image]`, choice.image);
         }
       });
-
-      // Log choicesData for debugging
-      for (let pair of choicesData.entries()) {
-        console.log("choicesData", pair[0], pair[1]);
-      }
 
       const choicesResponse = await fetch(`${apiUrl}/choices/update`, {
         method: "POST",
@@ -338,116 +539,121 @@ const EditQuestionForm = ({
         body: choicesData,
       });
 
-      console.log("choicesResponse status", choicesResponse.status);
       if (!choicesResponse.ok) {
-        let errorText = await choicesResponse.text();
-        console.error("choicesResponse error", errorText);
-        throw new Error("Failed to update choices. Response: " + errorText);
+        const errText = await choicesResponse.text();
+        throw new Error("Failed to update choices. " + errText);
       }
 
       showToast("Question updated successfully!", "success");
       onComplete();
     } catch (err) {
       console.error("Error updating:", err);
-      setError(
-        err.message || "Something went wrong while updating the question.",
-      );
+      setError(err.message || "Something went wrong while updating the question.");
       showToast(
         err.message || "Something went wrong while updating the question.",
-        "error",
+        "error"
       );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Helper function to check if editor is empty
-  const isEditorEmpty = () => {
-    if (!editorRef.current) return true;
-    const content =
-      editorRef.current.textContent || editorRef.current.innerText || "";
-    return content.trim() === "";
+  const getChoiceImageSrc = (choice, index) => {
+    if (choiceImagePreviews[index]) return choiceImagePreviews[index];
+    if (choice.image instanceof File) return URL.createObjectURL(choice.image);
+    return choice.image;
   };
 
   return (
     <>
-      <div className="outfit lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
-        <div className="scrollbar-hide animate-fade-in-up flex h-[100%] overflow-y-auto sm:h-[99%]">
-          <div className="flex-1">
+      <div className="outfit lightbox-bg fixed inset-0 z-105 flex flex-col overflow-hidden bg-gray-100 animate-slide-up">
             {/* Header */}
-            <div className="border-color relative mx-auto max-w-5xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-800 shadow-lg sm:rounded-t-md md:w-[110vh] lg:w-[135vh]">
-              <div className="flex items-center justify-between pr-4">
-                <span className="text-[14px] font-semibold">EDIT QUESTION</span>
+        <div className="outfit-400 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
+          <div className="flex items-center gap-4">
                 <button
-                  onClick={onCancel}
-                  className="-mr-3 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-gray-500 transition duration-100 hover:bg-gray-100 hover:text-gray-700"
+              onClick={handleCloseForm}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl text-gray-800 transition duration-100 hover:bg-gray-100 hover:text-gray-800"
                 >
-                  <i className="bx bx-x text-2xl"></i>
+              <i className="bx bx-arrow-left-stroke text-2xl"></i>
                 </button>
+            <span className="text-[16px] font-medium text-gray-800">
+              Edit Question
+            </span>
               </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="flex cursor-pointer items-center gap-2 rounded-lg bg-gray-200 px-3 py-1.5 text-[14px] font-medium text-gray-700 transition hover:bg-gray-300 md:hidden"
+            >
+              <i className="bx bx-cog text-[18px]"></i>
+            </button>
+
+            <div className="hidden items-center gap-4 md:flex">
+              <HeaderDropdown
+                name="difficulty_id"
+                value={formData.difficulty_id}
+                onChange={handleQuestionChange}
+                options={[
+                  { value: 1, label: "Easy" },
+                  { value: 2, label: "Moderate" },
+                  { value: 3, label: "Hard" },
+                ]}
+                show={true}
+                label="Difficulty"
+              />
+              <HeaderDropdown
+                name="coverage_id"
+                value={formData.coverage_id}
+                onChange={handleQuestionChange}
+                options={[
+                  { value: 1, label: "Midterms" },
+                  { value: 2, label: "Finals" },
+                ]}
+                show={true}
+                label="Coverage"
+              />
+              <HeaderDropdown
+                name="purpose_id"
+                value={formData.purpose_id}
+                onChange={handleQuestionChange}
+                options={[
+                  { value: 2, label: "Practice" },
+                  { value: 1, label: "Qualifying Exam" },
+                ]}
+                show={true}
+                label="Purpose"
+              />
             </div>
-            {/* Question Card */}
-            <div className="border-color relative mx-auto mb-3 w-full max-w-5xl border border-t-0 bg-white p-5 shadow-lg sm:rounded-b-md sm:px-5 md:w-[110vh] lg:w-[135vh]">
-              {/* Question Header */}
-              <div className="flex items-start gap-3">
-                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
-                  1
-                </div>
-                <div>
-                  <h3 className="text-[14px] font-semibold text-black">
-                    Write your question
-                  </h3>
-                  <p className="text-[12px] text-gray-500">
-                    Input your question in the designated field.
-                  </p>
-                </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className={`flex cursor-pointer items-center gap-2 rounded-lg bg-orange-500 px-4 py-1.5 text-[14px] font-medium text-white transition ${
+                isLoading ? "cursor-not-allowed bg-orange-500" : "hover:bg-orange-600"
+              }`}
+            >
+              <i className="bx bx-save text-[18px]"></i>
+              <span className="hidden sm:inline">
+                {isLoading ? "Saving..." : "Update"}
+              </span>
+            </button>
+          </div>
               </div>
 
-              {/* Question Input */}
-              <div
-                className={`relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-text hover:bg-gray-200 ${isFocused ? "bg-gray-200" : ""}`}
-                onClick={() => editorRef.current.focus()}
-              >
-                <div
-                  className={`absolute top-1/2 left-0 rounded-l-sm bg-orange-500 transition-all duration-200 ${isFocused ? "animate-expand-border h-full" : "h-0"}`}
-                  style={{ width: "4px", transform: "translateY(-50%)" }}
-                ></div>
-
-                {!isFocused && isEditorEmpty() && (
-                  <span className="pointer-events-none absolute top-[14px] left-4 text-[14px] text-gray-400">
-                    Enter question...
-                  </span>
-                )}
-
-                <div
-                  ref={editorRef}
-                  contentEditable
-                  className="mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words break-all whitespace-pre-wrap focus:border-orange-500 focus:outline-none"
-                  suppressContentEditableWarning={true}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
-                  onInput={(e) => {
-                    setForm((prev) => ({
-                      ...prev,
-                      questionText: e.target.innerHTML,
-                    }));
-                    e.target.style.height = "auto";
-                    e.target.style.height = `${e.target.scrollHeight}px`;
-                  }}
-                ></div>
-              </div>
-
-              {/* Text Formatting Options */}
-              <div className="mt-3 ml-5 flex gap-5 text-[24px] text-[rgb(120,120,120)] sm:gap-6">
+        {/* Text Formatting Bar */}
+        <div className="flex h-12 items-center justify-between border-b border-gray-300 bg-gray-50 px-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 text-[20px] text-gray-600">
                 <button
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     handleFormat("bold", setIsBold);
                   }}
-                  className={`cursor-pointer hover:text-gray-900 ${isBold ? "font-bold text-orange-500" : ""}`}
+                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isBold ? "bg-gray-200 text-gray-900" : ""}`}
                 >
-                  <i className="bx bx-bold"></i>
+                <i className="bx bx-bold text-[18px]"></i>
                 </button>
                 <button
                   type="button"
@@ -455,9 +661,9 @@ const EditQuestionForm = ({
                     e.preventDefault();
                     handleFormat("italic", setIsItalic);
                   }}
-                  className={`cursor-pointer hover:text-gray-900 ${isItalic ? "text-orange-500 italic" : ""}`}
+                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isItalic ? "bg-gray-200 text-gray-900" : ""}`}
                 >
-                  <i className="bx bx-italic"></i>
+                <i className="bx bx-italic text-[18px]"></i>
                 </button>
                 <button
                   type="button"
@@ -465,16 +671,73 @@ const EditQuestionForm = ({
                     e.preventDefault();
                     handleFormat("underline", setIsUnderline);
                   }}
-                  className={`cursor-pointer hover:text-gray-900 ${isUnderline ? "text-orange-500 underline" : ""}`}
+                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isUnderline ? "bg-gray-200 text-gray-900" : ""}`}
                 >
-                  <i className="bx bx-underline"></i>
+                <i className="bx bx-underline text-[18px]"></i>
                 </button>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current.click()}
-                  className="cursor-pointer hover:text-gray-900"
-                >
-                  <i className="bx bx-image-alt"></i>
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleFormat("strikeThrough", setIsStrikethrough);
+                }}
+                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isStrikethrough ? "bg-gray-200 text-gray-900" : ""}`}
+              >
+                <i className="bx bx-strikethrough text-[18px]"></i>
+              </button>
+            </div>
+            <div className="h-6 w-px bg-gray-300"></div>
+            <div className="flex items-center gap-2">
+              <span className="outfit-400 text-[14px] text-gray-700">
+                Point{formData.score !== 1 ? "s" : ""}
+              </span>
+              <input
+                name="score"
+                type="number"
+                min="1"
+                max="100"
+                onChange={handleQuestionChange}
+                value={formData.score}
+                className="w-16 rounded-lg border border-gray-200 px-3 py-1 text-[14px] transition-all duration-100 outline-none focus:border focus:border-orange-500"
+                onInput={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (val < 1) e.target.value = 1;
+                  if (val > 100) e.target.value = 100;
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-3 rounded-xl border border-gray-200 bg-white p-6">
+              <div className="flex flex-col gap-4 md:flex-row">
+                <div className="min-w-0 flex-1">
+                  <div
+                    className="outfit-400 relative flex min-h-[180px] items-center justify-center overflow-hidden rounded-lg border border-gray-200 p-15 transition-all duration-150"
+                    onClick={(e) => {
+                      if (e.target === e.currentTarget) editorRef.current?.focus();
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <div className="absolute top-2 right-2 z-10">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setImageSelectionType("question");
+                          setIsImageSelectionModalOpen(true);
+                        }}
+                        className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-gray-700 transition hover:bg-gray-200"
+                        title="Add image"
+                      >
+                        <i className="bx bx-image-alt text-2xl"></i>
                 </button>
                 <input
                   type="file"
@@ -486,345 +749,393 @@ const EditQuestionForm = ({
                 />
               </div>
 
-              {/* Question Image Preview */}
+                    {!isFocused && isEditorEmpty() && (
+                      <span className="pointer-events-none absolute -mt-25 max-w-full overflow-hidden text-[14px] whitespace-nowrap text-gray-400">
+                        Type question here
+                      </span>
+                    )}
+
+                    <div
+                      ref={editorRef}
+                      contentEditable
+                      suppressContentEditableWarning
+                      className="overflow-wrap-anywhere w-full max-w-full border-none bg-transparent text-center text-[14px] break-words whitespace-pre-wrap text-gray-800 focus:outline-none"
+                      onClick={(e) => e.stopPropagation()}
+                      onFocus={() => {
+                        setIsFocused(true);
+                        if (editorRef.current)
+                          editorRef.current.style.textAlign = "center";
+                      }}
+                      onBlur={() => setIsFocused(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          const sel = window.getSelection();
+                          if (sel.rangeCount > 0) {
+                            const range = sel.getRangeAt(0);
+                            const br = document.createElement("br");
+                            range.deleteContents();
+                            range.insertNode(br);
+                            range.setStartAfter(br);
+                            range.collapse(true);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                            editorRef.current?.dispatchEvent(
+                              new Event("input", { bubbles: true })
+                            );
+                          }
+                          setTimeout(() => {
+                            if (editorRef.current) {
+                              editorRef.current.style.textAlign = "center";
+                              autoExpandEditor(editorRef.current);
+                            }
+                          }, 0);
+                        }
+                      }}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        const sel = window.getSelection();
+                        if (sel.rangeCount === 0) return;
+                        const range = sel.getRangeAt(0);
+                        const currentText = editorRef.current?.textContent || "";
+                        const remaining = 1000 - currentText.length;
+                        if (remaining <= 0) return;
+                        range.deleteContents();
+                        let html = e.clipboardData.getData("text/html");
+                        let text = e.clipboardData.getData("text/plain");
+                        if (html) {
+                          html = cleanPastedHTML(html);
+                          const temp = document.createElement("div");
+                          temp.innerHTML = html;
+                          temp.style.direction = "ltr";
+                          temp.style.transform = "none";
+                          temp.style.writingMode = "horizontal-tb";
+                          const pasted = temp.textContent || temp.innerText || "";
+                          if (pasted.length > remaining) {
+                            range.insertNode(
+                              document.createTextNode(pasted.substring(0, remaining))
+                            );
+                          } else {
+                            const frag = document.createDocumentFragment();
+                            while (temp.firstChild) frag.appendChild(temp.firstChild);
+                            range.insertNode(frag);
+                          }
+                        } else if (text) {
+                          text = text.replace(/\s+/g, " ").trim();
+                          if (text.length > remaining) text = text.substring(0, remaining);
+                          range.insertNode(document.createTextNode(text));
+                        }
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                        if (editorRef.current) {
+                          autoExpandEditor(editorRef.current);
+                          setFormData((prev) => ({
+                            ...prev,
+                            questionText: editorRef.current.innerHTML,
+                          }));
+                        }
+                      }}
+                      onInput={(e) => {
+                        const editor = e.target;
+                        const len = getTextLength(editor.innerHTML);
+                        if (len > 1000) {
+                          const temp = document.createElement("div");
+                          temp.innerHTML = editor.innerHTML;
+                          let t = temp.textContent || temp.innerText || "";
+                          editor.innerHTML = t.substring(0, 1000);
+                        }
+                        autoExpandEditor(editor);
+                        setFormData((prev) => ({
+                          ...prev,
+                          questionText: editor.innerHTML,
+                        }));
+                      }}
+                      style={{
+                        color: "black",
+                        wordWrap: "break-word",
+                        overflowWrap: "break-word",
+                        maxWidth: "100%",
+                        width: "100%",
+                        textAlign: "center",
+                        lineHeight: "1.5em",
+                        minHeight: "1.5em",
+                        overflow: "hidden",
+                        display: "block",
+                      }}
+                    ></div>
+                    <div className="absolute right-2 bottom-2 text-[12px] text-gray-500">
+                      {getTextLength(formData.questionText)}/1000
+                    </div>
+                  </div>
+                </div>
+
               {imagePreview && (
-                <div className="relative mt-3 ml-5 inline-block max-w-[300px]">
-                  <div className="flex flex-col items-start">
+                  <>
+                    <div className="relative hidden w-[400px] flex-shrink-0 md:block">
                     <img
                       src={imagePreview}
-                      alt="Uploaded"
-                      className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md hover:opacity-80"
+                        alt="Question"
+                        className="h-auto max-h-[300px] w-full cursor-pointer rounded-lg object-contain shadow-lg hover:opacity-90"
                       onClick={() => setisQuestionModalOpen(true)}
                     />
                     <button
                       type="button"
-                      onClick={() => {
-                        setForm((prev) => ({ ...prev, image: null }));
-                        setImagePreview(null);
-                      }}
-                      className="absolute top-4 right-4 flex h-6 w-6 translate-x-1/2 -translate-y-1/2 transform items-center justify-center rounded-full bg-black text-white opacity-70 hover:cursor-pointer"
-                    >
-                      <i className="bx bx-x text-[16px] leading-none"></i>
+                        onClick={handleRemoveQuestionImage}
+                        className="absolute top-2 right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black"
+                      >
+                        <i className="bx bx-x text-sm"></i>
                     </button>
                   </div>
+                    <div className="relative mt-4 flex w-full justify-center md:hidden">
+                      <div className="relative max-w-full">
+                        <img
+                          src={imagePreview}
+                          alt="Question"
+                          className="h-auto max-h-[300px] w-full cursor-pointer rounded-lg object-contain shadow-lg hover:opacity-90"
+                          onClick={() => setisQuestionModalOpen(true)}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveQuestionImage}
+                          className="absolute top-2 right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black"
+                        >
+                          <i className="bx bx-x text-sm"></i>
+                        </button>
                 </div>
-              )}
-
-              <div className="mx-1 mt-3 mb-5 h-[0.5px] bg-gray-300" />
-
-              {/* Choices Section */}
-              <div className="flex max-w-[850px] items-start gap-3">
-                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
-                  2
-                </div>
-                <div>
-                  <h3 className="text-[14px] font-semibold text-black">
-                    Add your multiple-choice options
-                  </h3>
-                  <p className="max-w-[90%] text-[12px] text-gray-500">
-                    Enter the answer options of your question and select the
-                    correct answer by pressing the circle buttons below.
-                  </p>
+                    </div>
+                  </>
+                )}
                 </div>
               </div>
 
-              <div className="mt-4 space-y-4 px-3 py-2">
-                {choices.map((choice, index) => (
+            {/* Choices Section */}
+            <div className="rounded-xl border border-gray-200 bg-white p-6">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+                {formData.choices.map((choice, index) => (
                   <div
                     key={index}
-                    className="relative flex items-center space-x-2"
-                  >
-                    {/* Boxicon for correct answer selection */}
-                    <i
-                      className={`bx ${choice.isCorrect ? "bxs-check-circle text-orange-500" : "bx-circle text-gray-300"} cursor-pointer text-[24px] transition-all duration-300 ease-in-out hover:scale-110 ${
-                        choice.isCorrect ? "animate-correct-pulse" : ""
-                      } ${
-                        animatingChoice === index
-                          ? "animate-correct-select"
+                    className={`outfit-400 relative rounded-lg ${choiceColors[index]} min-w-0 overflow-hidden p-5 transition-all ${
+                      choice.isCorrect
+                        ? "border-none ring-2 ring-orange-500 ring-offset-2"
                           : ""
                       }`}
-                      style={{ minWidth: 22 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAnimatingChoice(index);
+                        setTimeout(() => setAnimatingChoice(null), 300);
+                        handleChoiceChange(index, "isCorrect", true);
+                      }}
+                      className="absolute top-2 right-2 flex size-7 cursor-pointer items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-200"
                       title={
                         choice.isCorrect ? "Correct answer" : "Mark as correct"
                       }
-                      onClick={() => {
-                        // Trigger animation
-                        setAnimatingChoice(index);
-                        setTimeout(() => {
-                          setAnimatingChoice(null);
-                        }, 300);
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center">
+                        {choice.isCorrect ? (
+                          <i className="bx bxs-check-circle text-[24px] text-orange-600" />
+                        ) : (
+                          <i className="bx bx-circle text-[24px]" />
+                        )}
+                      </span>
+                    </button>
 
-                        handleChoiceChange(index, "isCorrect", true);
-                      }}
-                      data-choice-index={index}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ")
-                          handleChoiceChange(index, "isCorrect", true);
-                      }}
-                      role="button"
-                      aria-label={
-                        choice.isCorrect ? "Correct answer" : "Mark as correct"
-                      }
-                    ></i>
-                    {/* Input Choice */}
-                    {!choice.image && (
-                      <div
-                        className={`relative ml-2 w-[80%] rounded-sm bg-gray-50 p-1 transition-all duration-150 hover:bg-gray-100 ${
-                          focusedChoice === index ? "bg-gray-200" : ""
-                        }`}
-                        onClick={() => {
-                          if (!choice.isFixed) setFocusedChoice(index);
-                        }}
-                      >
-                        <div
-                          className={`absolute top-1/2 left-0 rounded-l-sm bg-orange-500 transition-all duration-200 ${
-                            focusedChoice === index
-                              ? "animate-expand-border h-full"
-                              : "h-0"
-                          }`}
-                          style={{
-                            width: "4px",
-                            transform: "translateY(-50%)",
-                          }}
-                        ></div>
-                        {/* Only show custom placeholder if not focused and empty */}
-                        {focusedChoice !== index &&
-                          choice.choiceText === "" && (
-                            <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-[14px] text-gray-400">
-                              {`Option ${index + 1}`}
-                            </span>
-                          )}
-                        <input
-                          type="text"
-                          value={choice.choiceText}
-                          onChange={(e) =>
-                            handleChoiceChange(
-                              index,
-                              "choiceText",
-                              e.target.value,
-                            )
-                          }
-                          className={`min-h-[40px] w-full max-w-full resize-none overflow-hidden border-none bg-inherit py-[6px] pl-3 text-[14px] break-words break-all whitespace-pre-wrap focus:outline-none ${
-                            choice.isFixed ? "cursor-not-allowed" : ""
-                          }`}
-                          onFocus={() =>
-                            !choice.isFixed && setFocusedChoice(index)
-                          }
-                          onBlur={(e) => {
-                            if (
-                              !e.relatedTarget ||
-                              !e.relatedTarget.classList.contains(
-                                "image-upload-btn",
-                              )
-                            ) {
-                              setFocusedChoice(null);
-                            }
-                          }}
-                          disabled={choice.isFixed}
-                          required
-                        />
-                      </div>
-                    )}
-
-                    {/* Image Upload Button */}
-                    {!choice.image &&
-                      focusedChoice === index &&
-                      !choice.isFixed && (
-                        <>
+                    <div className="absolute top-2 left-2 flex gap-1">
+                      {!choice.isFixed && (
                           <button
-                            onClick={() =>
-                              document
-                                .getElementById(`fileInput-${index}`)
-                                .click()
-                            }
-                            className="image-upload-btn cursor-pointer rounded-md px-2 py-1 text-[24px] text-[rgb(120,120,120)] hover:text-gray-900"
-                          >
-                            <i className="bx bx-image-alt"></i>
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setImageSelectionType(index);
+                            setIsImageSelectionModalOpen(true);
+                          }}
+                          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded text-gray-700 transition hover:bg-gray-200"
+                          title={choice.image ? "Replace image" : "Add image"}
+                        >
+                          <i className="bx bx-image-alt text-[24px]"></i>
                           </button>
+                      )}
                           <input
                             id={`fileInput-${index}`}
                             type="file"
                             accept="image/*"
                             className="hidden"
-                            onChange={(event) =>
-                              handleChoiceImageUpload(index, event)
-                            }
-                          />
-                        </>
-                      )}
+                        onChange={(e) => handleChoiceImageUpload(index, e)}
+                      />
+                    </div>
 
-                    {/* Choice Image Preview */}
-                    {choice.image && (
-                      <div className="relative mt-3">
-                        <img
-                          src={
-                            typeof choice.image === "string"
-                              ? choice.image
-                              : URL.createObjectURL(choice.image)
-                          }
+                    <div
+                      className="mt-8"
+                      key={`choice-content-${index}-${choice.image ? "img" : "txt"}`}
+                    >
+                      {choice.image ? (
+                        <div className="flex w-full min-w-0 flex-col items-center">
+                          <div className="relative w-full">
+                            <img
+                              src={getChoiceImageSrc(choice, index)}
                           alt={`Choice ${index + 1}`}
-                          className={`max-h-[300px] max-w-[300px] rounded-md object-contain shadow-lg hover:cursor-pointer hover:opacity-80 ${choice.isCorrect ? "border-2 border-orange-500" : ""}`}
+                              className="h-auto max-h-[200px] w-full cursor-pointer rounded object-contain hover:opacity-90"
                           onClick={() => {
-                            setchoiceModalImage(
-                              typeof choice.image === "string"
-                                ? choice.image
-                                : URL.createObjectURL(choice.image),
-                            );
+                                setchoiceModalImage(getChoiceImageSrc(choice, index));
                             setIsChoiceModalOpen(true);
                           }}
                         />
+                            {!choice.isFixed && (
                         <button
-                          onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                             removeChoiceImage(index);
-                            setFocusedChoice(null);
                           }}
-                          className="absolute top-4 right-4 flex h-6 w-6 translate-x-1/2 -translate-y-1/2 transform items-center justify-center rounded-full bg-black text-white opacity-70 hover:cursor-pointer"
+                                className="absolute top-1 right-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black"
+                                title="Remove image"
                         >
-                          <i className="bx bx-x text-[16px] leading-none"></i>
+                                <i className="bx bx-x text-xs"></i>
                         </button>
-                      </div>
                     )}
                   </div>
-                ))}
               </div>
-
-              <div className="mx-1 mt-3 mb-5 h-[0.5px] bg-gray-300" />
-
-              <div className="flex items-start gap-3">
-                <div className="mt-[6px] flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
-                  3
-                </div>
-                <div>
-                  <h3 className="text-[14px] font-semibold text-black">
-                    Question Settings
-                  </h3>
-                  <p className="text-[12px] text-gray-500">
-                    Configure the question's score, difficulty level, and
-                    coverage.
-                  </p>
-                </div>
-              </div>
-
-              {/* Form Controls */}
-              <div className="mt-8 mb-1 ml-3 flex flex-col gap-4 px-2 sm:flex-col">
-                {/* Score Input */}
-                <div className="relative flex w-[20%] items-center gap-2 sm:w-auto">
-                  <label htmlFor="score" className="text-[14px] text-gray-700">
-                    Score:
-                  </label>
-                  <input
-                    name="score"
-                    type="number"
-                    min="1"
-                    max="100"
-                    onChange={handleQuestionChange}
-                    value={form.score}
-                    className="ml-[60px] w-40 border-0 border-b border-gray-300 px-3 py-1 text-[14px] transition-all duration-100 outline-none focus:border-b-2 focus:border-orange-500"
-                    required
+                      ) : (
+                        <div className="relative flex min-h-[60px] w-full items-center justify-center">
+                          {focusedChoice !== index && !choice.choiceText && (
+                            <span className="pointer-events-none absolute top-1/2 left-1/2 -mt-2 max-w-full -translate-x-1/2 -translate-y-1/2 transform overflow-hidden text-center text-[14px] whitespace-nowrap text-gray-400">
+                              Type answer option here
+                            </span>
+                          )}
+                          <div
+                            ref={(el) => {
+                              if (el) choiceEditors.current[index] = el;
+                            }}
+                            contentEditable={!choice.isFixed}
+                            suppressContentEditableWarning
+                            onClick={(e) => e.stopPropagation()}
+                            onPaste={(e) => {
+                              if (choice.isFixed) {
+                                e.preventDefault();
+                                return;
+                              }
+                              e.preventDefault();
+                              const sel = window.getSelection();
+                              if (sel.rangeCount === 0) return;
+                              const editor = choiceEditors.current[index];
+                              if (!editor) return;
+                              const cur = editor.textContent || "";
+                              const remain = 500 - cur.length;
+                              if (remain <= 0) return;
+                              const range = sel.getRangeAt(0);
+                              range.deleteContents();
+                              let html = e.clipboardData.getData("text/html");
+                              let text = e.clipboardData.getData("text/plain");
+                              if (html) {
+                                html = cleanPastedHTML(html);
+                                const temp = document.createElement("div");
+                                temp.innerHTML = html;
+                                temp.style.direction = "ltr";
+                                temp.style.transform = "none";
+                                temp.style.writingMode = "horizontal-tb";
+                                const pasted = temp.textContent || temp.innerText || "";
+                                if (pasted.length > remain) {
+                                  range.insertNode(
+                                    document.createTextNode(pasted.substring(0, remain))
+                                  );
+                                } else {
+                                  const frag = document.createDocumentFragment();
+                                  while (temp.firstChild) frag.appendChild(temp.firstChild);
+                                  range.insertNode(frag);
+                                }
+                              } else if (text) {
+                                text = text.replace(/\s+/g, " ").trim();
+                                if (text.length > remain) text = text.substring(0, remain);
+                                range.insertNode(document.createTextNode(text));
+                              }
+                              range.collapse(false);
+                              sel.removeAllRanges();
+                              sel.addRange(range);
+                              if (choiceEditors.current[index]) {
+                                autoExpandTextarea(choiceEditors.current[index]);
+                                handleChoiceChange(
+                                  index,
+                                  "choiceText",
+                                  choiceEditors.current[index].innerHTML
+                                );
+                              }
+                            }}
                     onInput={(e) => {
-                      const val = parseInt(e.target.value);
-                      if (val < 1) e.target.value = 1;
-                      if (val > 100) e.target.value = 100;
+                              if (choice.isFixed) return;
+                              const editor = e.target;
+                              const len = getTextLength(editor.innerHTML);
+                              if (len > 500) {
+                                const temp = document.createElement("div");
+                                temp.innerHTML = editor.innerHTML;
+                                let t = temp.textContent || temp.innerText || "";
+                                editor.innerHTML = t.substring(0, 500);
+                              }
+                              editor.style.height = "auto";
+                              editor.style.height = `${Math.max(60, editor.scrollHeight)}px`;
+                              handleChoiceChange(index, "choiceText", editor.innerHTML);
+                            }}
+                            onKeyDown={(e) => {
+                              const len = getTextLength(
+                                choiceEditors.current[index]?.innerHTML || ""
+                              );
+                              if (
+                                len >= 500 &&
+                                e.key !== "Backspace" &&
+                                e.key !== "Delete" &&
+                                !e.ctrlKey &&
+                                !e.metaKey
+                              ) {
+                                e.preventDefault();
+                                return;
+                              }
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                setTimeout(() => {
+                                  const ed = choiceEditors.current[index];
+                                  if (ed) {
+                                    ed.style.height = "auto";
+                                    ed.style.height = `${Math.max(60, ed.scrollHeight)}px`;
+                                  }
+                                }, 0);
+                              }
+                            }}
+                            onFocus={() => {
+                              if (!choice.isFixed) setFocusedChoice(index);
+                            }}
+                            onBlur={() => {
+                              setFocusedChoice(null);
+                              if (choiceEditors.current[index]) {
+                                handleChoiceChange(
+                                  index,
+                                  "choiceText",
+                                  choiceEditors.current[index].innerHTML
+                                );
+                              }
+                            }}
+                            className="-mt-4 w-full resize-none overflow-hidden rounded px-2 py-2 text-center text-[14px] break-words text-gray-700 focus:border-gray-300 focus:outline-none"
+                            style={{
+                              minHeight: "40px",
+                              textAlign: "center",
+                              wordWrap: "break-word",
+                              overflowWrap: "break-word",
+                              direction: "ltr",
+                              transform: "none",
+                              writingMode: "horizontal-tb",
+                              textOrientation: "mixed",
                     }}
                   />
                 </div>
-
-                {/* Difficulty Dropdown */}
-                <CustomDropdown
-                  label="Difficulty"
-                  name="difficulty_id"
-                  value={form.difficulty_id}
-                  onChange={handleQuestionChange}
-                  placeholder="Select difficulty..."
-                  options={[
-                    { value: 1, label: "Easy" },
-                    { value: 2, label: "Moderate" },
-                    { value: 3, label: "Hard" },
-                  ]}
-                  classname="ml-10"
-                />
-
-                {/* Coverage Dropdown */}
-                <CustomDropdown
-                  label="Coverage"
-                  name="coverage_id"
-                  value={form.coverage_id}
-                  onChange={handleQuestionChange}
-                  options={[
-                    { value: 1, label: "Midterms" },
-                    { value: 2, label: "Finals" },
-                  ]}
-                  classname="ml-[38px]"
-                />
-
-                {/* Purpose Dropdown */}
-                <CustomDropdown
-                  label="Purpose"
-                  name="purpose_id"
-                  value={form.purpose_id}
-                  onChange={handleQuestionChange}
-                  options={[
-                    { value: 2, label: "Practice " },
-                    { value: 1, label: "Qualifying Exam " },
-                  ]}
-                  classname="ml-[45px]"
-                />
-              </div>
-
-              <div className="mx-1 mt-5 mb-5 h-[0.5px] bg-gray-300" />
-
-              <div className="flex w-full items-start justify-between">
-                {/* Left Side: Number and Text */}
-                <div className="flex items-start gap-3 px-2">
-                  <div className="mt-[6px] -ml-2 flex aspect-square h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
-                    4
-                  </div>
-                  <div>
-                    <h3 className="mt-[7px] text-[14px] font-semibold text-black sm:-mt-0">
-                      Save Question
-                    </h3>
-                    <p className="hidden text-[12px] text-gray-500 sm:block">
-                      Proceed to save your question, or cancel to exit without
-                      saving.
-                    </p>
-                  </div>
+                      )}
                 </div>
-
-                {/* Right Side: Buttons */}
-                <div className="flex gap-2 px-2 text-[14px]">
-                  <button
-                    type="button"
-                    onClick={onCancel}
-                    className="border-color mt-1 cursor-pointer rounded-md border px-4 py-1 text-gray-700 hover:bg-gray-200"
-                  >
-                    <span className="text-[14px]">Cancel</span>
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isLoading}
-                    className={`mt-1 flex cursor-pointer items-center justify-center gap-[5px] rounded-md px-5 py-[6px] text-white ${
-                      isLoading
-                        ? "cursor-not-allowed bg-orange-300"
-                        : "bg-orange-500 hover:bg-orange-600"
-                    }`}
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center justify-center">
-                        <span className="loader-white"></span>
-                      </div>
-                    ) : (
-                      "Update"
-                    )}
-                  </button>
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Question Image Modal */}
       {isQuestionModalOpen && imagePreview && (
         <div
           className="bg-opacity-70 lightbox-bg-image fixed inset-0 z-[9999] flex items-center justify-center"
@@ -840,7 +1151,6 @@ const EditQuestionForm = ({
         </div>
       )}
 
-      {/* Choice Image Modal */}
       {isChoiceModalOpen && (
         <div
           className="bg-opacity-70 lightbox-bg-image fixed inset-0 z-[9999] flex items-center justify-center"
@@ -856,7 +1166,105 @@ const EditQuestionForm = ({
         </div>
       )}
 
-      {/* Toast notification */}
+      {isSettingsModalOpen && (
+        <div
+          className="bg-opacity-70 lightbox-bg-image fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          onClick={() => setIsSettingsModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Question Settings
+              </h3>
+              <button
+                onClick={() => setIsSettingsModalOpen(false)}
+                className="text-gray-500 transition hover:text-gray-700"
+              >
+                <i className="bx bx-x text-2xl"></i>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Difficulty
+                </label>
+                <HeaderDropdown
+                  name="difficulty_id"
+                  value={formData.difficulty_id}
+                  onChange={handleQuestionChange}
+                  options={[
+                    { value: 1, label: "Easy" },
+                    { value: 2, label: "Moderate" },
+                    { value: 3, label: "Hard" },
+                  ]}
+                  show={true}
+                  label=""
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Coverage
+                </label>
+                <HeaderDropdown
+                  name="coverage_id"
+                  value={formData.coverage_id}
+                  onChange={handleQuestionChange}
+                  options={[
+                    { value: 1, label: "Midterms" },
+                    { value: 2, label: "Finals" },
+                  ]}
+                  show={true}
+                  label=""
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Purpose
+                </label>
+                <HeaderDropdown
+                  name="purpose_id"
+                  value={formData.purpose_id}
+                  onChange={handleQuestionChange}
+                  options={[
+                    { value: 2, label: "Practice" },
+                    { value: 1, label: "Qualifying Exam" },
+                  ]}
+                  show={true}
+                  label=""
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setIsSettingsModalOpen(false)}
+                className="rounded-lg bg-orange-500 px-4 py-2 text-white transition hover:bg-orange-600"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ImageSelectionModal
+        isOpen={isImageSelectionModalOpen}
+        onClose={() => {
+          setIsImageSelectionModalOpen(false);
+          setImageSelectionType(null);
+        }}
+        onImageSelected={handleImageSelected}
+        title={
+          imageSelectionType === "question"
+            ? "Add question image"
+            : typeof imageSelectionType === "number"
+              ? `Add image to choice ${imageSelectionType + 1}`
+              : "Add image"
+        }
+      />
+
       <div className="fixed top-4 right-4 z-[99999]">
         <Toast message={toast.message} type={toast.type} show={toast.show} />
       </div>

@@ -14,29 +14,8 @@ NOTE: THIS IS THE INSTRUCTIONS FROM V.1.6 - 2.0 TRANSITION
 3. Type this command:
 
     php artisan migrate
-
-    php artisan migrate --path=Modules/Users/Database/Migrations/2025_06_21_000002_create_student_remarks_table.php
-
-    php artisan migrate --path=Modules/Users/Database/Migrations/2025_06_22_000001_create_student_curricula_table.php
-
-    php artisan migrate --path=Modules/PracticeExams/Database/Migrations/2025_06_22_000002_create_personal_exam_settings_table.php
-
-    php artisan migrate --path=Modules/Users/Database/Migrations/2025_06_22_000003_create_student_teacher_enrollments_table.php 
-
-    php artisan migrate --path=Modules/PracticeExams/Database/Migrations/2025_06_22_000004_create_personal_practice_exam_results_table.php
-
-NOTE: THIS IS FOR 1.6 DATABASE CHANGES SO PLEASE DOUBLE CHECK!!
-
-It will migrate the table named:
-- remarks
-- curriculum
-- student_grades
-- student_curricula
-- personal_exam_setting
-- student_teacher_enrollments
-- student_remarks
-- personal_practice_exam_result
-- practice_exam_drafts
+   
+    NOTE: THIS IS THE CHANGES ADDED IN V1.6
 
 Another field will be added in the subjects table named:
 - is_enabled_for_exam_questions
@@ -45,7 +24,7 @@ NOTE: THIS THE CHANGES FOR 2.0 DATABASE CHANGES SO PLEASE DOUBLE CHECK!!
 It will migrate the table named:
 
 
-classes:            //This is the name of the table, This is not migrated  
+classes:            //This is the name of the table  
     -classID        // This is the name of the fields, follow this format to read the table names and their fields 
     -facultyID
     -subjectID
@@ -57,21 +36,21 @@ classes:            //This is the name of the table, This is not migrated
     -schedule
     -isActive
 
-class_enrollments: //Not migrated
+class_enrollments: 
     -enrollmentID
     -classID
     -studentID
     -enrolledAt
     -unique_class_student
 
-class_personal_quizzes: //Not Migrated
+class_personal_quizzes: 
     -classPersonalQuizID
     -classID
     -personalQuizID
     -startDate
     -deadlineDate
 
-class_quiz_attempts: //Not migrated
+class_quiz_attempts: 
     -attemptID
     -classID
     -personalQuizID
@@ -154,7 +133,7 @@ student_quiz_results:
     -isRecorded
     -isPassed
 
-4. Seed the database for the new migrations:
+4. Seed the database for the new migrations: 
     php artisan db:seed
 
 5. It should show errors only in the users table:

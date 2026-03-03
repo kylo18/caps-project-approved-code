@@ -5,6 +5,7 @@ import LoadingOverlay from "/src/components/loadingOverlay";
 import RegisterDropDownSmall from "/src/components/registerDropDownSmall";
 import Toast from "/src/components/Toast";
 import useToast from "/src/hooks/useToast";
+import SearchBar from "/src/components/SearchBar";
 
 import StudentsIcon from "/src/assets/symbols/students.svg";
 import StudentsIconH from "/src/assets/symbols/studentshover.svg";
@@ -17,7 +18,6 @@ import AllUsersIconH from "/src/assets/symbols/allhover.svg";
 
 import emptyImage from "../assets/icons/empty.png";
 import noInternetImage from "../assets/icons/404notfound.png";
-
 
 import StudentPfp from "/src/assets/symbols/student.png";
 import FacultyPfp from "/src/assets/symbols/faculty.png";
@@ -71,7 +71,7 @@ const UserList = () => {
   const [stateFilter, setStateFilter] = useState([]);
   const [remarksFilter, setRemarksFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // State for filter dropdown visibility
   const [showCampusDropdown, setShowCampusDropdown] = useState(false);
   const [showPositionDropdown, setShowPositionDropdown] = useState(false);
@@ -276,7 +276,6 @@ const UserList = () => {
     );
   };
 
-
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -332,7 +331,7 @@ const UserList = () => {
       // Build query parameters
       // If we have array filters, don't send them to backend - we'll filter client-side
       // This ensures we get all users and can properly filter with OR logic
-      const hasArrayFilters = 
+      const hasArrayFilters =
         (Array.isArray(campusFilter) && campusFilter.length > 0) ||
         (Array.isArray(positionFilter) && positionFilter.length > 0) ||
         (Array.isArray(programFilter) && programFilter.length > 0) ||
@@ -344,11 +343,27 @@ const UserList = () => {
         search: debouncedSearchQuery,
         // When array filters are active, skip backend filters and do client-side filtering
         status: hasArrayFilters ? "all" : statusFilter,
-        campus: hasArrayFilters ? "" : (Array.isArray(campusFilter) ? "" : campusFilter),
+        campus: hasArrayFilters
+          ? ""
+          : Array.isArray(campusFilter)
+            ? ""
+            : campusFilter,
         role: hasArrayFilters ? "" : roleFilter,
-        position: hasArrayFilters ? "" : (Array.isArray(positionFilter) ? "" : positionFilter),
-        program: hasArrayFilters ? "" : (Array.isArray(programFilter) ? "" : programFilter),
-        state: hasArrayFilters ? "" : (Array.isArray(stateFilter) ? "" : stateFilter),
+        position: hasArrayFilters
+          ? ""
+          : Array.isArray(positionFilter)
+            ? ""
+            : positionFilter,
+        program: hasArrayFilters
+          ? ""
+          : Array.isArray(programFilter)
+            ? ""
+            : programFilter,
+        state: hasArrayFilters
+          ? ""
+          : Array.isArray(stateFilter)
+            ? ""
+            : stateFilter,
         remarks: hasArrayFilters ? "" : remarksFilter,
         userType: userType, // Keep userType for view filtering (students/faculty/all)
       });
@@ -425,7 +440,7 @@ const UserList = () => {
 
   // Ref for "select all" checkbox to support indeterminate state
   const selectAllRef = useRef(null);
-  
+
   // Refs for filter dropdowns
   const campusDropdownRef = useRef(null);
   const positionDropdownRef = useRef(null);
@@ -455,21 +470,44 @@ const UserList = () => {
     } else {
       selectAllRef.current.indeterminate = true;
     }
-  }, [selectedUsers, users, currentPage, campusFilter, positionFilter, programFilter, stateFilter, statusFilter, remarksFilter, activeView]);
+  }, [
+    selectedUsers,
+    users,
+    currentPage,
+    campusFilter,
+    positionFilter,
+    programFilter,
+    stateFilter,
+    statusFilter,
+    remarksFilter,
+    activeView,
+  ]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (campusDropdownRef.current && !campusDropdownRef.current.contains(event.target)) {
+      if (
+        campusDropdownRef.current &&
+        !campusDropdownRef.current.contains(event.target)
+      ) {
         setShowCampusDropdown(false);
       }
-      if (positionDropdownRef.current && !positionDropdownRef.current.contains(event.target)) {
+      if (
+        positionDropdownRef.current &&
+        !positionDropdownRef.current.contains(event.target)
+      ) {
         setShowPositionDropdown(false);
       }
-      if (programDropdownRef.current && !programDropdownRef.current.contains(event.target)) {
+      if (
+        programDropdownRef.current &&
+        !programDropdownRef.current.contains(event.target)
+      ) {
         setShowProgramDropdown(false);
       }
-      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+      if (
+        statusDropdownRef.current &&
+        !statusDropdownRef.current.contains(event.target)
+      ) {
         setShowStatusDropdown(false);
       }
     };
@@ -700,7 +738,6 @@ const UserList = () => {
     }
   };
 
-
   // Function to handle page change
   const handlePageChange = (newPage) => {
     const filteredUsersCount = getFilteredUsers().length;
@@ -870,8 +907,6 @@ const UserList = () => {
     }
   };
 
-  
-
   const renderPagination = () => {
     const filteredUsersCount = getFilteredUsers().length;
     const isClientSidePagination = hasArrayFiltersActive();
@@ -880,23 +915,26 @@ const UserList = () => {
       : totalPages;
 
     if (effectiveTotalPages <= 1) return null;
-  
+
     const pages = [];
     const maxVisiblePages = 3;
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(effectiveTotalPages, startPage + maxVisiblePages - 1);
-  
+    let endPage = Math.min(
+      effectiveTotalPages,
+      startPage + maxVisiblePages - 1,
+    );
+
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
-  
+
     for (let i = startPage; i <= endPage; i++) {
       const isActive = currentPage === i;
       pages.push(
         <button
           key={i}
           onClick={() => handlePageChange(i)}
-          className={`outfit relative flex h-8 min-w-[2rem] items-center justify-center rounded-full px-3 text-[14px] transition-colors ${
+          className={`outfit-400 relative flex h-8 min-w-[2rem] items-center justify-center rounded-full px-3 text-[14px] transition-colors ${
             isActive
               ? "font-semibold text-gray-900"
               : "text-gray-500 hover:text-gray-900"
@@ -906,10 +944,10 @@ const UserList = () => {
           {isActive && (
             <span className="absolute -bottom-1 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-orange-500" />
           )}
-        </button>
+        </button>,
       );
     }
-  
+
     if (endPage < effectiveTotalPages) {
       pages.push(
         <span
@@ -917,71 +955,70 @@ const UserList = () => {
           className="flex h-8 items-center justify-center px-2 text-[14px] text-gray-400"
         >
           ...
-        </span>
+        </span>,
       );
     }
-  
-    return (
-      <div className="mt-4 flex items-center justify-center outfit mb-3">
-        <div className="inline-flex items-center rounded-full border py-1 border-gray-200 bg-white px-1 ">
-  
-          {/* First */}
-            <button
-              onClick={() => handlePageChange(1)}
-              disabled={currentPage === 1}
-              className={`mx-1 flex h-8 w-8 items-center cursor-pointer justify-center rounded-full transition-colors ${
-                currentPage === 1
-                  ? "cursor-not-allowed text-gray-300"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-              aria-label="First page"
-            >
-              <i className="bx bx-chevrons-left text-[24px]" />
-            </button>
 
-            {/* Previous */}
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`mx-1 flex h-8 w-8 items-center justify-center cursor-pointer rounded-full transition-colors ${
-                currentPage === 1
-                  ? "cursor-not-allowed text-gray-300"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-              aria-label="Previous page"
-            >
-              <i className="bx bx-chevron-left text-[28px]" />
-            </button>
-          
+    return (
+      <div className="outfit-400 mt-4 mb-3 flex items-center justify-center">
+        <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-1 py-1">
+          {/* First */}
+          <button
+            onClick={() => handlePageChange(1)}
+            disabled={currentPage === 1}
+            className={`mx-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors ${
+              currentPage === 1
+                ? "cursor-not-allowed text-gray-300"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+            aria-label="First page"
+          >
+            <i className="bx bx-chevrons-left text-[24px]" />
+          </button>
+
+          {/* Previous */}
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`mx-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors ${
+              currentPage === 1
+                ? "cursor-not-allowed text-gray-300"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+            aria-label="Previous page"
+          >
+            <i className="bx bx-chevron-left text-[28px]" />
+          </button>
+
           <span className="mx-2 w-[1px] self-stretch bg-gray-200" />
-  
+
           {/* Page Numbers */}
           <div className="mx-1 flex items-center">{pages}</div>
-  
+
           <span className="mx-2 w-[1px] self-stretch bg-gray-200" />
-  
+
           {/* Next */}
-            <button
-             onClick={() => handlePageChange(currentPage + 1)}
-             disabled={currentPage === effectiveTotalPages}
-            className={`mx-1 inline-flex h-8 items-center justify-center gap-1 rounded-full px-2 cursor-pointer transition-colors ${
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === effectiveTotalPages}
+            className={`mx-1 inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-full px-2 transition-colors ${
               currentPage === effectiveTotalPages
                 ? "cursor-not-allowed text-gray-300"
                 : "text-gray-700 hover:bg-gray-100"
             }`}
             aria-label="Next page"
           >
-            <span className="ml-2 flex items-center leading-none text-[14px] font-medium">
+            <span className="ml-2 flex items-center text-[14px] leading-none font-medium">
               Next
             </span>
-            <i className="bx bx-chevron-right flex items-center leading-none text-[24px]" />
+            <i className="bx bx-chevron-right flex items-center text-[24px] leading-none" />
           </button>
 
           {/* Last */}
           <button
-             onClick={() => handlePageChange(effectiveTotalPages)}
-             disabled={currentPage === effectiveTotalPages}
-            className={`mx-1 flex h-8 w-8 items-center justify-center rounded-full cursor-pointer transition-colors ${
+            onClick={() => handlePageChange(effectiveTotalPages)}
+            disabled={currentPage === effectiveTotalPages}
+            className={`mx-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors ${
               currentPage === effectiveTotalPages
                 ? "cursor-not-allowed text-gray-300"
                 : "text-gray-700 hover:bg-gray-100"
@@ -990,52 +1027,28 @@ const UserList = () => {
           >
             <i className="bx bx-chevrons-right text-[24px]" />
           </button>
-  
         </div>
       </div>
     );
   };
-  
 
   return (
     <div className="flex h-screen">
       {/* Main content area */}
       <div className="flex h-full flex-1 flex-col gap-6 overflow-y-auto p-6 pb-0">
-
-      
-        <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="outfit-500 relative text-[14px]">
-            {/* Search icon */}
-            <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-lg text-gray-500" />
-
-            <input
-              type="text"
-              placeholder="Search users..."
-              className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-              value={searchQuery}
-              maxLength={50}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-
-            {/* Clear button */}
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2 top-1/2 mr-3 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
-                aria-label="Clear search"
-              >
-                <i className="bx bx-x text-xl" />
-              </button>
-            )}
-          </div>
+        <div className="min-w-0 space-y-4">
+          <SearchBar
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search users..."
+          />
 
           <div className="my-4 h-px bg-gray-200" />
 
           {/* Header with title and action buttons */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="outfit-500 mt-1 text-[20px] text-black">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="outfit-500 mt-1 break-words text-[18px] text-black">
                 {selectedUsers.length > 0
                   ? "Select the users you want to modify"
                   : hasActiveFilters()
@@ -1054,9 +1067,7 @@ const UserList = () => {
               </p>
             </div>
 
-          
-
-            <div className="flex items-center gap-3">
+            <div className="flex flex-shrink-0 items-center gap-3">
               {/* Filter Buttons */}
               <div className="flex items-center justify-center gap-2">
                 {hasActiveFilters() && (
@@ -1069,13 +1080,13 @@ const UserList = () => {
                       setStateFilter([]);
                       setRemarksFilter("");
                     }}
-                    className="outfit -mb-4 flex cursor-pointer items-center justify-center gap-1 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-[14px] font-medium text-red-600 transition-colors hover:bg-red-100"
+                    className="outfit-400 -mb-4 flex cursor-pointer items-center justify-center gap-1 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-[14px] font-medium text-red-600 transition-colors hover:bg-red-100"
                   >
                     <i className="bx bx-x text-lg"></i>
                     <span>Clear Filters</span>
                   </button>
                 )}
-                
+
                 {/* Campus Filter Button */}
                 <div className="relative" ref={campusDropdownRef}>
                   <button
@@ -1085,7 +1096,7 @@ const UserList = () => {
                       setShowProgramDropdown(false);
                       setShowStatusDropdown(false);
                     }}
-                    className={`outfit-500  -mb-4 mt-2 inline-flex cursor-pointer items-center justify-center gap-1 rounded-xl border px-4 py-2 text-[14px]  transition-colors ${
+                    className={`outfit-500 mt-2 -mb-4 inline-flex cursor-pointer items-center justify-center gap-1 rounded-xl border px-4 py-2 text-[14px] transition-colors ${
                       campusFilter.length > 0
                         ? "border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100"
                         : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
@@ -1100,7 +1111,7 @@ const UserList = () => {
                     <i className="bx bx-chevron-down text-xl"></i>
                   </button>
                   {showCampusDropdown && (
-                    <div className="absolute right-0 z-50 mt-3 w-45 rounded-lg border border-gray-200 bg-white shadow-lg">
+                    <div className="outfit-500 absolute right-0 z-50 mt-3 w-45 rounded-lg border border-gray-200 bg-white shadow-lg">
                       <div className="max-h-60 overflow-y-auto p-1">
                         {[
                           { value: "Main Campus", label: "Dapitan" },
@@ -1111,23 +1122,30 @@ const UserList = () => {
                         ].map((option) => (
                           <label
                             key={option.value}
-                            className="outfit flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 hover:bg-gray-100"
+                            className="outfit-500 flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 hover:bg-gray-100"
                           >
                             <input
                               type="checkbox"
                               checked={campusFilter.includes(option.value)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setCampusFilter([...campusFilter, option.value]);
+                                  setCampusFilter([
+                                    ...campusFilter,
+                                    option.value,
+                                  ]);
                                 } else {
                                   setCampusFilter(
-                                    campusFilter.filter((c) => c !== option.value)
+                                    campusFilter.filter(
+                                      (c) => c !== option.value,
+                                    ),
                                   );
                                 }
                               }}
-                              className="h-3 w-3 cursor-pointer rounded border-gray-200  "
+                              className="h-3 w-3 cursor-pointer rounded border-gray-200"
                             />
-                            <span className="text-[14px] text-gray-700">{option.label}</span>
+                            <span className="text-[14px] text-gray-700">
+                              {option.label}
+                            </span>
                           </label>
                         ))}
                       </div>
@@ -1144,7 +1162,7 @@ const UserList = () => {
                       setShowProgramDropdown(false);
                       setShowStatusDropdown(false);
                     }}
-                    className={`outfit-500  -mb-4 mt-2 inline-flex cursor-pointer items-center justify-center gap-1 rounded-xl border px-4 py-2 text-[14px]  transition-colors ${
+                    className={`outfit-500 mt-2 -mb-4 inline-flex cursor-pointer items-center justify-center gap-1 rounded-xl border px-4 py-2 text-[14px] transition-colors ${
                       positionFilter.length > 0
                         ? "border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100"
                         : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
@@ -1159,7 +1177,7 @@ const UserList = () => {
                     <i className="bx bx-chevron-down text-xl"></i>
                   </button>
                   {showPositionDropdown && (
-                    <div className="absolute right-0 z-50 mt-3 w-45 rounded-lg border border-gray-200 bg-white shadow-lg">
+                    <div className="outfit-500 absolute right-0 z-50 mt-3 w-45 rounded-lg border border-gray-200 bg-white shadow-lg">
                       <div className="max-h-60 overflow-y-auto p-1">
                         {[
                           { value: "Student", label: "Student" },
@@ -1177,16 +1195,23 @@ const UserList = () => {
                               checked={positionFilter.includes(option.value)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setPositionFilter([...positionFilter, option.value]);
+                                  setPositionFilter([
+                                    ...positionFilter,
+                                    option.value,
+                                  ]);
                                 } else {
                                   setPositionFilter(
-                                    positionFilter.filter((p) => p !== option.value)
+                                    positionFilter.filter(
+                                      (p) => p !== option.value,
+                                    ),
                                   );
                                 }
                               }}
                               className="h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500"
                             />
-                            <span className="text-sm text-gray-700">{option.label}</span>
+                            <span className="text-sm text-gray-700">
+                              {option.label}
+                            </span>
                           </label>
                         ))}
                       </div>
@@ -1203,7 +1228,7 @@ const UserList = () => {
                       setShowPositionDropdown(false);
                       setShowStatusDropdown(false);
                     }}
-                    className={`outfit-500  -mb-4 mt-2 inline-flex cursor-pointer items-center justify-center gap-1 rounded-xl border px-4 py-2 text-[14px]  transition-colors ${
+                    className={`outfit-500 mt-2 -mb-4 inline-flex cursor-pointer items-center justify-center gap-1 rounded-xl border px-4 py-2 text-[14px] transition-colors ${
                       programFilter.length > 0
                         ? "border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100"
                         : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
@@ -1218,7 +1243,7 @@ const UserList = () => {
                     <i className="bx bx-chevron-down text-xl"></i>
                   </button>
                   {showProgramDropdown && (
-                    <div className="absolute right-0 z-50 mt-3 w-45 rounded-lg border border-gray-200 bg-white shadow-lg">
+                    <div className="outfit-500 absolute right-0 z-50 mt-3 w-45 rounded-lg border border-gray-200 bg-white shadow-lg">
                       <div className="max-h-60 overflow-y-auto p-1">
                         {[
                           { value: "BS-CpE", label: "BS-CpE" },
@@ -1236,16 +1261,23 @@ const UserList = () => {
                               checked={programFilter.includes(option.value)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setProgramFilter([...programFilter, option.value]);
+                                  setProgramFilter([
+                                    ...programFilter,
+                                    option.value,
+                                  ]);
                                 } else {
                                   setProgramFilter(
-                                    programFilter.filter((p) => p !== option.value)
+                                    programFilter.filter(
+                                      (p) => p !== option.value,
+                                    ),
                                   );
                                 }
                               }}
                               className="h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500"
                             />
-                            <span className="text-sm text-gray-700">{option.label}</span>
+                            <span className="text-sm text-gray-700">
+                              {option.label}
+                            </span>
                           </label>
                         ))}
                       </div>
@@ -1262,7 +1294,7 @@ const UserList = () => {
                       setShowPositionDropdown(false);
                       setShowProgramDropdown(false);
                     }}
-                    className={`outfit-500  -mb-4 mt-2 inline-flex cursor-pointer items-center justify-center gap-1 rounded-xl border px-4 py-2 text-[14px]  transition-colors ${
+                    className={`outfit-500 mt-2 -mb-4 inline-flex cursor-pointer items-center justify-center gap-1 rounded-xl border px-4 py-2 text-[14px] transition-colors ${
                       stateFilter.length > 0
                         ? "border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100"
                         : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
@@ -1277,7 +1309,7 @@ const UserList = () => {
                     <i className="bx bx-chevron-down text-xl"></i>
                   </button>
                   {showStatusDropdown && (
-                    <div className="absolute right-0 z-50 mt-3 w-45 rounded-lg border border-gray-200 bg-white shadow-lg">
+                    <div className="outfit-500 absolute right-0 z-50 mt-3 w-45 rounded-lg border border-gray-200 bg-white shadow-lg">
                       <div className="max-h-60 overflow-y-auto p-1">
                         {[
                           { value: "Active", label: "Active" },
@@ -1292,16 +1324,23 @@ const UserList = () => {
                               checked={stateFilter.includes(option.value)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setStateFilter([...stateFilter, option.value]);
+                                  setStateFilter([
+                                    ...stateFilter,
+                                    option.value,
+                                  ]);
                                 } else {
                                   setStateFilter(
-                                    stateFilter.filter((s) => s !== option.value)
+                                    stateFilter.filter(
+                                      (s) => s !== option.value,
+                                    ),
                                   );
                                 }
                               }}
                               className="h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500"
                             />
-                            <span className="text-sm text-gray-700">{option.label}</span>
+                            <span className="text-sm text-gray-700">
+                              {option.label}
+                            </span>
                           </label>
                         ))}
                       </div>
@@ -1317,7 +1356,7 @@ const UserList = () => {
         <div className="flex flex-1 flex-col">
           {/* User Count */}
           {!loading && !error && !tabLoading && (
-            <div className="outfit-500 mb-2 flex items-center justify-between">
+            <div className="outfit-400 mb-2 flex items-center justify-between">
               {(() => {
                 const filteredUsers = getFilteredUsers();
 
@@ -1343,7 +1382,7 @@ const UserList = () => {
           {/* Filter Dropdown */}
           {showFilters && (
             <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-end min-[448px]:justify-center min-[448px]:p-2">
-              <div className="outfit border-color relative mx-auto w-full max-w-md rounded-t-2xl border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700 min-[448px]:rounded-t-md">
+              <div className="outfit-400 border-color relative mx-auto w-full max-w-md rounded-t-2xl border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700 min-[448px]:rounded-t-md">
                 <span>Filter Users</span>
 
                 <button
@@ -1363,8 +1402,16 @@ const UserList = () => {
                   <div>
                     <RegisterDropDownSmall
                       name="campus"
-                      value={Array.isArray(campusFilter) ? (campusFilter.length > 0 ? campusFilter[0] : "") : campusFilter}
-                      onChange={(e) => setCampusFilter(e.target.value ? [e.target.value] : [])}
+                      value={
+                        Array.isArray(campusFilter)
+                          ? campusFilter.length > 0
+                            ? campusFilter[0]
+                            : ""
+                          : campusFilter
+                      }
+                      onChange={(e) =>
+                        setCampusFilter(e.target.value ? [e.target.value] : [])
+                      }
                       placeholder="Select Campus"
                       options={[
                         { value: "", label: "All" },
@@ -1383,8 +1430,16 @@ const UserList = () => {
                   </span>
                   <RegisterDropDownSmall
                     name="position"
-                    value={Array.isArray(positionFilter) ? (positionFilter.length > 0 ? positionFilter[0] : "") : positionFilter}
-                    onChange={(e) => setPositionFilter(e.target.value ? [e.target.value] : [])}
+                    value={
+                      Array.isArray(positionFilter)
+                        ? positionFilter.length > 0
+                          ? positionFilter[0]
+                          : ""
+                        : positionFilter
+                    }
+                    onChange={(e) =>
+                      setPositionFilter(e.target.value ? [e.target.value] : [])
+                    }
                     placeholder="Select Position"
                     options={[
                       { value: "", label: "All" },
@@ -1404,8 +1459,16 @@ const UserList = () => {
                   </span>
                   <RegisterDropDownSmall
                     name="program"
-                    value={Array.isArray(programFilter) ? (programFilter.length > 0 ? programFilter[0] : "") : programFilter}
-                    onChange={(e) => setProgramFilter(e.target.value ? [e.target.value] : [])}
+                    value={
+                      Array.isArray(programFilter)
+                        ? programFilter.length > 0
+                          ? programFilter[0]
+                          : ""
+                        : programFilter
+                    }
+                    onChange={(e) =>
+                      setProgramFilter(e.target.value ? [e.target.value] : [])
+                    }
                     placeholder="Select Program"
                     options={[
                       { value: "", label: "All" },
@@ -1425,8 +1488,16 @@ const UserList = () => {
                   </span>
                   <RegisterDropDownSmall
                     name="state"
-                    value={Array.isArray(stateFilter) ? (stateFilter.length > 0 ? stateFilter[0] : "") : stateFilter}
-                    onChange={(e) => setStateFilter(e.target.value ? [e.target.value] : [])}
+                    value={
+                      Array.isArray(stateFilter)
+                        ? stateFilter.length > 0
+                          ? stateFilter[0]
+                          : ""
+                        : stateFilter
+                    }
+                    onChange={(e) =>
+                      setStateFilter(e.target.value ? [e.target.value] : [])
+                    }
                     placeholder="Select Status"
                     options={[
                       { value: "", label: "All" },
@@ -1470,7 +1541,10 @@ const UserList = () => {
                         { value: "", label: "All" },
                         { value: "Regular", label: "Regular" },
                         { value: "Probationary", label: "Probationary" },
-                        { value: "Advised to Shift", label: "Advised to Shift" },
+                        {
+                          value: "Advised to Shift",
+                          label: "Advised to Shift",
+                        },
                         { value: "Not Set", label: "Not Set" },
                       ]}
                     />
@@ -1505,377 +1579,377 @@ const UserList = () => {
             </div>
           )}
 
+          {/* User Info Mobile */}
+          {showModal && selectedUser && (
+            <>
+              <div className="outfit-400 bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
+                <div className="custom-scrollbar relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
+                  {/* Header */}
+                  <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
+                    <h2 className="text-[14px] font-medium text-gray-700">
+                      User Information
+                    </h2>
 
-      {/* User Info Mobile */}
-      {showModal && selectedUser && (
-        <>
-          <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
-            <div className="custom-scrollbar relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
-              {/* Header */}
-              <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
-                <h2 className="text-[14px] font-medium text-gray-700">
-                  User Information
-                </h2>
-
-                <button
-                  onClick={() => {
-                    setShowModal(false);
-                    setRoleError(""); // Clear the error when modal is closed
-                  }}
-                  className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
-                  title="Close"
-                >
-                  <i className="bx bx-x text-[20px]"></i>
-                </button>
-              </div>
-              {/* Content */}
-              <form className="edit-profile-modal-scrollbar max-h-[calc(90vh-60px)] overflow-y-auto px-5 py-4">
-                {/* Fields */}
-                <div className="mb-4 grid grid-cols-2 gap-x-4 text-start">
-                  <div>
-                    <span className="block text-[14px] text-gray-700">
-                      First name
-                    </span>
-                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                      {selectedUser.firstName}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="block text-[14px] text-gray-700">
-                      Last name
-                    </span>
-                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                      {selectedUser.lastName}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="mt-2 block text-[14px] text-gray-700">
-                      Campus
-                    </span>
-                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                      {selectedUser.campus}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="mt-2 block text-[14px] text-gray-700">
-                      User Code
-                    </span>
-                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                      {selectedUser.userCode}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-                {/* Credentials */}
-                <div className="mb-4">
-                  <span className="block text-start text-[14px] text-gray-700">
-                    Program
-                  </span>
-                  <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                    {selectedUser.program}
-                  </div>
-                  <div className="mt-1 text-start text-[11px] text-gray-400">
-                    The program the user is assigned to. Used to filter subjects
-                    and academic content specific to your curriculum.
-                  </div>
-                </div>
-
-                {/* Account details */}
-                <div className="mb-4">
-                  <div className="grid grid-cols-2 gap-x-4">
-                    <div>
-                      <span className="mb-1 block text-start text-[14px] text-gray-700">
-                        Position
-                      </span>
-                      <RegisterDropDownSmall
-                        name="role"
-                        value={selectedUser.roleID}
-                        onChange={(e) =>
-                          handleRoleUpdate(
-                            selectedUser.userID,
-                            parseInt(e.target.value),
-                          )
-                        }
-                        placeholder={(() => {
-                          if (isUpdatingRole) {
-                            return (
-                              <div className="ml-18 flex items-center justify-center p-[3px]">
-                                <span className="loader"></span>
-                              </div>
-                            );
-                          }
-                          switch (selectedUser.roleID) {
-                            case 1:
-                              return "Student";
-                            case 2:
-                              return "Faculty";
-                            case 3:
-                              return "Program Chair";
-                            case 4:
-                              return "Dean";
-                            case 5:
-                              return "Associate Dean";
-                            default:
-                              return "Select Position";
-                          }
-                        })()}
-                        options={(() => {
-                          if (isUpdatingRole) {
-                            return [];
-                          }
-                          // If current user is Program Chair, only show Student and Faculty
-                          if (currentUserRole === 3) {
-                            // Don't show any options if the selected user is a Program Chair
-                            if (selectedUser.roleID === 3) {
-                              return [];
-                            }
-                            return [
-                              ...(selectedUser.roleID !== 1
-                                ? [{ value: "1", label: "Student" }]
-                                : []),
-                              ...(selectedUser.roleID !== 2
-                                ? [{ value: "2", label: "Faculty" }]
-                                : []),
-                            ];
-                          }
-                          // If current user is Dean, show all roles except current user's role
-                          const currentUser = JSON.parse(
-                            sessionStorage.getItem("user"),
-                          );
-                          const isCurrentUser =
-                            selectedUser.userID === currentUser.userID;
-                          const isDean = selectedUser.roleID === 4;
-
-                          return [
-                            ...(selectedUser.roleID !== 1
-                              ? [{ value: "1", label: "Student" }]
-                              : []),
-                            ...(selectedUser.roleID !== 2
-                              ? [{ value: "2", label: "Faculty" }]
-                              : []),
-                            ...(selectedUser.roleID !== 3
-                              ? [{ value: "3", label: "Program Chair" }]
-                              : []),
-                            ...(currentUserRole === 4 &&
-                            selectedUser.roleID !== 4
-                              ? [{ value: "4", label: "Dean" }]
-                              : []),
-                            ...(selectedUser.roleID !== 5
-                              ? [{ value: "5", label: "Associate Dean" }]
-                              : []),
-                          ].filter((option) => {
-                            // If this is the current user and they're a Dean, only allow demotion if there are other Deans
-                            if (
-                              isCurrentUser &&
-                              isDean &&
-                              option.value !== "4"
-                            ) {
-                              return otherDeansCount > 1;
-                            }
-                            return true;
-                          });
-                        })()}
-                        disabled={isUpdatingRole}
-                        isLoading={isUpdatingRole}
-                      />
-                    </div>
-                    <div>
-                      <span className="block text-start text-[14px] text-gray-700">
-                        Email Address
-                      </span>
-                      <div className="peer mt-1 w-full truncate rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                        {selectedUser.email}
-                      </div>
-                    </div>
-                  </div>
-                  {roleError && (
-                    <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                      {roleError}
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-                <div className="mb-3 flex flex-col gap-2">
-                  <div className="flex justify-between">
-                    <span className="block text-start text-[14px] text-gray-700">
-                      Approval Status:
-                    </span>
-                    <span
-                      className={`text-[14px] font-semibold capitalize ${
-                        selectedUser.status === "registered"
-                          ? "text-green-700"
-                          : selectedUser.status === "pending"
-                            ? "text-yellow-600"
-                            : "text-red-600"
-                      }`}
-                    >
-                      {selectedUser.status}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="block text-start text-[14px] text-gray-700">
-                      Account Status:
-                    </span>
-                    <span
-                      className={`text-[14px] font-semibold ${
-                        selectedUser.isActive
-                          ? "text-green-700"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {selectedUser.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-                {/* Action Buttons Row */}
-                {/* Single Description Above Buttons */}
-                {selectedUser.status === "pending" &&
-                  !selectedUser.isActive && (
-                    <>
-                      <span className="block text-start text-[14px] font-semibold text-gray-700">
-                        Approve this Account?
-                      </span>
-                      <div className="mt-1 text-start text-[11px] text-gray-400">
-                        Approving this account will grant the user access to the
-                        system based on their assigned position.
-                      </div>
-                    </>
-                  )}
-                {selectedUser.status === "registered" &&
-                  selectedUser.isActive && (
-                    <>
-                      <span className="block text-start text-[14px] font-semibold text-gray-700">
-                        Deactivate this Account?
-                      </span>
-                      <div className="mt-1 text-start text-[11px] text-gray-400">
-                        Deactivating this account will disable access without
-                        deleting the user's data. You can reactivate it at any
-                        time.
-                      </div>
-                    </>
-                  )}
-                {selectedUser.status === "registered" &&
-                  !selectedUser.isActive && (
-                    <>
-                      <span className="block text-start text-[14px] font-semibold text-gray-700">
-                        Activate this Account?
-                      </span>
-                      <div className="mt-1 text-start text-[11px] text-gray-400">
-                        Approving this account will grant the user access to the
-                        system based on their assigned position. You can
-                        deactivate it at any time.
-                      </div>
-                    </>
-                  )}
-                {(currentUserRole === 4 || currentUserRole === 5) &&
-                  users.length > 0 &&
-                  selectedUser &&
-                  (selectedUser.status !== "pending" &&
-                  selectedUser.status !== "registered" ? (
-                    <>
-                      <span className="block text-start text-[14px] font-semibold text-gray-700">
-                        Remove this Account?
-                      </span>
-                      <div className="mt-1 text-start text-[11px] text-gray-400">
-                        This will permanently remove the user and all their data
-                        from the system.
-                      </div>
-                    </>
-                  ) : null)}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {selectedUser.status === "pending" &&
-                    !selectedUser.isActive && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleApproveUser(selectedUser.userID);
-                        }}
-                        disabled={isApproving}
-                        className={`min-w-[120px] flex-1 cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isApproving ? "cursor-not-allowed bg-gray-500" : "bg-green-500 hover:bg-green-700 active:scale-98"} disabled:opacity-50`}
-                      >
-                        {isApproving ? (
-                          <div className="flex items-center justify-center">
-                            <span className="loader-white"></span>
-                          </div>
-                        ) : (
-                          "Approve"
-                        )}
-                      </button>
-                    )}
-                  {selectedUser.status === "registered" &&
-                    selectedUser.isActive && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleDeactivateUser(selectedUser.userID);
-                        }}
-                        disabled={isDeactivating}
-                        className={`min-w-[120px] flex-1 cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isDeactivating ? "cursor-not-allowed bg-gray-500" : "bg-red-500 hover:bg-red-700 active:scale-98"} disabled:opacity-50`}
-                      >
-                        {isDeactivating ? (
-                          <div className="flex items-center justify-center">
-                            <span className="loader-white"></span>
-                          </div>
-                        ) : (
-                          "Deactivate"
-                        )}
-                      </button>
-                    )}
-                  {selectedUser.status === "registered" &&
-                    !selectedUser.isActive && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleActivateUser(selectedUser.userID);
-                        }}
-                        disabled={isActivating}
-                        className={`min-w-[120px] flex-1 cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isActivating ? "cursor-not-allowed bg-gray-500" : "bg-green-500 hover:bg-green-700 active:scale-98"} disabled:opacity-50`}
-                      >
-                        {isActivating ? (
-                          <div className="flex items-center justify-center">
-                            <span className="loader-white"></span>
-                          </div>
-                        ) : (
-                          "Activate"
-                        )}
-                      </button>
-                    )}
-                  {(currentUserRole === 4 || currentUserRole === 5) && (
                     <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleDeleteUser(selectedUser.userID);
+                      onClick={() => {
+                        setShowModal(false);
+                        setRoleError(""); // Clear the error when modal is closed
                       }}
-                      disabled={isDeleting}
-                      className="min-w-[120px] flex-1 rounded-lg bg-red-600 py-2 text-[14px] font-semibold text-white hover:bg-red-800 disabled:opacity-50"
+                      className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
+                      title="Close"
                     >
-                      {isDeleting ? "Removing..." : "Remove User"}
+                      <i className="bx bx-x text-[20px]"></i>
                     </button>
-                  )}
+                  </div>
+                  {/* Content */}
+                  <form className="edit-profile-modal-scrollbar max-h-[calc(90vh-60px)] overflow-y-auto px-5 py-4">
+                    {/* Fields */}
+                    <div className="mb-4 grid grid-cols-2 gap-x-4 text-start">
+                      <div>
+                        <span className="block text-[14px] text-gray-700">
+                          First name
+                        </span>
+                        <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                          {selectedUser.firstName}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="block text-[14px] text-gray-700">
+                          Last name
+                        </span>
+                        <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                          {selectedUser.lastName}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="mt-2 block text-[14px] text-gray-700">
+                          Campus
+                        </span>
+                        <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                          {selectedUser.campus}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="mt-2 block text-[14px] text-gray-700">
+                          User Code
+                        </span>
+                        <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                          {selectedUser.userCode}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+
+                    {/* Credentials */}
+                    <div className="mb-4">
+                      <span className="block text-start text-[14px] text-gray-700">
+                        Program
+                      </span>
+                      <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                        {selectedUser.program}
+                      </div>
+                      <div className="mt-1 text-start text-[11px] text-gray-400">
+                        The program the user is assigned to. Used to filter
+                        subjects and academic content specific to your
+                        curriculum.
+                      </div>
+                    </div>
+
+                    {/* Account details */}
+                    <div className="mb-4">
+                      <div className="grid grid-cols-2 gap-x-4">
+                        <div>
+                          <span className="mb-1 block text-start text-[14px] text-gray-700">
+                            Position
+                          </span>
+                          <RegisterDropDownSmall
+                            name="role"
+                            value={selectedUser.roleID}
+                            onChange={(e) =>
+                              handleRoleUpdate(
+                                selectedUser.userID,
+                                parseInt(e.target.value),
+                              )
+                            }
+                            placeholder={(() => {
+                              if (isUpdatingRole) {
+                                return (
+                                  <div className="ml-18 flex items-center justify-center p-[3px]">
+                                    <span className="loader"></span>
+                                  </div>
+                                );
+                              }
+                              switch (selectedUser.roleID) {
+                                case 1:
+                                  return "Student";
+                                case 2:
+                                  return "Faculty";
+                                case 3:
+                                  return "Program Chair";
+                                case 4:
+                                  return "Dean";
+                                case 5:
+                                  return "Associate Dean";
+                                default:
+                                  return "Select Position";
+                              }
+                            })()}
+                            options={(() => {
+                              if (isUpdatingRole) {
+                                return [];
+                              }
+                              // If current user is Program Chair, only show Student and Faculty
+                              if (currentUserRole === 3) {
+                                // Don't show any options if the selected user is a Program Chair
+                                if (selectedUser.roleID === 3) {
+                                  return [];
+                                }
+                                return [
+                                  ...(selectedUser.roleID !== 1
+                                    ? [{ value: "1", label: "Student" }]
+                                    : []),
+                                  ...(selectedUser.roleID !== 2
+                                    ? [{ value: "2", label: "Faculty" }]
+                                    : []),
+                                ];
+                              }
+                              // If current user is Dean, show all roles except current user's role
+                              const currentUser = JSON.parse(
+                                sessionStorage.getItem("user"),
+                              );
+                              const isCurrentUser =
+                                selectedUser.userID === currentUser.userID;
+                              const isDean = selectedUser.roleID === 4;
+
+                              return [
+                                ...(selectedUser.roleID !== 1
+                                  ? [{ value: "1", label: "Student" }]
+                                  : []),
+                                ...(selectedUser.roleID !== 2
+                                  ? [{ value: "2", label: "Faculty" }]
+                                  : []),
+                                ...(selectedUser.roleID !== 3
+                                  ? [{ value: "3", label: "Program Chair" }]
+                                  : []),
+                                ...(currentUserRole === 4 &&
+                                selectedUser.roleID !== 4
+                                  ? [{ value: "4", label: "Dean" }]
+                                  : []),
+                                ...(selectedUser.roleID !== 5
+                                  ? [{ value: "5", label: "Associate Dean" }]
+                                  : []),
+                              ].filter((option) => {
+                                // If this is the current user and they're a Dean, only allow demotion if there are other Deans
+                                if (
+                                  isCurrentUser &&
+                                  isDean &&
+                                  option.value !== "4"
+                                ) {
+                                  return otherDeansCount > 1;
+                                }
+                                return true;
+                              });
+                            })()}
+                            disabled={isUpdatingRole}
+                            isLoading={isUpdatingRole}
+                          />
+                        </div>
+                        <div>
+                          <span className="block text-start text-[14px] text-gray-700">
+                            Email Address
+                          </span>
+                          <div className="peer mt-1 w-full truncate rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                            {selectedUser.email}
+                          </div>
+                        </div>
+                      </div>
+                      {roleError && (
+                        <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                          {roleError}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+
+                    <div className="mb-3 flex flex-col gap-2">
+                      <div className="flex justify-between">
+                        <span className="block text-start text-[14px] text-gray-700">
+                          Approval Status:
+                        </span>
+                        <span
+                          className={`text-[14px] font-semibold capitalize ${
+                            selectedUser.status === "registered"
+                              ? "text-green-700"
+                              : selectedUser.status === "pending"
+                                ? "text-yellow-600"
+                                : "text-red-600"
+                          }`}
+                        >
+                          {selectedUser.status}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="block text-start text-[14px] text-gray-700">
+                          Account Status:
+                        </span>
+                        <span
+                          className={`text-[14px] font-semibold ${
+                            selectedUser.isActive
+                              ? "text-green-700"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {selectedUser.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+
+                    {/* Action Buttons Row */}
+                    {/* Single Description Above Buttons */}
+                    {selectedUser.status === "pending" &&
+                      !selectedUser.isActive && (
+                        <>
+                          <span className="block text-start text-[14px] font-semibold text-gray-700">
+                            Approve this Account?
+                          </span>
+                          <div className="mt-1 text-start text-[11px] text-gray-400">
+                            Approving this account will grant the user access to
+                            the system based on their assigned position.
+                          </div>
+                        </>
+                      )}
+                    {selectedUser.status === "registered" &&
+                      selectedUser.isActive && (
+                        <>
+                          <span className="block text-start text-[14px] font-semibold text-gray-700">
+                            Deactivate this Account?
+                          </span>
+                          <div className="mt-1 text-start text-[11px] text-gray-400">
+                            Deactivating this account will disable access
+                            without deleting the user's data. You can reactivate
+                            it at any time.
+                          </div>
+                        </>
+                      )}
+                    {selectedUser.status === "registered" &&
+                      !selectedUser.isActive && (
+                        <>
+                          <span className="block text-start text-[14px] font-semibold text-gray-700">
+                            Activate this Account?
+                          </span>
+                          <div className="mt-1 text-start text-[11px] text-gray-400">
+                            Approving this account will grant the user access to
+                            the system based on their assigned position. You can
+                            deactivate it at any time.
+                          </div>
+                        </>
+                      )}
+                    {(currentUserRole === 4 || currentUserRole === 5) &&
+                      users.length > 0 &&
+                      selectedUser &&
+                      (selectedUser.status !== "pending" &&
+                      selectedUser.status !== "registered" ? (
+                        <>
+                          <span className="block text-start text-[14px] font-semibold text-gray-700">
+                            Remove this Account?
+                          </span>
+                          <div className="mt-1 text-start text-[11px] text-gray-400">
+                            This will permanently remove the user and all their
+                            data from the system.
+                          </div>
+                        </>
+                      ) : null)}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {selectedUser.status === "pending" &&
+                        !selectedUser.isActive && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleApproveUser(selectedUser.userID);
+                            }}
+                            disabled={isApproving}
+                            className={`min-w-[120px] flex-1 cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isApproving ? "cursor-not-allowed bg-gray-500" : "bg-green-500 hover:bg-green-700 active:scale-98"} disabled:opacity-50`}
+                          >
+                            {isApproving ? (
+                              <div className="flex items-center justify-center">
+                                <span className="loader-white"></span>
+                              </div>
+                            ) : (
+                              "Approve"
+                            )}
+                          </button>
+                        )}
+                      {selectedUser.status === "registered" &&
+                        selectedUser.isActive && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleDeactivateUser(selectedUser.userID);
+                            }}
+                            disabled={isDeactivating}
+                            className={`min-w-[120px] flex-1 cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isDeactivating ? "cursor-not-allowed bg-gray-500" : "bg-red-500 hover:bg-red-700 active:scale-98"} disabled:opacity-50`}
+                          >
+                            {isDeactivating ? (
+                              <div className="flex items-center justify-center">
+                                <span className="loader-white"></span>
+                              </div>
+                            ) : (
+                              "Deactivate"
+                            )}
+                          </button>
+                        )}
+                      {selectedUser.status === "registered" &&
+                        !selectedUser.isActive && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleActivateUser(selectedUser.userID);
+                            }}
+                            disabled={isActivating}
+                            className={`min-w-[120px] flex-1 cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isActivating ? "cursor-not-allowed bg-gray-500" : "bg-green-500 hover:bg-green-700 active:scale-98"} disabled:opacity-50`}
+                          >
+                            {isActivating ? (
+                              <div className="flex items-center justify-center">
+                                <span className="loader-white"></span>
+                              </div>
+                            ) : (
+                              "Activate"
+                            )}
+                          </button>
+                        )}
+                      {(currentUserRole === 4 || currentUserRole === 5) && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleDeleteUser(selectedUser.userID);
+                          }}
+                          disabled={isDeleting}
+                          className="min-w-[120px] flex-1 rounded-lg bg-red-600 py-2 text-[14px] font-semibold text-white hover:bg-red-800 disabled:opacity-50"
+                        >
+                          {isDeleting ? "Removing..." : "Remove User"}
+                        </button>
+                      )}
+                    </div>
+                  </form>
                 </div>
-              </form>
-            </div>
-          </div>
-        </>
-      )}
+              </div>
+            </>
+          )}
 
           {loading || searchLoading || tabLoading ? (
-            <div className="outfit flex h-64 items-center justify-center">
+            <div className="outfit-400 flex h-64 items-center justify-center">
               <div className="text-center">
                 <div className="loader mx-auto mb-2"></div>
                 <p className="text-[14px] text-gray-600">Loading users...</p>
               </div>
             </div>
           ) : error ? (
-            <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+            <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
               <div className="text-center">
                 <img
                   src={noInternetImage}
@@ -1883,12 +1957,13 @@ const UserList = () => {
                   className="mx-auto mb-3 h-32 w-32 opacity-80"
                 />
                 <p className="text-sm text-gray-600">
-                  Unstable network, please check your internet connection and try again.
+                  Unstable network, please check your internet connection and
+                  try again.
                 </p>
               </div>
             </div>
           ) : getFilteredUsers().length === 0 ? (
-            <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
+            <div className="outfit-400 flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
               <div className="text-center">
                 <img
                   src={emptyImage}
@@ -1903,7 +1978,7 @@ const UserList = () => {
               </div>
             </div>
           ) : (
-            <div className="hidden min-[1000px]:block outfit rounded-xl border border-gray-200 bg-white overflow-hidden">
+            <div className="outfit-400 hidden overflow-hidden rounded-xl border border-gray-200 bg-white min-[1000px]:block">
               <div>
                 <table className="w-full">
                   <thead className="border-b border-gray-200 bg-white">
@@ -1929,22 +2004,20 @@ const UserList = () => {
                               );
                             }
                           }}
-                          checked={
-                            (() => {
-                              const displayedIds = getDisplayedUsers().map(
-                                (u) => u.userID,
-                              );
-                              if (displayedIds.length === 0) return false;
-                              return displayedIds.every((id) =>
-                                selectedUsers.includes(id),
-                              );
-                            })()
-                          }
-                          className="h-4 w-4 mt-1 cursor-pointer rounded border-gray-500 text-orange-500"
+                          checked={(() => {
+                            const displayedIds = getDisplayedUsers().map(
+                              (u) => u.userID,
+                            );
+                            if (displayedIds.length === 0) return false;
+                            return displayedIds.every((id) =>
+                              selectedUsers.includes(id),
+                            );
+                          })()}
+                          className="mt-1 h-4 w-4 cursor-pointer rounded border-gray-500 text-orange-500"
                         />
                       </th>
                       <th className="py-3 text-left text-[12px] font-medium tracking-wider text-gray-600 uppercase">
-                        User Information 
+                        User Information
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-medium tracking-wider text-gray-600 uppercase">
                         Position
@@ -1968,7 +2041,7 @@ const UserList = () => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y  divide-gray-200 bg-white">
+                  <tbody className="divide-y divide-gray-200 bg-white">
                     {getDisplayedUsers().map((user) => (
                       <tr
                         key={user.userID}
@@ -1990,27 +2063,27 @@ const UserList = () => {
                             className="h-4 w-4 cursor-pointer rounded border-gray-500 text-orange-500"
                           />
                         </td>
-                        <td
-                          className="py-2 whitespace-nowrap"
-                        >
+                        <td className="py-2 whitespace-nowrap">
                           <div className="flex items-center gap-3">
                             <div className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-gray-100">
-                            <img
+                              <img
                                 src={roleImages[user.roleID] || StudentPfp}
                                 alt={`${user.firstName} ${user.lastName}`}
-                              className="h-full w-full object-cover"
+                                className="h-full w-full object-cover"
                               />
                             </div>
                             <div className="">
-                              <div className="outfit text-sm font-semibold text-gray-900">
+                              <div className="outfit-400-400 text-sm font-semibold text-gray-900">
                                 {user.firstName} {user.lastName}
                               </div>
-                              <div className="outfit mt-0.5 flex items-center gap-2 text-xs text-gray-500">
+                              <div className="outfit-400-400 mt-0.5 flex items-center gap-2 text-xs text-gray-500">
                                 <span>{user.userCode}</span>
                                 {user.email && (
                                   <>
                                     <span>•</span>
-                                    <span className="outfit truncate max-w-[200px]">{user.email}</span>
+                                    <span className="outfit-400-400 max-w-[200px] truncate">
+                                      {user.email}
+                                    </span>
                                   </>
                                 )}
                               </div>
@@ -2018,19 +2091,22 @@ const UserList = () => {
                           </div>
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <span className="text-sm text-gray-900 outfit">{user.role}</span>
+                          <span className="outfit-400 text-sm text-gray-900">
+                            {user.role}
+                          </span>
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <span className="text-sm text-gray-900 outfit">{user.program}</span>
+                          <span className="outfit-400 text-sm text-gray-900">
+                            {user.program}
+                          </span>
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <span className="text-sm text-gray-900 outfit">{user.campus}</span>
+                          <span className="outfit-400 text-sm text-gray-900">
+                            {user.campus}
+                          </span>
                         </td>
-                        <td className="outfit px-3 py-3 text-center whitespace-nowrap">
-                          <span
-                            className="rounded-md px-2 py-1 text-[14px]"
-                              
-                          >
+                        <td className="outfit-400 px-3 py-3 text-center whitespace-nowrap">
+                          <span className="rounded-md px-2 py-1 text-[14px]">
                             {user.status === "registered"
                               ? "Approved"
                               : user.status === "unregistered"
@@ -2049,7 +2125,8 @@ const UserList = () => {
                         )}
                         <td className="px-6 py-3 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-2">
-                            {(currentUserRole === 4 || currentUserRole === 5) && (
+                            {(currentUserRole === 4 ||
+                              currentUserRole === 5) && (
                               <button
                                 className="flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 p-2 text-red-600 transition-colors hover:bg-red-50 hover:text-red-800"
                                 title="Remove User"
@@ -2145,13 +2222,14 @@ const UserList = () => {
 
           {/* Pagination */}
           {!loading && !searchLoading && !tabLoading && !error && (
-            <div className={`flex justify-center pt-4 ${selectedUsers.length > 0 ? 'pb-28' : 'pb-6'}`}>
+            <div
+              className={`flex justify-center pt-4 ${selectedUsers.length > 0 ? "pb-28" : "pb-28 lg:pb-6"}`}
+            >
               {renderPagination()}
             </div>
           )}
         </div>
       </div>
-
 
       {isActivatingMultiple && <LoadingOverlay show={isActivatingMultiple} />}
       {isApprovingMultiple && <LoadingOverlay show={isApprovingMultiple} />}
@@ -2162,8 +2240,7 @@ const UserList = () => {
 
       {/* Selection Overlay Banner */}
       {selectedUsers.length > 0 && (
-        <div className="outfit fixed right-0 bottom-5 left-[220px] z-50 md:left-[276px] lg:left-[220px]">
-
+        <div className="outfit-400 fixed right-0 bottom-5 left-[220px] z-50 md:left-[276px] lg:left-[220px]">
           <div className="px-6">
             <div className="rounded-xl bg-gray-800 px-5 py-4 shadow-lg">
               <div className="flex items-center justify-between">
@@ -2177,7 +2254,7 @@ const UserList = () => {
                   <button
                     onClick={handleApproveSelectedUsers}
                     disabled={isApprovingMultiple || isDeleting}
-                    className=" flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50"
                   >
                     <i className="bx bx-check text-lg"></i>
                     Approve
@@ -2185,7 +2262,7 @@ const UserList = () => {
                   <button
                     onClick={handleActivateSelectedUsers}
                     disabled={isActivatingMultiple || isDeleting}
-                    className=" flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50"
                   >
                     <i className="bx bx-arrow-big-up-line text-lg"></i>
                     Activate
@@ -2202,7 +2279,7 @@ const UserList = () => {
                     <button
                       onClick={handleDeleteSelectedUsers}
                       disabled={isDeletingMultiple || isDeleting}
-                      className=" flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                      className="flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
                     >
                       <i className="bx bx-trash text-lg"></i>
                       Remove
@@ -2228,6 +2305,3 @@ const UserList = () => {
 };
 
 export default UserList;
-
-
-

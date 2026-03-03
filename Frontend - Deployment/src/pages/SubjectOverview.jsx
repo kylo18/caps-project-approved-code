@@ -368,7 +368,7 @@ const SubjectOverview = () => {
     <>
       {/* Mobile version: block on mobile, hidden on md+ */}
       <div className="block md:hidden">
-        <div className="border-color relative z-48 -mx-2 mt-15 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:rounded-md sm:pt-4 md:hidden">
+        <div className="border-color relative z-48 mt-15 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:rounded-md sm:pt-4 md:hidden">
           <div className="flex flex-wrap items-start justify-between sm:hidden">
             <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
               <h1 className="outfit mt-2 ml-2 text-[18px] font-bold break-words">
@@ -434,7 +434,7 @@ const SubjectOverview = () => {
 
           <div className="relative mt-4 flex items-start justify-start sm:items-end sm:justify-end">
             <button
-              className="border-color mb-4 cursor-pointer items-center justify-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
+              className="border-color mb-4 cursor-pointer items-center justify-center gap-1 rounded-xl border bg-white px-3 py-2 text-[12px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
               onClick={() => {
                 const user = JSON.parse(sessionStorage.getItem("user"));
                 const roleID = user?.roleID ?? user?.roleId;
@@ -450,8 +450,8 @@ const SubjectOverview = () => {
               }}
             >
               <span className="inline-flex items-center gap-2">
-                <i className="bx bxs-edit"></i>
-                <span className="outfit-500 text-[14px]">Manage Questions</span>
+                <i className="bx bxs-edit text-[15px]"></i>
+                <span className="outfit-500 text-[12px]">Manage Questions</span>
               </span>
             </button>
           </div>

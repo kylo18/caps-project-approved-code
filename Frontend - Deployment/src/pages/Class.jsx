@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 import ArchiveIcon from "/src/assets/symbols/archive.svg";
+import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
 import CreateClassModal from "../components/CreateClassModal";
 import EditClassModal from "../components/EditClassModal";
 import ConfirmModal from "../components/confirmModal";
@@ -56,6 +57,8 @@ const Class = () => {
   const [classCode, setClassCode] = useState("");
   const [classCodeError, setClassCodeError] = useState("");
   const [isJoining, setIsJoining] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const mobileSearchInputRef = useRef(null);
 
   // Get user role on mount
   useEffect(() => {
@@ -473,65 +476,57 @@ const Class = () => {
   return (
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
-      <div className="scrollbar-hide flex h-screen flex-1 flex-col gap-6 overflow-y-auto p-6 pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="outfit-500 relative text-[14px]">
-            <i className="bx bx-search absolute top-2.5 left-4 -translate-y-1/2 text-lg text-gray-500"></i>
-            <input
-              type="text"
-              placeholder="Search classes..."
-              className="-mt-2 w-full rounded-full border border-gray-200 bg-white py-2 pr-6 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-              value={searchTerm}
-              maxLength={50}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm("")}
-                className="absolute top-2.5 right-4 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
-              >
-                <i className="bx bx-x text-xl"></i>
-              </button>
-            )}
-          </div>
+      <div className="scrollbar-hide mt-10 flex h-screen flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] lg:mt-0 [&::-webkit-scrollbar]:hidden">
+        <div className="min-w-0 space-y-4 px-4 pt-4 md:px-6 md:pt-6">
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search classes..."
+            mobileCollapsible
+            showMobileSearch={showMobileSearch}
+            onCloseMobileSearch={() => setShowMobileSearch(false)}
+            inputRef={mobileSearchInputRef}
+          />
 
-          <div className="my-4 h-px bg-gray-200" />
+          <div className="my-4 hidden h-px bg-gray-200 md:block" />
 
           {/* Header with title and action buttons */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="outfit-500 mt-1 text-[18px] text-black">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="outfit-500 text-[18px] break-words text-black">
                 {searchTerm.trim()
                   ? `Search results for "${searchTerm}"`
                   : `My classes (${filteredClasses.length})`}
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-shrink-0 items-center gap-1">
               {userRole !== 1 && (
                 <>
                   <button
                     type="button"
+                    onClick={() => setIsCreateModalOpen(true)}
+                    title="Create class"
+                    className="outfit-500 -mb-2 hidden cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:inline-flex md:text-[14px]"
+                  >
+                    <i className="bxx bx-plus text-[20px]"></i>
+                  </button>
+                  <SearchBarTrigger
+                    isOpen={showMobileSearch}
+                    onClick={() => setShowMobileSearch((prev) => !prev)}
+                    title="Search classes"
+                  />
+                  <button
+                    type="button"
+                    title="Archives"
                     onClick={() => navigate("/archived-class")}
-                    className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                    className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:text-[14px]"
                   >
                     <img
                       src={ArchiveIcon}
                       alt="archived classes"
-                      className="mr-2 size-[18px]"
+                      className="size-[22px]"
                     />
-                    Archived classes
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl bg-orange-500 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-orange-600"
-                  >
-                    <i className="bx bx-plus mr-2 text-[16px]" />
-                    Create class
                   </button>
                 </>
               )}
@@ -562,38 +557,34 @@ const Class = () => {
           )}
 
           {isLoading ? (
-            <div className="outfit flex h-64 items-center justify-center">
+            <div className="outfit-400 flex h-64 items-center justify-center">
               <div className="text-center">
                 <div className="loader mx-auto mb-2"></div>
-                <p className="text-[14px] text-gray-600">Loading classes...</p>
               </div>
             </div>
           ) : filteredClasses.length === 0 ? (
-            <div className="outfit flex h-130 flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 py-16">
-              <div className="text-center">
-                <img
-                  src={emptyImage}
-                  alt="No classes available"
-                  className="mx-auto mb-3 h-32 w-32 opacity-80"
-                />
-                <p className="outfit-400 text-[14px] text-gray-600">
-                  {searchTerm.trim()
-                    ? `No classes found matching "${searchTerm}"`
-                    : userRole === 1
-                      ? "No classes yet. Use the Join a Class button to join your first class."
-                      : "No classes yet. Use the Create class button to add your first one."}
-                </p>
+            <div className="px-4">
+              <div className="outfit-400 flex h-80 flex-1 items-center justify-center rounded-2xl border-dashed border-gray-300 py-16 md:h-130 md:border">
+                <div className="text-center">
+                  <img
+                    src={emptyImage}
+                    alt="No classes available"
+                    className="mx-auto mb-3 h-32 w-32 opacity-80"
+                  />
+                  <p className="outfit-400 text-[14px] text-gray-600">
+                    {searchTerm.trim()
+                      ? `No classes found matching "${searchTerm}"`
+                      : userRole === 1
+                        ? "No classes yet. Use the Join a Class button to join your first class."
+                        : "No classes yet. Use the Create class button to add your first one."}
+                  </p>
+                </div>
               </div>
             </div>
           ) : (
             <>
-              {/* Classes Grid - Dynamic columns */}
-              <div
-                className="mt-4 grid space-y-4 space-x-2"
-                style={{
-                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                }}
-              >
+              {/* Classes Grid - Dynamic columns, full width on mobile */}
+              <div className="mt-4 grid grid-cols-1 space-y-2 space-x-2 px-2 md:grid-cols-[repeat(auto-fill,minmax(20rem,20rem))] md:gap-2 lg:px-4">
                 {filteredClasses.map((classItem) => {
                   const headerBackground = getHeaderBackground(
                     classItem.classID || classItem.id,
@@ -616,11 +607,11 @@ const Class = () => {
                   return (
                     <div
                       key={classItem.classID || classItem.id}
-                      className="group outfit relative flex h-[320px] max-w-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-xl"
+                      className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[320px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
                     >
                       {/* Background Image Header Section */}
                       <div
-                        className="relative cursor-pointer bg-cover bg-center bg-no-repeat px-4 pt-4 pb-4"
+                        className="relative cursor-pointer bg-cover bg-center bg-no-repeat px-4 pt-4 pb-4 md:h-[150px]"
                         onClick={() => {
                           const id = classItem.classID || classItem.id;
                           if (!id) return;
@@ -637,25 +628,36 @@ const Class = () => {
                         }}
                         style={{ backgroundImage: `url(${headerBackground})` }}
                       >
-                        <div className="relative z-10">
-                          <div className="mb-4 text-xs font-medium text-white opacity-90">
+                        <div className="relative z-10 pr-16 md:flex md:h-full md:flex-col md:justify-between md:pr-0">
+                          <div className="mb-4 hidden text-xs font-medium text-white opacity-90 md:block">
                             Class
                           </div>
-                          <div
-                            className="mb-4 h-12 overflow-hidden leading-6 font-semibold text-white"
-                            style={{
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            <span className="outfit-500 text-[20px] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
-                              {classItem.className}
-                            </span>
+                          <div className="mb-4">
+                            <div
+                              className="max-h-12 overflow-hidden leading-6 font-semibold text-white"
+                              style={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              <span className="outfit-500 text-[20px] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+                                {classItem.className}
+                              </span>
+                            </div>
+                            {classItem.schedule && (
+                              <div className="mt-1 flex items-center gap-1 text-[12px] text-white md:hidden">
+                                <i className="bx bx-history text-sm"></i>
+                                <span className="truncate">
+                                  {classItem.schedule}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                          <div className="inline-flex max-w-full items-center overflow-hidden rounded-full bg-white px-2 py-0.5">
+
+                          <div className="mt-7 inline-flex w-fit max-w-full items-center rounded-full bg-white px-3 py-0.5 md:mt-0">
                             <span className="truncate text-xs font-semibold whitespace-nowrap text-black uppercase">
                               Code - {classItem.classCode}
                             </span>
@@ -664,7 +666,7 @@ const Class = () => {
 
                         {/* Edit and Archive Buttons - Top Right (only for non-students) */}
                         {userRole !== 1 && (
-                          <div className="absolute top-2 right-2 z-20 flex items-center gap-1">
+                          <div className="absolute top-2 right-2 z-20 hidden items-center gap-1 md:flex">
                             <button
                               onClick={(e) => handleEditClick(classItem, e)}
                               className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-white transition-colors hover:bg-white/20"
@@ -694,11 +696,20 @@ const Class = () => {
                             </button>
                           </div>
                         )}
+                        {userRole !== 1 && (
+                          <div className="absolute right-3 bottom-3 z-20 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-medium text-white md:hidden">
+                            <i className="bx bx-group text-sm"></i>
+                            <span>
+                              {enrollmentCount}{" "}
+                              {enrollmentCount === 1 ? "Student" : "Students"}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* White Body Section */}
                       <div
-                        className="flex flex-1 cursor-pointer flex-col px-4 py-4"
+                        className="flex hidden flex-1 cursor-pointer flex-col px-4 py-4 md:block"
                         onClick={() => {
                           const id = classItem.classID || classItem.id;
                           if (!id) return;
@@ -727,7 +738,7 @@ const Class = () => {
                         {/* Metadata */}
                         <div className="mb-1 space-y-1">
                           {classItem.schedule && (
-                            <div className="outfit-400 flex items-center gap-2 text-[12px] text-gray-700">
+                            <div className="outfit-400 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
                               <i className="bx bx-history text-sm"></i>
                               <span className="truncate">
                                 {classItem.schedule}
@@ -735,7 +746,7 @@ const Class = () => {
                             </div>
                           )}
                           {userRole !== 1 && (
-                            <div className="outfit-400 flex items-center gap-2 text-[12px] text-gray-700">
+                            <div className="outfit-400 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
                               <i className="bx bx-group text-sm"></i>
                               <span>
                                 {enrollmentCount}{" "}
@@ -784,7 +795,7 @@ const Class = () => {
             </>
           )}
 
-          <div className="pb-6" />
+          <div className="pb-28 lg:pb-6" aria-hidden="true" />
         </div>
 
         {/* Create Class Modal */}
@@ -844,7 +855,7 @@ const Class = () => {
         {/* Join Class Modal */}
         {showJoinForm && (
           <>
-            <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
+            <div className="outfit-400 bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
               <div className="relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
                 <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
                   <h2 className="text-[14px] font-medium text-gray-700">
@@ -912,6 +923,19 @@ const Class = () => {
           </>
         )}
       </div>
+
+      {/* Floating Create Class button (mobile only) - same as Libraries */}
+      {userRole !== 1 && (
+        <div className="fixed right-4 bottom-[90px] z-50 md:hidden">
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="outfit-400 flex cursor-pointer items-center gap-2 rounded-full bg-orange-500 p-4 text-[14px] font-medium text-white shadow-xl transition-colors hover:bg-orange-600"
+          >
+            <i className="bx bx-plus text-[22px]" />
+          </button>
+        </div>
+      )}
     </>
   );
 };

@@ -409,41 +409,9 @@ const SubjectCard = ({
     showToast("Exam successfully configured!", "success");
   };
 
-  // Function to fetch and preview practice exam questions
-  const handlePreviewClick = async () => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/practice-exam/preview/${subjectID}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch preview questions");
-      }
-
-      const examData = await response.json();
-
-      // Navigate to practice exam with preview flag
-      navigate("/practice-exam", {
-        state: {
-          subjectID,
-          examData: {
-            ...examData,
-            subjectName,
-            isPreview: true,
-          },
-        },
-      });
-    } catch (error) {
-      console.error("Error fetching preview questions:", error);
-      showToast("Failed to load preview questions. Please try again.", "error");
-    }
+  // Navigate to practice exam preview page
+  const handlePreviewClick = () => {
+    navigate(`/practice-exam/preview/${subjectID}`);
   };
 
   // Delete subject handler
@@ -556,13 +524,13 @@ const SubjectCard = ({
           </div>
 
           {/* Mobile & Tablet */}
-          <div className="border-color relative z-48 -mx-2 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
+          <div className="border-color relative z-48 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
             <div className="flex flex-wrap items-start justify-between sm:hidden">
               <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-                <h1 className="outfit mt-2 ml-2 text-[18px] font-bold break-words">
+                <h1 className="outfit-700 mt-2 ml-2 text-[18px] font-bold break-words">
                   {subjectName}
                 </h1>
-                <div className="mt-2 ml-2 flex gap-1 text-gray-500">
+                <div className="outfit-400 mt-2 ml-2 flex gap-1 text-gray-500">
                   <i className="bx bx-book mt-[1px] text-lg"></i>
                   <p className="text-[14px]">{subjectCode}</p>
                   <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
@@ -591,10 +559,10 @@ const SubjectCard = ({
                 className="border-color mr-5 size-18 rounded-md border object-cover"
               />
               <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-                <h1 className="outfit text-[15px] font-bold break-words md:text-[18px]">
+                <h1 className="outfit-700 text-[15px] font-bold break-words md:text-[18px]">
                   {subjectName}
                 </h1>
-                <div className="mt-1 flex gap-1 text-gray-500">
+                <div className="outfit-400 mt-1 flex gap-1 text-gray-500">
                   <i className="bx bx-book mt-[1px] text-lg"></i>
 
                   <p className="text-[14px]">{subjectCode}</p>
@@ -615,7 +583,7 @@ const SubjectCard = ({
             </div>
 
             {/* Button row for Tablet and Mobile (Configure, Preview, Refresh) */}
-            <div className="outfit mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold sm:flex md:hidden">
+            <div className="outfit-500 mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold sm:flex md:hidden">
               <button
                 onClick={() => alert("Feature under development")}
                 className="border-color mb-6 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
@@ -673,13 +641,13 @@ const SubjectCard = ({
           </div>
 
           {/* Tablet Tabs Bar (below card) */}
-          <div className="outfit border-color relative z-48 -mx-2 -mt-2 mb-1 h-[50px] overflow-visible border bg-gray-50 pt-2 font-semibold sm:mx-0 sm:block sm:rounded-b-md md:hidden">
+          <div className="outfit-400 border-color relative z-48 -mt-2 mb-1 h-[50px] overflow-visible border bg-gray-50 pt-2 sm:mx-0 sm:block sm:rounded-b-md md:hidden">
             <ul className="mt-[6px] flex h-full w-full justify-between text-center">
               {tabs.map((tab) => (
                 <li
                   key={tab.index}
                   ref={(el) => (tabletTabRefs.current[tab.index] = el)}
-                  className={`relative flex-1 cursor-pointer text-[13px] font-semibold transition-colors duration-200 ${
+                  className={`relative flex-1 cursor-pointer text-[13px] transition-colors duration-200 ${
                     activeIndex === tab.index
                       ? "text-orange-500"
                       : "text-gray-600"
@@ -716,8 +684,8 @@ const SubjectCard = ({
                   className="border-color size-21 rounded-md border object-cover"
                 />
               </div>
-              <div className="outfit flex max-w-full min-w-0 flex-col flex-wrap md:max-w-[calc(100%-200px)]">
-                <div className="outfit line-clamp-2">
+              <div className="outfit-400 flex max-w-full min-w-0 flex-col flex-wrap md:max-w-[calc(100%-200px)]">
+                <div className="outfit-700 line-clamp-2">
                   <Textfit
                     mode="multi"
                     min={14}

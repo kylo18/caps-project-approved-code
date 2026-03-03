@@ -68,6 +68,7 @@ const AdminContent = () => {
 
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showQuestionInfoId, setShowQuestionInfoId] = useState(null);
 
   const dropdownRef = useRef(null);
 
@@ -424,7 +425,7 @@ const AdminContent = () => {
   const [hoveredQuestionId, setHoveredQuestionId] = useState(null);
 
   return (
-    <div className="relative mt-2 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
+    <div className="relative mt-10 flex min-h-screen w-full flex-1 flex-col justify-center py-2 md:mt-2">
       <div className="flex-1">
         {selectedSubject ? (
           <div className="w-full py-3">
@@ -462,7 +463,7 @@ const AdminContent = () => {
               />
               {/* Desktop Sort controls (tabs are rendered inside SubjectCard now) */}
               {!isLoading && (
-                <div className="outfit mx-auto max-w-3xl md:mt-4">
+                <div className="outfit-400 mx-auto max-w-3xl md:mt-4">
                   <div className="flex w-full items-center justify-end">
                     {activeTab === 4 && (
                       <SortType
@@ -471,7 +472,7 @@ const AdminContent = () => {
                         onChange={(e) => setPendingSort(e.target.value)}
                         placeholder="Type"
                         options={[
-                          { value: "", label: "All Types" },
+                          { value: "", label: "All types" },
                           {
                             value: "practiceQuestions",
                             label: "Practice Exam",
@@ -555,7 +556,7 @@ const AdminContent = () => {
 
             {/* Questions List */}
             {(activeTab === 0 || activeTab === 1 || activeTab === 4) && (
-              <div className="relative -mx-2 sm:mx-0">
+              <div className="relative sm:mx-0">
                 <div className="w-full">
                   {isLoading ? (
                     <div className="flex flex-col gap-2">
@@ -571,7 +572,7 @@ const AdminContent = () => {
                           </div>
                         </div>
                         {/* Question text */}
-                        <div className="skeleton shimmer word-break break-word mt-4 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap"></div>
+                        <div className="skeleton shimmer word-break break-word mt-4 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap"></div>
 
                         {/* Choices */}
                         <div className="mt-3 space-y-3 p-3">
@@ -630,7 +631,7 @@ const AdminContent = () => {
                     </div>
                   ) : filteredQuestions.length > 0 ? (
                     <>
-                      <div className="outfit border-color relative mx-0 mt-3 flex w-full max-w-3xl flex-row items-center rounded-t-3xl border border-b-0 bg-white sm:mx-auto sm:mt-[2px] sm:rounded-t-xl md:rounded-t-xl">
+                      <div className="outfit-400 relative mx-0 mt-3 flex w-full max-w-3xl flex-row items-center rounded-t-3xl border border-b-0 border-gray-200 bg-white sm:mx-auto sm:mt-[2px] sm:rounded-t-xl md:rounded-t-xl">
                         <div className="flex h-full items-center gap-2 px-4 py-2">
                           {/* Question Count */}
                           <div className="outfit-400 flex items-center justify-center gap-2 text-[14px] text-nowrap text-gray-600">
@@ -664,7 +665,7 @@ const AdminContent = () => {
                             </span>
                             <span
                               ref={difficultyIconRef}
-                              className="outfit relative flex items-center"
+                              className="outfit-400 relative flex items-center"
                             >
                               <i
                                 className="bx bx-chevron-right cursor-pointer text-2xl text-gray-400 hover:text-gray-500"
@@ -791,13 +792,15 @@ const AdminContent = () => {
                               } `}
                             >
                               <div className="w-full max-w-full overflow-hidden break-words">
-                                <div className="outfit flex items-center justify-between text-[14px] text-gray-500">
+                                <div className="flex items-center justify-between text-[14px] text-gray-500">
                                   {/* Always show points, coverage, and difficulty in list view */}
-                                  <span>{index + 1}. MULTIPLE CHOICE</span>
+                                  <span className="outfit-400 text-[12px]">
+                                    {index + 1}. MULTIPLE CHOICE
+                                  </span>
                                   <div className="relative flex min-h-[32px] items-center">
                                     {/* Badges */}
                                     <div
-                                      className={`flex items-center transition-opacity duration-150 ${
+                                      className={`outfit-400 flex items-center transition-opacity duration-150 ${
                                         listViewOnly &&
                                         expandedQuestionId !==
                                           question.questionID &&
@@ -833,7 +836,7 @@ const AdminContent = () => {
                                         }`}
                                       >
                                         <button
-                                          className="outfit border-color mx-1 flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-[6px] text-gray-900 transition-colors hover:bg-gray-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Remove"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -848,27 +851,27 @@ const AdminContent = () => {
                                             }
                                           }}
                                         >
-                                          <i className="bx bx-trash text-[18px]"></i>
-                                          <span className="text-[14px]">
-                                            Remove
+                                          <i className="bx bx-trash text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
+                                            Delete
                                           </span>
                                         </button>
 
                                         <button
-                                          className="outfit border-color mx-1 flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-[6px] text-gray-900 transition-colors hover:bg-gray-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Edit"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleEditClick(question);
                                           }}
                                         >
-                                          <i className="bx bx-edit-alt text-[18px]"></i>
-                                          <span className="text-[14px]">
+                                          <i className="bx bx-edit-alt text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
                                             Edit
                                           </span>
                                         </button>
                                         <button
-                                          className="outfit mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-orange-500 px-3 py-[6px] text-orange-500 transition-colors hover:bg-orange-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Copy"
                                           onClick={(e) => {
                                             if (e.shiftKey) {
@@ -883,8 +886,8 @@ const AdminContent = () => {
                                             }
                                           }}
                                         >
-                                          <i className="bx bx-checks text-[18px]"></i>
-                                          <span className="text-[14px]">
+                                          <i className="bx bx-checks text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
                                             Approve
                                           </span>
                                         </button>
@@ -902,7 +905,7 @@ const AdminContent = () => {
                                         }`}
                                       >
                                         <button
-                                          className="outfit border-color mx-1 flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-[6px] text-gray-900 transition-colors hover:bg-gray-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Remove"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -917,34 +920,34 @@ const AdminContent = () => {
                                             }
                                           }}
                                         >
-                                          <i className="bx bx-trash text-[18px]"></i>
-                                          <span className="text-[14px]">
-                                            Remove
+                                          <i className="bx bx-trash text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
+                                            Delete
                                           </span>
                                         </button>
                                         <button
-                                          className="outfit border-color mx-1 flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-[6px] text-gray-900 transition-colors hover:bg-gray-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Copy"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleDuplicateClick(question);
                                           }}
                                         >
-                                          <i className="bx bx-copy text-[18px]"></i>
-                                          <span className="text-[14px]">
+                                          <i className="bx bx-copy text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
                                             Copy
                                           </span>
                                         </button>
                                         <button
-                                          className="outfit mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-orange-500 px-3 py-[6px] text-orange-500 transition-colors hover:bg-orange-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Edit"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleEditClick(question);
                                           }}
                                         >
-                                          <i className="bx bx-edit-alt text-[18px]"></i>
-                                          <span className="text-[14px]">
+                                          <i className="bx bx-edit-alt text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
                                             Edit
                                           </span>
                                         </button>
@@ -962,7 +965,7 @@ const AdminContent = () => {
                                       }}
                                       className="relative mt-4 cursor-pointer rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:bg-gray-200"
                                     >
-                                      <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
+                                      <div className="word-break outfit-400 break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
                                         <span
                                           dangerouslySetInnerHTML={{
                                             __html: question.questionText,
@@ -971,7 +974,7 @@ const AdminContent = () => {
                                       </div>
                                     </div>
                                   ) : (
-                                    <div className="word-break break-word mt-4 flex w-full max-w-full cursor-pointer items-center overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
+                                    <div className="outfit-400 word-break break-word mt-4 flex w-full max-w-full cursor-pointer items-center overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
                                       <span
                                         className="ml-2 font-semibold"
                                         dangerouslySetInnerHTML={{
@@ -988,8 +991,8 @@ const AdminContent = () => {
                                     </div>
                                   )
                                 ) : (
-                                  <div className="outfit relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-pointer">
-                                    <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
+                                  <div className="outfit-400 relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-pointer">
+                                    <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
                                       <span
                                         dangerouslySetInnerHTML={{
                                           __html: question.questionText,
@@ -1063,7 +1066,7 @@ const AdminContent = () => {
 
                                         {choice.choiceText !== null && (
                                           <span
-                                            className={`outfit w-[90%] rounded-md p-2 text-[14px] ${
+                                            className={`outfit-400 w-[90%] rounded-md p-2 text-[14px] ${
                                               choice.isCorrect
                                                 ? "font-semibold text-orange-500"
                                                 : "text-gray-700"
@@ -1098,108 +1101,132 @@ const AdminContent = () => {
                                     ))}
                                   </div>
                                 ) : (
-                                  <p className="mt-1 text-gray-500">
+                                  <p className="outfit-400 mt-1 text-gray-500">
                                     No choices added yet.
                                   </p>
                                 ))}
 
-                              {(!listViewOnly ||
-                                (listViewOnly &&
-                                  expandedQuestionId ===
-                                    question.questionID)) && (
-                                <>
-                                  <div className="-mx-3 mt-3 mb-5 h-[1px] bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+                              {showQuestionInfoId === question.questionID &&
+                                (!listViewOnly ||
+                                  (listViewOnly &&
+                                    expandedQuestionId ===
+                                      question.questionID)) && (
+                                  <>
+                                    <div className="my-3 h-px bg-gray-200"></div>
 
-                                  <div className="outfit ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
-                                    <div className="flex flex-col gap-1">
-                                      <div className="flex">
-                                        <span className="w-[100px]">
-                                          Created by:
-                                        </span>
-                                        <span>{question.creatorName}</span>
-                                      </div>
-                                      <div className="flex">
-                                        <span className="w-[100px]">
-                                          Date Created:
-                                        </span>
-                                        <span>
-                                          {new Date(
-                                            question.created_at,
-                                          ).toLocaleString("en-US", {
-                                            year: "numeric",
-                                            month: "long",
-                                            day: "numeric",
-                                            hour: "numeric",
-                                            minute: "2-digit",
-                                            hour12: true,
-                                          })}
-                                        </span>
-                                      </div>
-                                      <div className="flex sm:col-span-2">
-                                        <span className="w-[100px]">
-                                          Question Type:
-                                        </span>
-                                        <span>
-                                          {question.purpose_id === 2
-                                            ? "Practice Question"
-                                            : "Qualifying Exam Question"}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                      <div className="flex">
-                                        <span className="w-[100px]">
-                                          Modified by:
-                                        </span>
-                                        <span>
-                                          {question.editor
-                                            ? `${question.editor.firstName} ${question.editor.lastName}`
-                                            : "Not modified"}
-                                        </span>
-                                      </div>
-                                      <div className="flex">
-                                        <span className="w-[100px]">
-                                          Date Modified:
-                                        </span>
-                                        <span>
-                                          {new Date(
-                                            question.updated_at,
-                                          ).toLocaleString("en-US", {
-                                            year: "numeric",
-                                            month: "long",
-                                            day: "numeric",
-                                            hour: "numeric",
-                                            minute: "2-digit",
-                                            hour12: true,
-                                          })}
-                                        </span>
-                                      </div>
-                                      {question.approver && (
-                                        <div className="flex sm:col-span-2">
+                                    <div className="outfit-400 ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex">
                                           <span className="w-[100px]">
-                                            Approved by:
+                                            Created by:
+                                          </span>
+                                          <span>{question.creatorName}</span>
+                                        </div>
+                                        <div className="flex">
+                                          <span className="w-[100px]">
+                                            Date Created:
                                           </span>
                                           <span>
-                                            {question.approver.firstName &&
-                                            question.approver.lastName
-                                              ? `${question.approver.firstName} ${question.approver.lastName}`
-                                              : "Not approved"}
+                                            {new Date(
+                                              question.created_at,
+                                            ).toLocaleString("en-US", {
+                                              year: "numeric",
+                                              month: "long",
+                                              day: "numeric",
+                                              hour: "numeric",
+                                              minute: "2-digit",
+                                              hour12: true,
+                                            })}
                                           </span>
                                         </div>
-                                      )}{" "}
+                                        <div className="flex sm:col-span-2">
+                                          <span className="w-[100px]">
+                                            Question Type:
+                                          </span>
+                                          <span>
+                                            {question.purpose_id === 2
+                                              ? "Practice Question"
+                                              : "Qualifying Exam Question"}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex">
+                                          <span className="w-[100px]">
+                                            Modified by:
+                                          </span>
+                                          <span>
+                                            {question.editor
+                                              ? `${question.editor.firstName} ${question.editor.lastName}`
+                                              : "Not modified"}
+                                          </span>
+                                        </div>
+                                        <div className="flex">
+                                          <span className="w-[100px]">
+                                            Date Modified:
+                                          </span>
+                                          <span>
+                                            {new Date(
+                                              question.updated_at,
+                                            ).toLocaleString("en-US", {
+                                              year: "numeric",
+                                              month: "long",
+                                              day: "numeric",
+                                              hour: "numeric",
+                                              minute: "2-digit",
+                                              hour12: true,
+                                            })}
+                                          </span>
+                                        </div>
+                                        {question.approver && (
+                                          <div className="flex sm:col-span-2">
+                                            <span className="w-[100px]">
+                                              Approved by:
+                                            </span>
+                                            <span>
+                                              {question.approver.firstName &&
+                                              question.approver.lastName
+                                                ? `${question.approver.firstName} ${question.approver.lastName}`
+                                                : "Not approved"}
+                                            </span>
+                                          </div>
+                                        )}{" "}
+                                      </div>
                                     </div>
-                                  </div>
-                                </>
-                              )}
+                                  </>
+                                )}
 
                               {(!listViewOnly ||
                                 (listViewOnly &&
                                   expandedQuestionId ===
                                     question.questionID)) && (
                                 <>
-                                  <div className="-mx-3 mt-3 mb-4 h-[1px] bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+                                  <div className="my-3 h-px bg-gray-200"></div>
 
-                                  <div className="mt-3 mb-1 flex justify-end gap-1">
+                                  <div className="mt-4 mb-1 flex justify-end gap-1">
+                                    <button
+                                      type="button"
+                                      className={`flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-600 transition-colors hover:bg-gray-100 ${
+                                        showQuestionInfoId ===
+                                        question.questionID
+                                          ? "bg-gray-100"
+                                          : ""
+                                      }`}
+                                      title="Question info"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowQuestionInfoId((prev) =>
+                                          prev === question.questionID
+                                            ? null
+                                            : question.questionID,
+                                        );
+                                      }}
+                                    >
+                                      <i className="bx bx-info-circle text-[16px]"></i>
+                                      <span className="outfit-400 text-[12px]">
+                                        Info
+                                      </span>
+                                    </button>
                                     {question.status_id === 1 ? ( // 1 is pending
                                       <>
                                         <AltButton
@@ -1294,7 +1321,7 @@ const AdminContent = () => {
                     </>
                   ) : !isLoading ? (
                     activeTab === 4 ? (
-                      <div className="-mt-4 flex flex-col items-center justify-center py-10 text-center">
+                      <div className="outfit-400 -mt-4 flex flex-col items-center justify-center py-10 text-center">
                         <img
                           src={EmptyImage}
                           alt="No pending questions"
@@ -1308,7 +1335,7 @@ const AdminContent = () => {
                         </span>
                       </div>
                     ) : (
-                      <div className="-mt-4 flex flex-col items-center justify-center py-10 text-center">
+                      <div className="outfit-400 -mt-4 flex flex-col items-center justify-center py-10 text-center">
                         <img
                           src={EmptyImage}
                           alt="No questions"
@@ -1345,7 +1372,7 @@ const AdminContent = () => {
                       </div>
                     )
                   ) : (
-                    <div className="flex items-center justify-center">
+                    <div className="outfit-400 flex items-center justify-center">
                       <p className="text-center text-[16px] text-gray-500">
                         Loading questions...
                       </p>

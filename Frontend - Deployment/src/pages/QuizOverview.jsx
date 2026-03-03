@@ -8,8 +8,6 @@ import SelectQuestionsModal from "../components/SelectQuestionsModal";
 import Toast from "../components/Toast";
 import useToast from "../hooks/useToast";
 
-import SubPhoto from "../assets/gottfield.jpg";
-
 const QuizOverview = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,11 +23,11 @@ const QuizOverview = () => {
   const [questionCount, setQuestionCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // Edit, Delete, Worksheet states
+  // Edit, Archive, Worksheet states
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [quizToDelete, setQuizToDelete] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [quizToArchive, setQuizToArchive] = useState(null);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [editedQuiz, setEditedQuiz] = useState({
     title: "",
     description: "",
@@ -49,6 +47,29 @@ const QuizOverview = () => {
     quizState?.quizID ||
     quizState?.personalQuizId;
 
+  // Determine if we came from the ArchivedQuiz page / archived state
+  const fromArchive =
+    location.state?.fromArchive ||
+    quizState?.isArchived ||
+    quizState?.is_archived ||
+    quizState?.archived;
+
+  // Match Libraries random header color for quizzes
+  const headerColors = [
+    "#1e3a5f", // Dark blue
+    "#7f1d1d", // Dark red
+    "#1e293b", // Dark slate
+    "#422006", // Dark brown/amber
+    "#312e81", // Dark indigo
+  ];
+
+  const getHeaderColor = (id) => {
+    if (!id) return headerColors[0];
+    return headerColors[id % headerColors.length];
+  };
+
+  const quizTileColor = getHeaderColor(quizId || 0);
+
   // Update quiz state when location.state changes
   useEffect(() => {
     if (quiz) {
@@ -63,31 +84,8 @@ const QuizOverview = () => {
       const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
       try {
-        // If we have a subject ID, fetch subject-based data
-        if (subject?.subjectID) {
-          const questionsRes = await fetch(
-            `${apiUrl}/subjects/${subject.subjectID}/questions`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-          // Handle questions count (only active questions)
-          if (questionsRes.ok) {
-            const data = await questionsRes.json();
-            const questions = data.data || [];
-            setQuestionCount(questions.filter((q) => q.status_id === 2).length);
-          } else {
-            setQuestionCount(0);
-          }
-        }
-        // If we have a personal quiz ID, fetch personal quiz questions count
-        // This handles both custom quizzes and subject-based quizzes where subject doesn't have subjectID
-        else if (quizId) {
+        // Always prefer counting questions inside this personal quiz
+        if (quizId) {
           try {
             const questionsRes = await fetch(
               `${apiUrl}/personal-quiz-questions/${quizId}`,
@@ -105,19 +103,16 @@ const QuizOverview = () => {
               if (data.success && Array.isArray(data.questions)) {
                 setQuestionCount(data.questions.length);
               } else {
-                // Fallback to quiz.question_count if available
                 setQuestionCount(quizState?.question_count || 0);
               }
             } else {
-              // Fallback to quiz.question_count if available
               setQuestionCount(quizState?.question_count || 0);
             }
           } catch {
-            // Fallback to quizState.question_count if available
             setQuestionCount(quizState?.question_count || 0);
           }
         } else {
-          // No subject or quiz ID, use fallback
+          // Fallback if no quizId
           setQuestionCount(quizState?.question_count || 0);
         }
       } catch {
@@ -128,7 +123,7 @@ const QuizOverview = () => {
     };
 
     fetchAllData();
-  }, [subject, quizId, quizState]);
+  }, [quizId, quizState, quiz]);
 
   // Edit handler
   const handleEditClick = () => {
@@ -210,44 +205,86 @@ const QuizOverview = () => {
     }
   };
 
-  // Delete handler
-  const handleDeleteClick = () => {
+  // Archive handler - uses same API as Libraries (archive instead of delete)
+  const handleArchiveClick = () => {
     if (!quizState) return;
-    setQuizToDelete(quizState);
-    setShowDeleteModal(true);
+    setQuizToArchive(quizState);
+    setShowArchiveModal(true);
   };
 
-  const handleDeleteQuiz = async () => {
-    if (!quizToDelete || !quizId) return;
+  const handleArchiveQuiz = async () => {
+    if (!quizToArchive || !quizId) return;
 
     const token = sessionStorage.getItem("token");
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
-    setIsDeleting(true);
+    setIsArchiving(true);
 
     try {
-      const response = await fetch(`${apiUrl}/personal-quizzes/${quizId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${apiUrl}/personal-quizzes/${quizId}/archive`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
         },
-      });
+      );
 
       if (response.ok) {
-        setShowDeleteModal(false);
-        setQuizToDelete(null);
-        showToast("Quiz deleted successfully", "success");
-        // Navigate back to libraries
+        const data = await response.json();
+        setShowArchiveModal(false);
+        setQuizToArchive(null);
+        showToast(data.message || "Quiz archived successfully", "success");
         navigate("/libraries");
       } else {
         const data = await response.json();
-        showToast(data.message || "Failed to delete quiz", "error");
+        showToast(data.message || "Failed to archive quiz", "error");
       }
     } catch (error) {
-      console.error("Error deleting quiz:", error);
-      showToast("An error occurred while deleting quiz", "error");
+      console.error("Error archiving quiz:", error);
+      showToast("An error occurred while archiving quiz", "error");
     } finally {
-      setIsDeleting(false);
+      setIsArchiving(false);
+    }
+  };
+
+  // Restore handler for archived quizzes
+  const handleRestoreFromArchive = async () => {
+    if (!quizState || !quizId) return;
+
+    const token = sessionStorage.getItem("token");
+    const apiUrl = import.meta.env.VITE_API_BASE_URL;
+
+    try {
+      const response = await fetch(
+        `${apiUrl}/personal-quizzes/${quizId}/unarchive`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to restore quiz");
+      }
+
+      const data = await response.json();
+      showToast(data.message || "Quiz restored successfully", "success");
+      // After restoring from archive, go back to archived list
+      navigate("/archived-quiz");
+    } catch (error) {
+      console.error("Error restoring quiz:", error);
+      showToast(
+        error.message || "An error occurred while restoring quiz",
+        "error",
+      );
     }
   };
 
@@ -286,7 +323,7 @@ const QuizOverview = () => {
         </div>
 
         {/* Mobile skeleton - match SubjectOverview */}
-        <div className="border-color relative z-48 -mx-2 mt-15 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden">
+        <div className="border-color relative z-48 -mx-2 mt-15 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 lg:hidden">
           <div className="flex flex-wrap items-start justify-between">
             <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
               <div className="skeleton shimmer mt-2 mb-2 ml-2 h-8 w-58 rounded"></div>
@@ -306,97 +343,106 @@ const QuizOverview = () => {
 
   return (
     <>
-      {/* Mobile version: block on mobile, hidden on md+ */}
-      <div className="block md:hidden">
-        <div className="border-color relative z-48 -mx-2 mt-15 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:rounded-md sm:pt-4 md:hidden">
-          {/* Quiz header (for custom quizzes that may not have a subject) */}
-          {quizState && !subject && (
-            <div className="flex flex-col gap-2">
-              <h1 className="outfit text-[18px] font-bold break-words">
-                {quizState.title || "Untitled Quiz"}
-              </h1>
-              {quizState.description && (
-                <p className="text-[12px] text-gray-500">
-                  {quizState.description}
-                </p>
-              )}
-              <div className="mt-2 flex items-center gap-2 text-[12px] text-gray-500">
-                <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
-                  {quizState.quizType?.name ||
-                    (quizState.quiz_type_id === 1 ? "Subject-based" : "Custom")}
-                </span>
-                <span className="mx-1 align-middle leading-none text-gray-400">
-                  •
-                </span>
-                <p className="text-[12px]">
-                  {questionCount}{" "}
-                  {questionCount === 1 ? "question" : "questions"}
-                </p>
-                {quizState.created_at && (
-                  <span className="flex items-center gap-1">
-                    <span className="mx-1 align-middle leading-none text-gray-400">
-                      •
-                    </span>
-                    <i className="bx bx-calendar" />
-                    {new Date(quizState.created_at).toLocaleDateString(
-                      "en-US",
-                      {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      },
-                    )}
-                  </span>
-                )}
+      {/* Mobile / tablet version: visible below lg, desktop at lg+ */}
+      <div className="l block lg:hidden">
+        <div className="border-color relative z-48 mt-15 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:rounded-md sm:pt-4 lg:hidden">
+          {/* Unified mobile header for both custom and subject-based quizzes */}
+          {quizState && (
+            <div className="outfit-400 flex flex-wrap items-start justify-between">
+              <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
+                <h1 className="outfit-700 mt-2 ml-2 text-[18px] break-words">
+                  {quizState.title || "Untitled Quiz"}
+                </h1>
+
+                {/* Meta line: subject-based vs custom */}
+                <div className="mt-2 ml-2 flex gap-1 text-gray-500">
+                  {subject ? (
+                    <>
+                      <i className="bx bx-book text-[16px]d mt-[1px]"></i>
+                      <p className="text-[12px]">{subject.subjectCode}</p>
+                      <span className="mx-1 align-middle leading-none text-gray-400">
+                        •
+                      </span>
+                      <p className="text-[12px]">
+                        {questionCount}{" "}
+                        {questionCount === 1 ? "question" : "questions"}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[12px]">Custom</p>
+                      <span className="mx-1 align-middle leading-none text-gray-400">
+                        •
+                      </span>
+                      <p className="text-[12px]">
+                        {questionCount}{" "}
+                        {questionCount === 1 ? "question" : "questions"}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div
+                className="border-color mt-1 flex size-20 items-center justify-center rounded-md border text-white"
+                style={{ backgroundColor: quizTileColor }}
+              >
+                <span className="outfit-500 text-[18px]">Q</span>
               </div>
             </div>
           )}
-          {/* Subject header (only if subject is available) */}
-          {subject && (
-            <div className="flex flex-wrap items-start justify-between sm:hidden">
-              <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-                <h1 className="outfit mt-2 ml-2 text-[18px] font-bold break-words">
-                  {subject.subjectName}
-                </h1>
-                <div className="mt-2 ml-2 flex gap-1 text-gray-500">
-                  <i className="bx bx-book text-[16px]d mt-[1px]"></i>
-                  <p className="text-[12px]">{subject.subjectCode}</p>
-                  <span className="mx-1 align-middle leading-none text-gray-400">
-                    •
-                  </span>
-                  <p className="text-[12px]">
-                    {questionCount}{" "}
-                    {questionCount === 1 ? "question" : "questions"}
-                  </p>
-                  <span className="mx-1 align-middle leading-none text-gray-400">
-                    •
-                  </span>
-                  <p className="text-[12px]">
-                    {subject.programName === "GE"
-                      ? "General Subject"
-                      : subject.programName || "-"}
-                  </p>
-                  <span className="mx-1 align-middle leading-none text-gray-400">
-                    •
-                  </span>
-                  <p className="text-[12px]">{subject.yearLevel || "-"}</p>
-                </div>
-              </div>
-              <img
-                src={SubPhoto}
-                alt="Subject"
-                className="border-color mt-1 size-20 rounded-md border object-cover"
-              />
+
+          {/* Mobile actions: Edit, Archive/Restore, Manage Questions */}
+          {quizState && (
+            <div className="mt-6 flex flex-wrap items-center justify-start gap-1">
+              <button
+                type="button"
+                onClick={handleEditClick}
+                className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 transition hover:bg-gray-100"
+              >
+                <i className="bx bx-edit text-[15px]"></i>
+                <span className="outfit-500">Edit</span>
+              </button>
+              {fromArchive ? (
+                <button
+                  type="button"
+                  onClick={handleRestoreFromArchive}
+                  className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                  <i className="bx bx-undo text-[15px]"></i>
+                  <span className="outfit-500">Restore</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleArchiveClick}
+                  className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                  <i className="bx bx-archive text-[15px]"></i>
+                  <span className="outfit-500">Archive</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/quiz-content", { state: { quiz: quizState } });
+                  window.dispatchEvent(new Event("closeSubjectSidebar"));
+                }}
+                className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                <i className="bx bxs-edit text-[15px]"></i>
+                <span className="outfit-500">Manage Questions</span>
+              </button>
             </div>
           )}
 
           {subject && (
-            <div className="hidden flex-wrap items-center sm:flex">
-              <img
-                src={SubPhoto}
-                alt="Subject"
-                className="border-color mr-5 size-18 rounded-md border object-cover"
-              />
+            <div className="hidden flex-wrap items-center lg:flex">
+              <div
+                className="border-color mr-5 flex size-18 items-center justify-center rounded-md border text-white"
+                style={{ backgroundColor: quizTileColor }}
+              >
+                <span className="outfit-500 text-[16px]">Q</span>
+              </div>
               <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
                 <h1 className="outfit text-[15px] font-bold break-words md:text-[18px]">
                   {subject.subjectName}
@@ -430,20 +476,6 @@ const QuizOverview = () => {
           )}
 
           <div className="relative mt-4 flex items-start justify-start sm:items-end sm:justify-end">
-            {quizState && (
-              <button
-                className="border-color mb-4 cursor-pointer items-center justify-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
-                onClick={() => {
-                  navigate("/quiz-content", { state: { quiz: quizState } });
-                  window.dispatchEvent(new Event("closeSubjectSidebar"));
-                }}
-              >
-                <span className="inline-flex items-center gap-2">
-                  <i className="bx bxs-edit"></i>
-                  <span className="text-[14px]">Manage Questions</span>
-                </span>
-              </button>
-            )}
             {subject && !quizState && (
               <button
                 className="border-color mb-4 cursor-pointer items-center justify-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
@@ -478,17 +510,18 @@ const QuizOverview = () => {
       </div>
 
       {/* Desktop version - match SubjectOverview container layout */}
-      <div className="hidden py-8 md:block">
+      <div className="g:px-2 hidden py-8 lg:block">
         <div className="border-color relative mx-auto -mt-4 flex h-[190px] max-w-[1200px] flex-row items-start justify-between overflow-visible border-b bg-white p-6">
           {/* Show subject header when available; otherwise fall back to quiz title for custom quizzes */}
           {subject ? (
-            <div className="flex w-full flex-col items-center md:flex-row md:flex-nowrap md:items-center">
+            <div className="flex w-full flex-row flex-nowrap items-center md:items-center">
               <div className="relative flex flex-col items-center md:mr-5">
-                <img
-                  src={SubPhoto}
-                  alt="Subject"
-                  className="border-color size-21 rounded-md border object-cover"
-                />
+                <div
+                  className="border-color flex size-21 items-center justify-center rounded-md border text-white"
+                  style={{ backgroundColor: quizTileColor }}
+                >
+                  <span className="outfit-500 text-[20px]">Q</span>
+                </div>
               </div>
 
               <div className="outfit flex max-w-full min-w-0 flex-col flex-wrap md:max-w-[calc(100%-200px)]">
@@ -528,7 +561,7 @@ const QuizOverview = () => {
 
                 {/* Bottom left buttons */}
                 {quizState && (
-                  <div className="absolute bottom-4 left-4 flex gap-2">
+                  <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
                     <button
                       className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100"
                       onClick={handleEditClick}
@@ -537,25 +570,48 @@ const QuizOverview = () => {
                       <span className="outfit-500">Edit</span>
                     </button>
 
+                    {fromArchive ? (
+                      <button
+                        className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
+                        onClick={handleRestoreFromArchive}
+                      >
+                        <i className="bx bx-undo text-lg"></i>
+                        <span className="outfit-500">Restore</span>
+                      </button>
+                    ) : (
+                      <button
+                        className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
+                        onClick={handleArchiveClick}
+                      >
+                        <i className="bx bx-archive text-lg"></i>
+                        <span className="outfit-500">Archive</span>
+                      </button>
+                    )}
                     <button
-                      className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
-                      onClick={handleDeleteClick}
+                      className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100"
+                      onClick={() => {
+                        navigate("/quiz-content", {
+                          state: { quiz: quizState },
+                        });
+                        window.dispatchEvent(new Event("closeSubjectSidebar"));
+                      }}
                     >
-                      <i className="bx bx-trash text-lg"></i>
-                      <span className="outfit-500">Remove</span>
+                      <i className="bx bxs-edit"></i>
+                      <span className="outfit-500">Manage Questions</span>
                     </button>
                   </div>
                 )}
               </div>
             </div>
           ) : quizState ? (
-            <div className="flex w-full flex-col items-center md:flex-row md:flex-nowrap md:items-center">
+            <div className="flex w-full flex-row flex-nowrap items-center md:items-center">
               <div className="relative flex flex-col items-center md:mr-5">
-                <img
-                  src={SubPhoto}
-                  alt="Subject"
-                  className="border-color size-21 rounded-md border object-cover"
-                />
+                <div
+                  className="border-color flex size-21 items-center justify-center rounded-md border text-white"
+                  style={{ backgroundColor: quizTileColor }}
+                >
+                  <span className="outfit-500 text-[20px]">Q</span>
+                </div>
               </div>
 
               <div className="outfit flex max-w-full min-w-0 flex-col flex-wrap md:max-w-[calc(100%-200px)]">
@@ -585,7 +641,7 @@ const QuizOverview = () => {
                 </div>
 
                 {/* Bottom left buttons */}
-                <div className="absolute bottom-4 left-4 flex gap-2">
+                <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
                   <button
                     className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100"
                     onClick={handleEditClick}
@@ -594,12 +650,32 @@ const QuizOverview = () => {
                     <span className="outfit-500">Edit</span>
                   </button>
 
+                  {fromArchive ? (
+                    <button
+                      className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
+                      onClick={handleRestoreFromArchive}
+                    >
+                      <i className="bx bx-undo text-lg"></i>
+                      <span className="outfit-500">Restore</span>
+                    </button>
+                  ) : (
+                    <button
+                      className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
+                      onClick={handleArchiveClick}
+                    >
+                      <i className="bx bx-archive text-lg"></i>
+                      <span className="outfit-500">Archive</span>
+                    </button>
+                  )}
                   <button
-                    className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
-                    onClick={handleDeleteClick}
+                    className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100"
+                    onClick={() => {
+                      navigate("/quiz-content", { state: { quiz: quizState } });
+                      window.dispatchEvent(new Event("closeSubjectSidebar"));
+                    }}
                   >
-                    <i className="bx bx-trash text-lg"></i>
-                    <span className="outfit-500">Remove</span>
+                    <i className="bx bxs-edit"></i>
+                    <span className="outfit-500">Manage Questions</span>
                   </button>
                 </div>
               </div>
@@ -816,28 +892,6 @@ const QuizOverview = () => {
                   </div>
                 </div>
 
-                <div className="mb-4 text-start">
-                  <div className="mb-4">
-                    <span className="block text-[14px] text-gray-700">
-                      Instruction (Optional)
-                    </span>
-                    <div className="relative">
-                      <textarea
-                        placeholder="Enter quiz instruction"
-                        value={editedQuiz.instruction}
-                        onChange={(e) =>
-                          setEditedQuiz({
-                            ...editedQuiz,
-                            instruction: e.target.value,
-                          })
-                        }
-                        rows={3}
-                        className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
 
                 {validationError && (
@@ -883,28 +937,26 @@ const QuizOverview = () => {
         </>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && quizToDelete && (
+      {/* Archive Confirmation Modal */}
+      {showArchiveModal && quizToArchive && (
         <ConfirmModal
-          isOpen={showDeleteModal}
+          isOpen={showArchiveModal}
           onClose={() => {
-            setShowDeleteModal(false);
-            setQuizToDelete(null);
+            setShowArchiveModal(false);
+            setQuizToArchive(null);
           }}
-          onConfirm={handleDeleteQuiz}
+          onConfirm={handleArchiveQuiz}
           message={
             <>
-              Are you sure you want to remove{" "}
-              <span className="font-bold text-red-500">
-                {quizToDelete.title || "Untitled Quiz"}
+              Are you sure you want to archive{" "}
+              <span className="font-bold text-orange-600">
+                {quizToArchive.title || "Untitled Quiz"}
               </span>
-              ? Removing this quiz will also wipe out its contents.
+              ? This quiz will be moved to the archive. You can restore it later
+              from Archived quizzes.
             </>
           }
-          isLoading={isDeleting}
-          showCountdown={true}
-          countdownSeconds={6}
-          shiftHintText={undefined}
+          isLoading={isArchiving}
         />
       )}
     </>
