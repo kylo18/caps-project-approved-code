@@ -139,6 +139,7 @@ student_quiz_results:
 5. It should show errors only in the users table:
 
  - Duplicate Data (Due to test accounts.) This error is acceptable
+ - We will Remove the test accounts after user acceptance test is over.
 
 
 6. After running the commands above, run this specific command 
