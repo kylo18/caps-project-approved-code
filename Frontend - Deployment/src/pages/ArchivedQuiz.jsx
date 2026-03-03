@@ -447,6 +447,7 @@ const ArchivedQuiz = () => {
 
           <button
             type="button"
+            onClick={() => alert("Coming soon")}
             className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-left text-[14px] text-gray-600 transition-colors hover:bg-gray-100"
           >
             <span className="flex items-center gap-2">

@@ -1,14 +1,28 @@
 import React, { Fragment, useEffect, useState, useRef } from "react";
+import ComingSoon from "../assets/icons/comingsoon.png";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("search"); // "create", "search", "upload"
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Top Section with Pink Gradient Background */}
+    <>
+      <div className="outfit-400 mt-8 text-center text-gray-500">
+        <div className="flex flex-col items-center justify-center py-10">
+          <img
+            src={ComingSoon}
+            alt="Dashboard coming soon "
+            className="mb-2 h-32 w-32 opacity-80"
+          />
+          <span className="w-90 text-[15px] text-gray-500">
+            The dashboard is still under development. To add questions, please
+            select sa subject from the sidebar.
+          </span>
+        </div>
+      </div>
+
+      {/*<div className="min-h-screen bg-white">
       <div className="bg-gradient-to-b from-pink-50 to-white pt-8 pb-12">
         <div className="mx-auto max-w-6xl px-4">
-          {/* Header with Greeting and Enter Code Button */}
           <div className="mb-8 flex items-center justify-between">
             <h1 className="text-2xl font-medium text-gray-800">
               Good afternoon, undefined 👋 Let's get started.
@@ -33,14 +47,11 @@ const AdminDashboard = () => {
             </button>
           </div>
 
-          {/* Three Tabs */}
           <div className="relative mb-6 flex items-center justify-center">
-            {/* Create Tab */}
             <button
               onClick={() => setActiveTab("create")}
               className={`relative flex flex-col items-center justify-center transition-all`}
             >
-              {/* SVG trapezoid */}
               <svg
                 width="130"
                 height="70"
@@ -63,7 +74,6 @@ const AdminDashboard = () => {
                 />
               </svg>
 
-              {/* Circle icon overlapping SVG */}
               <div
                 className={`absolute top-0 flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-all ${
                   activeTab === "create"
@@ -77,7 +87,6 @@ const AdminDashboard = () => {
                 <i className="bx bx-plus text-lg"></i>
               </div>
 
-              {/* Text centered inside the SVG */}
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                 <div className="text-lg font-bold text-white">Create</div>
                 <div className="text-sm text-white">a resource</div>
@@ -88,7 +97,6 @@ const AdminDashboard = () => {
               onClick={() => setActiveTab("search")}
               className={`relative flex flex-col items-center justify-center transition-all`}
             >
-              {/* SVG trapezoid */}
               <svg
                 width="130"
                 height="70"
@@ -111,7 +119,6 @@ const AdminDashboard = () => {
                 />
               </svg>
 
-              {/* Circle icon overlapping SVG */}
               <div
                 className={`absolute top-0 flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-all ${
                   activeTab === "search"
@@ -125,19 +132,16 @@ const AdminDashboard = () => {
                 <i className="bx bx-plus text-lg"></i>
               </div>
 
-              {/* Text centered inside the SVG */}
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                 <div className="text-lg font-bold text-white">Create</div>
                 <div className="text-sm text-white">a resource</div>
               </div>
             </button>
 
-            {/* Upload Tab */}
             <button
               onClick={() => setActiveTab("upload")}
               className={`relative flex flex-col items-center justify-center transition-all`}
             >
-              {/* SVG trapezoid */}
               <svg
                 width="130"
                 height="70"
@@ -160,7 +164,6 @@ const AdminDashboard = () => {
                   fill={activeTab === "upload" ? "#ec4899" : "#9ca3af"}
                 />
               </svg>
-              {/* Circle icon overlapping SVG */}
               <div
                 className={`absolute top-0 flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-all ${
                   activeTab === "upload"
@@ -174,7 +177,6 @@ const AdminDashboard = () => {
                 <i className="bx bx-plus text-lg"></i>
               </div>
 
-              {/* Text centered inside the SVG */}
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                 <div className="text-lg font-bold text-white">Create</div>
                 <div className="text-sm text-white">a resource</div>
@@ -182,7 +184,6 @@ const AdminDashboard = () => {
             </button>
           </div>
 
-          {/* Search Input Bar (shown when search tab is active) */}
           {activeTab === "search" && (
             <div className="mt-8 flex items-center justify-center gap-3">
               <div className="relative max-w-2xl flex-1">
@@ -227,9 +228,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Lower Section - Browse Resources */}
       <div className="mx-auto max-w-6xl px-4 py-8">
-        {/* Browse Resources Header */}
         <div className="mb-6">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-gray-700">Browse resources for</span>
@@ -253,7 +252,6 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Topics Section */}
         <div className="mb-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-medium text-gray-800">Topics</h2>
@@ -265,7 +263,6 @@ const AdminDashboard = () => {
             </a>
           </div>
 
-          {/* Resource Listing Example */}
           <div className="flex cursor-pointer items-center justify-between rounded-lg p-4 transition-colors hover:bg-gray-50">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
@@ -306,7 +303,8 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div>*/}
+    </>
   );
 };
 

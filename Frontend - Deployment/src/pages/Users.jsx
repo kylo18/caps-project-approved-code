@@ -5,7 +5,7 @@ import LoadingOverlay from "/src/components/loadingOverlay";
 import RegisterDropDownSmall from "/src/components/registerDropDownSmall";
 import Toast from "/src/components/Toast";
 import useToast from "/src/hooks/useToast";
-import SearchBar from "/src/components/SearchBar";
+import SearchBar, { SearchBarTrigger } from "/src/components/SearchBar";
 
 import StudentsIcon from "/src/assets/symbols/students.svg";
 import StudentsIconH from "/src/assets/symbols/studentshover.svg";
@@ -88,6 +88,8 @@ const UserList = () => {
 
   // State for search
   const [searchTerm, setSearchTerm] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const mobileSearchInputRef = useRef(null);
 
   // Add after other user action states
   const [isDeleting, setIsDeleting] = useState(false);
@@ -1035,20 +1037,27 @@ const UserList = () => {
   return (
     <div className="flex h-screen">
       {/* Main content area */}
-      <div className="flex h-full flex-1 flex-col gap-6 overflow-y-auto p-6 pb-0">
+      <div className="mt-10 flex h-full flex-1 flex-col gap-6 overflow-y-auto px-4 pt-4 md:px-6 md:pt-6 lg:mt-0">
         <div className="min-w-0 space-y-4">
           <SearchBar
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search users..."
+            mobileCollapsible
+            showMobileSearch={showSearch}
+            onCloseMobileSearch={() => {
+              setSearchQuery("");
+              setShowSearch(false);
+            }}
+            inputRef={mobileSearchInputRef}
           />
 
-          <div className="my-4 h-px bg-gray-200" />
+          <div className="my-4 hidden h-px bg-gray-200 md:block" />
 
           {/* Header with title and action buttons */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="outfit-500 mt-1 break-words text-[18px] text-black">
+              <p className="outfit-500 mt-1 text-[18px] break-words text-black">
                 {selectedUsers.length > 0
                   ? "Select the users you want to modify"
                   : hasActiveFilters()
@@ -1067,9 +1076,27 @@ const UserList = () => {
               </p>
             </div>
 
-            <div className="flex flex-shrink-0 items-center gap-3">
-              {/* Filter Buttons */}
-              <div className="flex items-center justify-center gap-2">
+            <div className="flex flex-shrink-0 items-center gap-2">
+              {/* Mobile controls (match Libraries button styling) */}
+              <div className="flex items-center gap-1 lg:hidden">
+                <SearchBarTrigger
+                  isOpen={showSearch}
+                  onClick={() => setShowSearch((prev) => !prev)}
+                  title="Search users"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(true)}
+                  title="Filters"
+                  className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:text-[14px]"
+                  aria-label="Open filters"
+                >
+                  <i className="bx bx-filter text-[22px]" />
+                </button>
+              </div>
+
+              {/* Desktop filter buttons */}
+              <div className="hidden items-center justify-center gap-2 lg:flex">
                 {hasActiveFilters() && (
                   <button
                     onClick={() => {
@@ -1381,180 +1408,310 @@ const UserList = () => {
 
           {/* Filter Dropdown */}
           {showFilters && (
-            <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-end min-[448px]:justify-center min-[448px]:p-2">
-              <div className="outfit-400 border-color relative mx-auto w-full max-w-md rounded-t-2xl border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700 min-[448px]:rounded-t-md">
-                <span>Filter Users</span>
-
-                <button
-                  onClick={() => setShowFilters(false)}
-                  className="absolute top-1 right-2 cursor-pointer text-2xl text-gray-600 hover:text-gray-800"
-                >
-                  <i className="bx bx-x"></i>
-                </button>
-              </div>
-
-              <div className="border-color relative mx-auto w-full max-w-md border border-t-0 bg-white p-2 min-[448px]:rounded-b-md sm:px-4">
-                {/* Campus Filter */}
-                <div className="mb-2">
-                  <span className="font-color-gray mb-2 block text-[12px]">
-                    Campus
-                  </span>
-                  <div>
-                    <RegisterDropDownSmall
-                      name="campus"
-                      value={
-                        Array.isArray(campusFilter)
-                          ? campusFilter.length > 0
-                            ? campusFilter[0]
-                            : ""
-                          : campusFilter
-                      }
-                      onChange={(e) =>
-                        setCampusFilter(e.target.value ? [e.target.value] : [])
-                      }
-                      placeholder="Select Campus"
-                      options={[
-                        { value: "", label: "All" },
-                        { value: "Main Campus", label: "Dapitan" },
-                        { value: "Katipunan Campus", label: "Katipunan" },
-                        { value: "Tampilisan Campus", label: "Tampilisan" },
-                      ]}
-                    />
-                  </div>
-                </div>
-
-                {/* Position Filter */}
-                <div className="mb-2">
-                  <span className="font-color-gray mb-2 block text-[12px]">
-                    Position
-                  </span>
-                  <RegisterDropDownSmall
-                    name="position"
-                    value={
-                      Array.isArray(positionFilter)
-                        ? positionFilter.length > 0
-                          ? positionFilter[0]
-                          : ""
-                        : positionFilter
-                    }
-                    onChange={(e) =>
-                      setPositionFilter(e.target.value ? [e.target.value] : [])
-                    }
-                    placeholder="Select Position"
-                    options={[
-                      { value: "", label: "All" },
-                      { value: "Student", label: "Student" },
-                      { value: "Instructor", label: "Instructor" },
-                      { value: "Program Chair", label: "Program Chair" },
-                      { value: "Associate Dean", label: "Associate Dean" },
-                      { value: "Dean", label: "Dean" },
-                    ]}
-                  />
-                </div>
-
-                {/* Program Filter */}
-                <div className="mb-2">
-                  <span className="font-color-gray mb-2 block text-[12px]">
-                    Program
-                  </span>
-                  <RegisterDropDownSmall
-                    name="program"
-                    value={
-                      Array.isArray(programFilter)
-                        ? programFilter.length > 0
-                          ? programFilter[0]
-                          : ""
-                        : programFilter
-                    }
-                    onChange={(e) =>
-                      setProgramFilter(e.target.value ? [e.target.value] : [])
-                    }
-                    placeholder="Select Program"
-                    options={[
-                      { value: "", label: "All" },
-                      { value: "BS-CpE", label: "BS-CpE" },
-                      { value: "BS-EE", label: "BS-EE" },
-                      { value: "BS-CE", label: "BS-CE" },
-                      { value: "BS-ECE", label: "BS-ECE" },
-                      { value: "BS-ABE", label: "BS-ABE" },
-                    ]}
-                  />
-                </div>
-
-                {/* State Filter */}
-                <div className="mb-2">
-                  <span className="font-color-gray mb-2 block text-[12px]">
-                    Account Status
-                  </span>
-                  <RegisterDropDownSmall
-                    name="state"
-                    value={
-                      Array.isArray(stateFilter)
-                        ? stateFilter.length > 0
-                          ? stateFilter[0]
-                          : ""
-                        : stateFilter
-                    }
-                    onChange={(e) =>
-                      setStateFilter(e.target.value ? [e.target.value] : [])
-                    }
-                    placeholder="Select Status"
-                    options={[
-                      { value: "", label: "All" },
-                      { value: "Active", label: "Active" },
-                      { value: "Inactive", label: "Inactive" },
-                    ]}
-                  />
-                </div>
-
-                {/* Approval Status Filter */}
-                <div className="mb-2">
-                  <span className="font-color-gray mb-2 block text-[12px]">
-                    Approval Status
-                  </span>
-                  <RegisterDropDownSmall
-                    name="approvalStatus"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value || "all")}
-                    placeholder="Select Approval Status"
-                    options={[
-                      { value: "all", label: "All" },
-                      { value: "pending", label: "Pending" },
-                      { value: "registered", label: "Approved" },
-                      { value: "unregistered", label: "Rejected" },
-                    ]}
-                  />
-                </div>
-
-                {/* Remarks Filter - Only show for Students view */}
-                {activeView === "students" && (
-                  <div className="mb-2">
-                    <span className="font-color-gray mb-2 block text-[12px]">
-                      Remarks
-                    </span>
-                    <RegisterDropDownSmall
-                      name="remarks"
-                      value={remarksFilter}
-                      onChange={(e) => setRemarksFilter(e.target.value)}
-                      placeholder="Select Remarks"
-                      options={[
-                        { value: "", label: "All" },
-                        { value: "Regular", label: "Regular" },
-                        { value: "Probationary", label: "Probationary" },
-                        {
-                          value: "Advised to Shift",
-                          label: "Advised to Shift",
-                        },
-                        { value: "Not Set", label: "Not Set" },
-                      ]}
-                    />
-                  </div>
-                )}
-
-                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-                <div className="flex justify-end gap-2">
+            <div
+              className="lightbox-bg fixed inset-0 z-100 flex items-end justify-center p-3 md:items-center md:p-4"
+              onClick={() => setShowFilters(false)}
+            >
+              <div
+                className="animate-fade-in-up w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                  <h2 className="outfit-500 text-[16px] text-gray-900">
+                    Filters
+                  </h2>
                   <button
+                    type="button"
+                    onClick={() => setShowFilters(false)}
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    aria-label="Close filters"
+                  >
+                    <i className="bx bx-x text-2xl"></i>
+                  </button>
+                </div>
+
+                <div className="max-h-[calc(100vh-220px)] overflow-y-auto px-4 py-4">
+                  <div className="space-y-5">
+                    {/* Campus (multi-select) */}
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50/40 p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[13px] font-semibold text-gray-900">
+                            Campus
+                          </p>
+                          <p className="text-[12px] text-gray-500">
+                            {campusFilter.length || 0} selected
+                          </p>
+                        </div>
+                        {campusFilter.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setCampusFilter([])}
+                            className="rounded-xl px-3 py-1.5 text-[12px] font-medium text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {[
+                          { value: "Main Campus", label: "Dapitan" },
+                          { value: "Dipolog Campus", label: "Dipolog" },
+                          { value: "Siocon Campus", label: "Siocon" },
+                          { value: "Katipunan Campus", label: "Katipunan" },
+                          { value: "Tampilisan Campus", label: "Tampilisan" },
+                        ].map((opt) => {
+                          const checked = campusFilter.includes(opt.value);
+                          return (
+                            <label key={opt.value} className="cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="peer sr-only"
+                                checked={checked}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  setCampusFilter((prev) =>
+                                    isChecked
+                                      ? Array.from(
+                                          new Set([...prev, opt.value]),
+                                        )
+                                      : prev.filter((v) => v !== opt.value),
+                                  );
+                                }}
+                              />
+                              <span className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 shadow-sm transition-colors peer-checked:border-orange-300 peer-checked:bg-orange-50 peer-checked:text-orange-800">
+                                <span className="truncate">{opt.label}</span>
+                                <i className="bx bx-check text-[18px] opacity-0 transition-opacity peer-checked:opacity-100" />
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Position (multi-select) */}
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50/40 p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[13px] font-semibold text-gray-900">
+                            Position
+                          </p>
+                          <p className="text-[12px] text-gray-500">
+                            {positionFilter.length || 0} selected
+                          </p>
+                        </div>
+                        {positionFilter.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setPositionFilter([])}
+                            className="rounded-xl px-3 py-1.5 text-[12px] font-medium text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {[
+                          "Student",
+                          "Instructor",
+                          "Program Chair",
+                          "Associate Dean",
+                          "Dean",
+                        ].map((value) => {
+                          const checked = positionFilter.includes(value);
+                          return (
+                            <label key={value} className="cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="peer sr-only"
+                                checked={checked}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  setPositionFilter((prev) =>
+                                    isChecked
+                                      ? Array.from(new Set([...prev, value]))
+                                      : prev.filter((v) => v !== value),
+                                  );
+                                }}
+                              />
+                              <span className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 shadow-sm transition-colors peer-checked:border-orange-300 peer-checked:bg-orange-50 peer-checked:text-orange-800">
+                                <span className="truncate">{value}</span>
+                                <i className="bx bx-check text-[18px] opacity-0 transition-opacity peer-checked:opacity-100" />
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Program (multi-select) */}
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50/40 p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[13px] font-semibold text-gray-900">
+                            Program
+                          </p>
+                          <p className="text-[12px] text-gray-500">
+                            {programFilter.length || 0} selected
+                          </p>
+                        </div>
+                        {programFilter.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setProgramFilter([])}
+                            className="rounded-xl px-3 py-1.5 text-[12px] font-medium text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {["BS-CpE", "BS-EE", "BS-CE", "BS-ECE", "BS-ABE"].map(
+                          (value) => {
+                            const checked = programFilter.includes(value);
+                            return (
+                              <label key={value} className="cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="peer sr-only"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    const isChecked = e.target.checked;
+                                    setProgramFilter((prev) =>
+                                      isChecked
+                                        ? Array.from(new Set([...prev, value]))
+                                        : prev.filter((v) => v !== value),
+                                    );
+                                  }}
+                                />
+                                <span className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 shadow-sm transition-colors peer-checked:border-orange-300 peer-checked:bg-orange-50 peer-checked:text-orange-800">
+                                  <span className="truncate">{value}</span>
+                                  <i className="bx bx-check text-[18px] opacity-0 transition-opacity peer-checked:opacity-100" />
+                                </span>
+                              </label>
+                            );
+                          },
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Account status (multi-select) */}
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50/40 p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[13px] font-semibold text-gray-900">
+                            Account Status
+                          </p>
+                          <p className="text-[12px] text-gray-500">
+                            {stateFilter.length || 0} selected
+                          </p>
+                        </div>
+                        {stateFilter.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setStateFilter([])}
+                            className="rounded-xl px-3 py-1.5 text-[12px] font-medium text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {["Active", "Inactive"].map((value) => {
+                          const checked = stateFilter.includes(value);
+                          return (
+                            <label key={value} className="cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="peer sr-only"
+                                checked={checked}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  setStateFilter((prev) =>
+                                    isChecked
+                                      ? Array.from(new Set([...prev, value]))
+                                      : prev.filter((v) => v !== value),
+                                  );
+                                }}
+                              />
+                              <span className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 shadow-sm transition-colors peer-checked:border-orange-300 peer-checked:bg-orange-50 peer-checked:text-orange-800">
+                                <span className="truncate">{value}</span>
+                                <i className="bx bx-check text-[18px] opacity-0 transition-opacity peer-checked:opacity-100" />
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Approval status (single-select) */}
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50/40 p-3">
+                      <p className="text-[13px] font-semibold text-gray-900">
+                        Approval Status
+                      </p>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {[
+                          { value: "all", label: "All" },
+                          { value: "pending", label: "Pending" },
+                          { value: "registered", label: "Approved" },
+                          { value: "unregistered", label: "Rejected" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setStatusFilter(opt.value)}
+                            className={`rounded-xl border px-3 py-2 text-[12px] font-medium shadow-sm transition-colors ${
+                              statusFilter === opt.value
+                                ? "border-orange-300 bg-orange-50 text-orange-800"
+                                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Remarks (single-select) */}
+                    {activeView === "students" && (
+                      <div className="rounded-2xl border border-gray-200 bg-gray-50/40 p-3">
+                        <p className="text-[13px] font-semibold text-gray-900">
+                          Remarks
+                        </p>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          {[
+                            { value: "", label: "All" },
+                            { value: "Regular", label: "Regular" },
+                            { value: "Probationary", label: "Probationary" },
+                            { value: "Advised to Shift", label: "Advised" },
+                            { value: "Not Set", label: "Not Set" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.label}
+                              type="button"
+                              onClick={() => setRemarksFilter(opt.value)}
+                              className={`rounded-xl border px-3 py-2 text-[12px] font-medium shadow-sm transition-colors ${
+                                (remarksFilter || "") === opt.value
+                                  ? "border-orange-300 bg-orange-50 text-orange-800"
+                                  : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 border-t border-gray-200 px-4 py-3">
+                  <button
+                    type="button"
                     onClick={() => {
                       setCampusFilter([]);
                       setRoleFilter("");
@@ -1564,15 +1721,16 @@ const UserList = () => {
                       setRemarksFilter("");
                       setStatusFilter("all");
                     }}
-                    className="mb-2 flex cursor-pointer items-center gap-1 rounded-md border bg-white px-[12px] py-[6px] text-gray-700 transition-all duration-150 hover:bg-gray-200"
+                    className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
                   >
-                    <span className="px-1 text-[14px]">Reset</span>
+                    Reset
                   </button>
                   <button
+                    type="button"
                     onClick={() => setShowFilters(false)}
-                    className="mb-2 flex cursor-pointer items-center gap-1 rounded-md bg-orange-500 px-[15px] py-[6px] text-white transition-all duration-150 hover:bg-orange-700"
+                    className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-orange-500 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-orange-600"
                   >
-                    <span className="text-[14px]">Apply</span>
+                    Apply
                   </button>
                 </div>
               </div>
@@ -1945,7 +2103,6 @@ const UserList = () => {
             <div className="outfit-400 flex h-64 items-center justify-center">
               <div className="text-center">
                 <div className="loader mx-auto mb-2"></div>
-                <p className="text-[14px] text-gray-600">Loading users...</p>
               </div>
             </div>
           ) : error ? (
@@ -1978,7 +2135,7 @@ const UserList = () => {
               </div>
             </div>
           ) : (
-            <div className="outfit-400 hidden overflow-hidden rounded-xl border border-gray-200 bg-white min-[1000px]:block">
+            <div className="outfit-400 hidden overflow-hidden rounded-xl border border-gray-200 bg-white xl:block">
               <div>
                 <table className="w-full">
                   <thead className="border-b border-gray-200 bg-white">
@@ -2149,75 +2306,62 @@ const UserList = () => {
           )}
 
           {/* User Table Mobile */}
-          <div className="min-[1000px]:hidden">
-            {loading || searchLoading || tabLoading ? (
-              <div className="flex items-center justify-center border border-gray-300 bg-white p-8 shadow-sm">
-                <div className="loader"></div>
-              </div>
-            ) : getFilteredUsers().length === 0 ? (
-              <div className="border border-gray-300 bg-white p-4 text-center text-[14px] text-gray-700 shadow-sm">
-                No users found.
-              </div>
-            ) : (
-              getDisplayedUsers().map((user) => (
+          <div className="xl:hidden">
+            <div>
+              {getDisplayedUsers().map((user, index, arr) => (
                 <div
                   key={user.userID}
-                  className="flex items-center justify-between border border-gray-300 bg-white p-4 shadow-sm"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setShowModal(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedUser(user);
+                      setShowModal(true);
+                    }
+                  }}
+                  className={`group flex items-center justify-between gap-4 border border-gray-200 bg-white px-4 py-3 transition-all hover:shadow-md active:scale-[0.99] ${index === 0 ? "rounded-t-2xl" : ""} ${index === arr.length - 1 ? "rounded-b-2xl" : ""} ${index > 0 && index < arr.length - 1 ? "rounded-none" : ""} ${index !== arr.length - 1 ? "border-b" : ""} `}
                 >
-                  <div className="flex items-center space-x-3 overflow-hidden">
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={selectedUsers.includes(user.userID)}
-                      onChange={() => handleCheckboxChange(user.userID)}
-                    />
-                    <div className="truncate">
-                      <div className="max-w-[220px] truncate text-[12px] font-semibold text-gray-800 sm:max-w-full">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-100 ring-1 ring-gray-200">
+                      <img
+                        src={roleImages[user.roleID] || StudentPfp}
+                        alt={`${user.firstName} ${user.lastName}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="outfit-700 truncate text-[14px] text-gray-900">
                         {user.firstName} {user.lastName}
-                      </div>
-
-                      <div className="truncate text-[10px] text-gray-600">
-                        {user.program}
-                      </div>
-
-                      {activeView === "students" && (
-                        <div className="truncate text-[10px] text-gray-600">
-                          <span
-                            className={`rounded px-1 py-0.5 text-[9px] font-semibold ${getRemarksStyling(user.remarks)}`}
-                          >
-                            {getRemarksDisplay(user.remarks)}
-                          </span>
-                        </div>
-                      )}
+                      </p>
+                      <p className="outfit-400 mt-0.5 truncate text-[12px] text-gray-600">
+                        {user.userCode}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center">
-                    <button
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setShowModal(true);
-                      }}
-                      className="mr-2 flex items-center justify-center text-gray-700 hover:text-orange-500"
-                    >
-                      <i className="bx bx-contact-book text-[25px] leading-none"></i>
-                    </button>
-                    {(currentUserRole === 4 || currentUserRole === 5) && (
-                      <button
-                        className="flex items-center text-red-600 hover:text-red-800"
-                        title="Remove User"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteUser(user.userID);
-                        }}
-                      >
-                        <i className="bx bx-trash text-[20px]"></i>
-                      </button>
-                    )}
+                  <div
+                    className="shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.includes(user.userID)}
+                      onChange={() => handleCheckboxChange(user.userID)}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`Select ${user.firstName} ${user.lastName}`}
+                      className="h-4 w-4 cursor-pointer rounded border-gray-400 text-orange-500"
+                    />
                   </div>
                 </div>
-              ))
-            )}
+              ))}
+            </div>
           </div>
 
           {/* Pagination */}
@@ -2240,7 +2384,7 @@ const UserList = () => {
 
       {/* Selection Overlay Banner */}
       {selectedUsers.length > 0 && (
-        <div className="outfit-400 fixed right-0 bottom-5 left-[220px] z-50 md:left-[276px] lg:left-[220px]">
+        <div className="outfit-400 fixed right-0 bottom-5 left-0 z-50 md:left-[276px] lg:left-[220px]">
           <div className="px-6">
             <div className="rounded-xl bg-gray-800 px-5 py-4 shadow-lg">
               <div className="flex items-center justify-between">
@@ -2254,35 +2398,39 @@ const UserList = () => {
                   <button
                     onClick={handleApproveSelectedUsers}
                     disabled={isApprovingMultiple || isDeleting}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                    className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
+                    aria-label="Approve selected users"
                   >
                     <i className="bx bx-check text-lg"></i>
-                    Approve
+                    <span className="hidden md:inline">Approve</span>
                   </button>
                   <button
                     onClick={handleActivateSelectedUsers}
                     disabled={isActivatingMultiple || isDeleting}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                    className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
+                    aria-label="Activate selected users"
                   >
                     <i className="bx bx-arrow-big-up-line text-lg"></i>
-                    Activate
+                    <span className="hidden md:inline">Activate</span>
                   </button>
                   <button
                     onClick={handleDeactivateSelectedUsers}
                     disabled={isDeactivatingMultiple || isDeleting}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                    className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
+                    aria-label="Deactivate selected users"
                   >
                     <i className="bx bx-arrow-big-down-line text-lg"></i>
-                    Deactivate
+                    <span className="hidden md:inline">Deactivate</span>
                   </button>
                   {(currentUserRole === 4 || currentUserRole === 5) && (
                     <button
                       onClick={handleDeleteSelectedUsers}
                       disabled={isDeletingMultiple || isDeleting}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                      className="flex cursor-pointer items-center gap-2 rounded-xl bg-red-600 p-2 text-[14px] font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50 md:px-4 md:py-2"
+                      aria-label="Remove selected users"
                     >
                       <i className="bx bx-trash text-lg"></i>
-                      Remove
+                      <span className="hidden md:inline">Remove</span>
                     </button>
                   )}
                   <button

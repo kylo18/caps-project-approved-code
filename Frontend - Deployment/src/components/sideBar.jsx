@@ -11,6 +11,7 @@ import AppVersion from "./AppVersion";
 
 import DashboardIcon from "/src/assets/symbols/dashboard.svg";
 import DashboardIconH from "/src/assets/symbols/dashboardhover.svg";
+import DashboardIconW from "/src/assets/symbols/dashboard-white.svg";
 
 import LibrariesIcon from "/src/assets/symbols/libraries.svg";
 import LibrariesIconH from "/src/assets/symbols/librarieshover.svg";
@@ -563,20 +564,12 @@ const Sidebar = ({
   }
 
   // Print/Export button configuration
-  const printButton =
-    parsedRoleId === 2
-      ? {
-          icon: "bx-printer",
-          label: "Export",
-          onClick: () => alert("The print feature for faculty is coming soon!"),
-          isButton: true,
-        }
-      : {
-          icon: "bx-printer",
-          label: "Export",
-          onClick: () => setShowPrintModal(true),
-          isButton: true,
-        };
+  const printButton = {
+    icon: "bx-printer",
+    label: "Export",
+    onClick: () => setShowPrintModal(true),
+    isButton: true,
+  };
 
   const isActive = (path) => {
     // Treat Archived Classes as part of the Classes section
@@ -612,81 +605,95 @@ const Sidebar = ({
     return (
       <>
         <div className="border-color fixed right-0 bottom-0 left-0 z-50 border-t bg-white px-6 py-2 min-[500px]:px-9">
-          <div className="flex items-center justify-between">
-            {/* Left side - My Library, Classes */}
-            <div className="flex items-center gap-5 min-[345px]:gap-8 sm:gap-10">
-              {(parsedRoleId === 1
-                ? [
-                    { label: "Sessions", path: "/sessions" },
-                    { label: "Classes", path: "/class" },
-                  ]
-                : [
-                    { label: "My Library", path: "/libraries" },
-                    { label: "Classes", path: "/class" },
-                  ]
-              ).map((item, index) => (
-                <div key={index} className="flex flex-col items-center">
+          <div className="relative flex items-center justify-between">
+            {/* LEFT SIDE */}
+            <div className="outfit-400 -ml-8 flex flex-1 items-center justify-evenly">
+              {parsedRoleId === 1 ? (
+                // Student: show Sessions on the left
+                <div className="flex h-16 flex-col items-center justify-center">
                   <Link
-                    to={item.path}
+                    to="/sessions"
                     onClick={handleMenuClick}
-                    className={`flex flex-col items-center p-2 transition-colors ${
-                      isActive(item.path)
+                    className={`flex flex-col items-center transition-colors ${
+                      isActive("/sessions")
                         ? "text-orange-600"
                         : "text-gray-700 hover:text-gray-800"
                     }`}
                   >
-                    {item.label === "My Library" ? (
-                      <span className="relative mb-[5px] h-6 w-6">
-                        <img
-                          src={
-                            isActive(item.path) ? LibrariesIconH : LibrariesIcon
-                          }
-                          alt="Library"
-                          className="absolute inset-0 h-6 w-6"
-                        />
-                      </span>
-                    ) : item.label === "Classes" ? (
-                      <span className="relative mb-[5px] h-6 w-6">
-                        <img
-                          src={isActive(item.path) ? ClassIconH : ClassIcon}
-                          alt="Class"
-                          className="absolute inset-0 h-6 w-6"
-                        />
-                      </span>
-                    ) : item.label === "Sessions" ? (
-                      <span className="relative flex-shrink-0">
-                        <img
-                          src={
-                            isActive(item.path) ? SessionsIconH : SessionsIcon
-                          }
-                          alt="Sessions"
-                          className="size-[18px] flex-shrink-0"
-                        />
-                      </span>
-                    ) : null}
-                    <span className="text-xs">{item.label}</span>
+                    <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                      <img
+                        src={
+                          isActive("/sessions") ? SessionsIconH : SessionsIcon
+                        }
+                        alt="Sessions"
+                        className="h-6 w-6 object-contain"
+                      />
+                    </span>
+                    <span className="text-xs">Sessions</span>
                   </Link>
                 </div>
-              ))}
+              ) : (
+                // Other roles: keep Library and Classes on the left
+                [
+                  {
+                    label: "My Library",
+                    path: "/libraries",
+                    icon: LibrariesIcon,
+                    iconH: LibrariesIconH,
+                  },
+                  {
+                    label: "Classes",
+                    path: "/class",
+                    icon: ClassIcon,
+                    iconH: ClassIconH,
+                  },
+                ].map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex h-16 flex-col items-center justify-center"
+                  >
+                    <Link
+                      to={item.path}
+                      onClick={handleMenuClick}
+                      className={`flex flex-col items-center transition-colors ${
+                        isActive(item.path)
+                          ? "text-orange-600"
+                          : "text-gray-700 hover:text-gray-800"
+                      }`}
+                    >
+                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                        <img
+                          src={isActive(item.path) ? item.iconH : item.icon}
+                          alt={item.label}
+                          className="h-6 w-6 object-contain"
+                        />
+                      </span>
+                      <span className="text-xs">{item.label}</span>
+                    </Link>
+                  </div>
+                ))
+              )}
             </div>
 
-            {/* Center - Dashboard with circle background */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            {/* CENTER BUTTON */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
               {menuItems
                 .filter((item) => item.label === "Home")
                 .map((item, index) => (
-                  <div key={index} className="flex flex-col items-center">
-                    <div className="mb-3 flex size-13 items-center justify-center rounded-full bg-orange-500 shadow-lg">
+                  <div key={index} className="flex items-center justify-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-500 shadow-lg">
                       <Link
                         to={item.path}
                         onClick={handleMenuClick}
-                        className={`group flex size-13 items-center justify-center rounded-full transition-colors ${
-                          isActive(item.path)
-                            ? "text-white"
-                            : "text-white hover:text-orange-100"
-                        }`}
+                        className="flex h-16 w-16 items-center justify-center rounded-full"
                       >
-                        <span className="relative h-6 w-6">
+                        <span className="flex h-6 w-6 items-center justify-center">
+                          <img
+                            src={DashboardIconW}
+                            alt="Dashboard"
+                            className="h-6 w-6 object-contain lg:hidden"
+                          />
+
                           <img
                             src={
                               isActive(item.path)
@@ -694,7 +701,7 @@ const Sidebar = ({
                                 : DashboardIcon
                             }
                             alt="Dashboard"
-                            className="absolute inset-0 h-5 w-5"
+                            className="hidden h-6 w-6 object-contain lg:block"
                           />
                         </span>
                       </Link>
@@ -703,122 +710,104 @@ const Sidebar = ({
                 ))}
             </div>
 
-            {/* Right side - Users, Subjects (not shown for students) */}
-            <div className="flex items-center gap-5 min-[345px]:gap-8 sm:gap-10">
-              {parsedRoleId >= 2 && (
-                <div className="-mt-[5px] flex flex-col items-center">
+            {/* RIGHT SIDE */}
+            <div className="outfit-400 -mr-8 flex flex-1 items-center justify-evenly">
+              {parsedRoleId === 1 ? (
+                // Student: show Classes on the right
+                <div className="flex h-16 flex-col items-center justify-center">
                   <Link
-                    to="/users"
+                    to="/class"
                     onClick={handleMenuClick}
                     className={`flex flex-col items-center transition-colors ${
-                      isActive("/users")
+                      isActive("/class")
                         ? "text-orange-600"
                         : "text-gray-700 hover:text-gray-800"
                     }`}
                   >
-                    <span className="relative mb-[5px] h-6 w-6">
+                    <span className="mb-1 flex h-6 w-6 items-center justify-center">
                       <img
-                        src={isActive("/users") ? UsersIconH : UsersIcon}
-                        alt="Users"
-                        className="absolute inset-0 h-6 w-6"
+                        src={isActive("/class") ? ClassIconH : ClassIcon}
+                        alt="Classes"
+                        className="h-6 w-6 object-contain"
                       />
                     </span>
-                    <span
-                      className={`-mt-[6px] text-xs ${
-                        isActive("/users") ? "text-black" : "text-gray-600"
-                      }`}
-                    >
-                      Users
-                    </span>
+                    <span className="text-xs">Classes</span>
                   </Link>
                 </div>
-              )}
-              {(parsedRoleId === 5 || parsedRoleId === 4) && (
+              ) : (
                 <>
-                  <div className="-mt-[5px] flex flex-col items-center">
-                    <Link
-                      to="/dean/subjects"
-                      onClick={handleMenuClick}
-                      className={`flex flex-col items-center transition-colors ${
-                        isActive("/dean/subjects")
-                          ? "text-orange-600"
-                          : "text-gray-700 hover:text-gray-800"
-                      }`}
-                    >
-                      <span className="relative mb-[5px] h-6 w-6">
-                        <img
-                          src={
-                            isActive("/dean/subjects")
-                              ? SubjectsIconH
-                              : SubjectsIcon
-                          }
-                          alt="Subjects"
-                          className="absolute inset-0 h-6 w-6"
-                        />
-                      </span>
-                    </Link>
-                    <span
-                      className={`-mt-[6px] text-xs ${
-                        isActive("/dean/subjects")
-                          ? "text-black"
-                          : "text-gray-600"
-                      }`}
-                    >
-                      Subjects
-                    </span>
-                  </div>
-                </>
-              )}
+                  {parsedRoleId >= 2 && (
+                    <div className="flex h-16 flex-col items-center justify-center">
+                      <Link
+                        to="/users"
+                        onClick={handleMenuClick}
+                        className={`flex flex-col items-center transition-colors ${
+                          isActive("/users")
+                            ? "text-orange-600"
+                            : "text-gray-700 hover:text-gray-800"
+                        }`}
+                      >
+                        <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                          <img
+                            src={isActive("/users") ? UsersIconH : UsersIcon}
+                            alt="Users"
+                            className="h-6 w-6 object-contain"
+                          />
+                        </span>
+                        <span className="text-xs">Users</span>
+                      </Link>
+                    </div>
+                  )}
 
-              {parsedRoleId === 3 && (
-                <>
-                  <div className="-mt-[5px] flex flex-col items-center">
-                    <AllSubjectsDropDownProgramChair
-                      item={classes[0]}
-                      isExpanded={isSubjectExpanded}
-                      selectedSubject={selectedSubject}
-                      setSelectedSubject={setSelectedSubject}
-                      parsedRoleId={parsedRoleId}
-                      setIsExpanded={setIsSubjectExpanded}
-                      isSubjectFocused={isSubjectFocused}
-                      setIsSubjectFocused={setIsSubjectFocused}
-                      homePath={"/program-chair/subjects"}
-                      className="bx bx-newspaper"
-                    />
-                    <span
-                      className={`-mt-[6px] text-xs ${
-                        isSubjectFocused ? "text-black" : "text-gray-600"
-                      }`}
-                    >
-                      Subjects
-                    </span>
-                  </div>
-                </>
-              )}
-
-              {parsedRoleId === 2 && (
-                <>
-                  <div className="-mt-[5px] flex flex-col items-center">
-                    <AssignedSubjectsDropDown
-                      item={classes[0]}
-                      isExpanded={isSubjectExpanded}
-                      selectedSubject={selectedSubject}
-                      parsedRoleId={parsedRoleId}
-                      setIsExpanded={setIsSubjectExpanded}
-                      setSelectedSubject={setSelectedSubject}
-                      isSubjectFocused={isSubjectFocused}
-                      setIsSubjectFocused={setIsSubjectFocused}
-                      homePath={"/faculty/subjects"}
-                      className="bx bx-newspaper"
-                    />
-                    <span
-                      className={`-mt-[6px] text-xs ${
-                        isSubjectFocused ? "text-black" : "text-gray-600"
-                      }`}
-                    >
-                      Subjects
-                    </span>
-                  </div>
+                  {/* Subjects icon (same style for faculty, program chair, dean) */}
+                  {parsedRoleId >= 2 && (
+                    <div className="flex h-16 flex-col items-center justify-center">
+                      <Link
+                        to={
+                          parsedRoleId === 2
+                            ? "/faculty/subjects"
+                            : parsedRoleId === 3
+                              ? "/program-chair/subjects"
+                              : "/dean/subjects"
+                        }
+                        onClick={() => {
+                          handleMenuClick();
+                          setIsSubjectFocused(false);
+                          setIsSubjectExpanded(false);
+                        }}
+                        className={`flex flex-col items-center transition-colors ${
+                          isActive(
+                            parsedRoleId === 2
+                              ? "/faculty/subjects"
+                              : parsedRoleId === 3
+                                ? "/program-chair/subjects"
+                                : "/dean/subjects",
+                          )
+                            ? "text-orange-600"
+                            : "text-gray-700 hover:text-gray-800"
+                        }`}
+                      >
+                        <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                          <img
+                            src={
+                              isActive(
+                                parsedRoleId === 2
+                                  ? "/faculty/subjects"
+                                  : parsedRoleId === 3
+                                    ? "/program-chair/subjects"
+                                    : "/dean/subjects",
+                              )
+                                ? SubjectsIconH
+                                : SubjectsIcon
+                            }
+                            alt="Subjects"
+                            className="h-6 w-6 object-contain"
+                          />
+                        </span>
+                        <span className="text-xs">Subjects</span>
+                      </Link>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -1187,7 +1176,7 @@ const Sidebar = ({
                 </li>
               ))}
               {/* Export button below Subjects */}
-              {parsedRoleId >= 2 && (
+              {parsedRoleId >= 3 && (
                 <li className="relative">
                   <span
                     className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
@@ -1360,7 +1349,7 @@ const Sidebar = ({
                 </li>
               ))}
               {/* Export button below Subjects */}
-              {parsedRoleId >= 2 && (
+              {parsedRoleId >= 3 && (
                 <li className="relative">
                   <span
                     className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
@@ -1543,7 +1532,7 @@ const Sidebar = ({
                 </li>
               ))}
               {/* Export button below Subjects */}
-              {parsedRoleId >= 2 && (
+              {parsedRoleId >= 3 && (
                 <li className="relative">
                   <span
                     className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
@@ -1717,7 +1706,7 @@ const Sidebar = ({
                 </li>
               ))}
               {/* Export button below Subjects */}
-              {parsedRoleId >= 2 && (
+              {parsedRoleId >= 3 && (
                 <li className="relative">
                   <span
                     className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${

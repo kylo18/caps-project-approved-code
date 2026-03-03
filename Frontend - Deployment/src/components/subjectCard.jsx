@@ -535,6 +535,7 @@ const SubjectCard = ({
   const [showPreview, setShowPreview] = useState(false);
   const [isWorksheetModalOpen, setIsWorksheetModalOpen] = useState(false);
   const [worksheetSubject, setWorksheetSubject] = useState(null);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   return (
     <div>
@@ -542,8 +543,8 @@ const SubjectCard = ({
         <SkeletonLoader />
       ) : (
         <>
-          {/* Top search bar (desktop & mobile) */}
-          <div className="outfit-500 relative mx-auto -mt-1 mb-5 w-full max-w-[1250px] px-2 text-[14px]">
+          {/* Top search bar (desktop only) */}
+          <div className="outfit-500 relative mx-auto -mt-1 mb-5 hidden w-full max-w-[1250px] px-2 text-[14px] lg:block">
             <i className="bx bx-search absolute top-1/2 left-5 -translate-y-1/2 text-lg text-gray-500" />
             <input
               type="text"
@@ -624,7 +625,7 @@ const SubjectCard = ({
             </div>
 
             {/* Button row for Tablet and Mobile (Configure, Preview, Worksheet, Menu) */}
-            <div className="outfit-500 mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold sm:flex md:hidden">
+            <div className="outfit-500 mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold md:hidden">
               <button
                 onClick={() => navigate(`/practice-exam/preview/${subjectID}`)}
                 className="border-color mb-6 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
@@ -671,6 +672,17 @@ const SubjectCard = ({
                 <span className="text-[14px]">Worksheet</span>
               </button>
 
+              {/* Mobile search toggle */}
+              <button
+                type="button"
+                onClick={() => setShowMobileSearch((prev) => !prev)}
+                className="border-color mb-6 flex cursor-pointer items-center justify-center rounded-xl border bg-white px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100"
+              >
+                <i
+                  className={`bx ${showMobileSearch ? "bx-x" : "bx-search"} text-2xl`}
+                ></i>
+              </button>
+
               <button
                 ref={actionButtonRef}
                 onClick={() => setShowDropdown((prev) => !prev)}
@@ -713,6 +725,25 @@ const SubjectCard = ({
               }}
             />
           </div>
+
+          {/* Mobile & Tablet search bar (shown when toggled) */}
+          {showMobileSearch && (
+            <div className="outfit-500 relative mx-auto mt-4 mb-2 w-full max-w-[1250px] px-4 text-[14px] md:hidden">
+              <i className="bx bx-search absolute top-1/2 left-7 -translate-y-1/2 text-lg text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search questions..."
+                autoFocus
+                inputMode="search"
+                className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+                value={searchQuery || ""}
+                maxLength={50}
+                onChange={(e) =>
+                  setSearchQuery && setSearchQuery(e.target.value)
+                }
+              />
+            </div>
+          )}
 
           {/* Desktop */}
           <div className="border-color relative z-48 mx-auto -mt-3 hidden max-w-[1200px] overflow-visible border-b bg-white px-6 pt-6 pb-0 md:block">
@@ -903,6 +934,37 @@ const SubjectCard = ({
             </div>
             <div className="bg-color h-[0.5px] w-full" />
             <div className="flex flex-col py-2 text-[16px] sm:text-[14px]">
+              <button
+                onClick={() => {
+                  setWorksheetSubject({
+                    subjectID,
+                    subjectName,
+                    subjectCode,
+                    programName,
+                    yearLevel,
+                  });
+                  setIsWorksheetModalOpen(true);
+                }}
+                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100 sm:hidden"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-download-icon lucide-download"
+                >
+                  <path d="M12 15V3" />
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <path d="m7 10 5 5 5-5" />
+                </svg>
+                Worksheet
+              </button>
               <button
                 onClick={handleEdit}
                 className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100"

@@ -906,7 +906,7 @@ function Libraries() {
                 alt="Collections"
                 className="h-4 w-4"
               />
-              <span>My Subjects</span>
+              <span>Collections</span>
             </span>
             <span className="text-xs text-gray-500">0</span>
           </button>
@@ -1791,7 +1791,7 @@ function Libraries() {
 
           {/* Selection Overlay Banner */}
           {selectedQuizzes.length > 0 && (
-            <div className="outfit-400 fixed right-0 bottom-5 left-0 z-50 md:left-[119px] lg:left-[319px]">
+            <div className="outfit-400 fixed right-0 bottom-5 left-0 z-50 hidden md:left-[119px] md:block lg:left-[319px]">
               <div className="px-6">
                 <div className="rounded-xl bg-gray-800 px-5 py-4 shadow-lg">
                   <div className="flex items-center justify-between">
