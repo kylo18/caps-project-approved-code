@@ -209,6 +209,7 @@ class UsersTableSeeder extends Seeder
                 ],
 
                 // Katipunan Campus
+                /*
                 [
                     'userCode' => '22-A-12345',
                     'firstName' => 'Dean',
@@ -220,7 +221,7 @@ class UsersTableSeeder extends Seeder
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
                     'programID' => 4,
-                ],
+                ],*/
                 [
                     'userCode' => '22-A-02087',
                     'firstName' => 'Associate',
@@ -343,6 +344,7 @@ class UsersTableSeeder extends Seeder
                 ],
 
                 // Tampilisan Campus
+                /*
                 [
                     'userCode' => '21-A-12345',
                     'firstName' => 'Dean',
@@ -354,7 +356,8 @@ class UsersTableSeeder extends Seeder
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
                     'programID' => 4,
-                ],
+                ], */
+                
                 [
                     'userCode' => '21-A-02087',
                     'firstName' => 'Associate',
