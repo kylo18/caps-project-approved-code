@@ -1145,14 +1145,14 @@ const QuizContent = () => {
 
               {/* Floating Add Question button - match AdminContent */}
               {!isAddOpen && filteredQuestions.length > 0 && (
-                <div className="fixed right-[-4px] bottom-[70px] z-49 p-4 text-center sm:right-[-4px] sm:bottom-[-4px]">
+                <div className="fixed right-[-4px] bottom-[70px] z-49 p-4 text-center lg:right-[-4px] lg:bottom-[-4px]">
                   <button
                     onClick={() => setIsAddOpen(true)}
-                    className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-xl hover:bg-orange-600 sm:rounded-xl sm:px-4 sm:py-2"
+                    className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-xl hover:bg-orange-600 lg:rounded-xl lg:px-4 lg:py-2"
                   >
                     <div className="flex items-center justify-center gap-2">
-                      <i className="bx bx-plus text-[24px] sm:text-[16px]"></i>
-                      <span className="outfit-400 hidden sm:block">
+                      <i className="bx bx-plus text-[24px] lg:text-[16px]"></i>
+                      <span className="outfit-400 hidden lg:block">
                         Add Question
                       </span>
                     </div>

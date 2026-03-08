@@ -918,7 +918,7 @@ const Sessions = () => {
                                           },
                                         });
                                       }}
-                                      className="flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:bg-gray-100"
+                                      className="flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
                                     >
                                       <i className="bx bx-caret-right text-lg"></i>
                                       View

@@ -274,6 +274,7 @@ const UserList = () => {
       (Array.isArray(positionFilter) && positionFilter.length > 0) ||
       (Array.isArray(programFilter) && programFilter.length > 0) ||
       (Array.isArray(stateFilter) && stateFilter.length > 0) ||
+      statusFilter !== "all" ||
       (activeView === "students" && remarksFilter)
     );
   };
@@ -1106,6 +1107,7 @@ const UserList = () => {
                       setProgramFilter([]);
                       setStateFilter([]);
                       setRemarksFilter("");
+                      setStatusFilter("all");
                     }}
                     className="outfit-400 -mb-4 flex cursor-pointer items-center justify-center gap-1 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-[14px] font-medium text-red-600 transition-colors hover:bg-red-100"
                   >
@@ -1322,22 +1324,25 @@ const UserList = () => {
                       setShowProgramDropdown(false);
                     }}
                     className={`outfit-500 mt-2 -mb-4 inline-flex cursor-pointer items-center justify-center gap-1 rounded-xl border px-4 py-2 text-[14px] transition-colors ${
-                      stateFilter.length > 0
+                      stateFilter.length > 0 || statusFilter !== "all"
                         ? "border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100"
                         : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
                     }`}
                   >
                     <span>Status</span>
-                    {stateFilter.length > 0 && (
+                    {(stateFilter.length > 0 || statusFilter !== "all") && (
                       <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs text-white">
-                        {stateFilter.length}
+                        {stateFilter.length + (statusFilter !== "all" ? 1 : 0)}
                       </span>
                     )}
                     <i className="bx bx-chevron-down text-xl"></i>
                   </button>
                   {showStatusDropdown && (
                     <div className="outfit-500 absolute right-0 z-50 mt-3 w-45 rounded-lg border border-gray-200 bg-white shadow-lg">
-                      <div className="max-h-60 overflow-y-auto p-1">
+                      <div className="p-1">
+                        <div className="px-3 py-2 text-[11px] font-semibold tracking-wider text-gray-500 uppercase">
+                          Account Status
+                        </div>
                         {[
                           { value: "Active", label: "Active" },
                           { value: "Inactive", label: "Inactive" },
@@ -1364,6 +1369,32 @@ const UserList = () => {
                                 }
                               }}
                               className="h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {option.label}
+                            </span>
+                          </label>
+                        ))}
+                        <div className="my-1 border-t border-gray-200"></div>
+                        <div className="px-3 py-2 text-[11px] font-semibold tracking-wider text-gray-500 uppercase">
+                          Approval Status
+                        </div>
+                        {[
+                          { value: "all", label: "All" },
+                          { value: "pending", label: "Pending" },
+                          { value: "registered", label: "Approved" },
+                          { value: "unregistered", label: "Rejected" },
+                        ].map((option) => (
+                          <label
+                            key={option.value}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 hover:bg-gray-100"
+                          >
+                            <input
+                              type="radio"
+                              name="desktop-status-filter"
+                              checked={statusFilter === option.value}
+                              onChange={() => setStatusFilter(option.value)}
+                              className="h-4 w-4 cursor-pointer rounded-full border-gray-300 text-orange-500 focus:ring-orange-500"
                             />
                             <span className="text-sm text-gray-700">
                               {option.label}
@@ -2193,9 +2224,11 @@ const UserList = () => {
                           Remarks
                         </th>
                       )}
-                      <th className="px-6 py-3 text-right text-xs font-medium tracking-wider text-gray-600 uppercase">
-                        Actions
-                      </th>
+                      {(currentUserRole === 4 || currentUserRole === 5) && (
+                        <th className="px-6 py-3 text-right text-xs font-medium tracking-wider text-gray-600 uppercase">
+                          Actions
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
@@ -2280,10 +2313,9 @@ const UserList = () => {
                             </span>
                           </td>
                         )}
-                        <td className="px-6 py-3 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-2">
-                            {(currentUserRole === 4 ||
-                              currentUserRole === 5) && (
+                        {(currentUserRole === 4 || currentUserRole === 5) && (
+                          <td className="px-6 py-3 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
                               <button
                                 className="flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 p-2 text-red-600 transition-colors hover:bg-red-50 hover:text-red-800"
                                 title="Remove User"
@@ -2294,9 +2326,9 @@ const UserList = () => {
                               >
                                 <i className="bx bx-trash text-xl"></i>
                               </button>
-                            )}
-                          </div>
-                        </td>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

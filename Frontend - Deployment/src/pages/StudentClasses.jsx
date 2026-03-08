@@ -70,6 +70,12 @@ const StudentClasses = () => {
     assignedQuizzes[0]?.teacherName ||
     assignedQuizzes[0]?.createdByName ||
     assignedQuizzes[0]?.createdBy ||
+    (classInfo?.faculty
+      ? `${classInfo.faculty.firstName} ${classInfo.faculty.lastName}`
+      : null) ||
+    (classItem?.faculty
+      ? `${classItem.faculty.firstName} ${classItem.faculty.lastName}`
+      : null) ||
     classInfo?.teacherName ||
     classItem?.teacherName ||
     "Class creator";
@@ -217,10 +223,7 @@ const StudentClasses = () => {
 
       // Update class info from API response if available
       if (data.class) {
-        setClassInfo({
-          className: data.class.className,
-          classCode: data.class.classCode,
-        });
+        setClassInfo(data.class);
       }
 
       setAssignedQuizzes(data.quizzes);
@@ -288,6 +291,11 @@ const StudentClasses = () => {
       if (!Array.isArray(data.history)) {
         console.error("Unexpected quiz history data format:", data);
         throw new Error("Invalid response format.");
+      }
+
+      // Update class info from API response if available
+      if (data.class) {
+        setClassInfo(data.class);
       }
 
       setQuizHistory(data.history);
@@ -456,227 +464,145 @@ const StudentClasses = () => {
                 </div>
               </div>
             ) : activeTab === "assigned" ? (
-              <>
-                {/* Desktop: table view – match ClassContent */}
-                <div className="outfit-400 hidden overflow-hidden rounded-xl border border-gray-200 bg-white lg:block">
-                  <div className="overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <table className="w-full">
-                      <thead className="border-b border-gray-200 bg-white">
-                        <tr>
-                          <th className="w-[40%] px-4 py-2 text-left text-[14px] font-medium tracking-wider text-gray-600">
-                            Quiz Name
-                          </th>
-                          <th className="w-[10%] px-2 py-2 text-center text-[14px] font-medium tracking-wider text-gray-600">
-                            Start Date
-                          </th>
-                          <th className="w-[10%] px-2 py-2 text-center text-[14px] font-medium tracking-wider text-gray-600">
-                            End Date
-                          </th>
-                          <th className="w-[10%] px-2 py-2 text-center text-[14px] font-medium tracking-wider text-gray-600">
-                            Status
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 bg-white">
-                        {assignedQuizzes.map((quiz) => {
-                          const start = formatDateTime(quiz.startDate);
-                          const deadline = formatDateTime(quiz.deadlineDate);
-                          const studentAttempt = quiz.studentAttempt;
-                          const isAvailable =
-                            quiz.isAvailable && quiz.canAttempt;
-                          const statusLabel = !isAvailable
-                            ? "Unavailable"
-                            : studentAttempt?.isCompleted
-                              ? "Completed"
-                              : studentAttempt
-                                ? "In Progress"
-                                : "Not started";
-
-                          return (
-                            <tr
-                              key={quiz.classPersonalQuizID}
-                              className="group transition-colors hover:bg-gray-50"
-                            >
-                              <td className="px-4 py-4 whitespace-nowrap">
-                                <div className="flex flex-col">
-                                  <div className="text-sm font-semibold text-gray-900">
-                                    {quiz.quizName || "Untitled Quiz"}
-                                  </div>
-                                  {quiz.description && (
-                                    <div className="mt-0.5 max-w-[280px] truncate text-xs text-gray-500">
-                                      {quiz.description}
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-2 py-4 text-center text-xs whitespace-nowrap text-gray-700">
-                                {quiz.startDate ? start : "Not set"}
-                              </td>
-                              <td className="px-2 py-4 text-center text-xs whitespace-nowrap text-gray-700">
-                                {quiz.deadlineDate ? deadline : "Not set"}
-                              </td>
-                              <td className="px-2 py-4 text-center whitespace-nowrap">
-                                <span
-                                  className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                                    !isAvailable
-                                      ? "bg-gray-200 text-gray-700"
-                                      : statusLabel === "Completed"
-                                        ? "bg-green-100 text-green-700"
-                                        : statusLabel === "In Progress"
-                                          ? "bg-yellow-100 text-yellow-700"
-                                          : "bg-gray-100 text-gray-600"
-                                  }`}
-                                >
-                                  {statusLabel}
-                                </span>
-                              </td>
-
-                              <td className="outfit-500 px-4 py-4 text-right whitespace-nowrap">
-                                {isAvailable ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      navigate(
-                                        `/quiz-info/${quiz.classPersonalQuizID}`,
-                                        {
-                                          state: {
-                                            classID,
-                                            classPersonalQuizID:
-                                              quiz.classPersonalQuizID,
-                                            quiz: quiz,
-                                          },
-                                        },
-                                      );
-                                    }}
-                                    className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-orange-600"
-                                  >
-                                    <i className="bx bx-caret-right text-sm" />
-                                    {studentAttempt &&
-                                    !studentAttempt.isCompleted
-                                      ? "Continue"
-                                      : studentAttempt?.isCompleted
-                                        ? "View Results"
-                                        : "Start Quiz"}
-                                  </button>
-                                ) : (
-                                  <span className="text-xs text-gray-400"></span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+              <div className="flex flex-col gap-4">
+                {/* Header */}
+                <div className="mb-2 flex items-center justify-between px-2 md:px-0">
+                  <h2 className="outfit-700 text-[14px] font-bold text-[#1a1f36]">
+                    Current Assignments
+                  </h2>
+                  <span className="outfit-500 text-[12px] font-medium text-gray-400">
+                    {assignedQuizzes.length}{" "}
+                    {assignedQuizzes.length === 1
+                      ? "Quiz Pending"
+                      : "Quizzes Pending"}
+                  </span>
                 </div>
 
-                {/* Mobile: pill-like cards – mirror ClassContent structure */}
-                <div className="outfit-400 flex flex-col gap-2 lg:hidden">
+                {/* Cards */}
+                <div className="flex flex-col gap-4">
                   {assignedQuizzes.map((quiz) => {
-                    const start = formatDateTime(quiz.startDate);
-                    const deadline = formatDateTime(quiz.deadlineDate);
+                    const start = formatDate(quiz.startDate);
+                    let isDeadlineNear = false;
+
+                    const deadline = (() => {
+                      if (!quiz.deadlineDate) return "Not set";
+                      const d = new Date(quiz.deadlineDate);
+                      const msRemaining = d - new Date();
+                      // Check if deadline is within next 12 hours
+                      if (
+                        msRemaining > 0 &&
+                        msRemaining < 12 * 60 * 60 * 1000
+                      ) {
+                        isDeadlineNear = true;
+                      }
+
+                      const dPart = d.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      });
+                      const tPart = d.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+                      return `${dPart} (${tPart})`;
+                    })();
+
                     const studentAttempt = quiz.studentAttempt;
                     const isAvailable = quiz.isAvailable && quiz.canAttempt;
-                    const statusLabel = !isAvailable
-                      ? "Unavailable"
-                      : studentAttempt?.isCompleted
-                        ? "Completed"
-                        : studentAttempt
-                          ? "In Progress"
-                          : "Not started";
-
-                    const quizId =
-                      quiz.personalQuizID ||
-                      quiz.quizID ||
-                      quiz.classPersonalQuizID;
-                    const headerColor = getQuizHeaderColor(quizId);
+                    const durationText = quiz.quizTimer
+                      ? `${quiz.quizTimer} Minutes`
+                      : "No Limit";
 
                     return (
                       <div
                         key={quiz.classPersonalQuizID}
-                        className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-3 transition-all hover:border-gray-300 hover:shadow-md active:scale-[0.99]"
+                        className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 transition-all md:flex-row md:items-center md:justify-between"
                       >
-                        <div
-                          className="flex size-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl"
-                          style={{ backgroundColor: headerColor }}
-                        >
-                          <span className="outfit-400 text-[18px] font-semibold text-white">
-                            Q
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <div className="outfit-500 text-[15px] font-semibold text-gray-900">
-                            {quiz.quizName || "Untitled Quiz"}
+                        <div className="flex items-center gap-4">
+                          {/* Icon */}
+                          <div className="relative flex h-[45px] w-[45px] flex-shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+                            <i className="bx bxs-copy-list text-[24px]" />
                           </div>
 
-                          <div className="outfit-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-gray-500">
-                            <span>
-                              {quiz.startDate && quiz.deadlineDate
-                                ? (() => {
-                                    const startDate = new Date(quiz.startDate);
-                                    const endDate = new Date(quiz.deadlineDate);
+                          {/* Info */}
+                          <div className="flex flex-col">
+                            <h3 className="outfit-700 text-[14px] font-bold text-[#1a1f36]">
+                              {quiz.quizName || "Untitled Quiz"}
+                            </h3>
+                            <div className="outfit-500 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
+                              {/* Started */}
+                              <div className="flex items-center gap-1.5 text-gray-500">
+                                <i className="bx bx-calendar text-[14px] text-[#1a1f36]/60" />
+                                <span>Started: {start}</span>
+                              </div>
+                              {/* Deadline */}
+                              <div
+                                className={`flex items-center gap-1.5 ${isDeadlineNear ? "text-red-500" : "text-gray-500"}`}
+                              >
+                                <i className="bx bxs-calendar-check text-[14px]" />
+                                <span
+                                  className={
+                                    isDeadlineNear ? "font-semibold" : ""
+                                  }
+                                >
+                                  Deadline: {deadline}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
-                                    const startMonth = startDate.toLocaleString(
-                                      "en-US",
-                                      {
-                                        month: "short",
+                        {/* Right side: Duration & Button */}
+                        <div className="flex items-center justify-between gap-6 px-2 md:justify-end md:gap-8 md:px-0">
+                          {/* Duration */}
+                          <div className="flex flex-col items-end justify-center">
+                            <span className="outfit-700 text-[10px] tracking-widest text-[#1a1f36]/40 uppercase">
+                              Duration
+                            </span>
+                            <span className="outfit-700 text-[12px] text-[#1a1f36]">
+                              {durationText}
+                            </span>
+                          </div>
+
+                          {/* Start Button */}
+                          <div className="flex flex-col items-end gap-1">
+                            {isAvailable ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigate(
+                                    `/quiz-info/${quiz.classPersonalQuizID}`,
+                                    {
+                                      state: {
+                                        classID,
+                                        classPersonalQuizID:
+                                          quiz.classPersonalQuizID,
+                                        quiz: quiz,
                                       },
-                                    );
-                                    const endMonth = endDate.toLocaleString(
-                                      "en-US",
-                                      { month: "short" },
-                                    );
-
-                                    const startDay = startDate.getDate();
-                                    const endDay = endDate.getDate();
-
-                                    const endYear = endDate.getFullYear();
-
-                                    return startMonth === endMonth
-                                      ? `${startMonth} ${startDay} - ${endDay}, ${endYear}`
-                                      : `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${endYear}`;
-                                  })()
-                                : "Deadline not set"}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          {isAvailable ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigate(
-                                  `/quiz-info/${quiz.classPersonalQuizID}`,
-                                  {
-                                    state: {
-                                      classID,
-                                      classPersonalQuizID:
-                                        quiz.classPersonalQuizID,
-                                      quiz: quiz,
                                     },
-                                  },
-                                );
-                              }}
-                              className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-orange-600"
-                            >
-                              <i className="bx bx-caret-right text-sm" />
-                              {studentAttempt && !studentAttempt.isCompleted
-                                ? "Continue"
-                                : studentAttempt?.isCompleted
-                                  ? "View"
-                                  : "Start"}
-                            </button>
-                          ) : (
-                            <span className="text-center text-[11px] text-gray-400">
-                              Unavailable
-                            </span>
-                          )}
+                                  );
+                                }}
+                                className="outfit-700 flex cursor-pointer items-center justify-center rounded-xl bg-orange-500 px-6 py-[9px] text-[14px] font-bold text-white transition-colors hover:bg-orange-600 active:scale-[0.95]"
+                              >
+                                {studentAttempt && !studentAttempt.isCompleted
+                                  ? "Continue"
+                                  : studentAttempt?.isCompleted
+                                    ? "View Results"
+                                    : "Start Quiz"}
+                              </button>
+                            ) : (
+                              <span className="outfit-600 rounded-[8px] bg-gray-100 px-6 py-[9px] text-[14px] text-gray-500">
+                                Unavailable
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              </>
+              </div>
             ) : activeTab === "history" ? (
               <>
                 {isHistoryLoading ? (
@@ -778,86 +704,86 @@ const StudentClasses = () => {
                       </div>
                     </div>
 
-                {/* Mobile & tablet: card view */}
-                <div className="mt-3 flex flex-col gap-3 lg:hidden">
-                  {quizHistory.map((item) => {
-                    const highest = item.highestAttempt;
-                    const pct =
-                      typeof highest?.percentage === "number"
-                        ? highest.percentage.toFixed(1)
-                        : parseFloat(highest?.percentage || 0).toFixed(1);
+                    {/* Mobile & tablet: card view */}
+                    <div className="mt-3 flex flex-col gap-3 lg:hidden">
+                      {quizHistory.map((item) => {
+                        const highest = item.highestAttempt;
+                        const pct =
+                          typeof highest?.percentage === "number"
+                            ? highest.percentage.toFixed(1)
+                            : parseFloat(highest?.percentage || 0).toFixed(1);
 
-                    const rawPercentage =
-                      typeof highest?.percentage === "number"
-                        ? highest.percentage
-                        : parseFloat(highest?.percentage || 0);
+                        const rawPercentage =
+                          typeof highest?.percentage === "number"
+                            ? highest.percentage
+                            : parseFloat(highest?.percentage || 0);
 
-                    const percentageBadgeClasses =
-                      rawPercentage >= 90
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                        : rawPercentage >= 75
-                          ? "bg-sky-50 text-sky-700 border border-sky-100"
-                          : rawPercentage >= 60
-                            ? "bg-amber-50 text-amber-700 border border-amber-100"
-                            : "bg-gray-50 text-gray-700 border border-gray-200";
+                        const percentageBadgeClasses =
+                          rawPercentage >= 90
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                            : rawPercentage >= 75
+                              ? "bg-sky-50 text-sky-700 border border-sky-100"
+                              : rawPercentage >= 60
+                                ? "bg-amber-50 text-amber-700 border border-amber-100"
+                                : "bg-gray-50 text-gray-700 border border-gray-200";
 
-                    return (
-                      <div
-                        key={item.classPersonalQuizID}
-                        className="flex flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.04)] transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="outfit-500 text-[15px] font-semibold text-gray-900">
-                              {item.quiz?.title || "Untitled Quiz"}
-                            </p>
-                            {item.quiz?.subject && (
-                              <p className="outfit-400 mt-0.5 text-[12px] text-gray-500">
-                                {item.quiz.subject.subjectCode} ·{" "}
-                                {item.quiz.subject.subjectName}
-                              </p>
-                            )}
+                        return (
+                          <div
+                            key={item.classPersonalQuizID}
+                            className="flex flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.04)] transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <p className="outfit-500 text-[15px] font-semibold text-gray-900">
+                                  {item.quiz?.title || "Untitled Quiz"}
+                                </p>
+                                {item.quiz?.subject && (
+                                  <p className="outfit-400 mt-0.5 text-[12px] text-gray-500">
+                                    {item.quiz.subject.subjectCode} ·{" "}
+                                    {item.quiz.subject.subjectName}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex flex-col items-end gap-1">
+                                <span
+                                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${percentageBadgeClasses}`}
+                                >
+                                  {highest ? `${pct}%` : "—"}
+                                </span>
+                                <span className="text-[11px] text-gray-400">
+                                  {highest
+                                    ? `${highest.score}/${highest.total_score} pts`
+                                    : "No score yet"}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
+                              <div className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />
+                                <span className="font-medium text-gray-700">
+                                  Attempts:
+                                </span>
+                                <span>{item.totalAttempts ?? "—"}</span>
+                              </div>
+
+                              <div className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+                                <span className="font-medium text-gray-700">
+                                  Last submitted:
+                                </span>
+                                <span>
+                                  {highest?.submitted_at
+                                    ? formatDateTime(highest.submitted_at)
+                                    : "—"}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-
-                          <div className="flex flex-col items-end gap-1">
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${percentageBadgeClasses}`}
-                            >
-                              {highest ? `${pct}%` : "—"}
-                            </span>
-                            <span className="text-[11px] text-gray-400">
-                              {highest
-                                ? `${highest.score}/${highest.total_score} pts`
-                                : "No score yet"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
-                          <div className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />
-                            <span className="font-medium text-gray-700">
-                              Attempts:
-                            </span>
-                            <span>{item.totalAttempts ?? "—"}</span>
-                          </div>
-
-                          <div className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
-                            <span className="font-medium text-gray-700">
-                              Last submitted:
-                            </span>
-                            <span>
-                              {highest?.submitted_at
-                                ? formatDateTime(highest.submitted_at)
-                                : "—"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
                   </>
                 )}
               </>

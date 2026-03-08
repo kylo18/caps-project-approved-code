@@ -50,6 +50,7 @@ const Layout = () => {
     role_id !== null && roleMap[role_id] ? roleMap[role_id] : "User";
 
   const isStudent = Number(role_id) === 1;
+  const isStudentQuizPage = /^\/quiz\/[^/]+$/.test(location.pathname);
   const isTutorialPage = location.pathname.includes("/help");
   const isPrintQualifyingExam =
     location.pathname === "/print-qualification-exam";
@@ -104,8 +105,12 @@ const Layout = () => {
                 : "ml-[220px]"
           }`}
         >
-          <Header title={roleTitle} className="lg:hidden" />
-          <main className={`${isTutorialPage ? "" : "lg:px-4"} h-full`}>
+          {!isStudentQuizPage && (
+            <Header title={roleTitle} className="lg:hidden" />
+          )}
+          <main
+            className={`${isTutorialPage || isQuizPage || isPracticeExamPage ? "" : "lg:px-4"} h-full`}
+          >
             <Outlet context={{ selectedSubject, setSelectedSubject }} />
           </main>
         </div>
