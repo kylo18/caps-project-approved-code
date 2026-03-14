@@ -7,7 +7,7 @@ import { logoutUser } from "../utils/logoutUser";
 import useToast from "../hooks/useToast";
 import Toast from "./Toast";
 import CollegeLogo from "/src/assets/college-logo.png";
-import AppVersion from "./AppVersion";
+import AppVersion from "./appVersion";
 
 import DashboardIcon from "/src/assets/symbols/dashboard.svg";
 import DashboardIconH from "/src/assets/symbols/dashboardhover.svg";
