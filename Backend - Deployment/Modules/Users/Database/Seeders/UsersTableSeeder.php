@@ -23,225 +23,516 @@ class UsersTableSeeder extends Seeder
 
             $registeredStatusId = $status->id;
 
-            // Insert initial users
+            /**
+             * ============================
+             * DEFAULT USERS (UPDATED)
+             * ============================
+             */
             $users = [
-                // Original users
+
+                // Dean Account
                 [
-                    'userCode' => '23-A-02087',
-                    'firstName' => 'Kent',
-                    'lastName' => 'Apat',
-                    'email' => 'kentapat123@gmail.com',
+                    'userCode' => '10-A-12345',
+                    'firstName' => 'Dean',
+                    'lastName' => 'Account',
+                    'email' => 'dean.account@university.edu',
                     'password' => Hash::make('12345678'),
                     'roleID' => 4,
                     'campusID' => 1,
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
-                    'programID' => 4
+                    'programID' => 4,
                 ],
-                // Dean
+
+                // Associate Dean Account
                 [
-                    'userCode' => '23-A-12345',
-                    'firstName' => 'Gillert',
-                    'lastName' => 'Bongcac',
-                    'email' => 'bongcac@gmail.com',
+                    'userCode' => '10-A-02087',
+                    'firstName' => 'Associate',
+                    'lastName' => 'Dean',
+                    'email' => 'associate.dean@university.edu',
                     'password' => Hash::make('12345678'),
-                    'roleID' => 4,
-                    'campusID' => 1,
-                    'isActive' => true,
-                    'status_id' => 4,
-                    'programID' => 4
-                ],
-                // Program Chairs
-                [
-                    'userCode' => '23-A-12346',
-                    'firstName' => 'Troy',
-                    'lastName' => 'Lasco',
-                    'email' => 'Troy@gmail.com',
-                    'password' => Hash::make('12345678'),
-                    'roleID' => 3,
+                    'roleID' => 5,
                     'campusID' => 1,
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
-                    'programID' => 1
+                    'programID' => 4,
                 ],
+
+                // Program Chair Accounts
                 [
-                    'userCode' => '23-A-11111',
-                    'firstName' => 'Agri',
-                    'lastName' => 'Bio',
-                    'email' => 'abe@gmail.com',
-                    'password' => Hash::make('12345678'),
-                    'roleID' => 3,
-                    'campusID' => 2,
-                    'isActive' => true,
-                    'status_id' => $registeredStatusId,
-                    'programID' => 2
-                ],
-                [
-                    'userCode' => '23-A-22222',
+                    'userCode' => '10-A-00000',
                     'firstName' => 'CE',
-                    'lastName' => 'Engr',
-                    'email' => 'ce@gmail.com',
+                    'lastName' => 'Chair',
+                    'email' => 'ce.chair@university.edu',
                     'password' => Hash::make('12345678'),
                     'roleID' => 3,
                     'campusID' => 1,
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
-                    'programID' => 3
+                    'programID' => 3,
                 ],
                 [
-                    'userCode' => '23-A-33333',
-                    'firstName' => 'ECE',
-                    'lastName' => 'Eng',
-                    'email' => 'ece@gmail.com',
+                    'userCode' => '10-A-00001',
+                    'firstName' => 'CPE',
+                    'lastName' => 'Chair',
+                    'email' => 'cpe.chair@university.edu',
                     'password' => Hash::make('12345678'),
                     'roleID' => 3,
                     'campusID' => 1,
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
-                    'programID' => 4
+                    'programID' => 1,
                 ],
                 [
-                    'userCode' => '23-A-55555',
+                    'userCode' => '10-A-00010',
                     'firstName' => 'EE',
-                    'lastName' => 'Egr',
-                    'email' => 'ee@gmail.com',
+                    'lastName' => 'Chair',
+                    'email' => 'ee.chair@university.edu',
                     'password' => Hash::make('12345678'),
                     'roleID' => 3,
                     'campusID' => 1,
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
-                    'programID' => 5
+                    'programID' => 2,
                 ],
-                // Faculty
                 [
-                    'userCode' => '23-A-12347',
-                    'firstName' => 'Ryann',
-                    'lastName' => 'Elumba',
-                    'email' => 'Ryann@gmail.com',
+                    'userCode' => '10-A-00011',
+                    'firstName' => 'ECE',
+                    'lastName' => 'Chair',
+                    'email' => 'ece.chair@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 3,
+                    'campusID' => 1,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 4,
+                ],
+
+                // Faculty Accounts
+                [
+                    'userCode' => '10-A-00100',
+                    'firstName' => 'CE',
+                    'lastName' => 'Faculty',
+                    'email' => 'ce.faculty@university.edu',
                     'password' => Hash::make('12345678'),
                     'roleID' => 2,
                     'campusID' => 1,
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
-                    'programID' => 1
+                    'programID' => 3,
                 ],
                 [
-                    'userCode' => '23-A-11112',
-                    'firstName' => 'Abe2',
-                    'lastName' => 'Bio',
-                    'email' => 'abe2@gmail.com',
+                    'userCode' => '10-A-00101',
+                    'firstName' => 'CPE',
+                    'lastName' => 'Faculty',
+                    'email' => 'cpe.faculty@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 2,
+                    'campusID' => 1,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '10-A-00110',
+                    'firstName' => 'EE',
+                    'lastName' => 'Faculty',
+                    'email' => 'ee.faculty@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 2,
+                    'campusID' => 1,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 2,
+                ],
+                [
+                    'userCode' => '10-A-00111',
+                    'firstName' => 'ECE',
+                    'lastName' => 'Faculty',
+                    'email' => 'ece.faculty@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 2,
+                    'campusID' => 1,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 4,
+                ],
+
+                // Student Accounts
+                [
+                    'userCode' => '10-A-01000',
+                    'firstName' => 'CE',
+                    'lastName' => 'Student',
+                    'email' => 'ce.student@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 1,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 3,
+                ],
+                [
+                    'userCode' => '10-A-01001',
+                    'firstName' => 'CPE',
+                    'lastName' => 'Student',
+                    'email' => 'cpe.student@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 1,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '10-A-01010',
+                    'firstName' => 'EE',
+                    'lastName' => 'Student',
+                    'email' => 'ee.student@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 1,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 2,
+                ],
+                [
+                    'userCode' => '10-A-01011',
+                    'firstName' => 'ECE',
+                    'lastName' => 'Student',
+                    'email' => 'ece.student@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 1,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 4,
+                ],
+
+                // Katipunan Campus
+                /*
+                [
+                    'userCode' => '22-A-12345',
+                    'firstName' => 'Dean',
+                    'lastName' => 'Account',
+                    'email' => 'katipunan.dean@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 4,
+                    'campusID' => 2,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 4,
+                ],*/
+                /*
+                [
+                    'userCode' => '22-A-02087',
+                    'firstName' => 'Associate',
+                    'lastName' => 'Dean',
+                    'email' => 'katipunan.associate@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 5,
+                    'campusID' => 2,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 4,
+                ],
+                [
+                    'userCode' => '22-A-00000',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Chair',
+                    'email' => 'katipunan.abe.chair@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 3,
+                    'campusID' => 2,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '22-A-00100',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Faculty',
+                    'email' => 'katipunan.abe.faculty1@university.edu',
                     'password' => Hash::make('12345678'),
                     'roleID' => 2,
                     'campusID' => 2,
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
-                    'programID' => 2
+                    'programID' => 1,
                 ],
                 [
-                    'userCode' => '23-A-22223',
-                    'firstName' => 'CE2',
-                    'lastName' => 'Engr',
-                    'email' => 'ce2@gmail.com',
+                    'userCode' => '22-A-00101',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Faculty',
+                    'email' => 'katipunan.abe.faculty2@university.edu',
                     'password' => Hash::make('12345678'),
                     'roleID' => 2,
-                    'campusID' => 1,
+                    'campusID' => 2,
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
-                    'programID' => 3
+                    'programID' => 1,
                 ],
                 [
-                    'userCode' => '23-A-33334',
-                    'firstName' => 'ECE2',
-                    'lastName' => 'Eng',
-                    'email' => 'ece2@gmail.com',
+                    'userCode' => '22-A-00110',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Faculty',
+                    'email' => 'katipunan.abe.faculty3@university.edu',
                     'password' => Hash::make('12345678'),
                     'roleID' => 2,
-                    'campusID' => 1,
+                    'campusID' => 2,
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
-                    'programID' => 4
+                    'programID' => 1,
                 ],
                 [
-                    'userCode' => '23-A-55556',
-                    'firstName' => 'EE2',
-                    'lastName' => 'Egr',
-                    'email' => 'ee2@gmail.com',
+                    'userCode' => '22-A-00111',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Faculty',
+                    'email' => 'katipunan.abe.faculty4@university.edu',
                     'password' => Hash::make('12345678'),
                     'roleID' => 2,
-                    'campusID' => 1,
+                    'campusID' => 2,
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
-                    'programID' => 5
+                    'programID' => 1,
                 ],
+                [
+                    'userCode' => '22-A-01000',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Student',
+                    'email' => 'katipunan.abe.student1@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 2,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '22-A-01001',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Student',
+                    'email' => 'katipunan.abe.student2@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 2,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '22-A-01010',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Student',
+                    'email' => 'katipunan.abe.student3@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 2,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '22-A-01011',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Student',
+                    'email' => 'katipunan.abe.student4@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 2,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+
+                // Tampilisan Campus
+                /*
+                [
+                    'userCode' => '21-A-12345',
+                    'firstName' => 'Dean',
+                    'lastName' => 'Account',
+                    'email' => 'tampilisan.dean@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 4,
+                    'campusID' => 3,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 4,
+                ], 
+                
+                [
+                    'userCode' => '21-A-02087',
+                    'firstName' => 'Associate',
+                    'lastName' => 'Dean',
+                    'email' => 'tampilisan.associate@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 5,
+                    'campusID' => 3,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 4,
+                ],
+                [
+                    'userCode' => '21-A-00000',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Chair',
+                    'email' => 'tampilisan.abe.chair@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 3,
+                    'campusID' => 3,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '21-A-00100',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Faculty',
+                    'email' => 'tampilisan.abe.faculty1@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 2,
+                    'campusID' => 3,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '21-A-00101',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Faculty',
+                    'email' => 'tampilisan.abe.faculty2@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 2,
+                    'campusID' => 3,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '21-A-00110',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Faculty',
+                    'email' => 'tampilisan.abe.faculty3@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 2,
+                    'campusID' => 3,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '21-A-00111',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Faculty',
+                    'email' => 'tampilisan.abe.faculty4@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 2,
+                    'campusID' => 3,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '21-A-01000',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Student',
+                    'email' => 'tampilisan.abe.student1@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 3,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '21-A-01001',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Student',
+                    'email' => 'tampilisan.abe.student2@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 3,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '21-A-01010',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Student',
+                    'email' => 'tampilisan.abe.student3@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 3,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                [
+                    'userCode' => '21-A-01011',
+                    'firstName' => 'ABE',
+                    'lastName' => 'Student',
+                    'email' => 'tampilisan.abe.student4@university.edu',
+                    'password' => Hash::make('12345678'),
+                    'roleID' => 1,
+                    'campusID' => 3,
+                    'isActive' => true,
+                    'status_id' => $registeredStatusId,
+                    'programID' => 1,
+                ],
+                */
             ];
 
-            // Insert initial users
             DB::table('users')->insert($users);
 
-            // Add 5000 more users
-            $roles = [2, 3, 4]; // Faculty, Program Chair, Dean
-            $campuses = [1, 2];
-            $programs = [1, 2, 3, 4, 5];
-            $lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
-            $firstNames = ['James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Charles'];
+            /**
+             * ============================
+             * ADDITIONAL USERS (50 ONLY)
+             * ============================
+             * (COMMENTED OUT)
+             */
+            // $roles = [2, 3, 4];
+            // $campuses = [1, 2];
+            // $programs = [1, 2, 3, 4, 5];
+            // $firstNames = ['James', 'John', 'Robert', 'Michael', 'William'];
+            // $lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones'];
 
-            // Generate and insert bulk users in smaller chunks
-            $chunkSize = 100; // Smaller chunk size for better memory management
-            $totalUsers = 5000;
-            $bulkUsers = [];
+            // $chunkSize = 25;
+            // $totalUsers = 50;
+            // $bulkUsers = [];
 
-            for ($i = 1; $i <= $totalUsers; $i++) {
-                $year = 23;
-                $campus = 'A';
-                $number = str_pad($i + 10000, 5, '0', STR_PAD_LEFT);
-                $userCode = "{$year}-{$campus}-{$number}";
-                
-                $firstName = $firstNames[array_rand($firstNames)];
-                $lastName = $lastNames[array_rand($lastNames)];
-                $email = strtolower($firstName . '.' . $lastName . $i . '@university.edu');
-                
-                $bulkUsers[] = [
-                    'userCode' => $userCode,
-                    'firstName' => $firstName,
-                    'lastName' => $lastName,
-                    'email' => $email,
-                    'password' => Hash::make('12345678'),
-                    'roleID' => $roles[array_rand($roles)],
-                    'campusID' => $campuses[array_rand($campuses)],
-                    'isActive' => true,
-                    'status_id' => $registeredStatusId,
-                    'programID' => $programs[array_rand($programs)]
-                ];
+            // for ($i = 1; $i <= $totalUsers; $i++) {
+            //     $userCode = "23-A-" . str_pad($i + 20000, 5, '0', STR_PAD_LEFT);
 
-                // Insert in chunks with separate transactions
-                if (count($bulkUsers) >= $chunkSize) {
-                    DB::beginTransaction();
-                    try {
-                        DB::table('users')->insert($bulkUsers);
-                        DB::commit();
-                    } catch (\Exception $e) {
-                        DB::rollBack();
-                        Log::error('Error inserting chunk: ' . $e->getMessage());
-                        throw $e;
-                    }
-                    $bulkUsers = []; // Clear the array
-                }
-            }
+            //     $firstName = $firstNames[array_rand($firstNames)];
+            //     $lastName = $lastNames[array_rand($lastNames)];
 
-            // Insert any remaining users
-            if (!empty($bulkUsers)) {
-                DB::beginTransaction();
-                try {
-                    DB::table('users')->insert($bulkUsers);
-                    DB::commit();
-                } catch (\Exception $e) {
-                    DB::rollBack();
-                    Log::error('Error inserting final chunk: ' . $e->getMessage());
-                    throw $e;
-                }
-            }
+            //     $bulkUsers[] = [
+            //         'userCode' => $userCode,
+            //         'firstName' => $firstName,
+            //         'lastName' => $lastName,
+            //         'email' => strtolower("{$firstName}.{$lastName}{$i}@university.edu"),
+            //         'password' => Hash::make('12345678'),
+            //         'roleID' => $roles[array_rand($roles)],
+            //         'campusID' => $campuses[array_rand($campuses)],
+            //         'isActive' => true,
+            //         'status_id' => $registeredStatusId,
+            //         'programID' => $programs[array_rand($programs)],
+            //     ];
 
-            $this->command->info("Successfully seeded " . (count($users) + $totalUsers) . " users!");
+            //     if (count($bulkUsers) >= $chunkSize) {
+            //         DB::table('users')->insert($bulkUsers);
+            //         $bulkUsers = [];
+            //     }
+            // }
+
+            // if (!empty($bulkUsers)) {
+            //     DB::table('users')->insert($bulkUsers);
+            // }
+
+            $this->command->info(
+                'Successfully seeded ' . count($users) . ' users!'
+            );
+
         } catch (\Exception $e) {
             $this->command->error('Failed to seed users: ' . $e->getMessage());
             throw $e;

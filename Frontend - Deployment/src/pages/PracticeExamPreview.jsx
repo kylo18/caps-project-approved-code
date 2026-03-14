@@ -79,7 +79,7 @@ const PracticeExamPreview = () => {
       `${import.meta.env.VITE_API_BASE_URL}/practice-exam/preview/${subjectID}`,
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
         },
       },
     )
@@ -140,15 +140,40 @@ const PracticeExamPreview = () => {
     setSelectedImageUrl(null);
   }, [currentQuestionIndex]);
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (loading)
+    return (
+      <div className="outfit flex min-h-screen flex-col items-center justify-center py-12">
+        <div className="loader mb-4"></div>
+        <p className="text-[14px] text-gray-600">Loading preview...</p>
+      </div>
+    );
   if (error)
     return (
-      <div className="p-8 text-center whitespace-pre-wrap text-red-500">
-        {error}
+      <div className="outfit flex min-h-screen flex-col items-center justify-center p-8">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center max-w-md">
+          <p className="font-semibold text-red-700">Error</p>
+          <p className="mt-2 text-sm text-red-600 whitespace-pre-wrap">{error}</p>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-4 rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
+          >
+            Go Back
+          </button>
+        </div>
       </div>
     );
   if (!examData)
-    return <div className="p-8 text-center">No preview data found.</div>;
+    return (
+      <div className="outfit flex min-h-screen flex-col items-center justify-center p-8">
+        <p className="text-gray-600">No preview data found.</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="mt-4 rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
+        >
+          Go Back
+        </button>
+      </div>
+    );
 
   const totalQuestions = examData.questions.length;
 
@@ -226,7 +251,7 @@ const PracticeExamPreview = () => {
   };
 
   return (
-    <div className="font-inter mt-5 flex min-h-screen flex-col py-5">
+    <div className="outfit mt-5 flex min-h-screen flex-col py-5">
       <TimerCompletionModal
         isOpen={showTimerCompletionModal}
         onClose={() => setShowTimerCompletionModal(false)}
@@ -235,13 +260,21 @@ const PracticeExamPreview = () => {
         answeredQuestions={Object.keys(answers).length}
         bookmarkedQuestions={bookmarkedQuestions}
       />
-      <div className="border-color mb-2 w-full rounded-md bg-white px-4 py-[18px] shadow-sm md:px-8">
+      <div className="border-color mb-2 w-full rounded-md border border-gray-200 bg-white px-4 py-[18px] shadow-sm md:px-8">
         {/* Header */}
         <div className="flex flex-col justify-between gap-4 md:flex-row">
           {/* Subject & Progress */}
           <div className="flex w-full flex-col md:w-auto md:flex-row md:items-center md:gap-6">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate(-1)}
+                  className="outfit-500 flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  <i className="bx bx-left-arrow-alt text-lg"></i>
+                  Go Back
+                </button>
                 <p className="text-[16px] font-semibold break-words lg:max-w-[420px]">
                   {examData.subjectName || `Subject ${subjectID}`}
                 </p>
@@ -347,7 +380,7 @@ const PracticeExamPreview = () => {
         </div>
       </div>
 
-      <div className="open-sans border-color mx-auto mt-2 w-full max-w-3xl rounded-t-lg border-b-[0.5px] bg-white px-3 py-3 shadow-sm">
+      <div className="outfit border-color mx-auto mt-2 w-full max-w-3xl rounded-t-lg border border-gray-200 border-b-[0.5px] bg-white px-3 py-3 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="text-[14px] font-medium text-nowrap text-gray-500">
             Question {currentQuestionIndex + 1} of {examData.questions.length}
@@ -396,7 +429,7 @@ const PracticeExamPreview = () => {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-3xl rounded-b-xl bg-white p-2 shadow-sm sm:p-4">
+      <div className="mx-auto w-full max-w-3xl rounded-b-xl border border-t-0 border-gray-200 bg-white p-2 shadow-sm sm:p-4">
         <QuestionListModal
           isOpen={isQuestionListOpen}
           onClose={() => setIsQuestionListOpen(false)}
@@ -549,7 +582,7 @@ const PracticeExamPreview = () => {
           {areAllQuestionsAnswered() && (
             <button
               onClick={() => setShowTimerCompletionModal(true)}
-              className={`mt-8 mb-1 w-[30%] cursor-pointer rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 py-[9px] text-base font-semibold text-nowrap text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm`}
+              className="mt-8 mb-1 w-[30%] cursor-pointer rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 py-[9px] text-base font-semibold text-nowrap text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm"
               type="button"
             >
               View Results

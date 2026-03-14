@@ -243,31 +243,93 @@ class QuestionController extends Controller
         return response()->json(['message' => 'Question deleted successfully.']);
     }
 
-    // Retrieve all questions created by the current user for a given subject
+    /**
+     * Retrieve all questions created by the authenticated user for a specific subject.
+     * 
+     * @param int $subjectID
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function mySubjectQuestions($subjectID)
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        $subject = Subject::find($subjectID);
-        if (!$subject) {
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Please log in to view your questions.',
+                ], 401);
+            }
+
+            // Validate subjectID is numeric
+            if (!is_numeric($subjectID)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid subject ID provided.',
+                ], 422);
+            }
+
+            // Find the subject
+            $subject = Subject::find($subjectID);
+            
+            if (!$subject) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Subject not found.',
+                ], 404);
+            }
+
+            // Retrieve questions created by the current user for this subject
+            $questions = Question::with([
+                    'subject',
+                    'choices',
+                    'status',
+                    'difficulty',
+                    'coverage',
+                    'purpose',
+                    'editor' => function($query) {
+                        $query->select('userID', 'firstName', 'lastName');
+                    },
+                    'approver' => function($query) {
+                        $query->select('userID', 'firstName', 'lastName');
+                    }
+                ])
+                ->where('subjectID', $subjectID)
+                ->where('userID', $user->userID)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($question) {
+                    return $this->formatQuestion($question);
+                });
+
             return response()->json([
-                'message' => 'Subject not found.'
-            ], 404);
+                'success' => true,
+                'message' => 'Your questions for this subject retrieved successfully.',
+                'subject' => [
+                    'subjectID' => $subject->subjectID,
+                    'subjectCode' => $subject->subjectCode,
+                    'subjectName' => $subject->subjectName,
+                ],
+                'total_questions' => $questions->count(),
+                'data' => $questions,
+            ], 200);
+
+        } catch (\Throwable $e) {
+            Log::error('Error retrieving user questions for subject', [
+                'user_id' => optional(Auth::user())->userID,
+                'subject_id' => $subjectID,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving your questions for this subject.',
+                'error' => app()->environment('local') ? $e->getMessage() : null,
+            ], 500);
         }
-
-        $questions = Question::with(['subject', 'choices', 'status', 'difficulty', 'coverage', 'purpose'])
-            ->where('subjectID', $subjectID)
-            ->where('userID', $user->userID)
-            ->get()
-            ->map(function ($question) {
-                return $this->formatQuestion($question);
-            });
-
-        return response()->json([
-            'message' => 'Your questions for this subject retrieved successfully!',
-            'subject' => $subject->subjectName,
-            'data'    => $questions
-        ], 200);
     }
 
     // Approve a question if it's pending and not edited by the current user
@@ -686,7 +748,8 @@ class QuestionController extends Controller
     // Return all questions without choices
     public function questionCount()
     {
-        $questions = Question::with([
+        $user = Auth::user();
+        $query = Question::with([
             'subject',
             'user.program', // eager load user's program
             'user.role',    // eager load user's role
@@ -700,7 +763,24 @@ class QuestionController extends Controller
             'approver' => function($query) {
                 $query->select('userID', 'firstName', 'lastName');
             }
-        ])->get();
+        ]);
+
+        // Role-based filtering
+        if ($user->roleID == 5) { // Associate Dean
+            $query->whereHas('user', function($q) use ($user) {
+                $q->where('campusID', $user->campusID);
+            });
+        } elseif ($user->roleID == 3) { // Program Chair
+            $query->whereHas('user', function($q) use ($user) {
+                $q->where('campusID', $user->campusID)
+                  ->where('programID', $user->programID);
+            });
+        } elseif ($user->roleID == 2) { // Faculty
+            $query->where('userID', $user->userID);
+        }
+        // Dean (roleID == 4) sees all questions (no filter)
+
+        $questions = $query->get();
 
         // Format questions but skip choices
         $formatted = $questions->map(function($q) {
@@ -732,7 +812,7 @@ class QuestionController extends Controller
             'data' => $formatted
         ]);
     }
-    
+
     // ============ PRIVATE HELPERS ============
 
     // Ensure only users with certain roles can access specific methods
@@ -797,25 +877,54 @@ class QuestionController extends Controller
         return $question;
     }
 
-    // Generate a full URL for images stored in the public disk
+    /**
+     * Generate a full URL for images stored in the public disk.
+     * This method is environment-aware and uses APP_URL from .env file.
+     * Works in local, staging, and production environments.
+     * 
+     * @param string|null $path The storage path (with or without /storage/ prefix)
+     * @return string|null Full URL or null if path is invalid
+     */
     private function generateUrl($path)
     {
         if (!$path) {
             return null;
         }
 
-        // If it's already a full URL, return as is
+        // If it's already a full URL, return as is (works for external URLs)
         if (Str::startsWith($path, ['http://', 'https://'])) {
             return $path;
         }
 
-        // Check if the file exists in storage
-        if (!Storage::disk('public')->exists($path)) {
+        // Remove /storage/ prefix if present (path might be stored with or without it)
+        $cleanPath = $path;
+        if (Str::startsWith($path, '/storage/')) {
+            $cleanPath = Str::after($path, '/storage/');
+        } elseif (Str::startsWith($path, 'storage/')) {
+            $cleanPath = Str::after($path, 'storage/');
+        }
+
+        // Check if the file exists in storage using the clean path
+        $fileExists = Storage::disk('public')->exists($cleanPath);
+        
+        if (!$fileExists) {
+            // If file doesn't exist, check if it's a valid storage path format
+            // If it looks like a storage path, generate the URL anyway (file might exist but check failed)
+            if (Str::contains($path, 'question_images/') || Str::contains($path, 'choices/')) {
+                // Generate the asset URL using Laravel's asset() helper
+                // This automatically uses APP_URL from .env file, making it environment-aware
+                return asset('storage/' . $cleanPath);
+            }
+            // If it doesn't look like a storage path, return null
             return null;
         }
 
         // Generate the full URL for the existing file
-        return asset('storage/' . $path);
+        // asset() helper uses APP_URL from .env, so it's dynamic and environment-aware
+        // Examples:
+        // - Local: http://localhost/storage/question_images/file.jpg
+        // - Production: https://yourdomain.com/storage/question_images/file.jpg
+        return asset('storage/' . $cleanPath);
     }
 }
 

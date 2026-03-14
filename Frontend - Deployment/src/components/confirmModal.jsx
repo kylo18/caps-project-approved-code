@@ -9,6 +9,7 @@ const ConfirmModal = ({
   isLoading,
   showCountdown = false,
   countdownSeconds = 6,
+  shiftHintText = undefined,
 }) => {
   const [countdown, setCountdown] = useState(countdownSeconds);
 
@@ -33,45 +34,34 @@ const ConfirmModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="lightbox-bg fixed inset-0 z-55 flex items-center justify-center">
-      <div className="animate-fade-in-up relative mx-3 flex w-80 max-w-sm flex-col items-center rounded-xl bg-white p-5 shadow-xl sm:max-w-md">
-        <div className="mt-2 mb-4 flex items-center justify-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <circle cx="16" cy="16" r="16" fill="orange" />
-              <text
-                x="16"
-                y="23"
-                textAnchor="middle"
-                fontSize="20"
-                fontWeight="bold"
-                fill="#FFF"
-              >
-                !
-              </text>
-            </svg>
-          </div>
+    <div className="lightbox-bg outfit fixed inset-0 z-[9999] flex items-center justify-center">
+      <div className="animate-fade-in-up relative mx-3 flex w-full max-w-md flex-col rounded-2xl bg-white px-6 py-4 shadow-2xl">
+        {/* Title & Description */}
+        <div className="">
+          <h2 className="text-left text-[20px] font-bold text-gray-800">
+            Are you sure?
+          </h2>
+          <p className="mb-2 text-left text-[14px] text-gray-800">
+            {message ||
+              "This will remove all embeds on this message for everyone."}
+          </p>
+          {shiftHintText && (
+            <p className="mt-2 mb-2 text-left text-[14px] text-gray-400">
+              {shiftHintText}
+            </p>
+          )}
         </div>
-        {/* Title */}
-        <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">
-          Are you sure?
-        </h2>
-        {/* Description */}
-        <p className="mb-6 text-center text-sm text-gray-500">
-          {message ||
-            "This action can't be undone. Please confirm if you want to proceed."}
-        </p>
         {/* Buttons row */}
-        <div className="flex w-full justify-center gap-3">
+        <div className="mt-10 flex w-full justify-end gap-3">
           <button
-            className="flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-6 py-2 text-[15px] font-medium text-gray-700 hover:bg-gray-100 focus:ring-orange-200 focus:outline-none"
+            className="border-color flex h-9 cursor-pointer items-center justify-center rounded-lg border bg-white px-5 text-[14px] font-medium text-gray-700 hover:bg-gray-100 focus:ring-orange-200 focus:outline-none"
             onClick={onClose}
             disabled={isLoading}
           >
             Cancel
           </button>
           <button
-            className="flex cursor-pointer items-center justify-center rounded-lg bg-orange-500 px-6 py-2 text-[15px] font-medium text-white hover:bg-orange-600 focus:ring-orange-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex h-9 cursor-pointer items-center justify-center rounded-lg bg-orange-500 px-5 text-[14px] font-medium text-white hover:bg-orange-600 focus:ring-orange-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
             onClick={onConfirm}
             disabled={isLoading || (showCountdown && countdown > 0)}
           >

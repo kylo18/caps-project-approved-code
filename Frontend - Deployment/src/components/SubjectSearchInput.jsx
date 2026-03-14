@@ -45,17 +45,17 @@ export default function SubjectSearchInput({ options, onChange, placeholder }) {
   };
 
   return (
-    <div className="open-sans relative" ref={wrapperRef}>
+    <div className="outfit relative" ref={wrapperRef}>
       <input
         type="text"
         value={searchTerm}
         onChange={handleInputChange}
         onFocus={() => setShowSuggestions(true)}
         placeholder={placeholder}
-        className="open-sans mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[12px] text-gray-700 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none sm:w-85"
+        className="outfit mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[12px] text-gray-700 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none sm:w-85"
       />
       {showSuggestions && (
-        <div className="open-sans animate-fadein ring-opacity-5 border-color custom-scrollbar absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-white p-1 shadow-lg">
+        <div className="outfit animate-fadein ring-opacity-5 border-color custom-scrollbar absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-white p-1 shadow-lg">
           {isLoading ? (
             <div className="flex items-center justify-center py-2">
               <span className="loader"></span>

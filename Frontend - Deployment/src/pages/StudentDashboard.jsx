@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import Button from "../components/button";
 import { useState, useEffect, useRef } from "react";
+import useToast from "../hooks/useToast";
+import Toast from "../components/Toast";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -15,7 +17,12 @@ const StudentDashboard = () => {
   const [subjectError, setSubjectError] = useState("");
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const { toast, showToast } = useToast();
   const [showForm, setShowForm] = useState(false);
+  const [showJoinForm, setShowJoinForm] = useState(false);
+  const [classCode, setClassCode] = useState("");
+  const [classCodeError, setClassCodeError] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
   const [examStarted, setExamStarted] = useState(false);
   const [ongoingExam, setOngoingExam] = useState(null);
 
@@ -25,6 +32,12 @@ const StudentDashboard = () => {
     setSubjectError("");
     setError("");
     setLoading(false);
+  };
+
+  const resetJoinForm = () => {
+    setClassCode("");
+    setClassCodeError("");
+    setIsJoining(false);
   };
 
   // Close suggestions when clicking outside
@@ -42,11 +55,17 @@ const StudentDashboard = () => {
         setShowForm(false);
         resetForm();
       }
+
+      // Close join form and reset when clicking outside
+      if (showJoinForm && !event.target.closest(".lightbox-bg")) {
+        setShowJoinForm(false);
+        resetJoinForm();
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showForm]);
+  }, [showForm, showJoinForm]);
 
   // Filter subjects based on input
   useEffect(() => {
@@ -86,7 +105,7 @@ const StudentDashboard = () => {
       try {
         const response = await fetch(`${apiUrl}/student/practice-subjects`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
           },
         });
         const data = await response.json();
@@ -153,37 +172,61 @@ const StudentDashboard = () => {
           // Extract subject ID from the exam key (format: exam_subjectID_...)
           const subjectID = examKey.split("_")[1];
 
-          // Get the exam data from the API
-          fetch(`${apiUrl}/practice-exam/generate/${subjectID}`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.questions) {
-                setOngoingExam({
-                  subjectID,
-                  examData: data,
-                  savedAnswers,
-                  savedBookmarks,
-                  examKey,
-                });
-              }
-            })
-            .catch((err) => {
-              console.error("Error fetching exam data:", err);
-              // If there's an error, clear the saved exam
-              const keysToRemove = [
-                examKey,
-                `${examKey}_bookmarks`,
-                `${examKey}_timer`,
-                `${examKey}_completed`,
-                `${examKey}_last_question`,
-                `${examKey}_last_position`,
-              ];
-              keysToRemove.forEach((key) => localStorage.removeItem(key));
+          // Load saved exam data from localStorage first (faster)
+          const savedExamData = localStorage.getItem(`${examKey}_exam_data`);
+          let examDataToUse = null;
+
+          if (savedExamData) {
+            try {
+              examDataToUse = JSON.parse(savedExamData);
+            } catch (err) {
+              console.error("Error parsing saved exam data:", err);
+            }
+          }
+
+          // If we have saved exam data, use it; otherwise fetch from API
+          if (examDataToUse && examDataToUse.questions) {
+            setOngoingExam({
+              subjectID,
+              examData: examDataToUse,
+              savedAnswers,
+              savedBookmarks,
+              examKey,
             });
+          } else {
+            // Get the exam data from the API as fallback
+            fetch(`${apiUrl}/practice-exam/generate/${subjectID}`, {
+              headers: {
+                Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+              },
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.questions) {
+                  setOngoingExam({
+                    subjectID,
+                    examData: data,
+                    savedAnswers,
+                    savedBookmarks,
+                    examKey,
+                  });
+                }
+              })
+              .catch((err) => {
+                console.error("Error fetching exam data:", err);
+                // If there's an error, clear the saved exam
+                const keysToRemove = [
+                  examKey,
+                  `${examKey}_bookmarks`,
+                  `${examKey}_timer`,
+                  `${examKey}_completed`,
+                  `${examKey}_last_question`,
+                  `${examKey}_last_position`,
+                  `${examKey}_exam_data`,
+                ];
+                keysToRemove.forEach((key) => localStorage.removeItem(key));
+              });
+          }
         } catch (err) {
           console.error("Error parsing saved exam:", err);
           // If there's an error parsing, clear the saved exam
@@ -205,6 +248,14 @@ const StudentDashboard = () => {
 
   const handleContinueExam = () => {
     if (ongoingExam) {
+      // Load saved current question index
+      const savedLastQuestion = localStorage.getItem(
+        `${ongoingExam.examKey}_last_question`,
+      );
+      const lastQuestionIndex = savedLastQuestion
+        ? parseInt(savedLastQuestion)
+        : 0;
+
       navigate("/practice-exam", {
         state: {
           subjectID: ongoingExam.subjectID,
@@ -212,6 +263,8 @@ const StudentDashboard = () => {
           savedAnswers: ongoingExam.savedAnswers,
           savedBookmarks: ongoingExam.savedBookmarks,
           examKey: ongoingExam.examKey,
+          resumeExam: true,
+          lastQuestionIndex: lastQuestionIndex,
         },
       });
     }
@@ -264,7 +317,7 @@ const StudentDashboard = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
           },
         },
       );
@@ -353,149 +406,312 @@ const StudentDashboard = () => {
     setShowSuggestions(false); // Close the suggestions dropdown
   };
 
+  const handleJoinClass = async (e) => {
+    e.preventDefault();
+    setIsJoining(true);
+    setClassCodeError("");
+
+    // Validate class code
+    const trimmedCode = classCode.trim().toUpperCase();
+    if (!trimmedCode) {
+      setClassCodeError("Please enter a class code");
+      setIsJoining(false);
+      return;
+    }
+
+    if (trimmedCode.length !== 6) {
+      setClassCodeError("Class code must be 6 characters");
+      setIsJoining(false);
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
+        showToast("You are not authenticated. Please log in again.", "error");
+        setIsJoining(false);
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/classes/join-by-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          classCode: trimmedCode,
+        }),
+      });
+
+      if (response.status === 401) {
+        showToast("You are not authenticated. Please log in again.", "error");
+        sessionStorage.removeItem("token");
+        setIsJoining(false);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle validation errors
+        if (response.status === 422 && data.errors) {
+          const errorMessages = Object.values(data.errors).flat().join(", ");
+          setClassCodeError(errorMessages || "Validation failed");
+        } else if (response.status === 403) {
+          showToast(data.message || "Only students can join classes.", "error");
+        } else if (response.status === 404) {
+          setClassCodeError(
+            data.message || "Invalid class code or class is not active.",
+          );
+        } else {
+          setClassCodeError(
+            data.message || "Failed to join class. Please try again.",
+          );
+        }
+        setIsJoining(false);
+        return;
+      }
+
+      if (data.success) {
+        showToast(data.message || "Successfully joined the class!", "success");
+        // Reset form and close modal
+        resetJoinForm();
+        setShowJoinForm(false);
+        // Optionally navigate to the class or refresh the page
+        // navigate(`/class/${data.class.classID}`);
+      } else {
+        setClassCodeError(
+          data.message || "Failed to join class. Please try again.",
+        );
+      }
+    } catch (error) {
+      console.error("Error joining class:", error);
+      showToast("An error occurred while joining the class.", "error");
+      setClassCodeError("An error occurred. Please try again.");
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
   return (
-    <div className="font-inter mt-10 text-center text-gray-500">
-      {/* Draft
-      {ongoingExam && (
-        <div className="mb-6">
-          <div className="mx-auto max-w-md rounded-lg bg-yellow-50 p-4 shadow-sm">
-            <h3 className="mb-2 text-[16px] font-semibold text-yellow-800">
-              Exam in Progress
-            </h3>
-            <p className="mb-4 text-[12px] text-yellow-700">
-              You have an unfinished practice exam for Subject{" "}
-              {ongoingExam.subjectID}. Your progress has been saved.
-            </p>
+    <>
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
+      <div className="outfit mt-10 text-center text-gray-500">
+        {ongoingExam && (
+          <div className="mb-6 hidden">
+            <div className="mx-auto max-w-md rounded-lg bg-yellow-50 p-4 shadow-sm">
+              <h3 className="mb-2 text-[16px] font-semibold text-yellow-800">
+                Exam in Progress
+              </h3>
+              <p className="mb-4 text-[12px] text-yellow-700">
+                You have an unfinished practice exam for{" "}
+                {ongoingExam.examData?.subjectName ||
+                  `Subject ${ongoingExam.subjectID}`}
+                . Your progress has been saved.
+              </p>
 
-            <div className="flex justify-center">
-              <button
-                onClick={handleContinueExam}
-                className="font-inter mt-3 flex items-center justify-center gap-2 text-[14px] text-gray-700"
-              >
-                <span className="hover:underline">Continue Exam</span>
-                <i className="bx bx-chevron-right text-[18px]"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-        */}
-
-      <button
-        onClick={() => {
-          setShowForm(true);
-          resetForm(); // Reset form when opening
-        }}
-        className="mt-4 cursor-pointer rounded-md bg-orange-500 px-4 py-2 text-[14px] text-white hover:bg-orange-600"
-      >
-        Start a New Exam
-      </button>
-
-      {showForm && (
-        <>
-          <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
-            <div className="relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
-              <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
-                <h2 className="text-[14px] font-medium text-gray-700">
-                  Start a New Exam
-                </h2>
-
+              <div className="flex justify-center">
                 <button
-                  onClick={() => {
-                    setShowForm(false);
-                    resetForm();
-                  }}
-                  className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
-                  title="Close"
+                  onClick={handleContinueExam}
+                  className="outfit mt-3 flex items-center justify-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-[14px] text-white hover:bg-orange-600"
                 >
-                  <i className="bx bx-x text-[20px]"></i>
+                  <span>Continue Exam</span>
+                  <i className="bx bx-chevron-right text-[18px]"></i>
                 </button>
               </div>
+            </div>
+          </div>
+        )}
 
-              <form className="px-5 py-4" onSubmit={handleGenerateExam}>
-                {" "}
-                <span className="mb-2 block text-start text-[14px] text-gray-700">
-                  Select Subject
-                </span>
-                <div className="relative">
-                  <input
-                    type="text"
-                    className="peer border-color mt-1 w-full rounded-xl border px-4 py-[8px] text-base text-gray-700 transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
-                    value={subjectInput}
-                    onChange={(e) => {
-                      setSubjectInput(e.target.value);
-                      if (!e.target.value.trim()) {
-                        setSubjectID(""); // Clear subjectID when input is empty
-                      }
-                      setSubjectError("");
-                    }}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                    placeholder="Enter"
-                  />
-                  {showSuggestions && (
-                    <div
-                      ref={suggestionsRef}
-                      className="border-color absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
-                      tabIndex={-1}
-                    >
-                      <div className="max-h-[200px] overflow-y-auto">
-                        {isSearchLoading ? (
-                          <div className="flex items-center justify-center py-2">
-                            <span className="loader"></span>
-                          </div>
-                        ) : filteredSubjects.length > 0 ? (
-                          filteredSubjects.map((subject) => (
-                            <div
-                              key={subject.subjectID}
-                              onClick={() => handleSubjectSelect(subject)}
-                              className="cursor-pointer px-4 py-2 text-start text-[14px] text-gray-700 hover:bg-gray-100"
-                              tabIndex={-1}
-                            >
-                              {subject.subjectCode} - {subject.subjectName}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="px-4 py-2 text-center text-sm text-gray-500">
-                            No subjects found
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-4 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-                {subjectError && (
-                  <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                    {subjectError}
-                  </div>
-                )}
-                {error && (
-                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                    {error}
-                  </div>
-                )}
-                <div>
+        <div className="flex flex-col items-center gap-3">
+          <button
+            onClick={() => {
+              setShowForm(true);
+              resetForm(); // Reset form when opening
+            }}
+            className="mt-4 cursor-pointer rounded-md bg-orange-500 px-4 py-2 text-[14px] text-white hover:bg-orange-600"
+          >
+            Start a New Exam
+          </button>
+        </div>
+
+        {showForm && (
+          <>
+            <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
+              <div className="relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
+                <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
+                  <h2 className="text-[14px] font-medium text-gray-700">
+                    Start a New Exam
+                  </h2>
+
                   <button
-                    type="submit"
-                    disabled={loading}
-                    className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${loading ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                    onClick={() => {
+                      setShowForm(false);
+                      resetForm();
+                    }}
+                    className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
+                    title="Close"
                   >
-                    {loading ? (
-                      <div className="flex items-center justify-center">
-                        <span className="loader-white"></span>
-                      </div>
-                    ) : (
-                      "Generate Exam"
-                    )}
+                    <i className="bx bx-x text-[20px]"></i>
                   </button>
                 </div>
-              </form>
-            </div>{" "}
-          </div>
-        </>
-      )}
-    </div>
+
+                <form className="px-5 py-4" onSubmit={handleGenerateExam}>
+                  {" "}
+                  <span className="mb-2 block text-start text-[14px] text-gray-700">
+                    Select Subject
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="peer border-color mt-1 w-full rounded-xl border px-4 py-[8px] text-base text-gray-700 transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
+                      value={subjectInput}
+                      onChange={(e) => {
+                        setSubjectInput(e.target.value);
+                        if (!e.target.value.trim()) {
+                          setSubjectID(""); // Clear subjectID when input is empty
+                        }
+                        setSubjectError("");
+                      }}
+                      onFocus={handleInputFocus}
+                      onBlur={handleInputBlur}
+                      placeholder="Enter"
+                    />
+                    {showSuggestions && (
+                      <div
+                        ref={suggestionsRef}
+                        className="border-color absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
+                        tabIndex={-1}
+                      >
+                        <div className="max-h-[200px] overflow-y-auto">
+                          {isSearchLoading ? (
+                            <div className="flex items-center justify-center py-2">
+                              <span className="loader"></span>
+                            </div>
+                          ) : filteredSubjects.length > 0 ? (
+                            filteredSubjects.map((subject) => (
+                              <div
+                                key={subject.subjectID}
+                                onClick={() => handleSubjectSelect(subject)}
+                                className="cursor-pointer px-4 py-2 text-start text-[14px] text-gray-700 hover:bg-gray-100"
+                                tabIndex={-1}
+                              >
+                                {subject.subjectCode} - {subject.subjectName}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-4 py-2 text-center text-sm text-gray-500">
+                              No subjects found
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+                  {subjectError && (
+                    <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                      {subjectError}
+                    </div>
+                  )}
+                  {error && (
+                    <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                      {error}
+                    </div>
+                  )}
+                  <div>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${loading ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                    >
+                      {loading ? (
+                        <div className="flex items-center justify-center">
+                          <span className="loader-white"></span>
+                        </div>
+                      ) : (
+                        "Generate Exam"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>{" "}
+            </div>
+          </>
+        )}
+
+        {showJoinForm && (
+          <>
+            <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
+              <div className="relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
+                <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
+                  <h2 className="text-[14px] font-medium text-gray-700">
+                    Join a Class
+                  </h2>
+
+                  <button
+                    onClick={() => {
+                      setShowJoinForm(false);
+                      resetJoinForm();
+                    }}
+                    className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
+                    title="Close"
+                  >
+                    <i className="bx bx-x text-[20px]"></i>
+                  </button>
+                </div>
+
+                <form className="px-5 py-4" onSubmit={handleJoinClass}>
+                  <span className="mb-2 block text-start text-[14px] text-gray-700">
+                    Enter Class Code
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="peer border-color mt-1 w-full rounded-xl border px-4 py-[8px] text-base text-gray-700 uppercase transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
+                      value={classCode}
+                      onChange={(e) => {
+                        // Only allow alphanumeric characters and limit to 6
+                        const value = e.target.value
+                          .replace(/[^A-Z0-9]/gi, "")
+                          .toUpperCase()
+                          .slice(0, 6);
+                        setClassCode(value);
+                        setClassCodeError("");
+                      }}
+                      placeholder="Enter 6-character code"
+                      maxLength={6}
+                    />
+                  </div>
+                  <div className="mt-4 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+                  {classCodeError && (
+                    <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                      {classCodeError}
+                    </div>
+                  )}
+                  <div>
+                    <button
+                      type="submit"
+                      disabled={isJoining}
+                      className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isJoining ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                    >
+                      {isJoining ? (
+                        <div className="flex items-center justify-center">
+                          <span className="loader-white"></span>
+                        </div>
+                      ) : (
+                        "Join Class"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 };
 

@@ -29,6 +29,30 @@ import ForgotPasswordForm from "./components/forgotPassForm";
 import PracticeExamInfo from "./pages/PracticeExamInfo";
 
 import TestLogin from "./tests/testLogin";
+import PrintQualifyingExam from "./pages/PrintQualifyingExam";
+import PrintPersonalQuiz from "./pages/PrintPersonalQuiz";
+import SubjectOverview from "./pages/SubjectOverview";
+
+import Libraries from "./pages/Libraries";
+import Sessions from "./pages/Sessions";
+import Reports from "./pages/Reports";
+import Class from "./pages/Class";
+import ClassContent from "./pages/ClassContent";
+import StudentClasses from "./pages/StudentClasses";
+import ArchivedClass from "./pages/ArchivedClass";
+import ArchivedQuiz from "./pages/ArchivedQuiz";
+
+import SubjectList from "./pages/SubjectList";
+
+import SubjectsArchive from "./pages/SubjectsArchive";
+
+import LandingPage from "./pages/LandingPage";
+
+import QuizOverview from "./pages/QuizOverview";
+import QuizContent from "./pages/QuizContent";
+import QuizInfo from "./pages/QuizInfo";
+import StudentQuiz from "./pages/StudentQuiz";
+import StudentQuizResults from "./pages/StudentQuizResults";
 
 function App() {
   return (
@@ -42,6 +66,59 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
         <Route path="/team-caps" element={<Credits />} />
 
+        {/* Public Landing Page */}
+        <Route path="/landing" element={<LandingPage />} />
+
+        {/* Libraries - Personal quizzes */}
+        <Route
+          path="/libraries"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<Libraries />} />
+        </Route>
+
+        {/* Sessions */}
+        <Route
+          path="/sessions"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<Sessions />} />
+        </Route>
+
+        {/* Class */}
+        <Route
+          path="/class"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<Class />} />
+          <Route path=":classID/students" element={<ClassContent />} />
+          <Route path=":classID/quizzes" element={<StudentClasses />} />
+        </Route>
+
+        {/* Class */}
+        <Route
+          path="/archived-class"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<ArchivedClass />} />
+        </Route>
+
+        {/* Archived quizzes */}
+        <Route
+          path="/archived-quiz"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<ArchivedQuiz />} />
+        </Route>
+
+        {/* Reports */}
+        <Route
+          path="/reports"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<Reports />} />
+        </Route>
+
         <Route path="/help" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<TutorialLayout />} />
           <Route path="content" element={<TutorialLayout />} />
@@ -54,6 +131,22 @@ function App() {
         >
           <Route index element={<PracticeExamResults />} />
           <Route path="content" element={<PracticeExamResults />} />
+        </Route>
+
+        <Route
+          path="/print-qualification-exam"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<PrintQualifyingExam />} />
+          <Route path="content" element={<PrintQualifyingExam />} />
+        </Route>
+
+        <Route
+          path="/print-personal-quiz"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<PrintPersonalQuiz />} />
+          <Route path="content" element={<PrintPersonalQuiz />} />
         </Route>
 
         <Route
@@ -93,7 +186,7 @@ function App() {
           path="/faculty/subjects"
           element={<ProtectedRoute element={<Layout />} />}
         >
-          <Route index element={<FacultyContent />} />
+          <Route index element={<SubjectList />} />
           <Route path="content" element={<FacultyContent />} />
         </Route>
 
@@ -110,7 +203,7 @@ function App() {
           path="/program-chair/subjects"
           element={<ProtectedRoute element={<Layout />} />}
         >
-          <Route index element={<ProgramChairContent />} />
+          <Route index element={<SubjectList />} />
           <Route path="content" element={<ProgramChairContent />} />
         </Route>
 
@@ -142,7 +235,8 @@ function App() {
           path="/dean/subjects"
           element={<ProtectedRoute element={<Layout />} />}
         >
-          <Route index element={<AdminContent />} />
+          <Route index element={<SubjectList />} />
+          <Route path="archive" element={<SubjectsArchive />} />
           <Route path="content" element={<AdminContent />} />
         </Route>
 
@@ -152,6 +246,49 @@ function App() {
         >
           <Route index element={<AdminDashboard />} />
           <Route path="dashboard" element={<AdminDashboard />} />
+        </Route>
+
+        {/* Subject Overview Route (dynamic subjectID) */}
+        <Route
+          path="/subject-overview/:subjectID"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<SubjectOverview />} />
+        </Route>
+
+        <Route
+          path="/quiz-overview"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<QuizOverview />} />
+        </Route>
+
+        <Route
+          path="/quiz-content"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<QuizContent />} />
+        </Route>
+
+        <Route
+          path="/quiz-info/:classPersonalQuizID"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<QuizInfo />} />
+        </Route>
+
+        <Route
+          path="/quiz/:classPersonalQuizID"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<StudentQuiz />} />
+        </Route>
+
+        <Route
+          path="/quiz-result/:classPersonalQuizID"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<StudentQuizResults />} />
         </Route>
 
         {/* Users Route */}

@@ -60,8 +60,8 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      sessionStorage.setItem("token", data.token);
+      sessionStorage.setItem("user", JSON.stringify(data.user));
 
       // Redirect to /dashboard/:userId after login
       navigate(
@@ -107,14 +107,14 @@ export default function LoginPage() {
             <div className="absolute top-3 left-3 flex items-center space-x-2">
               <img src={univLogo} alt="Logo 1" className="size-8" />
               <img src={collegeLogo} alt="Logo 2" className="size-8" />
-              <h1 className="text-xs lg:text-lg">
+              <h1 className="outfit-500 text-xs lg:text-lg">
                 JOSE RIZAL MEMORIAL STATE UNIVERSITY
               </h1>
             </div>
 
             {/* Title */}
-            <div className="mt-20 hidden flex-col items-center justify-center lg:flex">
-              <h1 className="text-3xl leading-snug font-bold lg:text-4xl">
+            <div className="outfit-700 mt-20 hidden flex-col items-center justify-center lg:flex">
+              <h1 className="text-3xl leading-snug lg:text-4xl">
                 <span className="text-5xl text-orange-500">C</span>OMPREHENSIVE
                 <br />
                 <span className="text-5xl text-orange-500">A</span>SSESSMENT AND
@@ -123,14 +123,14 @@ export default function LoginPage() {
                 <br />
                 <span className="text-5xl text-orange-500">S</span>YSTEM
               </h1>
-              <p className="mt-20 mr-10 hidden max-w-xs text-center text-sm text-gray-500 lg:block">
+              <p className="outfit-400 mt-20 mr-10 hidden max-w-xs text-center text-sm text-gray-500 lg:block">
                 A platform designed to help students practice and prepare for
                 qualifying exams while assessing their knowledge through
                 randomized questions.
               </p>
             </div>
 
-            <div className="font-inter mt-12 flex flex-col items-center justify-center lg:hidden">
+            <div className="outfit mt-12 flex flex-col items-center justify-center lg:hidden">
               <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
                 <span>
                   <span className="text-3xl text-orange-500">C</span>
@@ -152,13 +152,10 @@ export default function LoginPage() {
           </div>
 
           {/* Right Section */}
-          <div className="mt-30 flex w-full items-center justify-center p-6 sm:mt-30 md:mt-30 lg:mt-0 lg:w-1/2">
+          <div className="outfit-400 mt-30 flex w-full items-center justify-center p-6 sm:mt-30 md:mt-30 lg:mt-0 lg:w-1/2">
             <div className="w-full max-w-xs space-y-6 sm:max-w-md">
-              <div
-                style={{ fontFamily: "Poppins, sans-serif" }}
-                className="text-center sm:ml-10 lg:ml-0"
-              >
-                <h2 className="mr-15 mb-1 text-[20px] font-bold text-gray-900">
+              <div className="text-center sm:ml-10 lg:ml-0">
+                <h2 className="outfit-700 mr-15 mb-1 text-[20px] text-gray-900">
                   LOG IN ACCOUNT
                 </h2>
                 <p className="mt-2 justify-center text-center text-sm text-gray-500 lg:mr-15">
@@ -199,7 +196,7 @@ export default function LoginPage() {
                         autoComplete="current-password"
                       />
                       <label
-                        htmlFor="userCode"
+                        htmlFor="password"
                         className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
                       >
                         Password
@@ -282,7 +279,7 @@ export default function LoginPage() {
         <div className="flex w-full flex-col items-center justify-center bg-gradient-to-br from-[#101010] to-[#3c3c3c]">
           {/* Purple Gradient Header */}
           <div className="relative flex h-60 w-full flex-col items-center justify-center">
-            <div className="font-inter absolute top-5 right-5">
+            <div className="outfit absolute top-5 right-5">
               <span className="mr-2 text-[12px] text-white">
                 Don't have an account?{" "}
               </span>
@@ -306,10 +303,7 @@ export default function LoginPage() {
                 className="size-8 object-contain"
               />
             </div>
-            <div
-              style={{ fontFamily: "Poppins, sans-serif" }}
-              className="mt-5 mb-1 flex flex-col items-center"
-            >
+            <div className="mt-5 mb-1 flex flex-col items-center">
               <h1 className="text-center text-[22px] font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
                 <span>
                   <span className="text-3xl text-orange-500">C</span>
@@ -340,10 +334,7 @@ export default function LoginPage() {
         ></div>
 
         {/* Login Card */}
-        <div
-          style={{ fontFamily: "Poppins, sans-serif" }}
-          className="flex w-full flex-col items-center justify-center rounded-t-4xl bg-white p-6"
-        >
+        <div className="flex w-full flex-col items-center justify-center rounded-t-4xl bg-white p-6">
           <h2 className="mb-1 text-[20px] font-bold text-gray-900">
             LOG IN ACCOUNT
           </h2>
@@ -386,7 +377,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                 />
                 <label
-                  htmlFor="userCode"
+                  htmlFor="password"
                   className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 bg-white px-1 text-base text-gray-500 transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:mt-1 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:mt-0 peer-focus:text-xs peer-focus:text-[#FE6902] peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:text-xs"
                 >
                   Password

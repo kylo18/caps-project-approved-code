@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
+
 import AddQuestionForm from "../components/AddQuestionForm";
 import EditQuestionForm from "../components/EditQuestionForm";
 import ConfirmModal from "../components/confirmModal";
@@ -16,7 +18,9 @@ import Subject from "../assets/icons/papers.png";
 
 const ProgramChairContent = () => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
-
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const subjectID = params.get("subjectID");
   const [modalImage, setModalImage] = useState(null);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [isQuestionModalOpen, setisQuestionModalOpen] = useState(false);
@@ -55,6 +59,7 @@ const ProgramChairContent = () => {
 
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showQuestionInfoId, setShowQuestionInfoId] = useState(null);
 
   const dropdownRef = useRef(null);
 
@@ -77,7 +82,7 @@ const ProgramChairContent = () => {
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
       const fetchSubjectSettings = async () => {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
         try {
           // Fetch QE status
           const qeResponse = await fetch(
@@ -166,7 +171,7 @@ const ProgramChairContent = () => {
   // Function to save edited question text to the server
   const saveEdit = async (questionID) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       const response = await fetch(`${apiUrl}/questions/update/${questionID}`, {
         method: "PUT",
         headers: {
@@ -197,7 +202,7 @@ const ProgramChairContent = () => {
   // Function to delete a question from the server
   const handleDeleteQuestion = async (questionID) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       setIsDeleting(true);
       const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
         method: "DELETE",
@@ -226,11 +231,12 @@ const ProgramChairContent = () => {
 
   // Function to fetch all questions for the selected subject
   const fetchQuestions = async () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setIsLoading(true);
-    setQuestions([]); // 👈 Temporarily hide questions
+    setQuestions([]);
 
     try {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
 
       if (!selectedSubject || !selectedSubject.subjectID) {
         console.error("No subject selected");
@@ -325,6 +331,13 @@ const ProgramChairContent = () => {
       return new Date(b.updated_at) - new Date(a.updated_at);
     });
 
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      return path;
+    }
+    return `${apiUrl}/storage/${path}`;
+  };
   // Function to show confirmation modal before deleting a question
   const confirmDelete = (questionID) => {
     setDeleteQuestionID(questionID);
@@ -341,7 +354,7 @@ const ProgramChairContent = () => {
   // Function to approve a pending question
   const approveQuestion = async (questionID) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       setIsApproving(true);
 
       const response = await fetch(`${apiUrl}/questions/${questionID}/status`, {
@@ -437,6 +450,8 @@ const ProgramChairContent = () => {
   const [showDifficultyCounter, setShowDifficultyCounter] = useState(false);
   const difficultyIconRef = useRef(null);
 
+  const [hoveredQuestionId, setHoveredQuestionId] = useState(null);
+
   // Close floating counter when clicking outside
   useEffect(() => {
     if (!showDifficultyCounter) return;
@@ -454,7 +469,7 @@ const ProgramChairContent = () => {
 
   return (
     // Main container with flex layout for the entire dashboard
-    <div className="relative mt-9 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
+    <div className="relative mt-2 flex min-h-screen w-full flex-1 flex-col justify-center py-2 pb-24 md:pb-2">
       <div className="flex-1">
         {selectedSubject ? (
           // Main content area when a subject is selected
@@ -485,13 +500,10 @@ const ProgramChairContent = () => {
                 practiceExamSettings={practiceExamSettings}
                 setPracticeExamSettings={setPracticeExamSettings}
               />
-            </div>
-
-            {/*Search bar div here*/}
-            <div className="mx-auto mb-4 flex w-full max-w-3xl flex-row justify-end gap-[5.5px]">
-              {!isLoading && filteredQuestions.length > 0 && (
-                <>
-                  <div className="flex flex-row items-center justify-end">
+              {/* Desktop Sort controls (tabs are rendered inside SubjectCardProgramChair now) */}
+              {!isLoading && (
+                <div className="outfit mx-auto max-w-3xl md:mt-4">
+                  <div className="flex w-full items-center justify-end">
                     {activeTab === 4 && (
                       <SortType
                         name="pendingSort"
@@ -499,22 +511,21 @@ const ProgramChairContent = () => {
                         onChange={(e) => setPendingSort(e.target.value)}
                         placeholder="Type"
                         options={[
-                          { value: "", label: "All Types" },
+                          { value: "", label: "All types" },
                           {
                             value: "practiceQuestions",
-                            label: "Practice  ",
+                            label: "Practice Exam",
                           },
                           {
                             value: "examQuestions",
-                            label: "Qualifying Exam ",
+                            label: "Qualifying Exam",
                           },
                         ]}
                         className="sm:w-35"
                       />
                     )}
-
                     {activeTab === 4 && (
-                      <div className="mx-2 block h-6 w-px bg-gray-300" />
+                      <div className="mx-2 h-5 w-px bg-gray-300"></div>
                     )}
                     <div className="w-auto">
                       <Sort
@@ -525,7 +536,7 @@ const ProgramChairContent = () => {
                       />
                     </div>
                   </div>
-                </>
+                </div>
               )}
             </div>
 
@@ -552,11 +563,13 @@ const ProgramChairContent = () => {
                           }
                         }, 100);
                       }}
-                      className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-lg hover:bg-orange-600 sm:rounded sm:px-4 sm:py-2"
+                      className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-xl hover:bg-orange-600 sm:rounded-xl sm:px-4 sm:py-2"
                     >
                       <div className="flex items-center justify-center gap-2">
-                        <i className="bx bx-plus text-[24px] sm:text-[20px]"></i>
-                        <span className="hidden sm:block">Add Question</span>
+                        <i className="bx bx-plus text-[24px] sm:text-[16px]"></i>
+                        <span className="outfit-400 hidden sm:block">
+                          Add Question
+                        </span>
                       </div>
                     </button>
                   </div>
@@ -583,90 +596,86 @@ const ProgramChairContent = () => {
 
             {/* Questions display section */}
             {(activeTab === 0 || activeTab === 1 || activeTab === 4) && (
-              <div className="relative -mx-2 sm:mx-0">
+              <div className="relative sm:mx-0">
                 <div className="w-full">
                   {isLoading ? (
                     <div className="flex flex-col gap-2">
-                      {[1, 2, 3].map((index) => (
-                        <div
-                          key={index}
-                          className="border-color relative mx-auto w-full max-w-3xl rounded-sm border bg-white p-4 sm:px-4"
-                        >
-                          {/* Header: Difficulty, Coverage, Score */}
-                          <div className="flex items-center justify-between text-[14px] text-gray-500">
-                            <span className="skeleton shimmer h-6 w-28 rounded bg-gray-200"></span>
-                            <div className="flex items-center gap-2">
-                              <span className="skeleton shimmer h-6 w-16 rounded bg-gray-200"></span>
-                              <span className="skeleton shimmer h-6 w-12 rounded bg-gray-200"></span>
-                              <span className="skeleton shimmer h-6 w-12 rounded bg-gray-200"></span>
-                              <span className="skeleton shimmer h-6 w-10 rounded bg-gray-200"></span>
-                            </div>
-                          </div>
-                          {/* Question text */}
-                          <div className="skeleton shimmer word-break break-word mt-4 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap"></div>
-
-                          {/* Choices */}
-                          <div className="mt-3 space-y-3 p-3">
-                            {[1, 2, 3, 4].map((choiceIndex) => (
-                              <div
-                                key={choiceIndex}
-                                className="flex items-center space-x-2"
-                              >
-                                <span className="skeleton shimmer h-[22px] w-[22px] rounded-full bg-gray-200"></span>
-                                <span className="skeleton shimmer h-6 w-3/4 rounded bg-gray-200"></span>
-                              </div>
-                            ))}
-                          </div>
-                          {/* Divider */}
-                          <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
-                          {/* Metadata */}
-                          <div className="ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex">
-                                <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                                <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
-                              </div>
-                              <div className="flex">
-                                <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                                <span className="skeleton shimmer ml-2 h-6 w-40 rounded bg-gray-200"></span>
-                              </div>
-                              <div className="flex">
-                                <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                                <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <div className="flex">
-                                <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                                <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
-                              </div>
-                              <div className="flex">
-                                <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                                <span className="skeleton shimmer ml-2 h-6 w-40 rounded bg-gray-200"></span>
-                              </div>
-                              <div className="flex">
-                                <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                                <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
-                          {/* Action buttons skeleton */}
-                          <div className="mt-5 mb-1 flex justify-end gap-2">
-                            <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
-                            <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
-                            <span className="skeleton shimmer h-8 w-20 rounded bg-gray-200"></span>
+                      <div className="border-color relative mx-auto w-full max-w-3xl rounded-xl border bg-white p-4 sm:px-4">
+                        {/* Header: Difficulty, Coverage, Score */}
+                        <div className="flex items-center justify-between text-[14px] text-gray-500">
+                          <span className="skeleton shimmer h-6 w-28 rounded bg-gray-200"></span>
+                          <div className="flex items-center gap-2">
+                            <span className="skeleton shimmer h-6 w-16 rounded bg-gray-200"></span>
+                            <span className="skeleton shimmer h-6 w-12 rounded bg-gray-200"></span>
+                            <span className="skeleton shimmer h-6 w-12 rounded bg-gray-200"></span>
+                            <span className="skeleton shimmer h-6 w-10 rounded bg-gray-200"></span>
                           </div>
                         </div>
-                      ))}
+                        {/* Question text */}
+                        <div className="skeleton shimmer word-break break-word mt-4 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap"></div>
+
+                        {/* Choices */}
+                        <div className="mt-3 space-y-3 p-3">
+                          {[1, 2, 3, 4].map((choiceIndex) => (
+                            <div
+                              key={choiceIndex}
+                              className="flex items-center space-x-2"
+                            >
+                              <span className="skeleton shimmer h-[22px] w-[22px] rounded-full bg-gray-200"></span>
+                              <span className="skeleton shimmer h-6 w-3/4 rounded bg-gray-200"></span>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Divider */}
+                        <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+                        {/* Metadata */}
+                        <div className="ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex">
+                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
+                              <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
+                            </div>
+                            <div className="flex">
+                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
+                              <span className="skeleton shimmer ml-2 h-6 w-40 rounded bg-gray-200"></span>
+                            </div>
+                            <div className="flex">
+                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
+                              <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex">
+                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
+                              <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
+                            </div>
+                            <div className="flex">
+                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
+                              <span className="skeleton shimmer ml-2 h-6 w-40 rounded bg-gray-200"></span>
+                            </div>
+                            <div className="flex">
+                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
+                              <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+                        {/* Action buttons skeleton */}
+                        <div className="mt-5 mb-1 flex justify-end gap-2">
+                          <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
+                          <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
+                          <span className="skeleton shimmer h-8 w-20 rounded bg-gray-200"></span>
+                        </div>
+                      </div>
                     </div>
                   ) : filteredQuestions.length > 0 ? (
                     <>
                       {/* Questions list header with count and view options */}
-                      <div className="border-color relative mx-auto -mt-1 flex w-full max-w-3xl items-center justify-between gap-2 rounded-t-2xl border border-b-0 bg-white sm:rounded-t-md">
-                        <div className="flex items-center gap-2">
-                          <div className="ml-4 flex items-center gap-2 text-sm font-medium text-nowrap text-gray-600">
+                      <div className="outfit relative mx-0 mt-3 flex w-full max-w-3xl flex-row items-center rounded-t-3xl border border-b-0 border-gray-200 bg-white sm:mx-auto sm:mt-[2px] sm:rounded-t-xl md:rounded-t-xl">
+                        <div className="flex h-full items-center gap-2 px-4 py-2">
+                          {/* Question Count */}
+                          <div className="outfit-400 flex items-center justify-center gap-2 text-[14px] text-nowrap text-gray-600">
                             <span>
                               {
                                 filteredQuestions.filter(
@@ -697,17 +706,17 @@ const ProgramChairContent = () => {
                             </span>
                             <span
                               ref={difficultyIconRef}
-                              className="open-sans relative flex items-center"
+                              className="outfit relative flex items-center"
                             >
                               <i
-                                className="bx bx-chevron-right cursor-pointer text-2xl text-gray-400 hover:text-orange-500"
+                                className="bx bx-chevron-right cursor-pointer text-2xl text-gray-400 hover:text-gray-500"
                                 title="Show difficulty counter"
                                 onClick={() =>
                                   setShowDifficultyCounter((v) => !v)
                                 }
                               ></i>
                               {showDifficultyCounter && (
-                                <div className="open-sans fade-in absolute left-33 z-50 mt-2 w-48 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-4 py-[14px] shadow-md">
+                                <div className="fade-in outfit-400 absolute left-33 z-50 mt-2 w-48 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-4 py-[14px] shadow-md">
                                   <div className="mb-3 text-center text-xs font-semibold text-gray-700">
                                     Difficulty Count
                                   </div>
@@ -744,8 +753,9 @@ const ProgramChairContent = () => {
                             </span>
                           </div>
                         </div>
+
                         <div className="ml-auto flex items-center px-4 py-3">
-                          <span className="mr-4 ml-2 items-center text-sm font-medium text-nowrap text-gray-500">
+                          <span className="outfit-400 mr-4 ml-2 items-center text-sm text-nowrap text-gray-500">
                             Show Details
                           </span>
                           <label className="relative inline-flex cursor-pointer items-center">
@@ -776,7 +786,6 @@ const ProgramChairContent = () => {
                               question.status_id === 2),
                         )
                         .map((question, index) => (
-                          // Individual question card with content and actions
                           <div key={`${question.id}-${index}`}>
                             <div
                               onClick={() => {
@@ -787,32 +796,207 @@ const ProgramChairContent = () => {
                                   setExpandedQuestionId(question.questionID);
                                 }
                               }}
-                              className={`border-color relative mx-auto w-full max-w-3xl cursor-pointer border bg-white p-4 shadow-md sm:px-4 ${listViewOnly && expandedQuestionId !== question.questionID ? "hover:bg-gray-100" : ""} ${
+                              onMouseEnter={() =>
+                                setHoveredQuestionId(question.questionID)
+                              }
+                              onMouseLeave={() => setHoveredQuestionId(null)}
+                              className={`border-color relative mx-auto w-full max-w-3xl cursor-pointer border bg-white p-3 sm:px-4 ${
+                                listViewOnly &&
+                                expandedQuestionId !== question.questionID
+                                  ? ""
+                                  : ""
+                              } ${
                                 listViewOnly
                                   ? expandedQuestionId === question.questionID
-                                    ? `rounded-sm ${index === 0 ? "" : "mt-2"} mb-2`
-                                    : `${index !== filteredQuestions.length - 1 ? "border-b-0" : ""}`
-                                  : `${index === 0 ? "rounded-t-none" : "rounded-t-sm"} mb-2 rounded-sm`
+                                    ? `${index === 0 ? "rounded-b-xl" : "mt-2 mb-2 rounded-xl"}`
+                                    : index > 0 &&
+                                        filteredQuestions[index - 1]
+                                          ?.questionID === expandedQuestionId
+                                      ? `${
+                                          index === filteredQuestions.length - 1
+                                            ? "mt-2 rounded-t-xl rounded-b-xl"
+                                            : index === 1 &&
+                                                filteredQuestions[0]
+                                                  ?.questionID ===
+                                                  expandedQuestionId
+                                              ? "mt-2 rounded-t-xl"
+                                              : "rounded-t-xl"
+                                        }`
+                                      : index !==
+                                            filteredQuestions.length - 1 &&
+                                          filteredQuestions[index + 1]
+                                            ?.questionID === expandedQuestionId
+                                        ? "rounded-b-xl"
+                                        : index === filteredQuestions.length - 1
+                                          ? "rounded-b-xl"
+                                          : ""
+                                  : `${index === 0 ? "rounded-t-none" : "rounded-t-xl"} mb-2 rounded-xl`
                               } `}
                             >
                               <div className="w-full max-w-full overflow-hidden break-words">
                                 <div className="flex items-center justify-between text-[14px] text-gray-500">
-                                  <span>{index + 1}. Multiple Choice</span>
-                                  <div className="flex items-center">
-                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium capitalize">
-                                      {question.difficulty?.name || "Easy"}
-                                    </span>
-                                    <span> •</span>
-                                    {/* Coverage Badge */}
-                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium capitalize">
-                                      {question.coverage?.name || "Midterm"}
-                                    </span>
-                                    <span className="border-color ml-2 rounded-full border px-3 py-1 text-[13px] font-medium">
-                                      {question.score} pt
-                                    </span>
+                                  {/* Always show points, coverage, and difficulty in list view */}
+                                  <span className="outfit-400 text-[12px]">
+                                    {index + 1}. MULTIPLE CHOICE
+                                  </span>
+                                  <div className="relative flex min-h-[32px] items-center">
+                                    {/* Badges */}
+                                    <div
+                                      className={`outfit-400 flex items-center transition-opacity duration-150 ${
+                                        listViewOnly &&
+                                        expandedQuestionId !==
+                                          question.questionID &&
+                                        hoveredQuestionId ===
+                                          question.questionID
+                                          ? "sm:pointer-events-none sm:absolute sm:opacity-0"
+                                          : "sm:relative sm:opacity-100"
+                                      }`}
+                                    >
+                                      <span className="rounded-lg px-2 py-1 text-[12px] capitalize">
+                                        {question.difficulty?.name || "Easy"}
+                                      </span>
+                                      <span> •</span>
+                                      <span className="rounded-lg px-2 py-1 text-[12px] capitalize">
+                                        {question.coverage?.name || "Midterm"}
+                                      </span>
+                                      <span> •</span>
+                                      <span className="rounded-lg px-2 py-1 text-[12px]">
+                                        {question.score} PT
+                                      </span>
+                                    </div>
+                                    {/* Action Buttons */}
+                                    {question.status_id === 1 ? ( // 1 is pending
+                                      <div
+                                        className={`hidden items-center sm:flex ${
+                                          listViewOnly &&
+                                          expandedQuestionId !==
+                                            question.questionID &&
+                                          hoveredQuestionId ===
+                                            question.questionID
+                                            ? "sm:relative sm:opacity-100"
+                                            : "sm:pointer-events-none sm:absolute sm:opacity-0"
+                                        }`}
+                                      >
+                                        <button
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                          title="Remove"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (e.shiftKey) {
+                                              handleDeleteQuestion(
+                                                question.questionID,
+                                              );
+                                            } else {
+                                              confirmDelete(
+                                                question.questionID,
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          <i className="bx bx-trash text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
+                                            Delete
+                                          </span>
+                                        </button>
+
+                                        <button
+                                          className="outfit mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                          title="Edit"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditClick(question);
+                                          }}
+                                        >
+                                          <i className="bx bx-edit-alt text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
+                                            Edit
+                                          </span>
+                                        </button>
+                                        <button
+                                          className="outfit mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                          title="Copy"
+                                          onClick={(e) => {
+                                            if (e.shiftKey) {
+                                              approveQuestion(
+                                                question.questionID,
+                                              );
+                                            } else {
+                                              setSelectedQuestionID(
+                                                question.questionID,
+                                              );
+                                              setShowApproveModal(true);
+                                            }
+                                          }}
+                                        >
+                                          <i className="bx bx-checks text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
+                                            Approve
+                                          </span>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className={`hidden items-center transition-opacity duration-150 sm:flex ${
+                                          listViewOnly &&
+                                          expandedQuestionId !==
+                                            question.questionID &&
+                                          hoveredQuestionId ===
+                                            question.questionID
+                                            ? "sm:relative sm:opacity-100"
+                                            : "sm:pointer-events-none sm:absolute sm:opacity-0"
+                                        }`}
+                                      >
+                                        <button
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                          title="Remove"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (e.shiftKey) {
+                                              handleDeleteQuestion(
+                                                question.questionID,
+                                              );
+                                            } else {
+                                              confirmDelete(
+                                                question.questionID,
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          <i className="bx bx-trash text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
+                                            Delete
+                                          </span>
+                                        </button>
+                                        <button
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                          title="Copy"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDuplicateClick(question);
+                                          }}
+                                        >
+                                          <i className="bx bx-copy text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
+                                            Copy
+                                          </span>
+                                        </button>
+                                        <button
+                                          className="outfit mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
+                                          title="Edit"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditClick(question);
+                                          }}
+                                        >
+                                          <i className="bx bx-edit-alt text-[16px]"></i>
+                                          <span className="outfit-400 text-[12px]">
+                                            Edit
+                                          </span>
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-
                                 {listViewOnly ? (
                                   expandedQuestionId === question.questionID ? (
                                     <div
@@ -822,7 +1006,7 @@ const ProgramChairContent = () => {
                                       }}
                                       className="relative mt-4 cursor-pointer rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:bg-gray-200"
                                     >
-                                      <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
+                                      <div className="word-break outfit-400 break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
                                         <span
                                           dangerouslySetInnerHTML={{
                                             __html: question.questionText,
@@ -831,18 +1015,25 @@ const ProgramChairContent = () => {
                                       </div>
                                     </div>
                                   ) : (
-                                    <div className="word-break break-word mt-4 w-full max-w-full cursor-pointer overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
+                                    <div className="outfit-400 word-break break-word mt-4 flex w-full max-w-full cursor-pointer items-center overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
                                       <span
                                         className="ml-2 font-semibold"
                                         dangerouslySetInnerHTML={{
                                           __html: question.questionText,
                                         }}
                                       ></span>
+                                      {question.image && (
+                                        <img
+                                          src={getImageUrl(question.image)}
+                                          alt="Question"
+                                          className="ml-auto h-10 w-10 rounded object-cover"
+                                        />
+                                      )}
                                     </div>
                                   )
                                 ) : (
-                                  <div className="relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-pointer">
-                                    <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
+                                  <div className="outfit-400 relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-pointer">
+                                    <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
                                       <span
                                         dangerouslySetInnerHTML={{
                                           __html: question.questionText,
@@ -852,47 +1043,48 @@ const ProgramChairContent = () => {
                                   </div>
                                 )}
 
-                                {question.image && (
-                                  <>
-                                    {listViewOnly ? (
-                                      expandedQuestionId ===
-                                        question.questionID && (
-                                        <div className="relative mt-3 inline-block max-w-[300px] rounded-md">
-                                          <div className="flex flex-col items-start">
-                                            <img
-                                              src={question.image}
-                                              alt="Question Image"
-                                              className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md hover:opacity-80"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setModalImage(question.image);
-                                              }}
-                                            />
-                                          </div>
-                                        </div>
-                                      )
-                                    ) : (
-                                      <div className="relative mt-3 inline-block max-w-[300px] rounded-md">
-                                        <div className="flex flex-col items-start">
-                                          <img
-                                            src={question.image}
-                                            alt="Question Image"
-                                            className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-md hover:opacity-80"
-                                            onClick={() =>
-                                              setModalImage(question.image)
-                                            }
-                                          />
-                                        </div>
+                                {/* Question image rendering, fixed structure */}
+                                {question.image &&
+                                  (listViewOnly &&
+                                  expandedQuestionId === question.questionID ? (
+                                    <div className="relative mt-3 ml-3 inline-block max-w-[300px] rounded-md">
+                                      <div className="flex flex-col items-start">
+                                        <img
+                                          src={getImageUrl(question.image)}
+                                          alt="Question Image"
+                                          className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-lg hover:opacity-80"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setModalImage(
+                                              getImageUrl(question.image),
+                                            );
+                                          }}
+                                        />
                                       </div>
-                                    )}
-                                  </>
-                                )}
+                                    </div>
+                                  ) : !listViewOnly ? (
+                                    <div className="relative mt-3 ml-3 inline-block max-w-[300px] rounded-md">
+                                      <div className="flex flex-col items-start">
+                                        <img
+                                          src={getImageUrl(question.image)}
+                                          alt="Question Image"
+                                          className="h-auto max-w-full cursor-pointer rounded-sm object-contain shadow-lg hover:opacity-80"
+                                          onClick={() =>
+                                            setModalImage(
+                                              getImageUrl(question.image),
+                                            )
+                                          }
+                                        />
+                                      </div>
+                                    </div>
+                                  ) : null)}
                               </div>
 
                               {(!listViewOnly ||
                                 (listViewOnly &&
                                   expandedQuestionId ===
                                     question.questionID)) &&
+                                showChoices &&
                                 (question.choices &&
                                 question.choices.length > 0 ? (
                                   <div className="mt-3 space-y-3 p-3">
@@ -901,7 +1093,7 @@ const ProgramChairContent = () => {
                                         key={index}
                                         className="relative flex items-center space-x-2"
                                       >
-                                        {/* Replace radio with circle icon */}
+                                        {/* Replace radio with checkbox icon */}
                                         <i
                                           className={`bx ${choice.isCorrect ? "bxs-check-circle text-orange-500" : "bx-circle text-gray-300"} text-[22px]`}
                                           style={{ minWidth: 22 }}
@@ -911,24 +1103,24 @@ const ProgramChairContent = () => {
                                               : ""
                                           }
                                         ></i>
-                                        {choice.choiceText !== null &&
-                                          choice.choiceText !== undefined &&
-                                          choice.choiceText !== "" && (
-                                            <span
-                                              className={`w-[90%] rounded-md p-2 text-[14px] ${
-                                                choice.isCorrect
-                                                  ? "font-semibold text-orange-500"
-                                                  : "text-gray-700"
-                                              }`}
-                                              dangerouslySetInnerHTML={{
-                                                __html: choice.choiceText,
-                                              }}
-                                            />
-                                          )}
+
+                                        {choice.choiceText !== null && (
+                                          <span
+                                            className={`outfit-400 w-[90%] rounded-md p-2 text-[14px] ${
+                                              choice.isCorrect
+                                                ? "font-semibold text-orange-500"
+                                                : "text-gray-700"
+                                            }`}
+                                            dangerouslySetInnerHTML={{
+                                              __html: choice.choiceText,
+                                            }}
+                                          />
+                                        )}
+
                                         {choice.image && (
                                           <div className="relative max-w-[200px] cursor-pointer rounded-md hover:opacity-80">
                                             <img
-                                              src={choice.image}
+                                              src={getImageUrl(choice.image)}
                                               alt={`Choice ${index + 1}`}
                                               className={`h-auto max-w-full rounded-md border-2 object-cover hover:cursor-pointer ${
                                                 choice.isCorrect
@@ -938,7 +1130,7 @@ const ProgramChairContent = () => {
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setchoiceModalImage(
-                                                  choice.image,
+                                                  getImageUrl(choice.image),
                                                 );
                                                 setIsChoiceModalOpen(true);
                                               }}
@@ -949,109 +1141,152 @@ const ProgramChairContent = () => {
                                     ))}
                                   </div>
                                 ) : (
-                                  <p className="mt-1 text-gray-500">
+                                  <p className="outfit-400 mt-1 text-gray-500">
                                     No choices added yet.
                                   </p>
                                 ))}
 
-                              {(!listViewOnly ||
-                                (listViewOnly &&
-                                  expandedQuestionId ===
-                                    question.questionID)) && (
-                                <>
-                                  <div className="mx-4 mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
-                                  <div className="ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
-                                    <div className="flex flex-col gap-1">
-                                      <div className="flex">
-                                        <span className="w-[100px]">
-                                          Created by:
-                                        </span>
-                                        <span>{question.creatorName}</span>
-                                      </div>
-                                      <div className="flex">
-                                        <span className="w-[100px]">
-                                          Date Created:
-                                        </span>
-                                        <span>
-                                          {new Date(
-                                            question.created_at,
-                                          ).toLocaleString("en-US", {
-                                            year: "numeric",
-                                            month: "long",
-                                            day: "numeric",
-                                            hour: "numeric",
-                                            minute: "2-digit",
-                                            hour12: true,
-                                          })}
-                                        </span>
-                                      </div>
-                                      <div className="flex sm:col-span-2">
-                                        <span className="w-[100px]">
-                                          Question Type:
-                                        </span>
-                                        <span>
-                                          {question.purpose_id === 2
-                                            ? "Practice Question"
-                                            : "Qualifying Exam Question"}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                      <div className="flex">
-                                        <span className="w-[100px]">
-                                          Modified by:
-                                        </span>
-                                        <span>
-                                          {question.editor
-                                            ? `${question.editor.firstName} ${question.editor.lastName}`
-                                            : "Not modified"}
-                                        </span>
-                                      </div>
-                                      <div className="flex">
-                                        <span className="w-[100px]">
-                                          Date Modified:
-                                        </span>
-                                        <span>
-                                          {new Date(
-                                            question.updated_at,
-                                          ).toLocaleString("en-US", {
-                                            year: "numeric",
-                                            month: "long",
-                                            day: "numeric",
-                                            hour: "numeric",
-                                            minute: "2-digit",
-                                            hour12: true,
-                                          })}
-                                        </span>
-                                      </div>
-                                      {question.approver && (
-                                        <div className="flex sm:col-span-2">
+                              {showQuestionInfoId === question.questionID &&
+                                (!listViewOnly ||
+                                  (listViewOnly &&
+                                    expandedQuestionId ===
+                                      question.questionID)) && (
+                                  <>
+                                    <div className="my-3 h-px bg-gray-200"></div>
+
+                                    <div className="outfit-400 ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex">
                                           <span className="w-[100px]">
-                                            Approved by:
+                                            Created by:
+                                          </span>
+                                          <span>{question.creatorName}</span>
+                                        </div>
+                                        <div className="flex">
+                                          <span className="w-[100px]">
+                                            Date Created:
                                           </span>
                                           <span>
-                                            {question.approver.firstName &&
-                                            question.approver.lastName
-                                              ? `${question.approver.firstName} ${question.approver.lastName}`
-                                              : "Not approved"}
+                                            {new Date(
+                                              question.created_at,
+                                            ).toLocaleString("en-US", {
+                                              year: "numeric",
+                                              month: "long",
+                                              day: "numeric",
+                                              hour: "numeric",
+                                              minute: "2-digit",
+                                              hour12: true,
+                                            })}
                                           </span>
                                         </div>
-                                      )}{" "}
+                                        <div className="flex sm:col-span-2">
+                                          <span className="w-[100px]">
+                                            Question Type:
+                                          </span>
+                                          <span>
+                                            {question.purpose_id === 2
+                                              ? "Practice Question"
+                                              : "Qualifying Exam Question"}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex">
+                                          <span className="w-[100px]">
+                                            Modified by:
+                                          </span>
+                                          <span>
+                                            {question.editor
+                                              ? `${question.editor.firstName} ${question.editor.lastName}`
+                                              : "Not modified"}
+                                          </span>
+                                        </div>
+                                        <div className="flex">
+                                          <span className="w-[100px]">
+                                            Date Modified:
+                                          </span>
+                                          <span>
+                                            {new Date(
+                                              question.updated_at,
+                                            ).toLocaleString("en-US", {
+                                              year: "numeric",
+                                              month: "long",
+                                              day: "numeric",
+                                              hour: "numeric",
+                                              minute: "2-digit",
+                                              hour12: true,
+                                            })}
+                                          </span>
+                                        </div>
+                                        {question.approver && (
+                                          <div className="flex sm:col-span-2">
+                                            <span className="w-[100px]">
+                                              Approved by:
+                                            </span>
+                                            <span>
+                                              {question.approver.firstName &&
+                                              question.approver.lastName
+                                                ? `${question.approver.firstName} ${question.approver.lastName}`
+                                                : "Not approved"}
+                                            </span>
+                                          </div>
+                                        )}{" "}
+                                      </div>
                                     </div>
-                                  </div>
-                                </>
-                              )}
+                                  </>
+                                )}
 
                               {(!listViewOnly ||
                                 (listViewOnly &&
                                   expandedQuestionId ===
                                     question.questionID)) && (
                                 <>
-                                  <div className="mt-5 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+                                  <div className="my-3 h-px bg-gray-200"></div>
 
-                                  <div className="mt-5 mb-1 flex justify-end gap-2">
-                                    {question.status_id === 1 ? (
+                                  <div className="mt-4 mb-1 flex justify-end gap-1">
+                                    <button
+                                      type="button"
+                                      className={`flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-600 transition-colors hover:bg-gray-100 ${
+                                        showQuestionInfoId ===
+                                        question.questionID
+                                          ? "bg-gray-100"
+                                          : ""
+                                      }`}
+                                      title="Question info"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowQuestionInfoId((prev) =>
+                                          prev === question.questionID
+                                            ? null
+                                            : question.questionID,
+                                        );
+                                      }}
+                                    >
+                                      <i className="bx bx-info-circle text-[16px]"></i>
+                                      <span className="outfit-400 text-[12px]">
+                                        Info
+                                      </span>
+                                    </button>
+                                    {question.status_id === 1 ? ( // 1 is pending
                                       <>
+                                        <AltButton
+                                          text="Remove"
+                                          icon="bx bx-trash"
+                                          className="hover:text-red-500"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (e.shiftKey) {
+                                              handleDeleteQuestion(
+                                                question.questionID,
+                                              );
+                                            } else {
+                                              confirmDelete(
+                                                question.questionID,
+                                              );
+                                            }
+                                          }}
+                                        />
+
                                         <AltButton
                                           text="Edit"
                                           textres="Edit"
@@ -1062,36 +1297,45 @@ const ProgramChairContent = () => {
                                           }
                                         />
                                         <AltButton
-                                          text="Remove"
-                                          icon="bx bx-trash"
-                                          className="hover:text-red-500"
-                                          onClick={() =>
-                                            confirmDelete(question.questionID)
-                                          }
-                                        />
-                                        <AltButton
                                           text="Approve"
+                                          textres="Approve"
                                           icon="bx bx-checks"
                                           className="hover:text-orange-500"
-                                          onClick={() => {
-                                            setSelectedQuestionID(
-                                              question.questionID,
-                                            );
-                                            setShowApproveModal(true);
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (e.shiftKey) {
+                                              approveQuestion(
+                                                question.questionID,
+                                              );
+                                            } else {
+                                              setSelectedQuestionID(
+                                                question.questionID,
+                                              );
+                                              setShowApproveModal(true);
+                                            }
                                           }}
                                         />
                                       </>
                                     ) : (
                                       <>
                                         <AltButton
-                                          text="Edit"
-                                          textres="Edit"
-                                          icon="bx bx-edit-alt"
-                                          className="hover:text-orange-500"
-                                          onClick={() =>
-                                            handleEditClick(question)
-                                          }
+                                          text="Remove"
+                                          icon="bx bx-trash"
+                                          className="hover:text-red-500"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (e.shiftKey) {
+                                              handleDeleteQuestion(
+                                                question.questionID,
+                                              );
+                                            } else {
+                                              confirmDelete(
+                                                question.questionID,
+                                              );
+                                            }
+                                          }}
                                         />
+
                                         <AltButton
                                           text="Copy"
                                           icon="bx bx-copy"
@@ -1101,11 +1345,12 @@ const ProgramChairContent = () => {
                                           }
                                         />
                                         <AltButton
-                                          text="Remove"
-                                          icon="bx bx-trash"
-                                          className="hover:text-red-500"
+                                          text="Edit"
+                                          textres="Edit"
+                                          icon="bx bx-edit-alt"
+                                          className="hover:text-orange-500"
                                           onClick={() =>
-                                            confirmDelete(question.questionID)
+                                            handleEditClick(question)
                                           }
                                         />
                                       </>
@@ -1119,7 +1364,7 @@ const ProgramChairContent = () => {
                     </>
                   ) : !isLoading ? (
                     activeTab === 4 ? (
-                      <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <div className="outfit-400 -mt-4 flex flex-col items-center justify-center py-10 text-center">
                         <img
                           src={EmptyImage}
                           alt="No pending questions"
@@ -1133,7 +1378,7 @@ const ProgramChairContent = () => {
                         </span>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <div className="outfit-400 -mt-4 flex flex-col items-center justify-center py-10 text-center">
                         <img
                           src={EmptyImage}
                           alt="No questions"
@@ -1160,7 +1405,7 @@ const ProgramChairContent = () => {
                               }
                             }, 100);
                           }}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-b-4 border-orange-300 bg-orange-100 px-4 py-2 text-orange-600 transition-all duration-100 hover:bg-orange-200 hover:text-orange-500 active:translate-y-[2px] active:border-b-2"
+                          className="flex cursor-pointer items-center gap-2 rounded-xl border border-b-4 border-orange-300 bg-orange-100 px-4 py-2 text-orange-600 transition-all duration-100 hover:bg-orange-200 hover:text-orange-500 active:translate-y-[2px] active:border-b-2"
                         >
                           <i className="bx bx-plus text-lg"></i>
                           <span className="text-[14px] font-semibold">
@@ -1170,7 +1415,7 @@ const ProgramChairContent = () => {
                       </div>
                     )
                   ) : (
-                    <div className="flex items-center justify-center">
+                    <div className="outfit-400 flex items-center justify-center">
                       <p className="text-center text-[16px] text-gray-500">
                         Loading questions...
                       </p>
@@ -1206,6 +1451,7 @@ const ProgramChairContent = () => {
           }}
           message="Are you sure you want to approve this question?"
           isLoading={isApproving}
+          shiftHintText="Hold shift when approving to skip this modal."
         />
         <ConfirmModal
           isOpen={showConfirmModal}
@@ -1213,6 +1459,7 @@ const ProgramChairContent = () => {
           onConfirm={() => handleDeleteQuestion(deleteQuestionID)}
           message="Are you sure you want to delete this question?"
           isLoading={isDeleting}
+          shiftHintText="Hold shift when deleting to skip this modal."
         />
 
         {/* Toast notification system */}

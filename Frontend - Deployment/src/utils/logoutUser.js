@@ -1,5 +1,6 @@
 export function logoutUser(showToast, navigate, message) {
-  localStorage.removeItem("token");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
   // Remove any other user data if needed
   if (showToast && message) showToast(message, "error");
   setTimeout(() => {
