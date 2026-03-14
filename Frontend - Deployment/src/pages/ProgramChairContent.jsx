@@ -545,7 +545,7 @@ const ProgramChairContent = () => {
               <div>
                 {/* Floating action button for adding new questions */}
                 {!submittedQuestion && filteredQuestions.length > 0 && (
-                  <div className="fixed right-[-4px] bottom-[70px] z-49 p-4 text-center sm:right-[-4px] sm:bottom-[-4px]">
+                  <div className="fixed right-4 bottom-[110px] z-49 text-center sm:right-[-4px] sm:bottom-[4px] sm:p-4 lg:p-4">
                     <button
                       onClick={() => {
                         setSubmittedQuestion("new");
@@ -563,11 +563,11 @@ const ProgramChairContent = () => {
                           }
                         }, 100);
                       }}
-                      className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-xl hover:bg-orange-600 sm:rounded-xl sm:px-4 sm:py-2"
+                      className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-xl hover:bg-orange-600 lg:rounded-xl lg:px-4 lg:py-2"
                     >
                       <div className="flex items-center justify-center gap-2">
-                        <i className="bx bx-plus text-[24px] sm:text-[16px]"></i>
-                        <span className="outfit-400 hidden sm:block">
+                        <i className="bx bx-plus text-[24px] lg:text-[16px]"></i>
+                        <span className="outfit-400 hidden lg:block">
                           Add Question
                         </span>
                       </div>
@@ -599,75 +599,8 @@ const ProgramChairContent = () => {
               <div className="relative sm:mx-0">
                 <div className="w-full">
                   {isLoading ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="border-color relative mx-auto w-full max-w-3xl rounded-xl border bg-white p-4 sm:px-4">
-                        {/* Header: Difficulty, Coverage, Score */}
-                        <div className="flex items-center justify-between text-[14px] text-gray-500">
-                          <span className="skeleton shimmer h-6 w-28 rounded bg-gray-200"></span>
-                          <div className="flex items-center gap-2">
-                            <span className="skeleton shimmer h-6 w-16 rounded bg-gray-200"></span>
-                            <span className="skeleton shimmer h-6 w-12 rounded bg-gray-200"></span>
-                            <span className="skeleton shimmer h-6 w-12 rounded bg-gray-200"></span>
-                            <span className="skeleton shimmer h-6 w-10 rounded bg-gray-200"></span>
-                          </div>
-                        </div>
-                        {/* Question text */}
-                        <div className="skeleton shimmer word-break break-word mt-4 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap"></div>
-
-                        {/* Choices */}
-                        <div className="mt-3 space-y-3 p-3">
-                          {[1, 2, 3, 4].map((choiceIndex) => (
-                            <div
-                              key={choiceIndex}
-                              className="flex items-center space-x-2"
-                            >
-                              <span className="skeleton shimmer h-[22px] w-[22px] rounded-full bg-gray-200"></span>
-                              <span className="skeleton shimmer h-6 w-3/4 rounded bg-gray-200"></span>
-                            </div>
-                          ))}
-                        </div>
-                        {/* Divider */}
-                        <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
-                        {/* Metadata */}
-                        <div className="ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex">
-                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                              <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
-                            </div>
-                            <div className="flex">
-                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                              <span className="skeleton shimmer ml-2 h-6 w-40 rounded bg-gray-200"></span>
-                            </div>
-                            <div className="flex">
-                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                              <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <div className="flex">
-                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                              <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
-                            </div>
-                            <div className="flex">
-                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                              <span className="skeleton shimmer ml-2 h-6 w-40 rounded bg-gray-200"></span>
-                            </div>
-                            <div className="flex">
-                              <span className="skeleton shimmer h-6 w-[100px] rounded bg-gray-200"></span>
-                              <span className="skeleton shimmer ml-2 h-6 w-32 rounded bg-gray-200"></span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
-                        {/* Action buttons skeleton */}
-                        <div className="mt-5 mb-1 flex justify-end gap-2">
-                          <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
-                          <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
-                          <span className="skeleton shimmer h-8 w-20 rounded bg-gray-200"></span>
-                        </div>
-                      </div>
+                    <div className="flex min-h-[60vh] flex-col items-center justify-center py-12">
+                      <div className="loader" />
                     </div>
                   ) : filteredQuestions.length > 0 ? (
                     <>

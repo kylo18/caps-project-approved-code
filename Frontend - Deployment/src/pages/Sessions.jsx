@@ -45,7 +45,6 @@ const Sessions = () => {
         { id: "ongoing", label: "Ongoing" },
         { id: "completed", label: "Completed" },
         { id: "missed", label: "Missed" },
-        { id: "upcoming", label: "Upcoming" },
       ];
 
   useEffect(() => {
@@ -170,6 +169,7 @@ const Sessions = () => {
   };
 
   useEffect(() => {
+    if (userRole === null) return; // wait until role is resolved
     fetchSessions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userRole]);
@@ -236,7 +236,6 @@ const Sessions = () => {
           ...sessions.ongoing,
           ...sessions.completed,
           ...sessions.missed,
-          ...sessions.upcoming,
         ];
       } else {
         quizzes = sessions[activeTab] || [];
@@ -269,8 +268,7 @@ const Sessions = () => {
         return (
           sessions.summary.totalOngoing +
           sessions.summary.totalCompleted +
-          sessions.summary.totalMissed +
-          sessions.summary.totalUpcoming
+          sessions.summary.totalMissed
         );
       }
       return (
@@ -301,7 +299,7 @@ const Sessions = () => {
       <Toast message={toast.message} type={toast.type} show={toast.show} />
       <div className="flex h-screen">
         {/* Main content area */}
-        <div className="mt-10 flex h-full flex-1 flex-col gap-6 overflow-y-auto py-4 pb-0 lg:mt-0 lg:p-6">
+        <div className="mt-10 flex h-full flex-1 flex-col gap-6 overflow-y-auto py-4 pb-24 lg:mt-0 lg:p-6">
           <div className="space-y-4">
             {/* Mobile search input - below header when toggled */}
             {showMobileSearch && (
@@ -484,7 +482,7 @@ const Sessions = () => {
                                 {quiz.quiz?.title || "Untitled Quiz"}
                               </div>
                               <div className="outfit-400 text-xs text-gray-500">
-                                {statusBadge}
+                                {quiz.class?.className || "—"}
                               </div>
                             </div>
                             <i
@@ -522,14 +520,7 @@ const Sessions = () => {
                                     %)
                                   </span>
                                 </div>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-500">
-                                    Attempts Given
-                                  </span>
-                                  <span className="text-gray-900">
-                                    {stats.totalAttempts || 0}
-                                  </span>
-                                </div>
+
                                 <div className="flex justify-between">
                                   <span className="text-gray-500">
                                     Avg. Score
@@ -553,9 +544,9 @@ const Sessions = () => {
                                   </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-gray-500">Class</span>
+                                  <span className="text-gray-500">Status</span>
                                   <span className="text-gray-900">
-                                    {quiz.class?.className || "—"}
+                                    {statusBadge}
                                   </span>
                                 </div>
                                 <div className="pt-3">
@@ -587,31 +578,57 @@ const Sessions = () => {
                     }
 
                     // Student view (mobile)
-                    const accuracy = calculateAccuracy(
-                      quiz.studentStatus?.highestPercentage,
-                    );
                     const hasCompleted = quiz.studentStatus?.hasCompleted;
-                    const attemptCount = quiz.studentStatus?.attemptCount || 0;
-                    const maxAttempts = quiz.settings?.quizAttempts;
-                    const answeredText =
-                      maxAttempts && attemptCount > 0
-                        ? `${attemptCount}/${maxAttempts}`
-                        : attemptCount > 0
-                          ? `${attemptCount}`
-                          : "—";
+                    const isOngoing = quiz.status?.isOngoing;
+                    const isUpcoming = quiz.status?.isUpcoming;
 
-                    let statusLabel = "—";
-                    if (activeTab === "completed" || hasCompleted) {
-                      statusLabel = "Completed";
-                    } else if (activeTab === "missed") {
-                      statusLabel = "Missed";
-                    } else if (activeTab === "upcoming") {
-                      statusLabel = "Upcoming";
-                    } else if (
-                      activeTab === "ongoing" ||
-                      quiz.status?.isOngoing
-                    ) {
-                      statusLabel = "Ongoing";
+                    const isMissed =
+                      activeTab === "missed" ||
+                      (activeTab === "all" &&
+                        sessions.missed?.some(
+                          (m) =>
+                            m.classPersonalQuizID === quiz.classPersonalQuizID,
+                        ));
+
+                    const quizTitle = quiz.quiz?.isCustom
+                      ? "Custom quiz"
+                      : quiz.quiz?.title || "Untitled Quiz";
+
+                    const dateDisplay =
+                      quiz.assignment?.startDate ||
+                      quiz.assignment?.deadlineDate
+                        ? formatDateRange(
+                            quiz.assignment?.startDate,
+                            quiz.assignment?.deadlineDate,
+                          )
+                        : "Date not set";
+
+                    let statusBadge = null;
+                    if (isOngoing) {
+                      statusBadge = (
+                        <span className="outfit-400 inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-[12px] font-semibold text-green-700">
+                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
+                          Ongoing
+                        </span>
+                      );
+                    } else if (hasCompleted || activeTab === "completed") {
+                      statusBadge = (
+                        <span className="outfit-400 inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-semibold text-emerald-700">
+                          Completed
+                        </span>
+                      );
+                    } else if (isMissed) {
+                      statusBadge = (
+                        <span className="outfit-400 inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-[12px] font-semibold text-red-600">
+                          Missed
+                        </span>
+                      );
+                    } else if (isUpcoming || activeTab === "upcoming") {
+                      statusBadge = (
+                        <span className="outfit-400 inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-[12px] font-semibold text-blue-600">
+                          Upcoming
+                        </span>
+                      );
                     }
 
                     return (
@@ -640,23 +657,17 @@ const Sessions = () => {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-semibold text-gray-900">
-                              {quiz.quiz?.title || "Untitled Quiz"}
+                              {quizTitle}
                             </div>
-                            <div className="outfit-400 text-xs text-gray-500">
-                              {statusLabel}
-                            </div>
-                            <div className="outfit-400 mt-0.5 text-xs text-gray-500">
-                              {formatDateRange(
-                                quiz.assignment?.startDate,
-                                quiz.assignment?.deadlineDate,
-                              )}
+                            <div className="mt-0.5 text-xs text-gray-500">
+                              {quiz.quiz?.subject?.subjectName || "Custom Quiz"}
                             </div>
                           </div>
-                          <i
-                            className={`bx bx-chevron-down ml-auto flex-shrink-0 text-xl text-gray-400 transition-transform ${
-                              isExpanded ? "rotate-180" : ""
-                            }`}
-                          />
+                          {activeTab === "all" && (
+                            <div className="ml-auto flex-shrink-0">
+                              {statusBadge}
+                            </div>
+                          )}
                         </button>
                         {isExpanded && (
                           <div className="border-t border-gray-100 bg-gray-50/60 px-4 py-4">
@@ -666,44 +677,18 @@ const Sessions = () => {
                                   Date hosted
                                 </span>
                                 <span className="text-gray-900">
-                                  {formatDateRange(
-                                    quiz.assignment?.startDate,
-                                    quiz.assignment?.deadlineDate,
-                                  )}
+                                  {dateDisplay}
                                 </span>
                               </div>
-                              <div className="flex justify-between">
-                                <span className="text-gray-500">Answered</span>
-                                <span className="text-gray-900">
-                                  {answeredText}
-                                </span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-gray-500">Accuracy</span>
-                                <span className="text-gray-900">
-                                  {accuracy !== null ? `${accuracy}%` : "—"}
-                                </span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-gray-500">Class</span>
-                                <span className="text-gray-900">
-                                  {quiz.class?.className || "—"}
-                                </span>
-                              </div>
+
                               <div className="pt-3">
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate("/quiz-overview", {
-                                      state: {
-                                        classID: quiz.class?.classID,
-                                        classPersonalQuizID:
-                                          quiz.classPersonalQuizID,
-                                        quiz: quiz.quiz || quiz,
-                                        subject: quiz.quiz?.subject,
-                                      },
-                                    });
+                                    navigate(
+                                      `/class/${quiz.class?.classID}/quizzes`,
+                                    );
                                   }}
                                   className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                                 >
@@ -729,44 +714,48 @@ const Sessions = () => {
                     <table className="w-full">
                       <thead className="outfit-400 border-b border-gray-200 bg-white">
                         <tr>
-                          <th className="px-3 py-3 text-left text-[12px] font-medium text-gray-600 uppercase">
+                          <th className="px-3 py-3 text-left text-[12px] font-medium text-gray-600 uppercase md:w-[80%]">
                             Quiz name
                           </th>
-                          <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                            Date hosted
-                          </th>
+                          {isFaculty && (
+                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase whitespace-nowrap">
+                              Date hosted
+                            </th>
+                          )}
                           {isFaculty && (
                             <>
                               <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
                                 Completion
                               </th>
-                              <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                                Attempts
-                              </th>
-                              <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
+
+                              <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase whitespace-nowrap">
                                 Avg. Score
                               </th>
-                              <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
+                              <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase whitespace-nowrap">
                                 Pass Rate
                               </th>
                             </>
                           )}
-                          {!isFaculty && (
-                            <>
-                              <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                                Answered
-                              </th>
-                              <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                                Accuracy
-                              </th>
-                            </>
+                          {isFaculty && (
+                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
+                              Status
+                            </th>
                           )}
-                          <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                            Class
-                          </th>
-                          <th className="px-6 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                            Actions
-                          </th>
+                          {isFaculty && (
+                            <th className="px-6 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
+                              Actions
+                            </th>
+                          )}
+                          {!isFaculty && (
+                            <th className="w-[10%] px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
+                              Date hosted
+                            </th>
+                          )}
+                          {!isFaculty && activeTab === "all" && (
+                            <th className="w-[10%] px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
+                              Status
+                            </th>
+                          )}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 bg-white">
@@ -826,7 +815,7 @@ const Sessions = () => {
                                 key={quiz.classPersonalQuizID}
                                 className="outfit-400 group cursor-pointer transition-colors hover:bg-gray-50"
                               >
-                                <td className="px-3 py-3">
+                                <td className="px-4 py-3">
                                   <div className="flex flex-col">
                                     <div className="flex items-center gap-3">
                                       <div
@@ -847,7 +836,7 @@ const Sessions = () => {
                                           {quiz.quiz?.title || "Untitled Quiz"}
                                         </span>
                                         <span className="mt-1 block text-xs text-gray-500">
-                                          {statusBadge}
+                                          {quiz.class?.className || "—"}
                                         </span>
                                       </div>
                                     </div>
@@ -869,19 +858,9 @@ const Sessions = () => {
                                       {stats.completedCount || 0}/
                                       {stats.totalEnrolled || 0}
                                     </span>
-                                    <span className="text-xs text-gray-500">
-                                      {stats.completionRate
-                                        ? stats.completionRate.toFixed(1)
-                                        : 0}
-                                      %
-                                    </span>
                                   </div>
                                 </td>
-                                <td className="px-3 py-3 text-center whitespace-nowrap">
-                                  <span className="text-sm text-gray-900">
-                                    {stats.totalAttempts || 0}
-                                  </span>
-                                </td>
+
                                 <td className="px-3 py-3 text-center whitespace-nowrap">
                                   <span className="text-sm font-medium text-gray-900">
                                     {stats.averagePercentage
@@ -899,9 +878,7 @@ const Sessions = () => {
                                   </span>
                                 </td>
                                 <td className="px-3 py-3 text-center whitespace-nowrap">
-                                  <span className="text-sm text-gray-900">
-                                    {quiz.class?.className || "—"}
-                                  </span>
+                                  {statusBadge}
                                 </td>
                                 <td className="px-6 py-3 text-center whitespace-nowrap">
                                   <div className="flex items-center justify-end gap-2">
@@ -928,173 +905,114 @@ const Sessions = () => {
                               </tr>
                             );
                           } else {
-                            // Student view (original)
-                            const accuracy = calculateAccuracy(
-                              quiz.studentStatus?.highestPercentage,
-                            );
+                            // Student view
                             const hasCompleted =
                               quiz.studentStatus?.hasCompleted;
-                            const attemptCount =
-                              quiz.studentStatus?.attemptCount || 0;
-                            const maxAttempts = quiz.settings?.quizAttempts;
-                            const answeredText =
-                              maxAttempts && attemptCount > 0
-                                ? `${attemptCount}/${maxAttempts}`
-                                : attemptCount > 0
-                                  ? `${attemptCount}`
-                                  : "—";
+                            const isOngoing = quiz.status?.isOngoing;
+                            const isUpcoming = quiz.status?.isUpcoming;
+                            // Detect missed: either on the missed tab, or in the all tab where the quiz is in the missed array
+                            const isMissed =
+                              activeTab === "missed" ||
+                              (activeTab === "all" &&
+                                sessions.missed?.some(
+                                  (m) =>
+                                    m.classPersonalQuizID ===
+                                    quiz.classPersonalQuizID,
+                                ));
 
-                            // Calculate stroke dasharray for circular progress
-                            const circumference = 2 * Math.PI * 16;
-                            const strokeDasharray =
-                              accuracy !== null
-                                ? `${(accuracy / 100) * circumference} ${circumference}`
-                                : `0 ${circumference}`;
+                            // Quiz display name
+                            const quizTitle = quiz.quiz?.isCustom
+                              ? "Custom quiz"
+                              : quiz.quiz?.title || "Untitled Quiz";
 
-                            // Determine status icon
-                            let statusIcon = null;
-                            if (activeTab === "completed" || hasCompleted) {
-                              statusIcon = (
-                                <i className="bx bx-check-circle text-sm text-green-500"></i>
+                            // Date display
+                            const dateDisplay =
+                              quiz.assignment?.startDate ||
+                              quiz.assignment?.deadlineDate
+                                ? formatDateRange(
+                                    quiz.assignment?.startDate,
+                                    quiz.assignment?.deadlineDate,
+                                  )
+                                : "Date not set";
+
+                            // Status badge
+                            let statusBadge = null;
+                            if (isOngoing) {
+                              statusBadge = (
+                                <span className="outfit-400 inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-[12px] font-semibold text-green-700">
+                                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
+                                  Ongoing
+                                </span>
                               );
-                            } else if (activeTab === "missed") {
-                              statusIcon = (
-                                <i className="bx bx-x-circle text-sm text-red-500"></i>
+                            } else if (
+                              hasCompleted ||
+                              activeTab === "completed"
+                            ) {
+                              statusBadge = (
+                                <span className="outfit-400 inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-semibold text-emerald-700">
+                                  Completed
+                                </span>
                               );
-                            } else if (activeTab === "upcoming") {
-                              statusIcon = (
-                                <i className="bx bx-time text-sm text-blue-500"></i>
+                            } else if (isMissed) {
+                              statusBadge = (
+                                <span className="outfit-400 inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-[12px] font-semibold text-red-600">
+                                  Missed
+                                </span>
+                              );
+                            } else if (isUpcoming || activeTab === "upcoming") {
+                              statusBadge = (
+                                <span className="outfit-400 inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-[12px] font-semibold text-blue-600">
+                                  Upcoming
+                                </span>
                               );
                             }
 
                             return (
                               <tr
                                 key={quiz.classPersonalQuizID}
-                                className="group cursor-pointer transition-colors hover:bg-gray-50"
+                                className="group outfit-400 cursor-pointer transition-colors hover:bg-gray-50"
+                                onClick={() =>
+                                  navigate(
+                                    `/class/${quiz.class?.classID}/quizzes`,
+                                  )
+                                }
                               >
-                                <td className="px-3 py-3">
-                                  <div className="flex flex-col">
-                                    <div className="flex items-center gap-3">
-                                      <div
-                                        className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded"
-                                        style={{
-                                          backgroundColor: getHeaderColor(
-                                            quiz.classPersonalQuizID ??
-                                              quiz.quiz?.personalQuizID,
-                                          ),
-                                        }}
-                                      >
-                                        <span className="outfit-400 text-[16px] font-semibold text-white">
-                                          Q
-                                        </span>
+                                <td className="w-[80%] px-4 py-3">
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg"
+                                      style={{
+                                        backgroundColor: getHeaderColor(
+                                          quiz.classPersonalQuizID ??
+                                            quiz.quiz?.personalQuizID,
+                                        ),
+                                      }}
+                                    >
+                                      <span className="outfit-400 text-[16px] font-semibold text-white">
+                                        Q
+                                      </span>
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-sm font-semibold text-gray-900">
+                                        {quizTitle}
                                       </div>
-                                      <div className="min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-sm font-semibold text-gray-900">
-                                            {quiz.quiz?.title ||
-                                              "Untitled Quiz"}
-                                          </span>
-                                          {statusIcon}
-                                        </div>
-                                        {quiz.quiz?.description && (
-                                          <span className="mt-1 block text-xs text-gray-500">
-                                            {quiz.quiz.description}
-                                          </span>
-                                        )}
+                                      <div className="mt-0.5 text-xs text-gray-500">
+                                        {quiz.quiz?.subject?.subjectName ||
+                                          "Custom Quiz"}
                                       </div>
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-3 py-3 text-center whitespace-nowrap">
-                                  <span className="text-sm text-gray-900">
-                                    {formatDateRange(
-                                      quiz.assignment?.startDate,
-                                      quiz.assignment?.deadlineDate,
-                                    )}
+                                <td className="w-[10%] px-3 py-3 text-center whitespace-nowrap">
+                                  <span className="text-sm text-gray-700">
+                                    {dateDisplay}
                                   </span>
                                 </td>
-                                <td className="px-3 py-3 text-center whitespace-nowrap">
-                                  <span className="text-sm text-gray-900">
-                                    {answeredText}
-                                  </span>
-                                </td>
-                                <td className="px-3 py-3 text-center whitespace-nowrap">
-                                  <div className="flex items-center justify-end gap-2">
-                                    {accuracy !== null ? (
-                                      <div className="relative h-8 w-8">
-                                        <svg
-                                          className="h-8 w-8 -rotate-90 transform"
-                                          viewBox="0 0 36 36"
-                                        >
-                                          <circle
-                                            cx="18"
-                                            cy="18"
-                                            r="16"
-                                            fill="none"
-                                            stroke="#e5e7eb"
-                                            strokeWidth="3"
-                                          />
-                                          <circle
-                                            cx="18"
-                                            cy="18"
-                                            r="16"
-                                            fill="none"
-                                            stroke={
-                                              accuracy >= 70
-                                                ? "#10b981"
-                                                : accuracy >= 50
-                                                  ? "#f59e0b"
-                                                  : "#ef4444"
-                                            }
-                                            strokeWidth="3"
-                                            strokeDasharray={strokeDasharray}
-                                            strokeLinecap="round"
-                                          />
-                                        </svg>
-                                        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-gray-700">
-                                          {accuracy}%
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <span className="text-sm text-gray-500">
-                                        —
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="px-3 py-3 text-center whitespace-nowrap">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <span className="text-sm text-gray-900">
-                                      {quiz.class?.className || "—"}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-3 text-center whitespace-nowrap">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate("/quiz-overview", {
-                                          state: {
-                                            classID: quiz.class?.classID,
-                                            classPersonalQuizID:
-                                              quiz.classPersonalQuizID,
-                                            quiz: quiz.quiz || quiz,
-                                            subject: quiz.quiz?.subject,
-                                          },
-                                        });
-                                      }}
-                                      className="flex cursor-pointer items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                                    >
-                                      <i className="bx bx-caret-right text-lg"></i>
-                                      {activeTab === "completed" || hasCompleted
-                                        ? "View"
-                                        : activeTab === "upcoming"
-                                          ? "View"
-                                          : "Start"}
-                                    </button>
-                                  </div>
-                                </td>
+                                {activeTab === "all" && (
+                                  <td className="w-[10%] px-3 py-3 text-center whitespace-nowrap">
+                                    {statusBadge}
+                                  </td>
+                                )}
                               </tr>
                             );
                           }

@@ -89,7 +89,9 @@ function SubjectList() {
       ? "/faculty/subjects"
       : Number(effectiveRoleId) === 3
         ? "/program-chair/subjects"
-        : "/dean/subjects";
+        : Number(effectiveRoleId) === 5
+          ? "/asso-dean/subjects"
+          : "/dean/subjects";
 
   // If subject_id is in URL or subject is in state, set selectedSubject and render AdminContent
   useEffect(() => {
@@ -131,7 +133,9 @@ function SubjectList() {
           ? "/faculty/subjects/content"
           : Number(effectiveRoleId) === 3
             ? "/program-chair/subjects/content"
-            : "/dean/subjects/content";
+            : Number(effectiveRoleId) === 5
+              ? "/asso-dean/subjects/content"
+              : "/dean/subjects/content";
       navigate(`${contentPath}?subjectID=${subjectFromState.subjectID}`, {
         state: { subject: subjectFromState },
         replace: true,
@@ -159,7 +163,9 @@ function SubjectList() {
                   ? "/faculty/subjects/content"
                   : Number(effectiveRoleId) === 3
                     ? "/program-chair/subjects/content"
-                    : "/dean/subjects/content";
+                    : Number(effectiveRoleId) === 5
+                      ? "/asso-dean/subjects/content"
+                      : "/dean/subjects/content";
               navigate(`${contentPath}?subjectID=${subjectID}`, {
                 state: { subject: data.subject },
                 replace: true,
@@ -746,7 +752,7 @@ function SubjectList() {
   );
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-screen">
       {/* Left sidebar panel */}
       <aside className="fixed top-0 left-[63px] hidden h-screen w-56 overflow-hidden border-r border-gray-200 bg-white px-4 py-4 lg:block lg:w-64">
         <h2 className="outfit-500 mb-4 text-[16px] tracking-wide text-black">
@@ -809,7 +815,7 @@ function SubjectList() {
       </aside>
 
       {/* Main content area */}
-      <div className="scrollbar-hide mt-10 ml-0 flex h-full flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] lg:mt-0 lg:ml-64 [&::-webkit-scrollbar]:hidden">
+      <div className="scrollbar-hide mt-10 ml-0 flex min-h-screen flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] lg:mt-0 lg:ml-64 [&::-webkit-scrollbar]:hidden">
         <div className="min-w-0 space-y-4 px-4 pt-4 md:px-6 md:pt-6">
           <SearchBar
             value={searchTerm}
@@ -1335,7 +1341,7 @@ function SubjectList() {
 
       {/* Floating Create/Assign subject button (mobile only) - same as Class.jsx */}
       {Number(effectiveRoleId) !== 3 && (
-        <div className="fixed right-4 bottom-[90px] z-50 md:hidden">
+        <div className="fixed right-4 bottom-[110px] z-50 md:hidden">
           <button
             type="button"
             onClick={() => {

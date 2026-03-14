@@ -86,10 +86,7 @@ function App() {
         </Route>
 
         {/* Class */}
-        <Route
-          path="/class"
-          element={<ProtectedRoute element={<Layout />} />}
-        >
+        <Route path="/class" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<Class />} />
           <Route path=":classID/students" element={<ClassContent />} />
           <Route path=":classID/quizzes" element={<StudentClasses />} />
@@ -219,8 +216,9 @@ function App() {
           path="/asso-dean/subjects"
           element={<ProtectedRoute element={<Layout />} />}
         >
-          <Route index element={<AssoDeanContent />} />
-          <Route path="content" element={<AssoDeanContent />} />
+          <Route index element={<SubjectList />} />
+          <Route path="archive" element={<SubjectsArchive />} />
+          <Route path="content" element={<AdminContent />} />
         </Route>
 
         <Route

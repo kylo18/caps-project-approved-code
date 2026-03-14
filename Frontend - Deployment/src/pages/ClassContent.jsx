@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/confirmModal";
 import EditClassModal from "../components/EditClassModal";
+import WarningModal from "../components/WarningModal";
+import QuizSettingsModal from "../components/QuizSettingsModal";
 import SearchBar from "../components/SearchBar";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
@@ -105,9 +107,6 @@ const ClassContent = () => {
   const [quizResultsError, setQuizResultsError] = useState(null);
   const [isEditDatesModalOpen, setIsEditDatesModalOpen] = useState(false);
   const [quizToEditDates, setQuizToEditDates] = useState(null);
-  const [editStartDate, setEditStartDate] = useState("");
-  const [editDeadlineDate, setEditDeadlineDate] = useState("");
-  const [isUpdatingDates, setIsUpdatingDates] = useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [archivingClass, setArchivingClass] = useState(null);
   const [isArchiving, setIsArchiving] = useState(false);
@@ -115,6 +114,7 @@ const ClassContent = () => {
   const [editingClass, setEditingClass] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [classes, setClasses] = useState([]);
+  const [expandedQuizStats, setExpandedQuizStats] = useState(null); // track which quiz stats are shown on mobile
 
   // Get user role on mount
   useEffect(() => {
@@ -642,128 +642,7 @@ const ClassContent = () => {
 
   const handleOpenEditDates = (quiz) => {
     setQuizToEditDates(quiz);
-    // Format dates for datetime-local input
-    const formatDateForInput = (dateString) => {
-      if (!dateString) return "";
-      try {
-        // Handle format: "2026-02-20 08:00:00" or datetime string
-        let dateStr = dateString.trim();
-        if (dateStr.includes(" ")) {
-          // Format: "2026-02-20 08:00:00" - extract date and time parts
-          const [datePart, timePart] = dateStr.split(" ");
-          const [hours, minutes] = timePart.split(":");
-          return `${datePart}T${hours}:${minutes}`;
-        } else {
-          // Try parsing as ISO string
-          const date = new Date(dateStr);
-          if (!isNaN(date.getTime())) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, "0");
-            const day = String(date.getDate()).padStart(2, "0");
-            const hours = String(date.getHours()).padStart(2, "0");
-            const minutes = String(date.getMinutes()).padStart(2, "0");
-            return `${year}-${month}-${day}T${hours}:${minutes}`;
-          }
-        }
-        return "";
-      } catch {
-        return "";
-      }
-    };
-    setEditStartDate(formatDateForInput(quiz.startDate));
-    setEditDeadlineDate(formatDateForInput(quiz.deadlineDate));
     setIsEditDatesModalOpen(true);
-  };
-
-  const handleUpdateDates = async () => {
-    if (!quizToEditDates?.classPersonalQuizID) return;
-
-    // Validation: deadline must be after or equal to start date
-    if (editStartDate && editDeadlineDate) {
-      const start = new Date(editStartDate);
-      const end = new Date(editDeadlineDate);
-      if (end < start) {
-        showToast(
-          "Deadline date must be after or equal to start date.",
-          "error",
-        );
-        return;
-      }
-    }
-
-    setIsUpdatingDates(true);
-    try {
-      const token = sessionStorage.getItem("token");
-      if (!token) {
-        throw new Error("You are not authenticated. Please log in again.");
-      }
-
-      const payload = {};
-      if (editStartDate) {
-        // Extract date in YYYY-MM-DD format directly from datetime-local input
-        // datetime-local format is YYYY-MM-DDTHH:mm, so we just take the date part
-        payload.startDate = editStartDate.split("T")[0];
-      }
-      if (editDeadlineDate) {
-        // Extract date in YYYY-MM-DD format directly from datetime-local input
-        // datetime-local format is YYYY-MM-DDTHH:mm, so we just take the date part
-        payload.deadlineDate = editDeadlineDate.split("T")[0];
-      }
-
-      const response = await fetch(
-        `${apiUrl}/classes/quizzes/${quizToEditDates.classPersonalQuizID}/dates`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        },
-      );
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok || !data.success) {
-        const message =
-          data?.message ||
-          "There was a problem updating the quiz dates. Please try again.";
-        throw new Error(message);
-      }
-
-      showToast(data.message || "Quiz dates updated successfully.", "success");
-
-      // Update the quiz in the local list
-      setAssignedQuizzes((prev) =>
-        prev.map((q) => {
-          if (q.classPersonalQuizID === quizToEditDates.classPersonalQuizID) {
-            return {
-              ...q,
-              startDate: data.classPersonalQuiz?.startDate || q.startDate,
-              deadlineDate:
-                data.classPersonalQuiz?.deadlineDate || q.deadlineDate,
-            };
-          }
-          return q;
-        }),
-      );
-
-      // Close modal
-      setIsEditDatesModalOpen(false);
-      setQuizToEditDates(null);
-      setEditStartDate("");
-      setEditDeadlineDate("");
-    } catch (err) {
-      showToast(
-        err.message ||
-          "There was a problem updating the quiz dates. Please try again.",
-        "error",
-      );
-      console.error("Error updating quiz dates:", err);
-    } finally {
-      setIsUpdatingDates(false);
-    }
   };
 
   const handleArchiveClick = (e) => {
@@ -1037,7 +916,7 @@ const ClassContent = () => {
           </div>
         </div>
       ) : (
-        <div className="scrollbar-hide mt-5 flex h-screen flex-1 flex-col gap-6 overflow-y-auto py-6 pb-0 [-ms-overflow-style:none] [scrollbar-width:none] md:mt-10 md:p-6 lg:mt-0 [&::-webkit-scrollbar]:hidden">
+        <div className="scrollbar-hide mt-5 flex min-h-screen flex-1 flex-col gap-6 overflow-y-auto py-6 pb-28 [-ms-overflow-style:none] [scrollbar-width:none] md:mt-10 md:p-6 lg:mt-0 [&::-webkit-scrollbar]:hidden">
           <div className="space-y-4">
             {/* Two-card header */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
@@ -1062,13 +941,14 @@ const ClassContent = () => {
                         {classInfo ? classInfo.className : "Class Name"}
                       </span>
                     </h1>
-                    <p className="outfit-400 mt-1 text-[14px] font-normal text-white/95">
+                    <p className="outfit-400 mt-1 flex items-center gap-2 text-[14px] font-normal text-white/95">
+                      <i className="bx bx-alarm-alt text-[16px]"></i>
                       {currentClass?.schedule ??
                         classInfo?.schedule ??
-                        "Class schedule"}
+                        "Schedule not set"}
                     </p>
                   </div>
-                  <div className="mt-8 flex items-end outfit-400 justify-between">
+                  <div className="outfit-400 mt-8 flex items-end justify-between">
                     <div className="inline-flex max-w-full items-center overflow-hidden rounded-full bg-white px-2 py-0.5">
                       <span className="truncate text-[12px] font-semibold whitespace-nowrap text-black uppercase">
                         Class Code -{" "}
@@ -1119,22 +999,6 @@ const ClassContent = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Right: Class Creator Card - current user from session */}
-              <div className="hidden w-full flex-col items-center justify-center rounded-xl border border-gray-200 bg-white p-6 lg:flex lg:w-56">
-                <div
-                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-3xl font-semibold text-white"
-                  style={{ backgroundColor: creatorAvatarBg }}
-                >
-                  {creatorInitials}
-                </div>
-                <p className="outfit-500 mt-3 text-center text-[16px] font-normal text-gray-900">
-                  {creatorFullName}
-                </p>
-                <p className="outfit-500 mt-1 text-center text-[12px] text-gray-600">
-                  {subjectDisplay}
-                </p>
               </div>
             </div>
 
@@ -1464,147 +1328,160 @@ const ClassContent = () => {
                 </div>
               ) : (
                 <>
-                  {/* Desktop: Table view */}
-                  <div className="outfit-400 hidden overflow-hidden rounded-xl border border-gray-200 bg-white lg:block">
-                    <div className="overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                      <table className="w-full">
-                        <thead className="border-b border-gray-200 bg-white">
-                          <tr>
-                            <th className="w-[40%] px-4 py-2 text-left text-[14px] font-medium tracking-wider text-gray-600">
-                              Quiz Name
-                            </th>
-                            <th className="w-[10%] px-2 py-2 text-center text-[14px] font-medium tracking-wider text-gray-600">
-                              Start Date
-                            </th>
-                            <th className="w-[10%] px-2 py-2 text-center text-[14px] font-medium tracking-wider text-gray-600">
-                              End Date
-                            </th>
-                            <th className="w-[10%] px-2 py-2 text-center text-[14px] font-medium tracking-wider text-gray-600">
-                              Attempts
-                            </th>
-                            <th className="w-[10%] px-2 py-2 text-center text-[14px] font-medium tracking-wider text-gray-600">
-                              Accuracy
-                            </th>
-                            <th className="w-[30%] px-4 py-2 text-right text-[14px] font-medium tracking-wider text-gray-600">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
-                          {assignedQuizzes.map((quiz) => {
-                            const start = formatDateTime(quiz.startDate);
-                            const deadline = formatDateTime(quiz.deadlineDate);
-                            const baseQuiz = quiz.personalQuiz || quiz;
-                            const quizId =
-                              baseQuiz.personalQuizID ||
-                              baseQuiz.id ||
-                              quiz.personalQuizID ||
-                              quiz.quizID ||
-                              quiz.classPersonalQuizID;
+                  {/* Desktop: Card List view (matches StudentClasses) */}
+                  <div className="hidden flex-col gap-4 overflow-hidden rounded-xl bg-gray-50/30 lg:flex">
+                    {assignedQuizzes.map((quiz) => {
+                      const displayStart = quiz.startTime ?? quiz.startDate;
+                      const displayEnd = quiz.endTime ?? quiz.deadlineDate;
+                      const start = formatDate(displayStart);
+                      let isDeadlineNear = false;
+                      const deadline = (() => {
+                        if (!displayEnd) return "Not set";
+                        const d = new Date(displayEnd);
+                        const msRemaining = d - new Date();
+                        if (
+                          msRemaining > 0 &&
+                          msRemaining < 12 * 60 * 60 * 1000
+                        ) {
+                          isDeadlineNear = true;
+                        }
+                        const dPart = d.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        });
+                        const tPart = d.toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                        return `${dPart} (${tPart})`;
+                      })();
 
-                            // Get average accuracy from API response
-                            const avgAccuracy =
-                              quiz.avgAccuracy !== undefined
-                                ? quiz.avgAccuracy
-                                : quiz.accuracy !== undefined
-                                  ? quiz.accuracy
-                                  : 0;
+                      const baseQuiz = quiz.personalQuiz || quiz;
 
-                            // Get total attempts from API response
-                            const totalAttempts =
-                              quiz.totalAttempts !== undefined
-                                ? quiz.totalAttempts
-                                : 0;
+                      const avgAccuracy =
+                        quiz.avgAccuracy !== undefined
+                          ? quiz.avgAccuracy
+                          : quiz.accuracy !== undefined
+                            ? quiz.accuracy
+                            : 0;
 
-                            const headerColor = getQuizHeaderColor(quizId);
+                      const totalAttempts =
+                        quiz.totalAttempts !== undefined
+                          ? quiz.totalAttempts
+                          : 0;
 
-                            return (
-                              <tr
-                                key={quiz.classPersonalQuizID}
-                                className="group transition-colors hover:bg-gray-50"
+                      const durationText = baseQuiz.timeLimit
+                        ? `${baseQuiz.timeLimit} Minutes`
+                        : "No Limit";
+
+                      return (
+                        <div
+                          key={quiz.classPersonalQuizID}
+                          className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 transition-all md:flex-row md:items-center md:justify-between md:gap-4 lg:gap-6"
+                        >
+                          <div className="flex w-full items-start justify-between md:w-auto md:items-center md:justify-start md:gap-4">
+                            <div className="flex items-center gap-3 md:gap-4">
+                              {/* Icon */}
+                              <div className="relative flex h-[40px] w-[40px] flex-shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500 md:h-[45px] md:w-[45px]">
+                                <i className="bx bxs-copy-list text-[20px] md:text-[24px]" />
+                              </div>
+
+                              {/* Info */}
+                              <div className="flex flex-col">
+                                <h3 className="outfit-700 text-[14px] leading-tight font-bold text-[#1a1f36]">
+                                  {quiz.quizName ||
+                                    baseQuiz.title ||
+                                    "Untitled Quiz"}
+                                </h3>
+                                <div className="outfit-500 mt-1 flex flex-col text-[12px] md:flex-row md:flex-wrap md:items-center md:gap-x-4 md:gap-y-1">
+                                  {/* Desktop Started */}
+                                  <div className="hidden items-center gap-1.5 text-gray-500 md:flex">
+                                    <i className="bx bx-calendar text-[14px] text-[#1a1f36]/60" />
+                                    <span>Started: {start}</span>
+                                  </div>
+                                  {/* Desktop Deadline */}
+                                  <div
+                                    className={`hidden items-center gap-1.5 md:flex ${
+                                      isDeadlineNear
+                                        ? "text-red-500"
+                                        : "text-gray-500"
+                                    }`}
+                                  >
+                                    <i className="bx bxs-calendar-check text-[14px]" />
+                                    <span
+                                      className={
+                                        isDeadlineNear ? "font-semibold" : ""
+                                      }
+                                    >
+                                      Deadline: {deadline}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Desktop Right side: Stats & Buttons */}
+                          <div className="hidden items-center justify-between gap-6 px-2 md:flex md:justify-end md:gap-6 md:px-0">
+                            {/* Analytics */}
+                            <div className="flex items-center gap-6 border-r border-gray-200 pr-6">
+                              <div className="flex flex-col items-center justify-center">
+                                <span className="outfit-700 text-[10px] tracking-widest text-[#1a1f36]/40 uppercase">
+                                  Accuracy
+                                </span>
+                                <span className="outfit-700 text-[12px] text-[#1a1f36]">
+                                  {avgAccuracy.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="outfit-500 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const quizForOverview = baseQuiz;
+                                  navigate("/quiz-overview", {
+                                    state: {
+                                      quiz: quizForOverview,
+                                      subject:
+                                        quiz.personalQuiz?.subject ||
+                                        baseQuiz.subject ||
+                                        classInfo?.subject ||
+                                        null,
+                                      classPersonalQuizID:
+                                        quiz.classPersonalQuizID,
+                                    },
+                                  });
+                                }}
+                                className="outfit-600 flex cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-[13px] text-gray-700 transition-colors hover:bg-gray-50"
                               >
-                                <td className="cursor-pointer px-4 py-4 whitespace-nowrap">
-                                  <div className="flex items-center gap-3">
-                                    <div
-                                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg"
-                                      style={{ backgroundColor: headerColor }}
-                                    >
-                                      <span className="outfit-400 text-[16px] font-semibold text-white">
-                                        Q
-                                      </span>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <div className="text-sm font-semibold text-gray-900">
-                                        {quiz.quizName ||
-                                          baseQuiz.title ||
-                                          "Untitled Quiz"}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-2 py-4 text-center text-xs whitespace-nowrap text-gray-700">
-                                  {quiz.startDate ? start : "Date not set"}
-                                </td>
-                                <td className="px-2 py-4 text-center text-xs whitespace-nowrap text-gray-700">
-                                  {quiz.deadlineDate
-                                    ? deadline
-                                    : "Date not set"}
-                                </td>
-                                <td className="px-2 py-4 text-center text-xs whitespace-nowrap text-gray-700">
-                                  {totalAttempts}
-                                </td>
-                                <td className="px-2 py-4 text-center whitespace-nowrap">
-                                  <div className="text-xs text-gray-700">
-                                    {avgAccuracy.toFixed(2)}%
-                                  </div>
-                                </td>
-                                <td className="outfit-500 px-2 py-4 text-right whitespace-nowrap">
-                                  <div className="flex justify-end gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const quizForOverview = baseQuiz;
-                                        navigate("/quiz-overview", {
-                                          state: {
-                                            quiz: quizForOverview,
-                                            subject:
-                                              quiz.personalQuiz?.subject ||
-                                              baseQuiz.subject ||
-                                              classInfo?.subject ||
-                                              null,
-                                            classPersonalQuizID:
-                                              quiz.classPersonalQuizID,
-                                          },
-                                        });
-                                      }}
-                                      className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-700 transition-colors hover:bg-gray-100"
-                                    >
-                                      <i className="bx bx-caret-right text-sm" />
-                                      <span>View</span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenEditDates(quiz)}
-                                      className="mr-2 flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
-                                    >
-                                      <i className="bx bx-cog text-sm" />
-                                      <span>Settings</span>
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                <i className="bx bx-edit mr-1" />
+                                Manage
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditDates(quiz)}
+                                className="outfit-600 flex cursor-pointer items-center justify-center rounded-xl bg-gray-100 px-4 py-2 text-[13px] text-gray-700 transition-colors hover:bg-gray-200"
+                              >
+                                <i className="bx bx-cog mr-1" />
+                                Settings
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Mobile: Pill-like card list */}
                   <div className="outfit-400 flex flex-col gap-2 lg:hidden">
                     {assignedQuizzes.map((quiz) => {
-                      const start = formatDateTime(quiz.startDate);
-                      const deadline = formatDateTime(quiz.deadlineDate);
+                      const displayStart = quiz.startTime ?? quiz.startDate;
+                      const displayEnd = quiz.endTime ?? quiz.deadlineDate;
+                      const start = formatDateTime(displayStart);
+                      const deadline = formatDateTime(displayEnd);
                       const baseQuiz = quiz.personalQuiz || quiz;
                       const quizId =
                         baseQuiz.personalQuizID ||
@@ -1625,86 +1502,115 @@ const ClassContent = () => {
                           ? quiz.totalAttempts
                           : 0;
 
-                      const headerColor = getQuizHeaderColor(quizId);
-
                       return (
                         <div
                           key={quiz.classPersonalQuizID}
-                          onClick={() => {
-                            const quizForOverview = baseQuiz;
-                            navigate("/quiz-overview", {
-                              state: {
-                                quiz: quizForOverview,
-                                subject:
-                                  quiz.personalQuiz?.subject ||
-                                  baseQuiz.subject ||
-                                  classInfo?.subject ||
-                                  null,
-                                classPersonalQuizID: quiz.classPersonalQuizID,
-                              },
-                            });
-                          }}
-                          className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-3 transition-all hover:border-gray-300 hover:shadow-md active:scale-[0.99]"
+                          className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 transition-all"
                         >
-                          <div
-                            className="flex size-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl"
-                            style={{ backgroundColor: headerColor }}
-                          >
-                            <span className="outfit-400 text-[18px] font-semibold text-white">
-                              Q
-                            </span>
-                          </div>
-                          <div className="min-w-0 flex-1 space-y-1">
-                            <div className="outfit-500 text-[15px] font-semibold text-gray-900">
-                              {quiz.quizName ||
-                                baseQuiz.title ||
-                                "Untitled Quiz"}
+                          <div className="flex w-full items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              {/* Icon */}
+                              <div className="relative flex h-[40px] w-[40px] flex-shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+                                <i className="bx bxs-copy-list text-[20px]" />
+                              </div>
+
+                              {/* Info */}
+                              <div className="flex flex-col">
+                                <h3 className="outfit-700 text-[14px] leading-tight font-bold text-[#1a1f36]">
+                                  {quiz.quizName ||
+                                    baseQuiz.title ||
+                                    "Untitled Quiz"}
+                                </h3>
+                                <div className="outfit-500 mt-1 flex flex-col text-[12px]">
+                                  {/* Mobile Combined Date */}
+                                  <div className="flex items-center gap-1.5 text-gray-500">
+                                    <i className="bx bx-calendar text-[14px] text-[#1a1f36]/60" />
+                                    <span>
+                                      {displayStart && displayEnd
+                                        ? (() => {
+                                            const sDate = new Date(
+                                              displayStart,
+                                            );
+                                            const dDate = new Date(displayEnd);
+                                            const sameMonthAndYear =
+                                              sDate.getMonth() ===
+                                                dDate.getMonth() &&
+                                              sDate.getFullYear() ===
+                                                dDate.getFullYear();
+                                            const sMonth =
+                                              sDate.toLocaleDateString(
+                                                "en-US",
+                                                { month: "short" },
+                                              );
+                                            const sDay = sDate.getDate();
+                                            const dMonth =
+                                              dDate.toLocaleDateString(
+                                                "en-US",
+                                                { month: "short" },
+                                              );
+                                            const dDay = dDate.getDate();
+                                            const year = dDate.getFullYear();
+
+                                            if (sameMonthAndYear) {
+                                              return `${sMonth} ${sDay} - ${dDay}, ${year}`;
+                                            }
+                                            return `${sMonth} ${sDay} - ${dMonth} ${dDay}, ${year}`;
+                                          })()
+                                        : "No dates set"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="outfit-400 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-gray-500">
-                              <span>
-                                {quiz.startDate && quiz.deadlineDate
-                                  ? (() => {
-                                      const startDate = new Date(
-                                        quiz.startDate,
-                                      );
-                                      const endDate = new Date(
-                                        quiz.deadlineDate,
-                                      );
-
-                                      const startMonth =
-                                        startDate.toLocaleString("en-US", {
-                                          month: "short",
-                                        });
-                                      const endMonth = endDate.toLocaleString(
-                                        "en-US",
-                                        { month: "short" },
-                                      );
-
-                                      const startDay = startDate.getDate();
-                                      const endDay = endDate.getDate();
-
-                                      const endYear = endDate.getFullYear();
-
-                                      return startMonth === endMonth
-                                        ? `${startMonth} ${startDay} - ${endDay}, ${endYear}`
-                                        : `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${endYear}`;
-                                    })()
-                                  : "Deadline not set"}
-                              </span>
-                            </div>
                           </div>
-                          <div className="flex flex-shrink-0 items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenEditDates(quiz);
-                              }}
-                              className="flex cursor-pointer items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-200 active:bg-gray-300"
-                              aria-label="Settings"
-                            >
-                              <i className="bx bx-cog text-lg" />
-                            </button>
+
+                          {/* Mobile Stats & Actions */}
+                          <div className="flex items-center justify-between border-t border-gray-100 pt-1">
+                            {/* Analytics */}
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-1.5 text-[12px] text-gray-500">
+                                <i className="bx bx-target-lock text-[14px] text-[#1a1f36]/60" />
+                                <span>{avgAccuracy.toFixed(1)}% Accuracy</span>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-shrink-0 items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const quizForOverview = baseQuiz;
+                                  navigate("/quiz-overview", {
+                                    state: {
+                                      quiz: quizForOverview,
+                                      subject:
+                                        quiz.personalQuiz?.subject ||
+                                        baseQuiz.subject ||
+                                        classInfo?.subject ||
+                                        null,
+                                      classPersonalQuizID:
+                                        quiz.classPersonalQuizID,
+                                    },
+                                  });
+                                }}
+                                className="flex cursor-pointer items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-200 active:bg-gray-300"
+                                aria-label="Manage"
+                              >
+                                <i className="bx bx-edit text-lg" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenEditDates(quiz);
+                                }}
+                                className="flex cursor-pointer items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-200 active:bg-gray-300"
+                                aria-label="Settings"
+                              >
+                                <i className="bx bx-cog text-lg" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -1724,11 +1630,11 @@ const ClassContent = () => {
                 <span className="hidden lg:block">Assign Quiz</span>
               </button>
 
-              <div className="fixed right-4 bottom-[90px] z-50 md:hidden">
+              <div className="fixed right-4 bottom-[110px] z-50 lg:hidden">
                 <button
                   type="button"
                   onClick={handleOpenAssignQuizzes}
-                  className="outfit-400 flex cursor-pointer items-center gap-2 rounded-full bg-orange-500 p-4 text-[14px] font-medium text-white shadow-xl transition-colors hover:bg-orange-600 lg:hidden"
+                  className="outfit-400 flex cursor-pointer items-center gap-2 rounded-full bg-orange-500 p-4 text-[14px] font-medium text-white shadow-xl transition-colors hover:bg-orange-600"
                 >
                   <i className="bx bx-plus text-[22px]" />
                 </button>
@@ -1894,40 +1800,48 @@ const ClassContent = () => {
 
           {/* Assign Quizzes Modal */}
           {isAssignQuizzesModalOpen && (
-            <div className="lightbox-bg fixed inset-0 z-40 flex items-center justify-center px-4">
-              <div className="w-full max-w-3xl rounded-2xl bg-white shadow-xl">
+            <div
+              className="lightbox-bg fixed inset-0 z-60 flex items-center justify-center px-4"
+              onClick={() => setIsAssignQuizzesModalOpen(false)}
+            >
+              <div
+                className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                <div
+                  className="flex items-start justify-between border-b border-gray-200 px-6 py-5"
+                  style={{ background: "#fff8f5" }}
+                >
                   <div>
-                    <h2 className="outfit-500 text-[18px] text-gray-900">
-                      Assign Quizzes
+                    <h2 className="outfit-700 text-[18px] font-bold text-gray-900">
+                      Assign Quiz
                     </h2>
-                    <p className="text-[13px] text-gray-500">
-                      Available quizzes for{" "}
+                    <p className="mt-0.5 text-[13px] text-gray-500">
+                      Select a quiz to assign to{" "}
                       <span className="font-semibold text-gray-700">
                         {classInfo?.className || "this class"}
                       </span>
-                      .
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsAssignQuizzesModalOpen(false)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                    className="ml-4 flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-white hover:text-gray-600"
                   >
                     <i className="bx bx-x text-xl" />
                   </button>
                 </div>
 
                 {/* Body */}
-                <div className="max-h-[70vh] space-y-4 overflow-y-auto px-6 py-4">
+                <div className="max-h-[70vh] space-y-4 overflow-y-auto px-6 py-5">
                   {/* Search */}
-                  <div className="outfit-500 relative text-[14px]">
-                    <i className="bx bx-search absolute top-1.5 left-3 text-lg text-gray-500"></i>
+                  <div className="relative">
+                    <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
                     <input
                       type="text"
                       placeholder="Search quizzes..."
-                      className="w-full rounded-full border border-gray-200 bg-white py-2 pr-4 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+                      className="w-full rounded-xl border border-gray-200 py-2.5 pr-4 pl-9 text-sm text-gray-900 transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
                       value={quizSearchTerm}
                       onChange={(e) => setQuizSearchTerm(e.target.value)}
                     />
@@ -1935,157 +1849,181 @@ const ClassContent = () => {
                       <button
                         type="button"
                         onClick={() => setQuizSearchTerm("")}
-                        className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
+                        className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
                         <i className="bx bx-x text-lg" />
                       </button>
                     )}
                   </div>
 
+                  {/* Dates row */}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                        Start Date{" "}
+                        <span className="font-normal text-gray-400">
+                          (optional)
+                        </span>
+                      </label>
+                      <div className="relative">
+                        <i className="bx bx-calendar absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="datetime-local"
+                          value={quizStartDate}
+                          onChange={(e) => setQuizStartDate(e.target.value)}
+                          className="w-full rounded-xl border border-gray-200 py-2.5 pr-3 pl-9 text-sm text-gray-900 transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                        Deadline{" "}
+                        <span className="font-normal text-gray-400">
+                          (optional)
+                        </span>
+                      </label>
+                      <div className="relative">
+                        <i className="bx bxs-calendar-check absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="datetime-local"
+                          value={quizDeadlineDate}
+                          onChange={(e) => setQuizDeadlineDate(e.target.value)}
+                          className="w-full rounded-xl border border-gray-200 py-2.5 pr-3 pl-9 text-sm text-gray-900 transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                        />
+                      </div>
+                      {/* Quick deadline buttons */}
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {[
+                          { label: "1 Day", days: 1 },
+                          { label: "3 Days", days: 3 },
+                          { label: "1 Week", days: 7 },
+                        ].map(({ label, days }) => (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => {
+                              const base = quizStartDate
+                                ? new Date(quizStartDate)
+                                : new Date();
+                              base.setDate(base.getDate() + days);
+                              const yyyy = base.getFullYear();
+                              const mm = String(base.getMonth() + 1).padStart(
+                                2,
+                                "0",
+                              );
+                              const dd = String(base.getDate()).padStart(
+                                2,
+                                "0",
+                              );
+                              const hh = String(base.getHours()).padStart(
+                                2,
+                                "0",
+                              );
+                              const min = String(base.getMinutes()).padStart(
+                                2,
+                                "0",
+                              );
+                              setQuizDeadlineDate(
+                                `${yyyy}-${mm}-${dd}T${hh}:${min}`,
+                              );
+                            }}
+                            className="rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-medium text-orange-600 transition hover:bg-orange-100"
+                          >
+                            +{label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Error */}
                   {quizError && (
-                    <div className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+                    <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[13px] text-red-700">
+                      <i className="bx bx-error-circle" />
                       {quizError}
                     </div>
                   )}
 
                   {/* Loading / Empty / List */}
                   {isQuizzesLoading ? (
-                    <div className="outfit-400 flex h-40 items-center justify-center">
-                      <div className="text-center">
-                        <div className="loader mx-auto mb-2"></div>
-                      </div>
+                    <div className="flex h-40 items-center justify-center">
+                      <div className="loader mx-auto" />
                     </div>
                   ) : filteredQuizzes.length === 0 ? (
-                    <div className="outfit-400 flex h-40 items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50/60">
-                      <p className="text-[14px] text-gray-600">
+                    <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50/60">
+                      <p className="text-[13px] text-gray-500">
                         {quizSearchTerm.trim()
                           ? `No quizzes found matching "${quizSearchTerm}".`
                           : "No available quizzes to assign to this class."}
                       </p>
                     </div>
                   ) : (
-                    <>
-                      {/* Quiz dates */}
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[13px] font-medium text-gray-700">
-                            Start Date (optional)
-                          </label>
-                          <input
-                            type="datetime-local"
-                            value={quizStartDate}
-                            onChange={(e) => setQuizStartDate(e.target.value)}
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[13px] font-medium text-gray-700">
-                            Deadline (optional)
-                          </label>
-                          <input
-                            type="datetime-local"
-                            value={quizDeadlineDate}
-                            onChange={(e) =>
-                              setQuizDeadlineDate(e.target.value)
+                    <div className="space-y-2">
+                      {filteredQuizzes.map((quiz) => {
+                        const id = quiz.personalQuizID || quiz.quizID;
+                        const isSelected = selectedQuizId === id;
+                        const isCustom = !quiz.subjectID && !quiz.subject;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() =>
+                              setSelectedQuizId(isSelected ? null : id)
                             }
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="outfit-400 overflow-hidden rounded-xl border border-gray-200">
-                        <div className="max-h-[40vh] overflow-y-auto">
-                          <table className="w-full text-sm">
-                            <thead className="border-b border-gray-200 bg-gray-50">
-                              <tr>
-                                <th className="px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-600 uppercase">
-                                  Select
-                                </th>
-                                <th className="px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-600 uppercase">
-                                  Quiz
-                                </th>
-                                <th className="px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-600 uppercase">
-                                  Type
-                                </th>
-                                <th className="px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-600 uppercase">
-                                  Subject
-                                </th>
-                                <th className="px-4 py-2 text-right text-xs font-medium tracking-wider text-gray-600 uppercase">
-                                  Created
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white">
-                              {filteredQuizzes.map((quiz) => {
-                                const createdDate = formatDate(quiz.created_at);
-                                const isCustom =
-                                  !quiz.subjectID && !quiz.subject;
-
-                                return (
-                                  <tr
-                                    key={quiz.personalQuizID || quiz.quizID}
-                                    className="transition-colors hover:bg-gray-50"
-                                  >
-                                    <td className="px-4 py-3">
-                                      <input
-                                        type="radio"
-                                        name="selectedQuiz"
-                                        className="h-4 w-4 text-orange-500 focus:ring-orange-400"
-                                        checked={
-                                          selectedQuizId ===
-                                          (quiz.personalQuizID || quiz.quizID)
-                                        }
-                                        onChange={() =>
-                                          setSelectedQuizId(
-                                            quiz.personalQuizID || quiz.quizID,
-                                          )
-                                        }
-                                      />
-                                    </td>
-                                    <td className="px-4 py-3">
-                                      <div className="flex flex-col">
-                                        <span className="text-[14px] font-semibold text-gray-900">
-                                          {quiz.title || "Untitled Quiz"}
-                                        </span>
-                                        {quiz.description && (
-                                          <span className="mt-0.5 line-clamp-2 text-[12px] text-gray-500">
-                                            {quiz.description}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-[13px] whitespace-nowrap text-gray-700">
-                                      {isCustom ? "Custom" : "Subject-based"}
-                                    </td>
-                                    <td className="px-4 py-3 text-[13px] whitespace-nowrap text-gray-700">
-                                      {quiz.subject
-                                        ? `${quiz.subject.subjectCode} - ${quiz.subject.subjectName}`
-                                        : "—"}
-                                    </td>
-                                    <td className="px-4 py-3 text-right text-[13px] whitespace-nowrap text-gray-600">
-                                      {createdDate}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </>
+                            className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                              isSelected
+                                ? "border-orange-500 bg-orange-50"
+                                : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/40"
+                            }`}
+                          >
+                            <div
+                              className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                                isSelected
+                                  ? "border-orange-500 bg-orange-500"
+                                  : "border-gray-300"
+                              }`}
+                            >
+                              {isSelected && (
+                                <i className="bx bx-check text-[12px] text-white" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="outfit-600 truncate text-[13px] font-semibold text-gray-900">
+                                {quiz.title || "Untitled Quiz"}
+                              </p>
+                              {quiz.description && (
+                                <p className="mt-0.5 line-clamp-1 text-[12px] text-gray-500">
+                                  {quiz.description}
+                                </p>
+                              )}
+                            </div>
+                            <span
+                              className={`flex-shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                                isCustom
+                                  ? "bg-purple-50 text-purple-600"
+                                  : "bg-blue-50 text-blue-600"
+                              }`}
+                            >
+                              {isCustom
+                                ? "Custom"
+                                : quiz.subject?.subjectCode || "Subject"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-2 border-t border-gray-200 px-6 py-3">
+                <div className="outfit-400 flex items-center justify-between border-t border-gray-100 px-6 py-4">
                   <button
                     type="button"
                     onClick={() => setIsAssignQuizzesModalOpen(false)}
-                    className="outfit-400 inline-flex cursor-pointer items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
                     disabled={isAssigningQuiz}
+                    className="cursor-pointer text-[14px] font-medium text-gray-500 hover:text-gray-700 disabled:opacity-50"
                   >
-                    Close
+                    Cancel
                   </button>
                   <button
                     type="button"
@@ -2146,132 +2084,55 @@ const ClassContent = () => {
             }
             isLoading={isRemoving}
           />
-          {/* Unassign Quiz Confirmation Modal */}
-          <ConfirmModal
+          {/* Unassign Quiz Warning Modal */}
+          <WarningModal
             isOpen={isUnassignModalOpen}
             onClose={() => {
               setIsUnassignModalOpen(false);
               setQuizToUnassign(null);
             }}
-            onConfirm={handleConfirmUnassignQuiz}
-            message={
+            title="Unassign quiz"
+            subtitle={
               quizToUnassign
-                ? `Are you sure you want to unassign "${quizToUnassign.quizName}" from this class?`
-                : "Are you sure you want to unassign this quiz from the class?"
+                ? `"${quizToUnassign.quizName}" will be removed from this class.`
+                : undefined
             }
-            isLoading={isUnassigningQuiz}
+            description={
+              quizToUnassign
+                ? "Students will no longer see or be able to take this quiz in this class. You can assign it again later."
+                : "This quiz will be removed from the class. You can assign it again later."
+            }
+            confirmLabel="Unassign Quiz"
+            confirmIcon={<i className="bx bx-trash text-lg" />}
+            onConfirm={handleConfirmUnassignQuiz}
+            cancelLabel="Cancel"
+            isConfirmLoading={isUnassigningQuiz}
           />
-          {/* Quiz Settings Modal (dates + unassign) */}
+          {/* Quiz Settings Modal (read-only view for this class + Unassign at bottom) */}
           {isEditDatesModalOpen && quizToEditDates && (
-            <div className="lightbox-bg fixed inset-0 z-40 flex items-center justify-center px-4">
-              <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-                  <div>
-                    <h2 className="outfit-500 text-[18px] text-gray-900">
-                      Settings
-                    </h2>
-                    <p className="text-[13px] text-gray-500">
-                      <span className="font-semibold text-gray-700">
-                        {quizToEditDates.quizName || "this quiz"}
-                      </span>
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsEditDatesModalOpen(false);
-                      setQuizToEditDates(null);
-                      setEditStartDate("");
-                      setEditDeadlineDate("");
-                    }}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
-                  >
-                    <i className="bx bx-x text-xl" />
-                  </button>
-                </div>
-
-                {/* Body */}
-                <div className="space-y-4 px-6 py-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[13px] font-medium text-gray-700">
-                      Start Date (Optional)
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={editStartDate}
-                      onChange={(e) => setEditStartDate(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[13px] font-medium text-gray-700">
-                      Deadline Date (Optional)
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={editDeadlineDate}
-                      onChange={(e) => setEditDeadlineDate(e.target.value)}
-                      min={editStartDate || undefined}
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuizToUnassign(quizToEditDates);
-                        setIsEditDatesModalOpen(false);
-                        setQuizToEditDates(null);
-                        setEditStartDate("");
-                        setEditDeadlineDate("");
-                        setIsUnassignModalOpen(true);
-                      }}
-                      className="outfit-400 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-200 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
-                    >
-                      <i className="bx bx-trash text-sm" />
-                      Unassign
-                    </button>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-end gap-2 border-t border-gray-200 px-6 py-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsEditDatesModalOpen(false);
-                      setQuizToEditDates(null);
-                      setEditStartDate("");
-                      setEditDeadlineDate("");
-                    }}
-                    className="outfit-400 inline-flex cursor-pointer items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                    disabled={isUpdatingDates}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleUpdateDates}
-                    disabled={isUpdatingDates}
-                    className={`outfit-400 inline-flex cursor-pointer items-center rounded-xl px-4 py-2 text-[14px] font-medium text-white transition-colors ${
-                      isUpdatingDates
-                        ? "cursor-not-allowed bg-orange-300"
-                        : "bg-orange-500 hover:bg-orange-600"
-                    }`}
-                  >
-                    {isUpdatingDates ? (
-                      <div className="flex items-center gap-2">
-                        <span className="loader-white"></span>
-                        Updating...
-                      </div>
-                    ) : (
-                      "Update Dates"
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <QuizSettingsModal
+              viewOnly={true}
+              classPersonalQuizID={quizToEditDates.classPersonalQuizID}
+              quizTitle={quizToEditDates.quizName || "Quiz"}
+              classDisplayName={classInfo?.className ?? ""}
+              isFormOpen={isEditDatesModalOpen}
+              setIsFormOpen={(open) => {
+                if (!open) {
+                  setQuizToEditDates(null);
+                }
+                setIsEditDatesModalOpen(open);
+              }}
+              onSuccess={() => {
+                fetchAssignedQuizzes();
+              }}
+              onUnassign={() => {
+                const quiz = quizToEditDates;
+                setIsEditDatesModalOpen(false);
+                setQuizToEditDates(null);
+                setQuizToUnassign(quiz);
+                setIsUnassignModalOpen(true);
+              }}
+            />
           )}
         </div>
       )}

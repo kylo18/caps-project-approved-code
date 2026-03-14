@@ -469,22 +469,22 @@ export default function PrintQualifyingExam() {
   return (
     <div className="outfit -mx-2 mt-10 flex min-h-screen flex-col">
       {/* Settings Bar */}
-      <div className="border-color fixed top-0 z-10 flex w-full items-center space-x-6 border-b bg-white px-8 py-[6px] text-sm">
+      <div className="border-color fixed top-0 z-10 mt-10 flex w-full items-center space-x-6 border-b bg-white px-8 py-[6px] text-sm lg:mt-0">
         {/* Back button */}
         <button
           onClick={() => navigate(-1)}
-          className="flex cursor-pointer -ml-5 items-center justify-center rounded-2xl p-2 hover:bg-gray-100 mr-5"
+          className="mr-5 -ml-5 flex cursor-pointer items-center justify-center rounded-2xl p-2 hover:bg-gray-100"
           aria-label="Go back"
         >
           <i className="bx bx-arrow-left-stroke text-[30px] leading-none"></i>
         </button>
 
-        <span className="text-[16px] font-semibold -ml-5  text-gray-900">Back</span>
+        <span className="-ml-5 text-[16px] font-semibold text-gray-900">
+          Back
+        </span>
 
-
-        
         {/* Font size */}
-        <div className=" ml-10  hidden items-center space-x-2 min-[870px]:flex">
+        <div className="ml-10 hidden items-center space-x-2 min-[870px]:flex">
           <span className="text-[14px] text-gray-900">Font size</span>
           {["S", "M", "L", "XL"].map((size) => (
             <button
@@ -497,7 +497,7 @@ export default function PrintQualifyingExam() {
             </button>
           ))}
         </div>
-        <div className=" hidden items-center space-x-2 min-[870px]:flex">
+        <div className="hidden items-center space-x-2 min-[870px]:flex">
           <span className="text-[14px] text-gray-900">Image size</span>
           {["S", "M", "L", "XL"].map((size) => (
             <button
@@ -511,8 +511,7 @@ export default function PrintQualifyingExam() {
           ))}
         </div>
 
-        <div className="ml-2 h-8 w-px hidden min-[870px]:flex  bg-gray-300" />
-
+        <div className="ml-2 hidden h-8 w-px bg-gray-300 min-[870px]:flex" />
 
         {/* Toggles */}
         <div className="ml-2 hidden items-center space-x-[10px] min-[870px]:flex">
@@ -618,7 +617,7 @@ export default function PrintQualifyingExam() {
 
       {/* Main Content Row */}
       <div
-        className="mt-10 mb-20 flex flex-1 lg:mb-0"
+        className="mt-10 mb-20 flex flex-1 pb-35 lg:mb-0"
         style={{
           maxWidth: "100%",
           width: "100%",
@@ -1099,7 +1098,7 @@ export default function PrintQualifyingExam() {
                       );
 
                       // Calculate how many columns we need (10 answers per column)
-                      const answersPerColumn = 10;
+                      const answersPerColumn = 25;
                       const numColumns = Math.ceil(
                         answers.length / answersPerColumn,
                       );
@@ -1658,24 +1657,23 @@ export default function PrintQualifyingExam() {
             <div className="flex flex-col items-start gap-1 text-[14px]">
               {/* Easy */}
               <div className="flex items-center gap-2">
-                <i className="bx bx-happy-beaming text-green-500 text-[16px]" />
+                <i className="bx bx-happy-beaming text-[16px] text-green-500" />
                 <span>{difficultyDistribution.easy}% easy</span>
               </div>
 
               {/* Moderate */}
               <div className="flex items-center gap-2">
-                <i className="bx bx-smile text-yellow-500 text-[16px]" />
+                <i className="bx bx-smile text-[16px] text-yellow-500" />
                 <span>{difficultyDistribution.moderate}% medium</span>
               </div>
 
               {/* Hard */}
               <div className="flex items-center gap-2">
-                <i className="bx bx-meh text-red-500 text-[16px]" />
+                <i className="bx bx-meh text-[16px] text-red-500" />
                 <span>{difficultyDistribution.hard}% hard</span>
               </div>
             </div>
           )}
-
         </div>
 
         {/* Show exam details if available */}
@@ -1683,7 +1681,7 @@ export default function PrintQualifyingExam() {
           <div className="mb-4 hidden space-y-2 text-sm text-gray-700 min-[1200px]:block">
             {subjects && subjects.length > 0 && (
               <div>
-                <span className="text-[14px] font-medium mb-1">Subjects:</span>
+                <span className="mb-1 text-[14px] font-medium">Subjects:</span>
                 <div className="ml-2">
                   {subjects.map((subject, idx) => (
                     <div key={idx} className="text-[14px]">
@@ -1709,7 +1707,7 @@ export default function PrintQualifyingExam() {
             {isDownloading ? "Downloading..." : "Worksheet"}
           </button>
           <button
-            className="flex-1 cursor-pointer rounded-md border border-orange-500  py-2 text-[14px] font-semibold text-orange-500 transition-colors hover:bg-orange-200"
+            className="flex-1 cursor-pointer rounded-md border border-orange-500 py-2 text-[14px] font-semibold text-orange-500 transition-colors hover:bg-orange-200"
             onClick={handleDownloadAnswerKey}
             disabled={isDownloadingAnswerKey}
           >

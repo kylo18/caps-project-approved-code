@@ -518,20 +518,34 @@ const StudentQuiz = () => {
         setIsLoading(false);
         return;
       }
-      if (!startData) {
-        setError(
-          "Quiz session data is missing. Please start the quiz from the Quiz Info page.",
-        );
-        setIsLoading(false);
-        return;
-      }
 
       setIsLoading(true);
       setError(null);
       if (isModified) setShowModifiedWarning(true);
 
       try {
-        const data = startData;
+        // If startData is missing (e.g. after a page refresh), try to restore
+        // quiz session from localStorage using a key we look up by quizID.
+        let data = startData;
+
+        if (!data) {
+          // Try to find the most recently saved session for this quizID
+          const metaRaw = localStorage.getItem(`quiz_${quizID}_meta`);
+          if (metaRaw) {
+            try {
+              data = JSON.parse(metaRaw);
+            } catch {
+              /* ignore */
+            }
+          }
+          if (!data) {
+            setError(
+              "Quiz session data is missing. Please start the quiz from the Quiz Info page.",
+            );
+            setIsLoading(false);
+            return;
+          }
+        }
 
         const generatedQuizKey =
           resumeAttempt && attemptNumber
@@ -539,58 +553,40 @@ const StudentQuiz = () => {
             : `quiz_${quizID}_attempt_${data.attemptNumber}`;
         setQuizKey(generatedQuizKey);
 
-        if (resumeAttempt) {
-          const savedQs = localStorage.getItem(`${generatedQuizKey}_questions`);
-          let questionsToUse = data.questions;
-          if (savedQs) {
-            try {
-              questionsToUse = JSON.parse(savedQs);
-            } catch {
-              /* ignore */
-            }
-          }
-          setQuizData({
+        // Always save metadata so a refresh can restore it
+        localStorage.setItem(
+          `quiz_${quizID}_meta`,
+          JSON.stringify({
             quiz: data.quiz,
             settings: data.settings,
-            questions: questionsToUse,
-            attemptNumber: attemptNumber || data.attemptNumber,
-            startedAt: data.startedAt,
-          });
-
-          const savedAnswers = localStorage.getItem(generatedQuizKey);
-          if (savedAnswers) {
-            try {
-              setAnswers(JSON.parse(savedAnswers));
-            } catch {
-              /* ignore */
-            }
-          }
-          const savedFlags = localStorage.getItem(`${generatedQuizKey}_flags`);
-          if (savedFlags) {
-            try {
-              setFlaggedQuestions(JSON.parse(savedFlags));
-            } catch {
-              /* ignore */
-            }
-          }
-          const savedTimer = localStorage.getItem(`${generatedQuizKey}_timer`);
-          if (savedTimer && data.settings?.quizTimerEnabled) {
-            const t = parseInt(savedTimer);
-            setSecondsLeft(t > 0 ? t : 0);
-          } else if (
-            data.settings?.quizTimerEnabled &&
-            data.settings?.quizTimer
-          ) {
-            setSecondsLeft(data.settings.quizTimer * 60);
-          }
-        } else {
-          setQuizData({
-            quiz: data.quiz,
-            settings: data.settings,
-            questions: data.questions,
             attemptNumber: data.attemptNumber,
             startedAt: data.startedAt,
-          });
+          }),
+        );
+
+        // Load questions: prefer any previously saved copy, otherwise use the
+        // questions from startData.
+        const savedQs = localStorage.getItem(`${generatedQuizKey}_questions`);
+        let questionsToUse = data.questions || [];
+        if (savedQs) {
+          try {
+            questionsToUse = JSON.parse(savedQs);
+          } catch {
+            /* ignore */
+          }
+        }
+
+        setQuizData({
+          quiz: data.quiz,
+          settings: data.settings,
+          questions: questionsToUse,
+          attemptNumber: attemptNumber || data.attemptNumber,
+          startedAt: data.startedAt,
+        });
+
+        // On a truly fresh attempt, persist the questions + version info once,
+        // mirroring the robustness of PracticeExam's persistence.
+        if (!savedQs && data.questions?.length) {
           localStorage.setItem(
             `${generatedQuizKey}_questions`,
             JSON.stringify(data.questions),
@@ -615,8 +611,45 @@ const StudentQuiz = () => {
             `${generatedQuizKey}_version`,
             JSON.stringify(quizVersion),
           );
-          if (data.settings?.quizTimerEnabled && data.settings?.quizTimer) {
-            setSecondsLeft(data.settings.quizTimer * 60);
+        }
+
+        // Restore persisted state (answers, flags, timer, last question)
+        const savedAnswers = localStorage.getItem(generatedQuizKey);
+        if (savedAnswers) {
+          try {
+            setAnswers(JSON.parse(savedAnswers));
+          } catch {
+            /* ignore */
+          }
+        }
+
+        const savedFlags = localStorage.getItem(`${generatedQuizKey}_flags`);
+        if (savedFlags) {
+          try {
+            setFlaggedQuestions(JSON.parse(savedFlags));
+          } catch {
+            /* ignore */
+          }
+        }
+
+        const savedTimer = localStorage.getItem(`${generatedQuizKey}_timer`);
+        if (savedTimer && data.settings?.quizTimerEnabled) {
+          const t = parseInt(savedTimer);
+          setSecondsLeft(Number.isFinite(t) && t > 0 ? t : 0);
+        } else if (
+          data.settings?.quizTimerEnabled &&
+          data.settings?.quizTimer
+        ) {
+          setSecondsLeft(data.settings.quizTimer * 60);
+        }
+
+        const savedQ = localStorage.getItem(
+          `${generatedQuizKey}_last_question`,
+        );
+        if (savedQ !== null) {
+          const idx = parseInt(savedQ);
+          if (!isNaN(idx) && idx >= 0 && idx < questionsToUse.length) {
+            setCurrentQuestionIndex(idx);
           }
         }
       } catch (err) {
@@ -669,16 +702,44 @@ const StudentQuiz = () => {
     }
   }, [flaggedQuestions, quizKey]);
 
+  /* ── Persist current question index ── */
+  useEffect(() => {
+    if (quizKey && quizData)
+      localStorage.setItem(
+        `${quizKey}_last_question`,
+        currentQuestionIndex.toString(),
+      );
+  }, [currentQuestionIndex, quizKey, quizData]);
+
+  /* ── beforeunload: save position before refresh ── */
+  useEffect(() => {
+    const handler = () => {
+      if (quizKey && quizData)
+        localStorage.setItem(
+          `${quizKey}_last_question`,
+          currentQuestionIndex.toString(),
+        );
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [quizKey, currentQuestionIndex, quizData]);
+
   /* ── Cleanup ── */
   useEffect(() => {
     return () => {
       if (quizKey && secondsLeft === 0) {
-        ["", "_flags", "_timer", "_version", "_questions"].forEach((suffix) =>
-          localStorage.removeItem(`${quizKey}${suffix}`),
-        );
+        [
+          "",
+          "_flags",
+          "_timer",
+          "_version",
+          "_questions",
+          "_last_question",
+        ].forEach((suffix) => localStorage.removeItem(`${quizKey}${suffix}`));
+        localStorage.removeItem(`quiz_${quizID}_meta`);
       }
     };
-  }, [quizKey, secondsLeft]);
+  }, [quizKey, secondsLeft, quizID]);
 
   /* ── Reset image modals on question change ── */
   useEffect(() => {
@@ -829,9 +890,15 @@ const StudentQuiz = () => {
         throw new Error(result.message || "Failed to submit quiz");
 
       if (quizKey) {
-        ["", "_flags", "_timer", "_version", "_questions"].forEach((suffix) =>
-          localStorage.removeItem(`${quizKey}${suffix}`),
-        );
+        [
+          "",
+          "_flags",
+          "_timer",
+          "_version",
+          "_questions",
+          "_last_question",
+        ].forEach((suffix) => localStorage.removeItem(`${quizKey}${suffix}`));
+        localStorage.removeItem(`quiz_${quizID}_meta`);
       }
       setSecondsLeft(0);
       navigate(`/quiz-result/${quizID}`, {
@@ -839,6 +906,7 @@ const StudentQuiz = () => {
           result: result.result,
           questions: result.questions,
           quiz: result.quiz,
+          settings: result.settings,
           classID,
           classPersonalQuizID: quizID,
         },
@@ -861,7 +929,7 @@ const StudentQuiz = () => {
      RENDER
   ════════════════════════════════════════════════════════════ */
   return (
-    <div className="outfit flex h-screen flex-col overflow-hidden bg-gray-100 font-sans">
+    <div className="outfit flex h-screen flex-col overflow-hidden bg-white font-sans">
       <Toast message={toast.message} type={toast.type} show={toast.show} />
       <TimerCompletionModal
         isOpen={showTimerCompletionModal}
@@ -1293,7 +1361,7 @@ const StudentQuiz = () => {
           )}
 
           {/* Question content — scrollable, includes breadcrumb */}
-          <div className="w-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-8 py-5">
+          <div className="w-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-5">
             {/* Breadcrumb + flag/hide — scrolls with content */}
             <div className="mb-4 flex items-center gap-2 overflow-hidden">
               {/* Scrollable breadcrumb */}
@@ -1302,10 +1370,24 @@ const StudentQuiz = () => {
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
                 <div className="outfit-500 flex items-center gap-2 text-[12px] font-medium whitespace-nowrap">
-                  <span className="tracking-wide text-gray-500 uppercase">
-                    {breadcrumbClass || quizData.quiz.subject || "Class"}
+                  {/* Subject */}
+                  <span
+                    className="max-w-[12ch] truncate tracking-wide text-gray-500 uppercase"
+                    title={breadcrumbClass || quizData.quiz.subject || "Class"}
+                  >
+                    {(breadcrumbClass || quizData.quiz.subject || "Class")
+                      .length > 12
+                      ? (
+                          breadcrumbClass ||
+                          quizData.quiz.subject ||
+                          "Class"
+                        ).slice(0, 12) + "…"
+                      : breadcrumbClass || quizData.quiz.subject || "Class"}
                   </span>
+
                   <i className="bx bx-chevron-right flex-shrink-0 text-gray-400" />
+
+                  {/* Quiz */}
                   <span className="font-semibold tracking-wide text-orange-500 uppercase">
                     {breadcrumbQuiz || quizData.quiz.topic || "Quiz"}
                   </span>
@@ -1322,7 +1404,7 @@ const StudentQuiz = () => {
                 </button>
                 <button
                   onClick={handleToggleFlag}
-                  className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-[7px] text-[12px] font-medium transition ${
+                  className={`flex cursor-pointer items-center gap-1.5 rounded-lg border p-[7px] text-[12px] font-medium transition md:px-3 md:py-[7px] ${
                     isFlagged
                       ? "border-orange-300 bg-yellow-50 text-yellow-600"
                       : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
@@ -1331,7 +1413,9 @@ const StudentQuiz = () => {
                   <i
                     className={`bx ${isFlagged ? "bxs-bookmark" : "bx-bookmark"} text-[14px]`}
                   />
-                  {isFlagged ? "Bookmarked" : "Bookmark"}
+                  <span className="hidden md:inline">
+                    {isFlagged ? "Bookmarked" : "Bookmark"}
+                  </span>
                 </button>
               </div>
             </div>

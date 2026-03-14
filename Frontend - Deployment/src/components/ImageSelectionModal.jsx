@@ -45,8 +45,6 @@ const ImageSelectionModal = ({
         // Reset crop and zoom when new image is loaded
         setCrop({ x: 0, y: 0 });
         setZoom(1);
-        // Reset crop size to fit 300px height container
-        setCropSize({ width: 300, height: 300 });
       };
       reader.readAsDataURL(file);
     }
@@ -62,6 +60,20 @@ const ImageSelectionModal = ({
       img.src = imageSrc;
     }
   }, [imageSrc, imageLoaded]);
+
+  // Once the image is loaded and the container is measured, normalize crop size
+  // so it scales with the viewport (desktop vs mobile) instead of a fixed px size.
+  useEffect(() => {
+    if (!imageLoaded || !cropContainerRef.current) return;
+
+    const rect = cropContainerRef.current.getBoundingClientRect();
+    const base = Math.min(rect.width, rect.height) * 0.8; // 80% of the smaller side
+
+    setCropSize({
+      width: Math.max(100, base),
+      height: Math.max(100, base),
+    });
+  }, [imageLoaded]);
 
   const handleFileInputChange = (e) => {
     const file = e.target.files?.[0];
@@ -180,7 +192,6 @@ const ImageSelectionModal = ({
     setSearchQuery("");
     setIsDragging(false);
     dragCounter.current = 0;
-    setCropSize({ width: 300, height: 300 });
     setIsResizing(false);
     setResizeHandle(null);
     if (fileInputRef.current) {
@@ -189,7 +200,7 @@ const ImageSelectionModal = ({
     onClose();
   };
 
-  // Handle resize start
+  // Handle resize start (mouse + touch)
   const handleResizeStart = (e, handle) => {
     e.preventDefault();
     e.stopPropagation();
@@ -202,9 +213,16 @@ const ImageSelectionModal = ({
     const containerCenterX = containerRect.left + containerRect.width / 2;
     const containerCenterY = containerRect.top + containerRect.height / 2;
 
-    // Calculate initial mouse position relative to center
-    const initialX = e.clientX - containerCenterX;
-    const initialY = e.clientY - containerCenterY;
+    const point =
+      e.touches && e.touches[0]
+        ? e.touches[0]
+        : e.changedTouches && e.changedTouches[0]
+          ? e.changedTouches[0]
+          : e;
+
+    // Calculate initial pointer position relative to center
+    const initialX = point.clientX - containerCenterX;
+    const initialY = point.clientY - containerCenterY;
 
     setResizeStartPos({ x: initialX, y: initialY });
     setResizeStartSize({ ...cropSize });
@@ -214,16 +232,23 @@ const ImageSelectionModal = ({
   useEffect(() => {
     if (!isResizing || !resizeHandle) return;
 
-    const handleMouseMove = (e) => {
+    const updateSizeFromEvent = (evt) => {
       if (!cropContainerRef.current) return;
 
       const containerRect = cropContainerRef.current.getBoundingClientRect();
       const containerCenterX = containerRect.left + containerRect.width / 2;
       const containerCenterY = containerRect.top + containerRect.height / 2;
 
-      // Calculate current mouse position relative to container center
-      const currentX = e.clientX - containerCenterX;
-      const currentY = e.clientY - containerCenterY;
+      const point =
+        evt.touches && evt.touches[0]
+          ? evt.touches[0]
+          : evt.changedTouches && evt.changedTouches[0]
+            ? evt.changedTouches[0]
+            : evt;
+
+      // Calculate current pointer position relative to container center
+      const currentX = point.clientX - containerCenterX;
+      const currentY = point.clientY - containerCenterY;
 
       // Calculate distance from center
       const distanceX = Math.abs(currentX);
@@ -260,17 +285,31 @@ const ImageSelectionModal = ({
       setCropSize({ width: newWidth, height: newHeight });
     };
 
+    const handleMouseMove = (e) => {
+      e.preventDefault();
+      updateSizeFromEvent(e);
+    };
+
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      updateSizeFromEvent(e);
+    };
+
     const handleMouseUp = () => {
       setIsResizing(false);
       setResizeHandle(null);
     };
 
     document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("touchmove", handleTouchMove, { passive: false });
     document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("touchend", handleMouseUp);
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchend", handleMouseUp);
     };
   }, [isResizing, resizeHandle, resizeStartPos, resizeStartSize]);
 
@@ -370,6 +409,7 @@ const ImageSelectionModal = ({
                   {/* Resize handles */}
                   <div
                     onMouseDown={(e) => handleResizeStart(e, "nw")}
+                    onTouchStart={(e) => handleResizeStart(e, "nw")}
                     style={{
                       position: "absolute",
                       top: "-6px",
@@ -386,6 +426,7 @@ const ImageSelectionModal = ({
                   />
                   <div
                     onMouseDown={(e) => handleResizeStart(e, "ne")}
+                    onTouchStart={(e) => handleResizeStart(e, "ne")}
                     style={{
                       position: "absolute",
                       top: "-6px",
@@ -402,6 +443,7 @@ const ImageSelectionModal = ({
                   />
                   <div
                     onMouseDown={(e) => handleResizeStart(e, "sw")}
+                    onTouchStart={(e) => handleResizeStart(e, "sw")}
                     style={{
                       position: "absolute",
                       bottom: "-6px",
@@ -418,6 +460,7 @@ const ImageSelectionModal = ({
                   />
                   <div
                     onMouseDown={(e) => handleResizeStart(e, "se")}
+                    onTouchStart={(e) => handleResizeStart(e, "se")}
                     style={{
                       position: "absolute",
                       bottom: "-6px",
@@ -434,6 +477,7 @@ const ImageSelectionModal = ({
                   />
                   <div
                     onMouseDown={(e) => handleResizeStart(e, "n")}
+                    onTouchStart={(e) => handleResizeStart(e, "n")}
                     style={{
                       position: "absolute",
                       top: "-6px",
@@ -451,6 +495,7 @@ const ImageSelectionModal = ({
                   />
                   <div
                     onMouseDown={(e) => handleResizeStart(e, "s")}
+                    onTouchStart={(e) => handleResizeStart(e, "s")}
                     style={{
                       position: "absolute",
                       bottom: "-6px",
@@ -468,6 +513,7 @@ const ImageSelectionModal = ({
                   />
                   <div
                     onMouseDown={(e) => handleResizeStart(e, "e")}
+                    onTouchStart={(e) => handleResizeStart(e, "e")}
                     style={{
                       position: "absolute",
                       top: "50%",
@@ -485,6 +531,7 @@ const ImageSelectionModal = ({
                   />
                   <div
                     onMouseDown={(e) => handleResizeStart(e, "w")}
+                    onTouchStart={(e) => handleResizeStart(e, "w")}
                     style={{
                       position: "absolute",
                       top: "50%",

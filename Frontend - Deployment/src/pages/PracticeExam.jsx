@@ -765,7 +765,7 @@ const PracticeExam = () => {
      RENDER
   ════════════════════════════════════════════════ */
   return (
-    <div className="outfit flex h-screen flex-col overflow-hidden bg-gray-100 font-sans">
+    <div className="outfit flex h-screen flex-col overflow-hidden bg-white font-sans">
       <WarningModal
         isOpen={showSubmitWarning}
         onClose={() => setShowSubmitWarning(false)}
@@ -993,7 +993,7 @@ const PracticeExam = () => {
                 icon: "bx-pencil",
                 label: "Scratchpad",
                 action: () => setShowScratchpad(true),
-                locked: false,
+                locked: true,
               },
               {
                 icon: "bx-calculator",
@@ -1082,7 +1082,7 @@ const PracticeExam = () => {
 
         {/* ════ CENTER MAIN ════ */}
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="w-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-8 py-5">
+          <div className="w-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-5 md:px-8">
             {/* Breadcrumb */}
             <div className="mb-4 flex items-center gap-2 overflow-hidden">
               <div

@@ -31,7 +31,7 @@ const HeaderDropdown = ({
   const selectedOption = options.find((opt) => opt.value === value);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="outfit-400 flex items-center gap-2">
       {label && <span className="text-[14px] text-gray-700">{label}</span>}
       <div className="relative" ref={dropdownRef}>
         <button
@@ -823,9 +823,9 @@ const CombinedQuestionForm = ({
 
   return (
     <>
-      <div className="outfit lightbox-bg fixed inset-0 z-105 flex flex-col overflow-hidden bg-gray-100 animate-slide-up">
+      <div className="outfit lightbox-bg animate-slide-up fixed inset-0 z-105 flex flex-col overflow-hidden bg-gray-100">
         {/* Full Screen Header */}
-        <div className="outfit-400 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
+        <div className="outfit-400 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm md:px-6">
           {/* Left Side: Back arrow and Multiple Choice */}
           <div className="flex items-center gap-4">
             <button
@@ -835,21 +835,23 @@ const CombinedQuestionForm = ({
               <i className="bx bx-arrow-left-stroke text-2xl"></i>
             </button>
             <div className="flex items-center gap-2">
-              <span className="text-[16px] font-medium text-gray-800">
+              <span className="text-[14px] font-medium text-gray-800 md:text-[16px]">
                 Create a Question
               </span>
             </div>
           </div>
 
           {/* Right Side: Difficulty, Coverage, Purpose, Save Button */}
-          <div className="flex items-center gap-4">
-            {/* Mobile Settings Button - Hidden on desktop */}
-            <button
-              onClick={() => setIsSettingsModalOpen(true)}
-              className="flex cursor-pointer items-center gap-2 rounded-lg bg-gray-200 px-3 py-1.5 text-[14px] font-medium text-gray-700 transition hover:bg-gray-300 md:hidden"
-            >
-              <i className="bx bx-cog text-[18px]"></i>
-            </button>
+          <div className="flex items-center gap-2">
+            {/* Mobile Settings Button - Hidden on desktop and in quiz mode */}
+            {mode !== "quiz" && (
+              <button
+                onClick={() => setIsSettingsModalOpen(true)}
+                className="flex cursor-pointer items-center gap-2 rounded-lg p-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100 md:hidden"
+              >
+                <i className="bx bx-cog text-[20px]"></i>
+              </button>
+            )}
 
             {/* Desktop Dropdowns - Hidden on mobile */}
             <div className="hidden items-center gap-4 md:flex">
@@ -901,10 +903,8 @@ const CombinedQuestionForm = ({
                   : "hover:bg-orange-600"
               }`}
             >
-              <i className="bx bx-save text-[18px]"></i>
-              <span className="hidden sm:inline">
-                {isLoading ? "Saving..." : "Save"}
-              </span>
+              {/* Text */}
+              <span>{isLoading ? "Saving..." : "Save"}</span>
             </button>
           </div>
         </div>
@@ -920,7 +920,7 @@ const CombinedQuestionForm = ({
                   e.preventDefault();
                   handleFormat("bold", setIsBold);
                 }}
-                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isBold ? "bg-gray-200 text-gray-900" : ""}`}
+                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:text-gray-900 ${isBold ? "bg-gray-200 text-gray-900" : ""}`}
               >
                 <i className="bx bx-bold text-[18px]"></i>
               </button>
@@ -931,7 +931,7 @@ const CombinedQuestionForm = ({
                   e.preventDefault();
                   handleFormat("italic", setIsItalic);
                 }}
-                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isItalic ? "bg-gray-200 text-gray-900" : ""}`}
+                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:text-gray-900 ${isItalic ? "bg-gray-200 text-gray-900" : ""}`}
               >
                 <i className="bx bx-italic text-[18px]"></i>
               </button>
@@ -942,7 +942,7 @@ const CombinedQuestionForm = ({
                   e.preventDefault();
                   handleFormat("underline", setIsUnderline);
                 }}
-                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isUnderline ? "bg-gray-200 text-gray-900" : ""}`}
+                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:text-gray-900 ${isUnderline ? "bg-gray-200 text-gray-900" : ""}`}
               >
                 <i className="bx bx-underline text-[18px]"></i>
               </button>
@@ -953,7 +953,7 @@ const CombinedQuestionForm = ({
                   e.preventDefault();
                   handleFormat("strikeThrough", setIsStrikethrough);
                 }}
-                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isStrikethrough ? "bg-gray-200 text-gray-900" : ""}`}
+                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:text-gray-900 ${isStrikethrough ? "bg-gray-200 text-gray-900" : ""}`}
               >
                 <i className="bx bx-strikethrough text-[18px]"></i>
               </button>
@@ -987,9 +987,9 @@ const CombinedQuestionForm = ({
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
+        <div className="flex-1 overflow-y-auto bg-gray-100 p-4 md:p-6">
           <div className="mx-auto max-w-7xl">
-            {/* Question Input Section - Dark Purple Box */}
+            {/* Question Input Section  */}
             <div className="mb-3 rounded-xl border border-gray-200 bg-white p-6">
               <div className="flex flex-col gap-4 md:flex-row">
                 {/* Question Input Area */}
@@ -1265,7 +1265,7 @@ const CombinedQuestionForm = ({
 
             {/* Choices Section - Colorful Cards */}
             <div className="rounded-xl border border-gray-200 bg-white p-6">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
                 {formData.choices.map((choice, index) => (
                   <div
                     key={index}
@@ -1326,7 +1326,10 @@ const CombinedQuestionForm = ({
                     </div>
 
                     {/* Choice Content - key forces correct branch when switching text/image */}
-                    <div className="mt-8" key={`choice-content-${index}-${choice.image ? "img" : "txt"}`}>
+                    <div
+                      className="mt-8"
+                      key={`choice-content-${index}-${choice.image ? "img" : "txt"}`}
+                    >
                       {choice.image ? (
                         // If image exists, show image only (no text)
                         <div className="flex w-full min-w-0 flex-col items-center">
@@ -1367,192 +1370,205 @@ const CombinedQuestionForm = ({
                       ) : (
                         // If no image, show contentEditable input
                         <div className="relative flex min-h-[60px] w-full items-center justify-center">
-                        {focusedChoice !== index && !choice.choiceText && (
-                          <span className="pointer-events-none absolute top-1/2 left-1/2 -mt-2 max-w-full -translate-x-1/2 -translate-y-1/2 transform overflow-hidden text-center text-[14px] whitespace-nowrap text-gray-400">
-                            Type answer option here
-                          </span>
-                        )}
-                        <div
-                          ref={(el) => {
-                            if (el) choiceEditors.current[index] = el;
-                          }}
-                          contentEditable={!choice.isFixed}
-                          suppressContentEditableWarning
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                          onPaste={(e) => {
-                            if (choice.isFixed) {
+                          {focusedChoice !== index && !choice.choiceText && (
+                            <span className="pointer-events-none absolute top-1/2 left-1/2 -mt-2 max-w-full -translate-x-1/2 -translate-y-1/2 transform overflow-hidden text-center text-[14px] whitespace-nowrap text-gray-400">
+                              Type answer option here
+                            </span>
+                          )}
+                          <div
+                            ref={(el) => {
+                              if (el) choiceEditors.current[index] = el;
+                            }}
+                            contentEditable={!choice.isFixed}
+                            suppressContentEditableWarning
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            onPaste={(e) => {
+                              if (choice.isFixed) {
+                                e.preventDefault();
+                                return;
+                              }
                               e.preventDefault();
-                              return;
-                            }
-                            e.preventDefault();
-                            const selection = window.getSelection();
-                            if (selection.rangeCount === 0) return;
+                              const selection = window.getSelection();
+                              if (selection.rangeCount === 0) return;
 
-                            const editor = choiceEditors.current[index];
-                            if (!editor) return;
+                              const editor = choiceEditors.current[index];
+                              if (!editor) return;
 
-                            const currentText = editor.textContent || "";
-                            const currentLength = currentText.length;
-                            const remainingChars = 500 - currentLength;
+                              const currentText = editor.textContent || "";
+                              const currentLength = currentText.length;
+                              const remainingChars = 500 - currentLength;
 
-                            if (remainingChars <= 0) return; // Already at limit
+                              if (remainingChars <= 0) return; // Already at limit
 
-                            const range = selection.getRangeAt(0);
-                            range.deleteContents();
+                              const range = selection.getRangeAt(0);
+                              range.deleteContents();
 
-                            // Try to get HTML first to preserve superscript/subscript
-                            let html = e.clipboardData.getData("text/html");
-                            let text = e.clipboardData.getData("text/plain");
+                              // Try to get HTML first to preserve superscript/subscript
+                              let html = e.clipboardData.getData("text/html");
+                              let text = e.clipboardData.getData("text/plain");
 
-                            if (html) {
-                              // Clean HTML while preserving superscript/subscript
-                              html = cleanPastedHTML(html);
-                              const tempDiv = document.createElement("div");
-                              tempDiv.innerHTML = html;
-                              // Ensure no transforms or direction issues
-                              tempDiv.style.direction = "ltr";
-                              tempDiv.style.transform = "none";
-                              tempDiv.style.writingMode = "horizontal-tb";
+                              if (html) {
+                                // Clean HTML while preserving superscript/subscript
+                                html = cleanPastedHTML(html);
+                                const tempDiv = document.createElement("div");
+                                tempDiv.innerHTML = html;
+                                // Ensure no transforms or direction issues
+                                tempDiv.style.direction = "ltr";
+                                tempDiv.style.transform = "none";
+                                tempDiv.style.writingMode = "horizontal-tb";
 
-                              // Normalize spaces in all text nodes
-                              const normalizeTextNodes = (node) => {
-                                if (node.nodeType === Node.TEXT_NODE) {
-                                  node.textContent = node.textContent.replace(
-                                    /\s+/g,
-                                    " ",
-                                  );
-                                } else {
-                                  // Ensure no problematic styles on elements
-                                  if (node.nodeType === Node.ELEMENT_NODE) {
-                                    node.style.direction = "ltr";
-                                    node.style.transform = "none";
-                                    node.style.writingMode = "horizontal-tb";
+                                // Normalize spaces in all text nodes
+                                const normalizeTextNodes = (node) => {
+                                  if (node.nodeType === Node.TEXT_NODE) {
+                                    node.textContent = node.textContent.replace(
+                                      /\s+/g,
+                                      " ",
+                                    );
+                                  } else {
+                                    // Ensure no problematic styles on elements
+                                    if (node.nodeType === Node.ELEMENT_NODE) {
+                                      node.style.direction = "ltr";
+                                      node.style.transform = "none";
+                                      node.style.writingMode = "horizontal-tb";
+                                    }
+                                    node.childNodes.forEach(normalizeTextNodes);
                                   }
-                                  node.childNodes.forEach(normalizeTextNodes);
+                                };
+                                normalizeTextNodes(tempDiv);
+
+                                const pastedText =
+                                  tempDiv.textContent ||
+                                  tempDiv.innerText ||
+                                  "";
+
+                                // Truncate if needed
+                                if (pastedText.length > remainingChars) {
+                                  const truncatedText = pastedText.substring(
+                                    0,
+                                    remainingChars,
+                                  );
+                                  const textNode =
+                                    document.createTextNode(truncatedText);
+                                  range.insertNode(textNode);
+                                } else {
+                                  const fragment =
+                                    document.createDocumentFragment();
+                                  while (tempDiv.firstChild) {
+                                    fragment.appendChild(tempDiv.firstChild);
+                                  }
+                                  range.insertNode(fragment);
                                 }
-                              };
-                              normalizeTextNodes(tempDiv);
-
-                              const pastedText =
-                                tempDiv.textContent || tempDiv.innerText || "";
-
-                              // Truncate if needed
-                              if (pastedText.length > remainingChars) {
-                                const truncatedText = pastedText.substring(
-                                  0,
-                                  remainingChars,
-                                );
-                                const textNode =
-                                  document.createTextNode(truncatedText);
+                              } else if (text) {
+                                // Fallback to plain text if no HTML
+                                // Normalize all whitespace (spaces, tabs, newlines) to single space
+                                text = text.replace(/\s+/g, " ").trim();
+                                // Truncate if needed
+                                if (text.length > remainingChars) {
+                                  text = text.substring(0, remainingChars);
+                                }
+                                const textNode = document.createTextNode(text);
                                 range.insertNode(textNode);
-                              } else {
-                                const fragment = document.createDocumentFragment();
-                                while (tempDiv.firstChild) {
-                                  fragment.appendChild(tempDiv.firstChild);
-                                }
-                                range.insertNode(fragment);
                               }
-                            } else if (text) {
-                              // Fallback to plain text if no HTML
-                              // Normalize all whitespace (spaces, tabs, newlines) to single space
-                              text = text.replace(/\s+/g, " ").trim();
-                              // Truncate if needed
-                              if (text.length > remainingChars) {
-                                text = text.substring(0, remainingChars);
+
+                              range.collapse(false);
+                              selection.removeAllRanges();
+                              selection.addRange(range);
+
+                              if (choiceEditors.current[index]) {
+                                autoExpandTextarea(
+                                  choiceEditors.current[index],
+                                );
+                                handleChoiceChange(
+                                  index,
+                                  "choiceText",
+                                  choiceEditors.current[index].innerHTML,
+                                );
                               }
-                              const textNode = document.createTextNode(text);
-                              range.insertNode(textNode);
-                            }
+                            }}
+                            onInput={(e) => {
+                              if (choice.isFixed) return;
+                              const editor = e.target;
+                              const textLength = getTextLength(
+                                editor.innerHTML,
+                              );
 
-                            range.collapse(false);
-                            selection.removeAllRanges();
-                            selection.addRange(range);
+                              // Enforce 500 character limit
+                              if (textLength > 500) {
+                                // Truncate to 500 characters
+                                const tempDiv = document.createElement("div");
+                                tempDiv.innerHTML = editor.innerHTML;
+                                let text =
+                                  tempDiv.textContent ||
+                                  tempDiv.innerText ||
+                                  "";
+                                text = text.substring(0, 500);
+                                editor.innerHTML = text;
+                              }
 
-                            if (choiceEditors.current[index]) {
-                              autoExpandTextarea(choiceEditors.current[index]);
+                              // Auto-expand height
+                              editor.style.height = "auto";
+                              editor.style.height = `${Math.max(60, editor.scrollHeight)}px`;
                               handleChoiceChange(
                                 index,
                                 "choiceText",
-                                choiceEditors.current[index].innerHTML,
+                                editor.innerHTML,
                               );
-                            }
-                          }}
-                          onInput={(e) => {
-                            if (choice.isFixed) return;
-                            const editor = e.target;
-                            const textLength = getTextLength(editor.innerHTML);
-
-                            // Enforce 500 character limit
-                            if (textLength > 500) {
-                              // Truncate to 500 characters
-                              const tempDiv = document.createElement("div");
-                              tempDiv.innerHTML = editor.innerHTML;
-                              let text =
-                                tempDiv.textContent || tempDiv.innerText || "";
-                              text = text.substring(0, 500);
-                              editor.innerHTML = text;
-                            }
-
-                            // Auto-expand height
-                            editor.style.height = "auto";
-                            editor.style.height = `${Math.max(60, editor.scrollHeight)}px`;
-                            handleChoiceChange(index, "choiceText", editor.innerHTML);
-                          }}
-                          onKeyDown={(e) => {
-                            // Prevent input if at character limit
-                            const currentLength = getTextLength(
-                              choiceEditors.current[index]?.innerHTML || "",
-                            );
-                            if (
-                              currentLength >= 500 &&
-                              e.key !== "Backspace" &&
-                              e.key !== "Delete" &&
-                              !e.ctrlKey &&
-                              !e.metaKey
-                            ) {
-                              e.preventDefault();
-                              return;
-                            }
-
-                            // Allow Enter key to create new lines
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              setTimeout(() => {
-                                if (choiceEditors.current[index]) {
-                                  const editor = choiceEditors.current[index];
-                                  editor.style.height = "auto";
-                                  editor.style.height = `${Math.max(60, editor.scrollHeight)}px`;
-                                }
-                              }, 0);
-                            }
-                          }}
-                          onFocus={() => {
-                            if (!choice.isFixed) setFocusedChoice(index);
-                          }}
-                          onBlur={() => {
-                            setFocusedChoice(null);
-                            if (choiceEditors.current[index]) {
-                              handleChoiceChange(
-                                index,
-                                "choiceText",
-                                choiceEditors.current[index].innerHTML,
+                            }}
+                            onKeyDown={(e) => {
+                              // Prevent input if at character limit
+                              const currentLength = getTextLength(
+                                choiceEditors.current[index]?.innerHTML || "",
                               );
-                            }
-                          }}
-                          className="-mt-4 w-full resize-none overflow-hidden rounded px-2 py-2 text-center text-[14px] break-words text-gray-700 focus:border-gray-300 focus:outline-none"
-                          style={{
-                            minHeight: "40px",
-                            textAlign: "center",
-                            wordWrap: "break-word",
-                            overflowWrap: "break-word",
-                            direction: "ltr",
-                            transform: "none",
-                            writingMode: "horizontal-tb",
-                            textOrientation: "mixed",
-                          }}
-                        />
-                      </div>
+                              if (
+                                currentLength >= 500 &&
+                                e.key !== "Backspace" &&
+                                e.key !== "Delete" &&
+                                !e.ctrlKey &&
+                                !e.metaKey
+                              ) {
+                                e.preventDefault();
+                                return;
+                              }
+
+                              // Allow Enter key to create new lines
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                setTimeout(() => {
+                                  if (choiceEditors.current[index]) {
+                                    const editor = choiceEditors.current[index];
+                                    editor.style.height = "auto";
+                                    editor.style.height = `${Math.max(60, editor.scrollHeight)}px`;
+                                  }
+                                }, 0);
+                              }
+                            }}
+                            onFocus={() => {
+                              if (!choice.isFixed) setFocusedChoice(index);
+                            }}
+                            onBlur={() => {
+                              setFocusedChoice(null);
+                              if (choiceEditors.current[index]) {
+                                handleChoiceChange(
+                                  index,
+                                  "choiceText",
+                                  choiceEditors.current[index].innerHTML,
+                                );
+                              }
+                            }}
+                            className="-mt-4 w-full resize-none overflow-hidden rounded px-2 py-2 text-center text-[14px] break-words text-gray-700 focus:border-gray-300 focus:outline-none"
+                            style={{
+                              minHeight: "40px",
+                              textAlign: "center",
+                              wordWrap: "break-word",
+                              overflowWrap: "break-word",
+                              direction: "ltr",
+                              transform: "none",
+                              writingMode: "horizontal-tb",
+                              textOrientation: "mixed",
+                            }}
+                          />
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1595,93 +1611,124 @@ const CombinedQuestionForm = ({
         </div>
       )}
 
-      {/* Settings Modal - Mobile Only */}
-      {isSettingsModalOpen && (
+      {/* Settings Modal - Mobile Only (hidden when creating quiz question) */}
+      {mode !== "quiz" && isSettingsModalOpen && (
         <div
-          className="bg-opacity-70 lightbox-bg-image fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          className="lightbox-bg fixed inset-0 z-[9999] flex items-end justify-center px-2 md:items-center md:p-4"
           onClick={() => setIsSettingsModalOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+            className="mb-2 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl md:mb-0"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-800">
-                Question Settings
-              </h3>
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-white">
+                  <i className="bx bx-cog text-[20px]" />
+                </div>
+                <div className="flex flex-col">
+                  <h3 className="outfit-700 text-[16px] text-gray-900">
+                    Question settings
+                  </h3>
+                  <p className="outfit-400 text-[12px] text-gray-500">
+                    Adjust difficulty, coverage, and purpose.
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => setIsSettingsModalOpen(false)}
-                className="text-gray-500 transition hover:text-gray-700"
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
               >
-                <i className="bx bx-x text-2xl"></i>
+                <i className="bx bx-x text-xl"></i>
               </button>
             </div>
             <div className="space-y-4">
               {/* Difficulty */}
               {mode !== "quiz" && (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Difficulty
-                  </label>
-                  <HeaderDropdown
-                    name="difficulty_id"
-                    value={formData.difficulty_id}
-                    onChange={handleQuestionChange}
-                    options={[
-                      { value: 1, label: "Easy" },
-                      { value: 2, label: "Moderate" },
-                      { value: 3, label: "Hard" },
-                    ]}
-                    show={true}
-                    label=""
-                  />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <span className="outfit-500 mb-0.5 text-[13px] text-gray-900">
+                      Difficulty
+                    </span>
+                    <span className="outfit-400 text-[12px] text-gray-500">
+                      How challenging this question is.
+                    </span>
+                  </div>
+                  <div className="shrink-0">
+                    <HeaderDropdown
+                      name="difficulty_id"
+                      value={formData.difficulty_id}
+                      onChange={handleQuestionChange}
+                      options={[
+                        { value: 1, label: "Easy" },
+                        { value: 2, label: "Moderate" },
+                        { value: 3, label: "Hard" },
+                      ]}
+                      show={true}
+                      label=""
+                    />
+                  </div>
                 </div>
               )}
 
               {/* Coverage */}
               {mode !== "quiz" && (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Coverage
-                  </label>
-                  <HeaderDropdown
-                    name="coverage_id"
-                    value={formData.coverage_id}
-                    onChange={handleQuestionChange}
-                    options={[
-                      { value: 1, label: "Midterms" },
-                      { value: 2, label: "Finals" },
-                    ]}
-                    show={true}
-                    label=""
-                  />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <span className="outfit-500 mb-0.5 text-[13px] text-gray-900">
+                      Coverage
+                    </span>
+                    <span className="outfit-400 text-[12px] text-gray-500">
+                      Which part of the subject this belongs to.
+                    </span>
+                  </div>
+                  <div className="shrink-0">
+                    <HeaderDropdown
+                      name="coverage_id"
+                      value={formData.coverage_id}
+                      onChange={handleQuestionChange}
+                      options={[
+                        { value: 1, label: "Midterms" },
+                        { value: 2, label: "Finals" },
+                      ]}
+                      show={true}
+                      label=""
+                    />
+                  </div>
                 </div>
               )}
 
               {/* Purpose */}
               {mode !== "quiz" && (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Purpose
-                  </label>
-                  <HeaderDropdown
-                    name="purpose_id"
-                    value={formData.purpose_id}
-                    onChange={handleQuestionChange}
-                    options={[
-                      { value: 2, label: "Practice" },
-                      { value: 1, label: "Qualifying Exam" },
-                    ]}
-                    show={true}
-                    label=""
-                  />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <span className="outfit-500 mb-0.5 text-[13px] text-gray-900">
+                      Purpose
+                    </span>
+                    <span className="outfit-400 text-[12px] text-gray-500">
+                      How this question will be used.
+                    </span>
+                  </div>
+                  <div className="shrink-0">
+                    <HeaderDropdown
+                      name="purpose_id"
+                      value={formData.purpose_id}
+                      onChange={handleQuestionChange}
+                      options={[
+                        { value: 2, label: "Practice" },
+                        { value: 1, label: "Qualifying Exam" },
+                      ]}
+                      show={true}
+                      label=""
+                    />
+                  </div>
                 </div>
               )}
             </div>
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex items-center justify-end">
               <button
                 onClick={() => setIsSettingsModalOpen(false)}
-                className="rounded-lg bg-orange-500 px-4 py-2 text-white transition hover:bg-orange-600"
+                className="outfit-500 rounded-xl bg-orange-500 px-4 py-2 text-[14px] text-white shadow-sm transition hover:bg-orange-600 active:scale-95"
               >
                 Done
               </button>
