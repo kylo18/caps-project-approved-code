@@ -425,7 +425,7 @@ const AdminContent = () => {
   const [hoveredQuestionId, setHoveredQuestionId] = useState(null);
 
   return (
-    <div className="relative mt-10 flex min-h-screen w-full flex-1 flex-col justify-center py-2 md:mt-2">
+    <div className="relative mt-10 flex min-h-screen w-full flex-1 flex-col justify-center py-2 pb-24 md:mt-2 md:pb-2">
       <div className="flex-1">
         {selectedSubject ? (
           <div className="w-full py-3">

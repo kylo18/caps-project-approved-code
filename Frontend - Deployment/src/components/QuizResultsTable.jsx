@@ -351,7 +351,7 @@ const QuizResultsTable = ({ classPersonalQuizID, personalQuizID }) => {
   };
 
   return (
-    <div className="outfit mx-auto w-full max-w-[1200px]">
+    <div className="outfit mx-auto w-full max-w-[1200px] pb-24 md:pb-6">
       {/* Tabs - stretch full width on mobile */}
       <div className="mb-4 flex w-full flex-wrap gap-2 border-b border-gray-200 bg-white">
         <button

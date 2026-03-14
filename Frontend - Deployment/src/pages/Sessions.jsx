@@ -301,8 +301,30 @@ const Sessions = () => {
       <Toast message={toast.message} type={toast.type} show={toast.show} />
       <div className="flex h-screen">
         {/* Main content area */}
-        <div className="mt-10 flex h-full flex-1 flex-col gap-6 overflow-y-auto py-6 pb-0 lg:mt-0 lg:p-6">
+        <div className="mt-10 flex h-full flex-1 flex-col gap-6 overflow-y-auto py-4 pb-0 lg:mt-0 lg:p-6">
           <div className="space-y-4">
+            {/* Mobile search input - below header when toggled */}
+            {showMobileSearch && (
+              <div className="outfit-500 relative mt-3 px-6 md:hidden">
+                <i className="bx bx-search absolute top-1/2 left-10 -translate-y-1/2 text-lg text-gray-500"></i>
+                <input
+                  type="text"
+                  placeholder="Search quiz"
+                  className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowMobileSearch(false)}
+                  className="absolute top-1/2 right-10 flex -translate-y-1/2 cursor-pointer items-center justify-center text-gray-500 hover:text-gray-700"
+                  aria-label="Close search"
+                >
+                  <i className="bx bx-x text-xl" />
+                </button>
+              </div>
+            )}
             {/* Header with title and search */}
             <div className="flex items-center justify-between gap-4 px-6 lg:px-0">
               <div>
@@ -335,35 +357,12 @@ const Sessions = () => {
               <button
                 type="button"
                 onClick={() => setShowMobileSearch((prev) => !prev)}
-                className="flex cursor-pointer items-center justify-center rounded-xl border border-gray-200 p-2 text-gray-700 hover:bg-gray-50 md:hidden"
+                className="flex cursor-pointer items-center justify-center rounded-xl p-2 text-gray-700 hover:bg-gray-50 md:hidden"
                 aria-label="Search"
               >
                 <i className="bx bx-search text-xl" />
               </button>
             </div>
-
-            {/* Mobile search input - below header when toggled */}
-            {showMobileSearch && (
-              <div className="outfit-500 relative mt-3 px-6 md:hidden">
-                <i className="bx bx-search absolute top-1/2 left-10 -translate-y-1/2 text-lg text-gray-500"></i>
-                <input
-                  type="text"
-                  placeholder="Search quiz"
-                  className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowMobileSearch(false)}
-                  className="absolute top-1/2 right-10 flex -translate-y-1/2 cursor-pointer items-center justify-center text-gray-500 hover:text-gray-700"
-                  aria-label="Close search"
-                >
-                  <i className="bx bx-x text-xl" />
-                </button>
-              </div>
-            )}
 
             <div className="my-4 hidden h-px bg-gray-200 lg:block" />
 
@@ -919,7 +918,7 @@ const Sessions = () => {
                                           },
                                         });
                                       }}
-                                      className="flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:bg-gray-100"
+                                      className="flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
                                     >
                                       <i className="bx bx-caret-right text-lg"></i>
                                       View

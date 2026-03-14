@@ -28,6 +28,202 @@ import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
 
+// Program colors + icons for the grid cards
+const PROGRAM_COLORS = [
+  { bg: "#fff3e0", icon: "#f57c00", iconClass: "bxs-sapling" },
+  { bg: "#e8f5e9", icon: "#388e3c", iconClass: "bx-city" },
+  { bg: "#e3f2fd", icon: "#1976d2", iconClass: "bx-code-alt" },
+  { bg: "#fce4ec", icon: "#c2185b", iconClass: "bx-broadcast" },
+  { bg: "#f3e5f5", icon: "#7b1fa2", iconClass: "bx-bolt" },
+  { bg: "#e0f7fa", icon: "#0097a7", iconClass: "bx-globe" },
+  { bg: "#fff8e1", icon: "#fbc02d", iconClass: "bx-briefcase" },
+  { bg: "#efebe9", icon: "#5d4037", iconClass: "bx-leaf" },
+];
+
+// Abbreviation → full program name
+const PROGRAM_NAME_MAP = {
+  // Engineering
+  ECE: "Electronics and Communication Engineering",
+  CPE: "Computer Engineering",
+  CE: "Civil Engineering",
+  EE: "Electrical Engineering",
+  ABE: "Agricultural and Biosystems Engineering",
+  ME: "Mechanical Engineering",
+  IE: "Industrial Engineering",
+  ChE: "Chemical Engineering",
+  AE: "Aerospace Engineering",
+  GE: "General Subject",
+  MET: "Mining Engineering Technology",
+};
+
+// Returns the display name for a program (full name if acronym is known)
+function getProgramDisplayName(rawName) {
+  const trimmed = (rawName || "").trim();
+  return PROGRAM_NAME_MAP[trimmed] || trimmed;
+}
+
+function ProgramSubjectSelector({
+  subjects,
+  isSubjectsLoading,
+  value,
+  onChange,
+}) {
+  const [selectedProgram, setSelectedProgram] = useState(null);
+  const [subjectSearch, setSubjectSearch] = useState("");
+
+  // Group subjects by program
+  const programMap = React.useMemo(() => {
+    const map = {};
+    subjects.forEach((s) => {
+      const key = s.programName || "Other";
+      if (!map[key]) map[key] = [];
+      map[key].push(s);
+    });
+    return map;
+  }, [subjects]);
+
+  const programs = Object.keys(programMap);
+
+  const programSubjects = selectedProgram
+    ? programMap[selectedProgram] || []
+    : [];
+  const filteredSubjects = subjectSearch.trim()
+    ? programSubjects.filter(
+        (s) =>
+          s.subjectName?.toLowerCase().includes(subjectSearch.toLowerCase()) ||
+          s.subjectCode?.toLowerCase().includes(subjectSearch.toLowerCase()),
+      )
+    : programSubjects;
+
+  if (isSubjectsLoading) {
+    return (
+      <div className="flex h-40 items-center justify-center">
+        <div className="loader mx-auto"></div>
+      </div>
+    );
+  }
+
+  if (selectedProgram) {
+    return (
+      <div className="space-y-3">
+        {/* Back + program name */}
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedProgram(null);
+            setSubjectSearch("");
+          }}
+          className="flex items-center gap-1.5 text-[13px] font-medium text-orange-500 hover:text-orange-600"
+        >
+          <i className="bx bx-chevron-left text-lg"></i>
+          {getProgramDisplayName(selectedProgram)}
+        </button>
+
+        {/* Subject search */}
+        <div className="relative">
+          <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"></i>
+          <input
+            type="text"
+            value={subjectSearch}
+            onChange={(e) => setSubjectSearch(e.target.value)}
+            placeholder="Search subjects..."
+            className="w-full rounded-xl border border-gray-200 py-2 pr-3 pl-9 text-sm text-gray-900 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+          />
+        </div>
+
+        {/* Subject list */}
+        <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
+          {filteredSubjects.length === 0 ? (
+            <p className="py-4 text-center text-sm text-gray-400">
+              No subjects found.
+            </p>
+          ) : (
+            filteredSubjects.map((s) => {
+              const selected = String(value) === String(s.subjectID);
+              return (
+                <button
+                  key={s.subjectID}
+                  type="button"
+                  onClick={() => onChange(String(s.subjectID))}
+                  className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                    selected
+                      ? "border-orange-500 bg-orange-50"
+                      : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/40"
+                  }`}
+                >
+                  <div
+                    className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                      selected
+                        ? "border-orange-500 bg-orange-500"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    {selected && (
+                      <i className="bx bx-check text-[12px] text-white"></i>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-gray-800">
+                      {s.subjectName}
+                    </p>
+                    <p className="text-[12px] text-gray-500">
+                      {s.subjectCode}
+                      {s.yearLevel ? ` · ${s.yearLevel}` : ""}
+                    </p>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Program grid
+  return (
+    <div className="space-y-3">
+      {programs.length === 0 ? (
+        <p className="py-6 text-center text-sm text-gray-400">
+          No programs available.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {programs.map((prog, idx) => {
+            const color = PROGRAM_COLORS[idx % PROGRAM_COLORS.length];
+            const count = programMap[prog].length;
+            return (
+              <button
+                key={prog}
+                type="button"
+                onClick={() => setSelectedProgram(prog)}
+                className="flex cursor-pointer flex-col items-start rounded-2xl border border-gray-200 p-4 text-left transition-all hover:border-orange-400 hover:shadow-sm active:scale-95"
+              >
+                <div
+                  className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl"
+                  style={{ background: color.bg }}
+                >
+                  <i
+                    className={`bx ${color.iconClass} text-lg`}
+                    style={{ color: color.icon }}
+                  ></i>
+                </div>
+                <p className="outfit-600 line-clamp-2 text-[12px] leading-tight font-semibold text-gray-800">
+                  {getProgramDisplayName(prog)}
+                </p>
+
+                <p className="mt-1 text-[11px] text-gray-400">
+                  {count} subject{count !== 1 ? "s" : ""}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Libraries() {
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
@@ -407,7 +603,7 @@ function Libraries() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setError(null);
 
     // Final validation
@@ -906,7 +1102,7 @@ function Libraries() {
                 alt="Collections"
                 className="h-4 w-4"
               />
-              <span>My Subjects</span>
+              <span>Collections</span>
             </span>
             <span className="text-xs text-gray-500">0</span>
           </button>
@@ -1004,462 +1200,599 @@ function Libraries() {
               }}
             >
               <div
-                className="animate-fade-in-up relative mx-auto flex w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl"
+                className="animate-fade-in-up relative mx-auto flex w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+                style={{ minHeight: "520px" }}
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Modal Header */}
-                <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-                  <h2 className="outfit-500 text-[18px] text-gray-900">
-                    Create a quiz
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      resetForm();
-                      setShowForm(false);
-                    }}
-                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                    aria-label="Close modal"
-                  >
-                    <i className="bx bx-x text-2xl"></i>
-                  </button>
-                </div>
-
-                {/* Modal Body */}
-                <div className="max-h-[calc(100vh-200px)] overflow-y-auto px-6 py-6">
-                  <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    show={toast.show}
-                  />
-
-                  <div className="mt-2 flex flex-col gap-8 md:flex-row">
-                    {/* Stepper section */}
-                    <div className="md:w-1/3">
-                      {/* Mobile (horizontal) stepper – existing behavior */}
-                      <div className="mb-8 md:hidden">
-                        <div className="flex items-center justify-between">
-                          {Array.from(
-                            { length: totalSteps },
-                            (_, i) => i + 1,
-                          ).map((step, index) => {
-                            const isActive = step === currentStep;
-                            const isCompleted = step < currentStep;
-                            const stepLabel =
-                              step === 1
-                                ? "Basic Info"
-                                : step === 2
-                                  ? "Quiz Type"
-                                  : step === 3 && formData.quiz_type_id === "1"
-                                    ? "Subject"
-                                    : step === 3 &&
-                                        formData.quiz_type_id === "2"
-                                      ? "Review"
-                                      : step === 4 &&
-                                          formData.quiz_type_id === "1"
-                                        ? "Coverage"
-                                        : "Review";
-
-                            return (
-                              <React.Fragment key={step}>
-                                <div className="flex flex-col items-center">
-                                  <div
-                                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
-                                      isActive
-                                        ? "border-orange-500 bg-orange-500 text-white"
-                                        : isCompleted
-                                          ? "border-orange-500 bg-orange-500 text-white"
-                                          : "border-gray-300 bg-white text-gray-400"
-                                    }`}
-                                  >
-                                    {isCompleted ? (
-                                      <i className="bx bx-check text-xl"></i>
-                                    ) : (
-                                      <span className="outfit-400 text-[18px] font-medium">
-                                        {step}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span
-                                    className={`outfit-500 mt-2 text-[12px] ${
-                                      isActive
-                                        ? "text-orange-600"
-                                        : "text-gray-500"
-                                    }`}
-                                  >
-                                    {stepLabel}
-                                  </span>
-                                </div>
-                                {index < totalSteps - 1 && (
-                                  <div
-                                    className={`mx-2 -mt-5 h-0.5 flex-1 ${
-                                      step < currentStep
-                                        ? "bg-orange-500"
-                                        : "bg-gray-300"
-                                    }`}
-                                  />
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </div>
+                {/* ── Left Sidebar ── */}
+                <div
+                  className="outfit-400 hidden w-64 flex-shrink-0 flex-col justify-between px-5 py-5 md:flex"
+                  style={{ background: "#fff8f5" }}
+                >
+                  {/* Title + step counter */}
+                  <div>
+                    <div className="mb-6 flex items-center gap-2">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-white shadow">
+                        <i className="bx bxs-file-detail text-xl"></i>
                       </div>
-
-                      {/* Desktop (vertical) stepper */}
-                      <div className="hidden md:flex md:flex-col md:space-y-4">
-                        {Array.from(
-                          { length: totalSteps },
-                          (_, i) => i + 1,
-                        ).map((step, index) => {
-                          const isActive = step === currentStep;
-                          const isCompleted = step < currentStep;
-                          const stepLabel =
-                            step === 1
-                              ? "Basic Info"
-                              : step === 2
-                                ? "Quiz Type"
-                                : step === 3 && formData.quiz_type_id === "1"
-                                  ? "Subject"
-                                  : step === 3 && formData.quiz_type_id === "2"
-                                    ? "Review"
-                                    : step === 4 &&
-                                        formData.quiz_type_id === "1"
-                                      ? "Coverage"
-                                      : "Review";
-
-                          return (
-                            <div className="flex items-start gap-3" key={step}>
-                              <div className="flex flex-col items-center">
-                                <div
-                                  className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-colors ${
-                                    isActive
-                                      ? "border-orange-500 bg-orange-500 text-white"
-                                      : isCompleted
-                                        ? "border-orange-500 bg-orange-500 text-white"
-                                        : "border-gray-300 bg-white text-gray-400"
-                                  }`}
-                                >
-                                  {isCompleted ? (
-                                    <i className="bx bx-check text-lg"></i>
-                                  ) : (
-                                    <span className="outfit-400 text-[15px] font-medium">
-                                      {step}
-                                    </span>
-                                  )}
-                                </div>
-                                {index < totalSteps - 1 && (
-                                  <div
-                                    className={`mt-1 h-8 w-px ${
-                                      step < currentStep
-                                        ? "bg-orange-500"
-                                        : "bg-gray-300"
-                                    }`}
-                                  />
-                                )}
-                              </div>
-                              <div className="pt-1">
-                                <div
-                                  className={`outfit-500 text-[13px] ${
-                                    isActive
-                                      ? "text-orange-600"
-                                      : "text-gray-800"
-                                  }`}
-                                >
-                                  {stepLabel}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <p className="outfit-600 text-[16px] font-bold text-gray-900">
+                        Create a quiz
+                      </p>
+                    </div>
+                    <div className="mb-5">
+                      <p className="mt-0.5 text-[13px] font-semibold text-orange-500">
+                        Step {currentStep} of {totalSteps}
+                      </p>
                     </div>
 
-                    {/* Form section */}
-                    <div className="md:w-2/3">
-                      <form onSubmit={handleSubmit}>
-                        {/* Step 1: Basic Information */}
-                        {currentStep === 1 && (
-                          <div className="space-y-4">
-                            <h3 className="outfit-500 mb-4 text-[16px] text-gray-900">
-                              Basic Information
-                            </h3>
-                            <div>
-                              <label className="mb-1 block text-sm font-medium text-gray-700">
-                                Title <span className="text-red-500">*</span>
-                              </label>
+                    {/* Step list */}
+                    <nav className="space-y-1">
+                      {[
+                        { num: 1, label: "Basic Info" },
+                        { num: 2, label: "Quiz Type" },
+                        ...(formData.quiz_type_id === "1"
+                          ? [
+                              { num: 3, label: "Subject" },
+                              { num: 4, label: "Coverage" },
+                              { num: 5, label: "Review" },
+                            ]
+                          : [{ num: 3, label: "Review" }]),
+                      ].map(({ num, label }) => {
+                        const isActive = num === currentStep;
+                        const isCompleted = num < currentStep;
+                        return (
+                          <div
+                            key={num}
+                            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
+                              isActive ? "bg-orange-100" : ""
+                            }`}
+                          >
+                            {/* Icon */}
+                            {isCompleted ? (
+                              /* Green filled circle with checkmark */
+                              <div className="flex size-4 flex-shrink-0 items-center justify-center rounded-full bg-green-500">
+                                <i className="bx bx-check text-[10px] font-bold text-white"></i>
+                              </div>
+                            ) : isActive ? (
+                              /* Orange radio-button style: outer ring + inner filled dot */
+                              <div className="flex size-4 flex-shrink-0 items-center justify-center rounded-full border-2 border-orange-500 bg-white">
+                                <div className="size-2 rounded-full bg-orange-500"></div>
+                              </div>
+                            ) : (
+                              /* Solid gray circle for upcoming */
+                              <div className="size-4 flex-shrink-0 rounded-full bg-gray-300"></div>
+                            )}
+
+                            {/* Label */}
+                            <span
+                              className={`outfit-500 text-[13px] ${
+                                isActive
+                                  ? "font-bold text-orange-600"
+                                  : isCompleted
+                                    ? "font-medium text-gray-700"
+                                    : "font-medium text-gray-400"
+                              }`}
+                            >
+                              {label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </nav>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mt-6">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-[11px] font-medium tracking-wide text-gray-500 uppercase">
+                        Progress
+                      </span>
+                      <span className="text-[12px] font-semibold text-orange-500">
+                        {Math.round(((currentStep - 1) / totalSteps) * 100)}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className="h-full rounded-full bg-orange-500 transition-all duration-500"
+                        style={{
+                          width: `${Math.round(((currentStep - 1) / totalSteps) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Right panel ── */}
+                <div className="flex flex-1 flex-col">
+                  {/* Header */}
+                  <div className="outfit-400 flex items-start justify-between border-b border-gray-200 px-6 py-5">
+                    <div>
+                      <h2 className="outfit-600 text-[22px] font-bold text-gray-900">
+                        {currentStep === 1
+                          ? "Basic Information"
+                          : currentStep === 2
+                            ? "Select Quiz Type"
+                            : currentStep === 3 && formData.quiz_type_id === "1"
+                              ? "Select Program"
+                              : currentStep === 4 &&
+                                  formData.quiz_type_id === "1"
+                                ? "Select Quiz Coverage"
+                                : "Review your quiz"}
+                      </h2>
+                      <p className="mt-0.5 text-[13px] text-gray-500">
+                        {currentStep === 1
+                          ? "Fill in the basic information for your new quiz."
+                          : currentStep === 2
+                            ? "Choose how your quiz will be structured."
+                            : currentStep === 3 && formData.quiz_type_id === "1"
+                              ? "Choose a program, then pick a subject."
+                              : currentStep === 4 &&
+                                  formData.quiz_type_id === "1"
+                                ? "Choose the scope of the material to be covered in this quiz session."
+                                : "Please check your details before final submission."}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetForm();
+                        setShowForm(false);
+                      }}
+                      className="ml-4 flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                      aria-label="Close modal"
+                    >
+                      <i className="bx bx-x text-xl"></i>
+                    </button>
+                  </div>
+
+                  {/* Body */}
+                  <div className="outfit-400 flex-1 overflow-y-auto px-6 py-5">
+                    <form id="quiz-create-form" onSubmit={handleSubmit}>
+                      {/* Step 1 – Basic Info */}
+                      {currentStep === 1 && (
+                        <div className="space-y-5">
+                          <div>
+                            <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                              Quiz Name <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <i className="bx bx-edit-alt absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"></i>
                               <input
                                 type="text"
                                 name="title"
                                 value={formData.title}
                                 onChange={handleChange}
                                 maxLength={50}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                                placeholder="Enter quiz title"
+                                className="tex w-full rounded-xl border border-gray-200 py-2.5 pr-3 pl-9 text-sm transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                                placeholder="e.g. Trigonometric Identities"
                                 required
                               />
                             </div>
+                            <p className="mt-1 text-[11px] text-gray-400">
+                              Give your quiz a catchy and descriptive title.
+                            </p>
+                          </div>
 
-                            <div>
-                              <label className="mb-1 block text-sm font-medium text-gray-700">
-                                Description
-                              </label>
-                              <textarea
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                className="min-h-[100px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                                placeholder="Short description of this quiz (optional)"
-                              />
+                          <div>
+                            <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                              Description (optional)
+                            </label>
+                            <textarea
+                              name="description"
+                              value={formData.description}
+                              onChange={handleChange}
+                              maxLength={500}
+                              rows={4}
+                              className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                              placeholder="Summarize the goal of this quiz."
+                            />
+                            <div className="mt-1 flex items-center justify-between">
+                              <p className="text-[11px] text-gray-400">
+                                {formData.description.length} / 500 characters
+                              </p>
                             </div>
                           </div>
-                        )}
 
-                        {/* Step 2: Quiz Type */}
-                        {currentStep === 2 && (
-                          <div className="space-y-4">
-                            <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                              Select Quiz Type
-                            </h3>
-                            <div className="space-y-3">
-                              <label className="flex cursor-pointer items-start gap-3 rounded-lg border-2 border-gray-200 p-4 transition-colors hover:border-orange-300 hover:bg-orange-50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50">
-                                <input
-                                  type="radio"
-                                  name="quiz_type_id"
-                                  value="1"
-                                  checked={formData.quiz_type_id === "1"}
-                                  onChange={handleChange}
-                                  className="mt-1 h-4 w-4 text-orange-500 focus:ring-orange-400"
-                                />
-                                <div className="flex-1">
-                                  <div className="font-medium text-gray-900">
-                                    Subject-based quiz
-                                  </div>
-                                  <div className="mt-1 text-sm text-gray-600">
-                                    Create a quiz linked to a specific subject
-                                  </div>
-                                </div>
-                              </label>
-
-                              <label className="flex cursor-pointer items-start gap-3 rounded-lg border-2 border-gray-200 p-4 transition-colors hover:border-orange-300 hover:bg-orange-50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50">
-                                <input
-                                  type="radio"
-                                  name="quiz_type_id"
-                                  value="2"
-                                  checked={formData.quiz_type_id === "2"}
-                                  onChange={handleChange}
-                                  className="mt-1 h-4 w-4 text-orange-500 focus:ring-orange-400"
-                                />
-                                <div className="flex-1">
-                                  <div className="font-medium text-gray-900">
-                                    Custom quiz
-                                  </div>
-                                  <div className="mt-1 text-sm text-gray-600">
-                                    Create a standalone quiz without a subject
-                                  </div>
-                                </div>
-                              </label>
-                            </div>
+                          {/* Pro tip */}
+                          <div className="flex items-start gap-3 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3">
+                            <i className="bx bxs-light-bulb-on mt-0.5 text-lg text-orange-400"></i>
+                            <p className="text-[12px] text-gray-600">
+                              <span className="font-semibold text-orange-500">
+                                Pro Tip:
+                              </span>{" "}
+                              A clear description helps participants understand
+                              the difficulty level and topics covered before
+                              they start.
+                            </p>
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {/* Step 3: Subject Selection (only for subject-based quiz) */}
-                        {currentStep === 3 && formData.quiz_type_id === "1" && (
-                          <div className="space-y-4">
-                            <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                              Select Subject
-                            </h3>
-                            <div>
-                              <label className="mb-1 block text-sm font-medium text-gray-700">
-                                Subject <span className="text-red-500">*</span>
-                              </label>
-                              <select
-                                name="subjectID"
-                                value={formData.subjectID}
-                                onChange={handleChange}
-                                disabled={
-                                  isSubjectsLoading || subjects.length === 0
-                                }
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                              >
-                                <option value="">
-                                  {isSubjectsLoading
-                                    ? "Loading subjects..."
-                                    : subjects.length === 0
-                                      ? "No subjects available"
-                                      : "Select a subject"}
-                                </option>
-                                {subjects.map((subject) => (
-                                  <option
-                                    key={subject.subjectID}
-                                    value={subject.subjectID}
+                      {/* Step 2 – Quiz Type */}
+                      {currentStep === 2 && (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            {[
+                              {
+                                value: "1",
+                                icon: "bx-book-bookmark",
+                                label: "Subject-based",
+                                desc: "Link this quiz to a specific subject, program, and coverage period.",
+                                tip: "You'll select a program, subject, and exam coverage (Midterm or Finals) in the next steps.",
+                              },
+                              {
+                                value: "2",
+                                icon: "bx-slider-vertical",
+                                label: "Custom",
+                                desc: "Create a standalone quiz without tying it to any subject or program.",
+                                tip: "A custom quiz lets you freely define your own questions without any subject or coverage constraints.",
+                              },
+                            ].map((opt) => {
+                              const selected =
+                                formData.quiz_type_id === opt.value;
+                              return (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      quiz_type_id: opt.value,
+                                      ...(opt.value === "2"
+                                        ? { subjectID: "", coverage_id: "" }
+                                        : {}),
+                                    }))
+                                  }
+                                  className={`flex cursor-pointer flex-col items-start rounded-2xl border-2 p-4 text-left transition-all ${
+                                    selected
+                                      ? "border-orange-500 bg-orange-50 shadow-sm"
+                                      : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/40"
+                                  }`}
+                                >
+                                  {/* Icon — orange when selected */}
+                                  <div
+                                    className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                                      selected
+                                        ? "bg-orange-100"
+                                        : "bg-[#eff0ff]"
+                                    }`}
                                   >
-                                    {subject.subjectCode} -{" "}
-                                    {subject.subjectName} ({subject.programName}
-                                    , {subject.yearLevel})
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Step 4: Coverage Selection (for subject-based quiz only) */}
-                        {currentStep === 4 && formData.quiz_type_id === "1" && (
-                          <div className="space-y-4">
-                            <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                              Select Coverage
-                            </h3>
-                            <div>
-                              <label className="mb-1 block text-sm font-medium text-gray-700">
-                                Coverage <span className="text-red-500">*</span>
-                              </label>
-                              <select
-                                name="coverage_id"
-                                value={formData.coverage_id}
-                                onChange={handleChange}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                              >
-                                <option value="">Select coverage</option>
-                                <option value="1">Midterms</option>
-                                <option value="2">Finals</option>
-                              </select>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Step 3: Review (for custom quiz) or Step 5: Review (for subject-based quiz) */}
-                        {(currentStep === 3 && formData.quiz_type_id === "2") ||
-                        (currentStep === 5 && formData.quiz_type_id === "1") ? (
-                          <div className="space-y-4">
-                            <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                              Review Your Quiz
-                            </h3>
-                            <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                              <div>
-                                <span className="text-sm font-medium text-gray-700">
-                                  Title:
-                                </span>
-                                <p className="mt-1 text-sm text-gray-900">
-                                  {formData.title || "—"}
-                                </p>
-                              </div>
-                              {formData.description && (
-                                <div>
-                                  <span className="text-sm font-medium text-gray-700">
-                                    Description:
-                                  </span>
-                                  <p className="mt-1 text-sm text-gray-900">
-                                    {formData.description}
-                                  </p>
-                                </div>
-                              )}
-                              {formData.instruction && (
-                                <div>
-                                  <span className="text-sm font-medium text-gray-700">
-                                    Instruction:
-                                  </span>
-                                  <p className="mt-1 text-sm text-gray-900">
-                                    {formData.instruction}
-                                  </p>
-                                </div>
-                              )}
-                              <div>
-                                <span className="text-sm font-medium text-gray-700">
-                                  Quiz Type:
-                                </span>
-                                <p className="mt-1 text-sm text-gray-900">
-                                  {formData.quiz_type_id === "1"
-                                    ? "Subject-based quiz"
-                                    : formData.quiz_type_id === "2"
-                                      ? "Custom quiz"
-                                      : "—"}
-                                </p>
-                              </div>
-                              {formData.quiz_type_id === "1" &&
-                                formData.subjectID && (
-                                  <div>
-                                    <span className="text-sm font-medium text-gray-700">
-                                      Subject:
-                                    </span>
-                                    <p className="mt-1 text-sm text-gray-900">
-                                      {subjects.find(
-                                        (s) =>
-                                          s.subjectID ===
-                                          Number(formData.subjectID),
-                                      )?.subjectCode || "—"}{" "}
-                                      -{" "}
-                                      {subjects.find(
-                                        (s) =>
-                                          s.subjectID ===
-                                          Number(formData.subjectID),
-                                      )?.subjectName || "—"}
-                                    </p>
+                                    <i
+                                      className={`bx ${opt.icon} text-xl transition-colors ${
+                                        selected
+                                          ? "text-orange-500"
+                                          : "text-gray-800"
+                                      }`}
+                                    ></i>
                                   </div>
-                                )}
-                              {formData.quiz_type_id === "1" &&
-                                formData.coverage_id && (
-                                  <div>
-                                    <span className="text-sm font-medium text-gray-700">
-                                      Coverage:
-                                    </span>
-                                    <p className="mt-1 text-sm text-gray-900">
-                                      {formData.coverage_id === "1"
-                                        ? "Midterms"
-                                        : formData.coverage_id === "2"
-                                          ? "Finals"
-                                          : "—"}
-                                    </p>
+                                  <p className="outfit-600 text-[15px] font-semibold text-gray-900">
+                                    {opt.label}
+                                  </p>
+                                  <p className="mt-1 text-[12px] text-gray-500">
+                                    {opt.desc}
+                                  </p>
+                                  <div className="mt-4 self-end">
+                                    <div
+                                      className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${
+                                        selected
+                                          ? "border-orange-500"
+                                          : "border-gray-300"
+                                      }`}
+                                    >
+                                      {selected && (
+                                        <div className="h-2.5 w-2.5 rounded-full bg-orange-500"></div>
+                                      )}
+                                    </div>
                                   </div>
-                                )}
-                            </div>
+                                </button>
+                              );
+                            })}
                           </div>
-                        ) : null}
 
-                        {/* Navigation Buttons */}
-                        <div className="mt-8 flex items-center justify-between border-t border-gray-200 pt-6">
-                          <button
-                            type="button"
-                            onClick={handlePrevious}
-                            disabled={currentStep === 1}
-                            className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <i className="bx bx-chevron-left mr-2"></i>
-                            Previous
-                          </button>
-
-                          <div className="flex gap-3">
-                            {currentStep < totalSteps ? (
-                              <button
-                                type="button"
-                                onClick={handleNext}
-                                className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-600"
-                              >
-                                Next
-                                <i className="bx bx-chevron-right ml-2"></i>
-                              </button>
-                            ) : (
-                              <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
-                              >
-                                {isSubmitting ? (
+                          {/* Contextual tip */}
+                          {formData.quiz_type_id && (
+                            <div className="flex items-start gap-3 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3">
+                              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
+                                i
+                              </div>
+                              <p className="text-[12px] text-gray-600">
+                                {formData.quiz_type_id === "1" ? (
                                   <>
-                                    <i className="bx bx-loader-alt mr-2 animate-spin"></i>
-                                    Saving...
+                                    Selecting{" "}
+                                    <span className="font-semibold">
+                                      Subject-based
+                                    </span>{" "}
+                                    — you'll select a program, subject, and exam
+                                    coverage (Midterm or Finals) in the next
+                                    steps.
                                   </>
                                 ) : (
                                   <>
-                                    <i className="bx bx-check mr-2"></i>
-                                    Create Quiz
+                                    Selecting{" "}
+                                    <span className="font-semibold">
+                                      Custom
+                                    </span>{" "}
+                                    — freely define your own questions without
+                                    any subject or coverage constraints.
                                   </>
                                 )}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Step 3 – Program → Subject drill-down */}
+                      {currentStep === 3 && formData.quiz_type_id === "1" && (
+                        <ProgramSubjectSelector
+                          subjects={subjects}
+                          isSubjectsLoading={isSubjectsLoading}
+                          value={formData.subjectID}
+                          onChange={(subjectID) =>
+                            setFormData((prev) => ({ ...prev, subjectID }))
+                          }
+                        />
+                      )}
+
+                      {/* Step 4 – Coverage */}
+                      {currentStep === 4 && formData.quiz_type_id === "1" && (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            {[
+                              {
+                                value: "1",
+                                icon: "bx-education",
+                                label: "Midterm",
+                                desc: "Focuses on the first half of the semester topics and foundational concepts.",
+                              },
+                              {
+                                value: "2",
+                                icon: "bx-medal-star-alt",
+                                label: "Finals",
+                                desc: "Comprehensive coverage of all course materials or post-midterm topics.",
+                              },
+                            ].map((opt) => {
+                              const selected =
+                                formData.coverage_id === opt.value;
+                              return (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      coverage_id: opt.value,
+                                    }))
+                                  }
+                                  className={`flex cursor-pointer flex-col items-start rounded-2xl border-2 p-4 text-left transition-all ${
+                                    selected
+                                      ? "border-orange-500 bg-orange-50 shadow-sm"
+                                      : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/40"
+                                  }`}
+                                >
+                                  <div
+                                    className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                                      selected
+                                        ? "bg-orange-100"
+                                        : "bg-[#eff0ff]"
+                                    }`}
+                                  >
+                                    <i
+                                      className={`bx ${opt.icon} text-xl transition-colors ${
+                                        selected
+                                          ? "text-orange-500"
+                                          : "text-gray-800"
+                                      }`}
+                                    ></i>
+                                  </div>
+                                  <p className="outfit-600 text-[15px] font-semibold text-gray-900">
+                                    {opt.label}
+                                  </p>
+                                  <p className="mt-1 text-[12px] text-gray-500">
+                                    {opt.desc}
+                                  </p>
+                                  <div className="mt-4 self-end">
+                                    <div
+                                      className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${
+                                        selected
+                                          ? "border-orange-500"
+                                          : "border-gray-300"
+                                      }`}
+                                    >
+                                      {selected && (
+                                        <div className="h-2.5 w-2.5 rounded-full bg-orange-500"></div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Dynamic info tip */}
+                          {formData.coverage_id && (
+                            <div className="flex items-start gap-3 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3">
+                              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
+                                i
+                              </div>
+                              <p className="text-[12px] text-gray-600">
+                                Selecting{" "}
+                                <span className="font-semibold">
+                                  {formData.coverage_id === "1"
+                                    ? "Midterm"
+                                    : "Finals"}
+                                </span>{" "}
+                                {formData.coverage_id === "2"
+                                  ? "means choosing the final part of the subject, which evaluates overall understanding."
+                                  : "focuses on the first half of the semester, covering foundational concepts and core topics."}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Step 3 (custom) or Step 5 (subject-based) – Review */}
+                      {((currentStep === 3 && formData.quiz_type_id === "2") ||
+                        (currentStep === 5 &&
+                          formData.quiz_type_id === "1")) && (
+                        <div>
+                          {/* Quiz Name card */}
+                          <div className="rounded-t-xl border-b border-gray-100 bg-gray-50 px-5 py-4">
+                            <div className="mb-1 flex items-center justify-between">
+                              <span className="text-[11px] font-bold tracking-widest text-orange-500 uppercase">
+                                Quiz Name
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setCurrentStep(1)}
+                                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-orange-400 transition-colors hover:bg-orange-100"
+                                title="Edit quiz name"
+                              >
+                                <i className="bx bx-pencil text-base" />
                               </button>
-                            )}
+                            </div>
+                            <p className="text-[15px] font-semibold text-gray-900">
+                              {formData.title || "—"}
+                            </p>
+                          </div>
+
+                          {/* Description card */}
+                          <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
+                            <div className="mb-1 flex items-center justify-between">
+                              <span className="text-[11px] font-bold tracking-widest text-orange-500 uppercase">
+                                Description
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setCurrentStep(1)}
+                                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-orange-400 transition-colors hover:bg-orange-100"
+                                title="Edit description"
+                              >
+                                <i className="bx bx-pencil text-base" />
+                              </button>
+                            </div>
+                            <p className="text-[13px] leading-relaxed text-gray-700">
+                              {formData.description || (
+                                <span className="text-gray-400 italic">
+                                  No description provided.
+                                </span>
+                              )}
+                            </p>
+                          </div>
+
+                          {/* Type / Subject / Coverage row */}
+                          <div className="rounded-b-xl border-b border-gray-100 bg-gray-50 px-5 py-4">
+                            <div className="flex flex-wrap gap-6">
+                              {/* Type */}
+                              <div className="min-w-[80px]">
+                                <p className="mb-0.5 text-[11px] font-bold tracking-widest text-gray-500 uppercase">
+                                  Type
+                                </p>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[13px] font-semibold text-gray-800">
+                                    {formData.quiz_type_id === "1"
+                                      ? "Subject-Based"
+                                      : "Custom"}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Subject (subject-based only) */}
+                              {formData.quiz_type_id === "1" &&
+                                (() => {
+                                  const s = subjects.find(
+                                    (s) =>
+                                      String(s.subjectID) ===
+                                      String(formData.subjectID),
+                                  );
+                                  return (
+                                    <div className="min-w-[80px] flex-1">
+                                      <p className="mb-0.5 text-[11px] font-bold tracking-widest text-gray-500 uppercase">
+                                        Subject
+                                      </p>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[13px] font-semibold text-gray-800">
+                                          {s ? s.subjectName : "—"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+
+                              {/* Coverage (subject-based only) */}
+                              {formData.quiz_type_id === "1" && (
+                                <div className="min-w-[80px]">
+                                  <p className="mb-0.5 text-[11px] font-bold tracking-widest text-gray-500 uppercase">
+                                    Coverage
+                                  </p>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[13px] font-semibold text-gray-800">
+                                      {formData.coverage_id === "1"
+                                        ? "Midterm"
+                                        : formData.coverage_id === "2"
+                                          ? "Finals"
+                                          : "—"}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </form>
-                    </div>
+                      )}
+                    </form>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="outfit-400 flex items-center justify-between border-t border-gray-100 px-6 py-4">
+                    {currentStep === 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resetForm();
+                          setShowForm(false);
+                        }}
+                        className="cursor-pointer text-[14px] font-medium text-gray-500 hover:text-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handlePrevious}
+                        className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-medium text-gray-600 hover:text-gray-800"
+                      >
+                        <i className="bx bx-arrow-left-stroke text-base"></i>
+                        Previous
+                      </button>
+                    )}
+
+                    {currentStep < totalSteps ? (
+                      <button
+                        type="button"
+                        onClick={handleNext}
+                        className="outfit-500 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-[14px] font-medium text-white shadow-sm transition hover:bg-orange-600 active:scale-95"
+                      >
+                        Next Step
+                        <i className="bx bx-arrow-right-stroke text-lg"></i>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="outfit-500 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-[14px] font-medium text-white shadow-sm transition hover:bg-orange-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <i className="bx bx-loader-alt animate-spin text-lg"></i>
+                            Saving...
+                          </>
+                        ) : (
+                          <>Create Quiz</>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1791,7 +2124,7 @@ function Libraries() {
 
           {/* Selection Overlay Banner */}
           {selectedQuizzes.length > 0 && (
-            <div className="outfit-400 fixed right-0 bottom-5 left-0 z-50 md:left-[119px] lg:left-[319px]">
+            <div className="outfit-400 fixed right-0 bottom-5 left-0 z-50 hidden md:left-[119px] md:block lg:left-[319px]">
               <div className="px-6">
                 <div className="rounded-xl bg-gray-800 px-5 py-4 shadow-lg">
                   <div className="flex items-center justify-between">

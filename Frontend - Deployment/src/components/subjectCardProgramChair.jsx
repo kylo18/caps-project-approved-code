@@ -64,6 +64,7 @@ const SubjectCard = ({
     top: 0,
     right: 0,
   });
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [, setTabIndicatorUpdate] = useState(0);
   const [isWorksheetModalOpen, setIsWorksheetModalOpen] = useState(false);
   const [worksheetSubject, setWorksheetSubject] = useState(null);
@@ -501,8 +502,8 @@ const SubjectCard = ({
         <SkeletonLoader />
       ) : (
         <>
-          {/* Top search bar (desktop & mobile) */}
-          <div className="outfit-500 relative mx-auto -mt-3 mb-5 w-full max-w-[1250px] px-2 text-[14px]">
+          {/* Top search bar (desktop only) */}
+          <div className="outfit-500 relative mx-auto -mt-3 mb-5 hidden w-full max-w-[1250px] px-2 text-[14px] lg:block">
             <i className="bx bx-search absolute top-1/2 left-5 -translate-y-1/2 text-lg text-gray-500" />
             <input
               type="text"
@@ -582,8 +583,8 @@ const SubjectCard = ({
               </div>
             </div>
 
-            {/* Button row for Tablet and Mobile (Configure, Preview, Refresh) */}
-            <div className="outfit-500 mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold sm:flex md:hidden">
+            {/* Button row for Tablet and Mobile (Configure, Preview, Refresh, Search) */}
+            <div className="outfit-500 mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold md:hidden">
               <button
                 onClick={() => alert("Feature under development")}
                 className="border-color mb-6 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
@@ -637,6 +638,17 @@ const SubjectCard = ({
                 </svg>
                 <span className="text-[14px]">Worksheet</span>
               </button>
+
+              {/* Mobile/tablet search toggle */}
+              <button
+                type="button"
+                onClick={() => setShowMobileSearch((prev) => !prev)}
+                className="border-color mb-6 flex cursor-pointer items-center justify-center rounded-xl border bg-white px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100"
+              >
+                <i
+                  className={`bx ${showMobileSearch ? "bx-x" : "bx-search"} text-2xl`}
+                ></i>
+              </button>
             </div>
           </div>
 
@@ -672,6 +684,25 @@ const SubjectCard = ({
               }}
             />
           </div>
+
+          {/* Mobile & Tablet search bar (shown when toggled) */}
+          {showMobileSearch && (
+            <div className="outfit-500 relative mx-auto mt-4 mb-2 w-full max-w-[1250px] px-4 text-[14px] md:hidden">
+              <i className="bx bx-search absolute top-1/2 left-7 -translate-y-1/2 text-lg text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search questions..."
+                autoFocus
+                inputMode="search"
+                className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+                value={searchQuery || ""}
+                maxLength={50}
+                onChange={(e) =>
+                  setSearchQuery && setSearchQuery(e.target.value)
+                }
+              />
+            </div>
+          )}
 
           {/* Desktop */}
           <div className="border-color relative z-48 mx-auto -mt-3 hidden max-w-[1200px] overflow-visible border-b bg-white px-6 pt-6 pb-0 md:block">

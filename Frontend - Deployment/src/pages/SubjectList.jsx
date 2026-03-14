@@ -78,11 +78,16 @@ function SubjectList() {
     }
   }, []);
 
+  // Fallback: if we're on a faculty route but roleId is not yet set,
+  // treat this view as faculty to ensure correct endpoint usage.
+  const isFacultyView = location.pathname.startsWith("/faculty");
+  const effectiveRoleId = roleId ?? (isFacultyView ? 2 : null);
+
   // Determine base path based on roleId
   const basePath =
-    Number(roleId) === 2
+    Number(effectiveRoleId) === 2
       ? "/faculty/subjects"
-      : Number(roleId) === 3
+      : Number(effectiveRoleId) === 3
         ? "/program-chair/subjects"
         : "/dean/subjects";
 
@@ -117,14 +122,14 @@ function SubjectList() {
 
   // If subject_id is in URL or subject is in state, navigate to AdminContent route
   useEffect(() => {
-    if (!roleId) return; // Wait for roleId to be loaded
+    if (!effectiveRoleId) return; // Wait for role to be determined
 
     if (subjectFromState && subjectFromState.subjectID) {
       setSelectedSubject(subjectFromState);
       const contentPath =
-        Number(roleId) === 2
+        Number(effectiveRoleId) === 2
           ? "/faculty/subjects/content"
-          : Number(roleId) === 3
+          : Number(effectiveRoleId) === 3
             ? "/program-chair/subjects/content"
             : "/dean/subjects/content";
       navigate(`${contentPath}?subjectID=${subjectFromState.subjectID}`, {
@@ -150,9 +155,9 @@ function SubjectList() {
             if (data.success && data.subject) {
               setSelectedSubject(data.subject);
               const contentPath =
-                Number(roleId) === 2
+                Number(effectiveRoleId) === 2
                   ? "/faculty/subjects/content"
-                  : Number(roleId) === 3
+                  : Number(effectiveRoleId) === 3
                     ? "/program-chair/subjects/content"
                     : "/dean/subjects/content";
               navigate(`${contentPath}?subjectID=${subjectID}`, {
@@ -167,7 +172,13 @@ function SubjectList() {
       };
       fetchSubject();
     }
-  }, [subjectID, subjectFromState, setSelectedSubject, navigate, roleId]);
+  }, [
+    subjectID,
+    subjectFromState,
+    setSelectedSubject,
+    navigate,
+    effectiveRoleId,
+  ]);
 
   const [subjects, setSubjects] = useState([]);
   const [filteredSubjects, setFilteredSubjects] = useState([]);
@@ -345,10 +356,10 @@ function SubjectList() {
 
   // Fetch subjects
   useEffect(() => {
-    if (roleId) {
+    if (effectiveRoleId) {
       fetchSubjects();
     }
-  }, [roleId]);
+  }, [effectiveRoleId]);
 
   // Listen for refresh events
   useEffect(() => {
@@ -366,7 +377,7 @@ function SubjectList() {
     try {
       // If user is faculty, fetch assigned subjects instead of all subjects
       const endpoint =
-        Number(roleId) === 2
+        Number(effectiveRoleId) === 2
           ? `${apiUrl}/faculty/my-subjects`
           : `${apiUrl}/subjects`;
 
@@ -386,7 +397,7 @@ function SubjectList() {
 
       // Faculty endpoint returns data.subjects directly, admin endpoint returns data.success
       const subjectsArray =
-        Number(roleId) === 2
+        Number(effectiveRoleId) === 2
           ? Array.isArray(data.subjects)
             ? data.subjects
             : []
@@ -850,16 +861,18 @@ function SubjectList() {
                 onClick={() => setShowMobileSearch((prev) => !prev)}
                 title="Search subjects"
               />
-              {/* Print / Generate exam - mobile only, beside search */}
-              <button
-                type="button"
-                onClick={() => setShowPrintModal(true)}
-                title="Print generating exam"
-                className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:hidden md:text-[14px]"
-                aria-label="Print generating exam"
-              >
-                <i className="bx bx-printer text-[22px]" />
-              </button>
+              {/* Print / Generate exam - mobile only, beside search (hidden for faculty) */}
+              {Number(effectiveRoleId) !== 2 && (
+                <button
+                  type="button"
+                  onClick={() => setShowPrintModal(true)}
+                  title="Print generating exam"
+                  className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:hidden md:text-[14px]"
+                  aria-label="Print generating exam"
+                >
+                  <i className="bx bx-printer text-[22px]" />
+                </button>
+              )}
               {/* Reports - mobile only, beside print */}
               <button
                 type="button"
@@ -895,7 +908,7 @@ function SubjectList() {
                       : `${selectedYearLevelFilter}${selectedYearLevelFilter === "1" ? "st" : selectedYearLevelFilter === "2" ? "nd" : selectedYearLevelFilter === "3" ? "rd" : "th"} Year`}
                   </span>
                   <i
-                    className={`bx bx-chevron-down ml-0 ml-2 hidden inline text-lg text-[22px] transition-transform ${
+                    className={`bx bx-chevron-down ml-2 hidden text-lg text-[22px] transition-transform ${
                       showYearLevelDropdown ? "rotate-180" : ""
                     }`}
                   />
@@ -948,11 +961,11 @@ function SubjectList() {
                 )}
               </div>
 
-              {Number(roleId) !== 3 && (
+              {Number(effectiveRoleId) !== 3 && (
                 <button
                   type="button"
                   onClick={() => {
-                    if (Number(roleId) === 2) {
+                    if (Number(effectiveRoleId) === 2) {
                       setShowAssignModal(true);
                       fetchAvailableSubjects();
                     } else {
@@ -960,7 +973,9 @@ function SubjectList() {
                     }
                   }}
                   title={
-                    Number(roleId) === 2 ? "Assign subject" : "Create subject"
+                    Number(effectiveRoleId) === 2
+                      ? "Assign subject"
+                      : "Create subject"
                   }
                   className="outfit-500 -mb-2 hidden cursor-pointer items-center rounded-xl bg-orange-500 p-2 text-[12px] font-medium text-white transition-colors hover:bg-orange-600 md:mb-0 md:inline-flex md:px-4 md:py-2 md:text-[14px]"
                 >
@@ -975,7 +990,7 @@ function SubjectList() {
         </div>
 
         {/* Subjects List */}
-        <div>
+        <div className="md:px-4">
           {subjectLoading ? (
             <div className="outfit-400 flex h-64 items-center justify-center">
               <div className="text-center">
@@ -1004,7 +1019,7 @@ function SubjectList() {
                 />
                 <p className="outfit-400 text-[14px] text-gray-600">
                   {selectedProgramFilter === "All" ? (
-                    Number(roleId) === 2 ? (
+                    Number(effectiveRoleId) === 2 ? (
                       <>
                         No subjects assigned.
                         <br />
@@ -1042,7 +1057,7 @@ function SubjectList() {
                       className="scroll-mt-4"
                     >
                       {/* Program Header - Only show when "All" is selected */}
-                      <div className="px-4 md:px-6">
+                      <div className="px-4">
                         {selectedProgramFilter === "All" && (
                           <div className="mb-4">
                             <h3 className="outfit-500 text-[14px] text-gray-600">
@@ -1258,7 +1273,7 @@ function SubjectList() {
 
                                 {/* White Body Section - hidden on mobile */}
                                 <div
-                                  className="flex hidden flex-1 cursor-pointer flex-col px-4 py-4 md:block"
+                                  className="hidden flex-1 cursor-pointer flex-col px-4 py-4 md:flex"
                                   onClick={() => handleSubjectClick(subject)}
                                 >
                                   {/* Min height for 2 lines so separator stays at same position when name is 1 line */}
@@ -1319,12 +1334,12 @@ function SubjectList() {
       </div>
 
       {/* Floating Create/Assign subject button (mobile only) - same as Class.jsx */}
-      {Number(roleId) !== 3 && (
+      {Number(effectiveRoleId) !== 3 && (
         <div className="fixed right-4 bottom-[90px] z-50 md:hidden">
           <button
             type="button"
             onClick={() => {
-              if (Number(roleId) === 2) {
+              if (Number(effectiveRoleId) === 2) {
                 setShowAssignModal(true);
                 fetchAvailableSubjects();
               } else {

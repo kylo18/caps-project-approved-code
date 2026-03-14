@@ -1068,7 +1068,7 @@ const ClassContent = () => {
                         "Class schedule"}
                     </p>
                   </div>
-                  <div className="mt-8 flex items-end justify-between">
+                  <div className="mt-8 flex items-end outfit-400 justify-between">
                     <div className="inline-flex max-w-full items-center overflow-hidden rounded-full bg-white px-2 py-0.5">
                       <span className="truncate text-[12px] font-semibold whitespace-nowrap text-black uppercase">
                         Class Code -{" "}

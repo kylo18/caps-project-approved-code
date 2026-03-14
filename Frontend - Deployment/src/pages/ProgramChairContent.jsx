@@ -469,7 +469,7 @@ const ProgramChairContent = () => {
 
   return (
     // Main container with flex layout for the entire dashboard
-    <div className="relative mt-2 flex min-h-screen w-full flex-1 flex-col justify-center py-2">
+    <div className="relative mt-2 flex min-h-screen w-full flex-1 flex-col justify-center py-2 pb-24 md:pb-2">
       <div className="flex-1">
         {selectedSubject ? (
           // Main content area when a subject is selected

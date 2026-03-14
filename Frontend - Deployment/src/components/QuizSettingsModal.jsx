@@ -40,13 +40,16 @@ const QuizSettingsModal = ({
       }
 
       hasFetchedRef.current = true;
-      
+
       try {
         setLoading(true);
         const token = sessionStorage.getItem("token");
 
         if (!token) {
-          showToast("Authentication token not found. Please log in again.", "error");
+          showToast(
+            "Authentication token not found. Please log in again.",
+            "error",
+          );
           setIsFormOpen(false);
           return;
         }
@@ -70,15 +73,15 @@ const QuizSettingsModal = ({
                 ? (() => {
                     // Handle format: "2026-02-20 08:00:00" or "2026-02-20"
                     let dateStr = setting.startTime.trim();
-                    if (dateStr.includes(' ')) {
+                    if (dateStr.includes(" ")) {
                       // Format: "2026-02-20 08:00:00" - extract date and time parts
-                      const [datePart, timePart] = dateStr.split(' ');
-                      const [hours, minutes] = timePart.split(':');
+                      const [datePart, timePart] = dateStr.split(" ");
+                      const [hours, minutes] = timePart.split(":");
                       // Format for datetime-local: YYYY-MM-DDTHH:mm
                       return `${datePart}T${hours}:${minutes}`;
                     } else {
                       // Format: "2026-02-20" - add default time
-                      return dateStr + 'T00:00';
+                      return dateStr + "T00:00";
                     }
                   })()
                 : "",
@@ -86,15 +89,15 @@ const QuizSettingsModal = ({
                 ? (() => {
                     // Handle format: "2026-02-20 08:00:00" or "2026-02-20"
                     let dateStr = setting.endTime.trim();
-                    if (dateStr.includes(' ')) {
+                    if (dateStr.includes(" ")) {
                       // Format: "2026-02-20 08:00:00" - extract date and time parts
-                      const [datePart, timePart] = dateStr.split(' ');
-                      const [hours, minutes] = timePart.split(':');
+                      const [datePart, timePart] = dateStr.split(" ");
+                      const [hours, minutes] = timePart.split(":");
                       // Format for datetime-local: YYYY-MM-DDTHH:mm
                       return `${datePart}T${hours}:${minutes}`;
                     } else {
                       // Format: "2026-02-20" - add default time
-                      return dateStr + 'T00:00';
+                      return dateStr + "T00:00";
                     }
                   })()
                 : "",
@@ -152,7 +155,7 @@ const QuizSettingsModal = ({
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     // Handle dependency: if showCorrectAnswers is enabled, automatically enable showCorrectQuestion
     if (name === "showCorrectAnswers" && checked) {
       setSettings((prev) => ({
@@ -162,7 +165,7 @@ const QuizSettingsModal = ({
       }));
       return;
     }
-    
+
     // If showCorrectQuestion is disabled, disable showCorrectAnswers
     if (name === "showCorrectQuestion" && !checked) {
       setSettings((prev) => ({
@@ -172,7 +175,7 @@ const QuizSettingsModal = ({
       }));
       return;
     }
-    
+
     setSettings((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -184,7 +187,10 @@ const QuizSettingsModal = ({
     setIsEditing(true);
 
     // Validation: if quizTimerEnabled is true, quizTimer must be provided
-    if (settings.quizTimerEnabled && (!settings.quizTimer || settings.quizTimer < 1)) {
+    if (
+      settings.quizTimerEnabled &&
+      (!settings.quizTimer || settings.quizTimer < 1)
+    ) {
       showToast(
         "Quiz timer duration is required when timer is enabled.",
         "error",
@@ -237,14 +243,15 @@ const QuizSettingsModal = ({
       if (settings.startTime) {
         // Extract date in YYYY-MM-DD format
         const date = new Date(settings.startTime);
-        payload.startTime = date.toISOString().split('T')[0];
+        payload.startTime = date.toISOString().split("T")[0];
       }
       if (settings.endTime) {
         // Extract date in YYYY-MM-DD format
         const date = new Date(settings.endTime);
-        payload.endTime = date.toISOString().split('T')[0];
+        payload.endTime = date.toISOString().split("T")[0];
       }
-      if (settings.quizAttempts) payload.quizAttempts = parseInt(settings.quizAttempts);
+      if (settings.quizAttempts)
+        payload.quizAttempts = parseInt(settings.quizAttempts);
       if (settings.quizTimerEnabled && settings.quizTimer) {
         payload.quizTimer = parseInt(settings.quizTimer);
         payload.quizTimerEnabled = true;
@@ -343,40 +350,6 @@ const QuizSettingsModal = ({
                     </div>
                   ) : (
                     <>
-                      {/* Date/Time Settings */}
-                      <div className="mb-4">
-                        <span className="mb-3 block text-[14px] font-semibold text-gray-900">
-                          Availability
-                        </span>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="mb-1 block text-[12px] text-gray-700">
-                              Start Time
-                            </label>
-                            <input
-                              type="datetime-local"
-                              name="startTime"
-                              value={settings.startTime}
-                              onChange={handleChange}
-                              className="w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-[12px] text-gray-700">
-                              End Time
-                            </label>
-                            <input
-                              type="datetime-local"
-                              name="endTime"
-                              value={settings.endTime}
-                              onChange={handleChange}
-                              className="w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
                       {/* Quiz Attempts */}
                       <div className="mb-4">
                         <label className="mb-1 block text-[12px] text-gray-700">
@@ -482,10 +455,14 @@ const QuizSettingsModal = ({
                           </label>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className={`text-[14px] ${!settings.showCorrectQuestion ? 'text-gray-400' : 'text-gray-700'}`}>
+                          <span
+                            className={`text-[14px] ${!settings.showCorrectQuestion ? "text-gray-400" : "text-gray-700"}`}
+                          >
                             Show Correct Answers
                           </span>
-                          <label className={`relative inline-flex items-center ${!settings.showCorrectQuestion ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                          <label
+                            className={`relative inline-flex items-center ${!settings.showCorrectQuestion ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                          >
                             <input
                               type="checkbox"
                               name="showCorrectAnswers"
@@ -494,7 +471,9 @@ const QuizSettingsModal = ({
                               disabled={!settings.showCorrectQuestion}
                               className="peer sr-only"
                             />
-                            <div className={`h-6 w-11 rounded-full ${!settings.showCorrectQuestion ? 'bg-gray-200' : settings.showCorrectAnswers ? 'bg-orange-500' : 'bg-gray-300'} after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all ${settings.showCorrectAnswers ? 'after:translate-x-full' : ''}`}></div>
+                            <div
+                              className={`h-6 w-11 rounded-full ${!settings.showCorrectQuestion ? "bg-gray-200" : settings.showCorrectAnswers ? "bg-orange-500" : "bg-gray-300"} after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all ${settings.showCorrectAnswers ? "after:translate-x-full" : ""}`}
+                            ></div>
                           </label>
                         </div>
                         <div className="flex items-center justify-between">
@@ -615,49 +594,7 @@ const QuizSettingsModal = ({
                     onSubmit={handleSubmit}
                     id="quizSettingsForm"
                   >
-                    {/* Availability Section */}
-                    <div className="mb-6">
-                      <h3 className="mb-4 text-[16px] font-semibold text-gray-900">
-                        Availability
-                      </h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex min-w-0 flex-1 flex-col">
-                            <div className="text-[12px] font-semibold text-gray-900">
-                              Start Time
-                            </div>
-                            <div className="text-[10px] text-gray-500">
-                              When the quiz becomes available.
-                            </div>
-                          </div>
-                          <input
-                            type="datetime-local"
-                            name="startTime"
-                            value={settings.startTime}
-                            onChange={handleChange}
-                            className="w-48 rounded-xl border border-gray-300 px-4 py-[7px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex min-w-0 flex-1 flex-col">
-                            <div className="text-[12px] font-semibold text-gray-900">
-                              End Time
-                            </div>
-                            <div className="text-[10px] text-gray-500">
-                              When the quiz becomes unavailable.
-                            </div>
-                          </div>
-                          <input
-                            type="datetime-local"
-                            name="endTime"
-                            value={settings.endTime}
-                            onChange={handleChange}
-                            className="w-48 rounded-xl border border-gray-300 px-4 py-[7px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="-mx-5 mb-6 h-[1px] bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+                    
 
                     {/* Quiz Attempts */}
                     <div className="mb-6 flex items-center justify-between gap-4">
@@ -666,7 +603,8 @@ const QuizSettingsModal = ({
                           Quiz Attempts
                         </div>
                         <div className="text-[10px] text-gray-500">
-                          Maximum number of attempts allowed (leave empty for unlimited).
+                          Maximum number of attempts allowed (leave empty for
+                          unlimited).
                         </div>
                       </div>
                       <input
@@ -806,14 +744,21 @@ const QuizSettingsModal = ({
                         </div>
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className={`text-[12px] font-semibold ${!settings.showCorrectQuestion ? 'text-gray-400' : 'text-gray-900'}`}>
+                            <div
+                              className={`text-[12px] font-semibold ${!settings.showCorrectQuestion ? "text-gray-400" : "text-gray-900"}`}
+                            >
                               Show Correct Answers
                             </div>
-                            <div className={`text-[10px] ${!settings.showCorrectQuestion ? 'text-gray-400' : 'text-gray-500'}`}>
-                              Display correct answers after submission (requires Show Correct Question).
+                            <div
+                              className={`text-[10px] ${!settings.showCorrectQuestion ? "text-gray-400" : "text-gray-500"}`}
+                            >
+                              Display correct answers after submission (requires
+                              Show Correct Question).
                             </div>
                           </div>
-                          <label className={`relative inline-flex items-center ${!settings.showCorrectQuestion ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                          <label
+                            className={`relative inline-flex items-center ${!settings.showCorrectQuestion ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                          >
                             <input
                               type="checkbox"
                               name="showCorrectAnswers"
@@ -822,7 +767,9 @@ const QuizSettingsModal = ({
                               disabled={!settings.showCorrectQuestion}
                               className="peer sr-only"
                             />
-                            <div className={`h-6 w-11 rounded-full ${!settings.showCorrectQuestion ? 'bg-gray-200' : settings.showCorrectAnswers ? 'bg-orange-500' : 'bg-gray-300'} after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all ${settings.showCorrectAnswers ? 'after:translate-x-full' : ''}`}></div>
+                            <div
+                              className={`h-6 w-11 rounded-full ${!settings.showCorrectQuestion ? "bg-gray-200" : settings.showCorrectAnswers ? "bg-orange-500" : "bg-gray-300"} after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all ${settings.showCorrectAnswers ? "after:translate-x-full" : ""}`}
+                            ></div>
                           </label>
                         </div>
                         <div className="flex items-center justify-between">

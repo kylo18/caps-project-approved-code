@@ -249,8 +249,12 @@ const StudentDashboard = () => {
   const handleContinueExam = () => {
     if (ongoingExam) {
       // Load saved current question index
-      const savedLastQuestion = localStorage.getItem(`${ongoingExam.examKey}_last_question`);
-      const lastQuestionIndex = savedLastQuestion ? parseInt(savedLastQuestion) : 0;
+      const savedLastQuestion = localStorage.getItem(
+        `${ongoingExam.examKey}_last_question`,
+      );
+      const lastQuestionIndex = savedLastQuestion
+        ? parseInt(savedLastQuestion)
+        : 0;
 
       navigate("/practice-exam", {
         state: {
@@ -452,22 +456,17 @@ const StudentDashboard = () => {
       if (!response.ok) {
         // Handle validation errors
         if (response.status === 422 && data.errors) {
-          const errorMessages = Object.values(data.errors)
-            .flat()
-            .join(", ");
+          const errorMessages = Object.values(data.errors).flat().join(", ");
           setClassCodeError(errorMessages || "Validation failed");
         } else if (response.status === 403) {
-          showToast(
-            data.message || "Only students can join classes.",
-            "error"
-          );
+          showToast(data.message || "Only students can join classes.", "error");
         } else if (response.status === 404) {
           setClassCodeError(
-            data.message || "Invalid class code or class is not active."
+            data.message || "Invalid class code or class is not active.",
           );
         } else {
           setClassCodeError(
-            data.message || "Failed to join class. Please try again."
+            data.message || "Failed to join class. Please try again.",
           );
         }
         setIsJoining(false);
@@ -475,10 +474,7 @@ const StudentDashboard = () => {
       }
 
       if (data.success) {
-        showToast(
-          data.message || "Successfully joined the class!",
-          "success"
-        );
+        showToast(data.message || "Successfully joined the class!", "success");
         // Reset form and close modal
         resetJoinForm();
         setShowJoinForm(false);
@@ -486,7 +482,7 @@ const StudentDashboard = () => {
         // navigate(`/class/${data.class.classID}`);
       } else {
         setClassCodeError(
-          data.message || "Failed to join class. Please try again."
+          data.message || "Failed to join class. Please try again.",
         );
       }
     } catch (error) {
@@ -503,14 +499,16 @@ const StudentDashboard = () => {
       <Toast message={toast.message} type={toast.type} show={toast.show} />
       <div className="outfit mt-10 text-center text-gray-500">
         {ongoingExam && (
-          <div className="mb-6">
+          <div className="mb-6 hidden">
             <div className="mx-auto max-w-md rounded-lg bg-yellow-50 p-4 shadow-sm">
               <h3 className="mb-2 text-[16px] font-semibold text-yellow-800">
                 Exam in Progress
               </h3>
               <p className="mb-4 text-[12px] text-yellow-700">
                 You have an unfinished practice exam for{" "}
-                {ongoingExam.examData?.subjectName || `Subject ${ongoingExam.subjectID}`}. Your progress has been saved.
+                {ongoingExam.examData?.subjectName ||
+                  `Subject ${ongoingExam.subjectID}`}
+                . Your progress has been saved.
               </p>
 
               <div className="flex justify-center">
@@ -536,122 +534,112 @@ const StudentDashboard = () => {
           >
             Start a New Exam
           </button>
-
-          <button
-            onClick={() => {
-              setShowJoinForm(true);
-              resetJoinForm(); // Reset form when opening
-            }}
-            className="cursor-pointer rounded-md border border-gray-300 bg-white px-4 py-2 text-[14px] text-gray-700 hover:bg-gray-50"
-          >
-            Join a Class
-          </button>
         </div>
 
-      {showForm && (
-        <>
-          <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
-            <div className="relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
-              <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
-                <h2 className="text-[14px] font-medium text-gray-700">
-                  Start a New Exam
-                </h2>
+        {showForm && (
+          <>
+            <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
+              <div className="relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
+                <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
+                  <h2 className="text-[14px] font-medium text-gray-700">
+                    Start a New Exam
+                  </h2>
 
-                <button
-                  onClick={() => {
-                    setShowForm(false);
-                    resetForm();
-                  }}
-                  className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
-                  title="Close"
-                >
-                  <i className="bx bx-x text-[20px]"></i>
-                </button>
-              </div>
-
-              <form className="px-5 py-4" onSubmit={handleGenerateExam}>
-                {" "}
-                <span className="mb-2 block text-start text-[14px] text-gray-700">
-                  Select Subject
-                </span>
-                <div className="relative">
-                  <input
-                    type="text"
-                    className="peer border-color mt-1 w-full rounded-xl border px-4 py-[8px] text-base text-gray-700 transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
-                    value={subjectInput}
-                    onChange={(e) => {
-                      setSubjectInput(e.target.value);
-                      if (!e.target.value.trim()) {
-                        setSubjectID(""); // Clear subjectID when input is empty
-                      }
-                      setSubjectError("");
-                    }}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                    placeholder="Enter"
-                  />
-                  {showSuggestions && (
-                    <div
-                      ref={suggestionsRef}
-                      className="border-color absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
-                      tabIndex={-1}
-                    >
-                      <div className="max-h-[200px] overflow-y-auto">
-                        {isSearchLoading ? (
-                          <div className="flex items-center justify-center py-2">
-                            <span className="loader"></span>
-                          </div>
-                        ) : filteredSubjects.length > 0 ? (
-                          filteredSubjects.map((subject) => (
-                            <div
-                              key={subject.subjectID}
-                              onClick={() => handleSubjectSelect(subject)}
-                              className="cursor-pointer px-4 py-2 text-start text-[14px] text-gray-700 hover:bg-gray-100"
-                              tabIndex={-1}
-                            >
-                              {subject.subjectCode} - {subject.subjectName}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="px-4 py-2 text-center text-sm text-gray-500">
-                            No subjects found
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-4 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-                {subjectError && (
-                  <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                    {subjectError}
-                  </div>
-                )}
-                {error && (
-                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                    {error}
-                  </div>
-                )}
-                <div>
                   <button
-                    type="submit"
-                    disabled={loading}
-                    className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${loading ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                    onClick={() => {
+                      setShowForm(false);
+                      resetForm();
+                    }}
+                    className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
+                    title="Close"
                   >
-                    {loading ? (
-                      <div className="flex items-center justify-center">
-                        <span className="loader-white"></span>
-                      </div>
-                    ) : (
-                      "Generate Exam"
-                    )}
+                    <i className="bx bx-x text-[20px]"></i>
                   </button>
                 </div>
-              </form>
-            </div>{" "}
-          </div>
-        </>
-      )}
+
+                <form className="px-5 py-4" onSubmit={handleGenerateExam}>
+                  {" "}
+                  <span className="mb-2 block text-start text-[14px] text-gray-700">
+                    Select Subject
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="peer border-color mt-1 w-full rounded-xl border px-4 py-[8px] text-base text-gray-700 transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
+                      value={subjectInput}
+                      onChange={(e) => {
+                        setSubjectInput(e.target.value);
+                        if (!e.target.value.trim()) {
+                          setSubjectID(""); // Clear subjectID when input is empty
+                        }
+                        setSubjectError("");
+                      }}
+                      onFocus={handleInputFocus}
+                      onBlur={handleInputBlur}
+                      placeholder="Enter"
+                    />
+                    {showSuggestions && (
+                      <div
+                        ref={suggestionsRef}
+                        className="border-color absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
+                        tabIndex={-1}
+                      >
+                        <div className="max-h-[200px] overflow-y-auto">
+                          {isSearchLoading ? (
+                            <div className="flex items-center justify-center py-2">
+                              <span className="loader"></span>
+                            </div>
+                          ) : filteredSubjects.length > 0 ? (
+                            filteredSubjects.map((subject) => (
+                              <div
+                                key={subject.subjectID}
+                                onClick={() => handleSubjectSelect(subject)}
+                                className="cursor-pointer px-4 py-2 text-start text-[14px] text-gray-700 hover:bg-gray-100"
+                                tabIndex={-1}
+                              >
+                                {subject.subjectCode} - {subject.subjectName}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-4 py-2 text-center text-sm text-gray-500">
+                              No subjects found
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+                  {subjectError && (
+                    <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                      {subjectError}
+                    </div>
+                  )}
+                  {error && (
+                    <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                      {error}
+                    </div>
+                  )}
+                  <div>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${loading ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                    >
+                      {loading ? (
+                        <div className="flex items-center justify-center">
+                          <span className="loader-white"></span>
+                        </div>
+                      ) : (
+                        "Generate Exam"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>{" "}
+            </div>
+          </>
+        )}
 
         {showJoinForm && (
           <>
