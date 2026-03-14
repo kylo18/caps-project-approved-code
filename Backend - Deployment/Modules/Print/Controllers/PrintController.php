@@ -25,13 +25,32 @@ class PrintController extends Controller
         if (!$path) {
             return null;
         }
+
+        // If it's already a full URL, normalize to https and return
         if (\Illuminate\Support\Str::startsWith($path, ['http://', 'https://'])) {
             return preg_replace('/^http:/i', 'https:', $path);
         }
-        if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+
+        // Normalize paths that may already include /storage/ prefix
+        $cleanPath = $path;
+        if (\Illuminate\Support\Str::startsWith($path, '/storage/')) {
+            $cleanPath = \Illuminate\Support\Str::after($path, '/storage/');
+        } elseif (\Illuminate\Support\Str::startsWith($path, 'storage/')) {
+            $cleanPath = \Illuminate\Support\Str::after($path, 'storage/');
+        }
+
+        // Check if file exists in public storage using normalized path
+        if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($cleanPath)) {
+            // If it still looks like a storage path (question_images or choices), generate URL anyway
+            if (\Illuminate\Support\Str::contains($cleanPath, 'question_images/') ||
+                \Illuminate\Support\Str::contains($cleanPath, 'choices/')) {
+                $url = asset('storage/' . $cleanPath);
+                return preg_replace('/^http:/i', 'https:', $url);
+            }
             return null;
         }
-        $url = asset('storage/' . $path);
+
+        $url = asset('storage/' . $cleanPath);
         return preg_replace('/^http:/i', 'https:', $url);
     }
 
@@ -739,18 +758,8 @@ class PrintController extends Controller
                         }
                     }
 
-                    // Get question image URL
-                    $questionImageUrl = null;
-                    if ($question->personalQuizImage) {
-                        if (filter_var($question->personalQuizImage, FILTER_VALIDATE_URL)) {
-                            $questionImageUrl = $question->personalQuizImage;
-                        } else {
-                            $imagePath = $question->personalQuizImage;
-                            if (Storage::disk('public')->exists($imagePath)) {
-                                $questionImageUrl = asset('storage/' . $imagePath);
-                            }
-                        }
-                    }
+                    // Get question image URL (same handling as main QuestionController)
+                    $questionImageUrl = $this->generateUrl($question->personalQuizImage);
 
                     // Format choices
                     $formattedChoices = [];
@@ -770,18 +779,8 @@ class PrintController extends Controller
                                 }
                             }
 
-                            // Get choice image URL
-                            $choiceImageUrl = null;
-                            if ($choice->image) {
-                                if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
-                                    $choiceImageUrl = $choice->image;
-                                } else {
-                                    $imagePath = $choice->image;
-                                    if (Storage::disk('public')->exists($imagePath)) {
-                                        $choiceImageUrl = asset('storage/' . $imagePath);
-                                    }
-                                }
-                            }
+                            // Get choice image URL (same handling as main QuestionController)
+                            $choiceImageUrl = $this->generateUrl($choice->image);
 
                             $formattedChoices[] = [
                                 'personalQuizChoiceID' => $choice->personalQuizChoiceID,
@@ -877,7 +876,7 @@ class PrintController extends Controller
     public function generatePersonalQuizPDF(Request $request)
     {
         try {
-            $user = Auth::user();
+            $user = Auth::user();       
             if (!$user) {
                 return response()->json([
                     'success' => false,
