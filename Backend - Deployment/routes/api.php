@@ -162,11 +162,11 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::post('/personal-quiz-choices/update', [PersonalQuizChoiceController::class, 'updateChoices']); // Alias for frontend compatibility
     Route::delete('/personal-quiz-choices/{personalQuizChoiceID}', [PersonalQuizChoiceController::class, 'destroy']);
 
-    // Personal Quiz Settings (CRUD)
-    Route::get('/personal-quizzes/{personalQuizID}/settings', [PersonalQuizSettingController::class, 'show']);
-    Route::post('/personal-quizzes/{personalQuizID}/settings', [PersonalQuizSettingController::class, 'store']);
-    Route::put('/personal-quizzes/{personalQuizID}/settings', [PersonalQuizSettingController::class, 'update']);
-    Route::delete('/personal-quizzes/{personalQuizID}/settings', [PersonalQuizSettingController::class, 'destroy']);
+    // Class Personal Quiz Settings (CRUD) - per quiz assignment inside a class
+    Route::get('/class-quizzes/{classPersonalQuizID}/settings', [PersonalQuizSettingController::class, 'show']);
+    Route::post('/class-quizzes/{classPersonalQuizID}/settings', [PersonalQuizSettingController::class, 'store']);
+    Route::put('/class-quizzes/{classPersonalQuizID}/settings', [PersonalQuizSettingController::class, 'update']);
+    Route::delete('/class-quizzes/{classPersonalQuizID}/settings', [PersonalQuizSettingController::class, 'destroy']);
 
     // Personal Exam Settings (store, show) - reusing PracticeExamSettingController
     Route::post('/personal-exam-settings', [PracticeExamSettingController::class, 'store']);
@@ -268,7 +268,7 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
     Route::get('/classes/{classID}/quiz-history', [StudentQuizResultController::class, 'classHistory']);
     Route::get('/quizzes/{classPersonalQuizID}/history', [StudentQuizResultController::class, 'quizHistory']);
     
-    // Quiz Sessions (Students)
+// Quiz Sessions (Students)
     Route::get('/quiz-sessions', [QuizSessionController::class, 'studentSessions']);
 });
 

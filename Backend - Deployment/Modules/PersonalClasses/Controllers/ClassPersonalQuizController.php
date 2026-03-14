@@ -32,10 +32,25 @@ class ClassPersonalQuizController extends Controller
                 ], 401);
             }
 
-            // Verify the class belongs to the faculty
-            $class = ClassModel::where('classID', $classID)
-                ->where('facultyID', $user->userID)
-                ->first();
+            // Authorization:
+            // - Faculty (2–5): class must belong to them
+            // - Student (1): must be enrolled in the class
+            $classQuery = ClassModel::where('classID', $classID);
+            if ($user->roleID == 1) {
+                $isEnrolled = ClassEnrollment::where('classID', $classID)
+                    ->where('studentID', $user->userID)
+                    ->exists();
+                if (!$isEnrolled) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You are not enrolled in this class.',
+                    ], 403);
+                }
+            } else {
+                $classQuery->where('facultyID', $user->userID);
+            }
+
+            $class = $classQuery->first();
 
             if (!$class) {
                 return response()->json([
@@ -49,20 +64,38 @@ class ClassPersonalQuizController extends Controller
                     'personalQuiz.quizType',
                     'personalQuiz.coverage',
                     'personalQuiz.creator',
+                    'setting',
                 ])
                 ->where('classID', $classID)
                 ->orderByDesc('created_at')
                 ->get();
 
             // Format quizzes with statistics
-            $quizzes = $classPersonalQuizzes->map(function ($classPersonalQuiz) use ($classID) {
+            $quizzes = $classPersonalQuizzes->map(function ($classPersonalQuiz) use ($classID, $user) {
                 $quiz = $classPersonalQuiz->personalQuiz;
+                $setting = $classPersonalQuiz->setting;
+
+                $durationMinutes = null;
+                if ($setting && $setting->quizTimerEnabled && $setting->quizTimer) {
+                    $durationMinutes = (int) $setting->quizTimer;
+                }
+
+                $remainingAttempts = null;
+                if ($user && $user->roleID == 1 && $setting && $setting->quizAttempts) {
+                    $attemptsUsed = StudentQuizResult::where('class_quiz_assignment_id', $classPersonalQuiz->classPersonalQuizID)
+                        ->where('studentID', $user->userID)
+                        ->count();
+                    $remainingAttempts = max(0, (int) $setting->quizAttempts - (int) $attemptsUsed);
+                }
                 
-                // Get all students who answered this quiz (from ClassQuizAttempt for student list)
-                $attempts = ClassQuizAttempt::where('classID', $classID)
-                    ->where('personalQuizID', $quiz->personalQuizID)
-                    ->with('student')
-                    ->get();
+                // Faculty-only: student list from ClassQuizAttempt
+                $attempts = collect();
+                if ($user && $user->roleID != 1) {
+                    $attempts = ClassQuizAttempt::where('classID', $classID)
+                        ->where('personalQuizID', $quiz->personalQuizID)
+                        ->with('student')
+                        ->get();
+                }
 
                 $studentsAnswered = $attempts->map(function ($attempt) {
                     return [
@@ -95,9 +128,13 @@ class ClassPersonalQuizController extends Controller
                     'quizName' => $quiz->title,
                     'description' => $quiz->description,
                     'studentsAnswered' => $studentsAnswered,
+                    'durationMinutes' => $durationMinutes,
+                    'remainingAttempts' => $remainingAttempts,
                     'startDate' => $classPersonalQuiz->startDate ? $classPersonalQuiz->startDate->toDateTimeString() : null,
                     'deadlineDate' => $classPersonalQuiz->deadlineDate ? $classPersonalQuiz->deadlineDate->toDateTimeString() : null,
                     'endDate' => $classPersonalQuiz->deadlineDate ? $classPersonalQuiz->deadlineDate->toDateTimeString() : null,
+                    'startTime' => $setting && $setting->startTime ? $setting->startTime->toDateTimeString() : null,
+                    'endTime' => $setting && $setting->endTime ? $setting->endTime->toDateTimeString() : null,
                     'avgAccuracy' => $averageAccuracy,
                     'totalAttempts' => $totalAttempts,
                     'completedAttempts' => $attempts->where('isCompleted', true)->count(),
@@ -436,7 +473,7 @@ class ClassPersonalQuizController extends Controller
                     'personalQuiz.quizType',
                     'personalQuiz.coverage',
                     'personalQuiz.creator',
-                    'personalQuiz.setting',
+                    'setting',
                 ])
                 ->where('classID', $classID)
                 ->orderByDesc('created_at')
@@ -445,7 +482,7 @@ class ClassPersonalQuizController extends Controller
             // Format quizzes with student-specific information
             $quizzes = $classPersonalQuizzes->map(function ($classPersonalQuiz) use ($user, $classID) {
                 $quiz = $classPersonalQuiz->personalQuiz;
-                $setting = $quiz->setting;
+                $setting = $classPersonalQuiz->setting;
 
                 // Get student's attempt for this quiz
                 $studentAttempt = ClassQuizAttempt::where('classID', $classID)

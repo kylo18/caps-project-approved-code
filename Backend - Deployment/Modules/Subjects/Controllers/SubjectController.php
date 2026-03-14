@@ -522,7 +522,7 @@ class SubjectController extends Controller
         }
 
         // Fetch program-specific and general education subjects with practice exam settings
-        $subjects = Subject::with(['program', 'yearLevel'])
+        $subjects = Subject::with(['program', 'yearLevel', 'practiceExamSetting'])
             ->where(function ($query) use ($user) {
                 $query->where('programID', $user->programID)
                     ->orwhere('programID', 6) // General subjects
@@ -545,6 +545,12 @@ class SubjectController extends Controller
             ->pluck('lastQuestionAdded', 'subjectID');
 
         $formattedSubjects = $subjects->map(function ($subject) use ($lastQuestionDates) {
+            $setting = $subject->practiceExamSetting;
+            $questionCount = $setting ? (int) $setting->total_items : null;
+            $durationMinutes = ($setting && $setting->enableTimer && $setting->duration_minutes !== null)
+                ? (int) $setting->duration_minutes
+                : null;
+
             return [
                 'subjectID' => $subject->subjectID,
                 'subjectName' => $subject->subjectName,
@@ -556,6 +562,8 @@ class SubjectController extends Controller
                 'lastQuestionAdded' => isset($lastQuestionDates[$subject->subjectID]) && $lastQuestionDates[$subject->subjectID]
                     ? \Carbon\Carbon::parse($lastQuestionDates[$subject->subjectID])->toDateTimeString()
                     : null,
+                'questionCount' => $questionCount,
+                'durationMinutes' => $durationMinutes,
             ];
         });
 

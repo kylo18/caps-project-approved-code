@@ -13,9 +13,10 @@ use Modules\PersonalExams\Models\PersonalQuizSetting;
 class PersonalQuizSettingController extends Controller
 {
     /**
-     * Get configuration for a specific personal quiz.
+     * Get configuration for a specific quiz assignment inside a class.
+     * Settings are now stored per class quiz (classPersonalQuizID).
      */
-    public function show($personalQuizID)
+    public function show($classPersonalQuizID)
     {
         try {
             $user = Auth::user();
@@ -27,21 +28,21 @@ class PersonalQuizSettingController extends Controller
                 ], 401);
             }
 
-            // Verify the quiz belongs to the user
-            $quiz = PersonalQuiz::where('personalQuizID', $personalQuizID)
-                ->where('created_by', $user->userID)
+            // Verify the class quiz assignment belongs to one of the user's classes
+            $classQuiz = \Modules\PersonalClasses\Models\ClassPersonalQuiz::with('class', 'personalQuiz')
+                ->where('classPersonalQuizID', $classPersonalQuizID)
                 ->first();
 
-            if (!$quiz) {
+            if (!$classQuiz || $classQuiz->class->facultyID !== $user->userID) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Personal quiz not found or you do not have permission.',
+                    'message' => 'Quiz assignment not found or you do not have permission.',
                 ], 404);
             }
 
             // Get or create settings
             $setting = PersonalQuizSetting::firstOrCreate(
-                ['personalQuizID' => $personalQuizID],
+                ['classPersonalQuizID' => $classPersonalQuizID],
                 [
                     'quizTimerEnabled' => false,
                     'shuffleQuestions' => false,
@@ -54,15 +55,25 @@ class PersonalQuizSettingController extends Controller
                 ]
             );
 
+            // Explicitly include start/end times for the quiz in this class
+            $classAssignment = [
+                'startDate' => $classQuiz->startDate?->format('Y-m-d H:i:s'),
+                'deadlineDate' => $classQuiz->deadlineDate?->format('Y-m-d H:i:s'),
+            ];
+            $settingPayload = $setting->toArray();
+            $settingPayload['startTime'] = $setting->startTime?->format('Y-m-d H:i:s');
+            $settingPayload['endTime'] = $setting->endTime?->format('Y-m-d H:i:s');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Quiz settings retrieved successfully.',
-                'setting' => $setting,
+                'setting' => $settingPayload,
+                'classAssignment' => $classAssignment,
             ], 200);
         } catch (\Throwable $e) {
             Log::error('Error retrieving quiz settings', [
                 'user_id' => optional(Auth::user())->userID,
-                'personal_quiz_id' => $personalQuizID,
+                'class_personal_quiz_id' => $classPersonalQuizID,
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -78,9 +89,9 @@ class PersonalQuizSettingController extends Controller
     }
 
     /**
-     * Create or update configuration for a personal quiz.
+     * Create or update configuration for a quiz assignment inside a class.
      */
-    public function store(Request $request, $personalQuizID)
+    public function store(Request $request, $classPersonalQuizID)
     {
         try {
             $user = Auth::user();
@@ -92,15 +103,15 @@ class PersonalQuizSettingController extends Controller
                 ], 401);
             }
 
-            // Verify the quiz belongs to the user
-            $quiz = PersonalQuiz::where('personalQuizID', $personalQuizID)
-                ->where('created_by', $user->userID)
+            // Verify the class quiz assignment belongs to one of the user's classes
+            $classQuiz = \Modules\PersonalClasses\Models\ClassPersonalQuiz::with('class', 'personalQuiz')
+                ->where('classPersonalQuizID', $classPersonalQuizID)
                 ->first();
 
-            if (!$quiz) {
+            if (!$classQuiz || $classQuiz->class->facultyID !== $user->userID) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Personal quiz not found or you do not have permission.',
+                    'message' => 'Quiz assignment not found or you do not have permission.',
                 ], 404);
             }
 
@@ -151,9 +162,9 @@ class PersonalQuizSettingController extends Controller
                 }
             }
 
-            // Create or update settings
+            // Create or update settings (per class quiz)
             $setting = PersonalQuizSetting::updateOrCreate(
-                ['personalQuizID' => $personalQuizID],
+                ['classPersonalQuizID' => $classPersonalQuizID],
                 $validated
             );
 
@@ -167,7 +178,7 @@ class PersonalQuizSettingController extends Controller
         } catch (\Throwable $e) {
             Log::error('Error saving quiz settings', [
                 'user_id' => optional(Auth::user())->userID,
-                'personal_quiz_id' => $personalQuizID,
+                'class_personal_quiz_id' => $classPersonalQuizID,
                 'payload' => $request->all(),
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
@@ -184,9 +195,9 @@ class PersonalQuizSettingController extends Controller
     }
 
     /**
-     * Update configuration for a personal quiz.
+     * Update configuration for a quiz assignment inside a class.
      */
-    public function update(Request $request, $personalQuizID)
+    public function update(Request $request, $classPersonalQuizID)
     {
         try {
             $user = Auth::user();
@@ -198,21 +209,21 @@ class PersonalQuizSettingController extends Controller
                 ], 401);
             }
 
-            // Verify the quiz belongs to the user
-            $quiz = PersonalQuiz::where('personalQuizID', $personalQuizID)
-                ->where('created_by', $user->userID)
+            // Verify the class quiz assignment belongs to one of the user's classes
+            $classQuiz = \Modules\PersonalClasses\Models\ClassPersonalQuiz::with('class', 'personalQuiz')
+                ->where('classPersonalQuizID', $classPersonalQuizID)
                 ->first();
 
-            if (!$quiz) {
+            if (!$classQuiz || $classQuiz->class->facultyID !== $user->userID) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Personal quiz not found or you do not have permission.',
+                    'message' => 'Quiz assignment not found or you do not have permission.',
                 ], 404);
             }
 
-            // Get existing settings or create if doesn't exist
+            // Get existing settings or create if doesn't exist (per class quiz)
             $setting = PersonalQuizSetting::firstOrCreate(
-                ['personalQuizID' => $personalQuizID],
+                ['classPersonalQuizID' => $classPersonalQuizID],
                 [
                     'quizTimerEnabled' => false,
                     'shuffleQuestions' => false,
@@ -302,7 +313,7 @@ class PersonalQuizSettingController extends Controller
         } catch (\Throwable $e) {
             Log::error('Error updating quiz settings', [
                 'user_id' => optional(Auth::user())->userID,
-                'personal_quiz_id' => $personalQuizID,
+                'class_personal_quiz_id' => $classPersonalQuizID,
                 'payload' => $request->all(),
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
@@ -319,9 +330,9 @@ class PersonalQuizSettingController extends Controller
     }
 
     /**
-     * Delete configuration for a personal quiz.
+     * Delete configuration for a quiz assignment inside a class.
      */
-    public function destroy($personalQuizID)
+    public function destroy($classPersonalQuizID)
     {
         try {
             $user = Auth::user();
@@ -333,19 +344,19 @@ class PersonalQuizSettingController extends Controller
                 ], 401);
             }
 
-            // Verify the quiz belongs to the user
-            $quiz = PersonalQuiz::where('personalQuizID', $personalQuizID)
-                ->where('created_by', $user->userID)
+            // Verify the class quiz assignment belongs to one of the user's classes
+            $classQuiz = \Modules\PersonalClasses\Models\ClassPersonalQuiz::with('class', 'personalQuiz')
+                ->where('classPersonalQuizID', $classPersonalQuizID)
                 ->first();
 
-            if (!$quiz) {
+            if (!$classQuiz || $classQuiz->class->facultyID !== $user->userID) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Personal quiz not found or you do not have permission.',
+                    'message' => 'Quiz assignment not found or you do not have permission.',
                 ], 404);
             }
 
-            $setting = PersonalQuizSetting::where('personalQuizID', $personalQuizID)->first();
+            $setting = PersonalQuizSetting::where('classPersonalQuizID', $classPersonalQuizID)->first();
 
             if (!$setting) {
                 return response()->json([
@@ -363,7 +374,7 @@ class PersonalQuizSettingController extends Controller
         } catch (\Throwable $e) {
             Log::error('Error deleting quiz settings', [
                 'user_id' => optional(Auth::user())->userID,
-                'personal_quiz_id' => $personalQuizID,
+                'class_personal_quiz_id' => $classPersonalQuizID,
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),

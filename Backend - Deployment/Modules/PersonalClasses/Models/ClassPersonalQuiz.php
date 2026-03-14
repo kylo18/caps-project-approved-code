@@ -41,6 +41,14 @@ class ClassPersonalQuiz extends Model
     }
 
     /**
+     * Per-class quiz settings (timer, attempts, visibility, etc.).
+     */
+    public function setting()
+    {
+        return $this->hasOne(\Modules\PersonalExams\Models\PersonalQuizSetting::class, 'classPersonalQuizID', 'classPersonalQuizID');
+    }
+
+    /**
      * Relationship: ClassPersonalQuiz has many StudentQuizResults
      */
     public function studentQuizResults()

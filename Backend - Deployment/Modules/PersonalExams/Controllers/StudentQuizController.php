@@ -35,9 +35,9 @@ class StudentQuizController extends Controller
                 return response()->json(['success' => false, 'message' => 'Only students can view quiz information.'], 403);
             }
 
-            // Get class quiz assignment
+            // Get class quiz assignment with per-class settings
             $classQuizAssignment = ClassPersonalQuiz::with([
-                'personalQuiz.setting',
+                'setting',
                 'personalQuiz.subject',
                 'personalQuiz.quizType',
                 'class'
@@ -57,7 +57,7 @@ class StudentQuizController extends Controller
             }
 
             $quiz = $classQuizAssignment->personalQuiz;
-            $settings = $quiz->setting;
+            $settings = $classQuizAssignment->setting;
 
             // Get quiz statistics
             $totalItems = PersonalQuizQuestion::where('personalQuizID', $quiz->personalQuizID)->count();
@@ -353,8 +353,8 @@ class StudentQuizController extends Controller
                 return response()->json(['success' => false, 'message' => 'Only students can take quizzes.'], 403);
             }
 
-            // Get class quiz assignment
-            $classQuizAssignment = ClassPersonalQuiz::with(['personalQuiz.setting', 'class'])
+            // Get class quiz assignment with per-class settings
+            $classQuizAssignment = ClassPersonalQuiz::with(['setting', 'class', 'personalQuiz'])
                 ->find($classPersonalQuizID);
 
             if (!$classQuizAssignment) {
@@ -371,7 +371,7 @@ class StudentQuizController extends Controller
             }
 
             $quiz = $classQuizAssignment->personalQuiz;
-            $settings = $quiz->setting;
+            $settings = $classQuizAssignment->setting;
 
             // Check availability
             $now = now();
@@ -773,9 +773,13 @@ class StudentQuizController extends Controller
 
                 // Calculate time taken in minutes
                 $timeTakenMinutes = null;
-                if ($result->time_taken_seconds) {
+                if ($result->time_taken_seconds) { 
                     $timeTakenMinutes = round($result->time_taken_seconds / 60, 2);
                 }
+
+                // Determine if score should be shown to the student based on settings
+                // Default behavior: if there are no settings configured, show the score.
+                $showScoreAfterQuiz = $settings ? (bool) $settings->showScoreAfterQuiz : true;
 
                 // Prepare detailed question results
                 $questionResults = [];
@@ -911,33 +915,52 @@ class StudentQuizController extends Controller
                     $questionResults[] = $questionResult;
                 }
 
+                // Build result payload, respecting showScoreAfterQuiz setting
+                $resultPayload = [
+                    'id' => $result->id,
+                    'attempt_number' => $result->attempt_number,
+                    'time_taken_seconds' => $result->time_taken_seconds,
+                    'time_taken_minutes' => $timeTakenMinutes,
+                    'time_taken_formatted' => $timeTakenMinutes ? 
+                        ($timeTakenMinutes >= 1 ? 
+                            round($timeTakenMinutes) . ' minute' . (round($timeTakenMinutes) != 1 ? 's' : '') : 
+                            $result->time_taken_seconds . ' second' . ($result->time_taken_seconds != 1 ? 's' : '')
+                        ) : null,
+                    'started_at' => $result->started_at,
+                    'submitted_at' => $result->submitted_at,
+                    'showScoreAfterQuiz' => $showScoreAfterQuiz,
+                ];
+
+                if ($showScoreAfterQuiz) {
+                    // Include full score details
+                    $resultPayload['score'] = $result->score;
+                    $resultPayload['total_score'] = $result->total_score;
+                    $resultPayload['percentage'] = $result->percentage;
+                    $resultPayload['isPassed'] = $result->isPassed;
+                } else {
+                    // Hide score details from the student while still recording them in the database
+                    $resultPayload['score'] = null;
+                    $resultPayload['total_score'] = null;
+                    $resultPayload['percentage'] = null;
+                    $resultPayload['isPassed'] = null;
+                }
+
                 // Prepare response with all result data
                 $response = [
                     'success' => true,
                     'message' => 'Quiz submitted successfully.',
-                    'result' => [
-                        'id' => $result->id,
-                        'score' => $result->score,
-                        'total_score' => $result->total_score,
-                        'percentage' => $result->percentage,
-                        'isPassed' => $result->isPassed,
-                        'attempt_number' => $result->attempt_number,
-                        'time_taken_seconds' => $result->time_taken_seconds,
-                        'time_taken_minutes' => $timeTakenMinutes,
-                        'time_taken_formatted' => $timeTakenMinutes ? 
-                            ($timeTakenMinutes >= 1 ? 
-                                round($timeTakenMinutes) . ' minute' . (round($timeTakenMinutes) != 1 ? 's' : '') : 
-                                $result->time_taken_seconds . ' second' . ($result->time_taken_seconds != 1 ? 's' : '')
-                            ) : null,
-                        'started_at' => $result->started_at,
-                        'submitted_at' => $result->submitted_at,
-                    ],
+                    'result' => $resultPayload,
                     'quiz' => [
                         'personalQuizID' => $quiz->personalQuizID,
                         'title' => $quiz->title,
                         'description' => $quiz->description,
                     ],
                     'questions' => $questionResults,
+                    'settings' => $settings ? [
+                        'showScoreAfterQuiz' => (bool) $settings->showScoreAfterQuiz,
+                        'showCorrectQuestion' => (bool) $settings->showCorrectQuestion,
+                        'showCorrectAnswers' => (bool) $settings->showCorrectAnswers,
+                    ] : null,
                 ];
 
                 return response()->json($response, 200);

@@ -10,12 +10,15 @@ class PersonalQuizSetting extends Model
 {
     use HasFactory;
 
-    protected $table = 'personal_quiz_settings';
+    // Settings are now stored per quiz assignment inside a class
+    // (class_personal_quiz_settings), but we keep the model name
+    // and field naming convention for compatibility.
+    protected $table = 'class_personal_quiz_settings';
 
     protected $primaryKey = 'personalQuizSettingID';
 
     protected $fillable = [
-        'personalQuizID',
+        'classPersonalQuizID',
         'startTime',
         'endTime',
         'quizAttempts',

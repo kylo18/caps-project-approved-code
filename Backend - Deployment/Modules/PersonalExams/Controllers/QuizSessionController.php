@@ -47,9 +47,9 @@ class QuizSessionController extends Controller
 
             $classIDs = $enrollments->pluck('classID')->toArray();
 
-            // Get all quiz assignments for these classes
+            // Get all quiz assignments for these classes (with per-class settings)
             $quizAssignments = ClassPersonalQuiz::with([
-                'personalQuiz.setting',
+                'setting',
                 'personalQuiz.subject',
                 'personalQuiz.quizType',
                 'class.subject',
@@ -72,7 +72,7 @@ class QuizSessionController extends Controller
 
             foreach ($quizAssignments as $assignment) {
                 $quiz = $assignment->personalQuiz;
-                $settings = $quiz->setting;
+                $settings = $assignment->setting;
                 $results = $studentResults->get($assignment->classPersonalQuizID, collect());
 
                 // Determine effective start and end dates
@@ -275,13 +275,12 @@ class QuizSessionController extends Controller
             // Filter by class if provided
             $classID = $request->input('classID');
 
-            // Get classes for this faculty member
-            $classesQuery = ClassModel::with(['subject', 'enrollments.student']);
+            // Get classes owned by this faculty user (user-specific sessions)
+            $classesQuery = ClassModel::with(['subject', 'enrollments.student'])
+                ->where('facultyID', $user->userID);
+
             if ($classID) {
                 $classesQuery->where('classID', $classID);
-            }
-            if (!in_array($user->roleID, [3, 4, 5])) {
-                $classesQuery->where('facultyID', $user->userID);
             }
             $classes = $classesQuery->get();
 
@@ -295,9 +294,9 @@ class QuizSessionController extends Controller
 
             $classIDs = $classes->pluck('classID')->toArray();
 
-            // Get all quiz assignments for these classes
+            // Get all quiz assignments for these classes (with per-class settings)
             $quizAssignments = ClassPersonalQuiz::with([
-                'personalQuiz.setting',
+                'setting',
                 'personalQuiz.subject',
                 'personalQuiz.quizType',
                 'class.subject',
@@ -318,7 +317,7 @@ class QuizSessionController extends Controller
 
             foreach ($quizAssignments as $assignment) {
                 $quiz = $assignment->personalQuiz;
-                $settings = $quiz->setting;
+                $settings = $assignment->setting;
                 $class = $assignment->class;
 
                 // Determine effective start and end dates
