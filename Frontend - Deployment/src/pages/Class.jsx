@@ -6,6 +6,7 @@ import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
 import CreateClassModal from "../components/CreateClassModal";
 import EditClassModal from "../components/EditClassModal";
 import ConfirmModal from "../components/confirmModal";
+import WarningModal from "../components/WarningModal";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import emptyImage from "../assets/icons/empty.png";
@@ -59,6 +60,52 @@ const Class = () => {
   const [isJoining, setIsJoining] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const mobileSearchInputRef = useRef(null);
+  const joinInputRefs = useRef([]);
+
+  const handleJoinOtpChange = (index, value) => {
+    const cleanValue = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    if (value && !cleanValue) return;
+
+    const newCodeArray = classCode
+      .split("")
+      .concat(Array(6).fill(""))
+      .slice(0, 6);
+
+    if (cleanValue.length > 1) {
+      const pasted = cleanValue.slice(0, 6);
+      setClassCode(pasted);
+      const nextIndex = Math.min(pasted.length, 5);
+      joinInputRefs.current[nextIndex]?.focus();
+      return;
+    }
+
+    newCodeArray[index] = cleanValue;
+    const newCode = newCodeArray.join("").trim();
+    setClassCode(newCode);
+    setClassCodeError("");
+
+    if (cleanValue && index < 5) {
+      joinInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleJoinOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace") {
+      if (!classCode[index] && index > 0) {
+        joinInputRefs.current[index - 1]?.focus();
+        const newCodeArray = classCode
+          .split("")
+          .concat(Array(6).fill(""))
+          .slice(0, 6);
+        newCodeArray[index - 1] = "";
+        setClassCode(newCodeArray.join("").trim());
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      joinInputRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      joinInputRefs.current[index + 1]?.focus();
+    }
+  };
 
   // Get user role on mount
   useEffect(() => {
@@ -209,13 +256,13 @@ const Class = () => {
     // Validate class code
     const trimmedCode = classCode.trim().toUpperCase();
     if (!trimmedCode) {
-      setClassCodeError("Please enter a class code");
+      showToast("Please enter a class code", "error");
       setIsJoining(false);
       return;
     }
 
     if (trimmedCode.length !== 6) {
-      setClassCodeError("Class code must be 6 characters");
+      showToast("Class code must be 6 characters", "error");
       setIsJoining(false);
       return;
     }
@@ -252,16 +299,18 @@ const Class = () => {
         // Handle validation errors
         if (response.status === 422 && data.errors) {
           const errorMessages = Object.values(data.errors).flat().join(", ");
-          setClassCodeError(errorMessages || "Validation failed");
+          showToast(errorMessages || "Validation failed", "error");
         } else if (response.status === 403) {
           showToast(data.message || "Only students can join classes.", "error");
         } else if (response.status === 404) {
-          setClassCodeError(
+          showToast(
             data.message || "Invalid class code or class is not active.",
+            "error",
           );
         } else {
-          setClassCodeError(
+          showToast(
             data.message || "Failed to join class. Please try again.",
+            "error",
           );
         }
         setIsJoining(false);
@@ -276,14 +325,14 @@ const Class = () => {
         // Refresh classes list
         refreshClasses();
       } else {
-        setClassCodeError(
+        showToast(
           data.message || "Failed to join class. Please try again.",
+          "error",
         );
       }
     } catch (error) {
       console.error("Error joining class:", error);
       showToast("An error occurred while joining the class.", "error");
-      setClassCodeError("An error occurred. Please try again.");
     } finally {
       setIsJoining(false);
     }
@@ -476,7 +525,7 @@ const Class = () => {
   return (
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
-      <div className="scrollbar-hide mt-10 flex h-screen flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] lg:mt-0 [&::-webkit-scrollbar]:hidden">
+      <div className="scrollbar-hide mt-10 flex min-h-screen flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] lg:mt-0 [&::-webkit-scrollbar]:hidden">
         <div className="min-w-0 space-y-4 px-4 pt-4 md:px-6 md:pt-6">
           <SearchBar
             value={searchTerm}
@@ -538,10 +587,9 @@ const Class = () => {
                     setShowJoinForm(true);
                     resetJoinForm();
                   }}
-                  className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl bg-orange-500 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-orange-600"
+                  className="outfit-500 -mb-2 hidden cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:inline-flex md:text-[14px]"
                 >
-                  <i className="bx bx-plus mr-2 text-[16px]" />
-                  Join a Class
+                  <i className="bxx bx-plus text-[20px]"></i>
                 </button>
               )}
             </div>
@@ -603,11 +651,18 @@ const Class = () => {
                       : "—";
 
                   const enrollmentCount = classItem.enrollments?.length || 0;
+                  const creatorDisplayName =
+                    classItem.creatorName ||
+                    classItem.createdByName ||
+                    (classItem.faculty
+                      ? `${classItem.faculty.firstName || ""} ${classItem.faculty.lastName || ""}`.trim()
+                      : "") ||
+                    "Instructor";
 
                   return (
                     <div
                       key={classItem.classID || classItem.id}
-                      className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[320px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
+                      className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[310px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
                     >
                       {/* Background Image Header Section */}
                       <div
@@ -629,39 +684,48 @@ const Class = () => {
                         style={{ backgroundImage: `url(${headerBackground})` }}
                       >
                         <div className="relative z-10 pr-16 md:flex md:h-full md:flex-col md:justify-between md:pr-0">
-                          <div className="mb-4 hidden text-xs font-medium text-white opacity-90 md:block">
-                            Class
-                          </div>
-                          <div className="mb-4">
-                            <div
-                              className="max-h-12 overflow-hidden leading-6 font-semibold text-white"
-                              style={{
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                              }}
-                            >
-                              <span className="outfit-500 text-[20px] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
-                                {classItem.className}
-                              </span>
+                          <div>
+                            <div className="mb-4 hidden text-xs font-medium text-white opacity-90 md:block">
+                              Class
                             </div>
-                            {classItem.schedule && (
+                            <div className="mb-4">
+                              <div
+                                className="min-h-0 overflow-hidden leading-6 font-semibold text-white"
+                                style={{
+                                  display: "-webkit-box",
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: "vertical",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                }}
+                              >
+                                <span className="outfit-500 text-[20px] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+                                  {classItem.className}
+                                </span>
+                              </div>
                               <div className="mt-1 flex items-center gap-1 text-[12px] text-white md:hidden">
                                 <i className="bx bx-history text-sm"></i>
                                 <span className="truncate">
-                                  {classItem.schedule}
+                                  {classItem.schedule || "No schedule set"}
                                 </span>
                               </div>
-                            )}
+                            </div>
                           </div>
+                          {userRole !== 1 && classItem.classCode && (
+                            <div className="mt-7 inline-flex w-fit max-w-full items-center rounded-full bg-white px-3 py-0.5 md:mt-0">
+                              <span className="truncate text-xs font-semibold whitespace-nowrap text-black uppercase">
+                                Class Code - {classItem.classCode}
+                              </span>
+                            </div>
+                          )}
 
-                          <div className="mt-7 inline-flex w-fit max-w-full items-center rounded-full bg-white px-3 py-0.5 md:mt-0">
-                            <span className="truncate text-xs font-semibold whitespace-nowrap text-black uppercase">
-                              Code - {classItem.classCode}
-                            </span>
-                          </div>
+                          {userRole === 1 && creatorDisplayName && (
+                            <div className="mt-7 inline-flex w-fit max-w-full items-center rounded-full bg-white px-3 py-0.5 md:mt-0">
+                              <span className="truncate text-xs font-semibold whitespace-nowrap text-black uppercase">
+                                {creatorDisplayName}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Edit and Archive Buttons - Top Right (only for non-students) */}
@@ -692,7 +756,22 @@ const Class = () => {
                               className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-white transition-colors hover:bg-white/20"
                               title="Unenroll from Class"
                             >
-                              <i className="bx bx-x text-lg"></i>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="lucide lucide-square-arrow-right-exit-icon lucide-square-arrow-right-exit"
+                              >
+                                <path d="M10 12h11" />
+                                <path d="m17 16 4-4-4-4" />
+                                <path d="M21 6.344V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1.344" />
+                              </svg>
                             </button>
                           </div>
                         )}
@@ -709,7 +788,7 @@ const Class = () => {
 
                       {/* White Body Section */}
                       <div
-                        className="flex hidden flex-1 cursor-pointer flex-col px-4 py-4 md:block"
+                        className="hidden flex-1 cursor-pointer flex-col px-4 py-4 md:flex"
                         onClick={() => {
                           const id = classItem.classID || classItem.id;
                           if (!id) return;
@@ -727,65 +806,40 @@ const Class = () => {
                       >
                         {/* Subject Information */}
                         {classItem.subject && (
-                          <div className="mb-3">
-                            <div className="outfit-500 line-clamp-2 overflow-hidden text-[14px] text-ellipsis text-gray-700">
+                          <div className="min-h-[2.5rem]">
+                            <div className="outfit-500 line-clamp-2 overflow-hidden text-[14px] font-medium text-ellipsis text-gray-700">
                               {classItem.subject.subjectCode} -{" "}
                               {classItem.subject.subjectName}
                             </div>
                           </div>
                         )}
 
-                        {/* Metadata */}
-                        <div className="mb-1 space-y-1">
-                          {classItem.schedule && (
-                            <div className="outfit-400 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
-                              <i className="bx bx-history text-sm"></i>
+                        <div className="mt-auto">
+                          <div className="space-y-1">
+                            <div className="outfit-400 mt-2 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
+                              <i className="bx bx-history text-sm text-gray-500"></i>
                               <span className="truncate">
-                                {classItem.schedule}
+                                {classItem.schedule || "No schedule set"}
                               </span>
                             </div>
-                          )}
-                          {userRole !== 1 && (
-                            <div className="outfit-400 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
-                              <i className="bx bx-group text-sm"></i>
-                              <span>
-                                {enrollmentCount}{" "}
-                                {enrollmentCount === 1 ? "Student" : "Students"}
-                              </span>
-                            </div>
-                          )}
-                          {userRole === 1 && classItem.faculty && (
-                            <div className="outfit-400 flex items-center gap-2 text-[12px] text-gray-700">
-                              <i className="bx bx-user text-sm"></i>
-                              <span>
-                                {classItem.faculty.firstName}{" "}
-                                {classItem.faculty.lastName}
-                              </span>
-                            </div>
-                          )}
-                          {classItem.isActive !== undefined && (
-                            <div className="outfit-400 flex items-center gap-2 text-[12px]">
-                              {classItem.isActive ? (
-                                <span className="inline-flex items-center gap-1 font-medium text-green-600">
-                                  <i className="bx bx-check-circle text-sm"></i>
-                                  <span className="ml-1">Active</span>
+                            {userRole !== 1 && (
+                              <div className="outfit-400 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
+                                <i className="bx bx-group text-sm text-gray-500"></i>
+                                <span>
+                                  {enrollmentCount}{" "}
+                                  {enrollmentCount === 1
+                                    ? "Student"
+                                    : "Students"}
                                 </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 font-medium text-gray-500">
-                                  <i className="bx bx-x-circle text-sm"></i>
-                                  <span className="ml-1">Inactive</span>
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Separator */}
-                        <div className="my-3 h-px bg-gray-200"></div>
-
-                        {/* Date Information */}
-                        <div className="outfit-400 mt-auto space-y-1 text-[12px] text-gray-600">
-                          <div>Created: {createdDate}</div>
+                              </div>
+                            )}
+                          </div>
+                          {/* Separator */}
+                          <div className="mt-2 mb-3 h-px bg-gray-200"></div>
+                          {/* Date Information */}
+                          <div className="outfit-400 space-y-1 text-[12px] text-gray-600">
+                            <div>Created: {createdDate}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -837,96 +891,119 @@ const Class = () => {
         />
 
         {/* Unenroll Confirmation Modal */}
-        <ConfirmModal
+        <WarningModal
           isOpen={isUnenrollModalOpen}
           onClose={() => {
             setIsUnenrollModalOpen(false);
             setUnenrollingClass(null);
           }}
-          onConfirm={handleUnenrollConfirm}
-          message={
-            unenrollingClass
-              ? `Are you sure you want to unenroll from "${unenrollingClass.className}"? You will lose access to all quizzes and materials in this class.`
-              : "Are you sure you want to unenroll from this class?"
+          title="Unenroll from Class"
+          subtitle="This action cannot be undone."
+          description={
+            unenrollingClass ? (
+              <>
+                Are you sure you want to unenroll from{" "}
+                <strong>{unenrollingClass.className}</strong>? You will lose
+                access to all quizzes and materials in this class.
+              </>
+            ) : (
+              "Are you sure you want to unenroll from this class?"
+            )
           }
-          isLoading={isUnenrolling}
+          confirmIcon={<i className="bx bx-arrow-out-right-square-half" />}
+          confirmLabel="Unenroll"
+          onConfirm={handleUnenrollConfirm}
+          isConfirmLoading={isUnenrolling}
         />
 
         {/* Join Class Modal */}
         {showJoinForm && (
-          <>
-            <div className="outfit-400 bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
-              <div className="relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
-                <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
-                  <h2 className="text-[14px] font-medium text-gray-700">
-                    Join a Class
-                  </h2>
+          <div className="outfit-400 bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center bg-black/40">
+            <div className="relative mx-4 w-full max-w-[420px] rounded-2xl bg-[#ffffff] p-8 shadow-2xl">
+              {/* Header */}
+              <button
+                onClick={() => {
+                  setShowJoinForm(false);
+                  resetJoinForm();
+                }}
+                className="absolute top-4 right-4 cursor-pointer rounded-xl p-2 text-gray-400 transition-colors hover:text-gray-600"
+                title="Close"
+              >
+                <i className="bx bx-x text-2xl"></i>
+              </button>
 
-                  <button
-                    onClick={() => {
-                      setShowJoinForm(false);
-                      resetJoinForm();
-                    }}
-                    className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
-                    title="Close"
-                  >
-                    <i className="bx bx-x text-[20px]"></i>
-                  </button>
+              {/* Icon & Title */}
+              <div className="mb-6 flex flex-col items-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-50">
+                  <i className="bx bx-key text-3xl text-orange-500"></i>
+                </div>
+                <h2 className="mb-2 text-2xl font-bold text-[#1a1f36]">
+                  Join a New Class
+                </h2>
+                <p className="font-outfit max-w-[280px] text-center text-[14px] leading-relaxed text-gray-500">
+                  Enter the 6-character code provided by your instructor to
+                  access the course materials.
+                </p>
+              </div>
+
+              {/* Form content */}
+              <form onSubmit={handleJoinClass}>
+                <div className="mb-8">
+                  <label className="mb-3 block text-center text-[11px] font-bold tracking-widest text-[#8792a2] uppercase">
+                    Class Code
+                  </label>
+                  <div className="flex items-center justify-center gap-2">
+                    {[0, 1, 2, 3, 4, 5].map((index) => (
+                      <React.Fragment key={index}>
+                        <input
+                          ref={(el) => (joinInputRefs.current[index] = el)}
+                          type="text"
+                          maxLength={1}
+                          className={`h-12 w-10 rounded-xl border text-center text-xl font-bold uppercase transition-all focus:border-[#e85c15] focus:ring-1 focus:ring-[#e85c15] focus:outline-none sm:h-14 sm:w-12 ${
+                            classCode[index]
+                              ? "border-gray-400 text-[#1a1f36]"
+                              : "border-gray-300 text-gray-400"
+                          }`}
+                          value={classCode[index] || ""}
+                          onChange={(e) =>
+                            handleJoinOtpChange(index, e.target.value.slice(-1))
+                          }
+                          onKeyDown={(e) => handleJoinOtpKeyDown(index, e)}
+                        />
+                      </React.Fragment>
+                    ))}
+                  </div>
                 </div>
 
-                <form className="px-5 py-4" onSubmit={handleJoinClass}>
-                  <span className="mb-2 block text-start text-[14px] text-gray-700">
-                    Enter Class Code
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className="peer border-color mt-1 w-full rounded-xl border px-4 py-[8px] text-base text-gray-700 uppercase transition-all duration-200 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
-                      value={classCode}
-                      onChange={(e) => {
-                        // Only allow alphanumeric characters and limit to 6
-                        const value = e.target.value
-                          .replace(/[^A-Z0-9]/gi, "")
-                          .toUpperCase()
-                          .slice(0, 6);
-                        setClassCode(value);
-                        setClassCodeError("");
-                      }}
-                      placeholder="Enter 6-character code"
-                      maxLength={6}
-                    />
-                  </div>
-                  <div className="mt-4 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-                  {classCodeError && (
-                    <div className="mb-3 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                      {classCodeError}
-                    </div>
+                <button
+                  type="submit"
+                  disabled={isJoining}
+                  className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl py-3.5 text-[15px] font-bold text-white transition-all duration-200 ${
+                    isJoining
+                      ? "cursor-not-allowed bg-orange-400"
+                      : classCode.length === 6
+                        ? "bg-[#e85c15] hover:bg-[#d45110] active:scale-[0.98]"
+                        : "bg-orange-500 hover:bg-orange-600 active:scale-[0.98]"
+                  } mb-6 shadow-md disabled:opacity-70`}
+                >
+                  {isJoining ? (
+                    <span className="loader-white"></span>
+                  ) : (
+                    <>
+                      Join Class{" "}
+                      <i className="bx bx-right-arrow-alt text-xl"></i>
+                    </>
                   )}
-                  <div>
-                    <button
-                      type="submit"
-                      disabled={isJoining}
-                      className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isJoining ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
-                    >
-                      {isJoining ? (
-                        <div className="flex items-center justify-center">
-                          <span className="loader-white"></span>
-                        </div>
-                      ) : (
-                        "Join Class"
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
+                </button>
+              </form>
             </div>
-          </>
+          </div>
         )}
       </div>
 
       {/* Floating Create Class button (mobile only) - same as Libraries */}
       {userRole !== 1 && (
-        <div className="fixed right-4 bottom-[90px] z-50 md:hidden">
+        <div className="fixed right-4 bottom-[110px] z-50 md:hidden">
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}

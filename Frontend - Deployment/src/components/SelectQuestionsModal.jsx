@@ -17,15 +17,33 @@ const SelectQuestionsModal = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+
   // PDF generation options
   const [pdfOptions, setPdfOptions] = useState({
     title: initialQuizTitle || "",
     instructions: initialQuizInstruction || "",
-    shuffle_questions: false,
-    shuffle_choices: false,
-    include_answer_key: false,
   });
+
+  // Helper to construct image URLs (matches QuizContent / personal quiz forms)
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath;
+    }
+
+    let cleanPath = imagePath;
+    if (imagePath.startsWith("/storage/")) {
+      cleanPath = imagePath.substring("/storage/".length);
+    } else if (imagePath.startsWith("storage/")) {
+      cleanPath = imagePath.substring("storage/".length);
+    }
+
+    if (!cleanPath) return null;
+
+    const baseUrl = apiUrl.replace("/api", "");
+    return `${baseUrl}/storage/${cleanPath}`;
+  };
 
   // Fetch questions from API when modal opens
   useEffect(() => {
@@ -37,9 +55,7 @@ const SelectQuestionsModal = ({
   // Initialize with all questions selected when questions are loaded
   useEffect(() => {
     if (questions.length > 0) {
-      const allQuestionIds = questions.map(
-        (q) => q.personalQuizQuestionID,
-      );
+      const allQuestionIds = questions.map((q) => q.personalQuizQuestionID);
       setSelectedQuestions(allQuestionIds);
     }
   }, [questions]);
@@ -50,6 +66,18 @@ const SelectQuestionsModal = ({
       setSearchQuery("");
       setIsGeneratingPDF(false);
     }
+  }, [isOpen]);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
 
   const fetchQuestions = async () => {
@@ -81,7 +109,8 @@ const SelectQuestionsModal = ({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.message || `Failed to fetch questions. Status: ${response.status}`,
+          errorData.message ||
+            `Failed to fetch questions. Status: ${response.status}`,
         );
       }
 
@@ -93,7 +122,7 @@ const SelectQuestionsModal = ({
 
       setQuestions(data.data.questions || []);
       setQuizInfo(data.data.quiz);
-      
+
       // Set default title and instructions from quiz info
       if (data.data.quiz) {
         setPdfOptions((prev) => ({
@@ -155,25 +184,22 @@ const SelectQuestionsModal = ({
         throw new Error("You are not authenticated. Please log in again.");
       }
 
-      const response = await fetch(
-        `${apiUrl}/generate-personal-quiz-pdf`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            personalQuizID: personalQuizID,
-            selectedQuestionIDs: selectedQuestions,
-            title: pdfOptions.title.trim(),
-            instructions: pdfOptions.instructions || null,
-            shuffle_questions: pdfOptions.shuffle_questions,
-            shuffle_choices: pdfOptions.shuffle_choices,
-            include_answer_key: pdfOptions.include_answer_key,
-          }),
+      const response = await fetch(`${apiUrl}/generate-personal-quiz-pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          personalQuizID: personalQuizID,
+          selectedQuestionIDs: selectedQuestions,
+          title: pdfOptions.title.trim(),
+          instructions: pdfOptions.instructions || null,
+          shuffle_questions: false,
+          shuffle_choices: false,
+          include_answer_key: true,
+        }),
+      });
 
       if (response.status === 401) {
         sessionStorage.removeItem("token");
@@ -183,7 +209,8 @@ const SelectQuestionsModal = ({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.message || `Failed to generate PDF. Status: ${response.status}`,
+          errorData.message ||
+            `Failed to generate PDF. Status: ${response.status}`,
         );
       }
 
@@ -200,7 +227,7 @@ const SelectQuestionsModal = ({
           fromAPI: true,
         },
       });
-      
+
       // Close modal after successful generation
       onClose();
     } catch (error) {
@@ -219,146 +246,149 @@ const SelectQuestionsModal = ({
     return questionText.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  const selectedQuestionObjects = questions.filter((q) => {
+    const id = q.personalQuizQuestionID || q.questionID || q.id;
+    return selectedQuestions.includes(id);
+  });
+
+  const totalPoints = selectedQuestionObjects.reduce((sum, q) => {
+    const points = q.points || q.pointValue || q.score || 1;
+    return sum + Number(points || 0);
+  }, 0);
+
+  const estimatedMinutes = selectedQuestionObjects.reduce((sum, q) => {
+    const minutes = q.estimatedMinutes || q.estimatedTime || 2;
+    return sum + Number(minutes || 0);
+  }, 0);
+
   if (!isOpen) return null;
 
   return (
-    <div className="outfit lightbox-bg fixed inset-0 z-105 flex items-center justify-center overflow-y-auto">
-      <div className="scrollbar-hide animate-fade-in-up flex h-[100%] overflow-y-auto sm:h-[99%]">
-        <div className="flex-1">
-          {/* Header */}
-          <div className="border-color relative mx-auto max-w-5xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-800 shadow-lg sm:rounded-t-md md:w-[110vh] lg:w-[135vh]">
-            <div className="flex items-center justify-between pr-4">
-              <span className="text-[14px] font-semibold">
-                SELECT QUESTIONS FOR WORKSHEET
-              </span>
-              <button
-                onClick={onClose}
-                disabled={isGeneratingPDF}
-                className="-mr-3 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-gray-500 transition duration-100 hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <i className="bx bx-x text-2xl"></i>
-              </button>
-            </div>
-          </div>
+    <div className="outfit-400 fixed inset-0 z-105 flex flex-col bg-gray-50">
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2 sm:px-6">
+        {/* X button — always on the left */}
+        <button
+          onClick={onClose}
+          disabled={isGeneratingPDF}
+          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <i className="bx bx-arrow-left-stroke text-2xl"></i>
+        </button>
 
-          {/* Content */}
-          <div className="border-color relative mx-auto mb-3 w-full max-w-5xl border border-t-0 bg-white p-5 shadow-lg sm:rounded-b-md sm:px-5 md:w-[110vh] lg:w-[135vh]">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="loader"></div>
-                <span className="ml-3 text-sm text-gray-600">
-                  Loading questions...
-                </span>
+        {/* Title */}
+        <h1 className="outfit-500 flex-1 text-[16px] text-gray-900">
+          Export Worksheet
+        </h1>
+
+        {/* Generate button — mobile only, shown in header */}
+        <button
+          onClick={handleGeneratePDF}
+          disabled={
+            selectedQuestions.length === 0 ||
+            !pdfOptions.title.trim() ||
+            isGeneratingPDF
+          }
+          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300 lg:hidden"
+        >
+          {isGeneratingPDF ? (
+            <i className="bx bx-loader-alt animate-spin text-base"></i>
+          ) : (
+            <i className="bx bx-file text-base"></i>
+          )}
+          <span>
+            {isGeneratingPDF
+              ? "Generating..."
+              : `Generate (${selectedQuestions.length})`}
+          </span>
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="scrollbar-hide flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:overflow-hidden">
+        <div className="mx-auto flex max-w-6xl items-start gap-6 lg:h-full lg:flex-row">
+          {/* Left column: options + questions */}
+          <div className="scrollbar-hide min-w-0 flex-1 space-y-4 lg:h-full lg:overflow-y-auto lg:pb-6">
+            {/* PDF Options */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-white">
+                    <i className="bx bx-arrow-to-bottom-stroke text-2xl"></i>
+                  </div>
+                  <div>
+                    <h3 className="text-[14px] font-semibold text-gray-900">
+                      PDF Options
+                    </h3>
+                    <p className="text-[12px] text-gray-500">
+                      Configure how your worksheet will look when exported.
+                    </p>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <>
-                {/* PDF Options */}
-                <div className="mb-4 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <h3 className="text-sm font-semibold text-gray-700">
-                    PDF Options
-                  </h3>
-                  
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
-                      Worksheet Title <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={pdfOptions.title}
-                      onChange={(e) =>
-                        setPdfOptions((prev) => ({
-                          ...prev,
-                          title: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                      placeholder="Enter worksheet title"
-                    />
-                  </div>
 
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
-                      Instructions
-                    </label>
-                    <textarea
-                      value={pdfOptions.instructions}
-                      onChange={(e) =>
-                        setPdfOptions((prev) => ({
-                          ...prev,
-                          instructions: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                      placeholder="Enter instructions (optional)"
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={pdfOptions.shuffle_questions}
-                        onChange={(e) =>
-                          setPdfOptions((prev) => ({
-                            ...prev,
-                            shuffle_questions: e.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                      />
-                      <span>Shuffle questions</span>
-                    </label>
-
-                    <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={pdfOptions.shuffle_choices}
-                        onChange={(e) =>
-                          setPdfOptions((prev) => ({
-                            ...prev,
-                            shuffle_choices: e.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                      />
-                      <span>Shuffle choices</span>
-                    </label>
-
-                    <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={pdfOptions.include_answer_key}
-                        onChange={(e) =>
-                          setPdfOptions((prev) => ({
-                            ...prev,
-                            include_answer_key: e.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                      />
-                      <span>Include answer key</span>
-                    </label>
-                  </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1 block text-[12px] font-medium text-gray-700">
+                    Worksheet Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={pdfOptions.title}
+                    onChange={(e) =>
+                      setPdfOptions((prev) => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 transition outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                    placeholder="e.g. Midterm Physics Quiz"
+                  />
                 </div>
 
-                {/* Search Bar */}
-                <div className="mb-4">
-                  <div className="relative">
-                    <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"></i>
-                    <input
-                      type="text"
-                      placeholder="Search questions..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 py-2 pr-4 pl-10 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                    />
-                  </div>
+                <div>
+                  <label className="mb-1 block text-[12px] font-medium text-gray-700">
+                    Instructions
+                  </label>
+                  <textarea
+                    value={pdfOptions.instructions}
+                    onChange={(e) =>
+                      setPdfOptions((prev) => ({
+                        ...prev,
+                        instructions: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 transition outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                    placeholder="Enter instructions for students..."
+                    rows={2}
+                  />
                 </div>
+
+
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="rounded-full bg-transparent">
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                    <i className="bx bx-search text-lg"></i>
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search questions"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-10 w-full rounded-full border border-gray-200 bg-white pr-3 pl-9 text-sm text-gray-900 placeholder-gray-400 transition outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+            </div>
 
             {/* Select All */}
             {filteredQuestions.length > 0 && (
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mt-2 mb-2 ml-2 flex items-center justify-between text-xs text-gray-600">
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
                   <input
                     type="checkbox"
@@ -378,16 +408,20 @@ const SelectQuestionsModal = ({
                     {filteredQuestions.length !== 1 ? "s" : ""})
                   </span>
                 </label>
-                <span className="text-sm text-gray-600">
+                <span className="text-[12px] text-gray-600">
                   {selectedQuestions.length} selected
                 </span>
               </div>
             )}
 
             {/* Questions List */}
-            <div className="max-h-[500px] overflow-y-auto">
-              {filteredQuestions.length === 0 ? (
-                <div className="py-12 text-center text-sm text-gray-500">
+            <div className="space-y-3">
+              {isLoading ? (
+                <div className="flex items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white py-12">
+                  <div className="loader"></div>
+                </div>
+              ) : filteredQuestions.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-12 text-center text-sm text-gray-500">
                   {searchQuery
                     ? "No questions found matching your search."
                     : "No questions available."}
@@ -399,17 +433,21 @@ const SelectQuestionsModal = ({
                     const isSelected = selectedQuestions.includes(questionId);
 
                     const questionText = quizQuestion.questionText || "";
-
-                    // Get choices from API response
                     const choices = quizQuestion.choices || [];
+
+                    const questionImagePath =
+                      quizQuestion.imagePath ||
+                      quizQuestion.image ||
+                      quizQuestion.personalQuizImage;
+                    const questionImageSrc = quizQuestion.questionImageUrl || getImageUrl(questionImagePath);
 
                     return (
                       <div
                         key={questionId}
-                        className={`rounded-lg border p-4 transition-all ${
+                        className={`rounded-2xl border p-4 transition-all ${
                           isSelected
-                            ? "border-orange-500 bg-orange-50"
-                            : "border-gray-200 bg-white hover:border-gray-300"
+                            ? "border-2 border-orange-500"
+                            : "border-gray-200 bg-white hover:border-orange-200"
                         }`}
                       >
                         <div className="flex items-start gap-3">
@@ -420,49 +458,86 @@ const SelectQuestionsModal = ({
                             className="mt-1 h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500"
                           />
                           <div className="flex-1">
-                            <div className="flex items-start gap-2">
-                              <span className="font-semibold text-gray-700">
-                                {index + 1}.
+                            <div className="mb-1 flex items-center justify-between">
+                              <span className="mt-[1px] text-xs font-semibold tracking-wide text-orange-500 uppercase">
+                                Question {index + 1}
                               </span>
-                              <div
-                                className="flex-1 text-sm text-gray-700"
-                                dangerouslySetInnerHTML={{
-                                  __html: questionText || "No question text",
-                                }}
-                              />
+                              {quizQuestion.points && (
+                                <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-600">
+                                  {quizQuestion.points} Point
+                                  {quizQuestion.points !== 1 ? "s" : ""}
+                                </span>
+                              )}
                             </div>
+                            <div
+                              className="mt-1 text-sm text-gray-900"
+                              dangerouslySetInnerHTML={{
+                                __html: questionText || "No question text",
+                              }}
+                            />
+                            {questionImageSrc && (
+                              <div className="mt-3 flex justify-center">
+                                <img
+                                  src={questionImageSrc}
+                                  alt={`Question ${index + 1}`}
+                                  onClick={() => setLightboxSrc(questionImageSrc)}
+                                  className="max-h-48 w-full max-w-md cursor-zoom-in rounded-lg object-contain transition hover:opacity-90"
+                                />
+                              </div>
+                            )}
                             {choices.length > 0 && (
-                              <div className="mt-2 ml-6 space-y-1">
+                              <div className="mt-3 grid gap-2 sm:grid-cols-2">
                                 {choices
-                                  .slice(0, 2)
+                                  .slice(0, 5)
                                   .map((choice, choiceIndex) => {
                                     const choiceText = choice.choiceText || "";
                                     const isCorrect = choice.isCorrect || false;
+                                    const letter = String.fromCharCode(
+                                      65 + choiceIndex,
+                                    );
+                                    const choiceImagePath =
+                                      choice.imagePath ||
+                                      choice.image ||
+                                      choice.personalQuizImage ||
+                                      choice.personalQuizChoiceImage;
+                                    const choiceImageSrc =
+                                      choice.choiceImageUrl || getImageUrl(choiceImagePath);
                                     return (
                                       <div
                                         key={choiceIndex}
-                                        className="text-xs text-gray-600"
+                                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
+                                          isCorrect
+                                            ? "border-orange-500 bg-orange-50 text-gray-900"
+                                            : "border-gray-200 bg-white text-gray-700"
+                                        }`}
                                       >
-                                        {String.fromCharCode(65 + choiceIndex)}.{" "}
                                         <span
-                                          dangerouslySetInnerHTML={{
-                                            __html: choiceText,
-                                          }}
-                                        />
-                                        {isCorrect && (
-                                          <span className="ml-1 text-orange-500">
-                                            ✓
-                                          </span>
+                                          className={`flex h-6 w-6 items-center justify-center rounded-md border text-[11px] font-semibold ${
+                                            isCorrect
+                                              ? "border-orange-500 bg-orange-500 text-white"
+                                              : "border-gray-300 bg-gray-50 text-gray-700"
+                                          }`}
+                                        >
+                                          {letter}
+                                        </span>
+                                        {choiceImageSrc ? (
+                                          <img
+                                            src={choiceImageSrc}
+                                            alt={`Choice ${letter}`}
+                                            onClick={() => setLightboxSrc(choiceImageSrc)}
+                                            className="max-h-16 w-auto flex-1 cursor-zoom-in rounded object-contain transition hover:opacity-90"
+                                          />
+                                        ) : (
+                                          <span
+                                            className="flex-1"
+                                            dangerouslySetInnerHTML={{
+                                              __html: choiceText,
+                                            }}
+                                          />
                                         )}
                                       </div>
                                     );
                                   })}
-                                {choices.length > 2 && (
-                                  <div className="text-xs text-gray-400">
-                                    +{choices.length - 2} more choice
-                                    {choices.length - 2 !== 1 ? "s" : ""}
-                                  </div>
-                                )}
                               </div>
                             )}
                           </div>
@@ -473,16 +548,32 @@ const SelectQuestionsModal = ({
                 </div>
               )}
             </div>
+          </div>
 
-                {/* Footer Actions */}
-                <div className="mt-6 flex items-center justify-end gap-3 border-t border-gray-200 pt-4">
-                  <button
-                    onClick={onClose}
-                    disabled={isGeneratingPDF}
-                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
+          {/* Right column: summary — desktop only */}
+          <div className="hidden lg:flex lg:w-72 lg:shrink-0 lg:flex-col lg:gap-4 lg:pb-6">
+            <div className="flex flex-col gap-4">
+              {/* Worksheet Summary */}
+              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Worksheet Summary
+                </h3>
+                <div className="mt-4 space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">Questions Selected</span>
+                    <span className="font-semibold text-gray-900">
+                      {selectedQuestions.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">Total Points</span>
+                    <span className="font-semibold text-gray-900">
+                      {totalPoints}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-2">
                   <button
                     onClick={handleGeneratePDF}
                     disabled={
@@ -490,7 +581,7 @@ const SelectQuestionsModal = ({
                       !pdfOptions.title.trim() ||
                       isGeneratingPDF
                     }
-                    className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex w-full items-center justify-center rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300"
                   >
                     {isGeneratingPDF ? (
                       <>
@@ -498,15 +589,64 @@ const SelectQuestionsModal = ({
                         Generating...
                       </>
                     ) : (
-                      `Generate PDF (${selectedQuestions.length})`
+                      <>
+                        <i className="bx bx-file text-lg"></i>
+                        <span className="ml-2">
+                          Generate PDF ({selectedQuestions.length})
+                        </span>
+                      </>
                     )}
                   </button>
+                  <button
+                    onClick={onClose}
+                    disabled={isGeneratingPDF}
+                    className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
                 </div>
-              </>
-            )}
+              </div>
+
+              {/* Pro Tip */}
+              <div className="rounded-2xl border border-orange-100 bg-orange-50 p-4 text-xs text-gray-700">
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-orange-500 shadow">
+                    <i className="bx bx-light-bulb-on text-lg"></i>
+                  </span>
+                  <span className="text-xs font-semibold tracking-wide text-orange-600 uppercase">
+                    Pro Tip
+                  </span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-gray-700">
+                  Select the questions you want to include before exporting.
+                  Only the chosen questions will be compiled and formatted in
+                  the generated PDF.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+      {/* Lightbox overlay */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <button
+            className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            onClick={() => setLightboxSrc(null)}
+          >
+            <i className="bx bx-x text-2xl"></i>
+          </button>
+          <img
+            src={lightboxSrc}
+            alt="Enlarged view"
+            className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };

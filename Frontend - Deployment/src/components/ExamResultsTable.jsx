@@ -193,7 +193,7 @@ const ExamResultsTable = ({
   };
 
   return (
-    <div className="outfit mx-auto w-full max-w-[1200px]">
+    <div className="outfit mx-auto w-full max-w-[1200px] pb-26">
       {/* Tabs - stretch full width on mobile */}
       <div className="mb-4 flex w-full flex-wrap gap-2 border-b border-gray-200 bg-white">
         <button
@@ -424,113 +424,191 @@ const ExamResultsTable = ({
               </div>
             </div>
           ) : (
-            <div className="border-gray- overflow-x-auto rounded-xl bg-white">
-              <table className="min-w-full table-fixed divide-y divide-gray-200 text-[14px]">
-                <thead className="bg-gray-50">
-                  <tr className="text-left text-gray-600">
-                    <th className="outfit-500 w-[10%] px-6 py-3 text-center">
-                      Rank
-                    </th>
-                    <th className="outfit-500 w-[30%] px-6 py-3 text-left">
-                      Name
-                    </th>
-                    <th className="outfit-500 w-[10%] px-6 py-3 text-left">
-                      Course
-                    </th>
-                    <th className="outfit-500 w-[10%] px-2 py-3 text-right whitespace-nowrap">
-                      Year
-                    </th>
+            <>
+              {/* Desktop leaderboard table */}
+              <div className="border-gray- hidden overflow-x-auto rounded-xl bg-white md:block">
+                <table className="min-w-full table-fixed divide-y divide-gray-200 text-[14px]">
+                  <thead className="bg-gray-50">
+                    <tr className="text-left text-gray-600">
+                      <th className="outfit-500 w-[10%] px-6 py-3 text-center">
+                        Rank
+                      </th>
+                      <th className="outfit-500 w-[30%] px-6 py-3 text-left">
+                        Name
+                      </th>
+                      <th className="outfit-500 w-[10%] px-6 py-3 text-left">
+                        Course
+                      </th>
+                      <th className="outfit-500 w-[10%] px-2 py-3 text-right whitespace-nowrap">
+                        Year
+                      </th>
 
-                    <th className="outfit-500 w-[10%] px-2 py-3 text-right whitespace-nowrap">
-                      {leaderboardSortBy === "highest"
-                        ? "Highest Score"
-                        : "Average Score"}
-                    </th>
-                    <th className="outfit-500 w-[10%] px-2 py-3 text-right whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={togglePercentageMode}
-                        className="flex w-full items-center justify-end gap-1"
-                      >
-                        <span>Highest %</span>
-                        <i
-                          className={`bx ${
-                            percentageMode === "original"
-                              ? "bx-toggle-left"
-                              : "bx-toggle-right"
-                          } text-[18px] text-gray-500`}
-                        />
-                      </button>
-                    </th>
-                    <th className="outfit-500 w-[10%] px-2 py-3 text-right whitespace-nowrap">
-                      Attempts
-                    </th>
-                    <th className="outfit-500 ml-2 w-[20%] px-2 py-3 text-right whitespace-nowrap">
-                      Last Attempt
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {sortedLeaderboard.map((row, idx) => {
-                    const percentageValue = getExamPercentageValue(
-                      row.highestPercentage,
-                      row.highestScore || 0,
-                      row.totalPoints || 0,
-                    );
-                    return (
-                      <tr key={row.userID || idx} className="hover:bg-gray-50">
-                        <td className="outfit-400 w-[10%] px-6 py-3 text-gray-700">
-                          <div className="flex items-center justify-center gap-1">
+                      <th className="outfit-500 w-[10%] px-2 py-3 text-right whitespace-nowrap">
+                        {leaderboardSortBy === "highest"
+                          ? "Highest Score"
+                          : "Average Score"}
+                      </th>
+                      <th className="outfit-500 w-[10%] px-2 py-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={togglePercentageMode}
+                          className="flex w-full items-center justify-end gap-1"
+                        >
+                          <span>Highest %</span>
+                          <i
+                            className={`bx ${
+                              percentageMode === "original"
+                                ? "bx-toggle-left"
+                                : "bx-toggle-right"
+                            } text-[18px] text-gray-500`}
+                          />
+                        </button>
+                      </th>
+                      <th className="outfit-500 w-[10%] px-2 py-3 text-right whitespace-nowrap">
+                        Attempts
+                      </th>
+                      <th className="outfit-500 ml-2 w-[20%] px-2 py-3 text-right whitespace-nowrap">
+                        Last Attempt
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {sortedLeaderboard.map((row, idx) => {
+                      const percentageValue = getExamPercentageValue(
+                        row.highestPercentage,
+                        row.highestScore || 0,
+                        row.totalPoints || 0,
+                      );
+                      return (
+                        <tr
+                          key={row.userID || idx}
+                          className="hover:bg-gray-50"
+                        >
+                          <td className="outfit-400 w-[10%] px-6 py-3 text-gray-700">
+                            <div className="flex items-center justify-center gap-1">
+                              {idx === 0 && (
+                                <i className="bx bx-trophy text-yellow-500"></i>
+                              )}
+                              {idx === 1 && (
+                                <i className="bx bx-trophy text-gray-400"></i>
+                              )}
+                              {idx === 2 && (
+                                <i className="bx bx-trophy text-amber-600"></i>
+                              )}
+                              <span>{idx + 1}</span>
+                            </div>
+                          </td>
+                          <td className="outfit-400 w-[30%] px-6 py-3 text-gray-700">
+                            {row.name ||
+                              `${row.firstName || ""} ${
+                                row.lastName || ""
+                              }`.trim() ||
+                              "-"}
+                          </td>
+                          <td className="outfit-400 w-[10%] px-6 py-3 text-gray-700">
+                            {row.course || "-"}
+                          </td>
+                          <td className="outfit-400 w-[10%] px-2 py-3 text-right whitespace-nowrap text-gray-700">
+                            {row.year || row.yearLevel || "-"}
+                          </td>
+
+                          <td className="outfit-400 w-[10%] px-2 py-3 text-right whitespace-nowrap text-gray-700">
+                            {leaderboardSortBy === "highest"
+                              ? `${row.highestScore || 0} / ${
+                                  row.totalPoints || 0
+                                }`
+                              : `${row.highestPercentage || 0}%`}
+                          </td>
+                          <td className="outfit-400 w-[10%] px-2 py-3 text-right font-medium whitespace-nowrap text-gray-800">
+                            {percentageValue === null
+                              ? "—"
+                              : `${percentageValue.toFixed(1)}%`}
+                          </td>
+                          <td className="outfit-400 w-[10%] px-2 py-3 text-right whitespace-nowrap text-gray-700">
+                            {row.attempts || 0}
+                          </td>
+                          <td className="outfit-400 ml-4 w-[20%] px-2 py-3 text-right whitespace-nowrap text-gray-600">
+                            {formatDate(row.lastAttemptDate)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile leaderboard list - similar to Sessions mobile cards */}
+              <div className="outfit-400 mt-2 space-y-2 md:hidden">
+                {sortedLeaderboard.map((row, idx) => {
+                  const percentageValue = getExamPercentageValue(
+                    row.highestPercentage,
+                    row.highestScore || 0,
+                    row.totalPoints || 0,
+                  );
+                  return (
+                    <div
+                      key={row.userID || idx}
+                      className="flex w-full flex-col gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
                             {idx === 0 && (
-                              <i className="bx bx-trophy text-yellow-500"></i>
+                              <i className="bx bx-trophy text-[18px] text-yellow-500"></i>
                             )}
                             {idx === 1 && (
-                              <i className="bx bx-trophy text-gray-400"></i>
+                              <i className="bx bx-trophy text-[18px] text-gray-400"></i>
                             )}
                             {idx === 2 && (
-                              <i className="bx bx-trophy text-amber-600"></i>
+                              <i className="bx bx-trophy text-[18px] text-amber-600"></i>
                             )}
-                            <span>{idx + 1}</span>
+                            {idx > 2 && (
+                              <span className="text-[13px] font-semibold text-gray-800">
+                                {idx + 1}
+                              </span>
+                            )}
                           </div>
-                        </td>
-                        <td className="outfit-400 w-[30%] px-6 py-3 text-gray-700">
-                          {row.name ||
-                            `${row.firstName || ""} ${
-                              row.lastName || ""
-                            }`.trim() ||
-                            "-"}
-                        </td>
-                        <td className="outfit-400 w-[10%] px-6 py-3 text-gray-700">
-                          {row.course || "-"}
-                        </td>
-                        <td className="outfit-400 w-[10%] px-2 py-3 text-right whitespace-nowrap text-gray-700">
-                          {row.year || row.yearLevel || "-"}
-                        </td>
+                          <div className="min-w-0">
+                            <div className="truncate text-[14px] font-semibold text-gray-900">
+                              {row.name ||
+                                `${row.firstName || ""} ${
+                                  row.lastName || ""
+                                }`.trim() ||
+                                "-"}
+                            </div>
+                            <div className="text-[12px] text-gray-500">
+                              {row.course || "-"}{" "}
+                              {row.year || row.yearLevel
+                                ? `• Year ${row.year || row.yearLevel}`
+                                : ""}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[13px] font-semibold text-gray-900">
+                            {percentageValue === null
+                              ? "—"
+                              : `${percentageValue.toFixed(1)}%`}
+                          </div>
+                          <div className="text-[11px] text-gray-500">
+                            {leaderboardSortBy === "highest"
+                              ? `${row.highestScore || 0} / ${
+                                  row.totalPoints || 0
+                                }`
+                              : `${row.highestPercentage || 0}%`}
+                          </div>
+                        </div>
+                      </div>
 
-                        <td className="outfit-400 w-[10%] px-2 py-3 text-right whitespace-nowrap text-gray-700">
-                          {leaderboardSortBy === "highest"
-                            ? `${row.highestScore || 0} / ${
-                                row.totalPoints || 0
-                              }`
-                            : `${row.highestPercentage || 0}%`}
-                        </td>
-                        <td className="outfit-400 w-[10%] px-2 py-3 text-right font-medium whitespace-nowrap text-gray-800">
-                          {percentageValue === null
-                            ? "—"
-                            : `${percentageValue.toFixed(1)}%`}
-                        </td>
-                        <td className="outfit-400 w-[10%] px-2 py-3 text-right whitespace-nowrap text-gray-700">
-                          {row.attempts || 0}
-                        </td>
-                        <td className="outfit-400 ml-4 w-[20%] px-2 py-3 text-right whitespace-nowrap text-gray-600">
-                          {formatDate(row.lastAttemptDate)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      <div className="flex items-center justify-between text-[11px] text-gray-500">
+                        <span>Attempts: {row.attempts || 0}</span>
+                        <span>Last: {formatDate(row.lastAttemptDate)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {/* Mobile detail modal for recent takers */}

@@ -79,7 +79,9 @@ export default function PrintPersonalQuiz() {
         setError(null);
 
         // Transform API data to match display format
-        const transformedQuestions = transformQuestions(pdfData.questions || []);
+        const transformedQuestions = transformQuestions(
+          pdfData.questions || [],
+        );
 
         // Build answer key if available
         let answerKey = null;
@@ -94,9 +96,12 @@ export default function PrintPersonalQuiz() {
                 // Find the first correct choice index
                 const correctChoiceId = correctChoices[0]?.personalQuizChoiceID;
                 const correctIdx = question.choices.findIndex(
-                  (c) => c.personalQuizChoiceID === correctChoiceId
+                  (c) => c.personalQuizChoiceID === correctChoiceId,
                 );
-                const letter = correctIdx !== -1 ? String.fromCharCode(65 + correctIdx) : "-";
+                const letter =
+                  correctIdx !== -1
+                    ? String.fromCharCode(65 + correctIdx)
+                    : "-";
                 return {
                   questionNumber: item.questionNumber,
                   answer: letter,
@@ -114,7 +119,8 @@ export default function PrintPersonalQuiz() {
             const correctIdx = q.choices?.findIndex((c) => c.isCorrect);
             return {
               questionNumber: idx + 1,
-              answer: correctIdx !== -1 ? String.fromCharCode(65 + correctIdx) : "-",
+              answer:
+                correctIdx !== -1 ? String.fromCharCode(65 + correctIdx) : "-",
             };
           });
         }
@@ -122,7 +128,8 @@ export default function PrintPersonalQuiz() {
         setQuizData({
           quiz: {
             title: pdfData.quiz?.title || "Quiz",
-            instructions: pdfData.quiz?.instructions || pdfData.quiz?.instruction || "",
+            instructions:
+              pdfData.quiz?.instructions || pdfData.quiz?.instruction || "",
           },
           questions: transformedQuestions,
           answerKey: answerKey,
@@ -145,7 +152,8 @@ export default function PrintPersonalQuiz() {
       try {
         setIsLoading(true);
         setError(null);
-        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+        const token =
+          localStorage.getItem("token") || sessionStorage.getItem("token");
 
         if (!token) {
           throw new Error("You are not authenticated. Please log in again.");
@@ -176,11 +184,18 @@ export default function PrintPersonalQuiz() {
         let fetchedQuestions = questionsData.questions || [];
 
         // Filter questions if selectedQuestionIds are provided
-        if (quizInfo?.selectedQuestionIds && quizInfo.selectedQuestionIds.length > 0) {
+        if (
+          quizInfo?.selectedQuestionIds &&
+          quizInfo.selectedQuestionIds.length > 0
+        ) {
           // Convert all IDs to strings for consistent comparison
-          const selectedIds = quizInfo.selectedQuestionIds.map(id => String(id));
+          const selectedIds = quizInfo.selectedQuestionIds.map((id) =>
+            String(id),
+          );
           fetchedQuestions = fetchedQuestions.filter((q) => {
-            const qId = String(q.personalQuizQuestionID || q.questionID || q.id);
+            const qId = String(
+              q.personalQuizQuestionID || q.questionID || q.id,
+            );
             return selectedIds.includes(qId);
           });
         }
@@ -268,7 +283,9 @@ export default function PrintPersonalQuiz() {
           choicesResults.forEach((result) => {
             if (result) {
               fetchedQuestions = fetchedQuestions.map((q) => {
-                if (q.personalQuizQuestionID === result.personalQuizQuestionID) {
+                if (
+                  q.personalQuizQuestionID === result.personalQuizQuestionID
+                ) {
                   return { ...q, personalQuizChoices: result.choices };
                 }
                 return q;
@@ -280,7 +297,10 @@ export default function PrintPersonalQuiz() {
         // Helper to get image URL (defined before use)
         const getImageUrlForQuestion = (imagePath) => {
           if (!imagePath) return null;
-          if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+          if (
+            imagePath.startsWith("http://") ||
+            imagePath.startsWith("https://")
+          ) {
             return imagePath;
           }
           if (imagePath.startsWith("data:")) {
@@ -306,15 +326,10 @@ export default function PrintPersonalQuiz() {
         const transformedQuestions = fetchedQuestions.map((q) => {
           const question = q.question || q;
           const choices =
-            q.personalQuizChoices ||
-            (question && question.choices) ||
-            [];
+            q.personalQuizChoices || (question && question.choices) || [];
 
           const questionImagePath =
-            q.personalQuizImage ||
-            q.image ||
-            question.image ||
-            null;
+            q.personalQuizImage || q.image || question.image || null;
 
           return {
             questionText:
@@ -322,14 +337,17 @@ export default function PrintPersonalQuiz() {
               q.questionText ||
               question.questionText ||
               "",
-            questionImage: questionImagePath ? getImageUrlForQuestion(questionImagePath) : null,
+            questionImage: questionImagePath
+              ? getImageUrlForQuestion(questionImagePath)
+              : null,
             questionImageBase64: null, // Will be populated by PDF endpoint if needed
             choices: choices.map((c) => {
               const choiceImagePath = c.image || c.personalQuizImage || null;
               return {
-                choiceText:
-                  c.choiceText || c.personalQuizChoiceText || "",
-                choiceImage: choiceImagePath ? getImageUrlForQuestion(choiceImagePath) : null,
+                choiceText: c.choiceText || c.personalQuizChoiceText || "",
+                choiceImage: choiceImagePath
+                  ? getImageUrlForQuestion(choiceImagePath)
+                  : null,
                 choiceImageBase64: null,
                 isCorrect:
                   c.isCorrect !== undefined
@@ -353,7 +371,8 @@ export default function PrintPersonalQuiz() {
             const correctIdx = q.choices?.findIndex((c) => c.isCorrect);
             return {
               questionNumber: idx + 1,
-              answer: correctIdx !== -1 ? String.fromCharCode(65 + correctIdx) : "-",
+              answer:
+                correctIdx !== -1 ? String.fromCharCode(65 + correctIdx) : "-",
             };
           }),
         });
@@ -371,7 +390,9 @@ export default function PrintPersonalQuiz() {
   }, [quizInfo, apiUrl, pdfData, fromAPI]);
 
   const originalQuestions = useRef(
-    quizData?.questions ? transformQuestions(quizData.questions) : fallbackQuestions
+    quizData?.questions
+      ? transformQuestions(quizData.questions)
+      : fallbackQuestions,
   );
 
   const [fontSize, setFontSize] = useState("L");
@@ -476,8 +497,13 @@ export default function PrintPersonalQuiz() {
   };
 
   const questionCount = originalQuestions.current.length;
-  const quizTitle = quizData?.quiz?.title || quizInfo?.title || "Quiz Worksheet";
-  const quizInstructions = quizData?.quiz?.instructions || quizData?.quiz?.instruction || quizInfo?.instruction || "";
+  const quizTitle =
+    quizData?.quiz?.title || quizInfo?.title || "Quiz Worksheet";
+  const quizInstructions =
+    quizData?.quiz?.instructions ||
+    quizData?.quiz?.instruction ||
+    quizInfo?.instruction ||
+    "";
 
   // Function to force all oklch colors to safe values before PDF
   const forceSafeColors = (element) => {
@@ -595,7 +621,9 @@ export default function PrintPersonalQuiz() {
       const contentHeight = pageHeight - margin * 2;
 
       const headerSection = element.querySelector(".exam-header");
-      const questionContainers = element.querySelectorAll(".question-container");
+      const questionContainers = element.querySelectorAll(
+        ".question-container",
+      );
 
       let currentY = margin;
       let currentPage = 0;
@@ -824,15 +852,17 @@ export default function PrintPersonalQuiz() {
   return (
     <div className="outfit -mx-2 mt-10 flex min-h-screen flex-col">
       {/* Settings Bar */}
-      <div className="border-color fixed top-0 z-10 flex w-full items-center space-x-6 border-b bg-white px-8 py-[6px] text-sm">
+      <div className="border-color fixed top-0 z-10 mt-10 flex w-full items-center space-x-6 border-b bg-white px-8 py-[6px] text-sm lg:mt-0">
         <button
           onClick={() => navigate(-1)}
-          className="flex cursor-pointer -ml-5 items-center justify-center rounded-2xl p-2 hover:bg-gray-100 mr-5"
+          className="mr-5 -ml-5 flex cursor-pointer items-center justify-center rounded-2xl p-2 hover:bg-gray-100"
           aria-label="Go back"
         >
           <i className="bx bx-arrow-left-stroke text-[30px] leading-none"></i>
         </button>
-        <span className="text-[16px] font-semibold -ml-5 text-gray-900">Back</span>
+        <span className="-ml-5 text-[16px] font-semibold text-gray-900">
+          Back
+        </span>
 
         <div className="ml-10 hidden items-center space-x-2 min-[870px]:flex">
           <span className="text-[14px] text-gray-900">Font size</span>
@@ -869,7 +899,7 @@ export default function PrintPersonalQuiz() {
           ))}
         </div>
 
-        <div className="ml-2 h-8 w-px hidden min-[870px]:flex bg-gray-300" />
+        <div className="ml-2 hidden h-8 w-px bg-gray-300 min-[870px]:flex" />
 
         <div className="ml-2 hidden items-center space-x-[10px] min-[870px]:flex">
           <button
@@ -979,7 +1009,7 @@ export default function PrintPersonalQuiz() {
 
       {/* Main Content Row */}
       <div
-        className="mt-10 mb-20 flex flex-1 lg:mb-0"
+        className="mt-10 mb-20 flex flex-1 pb-20 lg:mb-0"
         style={{
           maxWidth: "100%",
           width: "100%",
@@ -1136,7 +1166,9 @@ export default function PrintPersonalQuiz() {
                   {/* Instructions */}
                   {quizInstructions && (
                     <div className="mb-4 px-8">
-                      <div className="pdf-text font-semibold">Instructions:</div>
+                      <div className="pdf-text font-semibold">
+                        Instructions:
+                      </div>
                       <div className="pdf-text mt-1">{quizInstructions}</div>
                     </div>
                   )}
@@ -1157,7 +1189,10 @@ export default function PrintPersonalQuiz() {
                         {question.questionImage && (
                           <div className="mt-2">
                             <img
-                              src={getImageSrc(question.questionImage, question.questionImageBase64)}
+                              src={getImageSrc(
+                                question.questionImage,
+                                question.questionImageBase64,
+                              )}
                               alt={`Question ${index + 1} image`}
                               style={{
                                 maxHeight: imageSizeMap[imageSize],
@@ -1192,7 +1227,10 @@ export default function PrintPersonalQuiz() {
                                   const idx = row + col * rows;
                                   if (idx < question.choices.length) {
                                     rowChoices.push(
-                                      <div key={col} className="flex items-center">
+                                      <div
+                                        key={col}
+                                        className="flex items-center"
+                                      >
                                         <p className="pdf-choice ml-5">
                                           {String.fromCharCode(65 + idx)}.{" "}
                                           {question.choices[idx].choiceText}
@@ -1243,10 +1281,14 @@ export default function PrintPersonalQuiz() {
                                           }}
                                         >
                                           <img
-                                            src={getImageSrc(choice.choiceImage, choice.choiceImageBase64)}
+                                            src={getImageSrc(
+                                              choice.choiceImage,
+                                              choice.choiceImageBase64,
+                                            )}
                                             alt={`Choice ${String.fromCharCode(65 + choiceIndex)} image`}
                                             style={{
-                                              maxHeight: imageSizeMap[imageSize],
+                                              maxHeight:
+                                                imageSizeMap[imageSize],
                                               maxWidth: "300px",
                                               width: "auto",
                                               display: "inline-block",
@@ -1262,8 +1304,10 @@ export default function PrintPersonalQuiz() {
                                             className="pdf-choice"
                                             style={{ marginTop: 4 }}
                                           >
-                                            {String.fromCharCode(65 + choiceIndex)}.{" "}
-                                            {choice.choiceText}
+                                            {String.fromCharCode(
+                                              65 + choiceIndex,
+                                            )}
+                                            . {choice.choiceText}
                                           </p>
                                         </div>
                                       ),
@@ -1279,7 +1323,10 @@ export default function PrintPersonalQuiz() {
                                     >
                                       <div>
                                         <span className="mr-2 ml-5 text-black">
-                                          {String.fromCharCode(65 + choiceIndex)}.
+                                          {String.fromCharCode(
+                                            65 + choiceIndex,
+                                          )}
+                                          .
                                         </span>
                                         <span className="pdf-choice">
                                           {choice.choiceText}
@@ -1287,7 +1334,10 @@ export default function PrintPersonalQuiz() {
                                       </div>
                                       {choice.choiceImage && (
                                         <img
-                                          src={getImageSrc(choice.choiceImage, choice.choiceImageBase64)}
+                                          src={getImageSrc(
+                                            choice.choiceImage,
+                                            choice.choiceImageBase64,
+                                          )}
                                           alt={`Choice ${String.fromCharCode(65 + choiceIndex)} image`}
                                           style={{
                                             maxHeight: imageSizeMap[imageSize],
@@ -1319,10 +1369,7 @@ export default function PrintPersonalQuiz() {
                     <h2 className="pdf-header mb-10 text-center text-2xl font-bold text-black">
                       Answer Key
                     </h2>
-                    <div
-                      className="pdf-text ml-4"
-                      style={{ fontSize: "15px" }}
-                    >
+                    <div className="pdf-text ml-4" style={{ fontSize: "15px" }}>
                       {(() => {
                         const answers = displayedQuestions.map(
                           (question, idx) => {
@@ -1337,7 +1384,8 @@ export default function PrintPersonalQuiz() {
                           },
                         );
 
-                        const answersPerColumn = 10;
+                        // Calculate how many columns we need (25 answers per column)
+                        const answersPerColumn = 25;
                         const numColumns = Math.ceil(
                           answers.length / answersPerColumn,
                         );
@@ -1557,7 +1605,10 @@ export default function PrintPersonalQuiz() {
                     {question.questionImage && (
                       <div className="mt-2">
                         <img
-                          src={getImageSrc(question.questionImage, question.questionImageBase64)}
+                          src={getImageSrc(
+                            question.questionImage,
+                            question.questionImageBase64,
+                          )}
                           alt={`Question ${index + 1} image`}
                           style={{
                             maxHeight: imageSizeMap[imageSize],
@@ -1642,7 +1693,10 @@ export default function PrintPersonalQuiz() {
                                     }}
                                   >
                                     <img
-                                      src={getImageSrc(choice.choiceImage, choice.choiceImageBase64)}
+                                      src={getImageSrc(
+                                        choice.choiceImage,
+                                        choice.choiceImageBase64,
+                                      )}
                                       alt={`Choice ${String.fromCharCode(65 + choiceIndex)} image`}
                                       style={{
                                         maxHeight: imageSizeMap[imageSize],
@@ -1685,7 +1739,10 @@ export default function PrintPersonalQuiz() {
                                   </div>
                                   {choice.choiceImage && (
                                     <img
-                                      src={getImageSrc(choice.choiceImage, choice.choiceImageBase64)}
+                                      src={getImageSrc(
+                                        choice.choiceImage,
+                                        choice.choiceImageBase64,
+                                      )}
                                       alt={`Choice ${String.fromCharCode(65 + choiceIndex)} image`}
                                       style={{
                                         maxHeight: imageSizeMap[imageSize],
@@ -1729,7 +1786,7 @@ export default function PrintPersonalQuiz() {
                       return { number: idx + 1, answer: correctLetter };
                     });
 
-                    const answersPerColumn = 10;
+                    const answersPerColumn = 25;
                     const numColumns = Math.ceil(
                       answers.length / answersPerColumn,
                     );
@@ -1810,9 +1867,7 @@ export default function PrintPersonalQuiz() {
         </div>
 
         <div className="mt-3 hidden items-start text-[12px] text-gray-600 min-[1200px]:flex">
-          <span>
-            Download the quiz worksheet or the answer key for review.
-          </span>
+          <span>Download the quiz worksheet or the answer key for review.</span>
         </div>
       </div>
 

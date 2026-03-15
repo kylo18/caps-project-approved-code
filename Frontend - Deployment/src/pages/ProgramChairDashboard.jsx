@@ -9,9 +9,9 @@ const ProgramChairDashboard = () => {
           alt="Dashboard coming soon "
           className="mb-2 h-32 w-32 opacity-80"
         />
-        <span className="w-90 text-[15px] text-gray-500">
-          The dashboard is still under development. To add questions, please
-          select sa subject from the sidebar.
+        <span className="outfit-500 w-90 text-[15px] text-gray-500">
+          The Home Page is still under development. To create quizzes, please
+          select a subject from the sidebar.
         </span>
       </div>
     </div>

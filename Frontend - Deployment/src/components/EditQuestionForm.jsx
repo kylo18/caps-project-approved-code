@@ -31,7 +31,7 @@ const HeaderDropdown = ({
   const selectedOption = options.find((opt) => opt.value === value);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="outfit-400 flex items-center gap-2">
       {label && <span className="text-[14px] text-gray-700">{label}</span>}
       <div className="relative" ref={dropdownRef}>
         <button
@@ -417,10 +417,8 @@ const EditQuestionForm = ({
   };
 
   const isEditorEmpty = () => {
-    if (!editorRef.current) return true;
-    const c =
-      editorRef.current.textContent || editorRef.current.innerText || "";
-    return c.trim() === "";
+    // Use formData so placeholder respects initial question text immediately
+    return getTextLength(formData.questionText) === 0;
   };
 
   const choiceColors = [
@@ -566,9 +564,9 @@ const EditQuestionForm = ({
 
   return (
     <>
-      <div className="outfit lightbox-bg fixed inset-0 z-105 flex flex-col overflow-hidden bg-gray-100 animate-slide-up">
-            {/* Header */}
-        <div className="outfit-400 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
+      <div className="outfit lightbox-bg animate-slide-up fixed inset-0 z-105 flex flex-col overflow-hidden bg-gray-100">
+        {/* Header */}
+        <div className="outfit-400 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm md:px-6">
           <div className="flex items-center gap-4">
                 <button
               onClick={handleCloseForm}
@@ -581,12 +579,12 @@ const EditQuestionForm = ({
             </span>
               </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setIsSettingsModalOpen(true)}
-              className="flex cursor-pointer items-center gap-2 rounded-lg bg-gray-200 px-3 py-1.5 text-[14px] font-medium text-gray-700 transition hover:bg-gray-300 md:hidden"
+              className="flex cursor-pointer items-center gap-2 rounded-lg p-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100 md:hidden"
             >
-              <i className="bx bx-cog text-[18px]"></i>
+              <i className="bx bx-cog text-[20px]"></i>
             </button>
 
             <div className="hidden items-center gap-4 md:flex">
@@ -633,10 +631,7 @@ const EditQuestionForm = ({
                 isLoading ? "cursor-not-allowed bg-orange-500" : "hover:bg-orange-600"
               }`}
             >
-              <i className="bx bx-save text-[18px]"></i>
-              <span className="hidden sm:inline">
-                {isLoading ? "Saving..." : "Update"}
-              </span>
+              <span>{isLoading ? "Saving..." : "Update"}</span>
             </button>
           </div>
               </div>
@@ -651,7 +646,7 @@ const EditQuestionForm = ({
                     e.preventDefault();
                     handleFormat("bold", setIsBold);
                   }}
-                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isBold ? "bg-gray-200 text-gray-900" : ""}`}
+                  className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:text-gray-900 ${isBold ? "bg-gray-200 text-gray-900" : ""}`}
                 >
                 <i className="bx bx-bold text-[18px]"></i>
                 </button>
@@ -661,7 +656,7 @@ const EditQuestionForm = ({
                     e.preventDefault();
                     handleFormat("italic", setIsItalic);
                   }}
-                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isItalic ? "bg-gray-200 text-gray-900" : ""}`}
+                  className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:text-gray-900 ${isItalic ? "bg-gray-200 text-gray-900" : ""}`}
                 >
                 <i className="bx bx-italic text-[18px]"></i>
                 </button>
@@ -671,17 +666,17 @@ const EditQuestionForm = ({
                     e.preventDefault();
                     handleFormat("underline", setIsUnderline);
                   }}
-                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isUnderline ? "bg-gray-200 text-gray-900" : ""}`}
+                  className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:text-gray-900 ${isUnderline ? "bg-gray-200 text-gray-900" : ""}`}
                 >
                 <i className="bx bx-underline text-[18px]"></i>
                 </button>
                 <button
                   type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleFormat("strikeThrough", setIsStrikethrough);
-                }}
-                className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:bg-gray-100 hover:text-gray-900 ${isStrikethrough ? "bg-gray-200 text-gray-900" : ""}`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleFormat("strikeThrough", setIsStrikethrough);
+                  }}
+                  className={`flex size-8 cursor-pointer items-center justify-center rounded p-1 transition hover:text-gray-900 ${isStrikethrough ? "bg-gray-200 text-gray-900" : ""}`}
               >
                 <i className="bx bx-strikethrough text-[18px]"></i>
               </button>
@@ -710,7 +705,7 @@ const EditQuestionForm = ({
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
+        <div className="flex-1 overflow-y-auto bg-gray-100 p-4 md:p-6">
           <div className="mx-auto max-w-7xl">
             <div className="mb-3 rounded-xl border border-gray-200 bg-white p-6">
               <div className="flex flex-col gap-4 md:flex-row">
@@ -911,7 +906,7 @@ const EditQuestionForm = ({
 
             {/* Choices Section */}
             <div className="rounded-xl border border-gray-200 bg-white p-6">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
                 {formData.choices.map((choice, index) => (
                   <div
                     key={index}
@@ -1168,79 +1163,112 @@ const EditQuestionForm = ({
 
       {isSettingsModalOpen && (
         <div
-          className="bg-opacity-70 lightbox-bg-image fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          className="lightbox-bg fixed inset-0 z-[9999] flex items-end justify-center px-2 md:items-center md:p-4"
           onClick={() => setIsSettingsModalOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+            className="mb-2 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl md:mb-0"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-800">
-                Question Settings
-              </h3>
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-white">
+                  <i className="bx bx-cog text-[20px]" />
+                </div>
+                <div className="flex flex-col">
+                  <h3 className="outfit-700 text-[16px] text-gray-900">
+                    Question settings
+                  </h3>
+                  <p className="outfit-400 text-[12px] text-gray-500">
+                    Adjust difficulty, coverage, and purpose.
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => setIsSettingsModalOpen(false)}
-                className="text-gray-500 transition hover:text-gray-700"
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
               >
-                <i className="bx bx-x text-2xl"></i>
+                <i className="bx bx-x text-xl"></i>
               </button>
             </div>
             <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Difficulty
-                </label>
-                <HeaderDropdown
-                  name="difficulty_id"
-                  value={formData.difficulty_id}
-                  onChange={handleQuestionChange}
-                  options={[
-                    { value: 1, label: "Easy" },
-                    { value: 2, label: "Moderate" },
-                    { value: 3, label: "Hard" },
-                  ]}
-                  show={true}
-                  label=""
-                />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col">
+                  <span className="outfit-500 mb-0.5 text-[13px] text-gray-900">
+                    Difficulty
+                  </span>
+                  <span className="outfit-400 text-[12px] text-gray-500">
+                    How challenging this question is.
+                  </span>
+                </div>
+                <div className="shrink-0">
+                  <HeaderDropdown
+                    name="difficulty_id"
+                    value={formData.difficulty_id}
+                    onChange={handleQuestionChange}
+                    options={[
+                      { value: 1, label: "Easy" },
+                      { value: 2, label: "Moderate" },
+                      { value: 3, label: "Hard" },
+                    ]}
+                    show={true}
+                    label=""
+                  />
+                </div>
               </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Coverage
-                </label>
-                <HeaderDropdown
-                  name="coverage_id"
-                  value={formData.coverage_id}
-                  onChange={handleQuestionChange}
-                  options={[
-                    { value: 1, label: "Midterms" },
-                    { value: 2, label: "Finals" },
-                  ]}
-                  show={true}
-                  label=""
-                />
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col">
+                  <span className="outfit-500 mb-0.5 text-[13px] text-gray-900">
+                    Coverage
+                  </span>
+                  <span className="outfit-400 text-[12px] text-gray-500">
+                    Which part of the subject this belongs to.
+                  </span>
+                </div>
+                <div className="shrink-0">
+                  <HeaderDropdown
+                    name="coverage_id"
+                    value={formData.coverage_id}
+                    onChange={handleQuestionChange}
+                    options={[
+                      { value: 1, label: "Midterms" },
+                      { value: 2, label: "Finals" },
+                    ]}
+                    show={true}
+                    label=""
+                  />
+                </div>
               </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Purpose
-                </label>
-                <HeaderDropdown
-                  name="purpose_id"
-                  value={formData.purpose_id}
-                  onChange={handleQuestionChange}
-                  options={[
-                    { value: 2, label: "Practice" },
-                    { value: 1, label: "Qualifying Exam" },
-                  ]}
-                  show={true}
-                  label=""
-                />
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col">
+                  <span className="outfit-500 mb-0.5 text-[13px] text-gray-900">
+                    Purpose
+                  </span>
+                  <span className="outfit-400 text-[12px] text-gray-500">
+                    How this question will be used.
+                  </span>
+                </div>
+                <div className="shrink-0">
+                  <HeaderDropdown
+                    name="purpose_id"
+                    value={formData.purpose_id}
+                    onChange={handleQuestionChange}
+                    options={[
+                      { value: 2, label: "Practice" },
+                      { value: 1, label: "Qualifying Exam" },
+                    ]}
+                    show={true}
+                    label=""
+                  />
+                </div>
               </div>
             </div>
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex items-center justify-end">
               <button
                 onClick={() => setIsSettingsModalOpen(false)}
-                className="rounded-lg bg-orange-500 px-4 py-2 text-white transition hover:bg-orange-600"
+                className="outfit-500 rounded-xl bg-orange-500 px-4 py-2 text-[14px] text-white shadow-sm transition hover:bg-orange-600 active:scale-95"
               >
                 Done
               </button>

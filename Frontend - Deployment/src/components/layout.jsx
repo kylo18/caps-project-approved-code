@@ -69,9 +69,12 @@ const Layout = () => {
     location.pathname === "/libraries" ||
     location.pathname === "/archived-quiz" ||
     location.pathname === "/dean/subjects" ||
+    location.pathname === "/asso-dean/subjects" ||
     location.pathname === "/program-chair/subjects" ||
     location.pathname === "/faculty/subjects" ||
     location.pathname === "/student/subjects";
+
+  const isStudentDashboardPage = location.pathname === "/student-dashboard";
 
   return (
     <div className="min-h-screen">
@@ -109,7 +112,7 @@ const Layout = () => {
             <Header title={roleTitle} className="lg:hidden" />
           )}
           <main
-            className={`${isTutorialPage || isQuizPage || isPracticeExamPage ? "" : "lg:px-4"} h-full`}
+            className={`${isTutorialPage || isQuizPage || isPracticeExamPage || isStudentDashboardPage ? "" : "lg:px-4"} h-full`}
           >
             <Outlet context={{ selectedSubject, setSelectedSubject }} />
           </main>

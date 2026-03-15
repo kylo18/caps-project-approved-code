@@ -8,13 +8,16 @@ const AssignToClassModal = ({
   personalQuizID,
   quizTitle,
   onSuccess,
+  // New optional "picker" mode: only choose classes, no API call
+  selectionOnly = false,
+  initialSelectedClassIDs = [],
+  onSelectionConfirm,
 }) => {
   const [classes, setClasses] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [selectedClassIDs, setSelectedClassIDs] = useState([]);
-  const [startDate, setStartDate] = useState("");
-  const [deadlineDate, setDeadlineDate] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const { toast, showToast } = useToast();
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -22,11 +25,13 @@ const AssignToClassModal = ({
     if (isOpen && personalQuizID) {
       fetchClasses();
       // Reset form when modal opens
-      setSelectedClassIDs([]);
-      setStartDate("");
-      setDeadlineDate("");
+      if (selectionOnly) {
+        setSelectedClassIDs(initialSelectedClassIDs || []);
+      } else {
+        setSelectedClassIDs([]);
+      }
     }
-  }, [isOpen, personalQuizID]);
+  }, [isOpen, personalQuizID, selectionOnly, initialSelectedClassIDs]);
 
   const fetchClasses = async () => {
     setIsLoading(true);
@@ -46,7 +51,7 @@ const AssignToClassModal = ({
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (response.status === 401) {
@@ -59,7 +64,7 @@ const AssignToClassModal = ({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.message || "Failed to fetch classes. Please try again."
+          errorData.message || "Failed to fetch classes. Please try again.",
         );
       }
 
@@ -73,7 +78,7 @@ const AssignToClassModal = ({
       console.error("Error fetching classes:", error);
       showToast(
         error.message || "Failed to fetch classes. Please try again.",
-        "error"
+        "error",
       );
     } finally {
       setIsLoading(false);
@@ -84,20 +89,22 @@ const AssignToClassModal = ({
     setSelectedClassIDs((prev) => {
       if (prev.includes(classID)) {
         return prev.filter((id) => id !== classID);
-      } else {
-        return [...prev, classID];
       }
+      // In selectionOnly mode, only one class (for settings); otherwise allow multiple
+      if (selectionOnly) {
+        return [classID];
+      }
+      return [...prev, classID];
     });
   };
 
   const handleSelectAll = () => {
+    if (selectionOnly) return;
     const unassignedClasses = classes.filter((cls) => !cls.isAssigned);
     if (selectedClassIDs.length === unassignedClasses.length) {
       setSelectedClassIDs([]);
     } else {
-      setSelectedClassIDs(
-        unassignedClasses.map((cls) => cls.classID)
-      );
+      setSelectedClassIDs(unassignedClasses.map((cls) => cls.classID));
     }
   };
 
@@ -107,17 +114,22 @@ const AssignToClassModal = ({
       return;
     }
 
-    // Validate dates if provided
-    if (startDate && deadlineDate) {
-      const start = new Date(startDate);
-      const deadline = new Date(deadlineDate);
-      if (deadline < start) {
-        showToast(
-          "Deadline date must be after or equal to start date.",
-          "error"
-        );
-        return;
+    // In selection-only mode, just bubble the selection up and close
+    if (selectionOnly) {
+      const selectedClasses = classes
+        .filter((cls) => selectedClassIDs.includes(cls.classID))
+        .map((c) => ({
+          ...c,
+          classPersonalQuizID: c.assignment?.classPersonalQuizID ?? null,
+        }));
+      if (onSelectionConfirm) {
+        onSelectionConfirm({
+          classIDs: selectedClassIDs,
+          classes: selectedClasses,
+        });
       }
+      onClose();
+      return;
     }
 
     setIsAssigning(true);
@@ -133,13 +145,6 @@ const AssignToClassModal = ({
         classIDs: selectedClassIDs,
       };
 
-      if (startDate) {
-        payload.startDate = startDate;
-      }
-      if (deadlineDate) {
-        payload.deadlineDate = deadlineDate;
-      }
-
       const response = await fetch(
         `${apiUrl}/personal-quizzes/${personalQuizID}/assign-classes`,
         {
@@ -149,7 +154,7 @@ const AssignToClassModal = ({
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(payload),
-        }
+        },
       );
 
       if (response.status === 401) {
@@ -168,7 +173,7 @@ const AssignToClassModal = ({
           throw new Error(errorMessages || "Validation failed");
         }
         throw new Error(
-          errorData.message || "Failed to assign quiz to classes."
+          errorData.message || "Failed to assign quiz to classes.",
         );
       }
 
@@ -176,21 +181,19 @@ const AssignToClassModal = ({
       if (data.success) {
         const assignedCount = data.assignedCount || 0;
         let message = `Quiz assigned to ${assignedCount} class(es) successfully.`;
-        
+
         if (data.skipped && data.skipped.length > 0) {
           message += ` ${data.skippedCount} class(es) were skipped (already assigned).`;
         }
-        
+
         showToast(message, "success");
-        
+
         // Refresh classes list
         await fetchClasses();
-        
+
         // Reset selection
         setSelectedClassIDs([]);
-        setStartDate("");
-        setDeadlineDate("");
-        
+
         // Call onSuccess callback if provided
         if (onSuccess) {
           onSuccess(data);
@@ -202,7 +205,7 @@ const AssignToClassModal = ({
       console.error("Error assigning quiz to classes:", error);
       showToast(
         error.message || "Failed to assign quiz to classes. Please try again.",
-        "error"
+        "error",
       );
     } finally {
       setIsAssigning(false);
@@ -213,174 +216,167 @@ const AssignToClassModal = ({
 
   const unassignedClasses = classes.filter((cls) => !cls.isAssigned);
   const allUnassignedSelected =
+    !selectionOnly &&
     unassignedClasses.length > 0 &&
     selectedClassIDs.length === unassignedClasses.length;
+
+  const filteredClasses = classes.filter((cls) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    const subjectCode = cls.subject?.subjectCode || "";
+    const subjectName = cls.subject?.subjectName || "";
+    return (
+      cls.className?.toLowerCase().includes(term) ||
+      subjectCode.toLowerCase().includes(term) ||
+      subjectName.toLowerCase().includes(term)
+    );
+  });
 
   return (
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
-      <div className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center bg-black bg-opacity-40">
-        <div className="relative mx-2 w-full max-w-3xl rounded-md bg-white shadow-2xl">
+      <div className="lightbox-bg outfit-400 bg-opacity-40 fixed inset-0 z-100 flex items-center justify-center bg-black">
+        <div className="relative mx-2 w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl">
           {/* Header */}
-          <div className="border-color relative flex items-center justify-between border-b py-3 pl-4 pr-12">
-            <h2 className="text-[16px] font-semibold text-gray-800">
-              Assign Quiz to Classes
-            </h2>
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500 text-white">
+                <i className="bx bx-note text-2xl"></i>
+              </div>
+              <div>
+                <h2 className="outfit-700 text-[16px] text-gray-900">
+                  Assign Quiz to Classes
+                </h2>
+                <p className="text-xs text-gray-500">
+                  Select the classes you want to assign{" "}
+                  <span className="font-medium text-gray-700">
+                    {quizTitle || "Untitled Quiz"}
+                  </span>{" "}
+                  to.
+                </p>
+              </div>
+            </div>
             <button
               onClick={onClose}
-              className="absolute top-2 right-2 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              className="mt-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700"
               title="Close"
             >
-              <i className="bx bx-x text-[20px]"></i>
+              <i className="bx bx-x text-xl"></i>
             </button>
           </div>
 
+          {/* Search */}
+          <div className="mb-4">
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                <i className="bx bx-search text-lg"></i>
+              </span>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by class name or subject..."
+                className="h-10 w-full rounded-xl border border-gray-200 bg-white pr-3 pl-9 text-sm text-gray-800 placeholder-gray-400 ring-0 transition outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+              />
+            </div>
+          </div>
+
           {/* Content */}
-          <div className="max-h-[70vh] overflow-y-auto p-4">
+          <div className="max-h-[55vh] overflow-y-auto">
             {isLoading ? (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex items-center justify-center py-10">
                 <div className="loader"></div>
                 <span className="ml-3 text-sm text-gray-600">
                   Loading classes...
                 </span>
               </div>
             ) : classes.length === 0 ? (
-              <div className="py-8 text-center text-sm text-gray-500">
+              <div className="py-10 text-center text-sm text-gray-500">
                 No classes available. Please create a class first.
+              </div>
+            ) : filteredClasses.length === 0 ? (
+              <div className="py-10 text-center text-sm text-gray-500">
+                No classes match your search.
               </div>
             ) : (
               <>
-                {/* Quiz Info */}
-                <div className="mb-4 rounded-lg bg-gray-50 p-3">
-                  <p className="text-sm font-medium text-gray-700">
-                    Quiz: {quizTitle || "Untitled Quiz"}
-                  </p>
-                </div>
-
-                {/* Date Pickers */}
-                <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Start Date (Optional)
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Deadline Date (Optional)
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={deadlineDate}
-                      onChange={(e) => setDeadlineDate(e.target.value)}
-                      min={startDate || undefined}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Select All Button */}
-                {unassignedClasses.length > 0 && (
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-sm text-gray-600">
-                      {selectedClassIDs.length} of {unassignedClasses.length}{" "}
-                      unassigned classes selected
-                    </span>
+                {/* List Header */}
+                <div className="mb-2 flex items-center justify-between text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                  <span>Your Classes</span>
+                  {!selectionOnly && unassignedClasses.length > 0 && (
                     <button
                       onClick={handleSelectAll}
-                      className="text-sm font-medium text-orange-600 hover:text-orange-700"
+                      className="text-[11px] font-semibold tracking-wide text-orange-500 uppercase hover:text-orange-600"
                     >
                       {allUnassignedSelected ? "Deselect All" : "Select All"}
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Classes List */}
                 <div className="space-y-2">
-                  {classes.map((classItem) => {
+                  {filteredClasses.map((classItem) => {
                     const isSelected = selectedClassIDs.includes(
-                      classItem.classID
+                      classItem.classID,
                     );
                     const isAssigned = classItem.isAssigned;
+                    const canSelect = selectionOnly || !isAssigned;
 
                     return (
                       <div
                         key={classItem.classID}
-                        className={`rounded-lg border p-3 ${
-                          isAssigned
-                            ? "border-green-200 bg-green-50"
-                            : isSelected
-                              ? "border-orange-500 bg-orange-50"
-                              : "border-gray-200 bg-white hover:bg-gray-50"
+                        className={`flex items-center justify-between rounded-xl border px-3 py-3 transition ${
+                          isSelected
+                            ? "border-orange-500 bg-white shadow-sm"
+                            : "border-gray-200 bg-white hover:border-gray-300"
                         }`}
                       >
-                        <div className="flex items-start gap-3">
-                          {!isAssigned && (
+                        <div className="flex flex-1 items-start gap-3">
+                          {canSelect && (
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => handleClassToggle(classItem.classID)}
-                              className="mt-1 h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                              onChange={() =>
+                                handleClassToggle(classItem.classID)
+                              }
+                              disabled={isAssigned && !selectionOnly}
+                              className={`mt-1 h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500 ${
+                                isAssigned && !selectionOnly
+                                  ? "cursor-not-allowed opacity-60"
+                                  : ""
+                              }`}
                             />
                           )}
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <h3 className="text-sm font-semibold text-gray-800">
+                              <h3
+                                className={`text-sm font-semibold ${
+                                  isAssigned && !selectionOnly
+                                    ? "text-gray-400"
+                                    : "text-gray-900"
+                                }`}
+                              >
                                 {classItem.className}
                               </h3>
-                              {isAssigned && (
-                                <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                                  Already Assigned
-                                </span>
-                              )}
                             </div>
-                            <p className="mt-1 text-xs text-gray-600">
-                              Code: {classItem.classCode}
+                            <p
+                              className={`mt-1 text-xs ${
+                                isAssigned && !selectionOnly
+                                  ? "text-gray-400"
+                                  : "text-gray-600"
+                              }`}
+                            >
+                              {classItem.subject
+                                ? `${classItem.subject.subjectCode} - ${classItem.subject.subjectName}`
+                                : classItem.classCode}
                             </p>
-                            {classItem.subject && (
-                              <p className="mt-1 text-xs text-gray-600">
-                                {classItem.subject.subjectCode} -{" "}
-                                {classItem.subject.subjectName}
-                              </p>
-                            )}
-                            {classItem.description && (
-                              <p className="mt-1 text-xs text-gray-500">
-                                {classItem.description}
-                              </p>
-                            )}
-                            {isAssigned && classItem.assignment && (
-                              <div className="mt-2 rounded bg-white p-2 text-xs text-gray-600">
-                                <p>
-                                  <span className="font-medium">Assigned:</span>{" "}
-                                  {new Date(
-                                    classItem.assignment.assignedAt
-                                  ).toLocaleDateString()}
-                                </p>
-                                {classItem.assignment.startDate && (
-                                  <p>
-                                    <span className="font-medium">Start:</span>{" "}
-                                    {new Date(
-                                      classItem.assignment.startDate
-                                    ).toLocaleString()}
-                                  </p>
-                                )}
-                                {classItem.assignment.deadlineDate && (
-                                  <p>
-                                    <span className="font-medium">Deadline:</span>{" "}
-                                    {new Date(
-                                      classItem.assignment.deadlineDate
-                                    ).toLocaleString()}
-                                  </p>
-                                )}
-                              </div>
-                            )}
                           </div>
                         </div>
+                        {isAssigned && (
+                          <span className="ml-3 rounded-full bg-green-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-green-600 uppercase">
+                            Already Assigned
+                          </span>
+                        )}
                       </div>
                     );
                   })}
@@ -390,31 +386,41 @@ const AssignToClassModal = ({
           </div>
 
           {/* Footer */}
-          <div className="border-color flex items-center justify-end gap-3 border-t px-4 py-3">
-            <button
-              onClick={onClose}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAssign}
-              disabled={isAssigning || selectedClassIDs.length === 0}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition ${
-                isAssigning || selectedClassIDs.length === 0
-                  ? "cursor-not-allowed bg-gray-400"
-                  : "bg-orange-500 hover:bg-orange-600"
-              }`}
-            >
-              {isAssigning ? (
-                <div className="flex items-center gap-2">
-                  <span className="loader-white"></span>
-                  Assigning...
-                </div>
-              ) : (
-                `Assign to ${selectedClassIDs.length} Class(es)`
-              )}
-            </button>
+          <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-sm">
+            <span className="text-xs text-gray-500">
+              {selectedClassIDs.length} class
+              {selectedClassIDs.length === 1 ? "" : "es"} selected
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onClose}
+                className="cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssign}
+                disabled={
+                  selectedClassIDs.length === 0 ||
+                  (!selectionOnly && isAssigning)
+                }
+                className={`cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-white transition ${
+                  selectedClassIDs.length === 0 ||
+                  (!selectionOnly && isAssigning)
+                    ? "cursor-not-allowed bg-gray-300"
+                    : "bg-orange-500 hover:bg-orange-600"
+                }`}
+              >
+                {isAssigning ? (
+                  <div className="flex items-center gap-2">
+                    <span className="loader-white"></span>
+                    Assigning...
+                  </div>
+                ) : (
+                  "Assign Quiz"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

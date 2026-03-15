@@ -7,7 +7,7 @@ import { logoutUser } from "../utils/logoutUser";
 import useToast from "../hooks/useToast";
 import Toast from "./Toast";
 import CollegeLogo from "/src/assets/college-logo.png";
-import AppVersion from "./appVersion";
+import AppVersion from "./AppVersion";
 
 import DashboardIcon from "/src/assets/symbols/dashboard.svg";
 import DashboardIconH from "/src/assets/symbols/dashboardhover.svg";
@@ -529,7 +529,7 @@ const Sidebar = ({
     { icon: "bx-home-alt-3", label: "Home", path: homePath },
   ];
   const librariesItem = {
-    label: "My Library",
+    label: "Quizzes",
     path: "/libraries",
   };
   const sessionsItem = {
@@ -605,142 +605,179 @@ const Sidebar = ({
 
   // Mobile bottom navigation
   if (isMobile) {
+    const homeItem = menuItems.find((item) => item.label === "Home");
+
     return (
       <>
-        <div className="border-color fixed right-0 bottom-0 left-0 z-50 border-t bg-white px-6 py-2 min-[500px]:px-9">
-          <div className="relative flex items-center justify-between">
-            {/* LEFT SIDE */}
-            <div className="outfit-400 -ml-8 flex flex-1 items-center justify-evenly">
+        <div className="fixed right-0 bottom-0 left-0 z-50 flex justify-center pb-4">
+          <div className="border-color mx-4 w-full max-w-md rounded-2xl border border-gray-200 bg-white px-4 py-2 shadow-lg min-[500px]:px-6">
+            <div
+              className={
+                parsedRoleId === 1
+                  ? "flex items-center justify-evenly"
+                  : "flex items-center justify-between gap-8"
+              }
+            >
               {parsedRoleId === 1 ? (
-                // Student: show Sessions on the left
-                <div className="flex h-16 flex-col items-center justify-center">
-                  <Link
-                    to="/sessions"
-                    onClick={handleMenuClick}
-                    className={`flex flex-col items-center transition-colors ${
-                      isActive("/sessions")
-                        ? "text-orange-600"
-                        : "text-gray-700 hover:text-gray-800"
-                    }`}
-                  >
-                    <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                      <img
-                        src={
-                          isActive("/sessions") ? SessionsIconH : SessionsIcon
-                        }
-                        alt="Sessions"
-                        className="h-6 w-6 object-contain"
-                      />
-                    </span>
-                    <span className="text-xs">Sessions</span>
-                  </Link>
-                </div>
-              ) : (
-                // Other roles: keep Library and Classes on the left
-                [
-                  {
-                    label: "My Library",
-                    path: "/libraries",
-                    icon: LibrariesIcon,
-                    iconH: LibrariesIconH,
-                  },
-                  {
-                    label: "Classes",
-                    path: "/class",
-                    icon: ClassIcon,
-                    iconH: ClassIconH,
-                  },
-                ].map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex h-16 flex-col items-center justify-center"
-                  >
+                <>
+                  {/* Classes (student) */}
+                  <div className="flex h-16 flex-col items-center justify-center">
                     <Link
-                      to={item.path}
+                      to="/class"
                       onClick={handleMenuClick}
                       className={`flex flex-col items-center transition-colors ${
-                        isActive(item.path)
+                        isActive("/class")
                           ? "text-orange-600"
                           : "text-gray-700 hover:text-gray-800"
                       }`}
                     >
                       <span className="mb-1 flex h-6 w-6 items-center justify-center">
                         <img
-                          src={isActive(item.path) ? item.iconH : item.icon}
-                          alt={item.label}
+                          src={isActive("/class") ? ClassIconH : ClassIcon}
+                          alt="Classes"
                           className="h-6 w-6 object-contain"
                         />
                       </span>
-                      <span className="text-xs">{item.label}</span>
+                      <span className="outfit-500 text-xs">Classes</span>
                     </Link>
                   </div>
-                ))
-              )}
-            </div>
 
-            {/* CENTER BUTTON */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-              {menuItems
-                .filter((item) => item.label === "Home")
-                .map((item, index) => (
-                  <div key={index} className="flex items-center justify-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-500 shadow-lg">
+                  {/* Home (student, orange circle) */}
+                  {homeItem && (
+                    <div className="flex h-16 flex-col items-center justify-center">
                       <Link
-                        to={item.path}
+                        to={homeItem.path}
                         onClick={handleMenuClick}
-                        className="flex h-16 w-16 items-center justify-center rounded-full"
+                        className="flex flex-col items-center"
                       >
-                        <span className="flex h-6 w-6 items-center justify-center">
-                          <img
-                            src={DashboardIconW}
-                            alt="Dashboard"
-                            className="h-6 w-6 object-contain lg:hidden"
-                          />
-
-                          <img
-                            src={
-                              isActive(item.path)
-                                ? DashboardIconH
-                                : DashboardIcon
-                            }
-                            alt="Dashboard"
-                            className="hidden h-6 w-6 object-contain lg:block"
-                          />
+                        <span className="mb-1 flex items-center justify-center">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 shadow-lg">
+                            <img
+                              src={DashboardIconW}
+                              alt="Dashboard"
+                              className="h-5 w-5 object-contain"
+                            />
+                          </span>
+                        </span>
+                        <span
+                          className={`outfit-500 text-xs ${
+                            isActive(homeItem.path)
+                              ? "text-orange-600"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          Home
                         </span>
                       </Link>
                     </div>
+                  )}
+                  {/* Sessions (student) */}
+                  <div className="flex h-16 flex-col items-center justify-center">
+                    <Link
+                      to="/sessions"
+                      onClick={handleMenuClick}
+                      className={`flex flex-col items-center transition-colors ${
+                        isActive("/sessions")
+                          ? "text-orange-600"
+                          : "text-gray-700 hover:text-gray-800"
+                      }`}
+                    >
+                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                        <img
+                          src={
+                            isActive("/sessions") ? SessionsIconH : SessionsIcon
+                          }
+                          alt="Sessions"
+                          className="h-6 w-6 object-contain"
+                        />
+                      </span>
+                      <span className="outfit-500 text-xs">Sessions</span>
+                    </Link>
                   </div>
-                ))}
-            </div>
-
-            {/* RIGHT SIDE */}
-            <div className="outfit-400 -mr-8 flex flex-1 items-center justify-evenly">
-              {parsedRoleId === 1 ? (
-                // Student: show Classes on the right
-                <div className="flex h-16 flex-col items-center justify-center">
-                  <Link
-                    to="/class"
-                    onClick={handleMenuClick}
-                    className={`flex flex-col items-center transition-colors ${
-                      isActive("/class")
-                        ? "text-orange-600"
-                        : "text-gray-700 hover:text-gray-800"
-                    }`}
-                  >
-                    <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                      <img
-                        src={isActive("/class") ? ClassIconH : ClassIcon}
-                        alt="Classes"
-                        className="h-6 w-6 object-contain"
-                      />
-                    </span>
-                    <span className="text-xs">Classes</span>
-                  </Link>
-                </div>
+                </>
               ) : (
                 <>
+                  {/* My Library */}
+                  <div className="flex h-16 flex-1 flex-col items-center justify-center">
+                    <Link
+                      to="/libraries"
+                      onClick={handleMenuClick}
+                      className={`flex flex-col items-center transition-colors ${
+                        isActive("/libraries")
+                          ? "text-orange-600"
+                          : "text-gray-700 hover:text-gray-800"
+                      }`}
+                    >
+                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                        <img
+                          src={
+                            isActive("/libraries")
+                              ? LibrariesIconH
+                              : LibrariesIcon
+                          }
+                          alt="Quizzes"
+                          className="h-6 w-6 object-contain"
+                        />
+                      </span>
+                      <span className="outfit-500 text-xs">Quizzes</span>
+                    </Link>
+                  </div>
+
+                  {/* Classes */}
+                  <div className="flex h-16 flex-1 flex-col items-center justify-center">
+                    <Link
+                      to="/class"
+                      onClick={handleMenuClick}
+                      className={`flex flex-col items-center transition-colors ${
+                        isActive("/class")
+                          ? "text-orange-600"
+                          : "text-gray-700 hover:text-gray-800"
+                      }`}
+                    >
+                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                        <img
+                          src={isActive("/class") ? ClassIconH : ClassIcon}
+                          alt="Classes"
+                          className="h-6 w-6 object-contain"
+                        />
+                      </span>
+                      <span className="outfit-500 text-xs">Classes</span>
+                    </Link>
+                  </div>
+
+                  {/* Home (orange circle) */}
+                  {homeItem && (
+                    <div className="flex h-16 flex-1 flex-col items-center justify-center">
+                      <Link
+                        to={homeItem.path}
+                        onClick={handleMenuClick}
+                        className="flex flex-col items-center"
+                      >
+                        <span className="mb-1 flex items-center justify-center">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 shadow-lg">
+                            <img
+                              src={DashboardIconW}
+                              alt="Dashboard"
+                              className="h-5 w-5 object-contain"
+                            />
+                          </span>
+                        </span>
+                        <span
+                          className={`outfit-500 text-xs ${
+                            isActive(homeItem.path)
+                              ? "text-orange-600"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          Home
+                        </span>
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Users */}
                   {parsedRoleId >= 2 && (
-                    <div className="flex h-16 flex-col items-center justify-center">
+                    <div className="flex h-16 flex-1 flex-col items-center justify-center">
                       <Link
                         to="/users"
                         onClick={handleMenuClick}
@@ -757,14 +794,14 @@ const Sidebar = ({
                             className="h-6 w-6 object-contain"
                           />
                         </span>
-                        <span className="text-xs">Users</span>
+                        <span className="outfit-500 text-xs">Users</span>
                       </Link>
                     </div>
                   )}
 
-                  {/* Subjects icon (same style for faculty, program chair, dean) */}
+                  {/* Subjects (qualifying exam entry point) */}
                   {parsedRoleId >= 2 && (
-                    <div className="flex h-16 flex-col items-center justify-center">
+                    <div className="flex h-16 flex-1 flex-col items-center justify-center">
                       <Link
                         to={
                           parsedRoleId === 2
@@ -813,7 +850,7 @@ const Sidebar = ({
                             className="h-6 w-6 object-contain"
                           />
                         </span>
-                        <span className="text-xs">Subjects</span>
+                        <span className="outfit-500 text-xs">Subjects</span>
                       </Link>
                     </div>
                   )}
@@ -999,7 +1036,7 @@ const Sidebar = ({
               activeMenu != null ? activeMenu === item.label : routeActive;
 
             return (
-              <li key={index} className="relative">
+              <li key={index} className="group relative">
                 {/* Active left indicator - positioned outside button/link */}
                 <span
                   className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
@@ -1028,7 +1065,7 @@ const Sidebar = ({
                       }`}
                     >
                       {item.label === "Home" ? (
-                        <span className="relative flex-shrink-0">
+                        <span className="outfit-500 relative flex-shrink-0">
                           <img
                             src={isItemActive ? DashboardIconH : DashboardIcon}
                             alt="Dashboard"
@@ -1037,8 +1074,8 @@ const Sidebar = ({
                             } flex-shrink-0`}
                           />
                         </span>
-                      ) : item.label === "My Library" ? (
-                        <span className="relative flex-shrink-0">
+                      ) : item.label === "Quizzes" ? (
+                        <span className="outfit-500 relative flex-shrink-0">
                           <img
                             src={isItemActive ? LibrariesIconH : LibrariesIcon}
                             alt="Library"
@@ -1048,7 +1085,7 @@ const Sidebar = ({
                           />
                         </span>
                       ) : item.label === "Sessions" ? (
-                        <span className="relative flex-shrink-0">
+                        <span className="outfit-500 relative flex-shrink-0">
                           <img
                             src={isItemActive ? SessionsIconH : SessionsIcon}
                             alt="Sessions"
@@ -1108,6 +1145,11 @@ const Sidebar = ({
                       )}
                     </div>
                   </Link>
+                  {isUsersPage && (
+                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                      {item.label}
+                    </span>
+                  )}
                 </div>
               </li>
             );
@@ -1129,7 +1171,7 @@ const Sidebar = ({
                 const subjectsPath =
                   parsedRoleId === 4 ? "/dean/subjects" : "/asso-dean/subjects";
                 return (
-                  <li key={index} className="relative">
+                  <li key={index} className="group relative">
                     {/* Active left indicator - positioned outside */}
                     <span
                       className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
@@ -1184,13 +1226,18 @@ const Sidebar = ({
                           )}
                         </div>
                       </Link>
+                      {isUsersPage && (
+                        <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                          {item.label}
+                        </span>
+                      )}
                     </div>
                   </li>
                 );
               })}
               {/* Export button below Subjects */}
               {parsedRoleId >= 3 && (
-                <li className="relative">
+                <li className="group relative">
                   <span
                     className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
                       activeMenu === "Print" && showPrintModal
@@ -1239,11 +1286,16 @@ const Sidebar = ({
                         )}
                       </div>
                     </button>
+                    {isUsersPage && (
+                      <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                        {printButton.label}
+                      </span>
+                    )}
                   </div>
                 </li>
               )}
               {/* Reports button below Print */}
-              <li className="relative">
+              <li className="group relative">
                 <span
                   className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
                     activeMenu === "Reports"
@@ -1294,6 +1346,11 @@ const Sidebar = ({
                       )}
                     </div>
                   </button>
+                  {isUsersPage && (
+                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                      Reports
+                    </span>
+                  )}
                 </div>
               </li>
             </ul>
@@ -1311,7 +1368,7 @@ const Sidebar = ({
             </div>
             <ul>
               {classes.map((item, index) => (
-                <li key={index} className="relative">
+                <li key={index} className="group relative">
                   {/* Active left indicator - positioned outside */}
                   <span
                     className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
@@ -1368,12 +1425,17 @@ const Sidebar = ({
                         )}
                       </div>
                     </Link>
+                    {isUsersPage && (
+                      <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                        {item.label}
+                      </span>
+                    )}
                   </div>
                 </li>
               ))}
               {/* Export button below Subjects */}
               {parsedRoleId >= 3 && (
-                <li className="relative">
+                <li className="group relative">
                   <span
                     className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
                       activeMenu === "Print" && showPrintModal
@@ -1418,11 +1480,16 @@ const Sidebar = ({
                         )}
                       </div>
                     </button>
+                    {isUsersPage && (
+                      <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                        {printButton.label}
+                      </span>
+                    )}
                   </div>
                 </li>
               )}
               {/* Reports button below Print */}
-              <li className="relative">
+              <li className="group relative">
                 <span
                   className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
                     activeMenu === "Reports"
@@ -1469,6 +1536,11 @@ const Sidebar = ({
                       )}
                     </div>
                   </button>
+                  {isUsersPage && (
+                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                      Reports
+                    </span>
+                  )}
                 </div>
               </li>
             </ul>
@@ -1486,7 +1558,7 @@ const Sidebar = ({
             </div>
             <ul>
               {classes.map((item, index) => (
-                <li key={index} className="relative">
+                <li key={index} className="group relative">
                   {/* Active left indicator - positioned outside */}
                   <span
                     className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
@@ -1542,12 +1614,17 @@ const Sidebar = ({
                         )}
                       </div>
                     </Link>
+                    {isUsersPage && (
+                      <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                        {item.label}
+                      </span>
+                    )}
                   </div>
                 </li>
               ))}
               {/* Export button below Subjects */}
               {parsedRoleId >= 3 && (
-                <li className="relative">
+                <li className="group relative">
                   <span
                     className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
                       activeMenu === "Print" && showPrintModal
@@ -1596,11 +1673,16 @@ const Sidebar = ({
                         )}
                       </div>
                     </button>
+                    {isUsersPage && (
+                      <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                        {printButton.label}
+                      </span>
+                    )}
                   </div>
                 </li>
               )}
               {/* Reports button below Print */}
-              <li className="relative">
+              <li className="group relative">
                 <span
                   className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
                     activeMenu === "Reports"
@@ -1651,6 +1733,11 @@ const Sidebar = ({
                       )}
                     </div>
                   </button>
+                  {isUsersPage && (
+                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                      Reports
+                    </span>
+                  )}
                 </div>
               </li>
             </ul>

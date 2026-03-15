@@ -429,53 +429,6 @@ const SubjectCard = ({
     setTabIndicatorUpdate((n) => n + 1);
   }, [activeIndex, subjectName]); // subjectName in case the tab bar changes width
 
-  const SkeletonLoader = () => (
-    <>
-      {/* Desktop skeleton */}
-      <div className="border-color relative z-51 mx-auto mb-6 hidden h-45 max-w-[1200px] overflow-hidden rounded-xl border bg-white px-4 pt-4 sm:block lg:h-40">
-        <div className="flex animate-pulse items-center space-x-4">
-          <div className="skeleton shimmer h-18 w-18 rounded-md"></div>
-          <div className="flex-1">
-            <div className="skeleton shimmer mb-2 h-8 w-1/2"></div>
-            <div className="skeleton shimmer h-4 w-2/8 rounded"></div>
-          </div>
-        </div>
-        <div className="outfit mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold md:hidden">
-          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 hidden h-9 w-28 items-center justify-center rounded-md min-[500px]:flex"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
-        </div>
-        <div className="absolute right-5 bottom-5 z-51 mt-4 hidden gap-3 md:flex">
-          <div className="skeleton shimmer bg-color h-10 w-28 rounded-xl"></div>
-          <div className="skeleton shimmer bg-color h-10 w-28 rounded-xl"></div>
-        </div>
-      </div>
-
-      {/* Mobile skeleton */}
-      <div className="border-color relative z-48 -mx-2 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden">
-        <div className="flex flex-wrap items-start justify-between">
-          <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-            <div className="skeleton shimmer mt-2 mb-2 ml-2 h-8 w-58 rounded"></div>
-            <div className="mt-2 ml-2 flex gap-1">
-              <div className="skeleton shimmer h-5 w-38 rounded"></div>
-            </div>
-          </div>
-          <div className="skeleton shimmer mt-1 size-20 rounded-md"></div>
-        </div>
-        <div className="outfit mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold">
-          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 hidden h-9 w-28 items-center justify-center rounded-md min-[500px]:flex"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
-        </div>
-      </div>
-      <div className="border-color relative z-48 -mx-2 -mt-2 mb-5 h-12 overflow-visible border-b bg-gray-100 px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden"></div>
-    </>
-  );
-
   const [isResizing, setIsResizing] = useState(false);
   const resizeTimeoutRef = useRef(null);
 
@@ -539,9 +492,7 @@ const SubjectCard = ({
 
   return (
     <div>
-      {isLoading ? (
-        <SkeletonLoader />
-      ) : (
+      {isLoading ? null : (
         <>
           {/* Top search bar (desktop only) */}
           <div className="outfit-500 relative mx-auto -mt-1 mb-5 hidden w-full max-w-[1250px] px-2 text-[14px] lg:block">

@@ -44,7 +44,7 @@ const PROGRAM_COLORS = [
 const PROGRAM_NAME_MAP = {
   // Engineering
   ECE: "Electronics and Communication Engineering",
-  CPE: "Computer Engineering",
+  CpE: "Computer Engineering",
   CE: "Civil Engineering",
   EE: "Electrical Engineering",
   ABE: "Agricultural and Biosystems Engineering",
@@ -1008,7 +1008,7 @@ function Libraries() {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-screen">
       {/* Library left panel (only visible on Libraries page) */}
       <aside className="fixed top-0 left-[63px] hidden h-screen w-56 overflow-hidden border-r border-gray-200 bg-white px-4 py-4 lg:block lg:w-64">
         <h2 className="outfit-500 mb-4 text-[16px] tracking-wide text-black">
@@ -1037,7 +1037,7 @@ function Libraries() {
             </span>
           </button>
 
-          <button
+          {/* <button
             type="button"
             onClick={() => alert("Coming soon")}
             className={`flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-left text-[14px] transition-colors ${
@@ -1058,7 +1058,7 @@ function Libraries() {
               />
               <span>Shared with me</span>
             </span>
-          </button>
+          </button>*/}
 
           <button
             type="button"
@@ -1085,7 +1085,7 @@ function Libraries() {
         <div className="outfit-500 space-y-1 text-sm">
           <button
             type="button"
-            onClick={() => setActiveView("collections")}
+            onClick={() => alert("Coming soon")}
             className={`flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-left text-[14px] transition-colors ${
               activeView === "collections"
                 ? "bg-gray-100 font-medium text-gray-900"
@@ -1111,7 +1111,7 @@ function Libraries() {
 
       {/* Main Libraries content */}
       {activeView === "my-quizzes" && (
-        <div className="scrollbar-hide mt-10 flex h-screen flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] md:px-4 lg:mt-0 lg:ml-64 [&::-webkit-scrollbar]:hidden">
+        <div className="scrollbar-hide mt-10 flex min-h-screen flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] md:px-4 lg:mt-0 lg:ml-64 [&::-webkit-scrollbar]:hidden">
           <div className="min-w-0 space-y-4 px-4 pt-4 md:pt-6">
             <SearchBar
               value={searchTerm}
@@ -1193,7 +1193,7 @@ function Libraries() {
 
           {showForm && (
             <div
-              className="lightbox-bg fixed inset-0 z-55 flex items-center justify-center p-4"
+              className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center p-4"
               onClick={() => {
                 resetForm();
                 setShowForm(false);
@@ -1205,10 +1205,7 @@ function Libraries() {
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* ── Left Sidebar ── */}
-                <div
-                  className="outfit-400 hidden w-64 flex-shrink-0 flex-col justify-between px-5 py-5 md:flex"
-                  style={{ background: "#fff8f5" }}
-                >
+                <div className="outfit-400 hidden w-64 flex-shrink-0 flex-col justify-between px-5 py-5 md:flex">
                   {/* Title + step counter */}
                   <div>
                     <div className="mb-6 flex items-center gap-2">
@@ -2291,7 +2288,7 @@ function Libraries() {
 
       {/* Floating Create Quiz button (mobile only) */}
       {activeView === "my-quizzes" && !showForm && (
-        <div className="fixed right-4 bottom-[90px] z-50 md:hidden">
+        <div className="fixed right-4 bottom-[110px] z-50 md:hidden">
           <button
             type="button"
             onClick={() => {

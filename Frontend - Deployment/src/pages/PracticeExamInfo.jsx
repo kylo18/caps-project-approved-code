@@ -77,17 +77,32 @@ const PracticeExamInfo = () => {
     return (
       <>
         <Toast message={toast.message} type={toast.type} show={toast.show} />
-        <div className="outfit-400 flex min-h-screen items-center justify-center bg-[#faf9f7] p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg">
-            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              No exam data found. Please select a subject first.
+        <div className="outfit-400 flex min-h-screen flex-col items-center justify-center bg-[#faf9f7] p-6 lg:p-8">
+          <div className="flex w-full max-w-md flex-col items-center text-center">
+            {/* Header Icon */}
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-sm ring-8 ring-red-50/50">
+              <i className="bx bx-alert-circle text-4xl" />
             </div>
-            <button
-              onClick={() => navigate(-1)}
-              className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
-            >
-              ← Go Back
-            </button>
+
+            {/* Error Content */}
+            <h2 className="outfit-700 mb-2 text-2xl font-bold text-gray-900">
+              Oops! Something went wrong
+            </h2>
+            <p className="mb-8 text-[15px] leading-relaxed text-gray-500">
+              We couldn't find the exam data you're looking for. Please go back
+              and select a subject first.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex w-full justify-center">
+              <button
+                onClick={() => navigate(-1)}
+                className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-orange-500 px-8 py-3 text-[15px] font-semibold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98] sm:w-auto"
+              >
+                <i className="bx bx-arrow-back text-lg" />
+                Go Back
+              </button>
+            </div>
           </div>
         </div>
       </>

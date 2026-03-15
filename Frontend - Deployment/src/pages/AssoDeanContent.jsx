@@ -538,7 +538,7 @@ const AdminContent = () => {
               <div>
                 {/* Show Add Question Button Only If No Active Question and There Are Questions */}
                 {!submittedQuestion && filteredQuestions.length > 0 && (
-                  <div className="fixed right-[-4px] bottom-[70px] z-49 p-4 text-center sm:right-[-4px] sm:bottom-[-4px]">
+                  <div className="fixed right-4 bottom-[110px] z-49 p-4 text-center sm:right-[-4px] sm:bottom-[-4px]">
                     <button
                       onClick={() => {
                         setSubmittedQuestion("new");

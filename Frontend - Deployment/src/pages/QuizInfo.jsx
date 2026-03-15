@@ -306,18 +306,39 @@ const QuizInfo = () => {
     return (
       <>
         <Toast message={toast.message} type={toast.type} show={toast.show} />
-        <div className="outfit-400 flex min-h-screen items-center justify-center bg-[#faf9f7] p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg">
-            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error ||
-                "No quiz information found. Please select a quiz first."}
+        <div className="outfit-400 flex min-h-screen flex-col items-center justify-center bg-[#faf9f7] p-6 lg:p-8">
+          <div className="flex w-full max-w-md flex-col items-center text-center">
+            {/* Header Icon */}
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-sm ring-8 ring-red-50/50">
+              <i className="bx bx-alert-circle text-4xl" />
             </div>
-            <button
-              onClick={() => navigate(-1)}
-              className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
-            >
-              ← Go Back
-            </button>
+
+            {/* Error Content */}
+            <h2 className="outfit-700 mb-2 text-2xl font-bold text-gray-900">
+              Oops! Something went wrong
+            </h2>
+            <p className="mb-8 text-[15px] leading-relaxed text-gray-500">
+              {error ||
+                "We couldn't find the quiz information you're looking for. It may have been removed or you might need to select it again."}
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex w-full flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => navigate(-1)}
+                className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-[15px] font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 active:scale-[0.98] sm:flex-1"
+              >
+                <i className="bx bx-arrow-back text-lg" />
+                Go Back
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-[15px] font-semibold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98] sm:flex-1"
+              >
+                <i className="bx bx-refresh text-lg" />
+                Try Again
+              </button>
+            </div>
           </div>
         </div>
       </>
@@ -346,9 +367,14 @@ const QuizInfo = () => {
   const totalItems = statistics?.totalItems ?? "—";
   const totalPoints = statistics?.totalPoints ?? "—";
   const duration = settings?.timeDuration?.formatted || "No limit";
+
+  // Derive max attempts from availability details, since backend exposes it there
+  const attemptLimitDetail = availability?.details?.find(
+    (d) => d.type === "attempt_limit" && d.value != null,
+  );
   const maxAttempts =
-    settings?.quizAttempts != null && settings.quizAttempts !== 0
-      ? settings.quizAttempts
+    attemptLimitDetail && attemptLimitDetail.value !== 0
+      ? attemptLimitDetail.value
       : "∞";
   const usedAttempts = attempts?.attemptCount ?? 0;
 

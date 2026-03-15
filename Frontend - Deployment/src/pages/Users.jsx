@@ -6,6 +6,7 @@ import RegisterDropDownSmall from "/src/components/registerDropDownSmall";
 import Toast from "/src/components/Toast";
 import useToast from "/src/hooks/useToast";
 import SearchBar, { SearchBarTrigger } from "/src/components/SearchBar";
+import WarningModal from "/src/components/WarningModal";
 
 import StudentsIcon from "/src/assets/symbols/students.svg";
 import StudentsIconH from "/src/assets/symbols/studentshover.svg";
@@ -94,6 +95,25 @@ const UserList = () => {
   // Add after other user action states
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeletingMultiple, setIsDeletingMultiple] = useState(false);
+
+  // Warning modal state for user actions
+  const [warningModal, setWarningModal] = useState({
+    isOpen: false,
+    title: "",
+    subtitle: "",
+    description: null,
+    confirmLabel: "Confirm",
+    confirmIcon: null,
+    onConfirm: null,
+    isLoading: false,
+  });
+
+  const openWarning = (config) =>
+    setWarningModal({ isOpen: true, isLoading: false, ...config });
+  const closeWarning = () =>
+    setWarningModal((prev) => ({ ...prev, isOpen: false, isLoading: false }));
+  const setWarningLoading = (val) =>
+    setWarningModal((prev) => ({ ...prev, isLoading: val }));
 
   // Add new state for user type tabs
   const [studentsOnly, setStudentsOnly] = useState(false); // true: students only, false: others only
@@ -523,6 +543,7 @@ const UserList = () => {
 
   // Function to approve a single user
   const handleApproveUser = async (userID) => {
+    closeWarning();
     const token = sessionStorage.getItem("token");
     setIsApproving(true);
     try {
@@ -563,6 +584,7 @@ const UserList = () => {
 
   // Function to activate a single user
   const handleActivateUser = async (userID) => {
+    closeWarning();
     const token = sessionStorage.getItem("token");
     setIsActivating(true);
     try {
@@ -600,6 +622,7 @@ const UserList = () => {
 
   // Function to deactivate a single user
   const handleDeactivateUser = async (userID) => {
+    closeWarning();
     const token = sessionStorage.getItem("token");
     setIsDeactivating(true);
     try {
@@ -834,13 +857,8 @@ const UserList = () => {
 
   // Add delete user function
   const handleDeleteUser = async (userID) => {
+    closeWarning();
     const token = sessionStorage.getItem("token");
-    const currentUser = JSON.parse(sessionStorage.getItem("user"));
-    if (currentUser && userID === currentUser.userID) {
-      showToast("You can't delete your own account.", "error");
-      return;
-    }
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
     setIsDeleting(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}`, {
@@ -869,6 +887,7 @@ const UserList = () => {
 
   // Add delete multiple users function
   const handleDeleteSelectedUsers = async () => {
+    closeWarning();
     const token = sessionStorage.getItem("token");
     const currentUser = JSON.parse(sessionStorage.getItem("user"));
     if (selectedUsers.length === 0) {
@@ -879,8 +898,6 @@ const UserList = () => {
       showToast("You can't delete your own account.", "error");
       return;
     }
-    if (!window.confirm("Are you sure you want to delete the selected users?"))
-      return;
     setIsDeletingMultiple(true);
     try {
       const response = await fetch(`${apiUrl}/users/delete-multiple`, {
@@ -1011,9 +1028,6 @@ const UserList = () => {
             }`}
             aria-label="Next page"
           >
-            <span className="ml-2 flex items-center text-[14px] leading-none font-medium">
-              Next
-            </span>
             <i className="bx bx-chevron-right flex items-center text-[24px] leading-none" />
           </button>
 
@@ -1036,9 +1050,9 @@ const UserList = () => {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-screen">
       {/* Main content area */}
-      <div className="mt-10 flex h-full flex-1 flex-col gap-6 overflow-y-auto px-4 pt-4 md:px-6 md:pt-6 lg:mt-0">
+      <div className="mt-10 flex min-h-screen flex-1 flex-col gap-6 overflow-y-auto px-4 pt-4 md:px-6 md:pt-6 lg:mt-0">
         <div className="min-w-0 space-y-4">
           <SearchBar
             value={searchQuery}
@@ -2059,18 +2073,30 @@ const UserList = () => {
                           <button
                             onClick={(e) => {
                               e.preventDefault();
-                              handleApproveUser(selectedUser.userID);
+                              openWarning({
+                                title: "Approve Account",
+                                subtitle:
+                                  "This will grant the user access to the system.",
+                                description: (
+                                  <>
+                                    Approve{" "}
+                                    <span className="font-semibold text-gray-900">
+                                      {selectedUser.firstName}{" "}
+                                      {selectedUser.lastName}
+                                    </span>
+                                    ? They will be granted access based on their
+                                    assigned position.
+                                  </>
+                                ),
+                                confirmLabel: "Approve",
+                                confirmIcon: <i className="bx bx-check" />,
+                                onConfirm: () =>
+                                  handleApproveUser(selectedUser.userID),
+                              });
                             }}
-                            disabled={isApproving}
-                            className={`min-w-[120px] flex-1 cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isApproving ? "cursor-not-allowed bg-gray-500" : "bg-green-500 hover:bg-green-700 active:scale-98"} disabled:opacity-50`}
+                            className="min-w-[120px] flex-1 cursor-pointer rounded-xl border border-green-200 bg-green-50 py-2 text-[14px] font-semibold text-green-700 transition hover:bg-green-100"
                           >
-                            {isApproving ? (
-                              <div className="flex items-center justify-center">
-                                <span className="loader-white"></span>
-                              </div>
-                            ) : (
-                              "Approve"
-                            )}
+                            Approve
                           </button>
                         )}
                       {selectedUser.status === "registered" &&
@@ -2078,18 +2104,30 @@ const UserList = () => {
                           <button
                             onClick={(e) => {
                               e.preventDefault();
-                              handleDeactivateUser(selectedUser.userID);
+                              openWarning({
+                                title: "Deactivate Account",
+                                subtitle:
+                                  "The user will lose access to the system.",
+                                description: (
+                                  <>
+                                    Deactivate{" "}
+                                    <span className="font-semibold text-gray-900">
+                                      {selectedUser.firstName}{" "}
+                                      {selectedUser.lastName}
+                                    </span>
+                                    ? Their access will be disabled. You can
+                                    reactivate at any time.
+                                  </>
+                                ),
+                                confirmLabel: "Deactivate",
+                                confirmIcon: <i className="bx bx-block" />,
+                                onConfirm: () =>
+                                  handleDeactivateUser(selectedUser.userID),
+                              });
                             }}
-                            disabled={isDeactivating}
-                            className={`min-w-[120px] flex-1 cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isDeactivating ? "cursor-not-allowed bg-gray-500" : "bg-red-500 hover:bg-red-700 active:scale-98"} disabled:opacity-50`}
+                            className="min-w-[120px] flex-1 cursor-pointer rounded-xl border border-red-200 bg-red-50 py-2 text-[14px] font-semibold text-red-700 transition hover:bg-red-100"
                           >
-                            {isDeactivating ? (
-                              <div className="flex items-center justify-center">
-                                <span className="loader-white"></span>
-                              </div>
-                            ) : (
-                              "Deactivate"
-                            )}
+                            Deactivate
                           </button>
                         )}
                       {selectedUser.status === "registered" &&
@@ -2097,30 +2135,74 @@ const UserList = () => {
                           <button
                             onClick={(e) => {
                               e.preventDefault();
-                              handleActivateUser(selectedUser.userID);
+                              openWarning({
+                                title: "Activate Account",
+                                subtitle:
+                                  "The user will regain access to the system.",
+                                description: (
+                                  <>
+                                    Activate{" "}
+                                    <span className="font-semibold text-gray-900">
+                                      {selectedUser.firstName}{" "}
+                                      {selectedUser.lastName}
+                                    </span>
+                                    ? Their access will be restored.
+                                  </>
+                                ),
+                                confirmLabel: "Activate",
+                                confirmIcon: (
+                                  <i className="bx bx-check-circle" />
+                                ),
+                                onConfirm: () =>
+                                  handleActivateUser(selectedUser.userID),
+                              });
                             }}
-                            disabled={isActivating}
-                            className={`min-w-[120px] flex-1 cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isActivating ? "cursor-not-allowed bg-gray-500" : "bg-green-500 hover:bg-green-700 active:scale-98"} disabled:opacity-50`}
+                            className="min-w-[120px] flex-1 cursor-pointer rounded-xl border border-green-200 bg-green-50 py-2 text-[14px] font-semibold text-green-700 transition hover:bg-green-100"
                           >
-                            {isActivating ? (
-                              <div className="flex items-center justify-center">
-                                <span className="loader-white"></span>
-                              </div>
-                            ) : (
-                              "Activate"
-                            )}
+                            Activate
                           </button>
                         )}
                       {(currentUserRole === 4 || currentUserRole === 5) && (
                         <button
                           onClick={(e) => {
                             e.preventDefault();
-                            handleDeleteUser(selectedUser.userID);
+                            const currentUser = JSON.parse(
+                              sessionStorage.getItem("user"),
+                            );
+                            if (
+                              currentUser &&
+                              selectedUser.userID === currentUser.userID
+                            ) {
+                              showToast(
+                                "You can't delete your own account.",
+                                "error",
+                              );
+                              return;
+                            }
+                            openWarning({
+                              title: "Remove User",
+                              subtitle:
+                                "This action is permanent and cannot be undone.",
+                              description: (
+                                <>
+                                  Permanently remove{" "}
+                                  <span className="font-semibold text-gray-900">
+                                    {selectedUser.firstName}{" "}
+                                    {selectedUser.lastName}
+                                  </span>
+                                  ? All their data will be deleted from the
+                                  system.
+                                </>
+                              ),
+                              confirmLabel: "Remove",
+                              confirmIcon: <i className="bx bx-trash" />,
+                              onConfirm: () =>
+                                handleDeleteUser(selectedUser.userID),
+                            });
                           }}
-                          disabled={isDeleting}
-                          className="min-w-[120px] flex-1 rounded-lg bg-red-600 py-2 text-[14px] font-semibold text-white hover:bg-red-800 disabled:opacity-50"
+                          className="min-w-[120px] flex-1 cursor-pointer rounded-xl border border-red-200 bg-red-50 py-2 text-[14px] font-semibold text-red-700 transition hover:bg-red-100"
                         >
-                          {isDeleting ? "Removing..." : "Remove User"}
+                          Remove User
                         </button>
                       )}
                     </div>
@@ -2321,7 +2403,38 @@ const UserList = () => {
                                 title="Remove User"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDeleteUser(user.userID);
+                                  const currentUser = JSON.parse(
+                                    sessionStorage.getItem("user"),
+                                  );
+                                  if (
+                                    currentUser &&
+                                    user.userID === currentUser.userID
+                                  ) {
+                                    showToast(
+                                      "You can't delete your own account.",
+                                      "error",
+                                    );
+                                    return;
+                                  }
+                                  openWarning({
+                                    title: "Remove User",
+                                    subtitle:
+                                      "This action is permanent and cannot be undone.",
+                                    description: (
+                                      <>
+                                        Permanently remove{" "}
+                                        <span className="font-semibold text-gray-900">
+                                          {user.firstName} {user.lastName}
+                                        </span>
+                                        ? All their data will be deleted from
+                                        the system.
+                                      </>
+                                    ),
+                                    confirmLabel: "Remove",
+                                    confirmIcon: <i className="bx bx-trash" />,
+                                    onConfirm: () =>
+                                      handleDeleteUser(user.userID),
+                                  });
                                 }}
                               >
                                 <i className="bx bx-trash text-xl"></i>
@@ -2428,7 +2541,17 @@ const UserList = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={handleApproveSelectedUsers}
+                    onClick={() =>
+                      openWarning({
+                        title: "Approve Selected Users",
+                        subtitle: `Approve ${selectedUsers.length} selected user(s).`,
+                        description:
+                          "These users will be granted access to the system based on their assigned positions.",
+                        confirmLabel: "Approve All",
+                        confirmIcon: <i className="bx bx-check" />,
+                        onConfirm: handleApproveSelectedUsers,
+                      })
+                    }
                     disabled={isApprovingMultiple || isDeleting}
                     className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
                     aria-label="Approve selected users"
@@ -2437,7 +2560,17 @@ const UserList = () => {
                     <span className="hidden md:inline">Approve</span>
                   </button>
                   <button
-                    onClick={handleActivateSelectedUsers}
+                    onClick={() =>
+                      openWarning({
+                        title: "Activate Selected Users",
+                        subtitle: `Activate ${selectedUsers.length} selected user(s).`,
+                        description:
+                          "Their accounts will be re-enabled and they will regain access to the system.",
+                        confirmLabel: "Activate All",
+                        confirmIcon: <i className="bx bx-arrow-big-up-line" />,
+                        onConfirm: handleActivateSelectedUsers,
+                      })
+                    }
                     disabled={isActivatingMultiple || isDeleting}
                     className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
                     aria-label="Activate selected users"
@@ -2446,7 +2579,19 @@ const UserList = () => {
                     <span className="hidden md:inline">Activate</span>
                   </button>
                   <button
-                    onClick={handleDeactivateSelectedUsers}
+                    onClick={() =>
+                      openWarning({
+                        title: "Deactivate Selected Users",
+                        subtitle: `Deactivate ${selectedUsers.length} selected user(s).`,
+                        description:
+                          "Their access will be disabled. You can reactivate them at any time.",
+                        confirmLabel: "Deactivate All",
+                        confirmIcon: (
+                          <i className="bx bx-arrow-big-down-line" />
+                        ),
+                        onConfirm: handleDeactivateSelectedUsers,
+                      })
+                    }
                     disabled={isDeactivatingMultiple || isDeleting}
                     className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
                     aria-label="Deactivate selected users"
@@ -2456,7 +2601,30 @@ const UserList = () => {
                   </button>
                   {(currentUserRole === 4 || currentUserRole === 5) && (
                     <button
-                      onClick={handleDeleteSelectedUsers}
+                      onClick={() => {
+                        const currentUser = JSON.parse(
+                          sessionStorage.getItem("user"),
+                        );
+                        if (
+                          currentUser &&
+                          selectedUsers.includes(currentUser.userID)
+                        ) {
+                          showToast(
+                            "You can't delete your own account.",
+                            "error",
+                          );
+                          return;
+                        }
+                        openWarning({
+                          title: "Remove Selected Users",
+                          subtitle: `Remove ${selectedUsers.length} selected user(s) permanently.`,
+                          description:
+                            "All their data will be permanently deleted from the system. This cannot be undone.",
+                          confirmLabel: "Remove All",
+                          confirmIcon: <i className="bx bx-trash" />,
+                          onConfirm: handleDeleteSelectedUsers,
+                        });
+                      }}
                       disabled={isDeletingMultiple || isDeleting}
                       className="flex cursor-pointer items-center gap-2 rounded-xl bg-red-600 p-2 text-[14px] font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50 md:px-4 md:py-2"
                       aria-label="Remove selected users"
@@ -2478,6 +2646,19 @@ const UserList = () => {
           </div>
         </div>
       )}
+
+      <WarningModal
+        isOpen={warningModal.isOpen}
+        onClose={closeWarning}
+        title={warningModal.title}
+        subtitle={warningModal.subtitle}
+        description={warningModal.description}
+        confirmLabel={warningModal.confirmLabel}
+        confirmIcon={warningModal.confirmIcon}
+        onConfirm={warningModal.onConfirm}
+        cancelLabel="Cancel"
+        isConfirmLoading={warningModal.isLoading}
+      />
 
       <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>
