@@ -17,58 +17,8 @@ const QuizCard = ({
   onArchiveQuiz,
   isLoading = false,
 }) => {
-  const SkeletonLoader = () => (
-    <>
-      {/* Desktop skeleton - match SubjectCard */}
-      <div className="border-color relative z-51 mx-auto mb-6 hidden max-w-[1200px] overflow-hidden rounded-xl border border-b bg-white px-6 pt-6 pb-2 sm:block lg:max-w-[1200px]">
-        <div className="flex animate-pulse items-center space-x-4">
-          <div className="skeleton shimmer h-21 w-21 rounded-md"></div>
-          <div className="flex-1">
-            <div className="skeleton shimmer mb-2 h-8 w-1/2"></div>
-            <div className="skeleton shimmer h-4 w-2/8 rounded"></div>
-          </div>
-        </div>
-        <div className="outfit mt-2 mb-3 flex w-full flex-row items-center justify-between gap-4 font-semibold">
-          <div className="flex gap-2">
-            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
-            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
-          </div>
-          <div className="flex gap-2">
-            <div className="skeleton shimmer h-10 w-10 rounded-xl"></div>
-            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
-            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
-            <div className="skeleton shimmer h-10 w-28 rounded-xl"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile skeleton - match SubjectCard */}
-      <div className="border-color relative z-48 -mx-2 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden">
-        <div className="flex flex-wrap items-start justify-between">
-          <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-            <div className="skeleton shimmer mt-2 mb-2 ml-2 h-8 w-58 rounded"></div>
-            <div className="mt-2 ml-2 flex gap-1">
-              <div className="skeleton shimmer h-5 w-38 rounded"></div>
-            </div>
-          </div>
-          <div className="skeleton shimmer mt-1 size-20 rounded-md"></div>
-        </div>
-        <div className="outfit mt-7 flex w-full flex-row items-center justify-between gap-2 font-semibold">
-          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-28 rounded-md"></div>
-          <div className="skeleton shimmer mb-6 h-9 w-9 rounded-md"></div>
-        </div>
-      </div>
-      <div className="border-color relative z-48 -mx-2 -mt-2 mb-5 h-12 overflow-visible border-b bg-gray-100 px-4 pt-6 sm:mx-0 sm:hidden sm:rounded-t-md sm:pt-4 md:hidden"></div>
-    </>
-  );
-
   if (!quiz && !isLoading) return null;
-  if (isLoading) {
-    return <SkeletonLoader />;
-  }
+  if (isLoading) return null;
 
   const hasSubject = !!quiz.subject;
   const [showActionDropdown, setShowActionDropdown] = useState(false);
@@ -183,7 +133,9 @@ const QuizCard = ({
             </h1>
             <div className="outfit-400 mt-1 flex gap-1 text-gray-500">
               <i className="bx bx-book mt-[1px] text-lg"></i>
-
+              {quizTypeLabel && quizTypeLabel === "Custom" && (
+                <p className="text-[14px]">{quizTypeLabel}</p>
+              )}
               {hasSubject && (
                 <>
                   <p className="text-[14px]">
@@ -229,7 +181,9 @@ const QuizCard = ({
                   type="button"
                   onClick={() => setShowMobileSearch((prev) => !prev)}
                   className="border-color flex cursor-pointer items-center justify-center rounded-xl border bg-white px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100"
-                  aria-label={showMobileSearch ? "Close search" : "Search in quiz"}
+                  aria-label={
+                    showMobileSearch ? "Close search" : "Search in quiz"
+                  }
                 >
                   <i
                     className={`bx ${showMobileSearch ? "bx-x" : "bx-search"} text-[22px]`}
@@ -244,113 +198,6 @@ const QuizCard = ({
               >
                 <i className="bx bx-dots-vertical-rounded text-2xl"></i>
               </button>
-              {showActionDropdown && (
-                <div
-                  ref={mobileActionDropdownRef}
-                  className="border-color animate-fadein absolute top-10 right-0 z-50 mt-2 w-44 rounded-md border bg-white p-1 text-gray-700 shadow-lg"
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowActionDropdown(false);
-                      onImportQuestionClick && onImportQuestionClick();
-                    }}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="lucide lucide-folder-input-icon lucide-folder-input"
-                    >
-                      <path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1" />
-                      <path d="M2 13h10" />
-                      <path d="m9 16 3-3-3-3" />
-                    </svg>
-                    <span>Import</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowActionDropdown(false);
-                      onAssignToClassClick && onAssignToClassClick();
-                    }}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="lucide lucide-book-marked-icon lucide-book-marked"
-                    >
-                      <path d="M10 2v8l3-3 3 3V2" />
-                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
-                    </svg>
-                    <span>Assign</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowActionDropdown(false);
-                      onDownloadWorksheetClick && onDownloadWorksheetClick();
-                    }}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="lucide lucide-download-icon lucide-download"
-                    >
-                      <path d="M12 15V3" />
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <path d="m7 10 5 5 5-5" />
-                    </svg>
-                    <span>Worksheet</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowActionDropdown(false);
-                      onEditQuiz && onEditQuiz();
-                    }}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
-                  >
-                    <i className="bx bx-edit-alt text-base"></i>
-                    <span>Edit Quiz</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowActionDropdown(false);
-                      onArchiveQuiz && onArchiveQuiz();
-                    }}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
-                  >
-                    <i className="bx bx-archive text-base"></i>
-                    <span>Archive Quiz</span>
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -384,6 +231,106 @@ const QuizCard = ({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Mobile bottom-sheet action menu (match SubjectCard style) */}
+      {showActionDropdown && (
+        <div
+          ref={mobileActionDropdownRef}
+          className="outfit-500 lightbox-bg fixed inset-0 z-100 flex items-end justify-center md:hidden"
+          onClick={() => setShowActionDropdown(false)}
+        >
+          <div
+            className="animate-fade-in-up w-full rounded-t-2xl bg-white shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3">
+              <h2 className="outfit-700 text-[16px] sm:text-[14px]">
+                Select an option
+              </h2>
+            </div>
+            <div className="bg-color h-[0.5px] w-full" />
+            <div className="flex flex-col py-2 text-[16px] sm:text-[14px]">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowActionDropdown(false);
+                  onImportQuestionClick && onImportQuestionClick();
+                }}
+                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-folder-input-icon lucide-folder-input"
+                >
+                  <path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1" />
+                  <path d="M2 13h10" />
+                  <path d="m9 16 3-3-3-3" />
+                </svg>
+                <span>Import questions</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowActionDropdown(false);
+                  onDownloadWorksheetClick && onDownloadWorksheetClick();
+                }}
+                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-download-icon lucide-download"
+                >
+                  <path d="M12 15V3" />
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <path d="m7 10 5 5 5-5" />
+                </svg>
+                <span>Download worksheet</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowActionDropdown(false);
+                  onEditQuiz && onEditQuiz();
+                }}
+                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100"
+              >
+                <i className="bx bx-edit-alt text-xl"></i>
+                <span>Edit quiz</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowActionDropdown(false);
+                  onArchiveQuiz && onArchiveQuiz();
+                }}
+                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-red-500 hover:bg-gray-100"
+              >
+                <i className="bx bx-archive text-xl"></i>
+                <span>Archive quiz</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -530,28 +477,6 @@ const QuizCard = ({
                 </div>
               )}
             </div>
-
-            <button
-              onClick={onAssignToClassClick}
-              className="outfit-500 flex cursor-pointer items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="lucide lucide-book-marked-icon lucide-book-marked"
-              >
-                <path d="M10 2v8l3-3 3 3V2" />
-                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
-              </svg>
-              <span>Assign</span>
-            </button>
             <button
               onClick={onSettingsClick}
               className="flex cursor-pointer items-center gap-2 rounded-xl border border-b-4 border-orange-300 bg-orange-100 px-4 py-2 text-orange-600 transition-all duration-100 hover:bg-orange-200 hover:text-orange-500 active:translate-y-[2px] active:border-b-2"

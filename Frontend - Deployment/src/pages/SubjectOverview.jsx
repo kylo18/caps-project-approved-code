@@ -371,7 +371,7 @@ const SubjectOverview = () => {
         <div className="border-color relative z-48 mt-15 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:rounded-md sm:pt-4 md:hidden">
           <div className="flex flex-wrap items-start justify-between sm:hidden">
             <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-              <h1 className="outfit mt-2 ml-2 text-[18px] font-bold break-words">
+              <h1 className="outfit-700 mt-2 ml-2 text-[18px]  break-words">
                 {subject.subjectName}
               </h1>
               <div className="mt-2 ml-2 flex gap-1 text-gray-500">

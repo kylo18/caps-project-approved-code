@@ -1,4 +1,4 @@
-LOCAL DEPLOMENT GUIDE
+LOCAL DEPLOYMENT GUIDE
 
 1. Open command prompt in administration mode
 
@@ -17,39 +17,12 @@ LOCAL DEPLOMENT GUIDE
 
     - If you dont have wsl Type: wsl --install
     - Type: "wsl -v" to confirm if it's installed successfully
+ 
  3. Install Docker desktop
 
  4. Go to the Frontend - Deployment Folder
-    - Go inside Dockerfile and paste this value
-    
-    FROM node:20-bullseye as builder
-    WORKDIR /app
-
-    # Copy only package files first for caching
-    COPY package*.json ./
-
-    # Install dependencies
-    RUN npm install --legacy-peer-deps
-
-    # Copy the rest of the application code
-    COPY . .
-
-    # Fix heap out-of-memory issue by increasing memory limit for Node.js
-    RUN NODE_OPTIONS="--max-old-space-size=2048" npm run build
-
-    # Serve the built files with nginx
-    FROM nginx:alpine
-    COPY --from=builder /app/dist /usr/share/nginx/html
-    COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-    # Clean up default nginx 50x error page (optional)
-    RUN rm -rf /usr/share/nginx/html/50x.html
-
-    EXPOSE 80
-
-    - Save it then close the file
-
-5. Create an file named ".env"
+   
+ 5. Create an file named ".env"
     -paste this value
         
     # Frontend base config
@@ -57,59 +30,8 @@ LOCAL DEPLOMENT GUIDE
 
     -Save it and close 
 
-
-
 6. Go to Backend - Deployment Folder
-    - Go inside its Dockerfile and paste this value
-
-    # Use an official PHP image with Apache (Debian-based OS)
-    FROM php:8.2-apache
-
-    # Install required PHP extensions and dependencies
-    RUN apt-get update && apt-get install -y \
-        unzip \
-        curl \
-        libpng-dev \
-        libjpeg62-turbo-dev \
-        libfreetype6-dev \
-        && docker-php-ext-install pdo pdo_mysql gd
-
-    # Enable Apache rewrite module (Laravel requires this)
-    RUN a2enmod rewrite
-
-    # Set Apache's DocumentRoot to Laravel's "public" directory
-    ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-
-    # Update Apache config to point to the new DocumentRoot
-    RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf
-
-    # Set working directory
-    WORKDIR /var/www/html
-
-    # Copy Laravel project files into the container
-    COPY . .
-
-    # Install Composer
-    RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
-    # Install Laravel PHP dependencies
-    RUN composer install --no-dev --optimize-autoloader
-
-    # Set correct permissions for storage and cache
-    RUN chown -R www-data:www-data /var/www/html \
-        && chmod -R 775 /var/www/html/storage \
-        && chmod -R 775 /var/www/html/bootstrap/cache
-
-    # Copy custom entrypoint script
-    COPY docker-entrypoint.sh /entrypoint.sh
-    RUN chmod +x /entrypoint.sh
-
-    # Set entrypoint
-    ENTRYPOINT ["/entrypoint.sh"]
-
-    # Expose port 80
-    EXPOSE 80
-
+    
 7. Create a file named ".env"
     -paste this value
 
@@ -240,17 +162,14 @@ LOCAL DEPLOMENT GUIDE
     #volumes:
     # ./docker-data/mysql_data:/var/lib/mysql:
 
- 9. Go to the Frontend - Deployment Folder
-    -make sure the folder named "package-lock.json"
+9. Open Docker desktop
 
-10. Open Docker desktop
-
-11. Open Command prompt as administration
+10. Open Command prompt as administration
     - Navigate to where your folder using this command:
 
             cd "Directory of your Project"
 
-12. Build the containers and type:
+11. Build the containers and type:
 
         - docker compose up -d --build
         - When it is sucessful it should show this:
@@ -263,7 +182,7 @@ LOCAL DEPLOMENT GUIDE
         ✔ Container backend                       Started                                                                 0.8s
         ✔ Container frontend                      Started                                                                 0.9s
 
-13. To make sure the containers are running smoothly
+12. To make sure the containers are running smoothly
         -Type: docker ps
         - It should show this 
 
@@ -273,7 +192,7 @@ LOCAL DEPLOMENT GUIDE
         42c746a391ea   phpmyadmin/phpmyadmin        "/docker-entrypoint.…"   6 seconds ago   Up 5 seconds   0.0.0.0:8080->80/tcp                phpmyadmin
         adddb95a3ebe   mysql:8                      "docker-entrypoint.s…"   6 seconds ago   Up 5 seconds   33060/tcp, 0.0.0.0:4406->3306/tcp   mysql
 
-14. Go to the backend container 
+13. Go to the backend container 
     - Type: docker exec -it backend bash
     - Type: php artisan key:generate
     - It should show that the key is successfully generated
@@ -286,7 +205,7 @@ LOCAL DEPLOMENT GUIDE
     - When you see the app key of it, copy it and go to Backend - Deployment folder.
     - Go inside .env and paste the app key there and save it
 
-15. Go back to backend container
+14. Go back to backend container
     - Type: docker exec -it backend bash
     - Type: php artisan migrate 
     - It will show all the tables migrated. Wait for it and it should migrate smoothly.
@@ -302,8 +221,8 @@ LOCAL DEPLOMENT GUIDE
     - You will see the data migrated and seeded 
 
 17. To confirm the browser is working
-    - Type in your browser: localhost:80
+    - Type in your browser: localhost
     - Log in in the website using these credentials
 
-    ID: 23-A-12345
+    ID: 10-A-12345
     Password: 12345678

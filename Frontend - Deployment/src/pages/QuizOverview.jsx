@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import QuizResultsTable from "../components/QuizResultsTable";
 import { Textfit } from "react-textfit";
 import Subject from "../assets/icons/papers.png";
-import ConfirmModal from "../components/confirmModal";
+import WarningModal from "../components/WarningModal";
 import SelectQuestionsModal from "../components/SelectQuestionsModal";
 import Toast from "../components/Toast";
 import useToast from "../hooks/useToast";
@@ -23,11 +23,13 @@ const QuizOverview = () => {
   const [questionCount, setQuestionCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // Edit, Archive, Worksheet states
+  // Edit, Archive, Restore states
   const [showEditModal, setShowEditModal] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [quizToArchive, setQuizToArchive] = useState(null);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const [editedQuiz, setEditedQuiz] = useState({
     title: "",
     description: "",
@@ -251,11 +253,17 @@ const QuizOverview = () => {
   };
 
   // Restore handler for archived quizzes
+  const handleRestoreClick = () => {
+    if (!quizState) return;
+    setShowRestoreModal(true);
+  };
+
   const handleRestoreFromArchive = async () => {
     if (!quizState || !quizId) return;
 
     const token = sessionStorage.getItem("token");
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
+    setIsRestoring(true);
 
     try {
       const response = await fetch(
@@ -276,8 +284,8 @@ const QuizOverview = () => {
       }
 
       const data = await response.json();
+      setShowRestoreModal(false);
       showToast(data.message || "Quiz restored successfully", "success");
-      // After restoring from archive, go back to archived list
       navigate("/archived-quiz");
     } catch (error) {
       console.error("Error restoring quiz:", error);
@@ -285,6 +293,8 @@ const QuizOverview = () => {
         error.message || "An error occurred while restoring quiz",
         "error",
       );
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -405,7 +415,7 @@ const QuizOverview = () => {
               {fromArchive ? (
                 <button
                   type="button"
-                  onClick={handleRestoreFromArchive}
+                  onClick={handleRestoreClick}
                   className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 transition hover:bg-gray-50"
                 >
                   <i className="bx bx-undo text-[15px]"></i>
@@ -573,7 +583,7 @@ const QuizOverview = () => {
                     {fromArchive ? (
                       <button
                         className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
-                        onClick={handleRestoreFromArchive}
+                        onClick={handleRestoreClick}
                       >
                         <i className="bx bx-undo text-lg"></i>
                         <span className="outfit-500">Restore</span>
@@ -588,7 +598,7 @@ const QuizOverview = () => {
                       </button>
                     )}
                     <button
-                      className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100 md:hidden"
+                      className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100 lg:hidden"
                       onClick={() => {
                         navigate("/quiz-content", {
                           state: { quiz: quizState },
@@ -653,7 +663,7 @@ const QuizOverview = () => {
                   {fromArchive ? (
                     <button
                       className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
-                      onClick={handleRestoreFromArchive}
+                      onClick={handleRestoreClick}
                     >
                       <i className="bx bx-undo text-lg"></i>
                       <span className="outfit-500">Restore</span>
@@ -668,7 +678,7 @@ const QuizOverview = () => {
                     </button>
                   )}
                   <button
-                    className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100"
+                    className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100 lg:hidden"
                     onClick={() => {
                       navigate("/quiz-content", { state: { quiz: quizState } });
                       window.dispatchEvent(new Event("closeSubjectSidebar"));
@@ -823,142 +833,179 @@ const QuizOverview = () => {
 
       {/* Edit Modal */}
       {showEditModal && quizState && (
-        <>
-          <div className="lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
-            <div className="animate-fade-in-up relative max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
-              <div className="border-color flex items-center justify-between border-b px-4 py-2">
-                <h2 className="text-[16px] font-semibold text-black">
+        <div
+          className="lightbox-bg fixed inset-0 z-100 flex items-end justify-center p-4 min-[448px]:items-center"
+          onClick={() => {
+            setShowEditModal(false);
+            setEditedQuiz({ title: "", description: "", instruction: "" });
+            setValidationError("");
+          }}
+        >
+          <div
+            className="animate-fade-in-up w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              className="outfit-400 flex items-start justify-between border-b border-gray-200 px-6 py-5"
+              style={{ background: "#fff8f5" }}
+            >
+              <div>
+                <h2 className="outfit-700 text-[18px] font-bold text-gray-900">
                   Edit Quiz
                 </h2>
+                <p className="mt-0.5 text-[13px] text-gray-500">
+                  Update the title and description for this quiz.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditedQuiz({
+                    title: "",
+                    description: "",
+                    instruction: "",
+                  });
+                  setValidationError("");
+                }}
+                className="ml-4 flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-white hover:text-gray-600"
+              >
+                <i className="bx bx-x text-xl"></i>
+              </button>
+            </div>
 
-                <button
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setEditedQuiz({
-                      title: "",
-                      description: "",
-                      instruction: "",
-                    });
-                    setValidationError("");
-                  }}
-                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-700 transition duration-100 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  <i className="bx bx-x text-lg"></i>
-                </button>
+            {/* Body */}
+            <div className="space-y-4 px-6 py-5">
+              {validationError && (
+                <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[13px] text-red-700">
+                  <i className="bx bx-error-circle text-base"></i>
+                  {validationError}
+                </div>
+              )}
+
+              {/* Quiz Title */}
+              <div>
+                <label className="outfit-400 mb-1.5 block text-[13px] font-semibold text-gray-700">
+                  Quiz Title <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <i className="bx bx-edit-alt absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"></i>
+                  <input
+                    type="text"
+                    placeholder="Enter quiz title"
+                    value={editedQuiz.title}
+                    onChange={(e) =>
+                      setEditedQuiz({ ...editedQuiz, title: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-gray-200 py-2.5 pr-3 pl-9 text-sm transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                  />
+                </div>
               </div>
 
-              <div className="px-5 py-4">
-                <div className="mb-4 text-start">
-                  <div className="mb-4">
-                    <span className="block text-[14px] text-gray-700">
-                      Quiz Title
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Enter quiz title"
-                        value={editedQuiz.title}
-                        onChange={(e) =>
-                          setEditedQuiz({
-                            ...editedQuiz,
-                            title: e.target.value,
-                          })
-                        }
-                        className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-4 text-start">
-                  <div className="mb-4">
-                    <span className="block text-[14px] text-gray-700">
-                      Description (Optional)
-                    </span>
-                    <div className="relative">
-                      <textarea
-                        placeholder="Enter quiz description"
-                        value={editedQuiz.description}
-                        onChange={(e) =>
-                          setEditedQuiz({
-                            ...editedQuiz,
-                            description: e.target.value,
-                          })
-                        }
-                        rows={3}
-                        className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-                {validationError && (
-                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                    {validationError}
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setEditedQuiz({
-                        title: "",
-                        description: "",
-                        instruction: "",
-                      });
-                      setValidationError("");
-                    }}
-                    className="mt-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-[14px] font-semibold text-gray-700 transition-all duration-100 ease-in-out hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isEditing}
-                    onClick={handleSaveEdit}
-                    className={`mt-2 cursor-pointer rounded-lg px-4 py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isEditing ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
-                  >
-                    {isEditing ? (
-                      <div className="flex items-center justify-center">
-                        <span className="loader-white"></span>
-                      </div>
-                    ) : (
-                      "Save Changes"
-                    )}
-                  </button>
-                </div>
+              {/* Description */}
+              <div>
+                <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                  Description{" "}
+                  <span className="font-normal text-gray-400">(optional)</span>
+                </label>
+                <textarea
+                  placeholder="Enter quiz description"
+                  value={editedQuiz.description}
+                  onChange={(e) =>
+                    setEditedQuiz({
+                      ...editedQuiz,
+                      description: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                />
               </div>
             </div>
+
+            {/* Footer */}
+            <div className="outfit-400 flex items-center justify-between border-t border-gray-100 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditedQuiz({
+                    title: "",
+                    description: "",
+                    instruction: "",
+                  });
+                  setValidationError("");
+                }}
+                className="cursor-pointer text-[14px] font-medium text-gray-500 hover:text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isEditing}
+                onClick={handleSaveEdit}
+                className="outfit-500 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-[14px] font-medium text-white shadow-sm transition hover:bg-orange-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isEditing ? (
+                  <>
+                    <i className="bx bx-loader-alt animate-spin text-lg"></i>
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Archive Confirmation Modal */}
-      {showArchiveModal && quizToArchive && (
-        <ConfirmModal
-          isOpen={showArchiveModal}
-          onClose={() => {
-            setShowArchiveModal(false);
-            setQuizToArchive(null);
-          }}
-          onConfirm={handleArchiveQuiz}
-          message={
-            <>
-              Are you sure you want to archive{" "}
-              <span className="font-bold text-orange-600">
-                {quizToArchive.title || "Untitled Quiz"}
-              </span>
-              ? This quiz will be moved to the archive. You can restore it later
-              from Archived quizzes.
-            </>
-          }
-          isLoading={isArchiving}
-        />
-      )}
+      <WarningModal
+        isOpen={showArchiveModal && !!quizToArchive}
+        onClose={() => {
+          setShowArchiveModal(false);
+          setQuizToArchive(null);
+        }}
+        title="Archive Quiz"
+        subtitle="This quiz will be moved to the archive."
+        description={
+          <>
+            Are you sure you want to archive{" "}
+            <span className="font-semibold text-gray-900">
+              {quizToArchive?.title || "Untitled Quiz"}
+            </span>
+            ? You can restore it later from Archived quizzes.
+          </>
+        }
+        confirmLabel="Archive"
+        confirmIcon={<i className="bx bx-archive" />}
+        onConfirm={handleArchiveQuiz}
+        cancelLabel="Cancel"
+        isConfirmLoading={isArchiving}
+      />
+
+      {/* Restore Confirmation Modal */}
+      <WarningModal
+        isOpen={showRestoreModal}
+        onClose={() => setShowRestoreModal(false)}
+        title="Restore Quiz"
+        subtitle="This quiz will be moved back to your library."
+        description={
+          <>
+            Are you sure you want to restore{" "}
+            <span className="font-semibold text-gray-900">
+              {quizState?.title || "Untitled Quiz"}
+            </span>
+            ? It will be available again in Libraries.
+          </>
+        }
+        confirmLabel="Restore"
+        confirmIcon={<i className="bx bx-undo" />}
+        onConfirm={handleRestoreFromArchive}
+        cancelLabel="Cancel"
+        isConfirmLoading={isRestoring}
+      />
     </>
   );
 };

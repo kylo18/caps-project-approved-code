@@ -629,7 +629,6 @@ const QuizContent = () => {
               }
               setIsSelectQuestionsOpen(true);
             }}
-            onAssignToClassClick={() => setIsAssignToClassOpen(true)}
             onEditQuiz={handleOpenEditQuiz}
             onArchiveQuiz={handleArchiveQuiz}
           />
@@ -638,36 +637,8 @@ const QuizContent = () => {
           <div className="relative mt-3 mb-30 sm:mx-0">
             <div className="w-full">
               {isLoadingQuestions ? (
-                <div className="flex flex-col gap-2">
-                  <div className="border-color relative mx-auto w-full max-w-3xl rounded-xl border bg-white p-4 sm:px-4">
-                    <div className="flex items-center justify-between text-[14px] text-gray-500">
-                      <span className="skeleton shimmer h-6 w-28 rounded bg-gray-200"></span>
-                      <div className="flex items-center gap-2">
-                        <span className="skeleton shimmer h-6 w-16 rounded bg-gray-200"></span>
-                        <span className="skeleton shimmer h-6 w-12 rounded bg-gray-200"></span>
-                        <span className="skeleton shimmer h-6 w-12 rounded bg-gray-200"></span>
-                        <span className="skeleton shimmer h-6 w-10 rounded bg-gray-200"></span>
-                      </div>
-                    </div>
-                    <div className="skeleton shimmer word-break break-word mt-4 min-h-[40px] w-full max-w-full resize-none overflow-hidden rounded border-gray-200 bg-gray-200 py-2 pl-3 text-[14px] break-words whitespace-pre-wrap"></div>
-                    <div className="mt-3 space-y-3 p-3">
-                      {[1, 2, 3, 4].map((choiceIndex) => (
-                        <div
-                          key={choiceIndex}
-                          className="flex items-center space-x-2"
-                        >
-                          <span className="skeleton shimmer h-[22px] w-[22px] rounded-full bg-gray-200"></span>
-                          <span className="skeleton shimmer h-6 w-3/4 rounded bg-gray-200"></span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
-                    <div className="flexse mt-5 mb-1 justify-end gap-2">
-                      <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
-                      <span className="skeleton shimmer h-8 w-16 rounded bg-gray-200"></span>
-                      <span className="skeleton shimmer h-8 w-20 rounded bg-gray-200"></span>
-                    </div>
-                  </div>
+                <div className="flex min-h-[60vh] flex-col items-center justify-center py-12">
+                  <div className="loader" />
                 </div>
               ) : filteredQuestions.length === 0 ? (
                 <div className="outfit-400 border-color mx-auto flex w-full max-w-[1200px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
@@ -1145,7 +1116,7 @@ const QuizContent = () => {
 
               {/* Floating Add Question button - match AdminContent */}
               {!isAddOpen && filteredQuestions.length > 0 && (
-                <div className="fixed right-[-4px] bottom-[70px] z-49 p-4 text-center lg:right-[-4px] lg:bottom-[-4px]">
+                <div className="fixed right-4 bottom-[110px] z-49 text-center sm:right-[-4px] sm:bottom-[4px] sm:p-4 lg:p-4">
                   <button
                     onClick={() => setIsAddOpen(true)}
                     className="cursor-pointer rounded-full bg-orange-500 px-[15px] py-[15px] text-[14px] font-semibold text-white shadow-xl hover:bg-orange-600 lg:rounded-xl lg:px-4 lg:py-2"
@@ -1231,6 +1202,7 @@ const QuizContent = () => {
       {isSettingsOpen && (
         <QuizSettingsModal
           personalQuizID={quizId}
+          quizTitle={quizDetails?.title || quiz?.title || ""}
           isFormOpen={isSettingsOpen}
           setIsFormOpen={setIsSettingsOpen}
           onSuccess={() => {
@@ -1304,19 +1276,7 @@ const QuizContent = () => {
           }}
         />
       )}
-      {/* Assign to Class Modal */}
-      {isAssignToClassOpen && (
-        <AssignToClassModal
-          isOpen={isAssignToClassOpen}
-          onClose={() => setIsAssignToClassOpen(false)}
-          personalQuizID={quizId}
-          quizTitle={quiz.title || "Untitled Quiz"}
-          onSuccess={() => {
-            // Optionally refresh data or show success message
-            showToast("Quiz assigned to classes successfully!", "success");
-          }}
-        />
-      )}
+
       {/* Edit Quiz Modal */}
       {isEditQuizOpen && (
         <div
