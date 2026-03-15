@@ -87,8 +87,9 @@ personal_quiz_questions:
     -questionID
 
 
-personal_quiz_settings:
-    -personalQuizID
+class_personal_quiz_settings:
+    -personalQuizSettingID
+    -classPersonalQuizID
     -startTime
     -endTime
     -quizAttempts
@@ -142,9 +143,5 @@ student_quiz_results:
  - We will Remove the test accounts after user acceptance test is over.
 
 
-6. After running the commands above, run this specific command 
 
-- php artisan student-grades:import
-- php artisan students:sync-curricula
-- php artisan students:assign-remarks
 
