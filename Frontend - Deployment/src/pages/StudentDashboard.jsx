@@ -535,12 +535,6 @@ const StudentDashboard = () => {
             </div>
           )}
         </div>
-
-        {/* FLOATING HELP */}
-        <button className="outfit-400 fixed right-6 bottom-6 flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2.5 text-[13px] font-semibold text-white shadow-lg transition hover:bg-orange-600">
-          <i className="bx bx-help-circle text-[18px]" />
-          Help
-        </button>
       </div>
 
       {/* JOIN CLASS MODAL */}
