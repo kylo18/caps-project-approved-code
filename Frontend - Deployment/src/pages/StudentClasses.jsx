@@ -11,6 +11,7 @@ import RedBackground from "/src/assets/backgrounds/red.png";
 import YellowBackground from "/src/assets/backgrounds/yellow.png";
 import PurpleBackground from "/src/assets/backgrounds/purple.png";
 import CyanBackground from "/src/assets/backgrounds/cyan.png";
+import { getApiBaseUrl } from "../utils/config";
 
 const headerBackgrounds = [
   BlueBackground,
@@ -90,7 +91,7 @@ const StudentClasses = () => {
   const location = useLocation();
   const classID = location.state?.classID || useParams().classID;
   const { toast, showToast } = useToast();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   const [classInfo, setClassInfo] = useState(null);
   const [assignedQuizzes, setAssignedQuizzes] = useState([]);
@@ -157,7 +158,7 @@ const StudentClasses = () => {
   const handleUnenrollConfirm = async () => {
     setIsUnenrolling(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setShowUnenrollModal(false);
@@ -179,7 +180,7 @@ const StudentClasses = () => {
           "There was a problem unenrolling from the class. Please try again.";
 
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          localStorage.removeItem("token");
           message = "Your session has expired. Please log in again.";
         } else if (response.status === 403) {
           message = "Only students can unenroll from classes.";
@@ -220,7 +221,7 @@ const StudentClasses = () => {
     setError(null);
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -240,7 +241,7 @@ const StudentClasses = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          localStorage.removeItem("token");
           throw new Error("Your session has expired. Please log in again.");
         }
 
@@ -375,7 +376,7 @@ const StudentClasses = () => {
     setError(null);
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -395,7 +396,7 @@ const StudentClasses = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          localStorage.removeItem("token");
           throw new Error("Your session has expired. Please log in again.");
         }
 

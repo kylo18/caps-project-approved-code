@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getApiBaseUrl } from "../utils/config";
 
 const SelectQuestionsModal = ({
   isOpen,
@@ -10,7 +11,7 @@ const SelectQuestionsModal = ({
   onError,
 }) => {
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const [questions, setQuestions] = useState([]);
   const [quizInfo, setQuizInfo] = useState(null);
   const [selectedQuestions, setSelectedQuestions] = useState([]);
@@ -85,7 +86,7 @@ const SelectQuestionsModal = ({
 
     setIsLoading(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
@@ -102,7 +103,7 @@ const SelectQuestionsModal = ({
       );
 
       if (response.status === 401) {
-        sessionStorage.removeItem("token");
+        localStorage.removeItem("token");
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -179,7 +180,7 @@ const SelectQuestionsModal = ({
 
     setIsGeneratingPDF(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
@@ -202,7 +203,7 @@ const SelectQuestionsModal = ({
       });
 
       if (response.status === 401) {
-        sessionStorage.removeItem("token");
+        localStorage.removeItem("token");
         throw new Error("You are not authenticated. Please log in again.");
       }
 

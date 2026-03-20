@@ -3,6 +3,7 @@ import WarnOnExit from "../hooks/WarnOnExit";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import ImageSelectionModal from "./ImageSelectionModal";
+import { getApiBaseUrl } from "../utils/config";
 
 // Compact Header Dropdown Component
 const HeaderDropdown = ({
@@ -83,7 +84,7 @@ const CombinedQuestionForm = ({
   personalQuizID = null,
   quizTypeId = null, // 1 = subject-based, 2 = custom
 }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const { toast, showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -143,7 +144,7 @@ const CombinedQuestionForm = ({
       if (!subjectID) return;
       setIsExamQuestionsLoading(true);
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         const response = await fetch(`${apiUrl}/subjects/${subjectID}`);
         if (response.ok) {
           const result = await response.json();
@@ -480,7 +481,7 @@ const CombinedQuestionForm = ({
 
     // Directly proceed with submission
     setIsLoading(true);
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     try {
       if (mode === "quiz") {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import QuestionListModal from "../components/QuestionListModal";
+import { getApiBaseUrl } from "../utils/config";
 
 const TimerCompletionModal = ({
   isOpen,
@@ -76,10 +77,10 @@ const PracticeExamPreview = () => {
     setLoading(true);
     setError("");
     fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/practice-exam/preview/${subjectID}`,
+      `${getApiBaseUrl()}/practice-exam/preview/${subjectID}`,
       {
         headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       },
     )

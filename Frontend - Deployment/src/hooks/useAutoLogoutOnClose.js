@@ -1,11 +1,12 @@
 import { useEffect } from "react";
+import { getApiBaseUrl } from "../utils/config";
 
 const useAutoLogoutOnClose = () => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   useEffect(() => {
     const handleUnload = () => {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (token) {
         const logoutData = JSON.stringify({ token });
@@ -14,9 +15,9 @@ const useAutoLogoutOnClose = () => {
         const blob = new Blob([logoutData], { type: "application/json" });
         navigator.sendBeacon(`${apiUrl}/logout`, blob);
 
-        // Clean up sessionStorage
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("user");
+        // Clean up localStorage
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
       }
     };
 

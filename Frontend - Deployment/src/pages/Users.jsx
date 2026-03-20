@@ -24,6 +24,7 @@ import StudentPfp from "/src/assets/symbols/student.png";
 import FacultyPfp from "/src/assets/symbols/faculty.png";
 import ProgramChairPfp from "/src/assets/symbols/progchair.png";
 import DeanPfp from "/src/assets/symbols/dean.png";
+import { getApiBaseUrl } from "../utils/config";
 
 const UserList = () => {
   // State for user data and loading
@@ -119,7 +120,7 @@ const UserList = () => {
   const [studentsOnly, setStudentsOnly] = useState(false); // true: students only, false: others only
   const [activeView, setActiveView] = useState("all"); // "all", "pending", "approved", "students", "faculty"
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   // Get toast functions from hook
   const { toast, showToast } = useToast();
@@ -304,7 +305,7 @@ const UserList = () => {
   }, []);
 
   useEffect(() => {
-    const user = JSON.parse(sessionStorage.getItem("user"));
+    const user = JSON.parse(localStorage.getItem("user"));
     if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
       setCurrentUserRole(user.roleID ?? user.roleId);
     }
@@ -330,7 +331,7 @@ const UserList = () => {
 
   // Update fetchUsers to include filters
   const fetchUsers = async (page = 1) => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     if (!token) {
       setError("No token found, please log in.");
@@ -544,7 +545,7 @@ const UserList = () => {
   // Function to approve a single user
   const handleApproveUser = async (userID) => {
     closeWarning();
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsApproving(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/approve`, {
@@ -585,7 +586,7 @@ const UserList = () => {
   // Function to activate a single user
   const handleActivateUser = async (userID) => {
     closeWarning();
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsActivating(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/activate`, {
@@ -623,7 +624,7 @@ const UserList = () => {
   // Function to deactivate a single user
   const handleDeactivateUser = async (userID) => {
     closeWarning();
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsDeactivating(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/deactivate`, {
@@ -657,7 +658,7 @@ const UserList = () => {
 
   // Function to approve multiple selected users
   const handleApproveSelectedUsers = async () => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsApprovingMultiple(true);
     if (selectedUsers.length === 0) {
       showToast("Please select users to approve.", "error");
@@ -691,7 +692,7 @@ const UserList = () => {
 
   // Function to activate multiple selected users
   const handleActivateSelectedUsers = async () => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsActivatingMultiple(true);
 
     if (selectedUsers.length === 0) {
@@ -729,7 +730,7 @@ const UserList = () => {
 
   // Function to deactivate multiple selected users
   const handleDeactivateSelectedUsers = async () => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsDeactivatingMultiple(true);
 
     if (selectedUsers.length === 0) {
@@ -787,12 +788,12 @@ const UserList = () => {
 
   // Function to handle role update
   const handleRoleUpdate = async (userID, newRoleID) => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsUpdatingRole(true);
     setRoleError(""); // Clear any previous errors
     try {
       // Check if current user is trying to demote themselves from Dean
-      const currentUser = JSON.parse(sessionStorage.getItem("user"));
+      const currentUser = JSON.parse(localStorage.getItem("user"));
       if (
         currentUser.roleID === 4 &&
         userID === currentUser.userID &&
@@ -858,7 +859,7 @@ const UserList = () => {
   // Add delete user function
   const handleDeleteUser = async (userID) => {
     closeWarning();
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsDeleting(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}`, {
@@ -888,8 +889,8 @@ const UserList = () => {
   // Add delete multiple users function
   const handleDeleteSelectedUsers = async () => {
     closeWarning();
-    const token = sessionStorage.getItem("token");
-    const currentUser = JSON.parse(sessionStorage.getItem("user"));
+    const token = localStorage.getItem("token");
+    const currentUser = JSON.parse(localStorage.getItem("user"));
     if (selectedUsers.length === 0) {
       showToast("Please select users to delete.", "error");
       return;
@@ -1919,7 +1920,7 @@ const UserList = () => {
                               }
                               // If current user is Dean, show all roles except current user's role
                               const currentUser = JSON.parse(
-                                sessionStorage.getItem("user"),
+                                localStorage.getItem("user"),
                               );
                               const isCurrentUser =
                                 selectedUser.userID === currentUser.userID;
@@ -2167,7 +2168,7 @@ const UserList = () => {
                           onClick={(e) => {
                             e.preventDefault();
                             const currentUser = JSON.parse(
-                              sessionStorage.getItem("user"),
+                              localStorage.getItem("user"),
                             );
                             if (
                               currentUser &&
@@ -2404,7 +2405,7 @@ const UserList = () => {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const currentUser = JSON.parse(
-                                    sessionStorage.getItem("user"),
+                                    localStorage.getItem("user"),
                                   );
                                   if (
                                     currentUser &&
@@ -2603,7 +2604,7 @@ const UserList = () => {
                     <button
                       onClick={() => {
                         const currentUser = JSON.parse(
-                          sessionStorage.getItem("user"),
+                          localStorage.getItem("user"),
                         );
                         if (
                           currentUser &&

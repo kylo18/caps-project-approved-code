@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import QuestionListModal from "../components/QuestionListModal";
 import TimerCompletionModal from "../components/TimerCompletionModal";
 import WarningModal from "../components/WarningModal";
+import { getApiBaseUrl } from "../utils/config";
 
 const collegeLogo = new URL("../assets/college-logo.png", import.meta.url).href;
 
@@ -357,7 +358,7 @@ const PracticeExam = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef(null);
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -381,7 +382,7 @@ const PracticeExam = () => {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         const res = await fetch(`${apiUrl}/user/profile`, {
           method: "GET",
           headers: {
@@ -687,7 +688,7 @@ const PracticeExam = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({ subjectID, answers: allAnswers }),
       });

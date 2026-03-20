@@ -26,6 +26,7 @@ import RedBackground from "/src/assets/backgrounds/red.png";
 import YellowBackground from "/src/assets/backgrounds/yellow.png";
 import PurpleBackground from "/src/assets/backgrounds/purple.png";
 import CyanBackground from "/src/assets/backgrounds/cyan.png";
+import { getApiBaseUrl } from "../utils/config";
 
 // Helper function to transform program names
 const getDisplayProgramName = (programName) => {
@@ -72,7 +73,7 @@ function SubjectList() {
   // Get roleId from localStorage
   const [roleId, setRoleId] = useState(null);
   useEffect(() => {
-    const user = JSON.parse(sessionStorage.getItem("user"));
+    const user = JSON.parse(localStorage.getItem("user"));
     if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
       setRoleId(user.roleID ?? user.roleId);
     }
@@ -100,8 +101,8 @@ function SubjectList() {
     } else if (subjectID && !selectedSubject) {
       // If we have subjectID but no subject in state, fetch it
       const fetchSubject = async () => {
-        const token = sessionStorage.getItem("token");
-        const apiUrl = import.meta.env.VITE_API_BASE_URL;
+        const token = localStorage.getItem("token");
+        const apiUrl = getApiBaseUrl();
         try {
           const response = await fetch(`${apiUrl}/subjects/${subjectID}`, {
             headers: {
@@ -146,8 +147,8 @@ function SubjectList() {
     if (subjectID) {
       // If we have subjectID but no subject in state, fetch it first
       const fetchSubject = async () => {
-        const token = sessionStorage.getItem("token");
-        const apiUrl = import.meta.env.VITE_API_BASE_URL;
+        const token = localStorage.getItem("token");
+        const apiUrl = getApiBaseUrl();
         try {
           const response = await fetch(`${apiUrl}/subjects/${subjectID}`, {
             headers: {
@@ -300,7 +301,7 @@ function SubjectList() {
   }, [showYearLevelDropdown]);
 
   const { toast, showToast } = useToast();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   // Get unique program names for sidebar buttons
   const uniquePrograms = Array.from(
@@ -376,7 +377,7 @@ function SubjectList() {
   }, []);
 
   const fetchSubjects = async () => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setSubjectLoading(true);
     setNetworkError(false);
 
@@ -450,7 +451,7 @@ function SubjectList() {
   // Fetch programs and year levels
   useEffect(() => {
     const fetchPrograms = async () => {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       try {
         const res = await fetch(`${apiUrl}/programs`, {
@@ -468,7 +469,7 @@ function SubjectList() {
     };
 
     const fetchYearLevels = async () => {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       try {
         const res = await fetch(`${apiUrl}/year-levels`, {
@@ -491,7 +492,7 @@ function SubjectList() {
 
   const handleAddSubject = async () => {
     if (!newSubjectCode.trim() || !newSubjectName.trim()) return;
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     setIsAdding(true);
 
@@ -571,7 +572,7 @@ function SubjectList() {
       return;
     }
 
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsEditing(true);
     setValidationError("");
 
@@ -626,7 +627,7 @@ function SubjectList() {
   const handleDeleteSubject = async () => {
     if (!subjectToDelete) return;
 
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsDeleting(true);
 
     try {
@@ -659,7 +660,7 @@ function SubjectList() {
 
   // Faculty assign subject functions
   const fetchAvailableSubjects = async () => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setLoadingAvailableSubjects(true);
 
     try {
@@ -708,7 +709,7 @@ function SubjectList() {
   const handleAssignSubject = async (subject) => {
     if (!subject) return;
 
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     setIsAssigning(true);
     try {

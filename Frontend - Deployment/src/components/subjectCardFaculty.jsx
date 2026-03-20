@@ -3,6 +3,7 @@ import SubPhoto from "../assets/gottfield.jpg";
 import { Textfit } from "react-textfit";
 
 import ConfirmModal from "./confirmModal";
+import { getApiBaseUrl } from "../utils/config";
 
 // Component to display subject information and tabs for admin/faculty view
 const SubjectCard = ({
@@ -220,10 +221,10 @@ const SubjectCard = ({
   // Fetch programs and year levels
   useEffect(() => {
     const fetchPrograms = async () => {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/programs`,
+          `${getApiBaseUrl()}/programs`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -339,11 +340,11 @@ const SubjectCard = ({
 
   // Delete subject handler
   const handleDeleteSubject = async (subjectID) => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/remove-assigned-subject/${subjectID}`,
+        `${getApiBaseUrl()}/remove-assigned-subject/${subjectID}`,
         {
           method: "DELETE",
           headers: {

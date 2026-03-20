@@ -11,6 +11,7 @@ use Modules\Users\Controllers\UserController;
 use Modules\PracticeExams\Controllers\PracticeExamSettingController;
 use Modules\PracticeExams\Controllers\PracticeExamController;
 use Modules\PracticeExams\Controllers\PracticeExamLeaderboardController;
+use Modules\PracticeExams\Controllers\PersonalExamSettingController;
 use Modules\Users\Controllers\ProgramController;
 use Modules\Users\Controllers\RoleController;
 use Modules\Users\Controllers\PasswordResetController;
@@ -29,6 +30,9 @@ use Modules\PersonalClasses\Controllers\ClassPersonalQuizController;
 use Modules\PersonalExams\Controllers\StudentQuizResultController;
 use Modules\PersonalExams\Controllers\StudentQuizController;
 use Modules\PersonalExams\Controllers\QuizSessionController;
+use Modules\Leaderboard\Controllers\LeaderboardController;
+use Modules\Users\Controllers\SystemNotificationController;
+use Modules\Users\Controllers\SocialAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +45,24 @@ Route::get('/roles', [RoleController::class, 'indexAvailableRoles']);
 Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail']);
 Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 Route::get('/app-version', [AppController::class, 'getVersion']);
+
+/*
+|--------------------------------------------------------------------------
+| Social Authentication Routes (No authentication required)
+|--------------------------------------------------------------------------
+*/
+Route::get('/auth/google/redirect', [SocialAuthController::class, 'redirectToGoogle']);
+Route::get('/auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
+Route::post('/auth/social/verify-link', [SocialAuthController::class, 'verifyLink']);
+Route::get('/auth/facebook/redirect', [SocialAuthController::class, 'redirectToFacebook']);
+Route::get('/auth/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback']);
+
+/*
+|--------------------------------------------------------------------------
+| Leaderboard Route (No authentication required)
+|--------------------------------------------------------------------------
+*/
+Route::get('/leaderboard', [LeaderboardController::class, 'index']);
 
 /*
 |--------------------------------------------------------------------------
@@ -93,6 +115,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::post('/users/deactivate-multiple', [UserController::class, 'deactivateMultipleUsers']);
     Route::patch('users/{id}/deactivate', [UserController::class, 'deactivate']);
     Route::patch('users/{id}/activate', [UserController::class, 'activate']);
+    Route::post('/admin/system/notify-update', [SystemNotificationController::class, 'sendSystemUpdate']);
 
     // Choices
     Route::post('/questions/choices', [ChoiceController::class, 'store']);
@@ -134,6 +157,10 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
 
     //programs listing
     Route::get('/programs', [ProgramController::class, 'index']);
+
+    // Personal Exam Settings (store, show)
+    Route::post('/personal-exam-settings', [PersonalExamSettingController::class, 'store']);
+    Route::get('/personal-exam-settings/{subjectID}', [PersonalExamSettingController::class, 'show']);
 
     // Personal Quizzes (Libraries)
     Route::post('/personal-quizzes', [PersonalQuizController::class, 'store']);

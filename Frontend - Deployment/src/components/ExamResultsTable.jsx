@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import emptyImage from "/src/assets/icons/empty.png";
+import { getApiBaseUrl } from "../utils/config";
 const ExamResultsTable = ({
   subjectID,
   results: propResults,
   averageScore: propAverageScore,
 }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   const [userRole, setUserRole] = useState(null);
   const [recentTakers, setRecentTakers] = useState([]);
@@ -30,7 +31,7 @@ const ExamResultsTable = ({
   const isFaculty = userRole && [2, 3, 4, 5].includes(Number(userRole));
 
   useEffect(() => {
-    const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
       setUserRole(user.roleID ?? user.roleId);
     }
@@ -45,7 +46,7 @@ const ExamResultsTable = ({
 
     const fetchRecentTakers = async () => {
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         if (!token) {
           throw new Error(
             "Authentication token not found. Please log in again.",
@@ -94,7 +95,7 @@ const ExamResultsTable = ({
     if (activeTab !== "leaderboard" || !subjectID) return;
     setLeaderboardLoading(true);
     setLeaderboardError(null);
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     fetch(`${apiUrl}/practice-exam/leaderboard/${subjectID}`, {
       headers: {
         "Content-Type": "application/json",

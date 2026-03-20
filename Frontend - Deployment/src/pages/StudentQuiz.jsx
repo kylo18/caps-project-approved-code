@@ -6,6 +6,7 @@ import Toast from "../components/Toast";
 import QuestionListModal from "../components/QuestionListModal";
 import TimerCompletionModal from "../components/TimerCompletionModal";
 import WarningModal from "../components/WarningModal";
+import { getApiBaseUrl } from "../utils/config";
 
 const collegeLogo = new URL("../assets/college-logo.png", import.meta.url).href;
 
@@ -432,7 +433,7 @@ const StudentQuiz = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef(null);
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const navigate = useNavigate();
   const location = useLocation();
   const { classPersonalQuizID } = useParams();
@@ -442,7 +443,7 @@ const StudentQuiz = () => {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         const res = await fetch(`${apiUrl}/user/profile`, {
           method: "GET",
           headers: {
@@ -866,7 +867,7 @@ const StudentQuiz = () => {
         ? new Date(quizData.startedAt)
         : new Date(quizStartTime);
       const timeTakenSeconds = Math.floor((new Date() - startTime) / 1000);
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       const response = await fetch(`${apiUrl}/quizzes/${quizID}/submit`, {
         method: "POST",

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
+import { getApiBaseUrl } from "../utils/config";
 
 const CreateQuestionnaireForm = ({
   onSuccess,
@@ -8,7 +9,7 @@ const CreateQuestionnaireForm = ({
   subjectID,
   subjectData,
 }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const { toast, showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [semesters, setSemesters] = useState([]);
@@ -37,7 +38,7 @@ const CreateQuestionnaireForm = ({
 
   const fetchSemesters = async () => {
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       const response = await fetch(`${apiUrl}/semester`, {
         method: "GET",
         headers: {
@@ -62,7 +63,7 @@ const CreateQuestionnaireForm = ({
 
   const fetchCoverages = async () => {
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       const response = await fetch(`${apiUrl}/coverages`, {
         method: "GET",
         headers: {
@@ -87,7 +88,7 @@ const CreateQuestionnaireForm = ({
 
   const fetchSubjects = async () => {
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       const response = await fetch(`${apiUrl}/faculty/my-subjects`, {
         method: "GET",
         headers: {
@@ -139,7 +140,7 @@ const CreateQuestionnaireForm = ({
 
     setLoading(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       // Automatically determine facultySubjectsID and subjectID
       let facultySubjectsID, finalSubjectID;

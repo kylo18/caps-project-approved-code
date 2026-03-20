@@ -36,6 +36,7 @@ import SupportIconH from "/src/assets/symbols/supporthover.svg";
 
 import SubjectsIcon from "/src/assets/symbols/subjects.svg";
 import SubjectsIconH from "/src/assets/symbols/subjectshover.svg";
+import { getApiBaseUrl } from "../utils/config";
 
 // Utility to get a random color from a palette
 const AVATAR_COLORS = [
@@ -141,7 +142,7 @@ const Sidebar = ({
   const profileModalRef = useRef(null);
   const changePasswordModalRef = useRef(null);
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const { toast, showToast } = useToast();
 
   const location = useLocation();
@@ -186,7 +187,7 @@ const Sidebar = ({
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         const response = await fetch(`${apiUrl}/user/profile`, {
           method: "GET",
           headers: {
@@ -240,7 +241,7 @@ const Sidebar = ({
   // Handle logout
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     try {
       await fetch(`${apiUrl}/logout`, {
         method: "POST",
@@ -369,7 +370,7 @@ const Sidebar = ({
         }
       });
 
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       const profileResponse = await fetch(`${apiUrl}/user/update-profile`, {
         method: "POST",
         headers: {
@@ -478,7 +479,7 @@ const Sidebar = ({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify(formData),
       });
@@ -692,6 +693,25 @@ const Sidebar = ({
                         />
                       </span>
                       <span className="outfit-500 text-xs">Sessions</span>
+                    </Link>
+                  </div>
+                  {/* Leaderboard (student) */}
+                  <div className="flex h-16 flex-col items-center justify-center">
+                    <Link
+                      to="/leaderboard"
+                      onClick={handleMenuClick}
+                      className={`flex flex-col items-center transition-colors ${
+                        isActive("/leaderboard")
+                          ? "text-orange-600"
+                          : "text-gray-700 hover:text-gray-800"
+                      }`}
+                    >
+                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                        <i className={`bx bx-trophy text-2xl ${
+                          isActive("/leaderboard") ? "text-orange-600" : "text-gray-700"
+                        }`}></i>
+                      </span>
+                      <span className="outfit-500 text-xs">Leaderboard</span>
                     </Link>
                   </div>
                 </>

@@ -8,6 +8,7 @@ import noInternetImage from "../assets/icons/404notfound.png";
 import emptyImage from "../assets/icons/empty.png";
 import SubjectsIcon from "/src/assets/symbols/subjects.svg";
 import SubjectsIconH from "/src/assets/symbols/subjectshover.svg";
+import { getApiBaseUrl } from "../utils/config";
 
 const SideBarDropDown = ({
   item,
@@ -230,14 +231,14 @@ const SideBarDropDown = ({
     };
   }, [showAddModal]);
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   useEffect(() => {
     fetchSubjects();
   }, []);
 
   const fetchSubjects = async () => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setLoading(true);
 
     try {
@@ -284,7 +285,7 @@ const SideBarDropDown = ({
   };
 
   const fetchAssignedSubjects = async () => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setSubjectLoading(true);
     try {
       const response = await fetch(`${apiUrl}/faculty/my-subjects`, {
@@ -422,7 +423,7 @@ const SideBarDropDown = ({
   const handleAssignSubject = async (subject) => {
     if (!subject) return;
 
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     setIsAssigning(true);
     try {
@@ -460,7 +461,7 @@ const SideBarDropDown = ({
 
   useEffect(() => {
     const fetchPrograms = async () => {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       try {
         const res = await fetch(`${apiUrl}/programs`, {
@@ -478,7 +479,7 @@ const SideBarDropDown = ({
     };
 
     const fetchYearLevels = async () => {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       try {
         const res = await fetch(`${apiUrl}/year-levels`, {

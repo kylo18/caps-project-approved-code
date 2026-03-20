@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import WarningModal from "../components/WarningModal";
+import { getApiBaseUrl } from "../utils/config";
 
 /* ── small helpers ───────────────────────────────────────────────── */
 const pct = (val) =>
@@ -33,7 +34,7 @@ const QuizInfo = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { classPersonalQuizID } = useParams();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const { toast, showToast } = useToast();
 
   const [quizInfo, setQuizInfo] = useState(null);
@@ -61,7 +62,7 @@ const QuizInfo = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         if (!token)
           throw new Error("You are not authenticated. Please log in again.");
 
@@ -76,7 +77,7 @@ const QuizInfo = () => {
 
         if (!response.ok) {
           if (response.status === 401) {
-            sessionStorage.removeItem("token");
+            localStorage.removeItem("token");
             throw new Error("Your session has expired. Please log in again.");
           }
           let msg = "Failed to load quiz information.";
@@ -173,7 +174,7 @@ const QuizInfo = () => {
     setLoadingAction(actionType);
     setStartError(null);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) throw new Error("You are not authenticated.");
 
       const response = await fetch(`${apiUrl}/quizzes/${quizID}/start`, {
@@ -187,7 +188,7 @@ const QuizInfo = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          localStorage.removeItem("token");
           throw new Error("Your session has expired. Please log in again.");
         }
         let msg = "Failed to start quiz.";

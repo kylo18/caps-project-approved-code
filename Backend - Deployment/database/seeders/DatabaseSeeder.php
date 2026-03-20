@@ -20,8 +20,8 @@ require_once base_path('Modules/Questions/Database/Seeders/StatusSeeder.php');
 //require_once base_path('Modules/Questions/Database/Seeders/QuestionsTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/StudentsTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/SexesTableSeeder.php');
-//require_once base_path('Modules/Users/Database/Seeders/CurriculumSeeder.php');
-//require_once base_path('Modules/Users/Database/Seeders/RemarksSeeder.php');
+require_once base_path('Modules/Users/Database/Seeders/CurriculumSeeder.php');
+require_once base_path('Modules/Users/Database/Seeders/RemarksSeeder.php');
 require_once base_path('Modules/Semester/Database/Seeders/SemesterSeeder.php');
 require_once base_path('Modules/PersonalExams/Database/Seeders/QuizTypeSeeder.php');
 
@@ -46,8 +46,8 @@ class DatabaseSeeder extends Seeder
             \Modules\Questions\Database\Seeders\PurposeSeeder::class,
             //\Modules\Questions\Database\Seeders\QuestionsTableSeeder::class,
             \Modules\Users\Database\Seeders\StudentsTableSeeder::class,
-            //\Modules\Users\Database\Seeders\CurriculumSeeder::class,
-            //\Modules\Users\Database\Seeders\RemarksSeeder::class,
+            \Modules\Users\Database\Seeders\CurriculumSeeder::class,
+            \Modules\Users\Database\Seeders\RemarksSeeder::class,
             \Modules\Semester\Database\Seeders\SemesterSeeder::class,
             \Modules\PersonalExams\Database\Seeders\QuizTypeSeeder::class,
         ];

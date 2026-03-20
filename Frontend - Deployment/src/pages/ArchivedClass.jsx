@@ -12,6 +12,7 @@ import RedBackground from "/src/assets/backgrounds/red.png";
 import YellowBackground from "/src/assets/backgrounds/yellow.png";
 import PurpleBackground from "/src/assets/backgrounds/purple.png";
 import CyanBackground from "/src/assets/backgrounds/cyan.png";
+import { getApiBaseUrl } from "../utils/config";
 
 // Array of background images for header sections
 const headerBackgrounds = [
@@ -33,7 +34,7 @@ const getHeaderBackground = (classId) => {
 
 const ArchivedClass = () => {
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const { toast, showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
@@ -53,7 +54,7 @@ const ArchivedClass = () => {
       setIsLoading(true);
 
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         if (!token) {
           throw new Error("You are not authenticated. Please log in again.");
@@ -70,7 +71,7 @@ const ArchivedClass = () => {
 
         if (!response.ok) {
           if (response.status === 401) {
-            sessionStorage.removeItem("token");
+            localStorage.removeItem("token");
             throw new Error("Your session has expired. Please log in again.");
           }
 
@@ -128,7 +129,7 @@ const ArchivedClass = () => {
       setIsLoading(true);
 
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         if (!token) {
           return;
@@ -170,7 +171,7 @@ const ArchivedClass = () => {
 
     setIsRestoring(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsRestoring(false);
@@ -249,7 +250,7 @@ const ArchivedClass = () => {
 
     setIsDeleting(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsDeleting(false);

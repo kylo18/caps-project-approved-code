@@ -8,6 +8,9 @@ use Modules\Users\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\UserApprovedMail;
+use App\Mail\UserDisapprovedMail;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -81,9 +84,29 @@ class UserController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
+        // Fetch remarks and curriculum for students
+        $remarks = null;
+        $curriculum = null;
+        if ($user->roleID == 1) {
+            $remarksRow = \DB::table('student_remarks')
+                ->join('remarks', 'student_remarks.remarksID', '=', 'remarks.id')
+                ->where('student_remarks.userID', $user->userID)
+                ->select('remarks.remarksType')
+                ->first();
+            $remarks = $remarksRow ? $remarksRow->remarksType : null;
+            $curriculumRow = \DB::table('student_curricula')
+                ->join('curriculum', 'student_curricula.curriculumID', '=', 'curriculum.id')
+                ->where('student_curricula.userID', $user->userID)
+                ->select('curriculum.curriculumType')
+                ->first();
+            $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
+        }
+
         return response()->json([
             'email' => $user->email,
             'fullName' => $user->firstName . ' ' . $user->lastName,
+            'remarks' => $remarks,
+            'curriculum' => $curriculum,
         ], 200);
     }
 
@@ -176,6 +199,12 @@ class UserController extends Controller
             }
 
             $this->updateUserStatus($user, 'registered', true);
+
+            try {
+                Mail::to($user->email)->send(new UserApprovedMail($user));
+            } catch (\Exception $e) {
+                Log::warning('Failed to send approval email: ' . $e->getMessage());
+            }
             return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
 
         } catch (\Exception $e) {
@@ -227,6 +256,12 @@ class UserController extends Controller
         $user = User::findOrFail($userID);
 
         $this->updateUserStatus($user, 'disapproved', false);
+        
+        try {
+            Mail::to($user->email)->send(new UserDisapprovedMail($user));
+        } catch (\Exception $e) {
+            Log::warning('Failed to send disapproval email: ' . $e->getMessage());
+        }
         return response()->json(['message' => 'User has been disapproved.', 'user' => $user], 200);
     }
 
@@ -523,6 +558,23 @@ class UserController extends Controller
                       ->take($perPage)
                       ->get()
                       ->map(function ($user) {
+                          // Fetch remarks and curriculum for students
+                          $remarks = null;
+                          $curriculum = null;
+                          if ($user->roleID == 1) {
+                              $remarksRow = \DB::table('student_remarks')
+                                  ->join('remarks', 'student_remarks.remarksID', '=', 'remarks.id')
+                                  ->where('student_remarks.userID', $user->userID)
+                                  ->select('remarks.remarksType')
+                                  ->first();
+                              $remarks = $remarksRow ? $remarksRow->remarksType : null;
+                              $curriculumRow = \DB::table('student_curricula')
+                                  ->join('curriculum', 'student_curricula.curriculumID', '=', 'curriculum.id')
+                                  ->where('student_curricula.userID', $user->userID)
+                                  ->select('curriculum.curriculumType')
+                                  ->first();
+                              $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
+                          }
                           return [
                               'userID' => $user->userID,
                               'userCode' => $user->userCode,
@@ -538,6 +590,8 @@ class UserController extends Controller
                               'isActive' => $user->isActive,
                               'status_id' => $user->status_id,
                               'status' => $user->status ? $user->status->name : 'Unknown',
+                              'remarks' => $remarks,
+                              'curriculum' => $curriculum,
                           ];
                       });
 

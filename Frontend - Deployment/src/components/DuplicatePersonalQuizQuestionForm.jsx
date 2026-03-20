@@ -3,6 +3,7 @@ import WarnOnExit from "../hooks/WarnOnExit";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import ImageSelectionModal from "./ImageSelectionModal";
+import { getApiBaseUrl } from "../utils/config";
 
 const HeaderDropdown = ({
   name,
@@ -72,7 +73,7 @@ const DuplicatePersonalQuizQuestionForm = ({
   onComplete,
   onCancel,
 }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const { toast, showToast } = useToast();
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
@@ -228,7 +229,7 @@ const DuplicatePersonalQuizQuestionForm = ({
       }
 
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         if (!token) return;
 
         const choicesResponse = await fetch(
@@ -679,7 +680,7 @@ const DuplicatePersonalQuizQuestionForm = ({
     }
 
     setIsLoading(true);
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     try {
       const personalQuizQuestionID =

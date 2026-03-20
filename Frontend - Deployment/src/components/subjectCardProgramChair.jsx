@@ -5,6 +5,7 @@ import PracticeExamConfigProgChair from "./SubjectSettingsDeanProgChair";
 import { useNavigate } from "react-router-dom";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import PrintExamModal from "./PrintExamModal";
+import { getApiBaseUrl } from "../utils/config";
 
 // Component to display subject information and tabs for admin/faculty view
 const SubjectCard = ({
@@ -231,10 +232,10 @@ const SubjectCard = ({
   // Fetch programs and year levels
   useEffect(() => {
     const fetchPrograms = async () => {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/programs`,
+          `${getApiBaseUrl()}/programs`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -265,7 +266,7 @@ const SubjectCard = ({
 
   // Save edit handler
   const handleSaveEdit = async () => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsEditing(true);
     try {
       const updateData = {
@@ -275,7 +276,7 @@ const SubjectCard = ({
         yearLevelID: String(editedSubject.yearLevelID),
       };
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/subjects/${subjectID}/update`,
+        `${getApiBaseUrl()}/subjects/${subjectID}/update`,
         {
           method: "PUT",
           headers: {
@@ -417,11 +418,11 @@ const SubjectCard = ({
 
   // Delete subject handler
   const handleDeleteSubject = async (subjectID) => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/subjects/${subjectID}/delete`,
+        `${getApiBaseUrl()}/subjects/${subjectID}/delete`,
         {
           method: "DELETE",
           headers: {

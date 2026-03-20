@@ -8,6 +8,7 @@ import noInternetImage from "../assets/icons/404notfound.png";
 import emptyImage from "../assets/icons/empty.png";
 import SubjectsIcon from "/src/assets/symbols/subjects.svg";
 import SubjectsIconH from "/src/assets/symbols/subjectshover.svg";
+import { getApiBaseUrl } from "../utils/config";
 
 // Helper function to transform program names
 const getDisplayProgramName = (programName) => {
@@ -239,14 +240,14 @@ const SideBarDropDown = ({
     return () => window.removeEventListener("openSubjectSidebar", openSidebar);
   }, []);
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   useEffect(() => {
     fetchSubjects();
   }, []);
 
   const fetchSubjects = async () => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setSubjectLoading(true);
     setNetworkError(false);
 
@@ -298,7 +299,7 @@ const SideBarDropDown = ({
 
   const handleAddSubject = async () => {
     if (!newSubjectCode.trim() || !newSubjectName.trim()) return;
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     setIsAdding(true);
 
@@ -441,7 +442,7 @@ const SideBarDropDown = ({
 
   useEffect(() => {
     const fetchPrograms = async () => {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       try {
         const res = await fetch(`${apiUrl}/programs`, {
@@ -459,7 +460,7 @@ const SideBarDropDown = ({
     };
 
     const fetchYearLevels = async () => {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       try {
         const res = await fetch(`${apiUrl}/year-levels`, {

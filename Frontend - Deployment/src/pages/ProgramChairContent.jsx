@@ -15,9 +15,10 @@ import Toast from "../components/Toast";
 import useToast from "../hooks/useToast";
 import EmptyImage from "../assets/icons/empty.png";
 import Subject from "../assets/icons/papers.png";
+import { getApiBaseUrl } from "../utils/config";
 
 const ProgramChairContent = () => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const subjectID = params.get("subjectID");
@@ -82,7 +83,7 @@ const ProgramChairContent = () => {
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
       const fetchSubjectSettings = async () => {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         try {
           // Fetch QE status
           const qeResponse = await fetch(
@@ -171,7 +172,7 @@ const ProgramChairContent = () => {
   // Function to save edited question text to the server
   const saveEdit = async (questionID) => {
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       const response = await fetch(`${apiUrl}/questions/update/${questionID}`, {
         method: "PUT",
         headers: {
@@ -202,7 +203,7 @@ const ProgramChairContent = () => {
   // Function to delete a question from the server
   const handleDeleteQuestion = async (questionID) => {
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       setIsDeleting(true);
       const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
         method: "DELETE",
@@ -236,7 +237,7 @@ const ProgramChairContent = () => {
     setQuestions([]);
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!selectedSubject || !selectedSubject.subjectID) {
         console.error("No subject selected");
@@ -354,7 +355,7 @@ const ProgramChairContent = () => {
   // Function to approve a pending question
   const approveQuestion = async (questionID) => {
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       setIsApproving(true);
 
       const response = await fetch(`${apiUrl}/questions/${questionID}/status`, {

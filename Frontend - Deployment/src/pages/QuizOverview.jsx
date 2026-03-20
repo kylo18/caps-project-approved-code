@@ -7,6 +7,7 @@ import WarningModal from "../components/WarningModal";
 import SelectQuestionsModal from "../components/SelectQuestionsModal";
 import Toast from "../components/Toast";
 import useToast from "../hooks/useToast";
+import { getApiBaseUrl } from "../utils/config";
 
 const QuizOverview = () => {
   const navigate = useNavigate();
@@ -82,8 +83,8 @@ const QuizOverview = () => {
   useEffect(() => {
     const fetchAllData = async () => {
       setLoading(true);
-      const token = sessionStorage.getItem("token");
-      const apiUrl = import.meta.env.VITE_API_BASE_URL;
+      const token = localStorage.getItem("token");
+      const apiUrl = getApiBaseUrl();
 
       try {
         // Always prefer counting questions inside this personal quiz
@@ -151,8 +152,8 @@ const QuizOverview = () => {
       return;
     }
 
-    const token = sessionStorage.getItem("token");
-    const apiUrl = import.meta.env.VITE_API_BASE_URL;
+    const token = localStorage.getItem("token");
+    const apiUrl = getApiBaseUrl();
     setIsEditing(true);
     setValidationError("");
 
@@ -217,8 +218,8 @@ const QuizOverview = () => {
   const handleArchiveQuiz = async () => {
     if (!quizToArchive || !quizId) return;
 
-    const token = sessionStorage.getItem("token");
-    const apiUrl = import.meta.env.VITE_API_BASE_URL;
+    const token = localStorage.getItem("token");
+    const apiUrl = getApiBaseUrl();
     setIsArchiving(true);
 
     try {
@@ -261,8 +262,8 @@ const QuizOverview = () => {
   const handleRestoreFromArchive = async () => {
     if (!quizState || !quizId) return;
 
-    const token = sessionStorage.getItem("token");
-    const apiUrl = import.meta.env.VITE_API_BASE_URL;
+    const token = localStorage.getItem("token");
+    const apiUrl = getApiBaseUrl();
     setIsRestoring(true);
 
     try {
@@ -490,7 +491,7 @@ const QuizOverview = () => {
               <button
                 className="border-color mb-4 cursor-pointer items-center justify-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
                 onClick={() => {
-                  const user = JSON.parse(sessionStorage.getItem("user"));
+                  const user = JSON.parse(localStorage.getItem("user"));
                   const roleID = user?.roleID ?? user?.roleId;
                   let path = "/dean/subjects?subject_id=" + subject.subjectID;
                   if (roleID === 2)
@@ -717,7 +718,7 @@ const QuizOverview = () => {
                   <button
                     className="relative z-20 mt-5 mr-15 hidden w-37 cursor-pointer rounded-xl bg-orange-500 px-5 py-2 font-semibold text-white shadow-lg transition duration-100 hover:bg-orange-600 md:block lg:w-50"
                     onClick={() => {
-                      const user = JSON.parse(sessionStorage.getItem("user"));
+                      const user = JSON.parse(localStorage.getItem("user"));
                       const roleID = user?.roleID ?? user?.roleId;
                       let path =
                         "/dean/subjects?subject_id=" + subject.subjectID;
@@ -800,7 +801,7 @@ const QuizOverview = () => {
             ) : (
               <span
                 onClick={() => {
-                  const user = JSON.parse(sessionStorage.getItem("user"));
+                  const user = JSON.parse(localStorage.getItem("user"));
                   const roleID = user?.roleID ?? user?.roleId;
                   let path = "/dean/subjects?subject_id=" + subject.subjectID;
                   if (roleID === 2)

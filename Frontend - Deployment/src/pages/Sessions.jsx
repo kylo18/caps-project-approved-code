@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import EmptyImage from "../assets/icons/empty.png";
+import { getApiBaseUrl } from "../utils/config";
 
 const Sessions = () => {
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const { toast, showToast } = useToast();
 
   const [userRole, setUserRole] = useState(null);
@@ -48,7 +49,7 @@ const Sessions = () => {
       ];
 
   useEffect(() => {
-    const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
       setUserRole(user.roleID ?? user.roleId);
     }
@@ -59,14 +60,14 @@ const Sessions = () => {
     setError(null);
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
       // Determine user role for endpoint selection
-      const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
       const currentRole = user.roleID ?? user.roleId;
       const isFacultyUser =
         currentRole && [2, 3, 4, 5].includes(Number(currentRole));
@@ -87,7 +88,7 @@ const Sessions = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          localStorage.removeItem("token");
           throw new Error("Your session has expired. Please log in again.");
         }
 

@@ -19,6 +19,7 @@ import Toast from "../components/Toast";
 import QuizCard from "../components/quizCard";
 import ScrollToTopButton from "../components/scrollToTopButton";
 import EmptyImage from "../assets/icons/empty.png";
+import { getApiBaseUrl } from "../utils/config";
 
 const QuizContent = () => {
   const location = useLocation();
@@ -32,7 +33,7 @@ const QuizContent = () => {
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [choicesMap, setChoicesMap] = useState({}); // Map of questionID -> choices
   const { toast, showToast } = useToast();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const isFetchingRef = useRef(false);
   const lastQuizIdRef = useRef(null);
   const showToastRef = useRef(showToast);
@@ -172,7 +173,7 @@ const QuizContent = () => {
     setChoicesMap({}); // Clear previous choices
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
@@ -194,7 +195,7 @@ const QuizContent = () => {
 
       if (response.status === 401) {
         showToast("You are not authenticated. Please log in again.", "error");
-        sessionStorage.removeItem("token");
+        localStorage.removeItem("token");
         setIsLoadingQuestions(false);
         isFetchingRef.current = false;
         return;
@@ -387,7 +388,7 @@ const QuizContent = () => {
 
     setIsUpdatingQuiz(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
@@ -456,7 +457,7 @@ const QuizContent = () => {
     if (!quizId || isArchivingQuiz) return;
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
@@ -525,7 +526,7 @@ const QuizContent = () => {
 
     setIsDeleting(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsDeleting(false);
@@ -551,7 +552,7 @@ const QuizContent = () => {
           "There was a problem deleting the question. Please try again.";
 
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          localStorage.removeItem("token");
           message = "Your session has expired. Please log in again.";
         } else if (response.status === 403) {
           message = "You do not have permission to remove this question.";

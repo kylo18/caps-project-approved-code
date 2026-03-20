@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "./sideBar";
 import Header from "./header";
+import BottomNav from "./BottomNav";
 import { Outlet, useLocation } from "react-router-dom";
 
 // Main Layout
@@ -25,7 +26,7 @@ const Layout = () => {
   };
 
   useEffect(() => {
-    const user = JSON.parse(sessionStorage.getItem("user"));
+    const user = JSON.parse(localStorage.getItem("user"));
     if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
       setRoleId(user.roleID ?? user.roleId);
     }
@@ -118,6 +119,7 @@ const Layout = () => {
           </main>
         </div>
       </div>
+      {!isTutorialPage && isStudent && <BottomNav role="student" />}
     </div>
   );
 };

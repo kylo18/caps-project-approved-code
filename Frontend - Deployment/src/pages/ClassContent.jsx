@@ -17,6 +17,7 @@ import RedBackground from "/src/assets/backgrounds/red.png";
 import YellowBackground from "/src/assets/backgrounds/yellow.png";
 import PurpleBackground from "/src/assets/backgrounds/purple.png";
 import CyanBackground from "/src/assets/backgrounds/cyan.png";
+import { getApiBaseUrl } from "../utils/config";
 
 const headerBackgrounds = [
   BlueBackground,
@@ -71,7 +72,7 @@ const getQuizHeaderColor = (quizId) => {
 const ClassContent = () => {
   const navigate = useNavigate();
   const { classID } = useParams();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const { toast, showToast } = useToast();
   const [classInfo, setClassInfo] = useState(null);
   const [students, setStudents] = useState([]);
@@ -118,7 +119,7 @@ const ClassContent = () => {
 
   // Get user role on mount
   useEffect(() => {
-    const user = JSON.parse(sessionStorage.getItem("user"));
+    const user = JSON.parse(localStorage.getItem("user"));
     if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
       setUserRole(user.roleID ?? user.roleId);
     }
@@ -130,7 +131,7 @@ const ClassContent = () => {
       if (!classID || userRole === null) return;
 
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         if (!token) return;
 
         const endpoint =
@@ -174,7 +175,7 @@ const ClassContent = () => {
       setError(null);
 
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         if (!token) {
           throw new Error("You are not authenticated. Please log in again.");
@@ -191,7 +192,7 @@ const ClassContent = () => {
 
         if (!response.ok) {
           if (response.status === 401) {
-            sessionStorage.removeItem("token");
+            localStorage.removeItem("token");
             throw new Error("Your session has expired. Please log in again.");
           }
 
@@ -246,7 +247,7 @@ const ClassContent = () => {
 
     const doFetch = async () => {
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         if (!token) return;
 
         const endpoint =
@@ -286,7 +287,7 @@ const ClassContent = () => {
       setError(null);
 
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         if (!token) {
           return;
@@ -329,7 +330,7 @@ const ClassContent = () => {
 
     setIsRemoving(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsRemoving(false);
@@ -438,7 +439,7 @@ const ClassContent = () => {
     setQuizError(null);
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -458,7 +459,7 @@ const ClassContent = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          localStorage.removeItem("token");
           throw new Error("Your session has expired. Please log in again.");
         }
 
@@ -504,7 +505,7 @@ const ClassContent = () => {
     setAssignedError(null);
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -521,7 +522,7 @@ const ClassContent = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          localStorage.removeItem("token");
           throw new Error("Your session has expired. Please log in again.");
         }
 
@@ -583,7 +584,7 @@ const ClassContent = () => {
 
     setIsAssigningQuiz(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -658,7 +659,7 @@ const ClassContent = () => {
 
     setIsArchiving(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsArchiving(false);
@@ -743,7 +744,7 @@ const ClassContent = () => {
 
     setIsUnassigningQuiz(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -803,7 +804,7 @@ const ClassContent = () => {
     setQuizResultsError(null);
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -823,7 +824,7 @@ const ClassContent = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          localStorage.removeItem("token");
           throw new Error("Your session has expired. Please log in again.");
         }
 
@@ -875,7 +876,7 @@ const ClassContent = () => {
   // Current user from session (for creator card)
   const sessionUser = (() => {
     try {
-      return JSON.parse(sessionStorage.getItem("user") || "null");
+      return JSON.parse(localStorage.getItem("user") || "null");
     } catch {
       return null;
     }

@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import SideBarToolTip from "./sidebarTooltip";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
+import { getApiBaseUrl } from "../utils/config";
 
 const AssignedSubjectsDropDown = ({
   item,
@@ -28,7 +29,7 @@ const AssignedSubjectsDropDown = ({
   const listRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const [selectedSubjectForAssignment, setSelectedSubjectForAssignment] =
     useState(null);
   const [openMenuID, setOpenMenuID] = useState(null);

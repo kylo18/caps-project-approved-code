@@ -5,6 +5,9 @@ import collegeLogo from "/src/assets/college-logo.png";
 import RegisterDropDown from "../components/registerDropDown.jsx";
 import AppVersion from "../components/appVersion.jsx";
 import RegisterDropDownSmall from "../components/registerDropDownSmall.jsx";
+import { getApiUrl } from "../utils/config";
+import { FaMoon, FaSun } from "react-icons/fa";
+import { useTheme } from "../contexts/ThemeContext.jsx";
 
 export default function Register() {
   const [userCode, setUserCode] = useState("");
@@ -28,7 +31,8 @@ export default function Register() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiUrl();
+  const { isDark, toggleTheme } = useTheme();
   const [message, setMessage] = useState("");
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipRef = useRef(null);
@@ -207,7 +211,7 @@ export default function Register() {
 
     setIsRegistering(true);
     try {
-      const res = await fetch(`${apiUrl}/register`, {
+      const res = await fetch(`${apiUrl}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -292,6 +296,20 @@ export default function Register() {
     <>
       {/* This is the Desktop view */}
       <div className="relative hidden min-h-screen w-full bg-[url('/login-bg.png')] bg-cover bg-center bg-no-repeat lg:block">
+        <div className="absolute top-3 right-3 z-10">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white shadow-md backdrop-blur-md transition hover:bg-white/20 active:scale-95"
+            title={isDark ? "Light Mode" : "Dark Mode"}
+          >
+            {isDark ? (
+              <FaSun className="text-base text-yellow-400" />
+            ) : (
+              <FaMoon className="text-base" />
+            )}
+          </button>
+        </div>
         {/* Left Section */}
         <div className="flex min-h-screen flex-row">
           <div className="mr-18 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
@@ -322,7 +340,7 @@ export default function Register() {
               </p>
             </div>
 
-            <div className="outfit mt-12 flex flex-col items-center justify-center lg:hidden">
+            <div className="font-inter mt-12 flex flex-col items-center justify-center lg:hidden">
               <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
                 <span>
                   <span className="text-3xl text-orange-500">C</span>
@@ -348,12 +366,12 @@ export default function Register() {
             <div className="w-full max-w-xs space-y-6 sm:max-w-md">
               <div
                 style={{ fontFamily: "Poppins, sans-serif" }}
-                className="text-center sm:ml-10 lg:ml-0"
+                className="register-theme text-center sm:ml-10 lg:ml-0"
               >
-                <h2 className="mr-15 mb-1 text-[20px] font-bold text-gray-900">
+                <h2 className="mr-15 mb-1 text-[20px] font-bold text-gray-900 dark:text-white">
                   REGISTER ACCOUNT
                 </h2>
-                <p className="mt-2 justify-center text-center text-sm text-gray-500 lg:mr-15">
+                <p className="register-support-text mt-2 justify-center text-center text-sm text-gray-500 lg:mr-15">
                   <span>
                     Get started by entering your credentials to register{" "}
                   </span>
@@ -523,7 +541,7 @@ export default function Register() {
                             <button
                               type="button"
                               onClick={handlePrevStep}
-                              className="border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-[9px] text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
+                              className="register-back-button border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-[9px] text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
                             >
                               <span className="flex items-center justify-center gap-2 text-[16px]">
                                 <i className="bx bx-left-arrow-alt text-[18px]"></i>
@@ -623,7 +641,7 @@ export default function Register() {
                             <button
                               type="button"
                               onClick={handlePrevStep}
-                              className="border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-[9px] text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
+                              className="register-back-button border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-[9px] text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
                             >
                               <span className="flex items-center justify-center gap-2 text-[16px]">
                                 <i className="bx bx-left-arrow-alt text-[18px]"></i>
@@ -764,7 +782,7 @@ export default function Register() {
                           {message && (
                             <div className="text-center">
                               <p className="mb-2 text-green-500">{message}</p>
-                              <p className="text-sm text-gray-600">
+                              <p className="register-support-text text-sm text-gray-600">
                                 Redirecting to login page...
                               </p>
                             </div>
@@ -775,7 +793,7 @@ export default function Register() {
                             <button
                               type="button"
                               onClick={handlePrevStep}
-                              className="border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-[9px] text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
+                              className="register-back-button border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-[9px] text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
                             >
                               <span className="flex items-center justify-center gap-2 text-[16px]">
                                 <i className="bx bx-left-arrow-alt text-[18px]"></i>
@@ -807,7 +825,7 @@ export default function Register() {
                       )}
                     </div>
 
-                    <p className="mt-5 justify-center text-center text-[14px] text-gray-600">
+                    <p className="register-support-text mt-5 justify-center text-center text-[14px] text-gray-600">
                       Already have an account?{" "}
                       <span
                         className="cursor-pointer text-orange-500 hover:underline"
@@ -817,7 +835,7 @@ export default function Register() {
                       </span>
                     </p>
 
-                    <span className="mx-2 text-xs text-gray-400">
+                    <span className="register-version mx-2 text-xs text-gray-400">
                       Developed by{" "}
                       <span
                         onClick={() => navigate("/team-caps")}
@@ -831,40 +849,53 @@ export default function Register() {
               </div>
             </div>
           </div>
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 transform items-center space-x-2 text-gray-400 lg:left-8">
+          <div className="register-version absolute bottom-3 left-1/2 flex -translate-x-1/2 transform items-center space-x-2 text-gray-400 dark:text-gray-500 lg:left-8">
             <AppVersion />
           </div>
         </div>
       </div>
 
       {/* This is the mobile view */}
-      <div className="lg:hidden">
+      <div className="flex min-h-screen flex-col bg-white dark:bg-black lg:hidden">
         <div className="flex flex-col">
-          <div className="flex w-full flex-col items-center justify-center bg-gradient-to-br from-[#101010] to-[#3c3c3c]">
+          <div className="flex w-full flex-col items-center justify-center bg-gradient-to-br from-[#101010] to-[#3c3c3c] dark:from-black dark:to-[#0a0a0a]">
             <div className="relative flex h-60 w-full flex-col items-center justify-center">
-              <div className="outfit absolute top-5 right-5">
-                <span className="mr-2 text-[12px] text-white">
-                  Already have an account?{" "}
-                </span>
-                <button
-                  onClick={() => navigate("/")}
-                  className="cursor-pointer rounded-lg bg-white/10 px-4 py-1 text-[14px] font-medium text-white shadow-md backdrop-blur-md transition hover:bg-white/20 hover:backdrop-blur-lg"
-                >
-                  Log in
-                </button>
-              </div>
-              {/* Logos at top left */}
-              <div className="absolute top-5 left-5 z-10 flex items-center gap-3">
-                <img
-                  src={univLogo}
-                  alt="University Logo"
-                  className="size-8 object-contain"
-                />
-                <img
-                  src={collegeLogo}
-                  alt="College Logo"
-                  className="size-8 object-contain"
-                />
+              <div className="absolute top-5 left-4 right-4 z-10 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={univLogo}
+                    alt="University Logo"
+                    className="size-7 object-contain sm:size-8"
+                  />
+                  <img
+                    src={collegeLogo}
+                    alt="College Logo"
+                    className="size-7 object-contain sm:size-8"
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white shadow-md backdrop-blur-md transition hover:bg-white/20 active:scale-95"
+                    title={isDark ? "Light Mode" : "Dark Mode"}
+                  >
+                    {isDark ? (
+                      <FaSun className="text-base text-yellow-400" />
+                    ) : (
+                      <FaMoon className="text-base" />
+                    )}
+                  </button>
+                </div>
+                <div className="font-inter flex items-center gap-2">
+                  <span className="mr-2 text-[12px] text-white">
+                    Already have an account?{" "}
+                  </span>
+                  <button
+                    onClick={() => navigate("/")}
+                    className="cursor-pointer rounded-lg bg-white/10 px-4 py-1 text-[14px] font-medium text-white shadow-md backdrop-blur-md transition hover:bg-white/20 hover:backdrop-blur-lg"
+                  >
+                    Log in
+                  </button>
+                </div>
               </div>
               <div
                 style={{ fontFamily: "Poppins, sans-serif" }}
@@ -898,18 +929,18 @@ export default function Register() {
               borderTopLeftRadius: "30px 15px",
               borderTopRightRadius: "30px 15px",
             }}
-            className="mx-auto -mt-10 flex h-[14px] w-[85%] flex-col items-center justify-center bg-white/10 shadow-lg backdrop-blur-md"
+            className="mx-auto -mt-10 flex h-[14px] w-[85%] flex-col items-center justify-center bg-white/10 shadow-lg backdrop-blur-md dark:bg-black/50"
           ></div>
 
           {/* Login Card */}
           <div
             style={{ fontFamily: "Poppins, sans-serif" }}
-            className="flex w-full flex-col items-center justify-center rounded-t-4xl bg-white p-6"
+            className="register-theme flex w-full flex-col items-center justify-center rounded-t-4xl bg-white dark:bg-gray-900 p-6"
           >
-            <h2 className="mb-1 text-[20px] font-bold text-gray-900">
+            <h2 className="mb-1 text-[20px] font-bold text-gray-900 dark:text-white">
               REGISTER ACCOUNT
             </h2>
-            <p className="mb-5 max-w-80 justify-center text-center text-xs text-gray-500 md:max-w-full lg:mr-15">
+            <p className="register-support-text mb-5 max-w-80 justify-center text-center text-xs text-gray-500 md:max-w-full lg:mr-15">
               Get started by entering your credentials to register and create
               your account.
             </p>
@@ -1081,7 +1112,7 @@ export default function Register() {
                       <button
                         type="button"
                         onClick={handlePrevStep}
-                        className="border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-3 text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
+                        className="register-back-button border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-3 text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
                       >
                         <span className="flex items-center justify-center gap-2 text-[16px]">
                           <i className="bx bx-left-arrow-alt text-[18px]"></i>
@@ -1181,7 +1212,7 @@ export default function Register() {
                       <button
                         type="button"
                         onClick={handlePrevStep}
-                        className="border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-3 text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
+                        className="register-back-button border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-3 text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
                       >
                         <span className="flex items-center justify-center gap-2 text-[16px]">
                           <i className="bx bx-left-arrow-alt text-[18px]"></i>
@@ -1313,7 +1344,7 @@ export default function Register() {
                     {message && (
                       <div className="text-center">
                         <p className="mb-2 text-green-500">{message}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="register-support-text text-sm text-gray-600">
                           Redirecting to login page...
                         </p>
                       </div>
@@ -1324,7 +1355,7 @@ export default function Register() {
                       <button
                         type="button"
                         onClick={handlePrevStep}
-                        className="border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-3 text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
+                        className="register-back-button border-color mt-3 mb-1 w-[30%] cursor-pointer rounded-xl border bg-white py-3 text-base font-semibold text-black shadow-md transition-all duration-200 ease-in-out hover:bg-gray-100 active:scale-[0.98] active:shadow-sm disabled:opacity-60"
                       >
                         <span className="flex items-center justify-center gap-2 text-[16px]">
                           <i className="bx bx-left-arrow-alt text-[18px]"></i>
@@ -1355,14 +1386,14 @@ export default function Register() {
               </div>
 
               <div className="my-2 flex w-full items-center">
-                <div className="h-px flex-1 bg-gray-200"></div>
-                <span className="mx-2 text-xs text-gray-400">
+                <div className="register-divider h-px flex-1 bg-gray-200"></div>
+                <span className="register-version mx-2 text-xs text-gray-400">
                   <AppVersion />
                 </span>
-                <div className="h-px flex-1 bg-gray-200"></div>
+                <div className="register-divider h-px flex-1 bg-gray-200"></div>
               </div>
               <div className="flex items-center justify-center">
-                <span className="mx-2 text-xs text-gray-400">
+                <span className="register-version mx-2 text-xs text-gray-400">
                   Developed by{" "}
                   <span
                     onClick={() => navigate("/team-caps")}

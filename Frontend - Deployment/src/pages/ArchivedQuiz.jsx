@@ -23,6 +23,7 @@ import emptyImage from "../assets/icons/empty.png";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
+import { getApiBaseUrl } from "../utils/config";
 
 const ArchivedQuiz = () => {
   const navigate = useNavigate();
@@ -65,14 +66,14 @@ const ArchivedQuiz = () => {
       setIsLoading(true);
 
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         if (!token) {
           throw new Error("You are not authenticated. Please log in again.");
         }
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes/archived`,
+          `${getApiBaseUrl()}/personal-quizzes/archived`,
           {
             method: "GET",
             headers: {
@@ -85,7 +86,7 @@ const ArchivedQuiz = () => {
 
         if (!response.ok) {
           if (response.status === 401) {
-            sessionStorage.removeItem("token");
+            localStorage.removeItem("token");
             throw new Error("Your session has expired. Please log in again.");
           }
 
@@ -173,7 +174,7 @@ const ArchivedQuiz = () => {
         return;
       }
 
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -182,7 +183,7 @@ const ArchivedQuiz = () => {
       setRestoringQuizId(quizID);
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes/${quizID}/unarchive`,
+        `${getApiBaseUrl()}/personal-quizzes/${quizID}/unarchive`,
         {
           method: "PATCH",
           headers: {
@@ -243,7 +244,7 @@ const ArchivedQuiz = () => {
         return;
       }
 
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -252,7 +253,7 @@ const ArchivedQuiz = () => {
       setDeletingQuizId(quizID);
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes/${quizID}`,
+        `${getApiBaseUrl()}/personal-quizzes/${quizID}`,
         {
           method: "DELETE",
           headers: {
@@ -360,7 +361,7 @@ const ArchivedQuiz = () => {
   const handleRestoreSelected = async () => {
     if (selectedQuizzes.length === 0) return;
 
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     const countToRestore = selectedQuizzes.length;
     setRestoringQuizId("bulk");
 
@@ -368,7 +369,7 @@ const ArchivedQuiz = () => {
       // Restore quizzes one by one
       const restorePromises = selectedQuizzes.map(async (quizID) => {
         const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes/${quizID}/unarchive`,
+          `${getApiBaseUrl()}/personal-quizzes/${quizID}/unarchive`,
           {
             method: "PATCH",
             headers: {
@@ -390,9 +391,9 @@ const ArchivedQuiz = () => {
 
       // Refetch quizzes to update the list
       const fetchArchivedQuizzes = async () => {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes/archived`,
+          `${getApiBaseUrl()}/personal-quizzes/archived`,
           {
             method: "GET",
             headers: {

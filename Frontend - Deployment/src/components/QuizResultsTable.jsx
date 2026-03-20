@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import emptyImage from "/src/assets/icons/empty.png";
+import { getApiBaseUrl } from "../utils/config";
 
 const QuizResultsTable = ({ classPersonalQuizID, personalQuizID }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const [activeTab, setActiveTab] = useState("recent");
   const [recentResults, setRecentResults] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -28,7 +29,7 @@ const QuizResultsTable = ({ classPersonalQuizID, personalQuizID }) => {
       setLoading(true);
       setError(null);
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         if (!token) {
           throw new Error(
             "Authentication token not found. Please log in again.",
@@ -242,7 +243,7 @@ const QuizResultsTable = ({ classPersonalQuizID, personalQuizID }) => {
       setNonTakersLoading(true);
       setNonTakersError(null);
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         if (!token) {
           throw new Error(
             "Authentication token not found. Please log in again.",

@@ -10,6 +10,7 @@ import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 
 import SubPhoto from "../assets/gottfield.jpg";
+import { getApiBaseUrl } from "../utils/config";
 
 const SubjectOverview = () => {
   const navigate = useNavigate();
@@ -58,8 +59,8 @@ const SubjectOverview = () => {
   // Fetch programs and year levels
   useEffect(() => {
     const fetchPrograms = async () => {
-      const token = sessionStorage.getItem("token");
-      const apiUrl = import.meta.env.VITE_API_BASE_URL;
+      const token = localStorage.getItem("token");
+      const apiUrl = getApiBaseUrl();
       try {
         const res = await fetch(`${apiUrl}/programs`, {
           headers: {
@@ -76,8 +77,8 @@ const SubjectOverview = () => {
     };
 
     const fetchYearLevels = async () => {
-      const token = sessionStorage.getItem("token");
-      const apiUrl = import.meta.env.VITE_API_BASE_URL;
+      const token = localStorage.getItem("token");
+      const apiUrl = getApiBaseUrl();
       try {
         const res = await fetch(`${apiUrl}/year-levels`, {
           headers: {
@@ -101,8 +102,8 @@ const SubjectOverview = () => {
     const fetchAllData = async () => {
       if (!subject?.subjectID) return;
       setLoading(true);
-      const token = sessionStorage.getItem("token");
-      const apiUrl = import.meta.env.VITE_API_BASE_URL;
+      const token = localStorage.getItem("token");
+      const apiUrl = getApiBaseUrl();
       try {
         // Fetch questions and results in parallel
         const [questionsRes, resultsRes] = await Promise.all([
@@ -253,8 +254,8 @@ const SubjectOverview = () => {
       return;
     }
 
-    const token = sessionStorage.getItem("token");
-    const apiUrl = import.meta.env.VITE_API_BASE_URL;
+    const token = localStorage.getItem("token");
+    const apiUrl = getApiBaseUrl();
     setIsEditing(true);
     setValidationError("");
 
@@ -321,8 +322,8 @@ const SubjectOverview = () => {
   const handleDeleteSubject = async () => {
     if (!subjectToDelete) return;
 
-    const token = sessionStorage.getItem("token");
-    const apiUrl = import.meta.env.VITE_API_BASE_URL;
+    const token = localStorage.getItem("token");
+    const apiUrl = getApiBaseUrl();
     setIsDeleting(true);
 
     try {
@@ -342,7 +343,7 @@ const SubjectOverview = () => {
         setSubjectToDelete(null);
         showToast("Subject deleted successfully", "success");
         // Navigate back to subject list
-        const user = JSON.parse(sessionStorage.getItem("user"));
+        const user = JSON.parse(localStorage.getItem("user"));
         const roleID = user?.roleID ?? user?.roleId;
         let path = "/dean/subjects";
         if (Number(roleID) === 2) path = "/faculty/subjects";
@@ -436,7 +437,7 @@ const SubjectOverview = () => {
             <button
               className="border-color mb-4 cursor-pointer items-center justify-center gap-1 rounded-xl border bg-white px-3 py-2 text-[12px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
               onClick={() => {
-                const user = JSON.parse(sessionStorage.getItem("user"));
+                const user = JSON.parse(localStorage.getItem("user"));
                 const roleID = user?.roleID ?? user?.roleId;
                 let path = "/dean/subjects?subject_id=" + subject.subjectID;
                 if (Number(roleID) === 2)
@@ -600,7 +601,7 @@ const SubjectOverview = () => {
               <button
                 className="relative z-20 mt-5 mr-15 hidden w-37 cursor-pointer rounded-xl bg-orange-500 px-5 py-2 font-semibold text-white shadow-lg transition duration-100 hover:bg-orange-600 md:block lg:w-50"
                 onClick={() => {
-                  const user = JSON.parse(sessionStorage.getItem("user"));
+                  const user = JSON.parse(localStorage.getItem("user"));
                   const roleID = user?.roleID ?? user?.roleId;
                   let path = "/dean/subjects?subject_id=" + subject.subjectID;
                   if (Number(roleID) === 2)
@@ -665,7 +666,7 @@ const SubjectOverview = () => {
         <div className="outfit border-color relative z-48 -mx-2 -mt-2 mb-2 flex h-[40px] items-center justify-end overflow-visible border bg-white px-4 text-[12px] font-semibold sm:mx-0 sm:rounded-b-md md:hidden">
           <span
             onClick={() => {
-              const user = JSON.parse(sessionStorage.getItem("user"));
+              const user = JSON.parse(localStorage.getItem("user"));
               const roleID = user?.roleID ?? user?.roleId;
               let path = "/dean/subjects?subject_id=" + subject.subjectID;
               if (Number(roleID) === 2)

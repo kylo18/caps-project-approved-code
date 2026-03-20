@@ -5,6 +5,9 @@ import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import collegeLogo from "/src/assets/college-logo.png";
 import { logoutUser } from "../utils/logoutUser";
+import { getApiBaseUrl } from "../utils/config";
+import ServerConfigModal from "./ServerConfigModal";
+import { useTheme } from "../contexts/ThemeContext.jsx";
 
 // Utility to get a random color from a palette
 const AVATAR_COLORS = [
@@ -48,15 +51,17 @@ const AdminHeader = ({ title, className = "" }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showServerConfig, setShowServerConfig] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isTutorialPage = location.pathname.includes("/help");
   const collegeLogo = new URL("../assets/college-logo.png", import.meta.url)
     .href;
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const dropdownRef = useRef(null);
   const { toast, showToast } = useToast();
+  const { isDark, toggleTheme } = useTheme();
 
   const [isChangePasswordSubmitting, setIsChangePasswordSubmitting] =
     useState(false);
@@ -101,9 +106,9 @@ const AdminHeader = ({ title, className = "" }) => {
 
   // Close dropdown if logout modal is opened
   useEffect(() => {
-    if (showLogoutModal || showProfileModal || showChangePassword)
+    if (showLogoutModal || showProfileModal || showChangePassword || showServerConfig)
       setDropdownOpen(false);
-  }, [showLogoutModal, showProfileModal, showChangePassword]);
+  }, [showLogoutModal, showProfileModal, showChangePassword, showServerConfig]);
 
   // Close Profile Modal on outside click for <=448px
   useEffect(() => {
@@ -178,7 +183,7 @@ const AdminHeader = ({ title, className = "" }) => {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         const response = await fetch(`${apiUrl}/user/profile`, {
           method: "GET",
           headers: {
@@ -215,7 +220,7 @@ const AdminHeader = ({ title, className = "" }) => {
   // Handle the logout process
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     try {
       await fetch(`${apiUrl}/logout`, {
         method: "POST",
@@ -278,7 +283,7 @@ const AdminHeader = ({ title, className = "" }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify(formData),
       });
@@ -330,7 +335,7 @@ const AdminHeader = ({ title, className = "" }) => {
         }
       });
 
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       const profileResponse = await fetch(`${apiUrl}/user/update-profile`, {
         method: "POST",
         headers: {
@@ -487,12 +492,21 @@ const AdminHeader = ({ title, className = "" }) => {
                 </button>
 
                 <button
-                  onClick={() =>
-                    alert("The dark mode feature is still under development.")
-                  }
+                  onClick={() => setShowServerConfig(true)}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i className="bx bx-moon mr-2 text-[16px]"></i> Dark Mode
+                  <i className="bx bx-server mr-2 text-[16px]"></i> Server Config
+                </button>
+
+                <button
+                  onClick={toggleTheme}
+                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                  aria-pressed={isDark}
+                >
+                  <i
+                    className={`bx ${isDark ? "bx-sun" : "bx-moon"} mr-2 text-[16px]`}
+                  ></i>
+                  {isDark ? "Light Mode" : "Dark Mode"}
                 </button>
 
                 <button
@@ -889,6 +903,12 @@ const AdminHeader = ({ title, className = "" }) => {
           </div>
         </div>
       )}
+
+      <ServerConfigModal
+        isOpen={showServerConfig}
+        onClose={() => setShowServerConfig(false)}
+        onSave={() => window.location.reload()}
+      />
 
       <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import AssignToClassModal from "./AssignToClassModal";
+import { getApiBaseUrl } from "../utils/config";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 const toDatetimeLocal = (d) =>
@@ -157,7 +158,7 @@ const QuizSettingsModal = ({
   classDisplayName = "",
   onUnassign,
 }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -226,7 +227,7 @@ const QuizSettingsModal = ({
 
       try {
         setLoading(true);
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         if (!token) {
           showToast(
@@ -350,7 +351,7 @@ const QuizSettingsModal = ({
 
       try {
         setLoading(true);
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         if (!token) {
           showToast(
@@ -560,7 +561,7 @@ const QuizSettingsModal = ({
     }
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast(
           "Authentication token not found. Please log in again.",

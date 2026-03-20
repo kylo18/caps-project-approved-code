@@ -5,6 +5,7 @@ import LoadingOverlay from "./loadingOverlay";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
+import { getApiBaseUrl } from "../utils/config";
 // Component to display and manage user list with filtering and actions
 // Features:
 // - Separate tabs for Students and Other users
@@ -73,7 +74,7 @@ const UserList = () => {
   // Add new state for user type tabs
   const [studentsOnly, setStudentsOnly] = useState(false); // true: students only, false: others only
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   // Get toast functions from hook
   const { toast, showToast } = useToast();

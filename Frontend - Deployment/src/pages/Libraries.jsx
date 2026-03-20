@@ -27,6 +27,7 @@ import Collections from "./Collections";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
+import { getApiBaseUrl } from "../utils/config";
 
 // Program colors + icons for the grid cards
 const PROGRAM_COLORS = [
@@ -269,7 +270,7 @@ function Libraries() {
   const [roleId, setRoleId] = useState(null);
 
   useEffect(() => {
-    const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
       setRoleId(user.roleID ?? user.roleId);
     }
@@ -315,14 +316,14 @@ function Libraries() {
     setError(null);
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes`,
+        `${getApiBaseUrl()}/personal-quizzes`,
         {
           method: "GET",
           headers: {
@@ -335,7 +336,7 @@ function Libraries() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          localStorage.removeItem("token");
           throw new Error("Your session has expired. Please log in again.");
         }
 
@@ -448,14 +449,14 @@ function Libraries() {
 
       try {
         // Get the token from localStorage (matching your pattern)
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         if (!token) {
           throw new Error("You are not authenticated. Please log in again.");
         }
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/subjects/all`,
+          `${getApiBaseUrl()}/subjects/all`,
           {
             method: "GET",
             headers: {
@@ -470,7 +471,7 @@ function Libraries() {
           // If 401, token might be expired or invalid
           if (response.status === 401) {
             // Clear token and show error
-            sessionStorage.removeItem("token");
+            localStorage.removeItem("token");
             throw new Error("Your session has expired. Please log in again.");
           }
 
@@ -630,7 +631,7 @@ function Libraries() {
 
     try {
       // Get the token from localStorage (matching your pattern)
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -649,7 +650,7 @@ function Libraries() {
       };
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes`,
+        `${getApiBaseUrl()}/personal-quizzes`,
         {
           method: "POST",
           headers: {
@@ -734,7 +735,7 @@ function Libraries() {
         return;
       }
 
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -743,7 +744,7 @@ function Libraries() {
       const quizID = editingQuiz.id || editingQuiz.personalQuizID;
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/update-personal-quizzes/${quizID}`,
+        `${getApiBaseUrl()}/update-personal-quizzes/${quizID}`,
         {
           method: "PUT",
           headers: {
@@ -819,7 +820,7 @@ function Libraries() {
         return;
       }
 
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
@@ -828,7 +829,7 @@ function Libraries() {
       setArchivingQuizId(quizID);
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes/${quizID}/archive`,
+        `${getApiBaseUrl()}/personal-quizzes/${quizID}/archive`,
         {
           method: "PATCH",
           headers: {
@@ -938,7 +939,7 @@ function Libraries() {
   const handleArchiveSelected = async () => {
     if (selectedQuizzes.length === 0) return;
 
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     const countToArchive = selectedQuizzes.length;
     setArchivingQuizId("bulk");
 
@@ -946,7 +947,7 @@ function Libraries() {
       // Archive quizzes one by one (or use bulk endpoint if available)
       const archivePromises = selectedQuizzes.map(async (quizID) => {
         const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes/${quizID}/archive`,
+          `${getApiBaseUrl()}/personal-quizzes/${quizID}/archive`,
           {
             method: "PATCH",
             headers: {
@@ -968,9 +969,9 @@ function Libraries() {
 
       // Refetch quizzes to update the list
       const fetchQuizzes = async () => {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes`,
+          `${getApiBaseUrl()}/personal-quizzes`,
           {
             method: "GET",
             headers: {

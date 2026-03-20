@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import CustomDropdown from "./customDropdown";
 import WarnOnExit from "../hooks/WarnOnExit";
+import { getApiBaseUrl } from "../utils/config";
 
 // Practice Question Form or Adding Practice Questions
 const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const [showTip, setShowTip] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
@@ -144,7 +145,7 @@ const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
 
     // Directly proceed with submission
     setIsLoading(true);
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     try {
       // First, submit the question

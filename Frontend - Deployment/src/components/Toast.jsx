@@ -58,8 +58,8 @@ const Toast = ({ message, type, show, onClose, onReport }) => {
 
 export default Toast;
 export function logoutUser(showToast, navigate, message) {
-  sessionStorage.removeItem("token");
-  sessionStorage.removeItem("user");
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
   // Remove any other user data if needed
   if (showToast && message) showToast(message, "error");
   setTimeout(() => {

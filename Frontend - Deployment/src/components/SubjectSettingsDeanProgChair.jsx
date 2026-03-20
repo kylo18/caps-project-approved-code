@@ -9,6 +9,7 @@ import {
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import RegisterDropDownSmall from "./registerDropDownSmall";
+import { getApiBaseUrl } from "../utils/config";
 const PracticeExamConfig = ({
   subjectID,
   isFormOpen,
@@ -17,7 +18,7 @@ const PracticeExamConfig = ({
   practiceExamSettings,
   setPracticeExamSettings,
 }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const [mode, setMode] = useState("default");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -83,7 +84,7 @@ const PracticeExamConfig = ({
       if (isFormOpen && subjectID) {
         try {
           setLoading(true);
-          const token = sessionStorage.getItem("token");
+          const token = localStorage.getItem("token");
 
           // Fetch practice settings
           const practiceResponse = await fetch(
@@ -202,7 +203,7 @@ const PracticeExamConfig = ({
     // setErrorMessage("");
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast(
           "Authentication token not found. Please log in again.",

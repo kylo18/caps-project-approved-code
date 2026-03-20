@@ -3,6 +3,7 @@ import WarnOnExit from "../hooks/WarnOnExit";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import ImageSelectionModal from "./ImageSelectionModal";
+import { getApiBaseUrl } from "../utils/config";
 
 // Compact Header Dropdown Component
 const HeaderDropdown = ({
@@ -79,7 +80,7 @@ const EditQuestionForm = ({
   onCancel,
   isExamQuestionsEnabled: propIsExamQuestionsEnabled,
 }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const { toast, showToast } = useToast();
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
@@ -480,7 +481,7 @@ const EditQuestionForm = ({
     }
 
     setIsLoading(true);
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     try {
       const questionData = new FormData();

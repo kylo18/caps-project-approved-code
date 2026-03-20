@@ -4,6 +4,7 @@ import StudentPfp from "/src/assets/symbols/student.png";
 import FacultyPfp from "/src/assets/symbols/faculty.png";
 import ProgramChairPfp from "/src/assets/symbols/progchair.png";
 import DeanPfp from "/src/assets/symbols/dean.png";
+import { getApiBaseUrl } from "../utils/config";
 
 const roleImages = {
   1: StudentPfp,
@@ -14,7 +15,7 @@ const roleImages = {
 };
 
 const Reports = () => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const [userRole, setUserRole] = useState(null);
   const [activeTab, setActiveTab] = useState("recent");
   const [recentTakers, setRecentTakers] = useState([]);
@@ -30,7 +31,7 @@ const Reports = () => {
   const isFaculty = userRole && [2, 3, 4, 5].includes(Number(userRole));
 
   useEffect(() => {
-    const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
       setUserRole(user.roleID ?? user.roleId);
     }
@@ -45,7 +46,7 @@ const Reports = () => {
 
     const fetchRecentTakers = async () => {
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         if (!token) {
           throw new Error(
             "Authentication token not found. Please log in again.",
@@ -95,7 +96,7 @@ const Reports = () => {
 
     const fetchLeaderboard = async () => {
       try {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         if (!token) {
           throw new Error(
             "Authentication token not found. Please log in again.",

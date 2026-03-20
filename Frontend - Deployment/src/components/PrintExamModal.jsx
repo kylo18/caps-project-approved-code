@@ -5,6 +5,7 @@ import RegisterDropDownSmall from "./registerDropDownSmall";
 import ConfirmModal from "./confirmModal";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
+import { getApiBaseUrl } from "../utils/config";
 import {
   useRef as useLocalRef,
   useState as useLocalState,
@@ -32,7 +33,7 @@ export default function ExamGenerator({
     isEnabled: true,
   });
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   useEffect(() => {
     fetchSubjects();
@@ -122,7 +123,7 @@ export default function ExamGenerator({
     try {
       const response = await fetch(`${apiUrl}/subjects`, {
         headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
       const data = await response.json();
@@ -247,7 +248,7 @@ export default function ExamGenerator({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify(requestBody),
       });

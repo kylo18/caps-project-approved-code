@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import useToast from "../hooks/useToast";
 import Toast from "./Toast";
+import { getApiBaseUrl } from "../utils/config";
 
 const AssignToClassModal = ({
   isOpen,
@@ -19,7 +20,7 @@ const AssignToClassModal = ({
   const [selectedClassIDs, setSelectedClassIDs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast, showToast } = useToast();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   useEffect(() => {
     if (isOpen && personalQuizID) {
@@ -36,7 +37,7 @@ const AssignToClassModal = ({
   const fetchClasses = async () => {
     setIsLoading(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsLoading(false);
@@ -56,7 +57,7 @@ const AssignToClassModal = ({
 
       if (response.status === 401) {
         showToast("You are not authenticated. Please log in again.", "error");
-        sessionStorage.removeItem("token");
+        localStorage.removeItem("token");
         setIsLoading(false);
         return;
       }
@@ -134,7 +135,7 @@ const AssignToClassModal = ({
 
     setIsAssigning(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsAssigning(false);
@@ -159,7 +160,7 @@ const AssignToClassModal = ({
 
       if (response.status === 401) {
         showToast("You are not authenticated. Please log in again.", "error");
-        sessionStorage.removeItem("token");
+        localStorage.removeItem("token");
         setIsAssigning(false);
         return;
       }

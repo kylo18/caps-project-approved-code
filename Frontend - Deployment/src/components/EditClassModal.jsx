@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
+import { getApiBaseUrl } from "../utils/config";
 
 // Program colors + icons for the grid cards (matching Libraries.jsx)
 const PROGRAM_COLORS = [
@@ -204,7 +205,7 @@ function ProgramSubjectSelector({
 }
 
 const EditClassModal = ({ isOpen, onClose, onSuccess, classData }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const { toast, showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [subjects, setSubjects] = useState([]);
@@ -241,7 +242,7 @@ const EditClassModal = ({ isOpen, onClose, onSuccess, classData }) => {
   const fetchSubjects = async () => {
     setIsSubjectsLoading(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsSubjectsLoading(false);
@@ -259,7 +260,7 @@ const EditClassModal = ({ isOpen, onClose, onSuccess, classData }) => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          localStorage.removeItem("token");
           showToast("Your session has expired. Please log in again.", "error");
           setIsSubjectsLoading(false);
           return;
@@ -360,7 +361,7 @@ const EditClassModal = ({ isOpen, onClose, onSuccess, classData }) => {
 
     setLoading(true);
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setLoading(false);
@@ -384,7 +385,7 @@ const EditClassModal = ({ isOpen, onClose, onSuccess, classData }) => {
 
       if (response.status === 401) {
         showToast("You are not authenticated. Please log in again.", "error");
-        sessionStorage.removeItem("token");
+        localStorage.removeItem("token");
         setLoading(false);
         return;
       }

@@ -5,6 +5,7 @@ FROM php:8.2-apache
 RUN apt-get update && apt-get install -y \
     unzip \
     curl \
+    git \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \

@@ -5,9 +5,10 @@ import AppVersion from "../components/appVersion";
 import collegeLogo from "/src/assets/college-logo.png";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
+import { getApiBaseUrl } from "../utils/config";
 
 const ForgotPasswordForm = () => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast, showToast } = useToast();

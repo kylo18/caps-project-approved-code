@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import univLogo from "../assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
+import { getApiBaseUrl } from "../utils/config";
 
 function shuffleArray(array) {
   const arr = array.slice();
@@ -33,7 +34,7 @@ export default function PrintPersonalQuiz() {
   const navigate = useNavigate();
   const { quiz: quizInfo, pdfData, fromAPI } = location.state || {};
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const [quizData, setQuizData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -153,7 +154,7 @@ export default function PrintPersonalQuiz() {
         setIsLoading(true);
         setError(null);
         const token =
-          localStorage.getItem("token") || sessionStorage.getItem("token");
+          localStorage.getItem("token") || localStorage.getItem("token");
 
         if (!token) {
           throw new Error("You are not authenticated. Please log in again.");

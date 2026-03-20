@@ -21,6 +21,7 @@ import ArchiveIcon from "/src/assets/symbols/archive.svg";
 import ArchiveIconH from "/src/assets/symbols/archivehover.svg";
 
 import SubPhoto from "../assets/gottfield.jpg";
+import { getApiBaseUrl } from "../utils/config";
 
 // Helper function to transform program names
 const getDisplayProgramName = (programName) => {
@@ -53,8 +54,8 @@ function SubjectsArchive() {
     } else if (subjectID && !selectedSubject) {
       // If we have subjectID but no subject in state, fetch it
       const fetchSubject = async () => {
-        const token = sessionStorage.getItem("token");
-        const apiUrl = import.meta.env.VITE_API_BASE_URL;
+        const token = localStorage.getItem("token");
+        const apiUrl = getApiBaseUrl();
         try {
           const response = await fetch(`${apiUrl}/subjects/${subjectID}`, {
             headers: {
@@ -92,8 +93,8 @@ function SubjectsArchive() {
     if (subjectID) {
       // If we have subjectID but no subject in state, fetch it first
       const fetchSubject = async () => {
-        const token = sessionStorage.getItem("token");
-        const apiUrl = import.meta.env.VITE_API_BASE_URL;
+        const token = localStorage.getItem("token");
+        const apiUrl = getApiBaseUrl();
         try {
           const response = await fetch(`${apiUrl}/subjects/${subjectID}`, {
             headers: {
@@ -186,7 +187,7 @@ function SubjectsArchive() {
   }, [showYearLevelDropdown]);
 
   const { toast, showToast } = useToast();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   // Get unique program names for sidebar buttons
   const uniquePrograms = Array.from(
@@ -241,7 +242,7 @@ function SubjectsArchive() {
   }, []);
 
   const fetchSubjects = async () => {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     setSubjectLoading(true);
     setNetworkError(false);
 

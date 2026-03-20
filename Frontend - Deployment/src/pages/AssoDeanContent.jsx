@@ -13,6 +13,7 @@ import Toast from "../components/Toast";
 import useToast from "../hooks/useToast";
 import EmptyImage from "../assets/icons/empty.png";
 import Subject from "../assets/icons/papers.png";
+import { getApiBaseUrl } from "../utils/config";
 
 // Main admin dashboard component for managing questions and subjects
 const AdminContent = () => {
@@ -83,7 +84,7 @@ const AdminContent = () => {
   // State for loading
   const [isLoading, setIsLoading] = useState(true);
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
 
   // State for exam questions availability
   const [isExamQuestionsEnabled, setIsExamQuestionsEnabled] = useState({});
@@ -93,7 +94,7 @@ const AdminContent = () => {
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
       const fetchSubjectSettings = async () => {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         try {
           // Fetch QE status
           const qeResponse = await fetch(
@@ -170,7 +171,7 @@ const AdminContent = () => {
   // Function to handle question deletion
   const handleDeleteQuestion = async (questionID) => {
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       setIsDeleting(true);
       const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
         method: "DELETE",
@@ -204,7 +205,7 @@ const AdminContent = () => {
     setQuestions([]);
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!selectedSubject || !selectedSubject.subjectID) {
         console.error("No subject selected");
@@ -315,7 +316,7 @@ const AdminContent = () => {
   // Function to handle question approval
   const approveQuestion = async (questionID) => {
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       setIsApproving(true);
 
       const response = await fetch(`${apiUrl}/questions/${questionID}/status`, {

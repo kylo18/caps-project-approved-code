@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import useToast from "../hooks/useToast";
 import Toast from "./Toast";
+import { getApiBaseUrl } from "../utils/config";
 
 const ImportQuestionModal = ({
   isOpen,
@@ -9,7 +10,7 @@ const ImportQuestionModal = ({
   personalQuizID,
   subjectID,
 }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const { toast, showToast } = useToast();
   const [activeTab, setActiveTab] = useState("qualifying"); // "qualifying" or "practice"
   const [allQuestions, setAllQuestions] = useState([]);
@@ -30,7 +31,7 @@ const ImportQuestionModal = ({
     setSelectedQuestions([]);
 
     try {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
@@ -68,7 +69,7 @@ const ImportQuestionModal = ({
       if (response.status === 401) {
         showToast("You are not authenticated. Please log in again.", "error");
         // Optionally clear token and redirect
-        sessionStorage.removeItem("token");
+        localStorage.removeItem("token");
         setIsLoading(false);
         return;
       }
@@ -170,7 +171,7 @@ const ImportQuestionModal = ({
     setIsLoading(true);
     try {
       // TODO: Replace this API endpoint with the actual import endpoint provided by the user
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token");
       const response = await fetch(`${apiUrl}/personal-quiz-questions/import`, {
         method: "POST",
         headers: {

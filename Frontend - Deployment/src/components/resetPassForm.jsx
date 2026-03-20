@@ -5,13 +5,14 @@ import AppVersion from "../components/appVersion";
 import collegeLogo from "/src/assets/college-logo.png";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
+import { getApiBaseUrl } from "../utils/config";
 
 // Reset Password Form
 const ResetPasswordPage = () => {
   const collegeLogo = new URL("/college-logo.png", import.meta.url).href;
 
   const [token, setToken] = useState("");
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiBaseUrl();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");

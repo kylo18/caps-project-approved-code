@@ -54,11 +54,15 @@ import QuizInfo from "./pages/QuizInfo";
 import StudentQuiz from "./pages/StudentQuiz";
 import StudentQuizResults from "./pages/StudentQuizResults";
 
+import Leaderboard from "./pages/Leaderboard";
+
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/auth/google/callback" element={<Login />} />
+        <Route path="/auth/facebook/callback" element={<Login />} />
         <Route path="/testLogin" element={<TestLogin />} />
 
         <Route path="/register" element={<Register />} />
@@ -114,6 +118,14 @@ function App() {
           element={<ProtectedRoute element={<Layout />} />}
         >
           <Route index element={<Reports />} />
+        </Route>
+
+        {/* Leaderboard - Public Route */}
+        <Route
+          path="/leaderboard"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<Leaderboard />} />
         </Route>
 
         <Route path="/help" element={<ProtectedRoute element={<Layout />} />}>
