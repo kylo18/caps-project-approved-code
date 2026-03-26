@@ -1,11 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getApiBaseUrl } from "../utils/config";
+import { getApiUrl } from '../utils/config';
 
+// Renders the student leaderboard and keeps program/subject filters in sync with the backend data.
 const Leaderboard = () => {
   const navigate = useNavigate();
-  const apiUrl = getApiBaseUrl();
-  
   const [activeFilter, setActiveFilter] = useState('All');
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -21,6 +20,7 @@ const Leaderboard = () => {
   const subjectDropdownRef = useRef(null);
 
   useEffect(() => {
+    // Closes either dropdown when the user taps outside of its container.
     const handleClickOutside = (e) => {
       if (programDropdownRef.current && !programDropdownRef.current.contains(e.target)) {
         setShowProgramDropdown(false);
@@ -33,12 +33,14 @@ const Leaderboard = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Loads ranked students plus the dropdown options for the active filter set.
   const fetchLeaderboard = async (program = null, subject = null) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      let url = `${apiUrl}/leaderboard`;
+      const apiUrl = getApiUrl();
+      let url = `${apiUrl}/api/leaderboard`;
       
       const params = new URLSearchParams();
       if (program) params.append('program', program);
@@ -77,6 +79,7 @@ const Leaderboard = () => {
     fetchLeaderboard();
   }, []);
 
+  // Applies a program filter and resets the subject filter so the request stays unambiguous.
   const handleProgramFilter = (program) => {
     setActiveFilter('Program');
     setSelectedProgram(program);
@@ -85,6 +88,7 @@ const Leaderboard = () => {
     fetchLeaderboard(program.programID, null);
   };
 
+  // Applies a subject filter and resets the program filter so the request stays unambiguous.
   const handleSubjectFilter = (subject) => {
     setActiveFilter('Subject');
     setSelectedSubject(subject);
@@ -93,6 +97,7 @@ const Leaderboard = () => {
     fetchLeaderboard(null, subject.subjectID);
   };
 
+  // Clears all filter state and reloads the global leaderboard.
   const handleAllFilter = () => {
     setActiveFilter('All');
     setSelectedProgram(null);
@@ -118,8 +123,10 @@ const Leaderboard = () => {
       ? (selectedSubject.subjectCode || selectedSubject.subjectName)
       : 'Subject';
 
+  // Prefers the backend-computed full name but still guards against missing data.
   const getDisplayName = (student) => student?.name || 'Unknown Student';
 
+  // Builds a stable two-letter avatar fallback when no profile image exists.
   const getDisplayAvatar = (student) =>
     student?.avatar ||
     getDisplayName(student)
@@ -130,6 +137,7 @@ const Leaderboard = () => {
       .toUpperCase() ||
     '?';
 
+  // Shows program and subject context under each entry when that metadata is available.
   const getSecondaryLabel = (student) => {
     const subjectLabel =
       student?.subject ||

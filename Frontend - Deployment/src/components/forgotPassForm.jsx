@@ -1,26 +1,31 @@
 import React, { useState } from "react";
+import { getApiUrl } from "../utils/config";
 import { useNavigate } from "react-router-dom";
 import univLogo from "../assets/univLogo.png";
 import AppVersion from "../components/appVersion";
 import collegeLogo from "/src/assets/college-logo.png";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
-import { getApiBaseUrl } from "../utils/config";
+import { FaMoon, FaSun } from "react-icons/fa";
+import { useTheme } from "../contexts/ThemeContext.jsx";
 
+// Renders the forgot password form.
 const ForgotPasswordForm = () => {
-  const apiUrl = getApiBaseUrl();
+  const apiUrl = getApiUrl();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
+  const { isDark, toggleTheme } = useTheme();
 
   const [email, setEmail] = useState("");
 
+  // Handles submit.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await fetch(`${apiUrl}/forgot-password`, {
+      const res = await fetch(`${apiUrl}/api/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -54,6 +59,20 @@ const ForgotPasswordForm = () => {
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
       <div className="relative hidden min-h-screen w-full bg-[url('/login-bg.png')] bg-cover bg-center bg-no-repeat lg:block">
+        <div className="absolute top-3 right-3 z-10">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white shadow-md backdrop-blur-md transition hover:bg-white/20 active:scale-95"
+            title={isDark ? "Light Mode" : "Dark Mode"}
+          >
+            {isDark ? (
+              <FaSun className="text-base text-yellow-400" />
+            ) : (
+              <FaMoon className="text-base" />
+            )}
+          </button>
+        </div>
         {/* Left Section */}
         <div className="flex min-h-screen flex-row">
           <div className="mr-18 flex w-full flex-col items-center justify-center p-6 text-white lg:w-1/2">
@@ -84,7 +103,7 @@ const ForgotPasswordForm = () => {
               </p>
             </div>
 
-            <div className="outfit mt-12 flex flex-col items-center justify-center lg:hidden">
+            <div className="font-inter mt-12 flex flex-col items-center justify-center lg:hidden">
               <h1 className="text-center text-[20px] leading-snug font-bold tracking-wide whitespace-nowrap text-white sm:text-[30px]">
                 <span>
                   <span className="text-3xl text-orange-500">C</span>
@@ -112,12 +131,12 @@ const ForgotPasswordForm = () => {
 
               <div
                 style={{ fontFamily: "Poppins, sans-serif" }}
-                className="text-center sm:ml-10 lg:ml-0"
+                className="register-theme text-center sm:ml-10 lg:ml-0"
               >
-                <h2 className="mr-15 mb-1 text-[20px] font-bold text-gray-900">
+                <h2 className="mr-15 mb-1 text-[20px] font-bold text-gray-900 dark:text-white">
                   FORGOT YOUR PASSWORD?
                 </h2>
-                <p className="mt-2 justify-center text-center text-sm text-gray-500 lg:mr-15">
+                <p className="register-support-text mt-2 justify-center text-center text-sm text-gray-500 lg:mr-15">
                   <span>
                     Enter your email address and we'll send you a link to reset
                     your password.{" "}
@@ -159,7 +178,7 @@ const ForgotPasswordForm = () => {
                       )}
                     </button>
                   </div>
-                  <p className="mt-4 mb-4 justify-center text-center text-[14px] text-gray-600">
+                  <p className="register-support-text mt-4 mb-4 justify-center text-center text-[14px] text-gray-600">
                     <span
                       onClick={() => navigate("/")}
                       className="cursor-pointer text-orange-500 hover:underline"
@@ -167,7 +186,7 @@ const ForgotPasswordForm = () => {
                       Back to Login
                     </span>
                   </p>
-                  <span className="mx-2 text-xs text-gray-400">
+                  <span className="register-version mx-2 text-xs text-gray-400">
                     Developed by{" "}
                     <span
                       onClick={() => navigate("/team-caps")}
@@ -180,40 +199,53 @@ const ForgotPasswordForm = () => {
               </div>
             </div>
           </div>
-          <div className="absolute bottom-3 left-1/2 ml-8 flex -translate-x-1/2 transform items-center space-x-2 text-gray-500 lg:left-8">
+          <div className="register-version absolute bottom-3 left-1/2 ml-8 flex -translate-x-1/2 transform items-center space-x-2 text-gray-500 dark:text-gray-500 lg:left-8">
             <AppVersion />
           </div>
         </div>
       </div>
 
       {/* Mobile Layout */}
-      <div className="flex flex-col lg:hidden">
-        <div className="flex w-full flex-col items-center justify-center bg-gradient-to-br from-[#101010] to-[#3c3c3c]">
+      <div className="flex min-h-screen flex-col bg-white dark:bg-black lg:hidden">
+        <div className="flex w-full flex-col items-center justify-center bg-gradient-to-br from-[#101010] to-[#3c3c3c] dark:from-black dark:to-[#0a0a0a]">
           {/* Purple Gradient Header */}
           <div className="relative flex h-60 w-full flex-col items-center justify-center">
-            <div className="outfit absolute top-5 right-5">
-              <span className="mr-2 text-[12px] text-white">
-                Don't have an account?{" "}
-              </span>
-              <button
-                onClick={() => navigate("/register")}
-                className="cursor-pointer rounded-lg bg-white/10 px-4 py-1 text-[14px] font-medium text-white shadow-md backdrop-blur-md transition hover:bg-white/20 hover:backdrop-blur-lg"
-              >
-                Sign in
-              </button>
-            </div>
-            {/* Logos at top left */}
-            <div className="absolute top-5 left-5 z-10 flex items-center gap-3">
-              <img
-                src={univLogo}
-                alt="University Logo"
-                className="size-8 object-contain"
-              />
-              <img
-                src={collegeLogo}
-                alt="College Logo"
-                className="size-8 object-contain"
-              />
+            <div className="absolute top-5 left-4 right-4 z-10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <img
+                  src={univLogo}
+                  alt="University Logo"
+                  className="size-7 object-contain sm:size-8"
+                />
+                <img
+                  src={collegeLogo}
+                  alt="College Logo"
+                  className="size-7 object-contain sm:size-8"
+                />
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white shadow-md backdrop-blur-md transition hover:bg-white/20 active:scale-95"
+                  title={isDark ? "Light Mode" : "Dark Mode"}
+                >
+                  {isDark ? (
+                    <FaSun className="text-base text-yellow-400" />
+                  ) : (
+                    <FaMoon className="text-base" />
+                  )}
+                </button>
+              </div>
+              <div className="font-inter absolute top-0 right-0 flex items-center gap-2">
+                <span className="mr-2 text-[12px] text-white">
+                  Don't have an account?{" "}
+                </span>
+                <button
+                  onClick={() => navigate("/register")}
+                  className="cursor-pointer rounded-lg bg-white/10 px-4 py-1 text-[14px] font-medium text-white shadow-md backdrop-blur-md transition hover:bg-white/20 hover:backdrop-blur-lg"
+                >
+                  Sign in
+                </button>
+              </div>
             </div>
             <div
               style={{ fontFamily: "Poppins, sans-serif" }}
@@ -245,18 +277,18 @@ const ForgotPasswordForm = () => {
             borderTopLeftRadius: "30px 15px",
             borderTopRightRadius: "30px 15px",
           }}
-          className="mx-auto -mt-10 flex h-[14px] w-[85%] flex-col items-center justify-center bg-white/10 shadow-lg backdrop-blur-md"
+          className="mx-auto -mt-10 flex h-[14px] w-[85%] flex-col items-center justify-center bg-white/10 shadow-lg backdrop-blur-md dark:bg-black/50"
         ></div>
 
         {/* Forgot Password Card */}
         <div
           style={{ fontFamily: "Poppins, sans-serif" }}
-          className="flex w-full flex-col items-center justify-center rounded-t-4xl bg-white p-6"
+          className="register-theme flex w-full flex-col items-center justify-center rounded-t-4xl bg-white dark:bg-gray-900 p-6"
         >
-          <h2 className="mb-1 text-[20px] font-bold text-gray-900">
+          <h2 className="mb-1 text-[20px] font-bold text-gray-900 dark:text-white">
             FORGOT YOUR PASSWORD?
           </h2>
-          <p className="mb-5 max-w-80 justify-center text-center text-xs text-gray-500 md:max-w-full lg:mr-15">
+          <p className="register-support-text mb-5 max-w-80 justify-center text-center text-xs text-gray-500 md:max-w-full lg:mr-15">
             Enter your email address and we'll send you a link to reset your
             password.
           </p>
@@ -298,7 +330,7 @@ const ForgotPasswordForm = () => {
               )}
             </button>
 
-            <p className="mb-4 justify-center text-center text-[14px] text-gray-600">
+            <p className="register-support-text mb-4 justify-center text-center text-[14px] text-gray-600">
               <span
                 onClick={() => navigate("/")}
                 className="cursor-pointer text-orange-500 hover:underline"
@@ -309,14 +341,14 @@ const ForgotPasswordForm = () => {
           </form>
 
           <div className="my-2 flex w-full items-center">
-            <div className="h-px flex-1 bg-gray-200"></div>
-            <span className="mx-2 text-xs text-gray-400">
+            <div className="register-divider h-px flex-1 bg-gray-200"></div>
+            <span className="register-version mx-2 text-xs text-gray-400">
               <AppVersion />
             </span>
-            <div className="h-px flex-1 bg-gray-200"></div>
+            <div className="register-divider h-px flex-1 bg-gray-200"></div>
           </div>
 
-          <span className="mx-2 mt-3 text-xs text-gray-400">
+          <span className="register-version mx-2 mt-3 text-xs text-gray-400">
             Developed by{" "}
             <span
               onClick={() => navigate("/team-caps")}

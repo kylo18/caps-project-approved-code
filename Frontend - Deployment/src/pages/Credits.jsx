@@ -1,5 +1,6 @@
 import React from "react";
 
+// Renders the credits.
 const Credits = () => {
   const developers = [
     {

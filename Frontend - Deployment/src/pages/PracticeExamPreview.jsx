@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import QuestionListModal from "../components/QuestionListModal";
-import { getApiBaseUrl } from "../utils/config";
+import { getApiUrl } from "../utils/config";
 
+// Preview-only timeout modal that summarizes progress without submitting anything to the backend.
 const TimerCompletionModal = ({
   isOpen,
   onClose,
@@ -14,27 +15,27 @@ const TimerCompletionModal = ({
   if (!isOpen) return null;
   return (
     <div className="lightbox-bg fixed inset-0 z-55 flex items-center justify-center">
-      <div className="w-full max-w-sm rounded-md bg-white p-6">
-        <h2 className="mb-4 text-center text-[16px] font-semibold text-gray-800">
+      <div className="w-full max-w-sm rounded-md bg-white dark:bg-black p-6">
+        <h2 className="mb-4 text-center text-[16px] font-semibold text-gray-800 dark:text-white">
           Time's Up!
         </h2>
         <div className="mb-6 space-y-3">
-          <p className="text-[14px] text-gray-600">
+          <p className="text-[14px] text-gray-600 dark:text-gray-400">
             Your exam time has ended. Here's a summary of your exam:
           </p>
-          <div className="rounded-lg bg-gray-50 p-4 text-[14px]">
+          <div className="rounded-lg bg-gray-50 dark:bg-[var(--color-bg-secondary)] p-4 text-[14px]">
             <div className="space-y-2">
               <p className="flex justify-between">
-                <span className="text-gray-600">Total Questions:</span>
-                <span className="font-medium">{totalQuestions}</span>
+                <span className="text-gray-600 dark:text-gray-400">Total Questions:</span>
+                <span className="font-medium dark:text-white">{totalQuestions}</span>
               </p>
               <p className="flex justify-between">
-                <span className="text-gray-600">Questions Answered:</span>
-                <span className="font-medium">{answeredQuestions}</span>
+                <span className="text-gray-600 dark:text-gray-400">Questions Answered:</span>
+                <span className="font-medium dark:text-white">{answeredQuestions}</span>
               </p>
               <p className="flex justify-between">
-                <span className="text-gray-600">Questions Unanswered:</span>
-                <span className="font-medium">
+                <span className="text-gray-600 dark:text-gray-400">Questions Unanswered:</span>
+                <span className="font-medium dark:text-white">
                   {totalQuestions - answeredQuestions}
                 </span>
               </p>
@@ -44,7 +45,7 @@ const TimerCompletionModal = ({
         <div className="not-[]: flex justify-center space-x-3">
           <button
             onClick={onConfirm}
-            className="border-color flex cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-100 active:scale-[0.98] sm:px-6 sm:text-base"
+            className="border-color flex cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white dark:bg-[var(--color-bg-secondary)] px-4 py-2 text-sm font-semibold text-gray-700 dark:text-white shadow-sm transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[var(--color-bg-tertiary)] active:scale-[0.98] sm:px-6 sm:text-base"
           >
             View Results
           </button>
@@ -54,6 +55,7 @@ const TimerCompletionModal = ({
   );
 };
 
+// Loads a read-only practice exam preview so users can inspect the flow before taking the real attempt.
 const PracticeExamPreview = () => {
   const { subjectID } = useParams();
   const [examData, setExamData] = useState(null);
@@ -77,7 +79,7 @@ const PracticeExamPreview = () => {
     setLoading(true);
     setError("");
     fetch(
-      `${getApiBaseUrl()}/practice-exam/preview/${subjectID}`,
+      `${getApiUrl()}/api/practice-exam/preview/${subjectID}`,
       {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -114,12 +116,14 @@ const PracticeExamPreview = () => {
   }, [subjectID]);
 
   useEffect(() => {
+    // Mirrors the backend timer setting into a seconds counter for the preview UI.
     if (examData?.enableTimer) {
       setSecondsLeft(examData.durationMinutes * 60);
     }
   }, [examData]);
 
   useEffect(() => {
+    // Counts down the preview timer and opens the completion modal when time reaches zero.
     if (!examData?.enableTimer || secondsLeft === null) return;
     if (secondsLeft <= 0) return;
     const interval = setInterval(() => {
@@ -136,48 +140,25 @@ const PracticeExamPreview = () => {
   }, [examData?.enableTimer, secondsLeft]);
 
   useEffect(() => {
+    // Closes any open image viewer when the user changes questions.
     setIsQuestionImageModalOpen(false);
     setIsChoiceImageModalOpen(false);
     setSelectedImageUrl(null);
   }, [currentQuestionIndex]);
 
-  if (loading)
-    return (
-      <div className="outfit flex min-h-screen flex-col items-center justify-center py-12">
-        <div className="loader mb-4"></div>
-        <p className="text-[14px] text-gray-600">Loading preview...</p>
-      </div>
-    );
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
   if (error)
     return (
-      <div className="outfit flex min-h-screen flex-col items-center justify-center p-8">
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center max-w-md">
-          <p className="font-semibold text-red-700">Error</p>
-          <p className="mt-2 text-sm text-red-600 whitespace-pre-wrap">{error}</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="mt-4 rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
-          >
-            Go Back
-          </button>
-        </div>
+      <div className="p-8 text-center whitespace-pre-wrap text-red-500">
+        {error}
       </div>
     );
   if (!examData)
-    return (
-      <div className="outfit flex min-h-screen flex-col items-center justify-center p-8">
-        <p className="text-gray-600">No preview data found.</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="mt-4 rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
-        >
-          Go Back
-        </button>
-      </div>
-    );
+    return <div className="p-8 text-center">No preview data found.</div>;
 
   const totalQuestions = examData.questions.length;
 
+  // Stores the selected choice per question so the preview can show progress and completion states.
   const handleSelectAnswer = (questionID, choiceID) => {
     setAnswers((prev) => ({
       ...prev,
@@ -185,18 +166,21 @@ const PracticeExamPreview = () => {
     }));
   };
 
+  // Moves to the previous question when the user is not already on the first item.
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex((prev) => prev - 1);
     }
   };
 
+  // Moves to the next question when the user has not reached the end of the preview.
   const handleNextQuestion = () => {
     if (currentQuestionIndex < examData.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     }
   };
 
+  // Removes the answer for the active question without affecting the rest of the preview state.
   const handleClearAnswer = () => {
     const currentQuestionId =
       examData.questions[currentQuestionIndex].questionID;
@@ -207,6 +191,7 @@ const PracticeExamPreview = () => {
     });
   };
 
+  // Computes the answered percentage for the progress bar.
   const calculateProgress = () => {
     const answeredCount = examData.questions.filter(
       (question) => answers[question.questionID] !== undefined,
@@ -216,17 +201,20 @@ const PracticeExamPreview = () => {
 
   const progressPercentage = calculateProgress();
 
+  // Detects when every question already has a selected choice.
   const areAllQuestionsAnswered = () => {
     return examData.questions.every(
       (question) => answers[question.questionID] !== undefined,
     );
   };
 
+  // Jumps to a chosen question from the question list modal.
   const handleQuestionClick = (index) => {
     setCurrentQuestionIndex(index);
     setIsQuestionListOpen(false);
   };
 
+  // Toggles a question in the bookmarked list for later review inside the modal.
   const handleToggleBookmark = (questionId) => {
     setBookmarkedQuestions((prev) => {
       if (prev.includes(questionId)) {
@@ -237,6 +225,7 @@ const PracticeExamPreview = () => {
     });
   };
 
+  // Converts the raw timer value into HH:MM:SS for any future timer label reuse.
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -246,13 +235,14 @@ const PracticeExamPreview = () => {
       .padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
+  // Closes the timeout summary because preview mode never submits answers to the backend.
   const handleTimerCompletion = () => {
     setShowTimerCompletionModal(false);
     // Just show results locally
   };
 
-  return (
-    <div className="outfit mt-5 flex min-h-screen flex-col py-5">
+return (
+    <div className="font-inter mt-5 flex min-h-screen flex-col py-5 bg-gray-50 dark:bg-black">
       <TimerCompletionModal
         isOpen={showTimerCompletionModal}
         onClose={() => setShowTimerCompletionModal(false)}
@@ -261,29 +251,21 @@ const PracticeExamPreview = () => {
         answeredQuestions={Object.keys(answers).length}
         bookmarkedQuestions={bookmarkedQuestions}
       />
-      <div className="border-color mb-2 w-full rounded-md border border-gray-200 bg-white px-4 py-[18px] shadow-sm md:px-8">
+      <div className="border-color mb-2 w-full rounded-md bg-white dark:bg-black px-4 py-[18px] shadow-sm md:px-8">
         {/* Header */}
         <div className="flex flex-col justify-between gap-4 md:flex-row">
           {/* Subject & Progress */}
           <div className="flex w-full flex-col md:w-auto md:flex-row md:items-center md:gap-6">
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate(-1)}
-                  className="outfit-500 flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                >
-                  <i className="bx bx-left-arrow-alt text-lg"></i>
-                  Go Back
-                </button>
-                <p className="text-[16px] font-semibold break-words lg:max-w-[420px]">
+              <div className="flex items-center gap-2">
+                <p className="text-[16px] font-semibold break-words lg:max-w-[420px] text-gray-900 dark:text-white">
                   {examData.subjectName || `Subject ${subjectID}`}
                 </p>
-                <span className="rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-600">
+                <span className="rounded-full bg-orange-100 dark:bg-orange-900/30 px-2 py-1 text-xs font-medium text-orange-600 dark:text-orange-400">
                   Preview Mode
                 </span>
               </div>
-              <p className="mt-1 text-[13px] text-gray-500">
+              <p className="mt-1 text-[13px] text-gray-500 dark:text-gray-400">
                 Preview Practice Exam
               </p>
             </div>
@@ -291,19 +273,19 @@ const PracticeExamPreview = () => {
 
           {/* Progress Bar */}
           <div className="flex flex-1 flex-col justify-center md:mx-6 md:mt-2">
-            <div className="h-[10px] w-full rounded-full bg-gray-200">
+            <div className="h-[10px] w-full rounded-full bg-gray-200 dark:bg-gray-700">
               <div
                 className="h-[10px] rounded-full bg-orange-500 transition-all duration-300"
                 style={{ width: `${progressPercentage}%` }}
               ></div>
             </div>
-            <p className="mt-1 text-end text-xs text-gray-500">
+            <p className="mt-1 text-end text-xs text-gray-500 dark:text-gray-400">
               {Math.round(progressPercentage)}% Answered
             </p>
           </div>
 
           {/* Buttons & Timer */}
-          <div className="flex items-center justify-center gap-4 text-sm text-gray-700">
+          <div className="flex items-center justify-center gap-4 text-sm text-gray-700 dark:text-gray-300">
             <div className="text-right">
               {examData?.enableTimer ? (
                 <div className="flex flex-col items-center">
@@ -312,19 +294,19 @@ const PracticeExamPreview = () => {
                     <div className="flex flex-col items-center">
                       <span
                         className={`font-mono text-2xl font-bold ${
-                          secondsLeft <= 300 ? "text-red-500" : "text-gray-800"
+                          secondsLeft <= 300 ? "text-red-500" : "text-gray-800 dark:text-white"
                         }`}
                       >
                         {Math.floor(secondsLeft / 3600)
                           .toString()
                           .padStart(2, "0")}
                       </span>
-                      <span className="text-xs text-gray-500">Hours</span>
+                      <span className="text-xs text-gray-500 dark:text-white">Hours</span>
                     </div>
                     <div className="flex h-[42px] items-center">
                       <span
                         className={`-mt-2 font-mono text-2xl font-bold ${
-                          secondsLeft <= 300 ? "text-red-500" : "text-gray-800"
+                          secondsLeft <= 300 ? "text-red-500" : "text-gray-800 dark:text-white"
                         }`}
                       >
                         :
@@ -334,19 +316,19 @@ const PracticeExamPreview = () => {
                     <div className="flex flex-col items-center">
                       <span
                         className={`font-mono text-2xl font-bold ${
-                          secondsLeft <= 300 ? "text-red-500" : "text-gray-800"
+                          secondsLeft <= 300 ? "text-red-500" : "text-gray-800 dark:text-white"
                         }`}
                       >
                         {Math.floor((secondsLeft % 3600) / 60)
                           .toString()
                           .padStart(2, "0")}
                       </span>
-                      <span className="text-xs text-gray-500">Minutes</span>
+                      <span className="text-xs text-gray-500 dark:text-white">Minutes</span>
                     </div>
                     <div className="flex h-[42px] items-center">
                       <span
                         className={`-mt-2 font-mono text-2xl font-bold ${
-                          secondsLeft <= 300 ? "text-red-500" : "text-gray-800"
+                          secondsLeft <= 300 ? "text-red-500" : "text-gray-800 dark:text-white"
                         }`}
                       >
                         :
@@ -356,12 +338,12 @@ const PracticeExamPreview = () => {
                     <div className="flex flex-col items-center">
                       <span
                         className={`font-mono text-2xl font-bold ${
-                          secondsLeft <= 300 ? "text-red-500" : "text-gray-800"
+                          secondsLeft <= 300 ? "text-red-500" : "text-gray-800 dark:text-white"
                         }`}
                       >
                         {(secondsLeft % 60).toString().padStart(2, "0")}
                       </span>
-                      <span className="text-xs text-gray-500">Seconds</span>
+                      <span className="text-xs text-gray-500 dark:text-white">Seconds</span>
                     </div>
                   </div>
                   {secondsLeft <= 300 && (
@@ -370,10 +352,10 @@ const PracticeExamPreview = () => {
                     </span>
                   )}
                 </div>
-              ) : (
-                <div className="flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2">
-                  <i className="bx bx-time text-lg text-gray-600"></i>
-                  <p className="font-medium text-gray-700">Unlimited Time</p>
+) : (
+                <div className="flex items-center gap-2 rounded-full bg-gray-100 dark:bg-[var(--color-bg-secondary)] px-4 py-2">
+                  <i className="bx bx-time text-lg text-gray-600 dark:text-white"></i>
+                  <p className="font-medium text-gray-700 dark:text-white">Unlimited Time</p>
                 </div>
               )}
             </div>
@@ -381,16 +363,16 @@ const PracticeExamPreview = () => {
         </div>
       </div>
 
-      <div className="outfit border-color mx-auto mt-2 w-full max-w-3xl rounded-t-lg border border-gray-200 border-b-[0.5px] bg-white px-3 py-3 shadow-sm">
+      <div className="open-sans border-color mx-auto mt-2 w-full max-w-3xl rounded-t-lg border-b-[0.5px] bg-white dark:bg-black px-3 py-3 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="text-[14px] font-medium text-nowrap text-gray-500">
+          <h3 className="text-[14px] font-medium text-nowrap text-gray-500 dark:text-white">
             Question {currentQuestionIndex + 1} of {examData.questions.length}
           </h3>
           {/* Right Side Buttons */}
           <div className="flex items-center gap-1">
-            <button
+<button
               onClick={() => setIsQuestionListOpen(true)}
-              className="mr-3 inline-flex cursor-pointer items-center gap-[6px] text-[14px] font-medium text-gray-500 hover:text-gray-700"
+              className="mr-3 inline-flex cursor-pointer items-center gap-[6px] text-[14px] font-medium text-gray-500 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
             >
               <i className="bx bx-list-ul text-[20px]"></i>
               See all Questions
@@ -401,12 +383,12 @@ const PracticeExamPreview = () => {
                   examData.questions[currentQuestionIndex].questionID,
                 )
               }
-              className={`mr-2 flex cursor-pointer items-center gap-2 text-[14px] font-medium transition ${
+className={`mr-2 flex cursor-pointer items-center gap-2 text-[14px] font-medium transition ${
                 bookmarkedQuestions.includes(
                   examData.questions[currentQuestionIndex].questionID,
                 )
                   ? "text-yellow-400 hover:text-yellow-500"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-gray-500 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
               }`}
             >
               <i
@@ -430,7 +412,7 @@ const PracticeExamPreview = () => {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-3xl rounded-b-xl border border-t-0 border-gray-200 bg-white p-2 shadow-sm sm:p-4">
+      <div className="mx-auto w-full max-w-3xl rounded-b-xl bg-white dark:bg-black p-2 shadow-sm sm:p-4">
         <QuestionListModal
           isOpen={isQuestionListOpen}
           onClose={() => setIsQuestionListOpen(false)}
@@ -441,15 +423,15 @@ const PracticeExamPreview = () => {
           bookmarkedQuestions={bookmarkedQuestions}
           onToggleBookmark={handleToggleBookmark}
         />
-        {error && (
-          <div className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-600 sm:mb-6 sm:p-4 sm:text-base">
+{error && (
+          <div className="mb-4 rounded-lg bg-red-100 dark:bg-red-900/30 p-3 text-sm text-red-600 dark:text-red-400 sm:mb-6 sm:p-4 sm:text-base">
             {error}
           </div>
         )}
         {/* Question */}
         <div className="mb-6 px-2 sm:mb-10 sm:px-4">
-          <div
-            className="text-sm leading-relaxed text-gray-800 sm:text-[15px] md:text-base"
+<div
+            className="text-sm leading-relaxed text-gray-800 dark:text-white sm:text-[15px] md:text-base"
             dangerouslySetInnerHTML={{
               __html: examData.questions[currentQuestionIndex].questionText,
             }}
@@ -477,17 +459,17 @@ const PracticeExamPreview = () => {
               answers[examData.questions[currentQuestionIndex].questionID] ===
               choice.choiceID;
             return (
-              <label
+<label
                 key={choice.choiceID}
                 className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 shadow transition sm:px-4 sm:py-3 ${
                   isSelected
-                    ? "border border-l-5 border-orange-500 bg-white font-semibold shadow-lg"
-                    : "border-l-4 border-transparent bg-gray-100 hover:bg-gray-200"
+                    ? "border border-l-5 border-orange-500 bg-white dark:bg-[var(--color-bg-secondary)] font-semibold shadow-lg"
+                    : "border border-l-4 border-transparent bg-gray-100 dark:bg-[var(--color-bg-secondary)] hover:bg-gray-200 dark:hover:bg-[var(--color-bg-tertiary)]"
                 } `}
                 style={{ minHeight: "48px", sm: { minHeight: "56px" } }}
               >
                 <span
-                  className={`flex items-center gap-2 text-xs sm:gap-3 sm:text-[12px] md:text-sm ${isSelected ? "text-orange-500" : "text-gray-700"}`}
+                  className={`flex items-center gap-2 text-xs sm:gap-3 sm:text-[12px] md:text-sm ${isSelected ? "text-orange-500 dark:text-white" : "text-gray-700 dark:text-white"}`}
                 >
                   <span
                     dangerouslySetInnerHTML={{
@@ -550,31 +532,40 @@ const PracticeExamPreview = () => {
               <button
                 type="button"
                 onClick={handlePreviousQuestion}
-                className="border-color flex cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-100 active:scale-[0.98] sm:px-6 sm:text-base"
+                className="border-color flex cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white dark:bg-[var(--color-bg-secondary)] px-4 py-2 text-sm font-semibold text-gray-700 dark:text-white shadow-sm transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[var(--color-bg-tertiary)] active:scale-[0.98] sm:px-6 sm:text-base"
               >
                 <i className="bx bx-left-arrow-alt text-lg"></i>
                 Previous
               </button>
-            )}
+)}
           </div>
           <div className="flex items-center gap-2">
             {answers[examData.questions[currentQuestionIndex].questionID] && (
               <button
                 onClick={handleClearAnswer}
-                className="border-color flex cursor-pointer items-center justify-center rounded-xl border bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 sm:px-6 sm:text-base"
+                className="border-color flex cursor-pointer items-center justify-center rounded-xl border bg-white dark:bg-[var(--color-bg-secondary)] px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-900/20 sm:px-6 sm:text-base"
                 type="button"
               >
                 Clear Answer
               </button>
             )}
-            {currentQuestionIndex < examData.questions.length - 1 && (
+            {currentQuestionIndex < examData.questions.length - 1 ? (
               <button
                 type="button"
                 onClick={handleNextQuestion}
-                className="border-color flex cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-100 active:scale-[0.98] sm:px-6 sm:text-base"
+                className="border-color flex cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white dark:bg-[var(--color-bg-secondary)] px-4 py-2 text-sm font-semibold text-gray-700 dark:text-white shadow-sm transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[var(--color-bg-tertiary)] active:scale-[0.98] sm:px-6 sm:text-base"
               >
                 Next
                 <i className="bx bx-right-arrow-alt text-lg"></i>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowTimerCompletionModal(true)}
+                className="border-color flex cursor-pointer items-center justify-center gap-2 rounded-xl border bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-orange-600 active:scale-[0.98] sm:px-6 sm:text-base"
+              >
+                Submit
+                <i className="bx bx-check text-lg"></i>
               </button>
             )}
           </div>
@@ -583,7 +574,7 @@ const PracticeExamPreview = () => {
           {areAllQuestionsAnswered() && (
             <button
               onClick={() => setShowTimerCompletionModal(true)}
-              className="mt-8 mb-1 w-[30%] cursor-pointer rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 py-[9px] text-base font-semibold text-nowrap text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm"
+              className={`mt-8 mb-1 w-[30%] cursor-pointer rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 py-[9px] text-base font-semibold text-nowrap text-white shadow-md transition-all duration-200 ease-in-out hover:brightness-150 active:scale-[0.98] active:shadow-sm`}
               type="button"
             >
               View Results

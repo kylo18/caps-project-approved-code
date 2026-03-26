@@ -1,5 +1,6 @@
 import React from "react";
 
+// Renders the toast.
 const Toast = ({ message, type, show, onClose, onReport }) => {
   if (!message) return null;
 
@@ -57,9 +58,9 @@ const Toast = ({ message, type, show, onClose, onReport }) => {
 };
 
 export default Toast;
+// Handles logout user.
 export function logoutUser(showToast, navigate, message) {
   localStorage.removeItem("token");
-  localStorage.removeItem("user");
   // Remove any other user data if needed
   if (showToast && message) showToast(message, "error");
   setTimeout(() => {

@@ -5,7 +5,7 @@ const LoadingOverlay = ({ show = false }) => {
   if (!show) return null;
 
   return (
-    <div className="lightbox-bg bg-opacity-50 fixed inset-0 z-[9999] flex flex-col items-center justify-center">
+    <div className="lightbox-bg bg-opacity-50 fixed inset-0 z-56 flex flex-col items-center justify-center">
       <i className="loader-white"></i>
     </div>
   );

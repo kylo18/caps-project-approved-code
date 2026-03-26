@@ -7,6 +7,7 @@ const RegisterDropDown = ({ name, value, onChange, options, placeholder }) => {
   const buttonRef = useRef(null);
 
   useEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -19,6 +20,7 @@ const RegisterDropDown = ({ name, value, onChange, options, placeholder }) => {
     };
   }, []);
 
+  // Handles open dropdown.
   const handleOpenDropdown = () => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -43,9 +45,11 @@ const RegisterDropDown = ({ name, value, onChange, options, placeholder }) => {
           ref={buttonRef}
           type="button"
           onClick={handleOpenDropdown}
-          className={`relative mb-1 flex w-full cursor-pointer items-center rounded-xl bg-white px-4 py-[7px] text-[14px] transition-all duration-200 ease-in-out outline-none hover:border-gray-500 focus:outline-none ${isOpen ? "border-none ring-1 ring-orange-500 ring-offset-1" : "border border-gray-300"}`}
+          className={`relative mb-1 flex w-full cursor-pointer items-center rounded-xl border border-gray-300 bg-white px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 ease-in-out outline-none hover:border-gray-500 focus:outline-none dark:border-gray-700 dark:bg-black dark:text-white dark:hover:border-gray-500 ${isOpen ? "border-none ring-1 ring-orange-500 ring-offset-1 dark:ring-offset-black" : ""}`}
         >
-          <span className={`truncate ${!value ? "text-gray-500" : ""}`}>
+          <span
+            className={`truncate ${!value ? "text-gray-500 dark:text-gray-400" : ""}`}
+          >
             {options.find((opt) => opt.value === value)?.label || placeholder}
           </span>
           <i
@@ -56,7 +60,7 @@ const RegisterDropDown = ({ name, value, onChange, options, placeholder }) => {
         {/* Dropdown Options */}
         {isOpen && (
           <ul
-            className={`animate-dropdown animate-fadein absolute left-0 z-10 mx-2 mt-1 w-[calc(100%-16px)] rounded border border-gray-300 bg-white p-1 shadow-lg ${
+            className={`animate-dropdown animate-fadein absolute left-0 z-10 mx-2 mt-1 w-[calc(100%-16px)] rounded border border-gray-300 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-black ${
               dropdownPosition === "bottom"
                 ? "top-full mt-1"
                 : "bottom-full mb-1"
@@ -69,7 +73,7 @@ const RegisterDropDown = ({ name, value, onChange, options, placeholder }) => {
                   onChange({ target: { name, value: option.value } });
                   setIsOpen(false);
                 }}
-                className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-[13px] hover:bg-gray-100"
+                className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-[13px] text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-800"
               >
                 {option.label}
               </li>

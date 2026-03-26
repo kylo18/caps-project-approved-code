@@ -16,6 +16,7 @@ const SortCustomDropdown = ({
   const buttonRef = useRef(null);
 
   useEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -28,6 +29,7 @@ const SortCustomDropdown = ({
     };
   }, []);
 
+  // Handles open dropdown.
   const handleOpenDropdown = () => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();

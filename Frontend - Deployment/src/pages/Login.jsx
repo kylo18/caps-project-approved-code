@@ -487,7 +487,7 @@ export default function LoginPage() {
                   <span className="text-3xl text-[var(--color-primary)]"> P</span>REPARATION
                 </span>
                 <span>
-                  <span className="text-3xl text-[var(--color-primary)]"> S</span>SYSTEM
+                  <span className="text-3xl text-[var(--color-primary)]"> S</span>YSTEM
                 </span>
               </h1>
             </div>

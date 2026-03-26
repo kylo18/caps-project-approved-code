@@ -11,6 +11,7 @@ const getDisplayProgramName = (programName) => {
   return programName;
 };
 
+// Renders the questionnare.
 const Questionnare = ({
   item,
   isExpanded,

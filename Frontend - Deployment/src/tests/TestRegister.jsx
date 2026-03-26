@@ -7,7 +7,6 @@ import { createPortal } from "react-dom";
 import SideBarToolTip from "./sidebarTooltip";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
-import { getApiBaseUrl } from "../utils/config";
 
 const AssignedSubjectsDropDown = ({
   item,
@@ -29,7 +28,7 @@ const AssignedSubjectsDropDown = ({
   const listRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const apiUrl = getApiBaseUrl();
+  const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [selectedSubjectForAssignment, setSelectedSubjectForAssignment] =
     useState(null);
   const [openMenuID, setOpenMenuID] = useState(null);
@@ -72,7 +71,7 @@ const AssignedSubjectsDropDown = ({
     setLoading(true);
 
     try {
-      const response = await fetch(`${apiUrl}/faculty/availableSubjects`, {
+      const response = await fetch(`${apiUrl}/api/faculty/availableSubjects`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -119,7 +118,7 @@ const AssignedSubjectsDropDown = ({
     const token = localStorage.getItem("token");
     setSubjectLoading(true);
     try {
-      const response = await fetch(`${apiUrl}/faculty/my-subjects`, {
+      const response = await fetch(`${apiUrl}/api/faculty/my-subjects`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -212,7 +211,7 @@ const AssignedSubjectsDropDown = ({
 
     try {
       const response = await fetch(
-        `${apiUrl}/remove-assigned-subject/${subjectID}`,
+        `${apiUrl}/api/remove-assigned-subject/${subjectID}`,
         {
           method: "DELETE",
           headers: {
@@ -253,7 +252,7 @@ const AssignedSubjectsDropDown = ({
 
     setIsAssigning(true);
     try {
-      const response = await fetch(`${apiUrl}/faculty/assign-subject`, {
+      const response = await fetch(`${apiUrl}/api/faculty/assign-subject`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -539,7 +538,7 @@ const AssignedSubjectsDropDown = ({
                         >
                           <div className="flex items-center justify-center gap-2 px-2 py-1">
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
-                            <span className="outfit min-w-[60px] text-center text-sm font-bold text-gray-700">
+                            <span className="open-sans min-w-[60px] text-center text-sm font-bold text-gray-700">
                               {programName}
                             </span>
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
@@ -717,7 +716,7 @@ const AssignedSubjectsDropDown = ({
                         <div key={programName}>
                           <div className="flex items-center justify-center gap-2 px-2 py-1">
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
-                            <span className="outfit min-w-[60px] text-center text-sm font-bold text-gray-700">
+                            <span className="open-sans min-w-[60px] text-center text-sm font-bold text-gray-700">
                               {programName}
                             </span>
                             <div className="h-[0.5px] flex-1 bg-[rgb(200,200,200)]"></div>
@@ -912,7 +911,7 @@ const AssignedSubjectsDropDown = ({
       {/* Add Assign Subject Modal */}
       {showAddModal && (
         <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center p-2">
-          <div className="outfit border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
+          <div className="font-inter border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
             <span>Assign a Subject</span>
           </div>
 

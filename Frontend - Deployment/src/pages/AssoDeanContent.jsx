@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useOutletContext, useLocation } from "react-router-dom";
+import { getApiUrl } from "../utils/config";
+import { useOutletContext } from "react-router-dom";
 import AltButton from "../components/buttonAlt";
 import SubjectCard from "../components/subjectCard";
 import AddQuestionForm from "../components/AddQuestionForm";
@@ -13,13 +14,9 @@ import Toast from "../components/Toast";
 import useToast from "../hooks/useToast";
 import EmptyImage from "../assets/icons/empty.png";
 import Subject from "../assets/icons/papers.png";
-import { getApiBaseUrl } from "../utils/config";
 
 // Main admin dashboard component for managing questions and subjects
-const AdminContent = () => {
-  const location = useLocation();
-  const params = new URLSearchParams(location.search);
-  const subjectID = params.get("subjectID");
+const AssoAdminContent = () => {
   // State for image modals and question management
   const [modalImage, setModalImage] = useState(null);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
@@ -50,6 +47,7 @@ const AdminContent = () => {
 
   // State for form validation
   const [areChoicesValid, setAreChoicesValid] = useState(false);
+  // Handles choices validity.
   const handleChoicesValidity = (validity) => {
     setAreChoicesValid(validity);
   };
@@ -84,7 +82,7 @@ const AdminContent = () => {
   // State for loading
   const [isLoading, setIsLoading] = useState(true);
 
-  const apiUrl = getApiBaseUrl();
+  const apiUrl = getApiUrl();
 
   // State for exam questions availability
   const [isExamQuestionsEnabled, setIsExamQuestionsEnabled] = useState({});
@@ -93,18 +91,19 @@ const AdminContent = () => {
   // Fetch QE enabled status and practice exam settings when subject changes
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
+      // Fetches subject settings.
       const fetchSubjectSettings = async () => {
         const token = localStorage.getItem("token");
         try {
           // Fetch QE status
           const qeResponse = await fetch(
-            `${apiUrl}/subjects/${selectedSubject.subjectID}/exam-questions-status`,
+            `${apiUrl}/api/subjects/${selectedSubject.subjectID}/exam-questions-status`,
             { headers: { Authorization: `Bearer ${token}` } },
           );
 
           // Fetch practice exam settings
           const practiceResponse = await fetch(
-            `${apiUrl}/practice-settings/${selectedSubject.subjectID}`,
+            `${apiUrl}/api/practice-settings/${selectedSubject.subjectID}`,
             { headers: { Authorization: `Bearer ${token}` } },
           );
 
@@ -173,7 +172,7 @@ const AdminContent = () => {
     try {
       const token = localStorage.getItem("token");
       setIsDeleting(true);
-      const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
+      const response = await fetch(`${apiUrl}/api/questions/delete/${questionID}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -213,7 +212,7 @@ const AdminContent = () => {
       }
 
       const response = await fetch(
-        `${apiUrl}/subjects/${selectedSubject.subjectID}/questions`,
+        `${apiUrl}/api/subjects/${selectedSubject.subjectID}/questions`,
         {
           method: "GET",
           headers: {
@@ -319,7 +318,7 @@ const AdminContent = () => {
       const token = localStorage.getItem("token");
       setIsApproving(true);
 
-      const response = await fetch(`${apiUrl}/questions/${questionID}/status`, {
+      const response = await fetch(`${apiUrl}/api/questions/${questionID}/status`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -354,6 +353,7 @@ const AdminContent = () => {
   }, [listViewOnly]);
 
   useEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
@@ -375,7 +375,7 @@ const AdminContent = () => {
     if (path.startsWith("http://") || path.startsWith("https://")) {
       return path;
     }
-    return `${apiUrl}/storage/${path}`;
+    return `${apiUrl}/api/storage/${path}`;
   };
 
   // Function to handle question duplication
@@ -409,6 +409,7 @@ const AdminContent = () => {
   // Close floating counter when clicking outside
   useEffect(() => {
     if (!showDifficultyCounter) return;
+    // Handles click.
     function handleClick(e) {
       if (
         difficultyIconRef.current &&
@@ -420,9 +421,6 @@ const AdminContent = () => {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showDifficultyCounter]);
-
-  // Add hoveredQuestionId state at the top of the component
-  const [hoveredQuestionId, setHoveredQuestionId] = useState(null);
 
   return (
     <div className="relative mt-7 flex min-h-screen w-full flex-1 flex-col justify-center py-2 md:mt-9">
@@ -461,85 +459,51 @@ const AdminContent = () => {
                   }));
                 }}
               />
-              {/* Desktop Tabs Bar (below card, right-aligned) */}
-              {!isLoading && (
-                <div className="dm-sans mx-auto max-w-3xl md:mt-4 md:justify-start">
-                  <div className="w-full">
-                    <div className="flex w-full items-center justify-between">
-                      {/* Tab Bar */}
-                      <div className="flex rounded-t-xl">
-                        {["Practice Exam", "Qualifying Exam", "Pending"].map(
-                          (item, index) => {
-                            const isActive =
-                              activeTab === (index === 2 ? 4 : index);
-                            return (
-                              <button
-                                key={index}
-                                onClick={() =>
-                                  setActiveTab(index === 2 ? 4 : index)
-                                }
-                                className={
-                                  "relative z-10 -mb-[3px] hidden cursor-pointer px-5 py-[6px] text-[14px] transition-colors duration-150 md:block" +
-                                  (isActive
-                                    ? ` -mb-[0.5px] ${filteredQuestions.length === 0 ? "rounded-lg border-b-1" : "rounded-t-lg"} border border-b-0 border-gray-200 bg-white text-gray-900`
-                                    : ` ${filteredQuestions.length === 0 ? "rounded-lg" : "rounded-t-lg"} border border-gray-200 bg-[rgb(240,240,240)] text-gray-500 hover:text-gray-700`)
-                                }
-                                style={{
-                                  marginRight: index !== 2 ? "0.5rem" : 0,
-                                }}
-                              >
-                                {item}
-                              </button>
-                            );
-                          },
-                        )}
-                      </div>
-                      {/* Sort controls */}
-                      <div className="ml-4 flex items-center">
-                        {activeTab === 4 && (
-                          <SortType
-                            name="pendingSort"
-                            value={pendingSort}
-                            onChange={(e) => setPendingSort(e.target.value)}
-                            placeholder="Type"
-                            options={[
-                              { value: "", label: "All Types" },
-                              {
-                                value: "practiceQuestions",
-                                label: "Practice Exam",
-                              },
-                              {
-                                value: "examQuestions",
-                                label: "Qualifying Exam",
-                              },
-                            ]}
-                            className="sm:w-35"
-                          />
-                        )}
-                        {activeTab === 4 && (
-                          <div className="mx-2 h-5 w-px bg-gray-300"></div>
-                        )}
-                        <div className="w-auto">
-                          <Sort
-                            sortOption={sortOption}
-                            setSortOption={setSortOption}
-                            subSortOption={subSortOption}
-                            setSubSortOption={setSubSortOption}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
             {/*Search bar div here*/}
+            <div className="mx-auto mb-4 flex w-full max-w-3xl flex-row justify-end gap-[5.5px]">
+              {!isLoading && filteredQuestions.length > 0 && (
+                <>
+                  <div className="flex flex-row items-center justify-end">
+                    {activeTab === 4 && (
+                      <SortType
+                        name="pendingSort"
+                        value={pendingSort}
+                        onChange={(e) => setPendingSort(e.target.value)}
+                        placeholder="Type"
+                        options={[
+                          { value: "", label: "All Types" },
+                          {
+                            value: "practiceQuestions",
+                            label: "Practice  ",
+                          },
+                          { value: "examQuestions", label: "Qualifying Exam " },
+                        ]}
+                        className="sm:w-35"
+                      />
+                    )}
+                    {activeTab === 4 && (
+                      <div className="mx-2 h-6 w-px bg-gray-300"></div>
+                    )}
+                    <div className="w-auto">
+                      <Sort
+                        sortOption={sortOption}
+                        setSortOption={setSortOption}
+                        subSortOption={subSortOption}
+                        setSubSortOption={setSubSortOption}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* Add Question Section */}
             {(activeTab === 0 || activeTab === 1) && (
               <div>
                 {/* Show Add Question Button Only If No Active Question and There Are Questions */}
                 {!submittedQuestion && filteredQuestions.length > 0 && (
-                  <div className="fixed right-4 bottom-[110px] z-49 p-4 text-center sm:right-[-4px] sm:bottom-[-4px]">
+                  <div className="fixed right-[-4px] bottom-[70px] z-49 p-4 text-center sm:right-[-4px] sm:bottom-[-4px]">
                     <button
                       onClick={() => {
                         setSubmittedQuestion("new");
@@ -668,10 +632,10 @@ const AdminContent = () => {
                     </div>
                   ) : filteredQuestions.length > 0 ? (
                     <>
-                      <div className="dm-sans-600 border-color relative mx-0 mt-3 flex w-full max-w-3xl flex-row items-center rounded-t-3xl border border-b-0 bg-white sm:mx-auto sm:mt-[2px] sm:rounded-t-xl md:rounded-tl-none">
-                        <div className="flex h-full items-center gap-2 px-4 py-2">
+                      <div className="open-sans border-color relative mx-0 -mt-1 flex w-full max-w-3xl flex-row rounded-t-2xl border border-b-0 bg-white sm:mx-auto sm:rounded-t-md">
+                        <div className="flex flex-col gap-2 p-4">
                           {/* Question Count */}
-                          <div className="flex items-center justify-center gap-2 text-[14px] text-nowrap text-gray-600">
+                          <div className="flex items-center gap-2 text-sm font-medium text-nowrap text-gray-600">
                             <span>
                               {
                                 filteredQuestions.filter(
@@ -702,7 +666,7 @@ const AdminContent = () => {
                             </span>
                             <span
                               ref={difficultyIconRef}
-                              className="dm-sans relative flex items-center"
+                              className="open-sans relative flex items-center"
                             >
                               <i
                                 className="bx bx-chevron-right cursor-pointer text-2xl text-gray-400 hover:text-gray-500"
@@ -712,7 +676,7 @@ const AdminContent = () => {
                                 }
                               ></i>
                               {showDifficultyCounter && (
-                                <div className="fade-in dm-sans absolute left-33 z-50 mt-2 w-48 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-4 py-[14px] shadow-md">
+                                <div className="fade-in open-sans absolute left-33 z-50 mt-2 w-48 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-4 py-[14px] shadow-md">
                                   <div className="mb-3 text-center text-xs font-semibold text-gray-700">
                                     Difficulty Count
                                   </div>
@@ -791,181 +755,30 @@ const AdminContent = () => {
                                   setExpandedQuestionId(question.questionID);
                                 }
                               }}
-                              onMouseEnter={() =>
-                                setHoveredQuestionId(question.questionID)
-                              }
-                              onMouseLeave={() => setHoveredQuestionId(null)}
-                              className={`border-color relative mx-auto w-full max-w-3xl cursor-pointer border bg-white p-3 sm:px-4 ${
-                                listViewOnly &&
-                                expandedQuestionId !== question.questionID
-                                  ? ""
-                                  : ""
-                              } ${
+                              className={`border-color relative mx-auto w-full max-w-3xl cursor-pointer border bg-white p-4 sm:px-4 ${listViewOnly && expandedQuestionId !== question.questionID ? "hover:bg-gray-100" : ""} ${
                                 listViewOnly
                                   ? expandedQuestionId === question.questionID
-                                    ? `${index === 0 ? "rounded-b-xl" : "mt-2 mb-2 rounded-xl"}`
-                                    : index > 0 &&
-                                        filteredQuestions[index - 1]
-                                          ?.questionID === expandedQuestionId
-                                      ? `${
-                                          index === filteredQuestions.length - 1
-                                            ? "mt-2 rounded-t-xl rounded-b-xl"
-                                            : index === 1 &&
-                                                filteredQuestions[0]
-                                                  ?.questionID ===
-                                                  expandedQuestionId
-                                              ? "mt-2 rounded-t-xl"
-                                              : "rounded-t-xl"
-                                        }`
-                                      : index !==
-                                            filteredQuestions.length - 1 &&
-                                          filteredQuestions[index + 1]
-                                            ?.questionID === expandedQuestionId
-                                        ? "rounded-b-xl"
-                                        : index === filteredQuestions.length - 1
-                                          ? "rounded-b-xl"
-                                          : ""
-                                  : `${index === 0 ? "rounded-t-none" : "rounded-t-xl"} mb-2 rounded-xl`
+                                    ? `rounded-sm ${index === 0 ? "" : "mt-2"} mb-2`
+                                    : `${index !== filteredQuestions.length - 1 ? "border-b-0" : ""}`
+                                  : `${index === 0 ? "rounded-t-none" : "rounded-t-sm"} mb-2 rounded-sm`
                               } `}
                             >
                               <div className="w-full max-w-full overflow-hidden break-words">
-                                <div className="dm-sans flex items-center justify-between text-[14px] text-gray-500">
+                                <div className="flex items-center justify-between text-[14px] text-gray-500">
                                   {/* Always show points, coverage, and difficulty in list view */}
-                                  <span>{index + 1}. MULTIPLE CHOICE</span>
-                                  <div className="relative flex min-h-[32px] items-center">
-                                    {/* Badges */}
-                                    <div
-                                      className={`flex items-center transition-opacity duration-150 ${
-                                        listViewOnly &&
-                                        expandedQuestionId !==
-                                          question.questionID &&
-                                        hoveredQuestionId ===
-                                          question.questionID
-                                          ? "sm:pointer-events-none sm:absolute sm:opacity-0"
-                                          : "sm:relative sm:opacity-100"
-                                      }`}
-                                    >
-                                      <span className="rounded-lg px-2 py-1 text-[12px] capitalize">
-                                        {question.difficulty?.name || "Easy"}
-                                      </span>
-                                      <span> •</span>
-                                      <span className="rounded-lg px-2 py-1 text-[12px] capitalize">
-                                        {question.coverage?.name || "Midterm"}
-                                      </span>
-                                      <span> •</span>
-                                      <span className="rounded-lg px-2 py-1 text-[12px]">
-                                        {question.score} PT
-                                      </span>
-                                    </div>
-                                    {/* Action Buttons */}
-                                    {question.status_id === 1 ? ( // 1 is pending
-                                      <div
-                                        className={`hidden items-center sm:flex ${
-                                          listViewOnly &&
-                                          expandedQuestionId !==
-                                            question.questionID &&
-                                          hoveredQuestionId ===
-                                            question.questionID
-                                            ? "sm:relative sm:opacity-100"
-                                            : "sm:pointer-events-none sm:absolute sm:opacity-0"
-                                        }`}
-                                      >
-                                        <button
-                                          className="dm-sans border-color mx-1 flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-[6px] text-gray-900 transition-colors hover:bg-gray-100"
-                                          title="Remove"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            confirmDelete(question.questionID);
-                                          }}
-                                        >
-                                          <i className="bx bx-trash text-[12px]"></i>
-                                          <span className="text-[12px]">
-                                            Delete
-                                          </span>
-                                        </button>
-
-                                        <button
-                                          className="dm-sans border-color mx-1 flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-[6px] text-gray-900 transition-colors hover:bg-gray-100"
-                                          title="Edit"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditClick(question);
-                                          }}
-                                        >
-                                          <i className="bx bx-edit-alt text-[12px]"></i>
-                                          <span className="text-[12px]">
-                                            Edit
-                                          </span>
-                                        </button>
-                                        <button
-                                          className="dm-sans mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-orange-500 px-3 py-[6px] text-orange-500 transition-colors hover:bg-orange-100"
-                                          title="Copy"
-                                          onClick={() => {
-                                            setSelectedQuestionID(
-                                              question.questionID,
-                                            );
-                                            setShowApproveModal(true);
-                                          }}
-                                        >
-                                          <i className="bx bx-checks text-[15px]"></i>
-                                          <span className="text-[12px]">
-                                            Approve
-                                          </span>
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <div
-                                        className={`hidden items-center transition-opacity duration-150 sm:flex ${
-                                          listViewOnly &&
-                                          expandedQuestionId !==
-                                            question.questionID &&
-                                          hoveredQuestionId ===
-                                            question.questionID
-                                            ? "sm:relative sm:opacity-100"
-                                            : "sm:pointer-events-none sm:absolute sm:opacity-0"
-                                        }`}
-                                      >
-                                        <button
-                                          className="dm-sans border-color mx-1 flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-[6px] text-gray-900 transition-colors hover:bg-gray-100"
-                                          title="Remove"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            confirmDelete(question.questionID);
-                                          }}
-                                        >
-                                          <i className="bx bx-trash text-[12px]"></i>
-                                          <span className="text-[12px]">
-                                            Delete
-                                          </span>
-                                        </button>
-                                        <button
-                                          className="dm-sans border-color mx-1 flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-[6px] text-gray-900 transition-colors hover:bg-gray-100"
-                                          title="Copy"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDuplicateClick(question);
-                                          }}
-                                        >
-                                          <i className="bx bx-copy text-[12px]"></i>
-                                          <span className="text-[12px]">
-                                            Copy
-                                          </span>
-                                        </button>
-                                        <button
-                                          className="dm-sans mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-orange-500 px-3 py-[6px] text-orange-500 transition-colors hover:bg-orange-100"
-                                          title="Edit"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditClick(question);
-                                          }}
-                                        >
-                                          <i className="bx bx-edit-alt text-[12px]"></i>
-                                          <span className="text-[12px]">
-                                            Edit
-                                          </span>
-                                        </button>
-                                      </div>
-                                    )}
+                                  <span>{index + 1}. Multiple Choice</span>
+                                  <div className="flex items-center">
+                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium capitalize">
+                                      {question.difficulty?.name || "Easy"}
+                                    </span>
+                                    <span> •</span>
+                                    {/* Coverage Badge */}
+                                    <span className="rounded-lg px-2 py-1 text-[13px] font-medium capitalize">
+                                      {question.coverage?.name || "Midterm"}
+                                    </span>
+                                    <span className="border-color ml-2 rounded-full border px-3 py-1 text-[13px] font-medium">
+                                      {question.score} pt
+                                    </span>
                                   </div>
                                 </div>
 
@@ -987,24 +800,17 @@ const AdminContent = () => {
                                       </div>
                                     </div>
                                   ) : (
-                                    <div className="word-break break-word mt-4 flex w-full max-w-full cursor-pointer items-center overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
+                                    <div className="word-break break-word mt-4 w-full max-w-full cursor-pointer overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
                                       <span
                                         className="ml-2 font-semibold"
                                         dangerouslySetInnerHTML={{
                                           __html: question.questionText,
                                         }}
                                       ></span>
-                                      {question.image && (
-                                        <img
-                                          src={getImageUrl(question.image)}
-                                          alt="Question"
-                                          className="ml-auto h-10 w-10 rounded object-cover"
-                                        />
-                                      )}
                                     </div>
                                   )
                                 ) : (
-                                  <div className="dm-sans relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-pointer">
+                                  <div className="relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-pointer">
                                     <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-300 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
                                       <span
                                         dangerouslySetInnerHTML={{
@@ -1079,7 +885,7 @@ const AdminContent = () => {
 
                                         {choice.choiceText !== null && (
                                           <span
-                                            className={`dm-sans w-[90%] rounded-md p-2 text-[14px] ${
+                                            className={`w-[90%] rounded-md p-2 text-[14px] ${
                                               choice.isCorrect
                                                 ? "font-semibold text-orange-500"
                                                 : "text-gray-700"
@@ -1124,9 +930,8 @@ const AdminContent = () => {
                                   expandedQuestionId ===
                                     question.questionID)) && (
                                 <>
-                                  <div className="-mx-3 mt-3 mb-5 h-[1px] bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
-
-                                  <div className="dm-sans ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
+                                  <div className="mt-4 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+                                  <div className="ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
                                     <div className="flex flex-col gap-1">
                                       <div className="flex">
                                         <span className="w-[100px]">
@@ -1213,20 +1018,10 @@ const AdminContent = () => {
                                   expandedQuestionId ===
                                     question.questionID)) && (
                                 <>
-                                  <div className="-mx-3 mt-3 mb-4 h-[1px] bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
-
-                                  <div className="mt-3 mb-1 flex justify-end gap-1">
+                                  <div className="mt-5 mb-5 h-[0.5px] bg-[rgb(200,200,200)]" />
+                                  <div className="mt-5 mb-1 flex justify-end gap-1">
                                     {question.status_id === 1 ? ( // 1 is pending
                                       <>
-                                        <AltButton
-                                          text="Remove"
-                                          icon="bx bx-trash"
-                                          className="hover:text-red-500"
-                                          onClick={() =>
-                                            confirmDelete(question.questionID)
-                                          }
-                                        />
-
                                         <AltButton
                                           text="Edit"
                                           textres="Edit"
@@ -1234,6 +1029,14 @@ const AdminContent = () => {
                                           className="hover:text-orange-500"
                                           onClick={() =>
                                             handleEditClick(question)
+                                          }
+                                        />
+                                        <AltButton
+                                          text="Remove"
+                                          icon="bx bx-trash"
+                                          className="hover:text-red-500"
+                                          onClick={() =>
+                                            confirmDelete(question.questionID)
                                           }
                                         />
                                         <AltButton
@@ -1252,11 +1055,12 @@ const AdminContent = () => {
                                     ) : (
                                       <>
                                         <AltButton
-                                          text="Remove"
-                                          icon="bx bx-trash"
-                                          className="hover:text-red-500"
+                                          text="Edit"
+                                          textres="Edit"
+                                          icon="bx bx-edit-alt"
+                                          className="hover:text-orange-500"
                                           onClick={() =>
-                                            confirmDelete(question.questionID)
+                                            handleEditClick(question)
                                           }
                                         />
 
@@ -1268,13 +1072,13 @@ const AdminContent = () => {
                                             handleDuplicateClick(question)
                                           }
                                         />
+
                                         <AltButton
-                                          text="Edit"
-                                          textres="Edit"
-                                          icon="bx bx-edit-alt"
-                                          className="hover:text-orange-500"
+                                          text="Remove"
+                                          icon="bx bx-trash"
+                                          className="hover:text-red-500"
                                           onClick={() =>
-                                            handleEditClick(question)
+                                            confirmDelete(question.questionID)
                                           }
                                         />
                                       </>
@@ -1440,4 +1244,4 @@ const AdminContent = () => {
   );
 };
 
-export default AdminContent;
+export default AssoAdminContent;

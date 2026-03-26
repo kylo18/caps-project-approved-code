@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
+
 @variant dark (&:where(.dark, .dark *));
+
 
 :root {
   /* Primary Brand Color */
@@ -156,39 +158,6 @@ body,
   font-family: arial;
 }
 
-rubik-800 {
-  font-family: "Rubik", sans-serif;
-  font-weight: 800;
-}
-
-/* Outfit font utilities */
-.outfit {
-  font-family: "Outfit", sans-serif;
-}
-
-.outfit-100 {
-  font-family: "Outfit", sans-serif;
-  font-weight: 100;
-}
-
-.outfit-300 {
-  font-family: "Outfit", sans-serif;
-  font-weight: 300;
-}
-
-.outfit-400 {
-  font-family: "Outfit", sans-serif;
-  font-weight: 400;
-}
-.outfit-500 {
-  font-family: "Outfit", sans-serif;
-  font-weight: 500;
-}
-.outfit-700 {
-  font-family: "Outfit", sans-serif;
-  font-weight: 700;
-}
-
 .roboto {
   font-family: "Roboto", sans-serif;
 }
@@ -196,6 +165,7 @@ rubik-800 {
 .font-inter {
   font-family: "Inter";
 }
+
 .font-gg-sans {
   font-family:
     "Segoe UI",
@@ -205,6 +175,7 @@ rubik-800 {
     "Roboto",
     sans-serif;
 }
+
 .font-medium {
   font-weight: 550;
 }
@@ -232,16 +203,15 @@ rubik-800 {
 }
 
 select option:hover {
-  background-color: rgb(
-    254,
-    105,
-    2
-  ) !important; /* Change to your desired hover color */
+  background-color: rgb(254,
+      105,
+      2) !important;
+  /* Change to your desired hover color */
   color: white !important;
 }
 
 .border-color {
-  border-color: rgb(218, 221, 225);
+  border-color: rgb(209, 213, 219);
 }
 
 .font-color-gray {
@@ -257,6 +227,7 @@ select option:hover {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -267,6 +238,7 @@ select option:hover {
     opacity: 0;
     transform: translateX(-40px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -279,13 +251,15 @@ select option:hover {
 
 .scrollbar-show-on-hover {
   overflow-y: hidden;
-  padding-right: 0; /* No padding when hidden */
+  padding-right: 0;
+  /* No padding when hidden */
   transition: padding-right 0.2s ease;
 }
 
 .scrollbar-show-on-hover:hover {
   overflow-y: auto;
-  padding-right: 0; /* Add padding when scrolling is enabled */
+  padding-right: 0;
+  /* Add padding when scrolling is enabled */
 }
 
 /* Scrollbar style for WebKit browsers */
@@ -309,8 +283,10 @@ select option:hover {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .scrollbar-hide {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 /* Shimmer effect applied to elements */
@@ -347,11 +323,13 @@ select option:hover {
     opacity: 0;
     transform: translateY(20px);
   }
+
   10%,
   90% {
     opacity: 1;
     transform: translateY(0);
   }
+
   100% {
     opacity: 0;
     transform: translateY(20px);
@@ -367,6 +345,7 @@ select option:hover {
     opacity: 0;
     transform: translateY(20px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -411,12 +390,151 @@ select option:hover {
 
   scrollbar-color: #838484 #f3f4f6;
 }
+
 .edit-profile-modal-scrollbar::-webkit-scrollbar {
   width: 7px;
   background: #f3f4f6;
   border-top-right-radius: 12px;
   border-bottom-right-radius: 12px;
 }
+
+.dark .subject-selector-theme,
+.dark .subject-workspace-theme,
+.dark .faculty-subjects-theme,
+.dark .print-exam-theme {
+  color: #f3f4f6;
+}
+
+.dark .subject-selector-theme .border-color,
+.dark .subject-workspace-theme .border-color,
+.dark .faculty-subjects-theme .border-color,
+.dark .print-exam-theme .border-color {
+  border-color: #3f3f46;
+}
+
+.dark .subject-selector-theme .bg-white,
+.dark .subject-workspace-theme .bg-white,
+.dark .faculty-subjects-theme .bg-white,
+.dark .print-exam-theme .bg-white {
+  background-color: #09090b !important;
+}
+
+.dark .subject-selector-theme .bg-gray-50,
+.dark .subject-selector-theme .bg-gray-100,
+.dark .subject-workspace-theme .bg-gray-50,
+.dark .subject-workspace-theme .bg-gray-100,
+.dark .subject-workspace-theme .bg-gray-200,
+.dark .faculty-subjects-theme .bg-gray-50,
+.dark .faculty-subjects-theme .bg-gray-100,
+.dark .print-exam-theme .bg-gray-50,
+.dark .print-exam-theme .bg-gray-100 {
+  background-color: #18181b !important;
+}
+
+.dark .subject-selector-theme .border-gray-200,
+.dark .subject-selector-theme .border-gray-300,
+.dark .subject-workspace-theme .border-gray-200,
+.dark .subject-workspace-theme .border-gray-300,
+.dark .faculty-subjects-theme .border-gray-200,
+.dark .faculty-subjects-theme .border-gray-300,
+.dark .print-exam-theme .border-gray-200,
+.dark .print-exam-theme .border-gray-300 {
+  border-color: #3f3f46 !important;
+}
+
+.dark .subject-selector-theme .text-black,
+.dark .subject-selector-theme .text-gray-900,
+.dark .subject-selector-theme .text-gray-800,
+.dark .subject-selector-theme .text-gray-700,
+.dark .subject-selector-theme .text-gray-600,
+.dark .subject-selector-theme .text-gray-500,
+.dark .subject-selector-theme .text-gray-400,
+.dark .subject-selector-theme .text-gray-300,
+.dark .subject-workspace-theme .text-black,
+.dark .subject-workspace-theme .text-gray-900,
+.dark .subject-workspace-theme .text-gray-800,
+.dark .subject-workspace-theme .text-gray-700,
+.dark .subject-workspace-theme .text-gray-600,
+.dark .subject-workspace-theme .text-gray-500,
+.dark .subject-workspace-theme .text-gray-400,
+.dark .subject-workspace-theme .text-gray-300,
+.dark .faculty-subjects-theme .text-black,
+.dark .faculty-subjects-theme .text-gray-900,
+.dark .faculty-subjects-theme .text-gray-800,
+.dark .faculty-subjects-theme .text-gray-700,
+.dark .faculty-subjects-theme .text-gray-600,
+.dark .faculty-subjects-theme .text-gray-500,
+.dark .print-exam-theme .text-black,
+.dark .print-exam-theme .text-gray-900,
+.dark .print-exam-theme .text-gray-800,
+.dark .print-exam-theme .text-gray-700,
+.dark .print-exam-theme .text-gray-600,
+.dark .print-exam-theme .text-gray-500 {
+  color: #e5e7eb !important;
+}
+
+.dark .subject-selector-theme input,
+.dark .subject-selector-theme select,
+.dark .subject-selector-theme textarea,
+.dark .subject-workspace-theme input,
+.dark .subject-workspace-theme select,
+.dark .subject-workspace-theme textarea,
+.dark .faculty-subjects-theme input,
+.dark .faculty-subjects-theme select,
+.dark .faculty-subjects-theme textarea,
+.dark .print-exam-theme input,
+.dark .print-exam-theme select,
+.dark .print-exam-theme textarea {
+  background-color: #09090b;
+  border-color: #3f3f46;
+  color: #f3f4f6;
+}
+
+.dark .subject-selector-theme input::placeholder,
+.dark .subject-workspace-theme input::placeholder,
+.dark .faculty-subjects-theme input::placeholder,
+.dark .print-exam-theme input::placeholder {
+  color: #9ca3af;
+}
+
+.dark .subject-selector-theme button:hover,
+.dark .subject-selector-theme li:hover,
+.dark .subject-selector-theme .hover\:bg-gray-100:hover,
+.dark .subject-selector-theme .hover\:bg-gray-200:hover,
+.dark .subject-selector-theme .hover\:text-gray-700:hover,
+.dark .subject-selector-theme .hover\:text-gray-800:hover,
+.dark .subject-selector-theme .hover\:text-gray-900:hover,
+.dark .subject-workspace-theme button:hover,
+.dark .subject-workspace-theme li:hover,
+.dark .subject-workspace-theme .hover\:bg-gray-100:hover,
+.dark .subject-workspace-theme .hover\:bg-gray-200:hover,
+.dark .faculty-subjects-theme button:hover,
+.dark .faculty-subjects-theme li:hover,
+.dark .faculty-subjects-theme .hover\:bg-gray-100:hover,
+.dark .print-exam-theme button:hover,
+.dark .print-exam-theme li:hover,
+.dark .print-exam-theme .hover\:bg-gray-100:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .subject-selector-theme .bg-orange-50,
+.dark .subject-workspace-theme .bg-orange-50,
+.dark .faculty-subjects-theme .bg-orange-50 {
+  background-color: rgba(249, 115, 22, 0.16) !important;
+}
+
+.dark .subject-selector-theme [class*="bg-[rgb(230,230,230)]"],
+.dark .subject-workspace-theme [class*="bg-[rgb(230,230,230)]"],
+.dark .faculty-subjects-theme [class*="bg-[rgb(230,230,230)]"] {
+  background-color: #27272a !important;
+}
+
+.dark .subject-selector-theme [class*="bg-[rgb(200,200,200)]"],
+.dark .subject-workspace-theme [class*="bg-[rgb(200,200,200)]"],
+.dark .faculty-subjects-theme [class*="bg-[rgb(200,200,200)]"] {
+  background-color: #3f3f46 !important;
+}
+
 .edit-profile-modal-scrollbar::-webkit-scrollbar-thumb {
   background: #d1d5db;
   border-top-right-radius: 12px;
@@ -434,10 +552,12 @@ select option:hover {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.4);
     opacity: 0.8;
   }
+
   100% {
     transform: scale(1);
     opacity: 1;
@@ -450,10 +570,12 @@ select option:hover {
 
 /* Pulse animation for selected correct answer */
 @keyframes correct-pulse {
+
   0%,
   100% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.05);
   }
@@ -474,6 +596,7 @@ select option:hover {
   background-size: calc(100% / 3) 50%;
   animation: l3 1s infinite linear;
 }
+
 @keyframes l3 {
   20% {
     background-position:
@@ -481,18 +604,21 @@ select option:hover {
       50% 50%,
       100% 50%;
   }
+
   40% {
     background-position:
       0% 100%,
       50% 0%,
       100% 50%;
   }
+
   60% {
     background-position:
       0% 50%,
       50% 100%,
       100% 0%;
   }
+
   80% {
     background-position:
       0% 50%,
@@ -517,6 +643,7 @@ select option:hover {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -526,26 +653,12 @@ select option:hover {
   animation: fade-in 0.18s ease;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-slide-up {
-  animation: slideUp 0.3s ease-out;
-}
-
 @keyframes fadein {
   from {
     opacity: 0;
     transform: translateY(-8px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -556,28 +669,7 @@ select option:hover {
   animation: fadein 0.2s ease-out forwards;
 }
 
-.dm-sans {
-  font-family: "DM Sans", sans-serif, Helvetica, Arial, Symbola;
-}
-
-.dm-sans-400 {
-  font-family: "DM Sans", sans-serif, Helvetica, Arial, Symbola;
-  font-weight: 400;
-}
-.dm-sans-500 {
-  font-family: "DM Sans", sans-serif, Helvetica, Arial, Symbola;
-  font-weight: 500;
-}
-.dm-sans-600 {
-  font-family: "DM Sans", sans-serif, Helvetica, Arial, Symbola;
-  font-weight: 600;
-}
-.dm-sans-700 {
-  font-family: "DM Sans", sans-serif, Helvetica, Arial, Symbola;
-  font-weight: 700;
-}
-
-.outfit {
+.open-sans {
   font-family: "Open Sans", sans-serif;
 }
 
@@ -586,11 +678,13 @@ select option:hover {
     opacity: 0;
     transform: scale(0.95);
   }
+
   100% {
     opacity: 1;
     transform: scale(1);
   }
 }
+
 .animate-search-popup {
   animation: search-popup 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
@@ -600,11 +694,13 @@ select option:hover {
     opacity: 1;
     transform: scale(1);
   }
+
   100% {
     opacity: 0;
     transform: scale(0.95);
   }
 }
+
 .animate-search-popout {
   animation: search-popout 0.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
@@ -614,6 +710,7 @@ select option:hover {
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -622,27 +719,4 @@ select option:hover {
 
 .slide-in-right {
   animation: slideInRight 0.2s ease-out forwards;
-}
-
-/* Marquee (right-to-left) */
-.marquee {
-  overflow: hidden;
-}
-.marquee-track {
-  display: flex;
-  width: max-content;
-  animation: marquee-left 18s linear infinite;
-}
-.marquee-content {
-  display: flex;
-  gap: 2rem;
-  padding-right: 2rem; /* spacing between repeats */
-}
-@keyframes marquee-left {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
 }

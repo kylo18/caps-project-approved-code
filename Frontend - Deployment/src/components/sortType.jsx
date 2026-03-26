@@ -16,6 +16,7 @@ const SortType = ({
   const buttonRef = useRef(null);
 
   useEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -28,6 +29,7 @@ const SortType = ({
     };
   }, []);
 
+  // Handles open dropdown.
   const handleOpenDropdown = () => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -42,9 +44,9 @@ const SortType = ({
   };
 
   return (
-    <div className="outfit flex flex-row gap-2">
+    <div className="open-sans flex flex-row gap-2">
       <div
-        className="relative flex items-center gap-2 text-[13px] md:-mt-2"
+        className="relative flex items-center gap-2 text-[13px]"
         ref={dropdownRef}
       >
         {/* Dropdown Button */}
@@ -52,25 +54,18 @@ const SortType = ({
           ref={buttonRef}
           type="button"
           onClick={handleOpenDropdown}
-          className={`border-color outfit-400 relative flex cursor-pointer items-center rounded-lg px-3 py-2 text-gray-700`}
+          className={`border-color relative flex cursor-pointer items-center rounded-lg px-3 py-2`}
         >
-          <span className="truncate">
-            {options.find(
-              (option) =>
-                value === option.value || value === option.value + "_desc",
-            )?.label ||
-              buttonLabel ||
-              placeholder}
-          </span>
+          <span className={`truncate`}>{buttonLabel || placeholder}</span>
           <i
-            className={`bx bx-chevron-down ml-2 text-[18px] text-gray-700 ${isOpen ? "rotate-180" : "rotate-0"}`}
+            className={`bx bx-chevron-down ml-2 text-[18px] text-gray-500 ${isOpen ? "rotate-180" : "rotate-0"}`}
           ></i>
         </button>
 
         {/* Dropdown Options */}
         {isOpen && (
           <ul
-            className={`animate-dropdown outfit-400 animate-fadein border-color absolute top-full right-0 z-50 mt-1 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm ${dropdownPosition === "bottom" ? "top-full mt-1" : "bottom-full mb-1"}`}
+            className={`animate-dropdown animate-fadein border-color absolute top-full right-0 z-50 mt-1 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm ${dropdownPosition === "bottom" ? "top-full mt-1" : "bottom-full mb-1"}`}
           >
             {options.map((option) => (
               <li
@@ -79,7 +74,7 @@ const SortType = ({
                   onChange({ target: { name, value: option.value } });
                   setIsOpen(false);
                 }}
-                className={`mb-1 cursor-pointer rounded-sm px-3 py-[10px] text-[14px] text-gray-700 transition hover:bg-gray-100 ${
+                className={`cursor-pointer rounded-sm px-3 py-[10px] text-[14px] text-black transition hover:bg-gray-200 ${
                   value === option.value || value === option.value + "_desc"
                     ? "text-orange-500"
                     : ""

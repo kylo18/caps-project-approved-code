@@ -4,6 +4,7 @@ import { getApiUrl } from "../utils/config";
 import DashboardCarousel from "../components/DashboardCarousel";
 import StudentSubjectCard from "../components/StudentSubjectCard";
 
+// Renders the student dashboard.
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [subjectID, setSubjectID] = useState("");
@@ -17,11 +18,14 @@ const StudentDashboard = () => {
   const [subjectError, setSubjectError] = useState("");
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const apiUrl = getApiUrl();
-const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [examStarted, setExamStarted] = useState(false);
   const [ongoingExam, setOngoingExam] = useState(null);
   const [loadingExamPreview, setLoadingExamPreview] = useState(false);
 
+
+
+  // Resets form.
   const resetForm = () => {
     setSubjectInput("");
     setSubjectID("");
@@ -32,6 +36,7 @@ const [showForm, setShowForm] = useState(false);
 
   // Close suggestions when clicking outside
   useEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (
         suggestionsRef.current &&
@@ -69,10 +74,12 @@ const [showForm, setShowForm] = useState(false);
     }, 500);
   }, [subjectInput, subjects]);
 
+  // Handles input focus.
   const handleInputFocus = () => {
     setShowSuggestions(true);
   };
 
+  // Handles input blur.
   const handleInputBlur = (e) => {
     // Add a small delay to allow click events on suggestions to fire first
     setTimeout(() => {
@@ -83,8 +90,9 @@ const [showForm, setShowForm] = useState(false);
     }, 200);
   };
 
-// Fetch available subjects when component mounts
+  // Fetch available subjects when component mounts
   useEffect(() => {
+    // Fetches subjects.
     const fetchSubjects = async () => {
       try {
         const response = await fetch(`${apiUrl}/api/student/practice-subjects`, {
@@ -92,13 +100,13 @@ const [showForm, setShowForm] = useState(false);
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        
+
         if (!response.ok) {
           console.error("Failed to fetch subjects:", response.status);
           setError("Failed to load subjects");
           return;
         }
-        
+
         const data = await response.json();
         if (data.data && Array.isArray(data.data)) {
           setSubjects(data.data);
@@ -116,6 +124,7 @@ const [showForm, setShowForm] = useState(false);
 
   // Check for ongoing exam when component mounts
   useEffect(() => {
+    // Checks ongoing exam.
     const checkOngoingExam = () => {
       // Get all localStorage keys
       const keys = Object.keys(localStorage);
@@ -215,6 +224,7 @@ const [showForm, setShowForm] = useState(false);
     checkOngoingExam();
   }, [apiUrl]);
 
+  // Handles continue exam.
   const handleContinueExam = () => {
     if (ongoingExam) {
       navigate("/practice-exam", {
@@ -229,10 +239,12 @@ const [showForm, setShowForm] = useState(false);
     }
   };
 
+  // Handles start exam.
   const handleStartExam = () => {
     setExamStarted(true);
   };
 
+  // Handles generate exam.
   const handleGenerateExam = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -298,7 +310,7 @@ const [showForm, setShowForm] = useState(false);
         if (response.status === 404) {
           throw new Error(
             data.message ||
-              "Subject not found or no questions available for this subject.",
+            "Subject not found or no questions available for this subject.",
           );
         }
         throw new Error(data.message || "Failed to generate exam");
@@ -359,12 +371,14 @@ const [showForm, setShowForm] = useState(false);
     }
   };
 
-const handleSubjectSelect = (subject) => {
+  // Handles subject select.
+  const handleSubjectSelect = (subject) => {
     setSubjectInput(subject.subjectName);
     setSubjectID(subject.subjectID);
     setShowSuggestions(false); // Close the suggestions dropdown
   };
 
+  // Handles subject click.
   const handleSubjectClick = async (subject) => {
     setLoadingExamPreview(true);
     try {
@@ -376,7 +390,7 @@ const handleSubjectSelect = (subject) => {
           },
         }
       );
-      
+
       if (!response.ok) {
         if (response.status === 403) {
           throw new Error("Practice exam is not enabled for this subject.");
@@ -386,15 +400,15 @@ const handleSubjectSelect = (subject) => {
         }
         throw new Error("Failed to generate exam");
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.questions || data.questions.length === 0) {
         throw new Error("No questions available for this subject.");
       }
-      
+
       const examKey = `exam_${subject.subjectID}_${Date.now()}`;
-      
+
       localStorage.setItem(
         `${examKey}_exam_data`,
         JSON.stringify({
@@ -409,7 +423,7 @@ const handleSubjectSelect = (subject) => {
           },
         })
       );
-      
+
       navigate("/exam-preview", {
         state: {
           subjectID: subject.subjectID,
@@ -437,19 +451,17 @@ const handleSubjectSelect = (subject) => {
   };
 
   return (
-    <div className="font-inter mt-2 sm:mt-4 text-center text-gray-500">
-      <div className="px-2 sm:px-4">
-        <DashboardCarousel />
-      </div>
+    <div className="font-inter mt-2 sm:mt-4 px-4 max-w-full text-gray-500">
+      <DashboardCarousel />
 
       {loadingExamPreview && (
-        <div className="mt-4">
+        <div className="mt-4 text-center">
           <span className="loader"></span>
           <p className="text-sm mt-2">Loading exam...</p>
         </div>
       )}
 
-      <div className="mt-4 sm:mt-6 px-3 sm:px-4">
+      <div className="mt-4 sm:mt-6">
         <h2 className="text-left text-base sm:text-lg font-semibold text-gray-700 dark:text-white">
           Available Subjects
         </h2>
@@ -465,7 +477,9 @@ const handleSubjectSelect = (subject) => {
               />
             ))
           ) : (
-            <p className="text-sm sm:text-base text-gray-500">No subjects available</p>
+            <p className="text-sm sm:text-base text-gray-500 text-center">
+              No subjects available
+            </p>
           )}
         </div>
       </div>

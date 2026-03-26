@@ -1,32 +1,32 @@
 import { useEffect, useState, useRef } from "react";
+import { getApiUrl } from "../utils/config";
 import { useNavigate, Outlet } from "react-router-dom";
+import SideBarToolTip from "./sidebarTooltip";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import notFoundImage from "../assets/icons/notfound.png";
 import noInternetImage from "../assets/icons/404notfound.png";
 import emptyImage from "../assets/icons/empty.png";
-import SubjectsIcon from "/src/assets/symbols/subjects.svg";
-import SubjectsIconH from "/src/assets/symbols/subjectshover.svg";
-import { getApiBaseUrl } from "../utils/config";
 
+// Renders the side bar drop down.
 const SideBarDropDown = ({
   item,
   isExpanded,
   setIsExpanded,
   setSelectedSubject,
-  isSubjectFocused,
   setIsSubjectFocused,
   homePath,
   selectedSubject,
   className,
+  showDirectly = false,
 }) => {
   const [subjects, setSubjects] = useState([]);
   const [filteredSubjects, setFilteredSubjects] = useState([]);
   const [searchUnassigned, setSearchUnassigned] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(showDirectly);
   const [showAddModal, setShowAddModal] = useState(false);
   const listRef = useRef(null);
   const navigate = useNavigate();
@@ -74,6 +74,7 @@ const SideBarDropDown = ({
 
   // Handle screen resize and panel state
   useEffect(() => {
+    // Handles resize.
     const handleResize = () => {
       const wasSmallScreen = isMobile;
       const isNowSmallScreen = window.innerWidth < 640;
@@ -127,22 +128,7 @@ const SideBarDropDown = ({
     };
 
     window.addEventListener("resize", handleResize);
-
-    // Listen for custom event to close the sidebar
-    const handleCloseSidebar = () => {
-      setIsOpen(false);
-      setIsSubjectFocused(false);
-      setShowAddModal(false);
-      setSearchTerm("");
-      setFilteredSubjects(subjects);
-      setIsExpanded(false);
-      setShowYearSubjects(false);
-    };
-    window.addEventListener("closeSubjectSidebar", handleCloseSidebar);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      window.removeEventListener("closeSubjectSidebar", handleCloseSidebar);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, [
     isMobile,
     isOpen,
@@ -231,18 +217,19 @@ const SideBarDropDown = ({
     };
   }, [showAddModal]);
 
-  const apiUrl = getApiBaseUrl();
+  const apiUrl = getApiUrl();
 
   useEffect(() => {
     fetchSubjects();
   }, []);
 
+  // Fetches subjects.
   const fetchSubjects = async () => {
     const token = localStorage.getItem("token");
     setLoading(true);
 
     try {
-      const response = await fetch(`${apiUrl}/faculty/availableSubjects`, {
+      const response = await fetch(`${apiUrl}/api/faculty/availableSubjects`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -284,11 +271,12 @@ const SideBarDropDown = ({
     }
   };
 
+  // Fetches assigned subjects.
   const fetchAssignedSubjects = async () => {
     const token = localStorage.getItem("token");
     setSubjectLoading(true);
     try {
-      const response = await fetch(`${apiUrl}/faculty/my-subjects`, {
+      const response = await fetch(`${apiUrl}/api/faculty/my-subjects`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -372,6 +360,7 @@ const SideBarDropDown = ({
 
   // Close dropdown on outside click
   useEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowYearSubjects(false);
@@ -389,6 +378,7 @@ const SideBarDropDown = ({
 
   // Close program filter dropdown on outside click
   useEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (
         programFilterRef.current &&
@@ -407,19 +397,24 @@ const SideBarDropDown = ({
     };
   }, [showProgramFilter]);
 
+  // Handles select subject.
   const handleSelectSubject = (subject) => {
     setSelectedSubject(subject);
 
-    // Always close sidebar and reset states after selecting a subject
-    setIsOpen(false);
-    setIsSubjectFocused(false);
-    setShowAddModal(false);
-    setSearchTerm("");
-    setFilteredSubjects(assignedSubjects);
-    setIsExpanded(false);
-    setShowYearSubjects(false);
+    // Close modal on small screens after selecting a subject
+    const isSmallScreen = window.innerWidth < 640;
+    if (isSmallScreen) {
+      setIsOpen(false);
+      setIsSubjectFocused(false);
+      setShowAddModal(false);
+      setSearchTerm("");
+      setFilteredSubjects(assignedSubjects);
+      setIsExpanded(false);
+      setShowYearSubjects(false);
+    }
   };
 
+  // Handles assign subject.
   const handleAssignSubject = async (subject) => {
     if (!subject) return;
 
@@ -427,7 +422,7 @@ const SideBarDropDown = ({
 
     setIsAssigning(true);
     try {
-      const response = await fetch(`${apiUrl}/faculty/assign-subject`, {
+      const response = await fetch(`${apiUrl}/api/faculty/assign-subject`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -460,11 +455,12 @@ const SideBarDropDown = ({
   };
 
   useEffect(() => {
+    // Fetches programs.
     const fetchPrograms = async () => {
       const token = localStorage.getItem("token");
 
       try {
-        const res = await fetch(`${apiUrl}/programs`, {
+        const res = await fetch(`${apiUrl}/api/programs`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -478,11 +474,12 @@ const SideBarDropDown = ({
       }
     };
 
+    // Fetches year levels.
     const fetchYearLevels = async () => {
       const token = localStorage.getItem("token");
 
       try {
-        const res = await fetch(`${apiUrl}/year-levels`, {
+        const res = await fetch(`${apiUrl}/api/year-levels`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -516,6 +513,7 @@ const SideBarDropDown = ({
     if (isOpen && window.innerWidth < 640) {
       // Push a new state to the history stack
       window.history.pushState({ panelOpen: true }, "");
+      // Handles pop state.
       const handlePopState = (event) => {
         if (isOpen) {
           setIsOpen(false);
@@ -541,6 +539,7 @@ const SideBarDropDown = ({
   };
 
   useEffect(() => {
+    // Handles refresh.
     const handleRefresh = () => fetchAssignedSubjects();
     window.addEventListener("refreshSubjectsList", handleRefresh);
     return () =>
@@ -549,264 +548,272 @@ const SideBarDropDown = ({
 
   return (
     <div className="">
-      <button
-        onClick={() => {
-          const width = window.innerWidth;
-          if (width >= 1024) {
-            // lg and up
-            if (!isExpanded || !isOpen) {
-              setIsExpanded(true);
-              setIsOpen(true);
+      {!showDirectly && (
+        <li
+          className="relative flex cursor-pointer items-center gap-3 rounded-md px-[8px] py-[4px] sm:hover:bg-gray-100"
+          onClick={() => {
+            const width = window.innerWidth;
+            if (width >= 1024) {
+              // lg and up
+              if (!isExpanded || !isOpen) {
+                setIsExpanded(true);
+                setIsOpen(true);
+                setIsSubjectFocused(true);
+              } else {
+                setIsOpen(false);
+                setIsSubjectFocused(false);
+                setShowAddModal(false);
+                setSearchTerm("");
+                setFilteredSubjects(assignedSubjects);
+                setIsExpanded(false);
+                setShowYearSubjects(false);
+              }
+            } else if (width >= 640) {
+              // sm/md
+              setIsTabletOpen(true);
               setIsSubjectFocused(true);
             } else {
-              setIsOpen(false);
-              setIsSubjectFocused(false);
-              setShowAddModal(false);
-              setSearchTerm("");
-              setFilteredSubjects(assignedSubjects);
-              setIsExpanded(false);
-              setShowYearSubjects(false);
+              // mobile
+              if (!isExpanded || !isOpen) {
+                setIsExpanded(true);
+                setIsOpen(true);
+                setIsSubjectFocused(true);
+              } else {
+                setIsOpen(false);
+                setIsSubjectFocused(false);
+                setShowAddModal(false);
+                setSearchTerm("");
+                setFilteredSubjects(assignedSubjects);
+                setIsExpanded(false);
+                setShowYearSubjects(false);
+              }
             }
-          } else if (width >= 640) {
-            // sm/md
-            setIsTabletOpen(true);
-            setIsSubjectFocused(true);
-          } else {
-            // mobile
-            if (!isExpanded || !isOpen) {
-              setIsExpanded(true);
-              setIsOpen(true);
-              setIsSubjectFocused(true);
-            } else {
-              setIsOpen(false);
-              setIsSubjectFocused(false);
-              setShowAddModal(false);
-              setSearchTerm("");
-              setFilteredSubjects(assignedSubjects);
-              setIsExpanded(false);
-              setShowYearSubjects(false);
-            }
-          }
-        }}
-        className={`group flex w-full cursor-pointer items-center justify-start rounded-lg py-[6px] transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-          isSubjectFocused ? "bg-gray-100 text-orange-600" : ""
-        }`}
-      >
-        {/* Icon + label wrapper with padding */}
-        <div className="ml-3 flex items-center gap-3">
-          <img
-            src={isSubjectFocused ? SubjectsIconH : SubjectsIcon}
-            alt="Subjects"
-            className="size-[18px] flex-shrink-0"
-          />
-          <span
-            className={`outfit-500 text-[15px] whitespace-nowrap ${
-              isSubjectFocused ? "font-[18px] text-black" : "text-gray-600"
-            }`}
-          >
-            {item.label}
+          }}
+        >
+          {/* Only show tooltip on sm and up */}
+          <span className="hidden sm:inline">
+            <SideBarToolTip
+              label="Subjects"
+              isExpanded={isExpanded}
+              className="ml-[15px]"
+            >
+              <i
+                className={`bx ${item.icon} ${className} text-2xl text-gray-700 hover:text-gray-800 sm:pt-1 sm:text-2xl`}
+              ></i>
+            </SideBarToolTip>
           </span>
-        </div>
-      </button>
+          {/* Always show icon on mobile, but without tooltip */}
+          <span className="sm:hidden">
+            <i
+              className={`bx ${item.icon} ${className} text-2xl text-gray-700 hover:text-gray-800 sm:pt-1 sm:text-2xl`}
+            ></i>
+          </span>
+        </li>
+      )}
 
       {/* Secondary Sidebar Panel */}
 
       {(isExpanded || isOpen) && (
         <>
           <div
-            className={`outfit sm:bg-opacity-0 fixed inset-0 z-50 flex h-[100vh] flex-col border-r border-gray-300 bg-white transition-all duration-200 ease-in-out sm:hidden lg:inset-auto lg:top-0 lg:left-[55px] lg:flex lg:w-62 lg:translate-x-0 lg:translate-y-0 lg:border-l lg:shadow-none ${
+            className={`faculty-subjects-theme open-sans sm:bg-opacity-0 flex flex-col border-gray-300 dark:border-white/10 bg-white transition-all duration-200 ease-in-out dark:bg-black ${
+              showDirectly ? "relative w-full h-auto border-none" : "fixed inset-0 z-50 h-[100vh] border sm:hidden lg:inset-auto lg:top-0 lg:left-[55px] lg:flex lg:w-62 lg:translate-x-0 lg:translate-y-0 lg:border-l lg:shadow-none"
+            } ${
               isOpen ? "translate-x-0" : "translate-x-full sm:translate-x-0"
             } ${window.innerWidth < 640 ? (isOpen ? "animate-fade-in-up" : "") : "animate-fade-in-left"}`}
           >
-            <div className="outfit flex items-center justify-between px-4 pt-3 text-[16px] font-semibold sm:text-[14px]">
-              <span>Select a Subject</span>
-              {/* Close button for small screens */}
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  setIsSubjectFocused(false);
-                  setShowAddModal(false);
-                  setSearchTerm("");
-                  setFilteredSubjects(assignedSubjects);
-                  setIsExpanded(false);
-                  setShowYearSubjects(false);
-                }}
-                className="absolute top-3 right-3.5 flex cursor-pointer items-center justify-center rounded-lg text-gray-700 transition duration-100 hover:text-gray-800"
-                title="Close"
-              >
-                {/* X icon for small screens */}
-                <span className="mt-1 inline lg:hidden">
-                  <i className="bx bx-x text-2xl sm:text-xl"></i>
-                </span>
-
-                {/* Chevron icon for large screens */}
-                <span className="hidden lg:inline">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="lucide lucide-panel-left-icon lucide-panel-left"
-                  >
-                    <rect width="18" height="18" x="3" y="3" rx="2" />
-                    <path d="M9 3v18" />
-                  </svg>
-                </span>
-              </button>
-            </div>
-
-            {/* Top area: Show search input if open, else year level dropdown and add subject */}
-            <div className="relative flex flex-col items-center gap-2 p-3">
-              {showSearch ? (
-                <div className="mb-2 w-full">
-                  <div className="relative flex-1">
-                    <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-lg text-gray-500"></i>
-                    <input
-                      type="text"
-                      placeholder="Enter"
-                      className="w-full rounded-md bg-gray-100 py-2 pr-10 pl-10 text-[13px] font-semibold text-gray-700 outline-none hover:bg-gray-200"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      autoFocus
-                    />
-                    <button
-                      className="absolute top-1/2 right-3 flex -translate-y-1/2 cursor-pointer items-center justify-center text-gray-500 hover:text-gray-700"
-                      onClick={() => {
-                        setShowSearch(false);
-                        setSearchTerm("");
-                      }}
-                    >
-                      <i className="bx bx-x text-lg leading-none"></i>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Custom Year Level Dropdown */}
-                  <div className="w-full" ref={dropdownRef}>
-                    <div className="flex items-center justify-between gap-1">
-                      <button
-                        type="button"
-                        className="border-color flex flex-1 cursor-pointer items-center justify-between rounded-md border bg-white px-3 py-[8px] text-[13px] font-semibold hover:bg-gray-100 focus:outline-none sm:py-[3.5px]"
-                        onClick={() => setShowYearSubjects((prev) => !prev)}
-                      >
-                        <span className="flex items-center gap-2 text-nowrap">
-                          <i className="bx bx-list-ul text-2xl text-gray-500"></i>
-                          {selectedYearLevel
-                            ? `${selectedYearLevel}${selectedYearLevel === "1" ? "st" : selectedYearLevel === "2" ? "nd" : selectedYearLevel === "3" ? "rd" : "th"} Year Subjects`
-                            : "All Year Level"}
-                        </span>
-                        <i
-                          className={`bx bx-chevron-down ml-1 text-2xl text-gray-500 transition-transform duration-200 ease-in-out ${
-                            showYearSubjects ? "rotate-180" : ""
-                          }`}
-                        />
-                      </button>
-                    </div>
-                    {showYearSubjects && (
-                      <ul className="animate-dropdown animate-fadein absolute left-0 z-10 mx-2 mt-1 w-[calc(100%-16px)] rounded border border-gray-300 bg-white p-1 shadow-lg">
-                        <li
-                          className="flex cursor-pointer items-center gap-2 px-1 py-2 text-sm hover:bg-orange-50"
-                          onClick={() => {
-                            setSelectedYearLevel("");
-                            setShowYearSubjects(false);
-                          }}
-                        >
-                          <i className="bx bx-layer text-lg text-gray-700"></i>
-                          All Year Level
-                        </li>
-                        {yearLevelOptions.map((yearLevel) => (
-                          <li
-                            key={yearLevel}
-                            className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-2 text-[13px] hover:bg-gray-100"
-                            onClick={() => {
-                              setSelectedYearLevel(yearLevel);
-                              setShowYearSubjects(false);
-                            }}
-                          >
-                            <i className="bx bx-layer text-[13px] text-gray-700"></i>
-                            {`${yearLevel}${yearLevel === "1" ? "st" : yearLevel === "2" ? "nd" : yearLevel === "3" ? "rd" : "th"} Year Subjects`}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </>
-              )}
-              {/* Program filter and bottom buttons */}
-              <div
-                className="relative flex w-full items-center justify-between"
-                ref={programFilterRef}
-              >
+            {!showDirectly && (
+              <div className="open-sans flex items-center justify-between px-3 pt-[6px] text-[16px] font-semibold sm:text-[14px] dark:text-gray-200">
+                <span>Select a Subject</span>
+                {/* Close button for small screens */}
                 <button
-                  className="ml-2 flex cursor-pointer items-center gap-2 text-[13px] text-gray-600 hover:text-gray-800"
-                  onClick={() => setShowProgramFilter(!showProgramFilter)}
+                  onClick={() => {
+                    setIsOpen(false);
+                    setIsSubjectFocused(false);
+                    setShowAddModal(false);
+                    setSearchTerm("");
+                    setFilteredSubjects(assignedSubjects);
+                    setIsExpanded(false);
+                    setShowYearSubjects(false);
+                  }}
+                  className="ml-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-600 transition duration-200 hover:bg-gray-100"
+                  title="Close"
                 >
-                  <span>
-                    {selectedProgramFilter === "All"
-                      ? "All Programs"
-                      : selectedProgramFilter}
+                  {/* X icon for small screens */}
+                  <span className="mt-1 inline lg:hidden">
+                    <i className="bx bx-x text-2xl sm:text-xl"></i>
                   </span>
-                  <i
-                    className={`bx bx-chevron-down text-lg transition-transform duration-200 ease-in-out ${
-                      showProgramFilter ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-                {/* Bottom right: Search icon only (refresh button removed) */}
 
-                <div className="flex items-center gap-1">
-                  {!showSearch && (
-                    <button
-                      className="flex cursor-pointer items-center gap-1 rounded-md p-1 text-xs text-gray-700 hover:bg-gray-100 hover:text-gray-800"
-                      title="Search subjects"
-                      onClick={() => setShowSearch(true)}
-                    >
-                      <i className="bx bx-search text-[20px]"></i>
-                    </button>
-                  )}
+                  {/* Chevron icon for large screens */}
+                  <span className="mt-1 hidden lg:inline">
+                    <i className="bx bx-chevron-left text-2xl"></i>
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {/* Year Level Dropdown at the top */}
+            <div className="relative flex flex-col items-center gap-2 p-2">
+              {/* Custom Year Level Dropdown */}
+              <div className="w-full" ref={dropdownRef}>
+                <div className="flex items-center justify-between gap-1">
                   <button
-                    className="flex cursor-pointer items-center gap-1 rounded-md p-1 text-xs text-gray-700 hover:bg-gray-100 hover:text-gray-800"
-                    title="Add subject"
-                    onClick={() => setShowAddModal(true)}
+                    type="button"
+                    className="border-color flex flex-1 cursor-pointer items-center justify-between rounded-md border bg-white px-3 py-[8px] text-[13px] font-semibold hover:bg-gray-100 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-gray-200 dark:hover:bg-white/5 focus:outline-none sm:py-[3.5px]"
+                    onClick={() => setShowYearSubjects((prev) => !prev)}
                   >
-                    <i className="bx bx-plus text-[20px]"></i>
+                    <span className="flex items-center gap-2 text-nowrap">
+                      <i className="bx bx-list-ul text-2xl text-gray-500 dark:text-gray-400"></i>
+                      {selectedYearLevel
+                        ? `${selectedYearLevel}${selectedYearLevel === "1" ? "st" : selectedYearLevel === "2" ? "nd" : selectedYearLevel === "3" ? "rd" : "th"} Year Subjects`
+                        : "All Year Level"}
+                    </span>
+                    <i
+                      className={`bx bx-chevron-down ml-1 text-2xl text-gray-500 transition-transform duration-200 ease-in-out ${
+                        showYearSubjects ? "rotate-180" : ""
+                      }`}
+                    />
                   </button>
                 </div>
-                {showProgramFilter && (
-                  <div className="animate-dropdown animate-fadein absolute top-8 left-0 z-20 min-w-[150px] rounded border border-gray-300 bg-white p-1 shadow-lg">
-                    <div
-                      className="flex cursor-pointer items-center gap-2 rounded-sm py-2 text-sm hover:bg-gray-100"
+
+                {showYearSubjects && (
+                  <ul className="animate-dropdown animate-fadein absolute left-0 z-10 mx-2 mt-1 w-[calc(100%-16px)] rounded border border-gray-300 bg-white dark:border-white/10 dark:bg-[#1a1a1a] p-1 shadow-lg">
+                    <li
+                      className="flex cursor-pointer items-center gap-2 px-1 py-2 text-sm hover:bg-orange-50 dark:hover:bg-white/5 dark:text-gray-200"
                       onClick={() => {
-                        setSelectedProgramFilter("All");
-                        setShowProgramFilter(false);
+                        setSelectedYearLevel("");
+                        setShowYearSubjects(false);
                       }}
                     >
-                      <i className="bx bx-layer text-sm text-gray-700"></i>
-                      All Programs
-                    </div>
-                    {Array.from(
-                      new Set(assignedSubjects.map((s) => s.programName)),
-                    ).map((programName) => (
-                      <div
-                        key={programName}
-                        className="flex cursor-pointer items-center gap-2 rounded-sm py-2 text-sm hover:bg-gray-100"
+                      <i className="bx bx-layer text-lg text-gray-700"></i>All
+                      Year Level
+                    </li>
+                    {yearLevelOptions.map((yearLevel) => (
+                      <li
+                        key={yearLevel}
+                        className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-2 text-[13px] hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
                         onClick={() => {
-                          setSelectedProgramFilter(programName);
+                          setSelectedYearLevel(yearLevel);
+                          setShowYearSubjects(false);
+                        }}
+                      >
+                        <i className="bx bx-layer text-[13px] text-gray-700"></i>
+                        {`${yearLevel}${yearLevel === "1" ? "st" : yearLevel === "2" ? "nd" : yearLevel === "3" ? "rd" : "th"} Year Subjects`}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="mt-2 mb-1 h-[0.5px] bg-[rgb(230,230,230)] dark:bg-white/10" />
+
+                <button
+                  className="flex w-full cursor-pointer items-center justify-start gap-2 rounded-md px-3 py-2 text-start text-[13px] font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
+                  onClick={() => setShowAddModal(true)}
+                >
+                  <i className="bx bx-plus text-lg"></i>
+                  Assign a Subject
+                </button>
+                <div className="mt-1 mb-1 h-[0.5px] bg-[rgb(230,230,230)] dark:bg-white/10" />
+
+                {/* Search and Add */}
+                <div className="flex items-center gap-2">
+                  {showSearch ? (
+                    <div className="relative flex-1">
+                      <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-lg text-gray-500"></i>
+                      <input
+                        type="text"
+                        placeholder="Enter"
+                        className="w-full rounded-md bg-gray-100 py-2 pr-10 pl-10 text-[13px] font-semibold text-gray-700 outline-none hover:bg-gray-200 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        autoFocus
+                      />
+                      <button
+                        className="absolute top-1/2 right-3 flex -translate-y-1/2 cursor-pointer items-center justify-center text-gray-500 hover:text-gray-700"
+                        onClick={() => {
+                          setShowSearch(false);
+                          setSearchTerm("");
+                        }}
+                      >
+                        <i className="bx bx-x text-lg leading-none"></i>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="flex w-full cursor-pointer items-center justify-start gap-2 rounded-md px-3 py-2 text-start text-[13px] font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
+                      onClick={() => setShowSearch(true)}
+                    >
+                      <i className="bx bx-menu-search text-xl"></i>
+                      Search
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-1 mb-1 h-[0.5px] bg-[rgb(230,230,230)] dark:bg-white/10" />
+
+                <div
+                  className="relative mt-4 flex items-center justify-between px-3"
+                  ref={programFilterRef}
+                >
+                  <button
+                    className="flex cursor-pointer items-center gap-2 text-[13px] text-gray-600 hover:text-gray-800"
+                    onClick={() => setShowProgramFilter(!showProgramFilter)}
+                  >
+                    <span>
+                      {selectedProgramFilter === "All"
+                        ? "All Programs"
+                        : selectedProgramFilter}
+                    </span>
+                    <i
+                      className={`bx bx-chevron-down text-lg transition-transform duration-200 ease-in-out ${
+                        showProgramFilter ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* Refresh Button */}
+                  <button
+                    onClick={() => {
+                      setSelectedYearLevel("");
+                      fetchAssignedSubjects();
+                    }}
+                    className="flex cursor-pointer items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100"
+                    title="Refresh subjects"
+                  >
+                    <i className="bx bx-refresh-ccw text-sm"></i>
+                    Refresh
+                  </button>
+
+                  {showProgramFilter && (
+                    <div className="animate-dropdown animate-fadein absolute top-8 left-0 z-20 ml-2 min-w-[150px] rounded border border-gray-300 bg-white dark:border-white/10 dark:bg-[#1a1a1a] p-1 shadow-lg">
+                      <div
+                        className="flex cursor-pointer items-center gap-2 rounded-sm py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
+                        onClick={() => {
+                          setSelectedProgramFilter("All");
                           setShowProgramFilter(false);
                         }}
                       >
                         <i className="bx bx-layer text-sm text-gray-700"></i>
-                        {programName}
+                        All Programs
                       </div>
-                    ))}
-                  </div>
-                )}
+                      {Array.from(
+                        new Set(assignedSubjects.map((s) => s.programName)),
+                      ).map((programName) => (
+                        <div
+                          key={programName}
+                          className="flex cursor-pointer items-center gap-2 rounded-sm py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
+                          onClick={() => {
+                            setSelectedProgramFilter(programName);
+                            setShowProgramFilter(false);
+                          }}
+                        >
+                          <i className="bx bx-layer text-sm text-gray-700"></i>
+                          {programName}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -869,22 +876,20 @@ const SideBarDropDown = ({
                       <div key={programName}>
                         {selectedProgramFilter === "All" && (
                           <div className="mt-4 mb-2 flex items-center gap-2 px-4">
-                            <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase">
+                            <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase dark:text-gray-400">
                               {programName}
                             </span>
-                            <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)]"></div>
+                            <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)] dark:bg-white/10"></div>
                           </div>
                         )}
                         {subjects.map((subject) => (
                           <li
                             key={subject.subjectID}
-                            className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50" : "hover:bg-gray-100"}`}
+                            className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-500/10 dark:text-orange-500" : "hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"}`}
                             onClick={() => {
                               setSelectedSubject(null);
                               handleSelectSubject(subject);
-                              navigate(`/subject-overview/${subject.subjectID}`, {
-                                state: { subject },
-                              });
+                              navigate(homePath);
                             }}
                           >
                             <span className="flex-1 truncate text-[13px]">
@@ -892,9 +897,9 @@ const SideBarDropDown = ({
                             </span>
                             <div className="relative">
                               {openKebabMenu === subject.subjectID && (
-                                <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white shadow-lg">
+                                <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white dark:border-white/10 dark:bg-[#1a1a1a] shadow-lg">
                                   <button
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleEditClick(subject);
@@ -905,7 +910,7 @@ const SideBarDropDown = ({
                                     Edit
                                   </button>
                                   <button
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-red-400"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSubjectToDelete(subject);
@@ -942,22 +947,20 @@ const SideBarDropDown = ({
                       <div key={programName}>
                         {selectedProgramFilter === "All" && (
                           <div className="mt-4 mb-2 flex items-center gap-2 px-4">
-                            <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase">
+                            <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase dark:text-gray-400">
                               {programName}
                             </span>
-                            <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)]"></div>
+                            <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)] dark:bg-white/10"></div>
                           </div>
                         )}
                         {subjects.map((subject) => (
                           <li
                             key={subject.subjectID}
-                            className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50" : "hover:bg-gray-100"}`}
+                            className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-500/10 dark:text-orange-500" : "hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"}`}
                             onClick={() => {
                               setSelectedSubject(null);
                               handleSelectSubject(subject);
-                              navigate(`/subject-overview/${subject.subjectID}`, {
-                                state: { subject },
-                              });
+                              navigate(homePath);
                             }}
                           >
                             <span className="flex-1 truncate text-[13px]">
@@ -965,9 +968,9 @@ const SideBarDropDown = ({
                             </span>
                             <div className="relative">
                               {openKebabMenu === subject.subjectID && (
-                                <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white shadow-lg">
+                                <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white dark:border-white/10 dark:bg-[#1a1a1a] shadow-lg">
                                   <button
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleEditClick(subject);
@@ -978,7 +981,7 @@ const SideBarDropDown = ({
                                     Edit
                                   </button>
                                   <button
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-red-400"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSubjectToDelete(subject);
@@ -1019,22 +1022,20 @@ const SideBarDropDown = ({
                         <div key={programName}>
                           {selectedProgramFilter === "All" && (
                             <div className="mt-4 mb-2 flex items-center gap-2 px-4">
-                              <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase">
+                              <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase dark:text-gray-400">
                                 {programName}
                               </span>
-                              <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)]"></div>
+                              <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)] dark:bg-white/10"></div>
                             </div>
                           )}
                           {subjects.map((subject) => (
                             <li
                               key={subject.subjectID}
-                              className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50" : "hover:bg-gray-100"}`}
+                              className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-500/10 dark:text-orange-500" : "hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"}`}
                               onClick={() => {
                                 setSelectedSubject(null);
                                 handleSelectSubject(subject);
-                                navigate(`/subject-overview/${subject.subjectID}`, {
-                                  state: { subject },
-                                });
+                                navigate(homePath);
                               }}
                             >
                               <span className="flex-1 truncate text-[13px]">
@@ -1042,9 +1043,9 @@ const SideBarDropDown = ({
                               </span>
                               <div className="relative">
                                 {openKebabMenu === subject.subjectID && (
-                                  <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white shadow-lg">
+                                  <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white dark:border-white/10 dark:bg-[#1a1a1a] shadow-lg">
                                     <button
-                                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100"
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleEditClick(subject);
@@ -1055,7 +1056,7 @@ const SideBarDropDown = ({
                                       Edit
                                     </button>
                                     <button
-                                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-red-400"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSubjectToDelete(subject);
@@ -1099,9 +1100,9 @@ const SideBarDropDown = ({
       {/* Modal for sm and md screens */}
       {isTabletOpen && (
         <div className="lightbox-bg fixed inset-0 z-50 hidden items-center justify-center sm:flex lg:hidden">
-          <div className="animate-fade-in-up relative mx-4 flex max-h-[95vh] w-full max-w-md flex-col rounded-lg border border-gray-300 bg-white shadow-2xl">
+          <div className="faculty-subjects-theme animate-fade-in-up relative mx-4 flex max-h-[95vh] w-full max-w-md flex-col rounded-lg border border-gray-300 bg-white shadow-2xl">
             {/* Year Level Dropdown at the top */}
-            <div className="outfit flex items-center justify-between px-3 pt-2 pb-2 text-[16px] font-semibold">
+            <div className="open-sans flex items-center justify-between px-3 pt-2 pb-2 text-[16px] font-semibold">
               <span>Select a Subject</span>
 
               {/* Close button */}
@@ -1122,156 +1123,169 @@ const SideBarDropDown = ({
               </button>
             </div>
 
-            <div className="mb-1 h-[0.5px] bg-[rgb(230,230,230)]" />
+            <div className="mb-1 h-[0.5px] bg-[rgb(230,230,230)] dark:bg-white/10" />
 
-            {/* Top area: Show search input if open, else year level dropdown and add subject */}
             <div className="relative flex flex-col items-center gap-2 p-2">
-              {showSearch ? (
-                <div className="mb-2 w-full">
-                  <div className="relative flex-1">
-                    <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-lg text-gray-500"></i>
-                    <input
-                      type="text"
-                      placeholder="Enter"
-                      className="w-full rounded-md bg-gray-100 py-2 pr-10 pl-10 text-[13px] font-semibold text-gray-700 outline-none hover:bg-gray-200"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      autoFocus
+              {/* Custom Year Level Dropdown */}
+              <div className="w-full" ref={dropdownRef}>
+                <div className="flex items-center justify-between gap-1">
+                  <button
+                    type="button"
+                    className="border-color flex flex-1 cursor-pointer items-center justify-between rounded-md border bg-white px-3 py-[8px] text-[13px] font-semibold hover:bg-gray-100 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-gray-200 dark:hover:bg-white/5 focus:outline-none sm:py-[3.5px]"
+                    onClick={() => setShowYearSubjects((prev) => !prev)}
+                  >
+                    <span className="flex items-center gap-2 text-nowrap">
+                      <i className="bx bx-list-ul text-2xl text-gray-500 dark:text-gray-400"></i>
+                      {selectedYearLevel
+                        ? `${selectedYearLevel}${selectedYearLevel === "1" ? "st" : selectedYearLevel === "2" ? "nd" : selectedYearLevel === "3" ? "rd" : "th"} Year Subjects`
+                        : "All Year Level"}
+                    </span>
+                    <i
+                      className={`bx bx-chevron-down ml-1 text-2xl text-gray-500 transition-transform duration-200 ease-in-out ${
+                        showYearSubjects ? "rotate-180" : ""
+                      }`}
                     />
-                    <button
-                      className="absolute top-1/2 right-3 flex -translate-y-1/2 cursor-pointer items-center justify-center text-gray-500 hover:text-gray-700"
+                  </button>
+                </div>
+
+                {showYearSubjects && (
+                  <ul className="animate-dropdown animate-fadein absolute left-0 z-10 mx-2 mt-1 w-[calc(100%-16px)] rounded border border-gray-300 bg-white dark:border-white/10 dark:bg-[#1a1a1a] p-1 shadow-lg">
+                    <li
+                      className="flex cursor-pointer items-center gap-2 px-2 py-2 text-sm hover:bg-orange-50 dark:hover:bg-white/5 dark:text-gray-200"
                       onClick={() => {
-                        setShowSearch(false);
-                        setSearchTerm("");
+                        setSelectedYearLevel("");
+                        setShowYearSubjects(false);
                       }}
                     >
-                      <i className="bx bx-x text-lg leading-none"></i>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Custom Year Level Dropdown */}
-                  <div className="w-full" ref={dropdownRef}>
-                    <div className="flex items-center justify-between gap-1">
-                      <button
-                        type="button"
-                        className="border-color flex flex-1 cursor-pointer items-center justify-between rounded-md border bg-white px-3 py-[8px] text-[13px] font-semibold hover:bg-gray-100 focus:outline-none sm:py-[3.5px]"
-                        onClick={() => setShowYearSubjects((prev) => !prev)}
+                      <i className="bx bx-layer text-lg text-gray-700"></i>All
+                      Year Level
+                    </li>
+                    {yearLevelOptions.map((yearLevel) => (
+                      <li
+                        key={yearLevel}
+                        className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-2 text-[13px] hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
+                        onClick={() => {
+                          setSelectedYearLevel(yearLevel);
+                          setShowYearSubjects(false);
+                        }}
                       >
-                        <span className="flex items-center gap-2 text-nowrap">
-                          <i className="bx bx-list-ul text-2xl text-gray-500"></i>
-                          {selectedYearLevel
-                            ? `${selectedYearLevel}${selectedYearLevel === "1" ? "st" : selectedYearLevel === "2" ? "nd" : selectedYearLevel === "3" ? "rd" : "th"} Year Subjects`
-                            : "All Year Level"}
-                        </span>
-                        <i
-                          className={`bx bx-chevron-down ml-1 text-2xl text-gray-500 transition-transform duration-200 ease-in-out ${
-                            showYearSubjects ? "rotate-180" : ""
-                          }`}
-                        />
+                        <i className="bx bx-layer text-[13px] text-gray-700"></i>
+                        {`${yearLevel}${yearLevel === "1" ? "st" : yearLevel === "2" ? "nd" : yearLevel === "3" ? "rd" : "th"} Year Subjects`}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="mt-2 mb-1 h-[0.5px] bg-[rgb(230,230,230)] dark:bg-white/10" />
+
+                <button
+                  className="flex w-full cursor-pointer items-center justify-start gap-2 rounded-md px-3 py-2 text-start text-[13px] font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
+                  onClick={() => setShowAddModal(true)}
+                >
+                  <i className="bx bx-plus text-lg"></i>
+                  Assign a Subject
+                </button>
+                <div className="mt-1 mb-1 h-[0.5px] bg-[rgb(230,230,230)] dark:bg-white/10" />
+
+                {/* Search and Add */}
+                <div className="flex items-center gap-2">
+                  {showSearch ? (
+                    <div className="relative flex-1">
+                      <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-lg text-gray-500"></i>
+                      <input
+                        type="text"
+                        placeholder="Enter"
+                        className="w-full rounded-md bg-gray-100 py-2 pr-10 pl-10 text-[13px] font-semibold text-gray-700 outline-none hover:bg-gray-200 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        autoFocus
+                      />
+                      <button
+                        className="absolute top-1/2 right-3 flex -translate-y-1/2 cursor-pointer items-center justify-center text-gray-500 hover:text-gray-700"
+                        onClick={() => {
+                          setShowSearch(false);
+                          setSearchTerm("");
+                        }}
+                      >
+                        <i className="bx bx-x text-lg leading-none"></i>
                       </button>
                     </div>
-                    {showYearSubjects && (
-                      <ul className="animate-dropdown animate-fadein absolute left-0 z-10 mx-2 mt-1 w-[calc(100%-16px)] rounded border border-gray-300 bg-white p-1 shadow-lg">
-                        <li
-                          className="flex cursor-pointer items-center gap-2 px-1 py-2 text-sm hover:bg-orange-50"
-                          onClick={() => {
-                            setSelectedYearLevel("");
-                            setShowYearSubjects(false);
-                          }}
-                        >
-                          <i className="bx bx-layer text-lg text-gray-700"></i>
-                          All Year Level
-                        </li>
-                        {yearLevelOptions.map((yearLevel) => (
-                          <li
-                            key={yearLevel}
-                            className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-2 text-[13px] hover:bg-gray-100"
-                            onClick={() => {
-                              setSelectedYearLevel(yearLevel);
-                              setShowYearSubjects(false);
-                            }}
-                          >
-                            <i className="bx bx-layer text-[13px] text-gray-700"></i>
-                            {`${yearLevel}${yearLevel === "1" ? "st" : yearLevel === "2" ? "nd" : yearLevel === "3" ? "rd" : "th"} Year Subjects`}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <div className="mt-2 mb-1 h-[0.5px] bg-[rgb(230,230,230)]" />
+                  ) : (
                     <button
-                      className="flex w-full cursor-pointer items-center justify-start gap-2 rounded-md px-3 py-2 text-start text-[13px] font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-                      onClick={() => setShowAddModal(true)}
-                    >
-                      <i className="bx bx-plus text-lg"></i>
-                      Assign a Subject
-                    </button>
-                    <div className="mt-1 mb-1 h-[0.5px] bg-[rgb(230,230,230)]" />
-                  </div>
-                </>
-              )}
-              {/* Program filter and bottom buttons */}
-              <div
-                className="relative flex w-full items-center justify-between"
-                ref={programFilterRef}
-              >
-                <button
-                  className="ml-2 flex cursor-pointer items-center gap-2 text-[13px] text-gray-600 hover:text-gray-800"
-                  onClick={() => setShowProgramFilter(!showProgramFilter)}
-                >
-                  <span>
-                    {selectedProgramFilter === "All"
-                      ? "All Programs"
-                      : selectedProgramFilter}
-                  </span>
-                  <i
-                    className={`bx bx-chevron-down text-lg transition-transform duration-200 ease-in-out ${
-                      showProgramFilter ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-                {/* Bottom right: Search icon only (refresh button removed) */}
-                <div className="flex items-center gap-1">
-                  {!showSearch && (
-                    <button
-                      className="flex cursor-pointer items-center gap-1 rounded-md p-1 text-xs text-gray-700 hover:bg-gray-100"
-                      title="Search subjects"
+                      className="flex w-full cursor-pointer items-center justify-start gap-2 rounded-md px-3 py-2 text-start text-[13px] font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
                       onClick={() => setShowSearch(true)}
                     >
-                      <i className="bx bx-search text-[20px]"></i>
+                      <i className="bx bx-menu-search text-xl"></i>
+                      Search
                     </button>
                   )}
                 </div>
-                {showProgramFilter && (
-                  <div className="animate-dropdown animate-fadein absolute top-8 left-0 z-20 min-w-[150px] rounded border border-gray-300 bg-white p-1 shadow-lg">
-                    <div
-                      className="flex cursor-pointer items-center gap-2 rounded-sm py-2 text-sm hover:bg-gray-100"
-                      onClick={() => {
-                        setSelectedProgramFilter("All");
-                        setShowProgramFilter(false);
-                      }}
-                    >
-                      <i className="bx bx-layer text-sm text-gray-700"></i>
-                      All Programs
-                    </div>
-                    {Array.from(
-                      new Set(assignedSubjects.map((s) => s.programName)),
-                    ).map((programName) => (
+
+                <div className="mt-1 mb-1 h-[0.5px] bg-[rgb(230,230,230)] dark:bg-white/10" />
+
+                <div
+                  className="relative mt-4 flex items-center justify-between px-3"
+                  ref={programFilterRef}
+                >
+                  <button
+                    className="flex cursor-pointer items-center gap-2 text-[13px] text-gray-600 hover:text-gray-800"
+                    onClick={() => setShowProgramFilter(!showProgramFilter)}
+                  >
+                    <span>
+                      {selectedProgramFilter === "All"
+                        ? "All Programs"
+                        : selectedProgramFilter}
+                    </span>
+                    <i
+                      className={`bx bx-chevron-down text-lg transition-transform duration-200 ease-in-out ${
+                        showProgramFilter ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* Refresh Button */}
+                  <button
+                    onClick={() => {
+                      setSelectedYearLevel("");
+                      fetchAssignedSubjects();
+                    }}
+                    className="flex cursor-pointer items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100"
+                    title="Refresh subjects"
+                  >
+                    <i className="bx bx-refresh-ccw text-sm"></i>
+                    Refresh
+                  </button>
+
+                  {showProgramFilter && (
+                    <div className="animate-dropdown animate-fadein absolute top-8 left-0 z-20 ml-2 min-w-[150px] rounded border border-gray-300 bg-white dark:border-white/10 dark:bg-[#1a1a1a] p-1 shadow-lg">
                       <div
-                        key={programName}
-                        className="flex cursor-pointer items-center gap-2 rounded-sm py-2 text-sm hover:bg-gray-100"
+                        className="flex cursor-pointer items-center gap-2 rounded-sm py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
                         onClick={() => {
-                          setSelectedProgramFilter(programName);
+                          setSelectedProgramFilter("All");
                           setShowProgramFilter(false);
                         }}
                       >
                         <i className="bx bx-layer text-sm text-gray-700"></i>
-                        {programName}
+                        All Programs
                       </div>
-                    ))}
-                  </div>
-                )}
+                      {Array.from(
+                        new Set(assignedSubjects.map((s) => s.programName)),
+                      ).map((programName) => (
+                        <div
+                          key={programName}
+                          className="flex cursor-pointer items-center gap-2 rounded-sm py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
+                          onClick={() => {
+                            setSelectedProgramFilter(programName);
+                            setShowProgramFilter(false);
+                          }}
+                        >
+                          <i className="bx bx-layer text-sm text-gray-700"></i>
+                          {programName}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1334,25 +1348,21 @@ const SideBarDropDown = ({
                       <div key={programName}>
                         {selectedProgramFilter === "All" && (
                           <div className="mt-4 mb-2 flex items-center gap-2 px-4">
-                            <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase">
+                            <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase dark:text-gray-400">
                               {programName}
                             </span>
-                            <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)]"></div>
+                            <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)] dark:bg-white/10"></div>
                           </div>
                         )}
                         {subjects.map((subject) => (
                           <li
                             key={subject.subjectID}
-                            className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50" : "hover:bg-gray-100"}`}
+                            className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-500/10 dark:text-orange-500" : "hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"}`}
                             onClick={() => {
                               setSelectedSubject(null);
                               handleSelectSubject(subject);
-                              navigate(`/subject-overview/${subject.subjectID}`, {
-                                state: { subject },
-                              });
-                              setIsTabletOpen(false);
-                              setIsOpen(false);
-                              setIsSubjectFocused(false); // <-- add this
+                              navigate(homePath);
+                              setIsTabletOpen(false); // <-- add this
                             }}
                           >
                             <span className="flex-1 truncate text-[13px]">
@@ -1360,9 +1370,9 @@ const SideBarDropDown = ({
                             </span>
                             <div className="relative">
                               {openKebabMenu === subject.subjectID && (
-                                <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white shadow-lg">
+                                <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white dark:border-white/10 dark:bg-[#1a1a1a] shadow-lg">
                                   <button
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleEditClick(subject);
@@ -1373,7 +1383,7 @@ const SideBarDropDown = ({
                                     Edit
                                   </button>
                                   <button
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-red-400"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSubjectToDelete(subject);
@@ -1410,25 +1420,21 @@ const SideBarDropDown = ({
                       <div key={programName}>
                         {selectedProgramFilter === "All" && (
                           <div className="mt-4 mb-2 flex items-center gap-2 px-4">
-                            <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase">
+                            <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase dark:text-gray-400">
                               {programName}
                             </span>
-                            <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)]"></div>
+                            <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)] dark:bg-white/10"></div>
                           </div>
                         )}
                         {subjects.map((subject) => (
                           <li
                             key={subject.subjectID}
-                            className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50" : "hover:bg-gray-100"}`}
+                            className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-500/10 dark:text-orange-500" : "hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"}`}
                             onClick={() => {
                               setSelectedSubject(null);
                               handleSelectSubject(subject);
-                              navigate(`/subject-overview/${subject.subjectID}`, {
-                                state: { subject },
-                              });
-                              setIsTabletOpen(false);
-                              setIsOpen(false);
-                              setIsSubjectFocused(false); // <-- add this
+                              navigate(homePath);
+                              setIsTabletOpen(false); // <-- add this
                             }}
                           >
                             <span className="flex-1 truncate text-[13px]">
@@ -1436,9 +1442,9 @@ const SideBarDropDown = ({
                             </span>
                             <div className="relative">
                               {openKebabMenu === subject.subjectID && (
-                                <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white shadow-lg">
+                                <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white dark:border-white/10 dark:bg-[#1a1a1a] shadow-lg">
                                   <button
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleEditClick(subject);
@@ -1449,7 +1455,7 @@ const SideBarDropDown = ({
                                     Edit
                                   </button>
                                   <button
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-red-400"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSubjectToDelete(subject);
@@ -1490,25 +1496,21 @@ const SideBarDropDown = ({
                         <div key={programName}>
                           {selectedProgramFilter === "All" && (
                             <div className="mt-4 mb-2 flex items-center gap-2 px-4">
-                              <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase">
+                              <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-gray-700 uppercase dark:text-gray-400">
                                 {programName}
                               </span>
-                              <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)]"></div>
+                              <div className="h-[0.5px] flex-1 bg-[rgb(230,230,230)] dark:bg-white/10"></div>
                             </div>
                           )}
                           {subjects.map((subject) => (
                             <li
                               key={subject.subjectID}
-                              className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50" : "hover:bg-gray-100"}`}
+                              className={`group flex cursor-pointer items-center justify-between px-4 py-2 sm:py-1 ${selectedSubject?.subjectID === subject.subjectID ? "border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-500/10 dark:text-orange-500" : "hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"}`}
                               onClick={() => {
                                 setSelectedSubject(null);
                                 handleSelectSubject(subject);
-                                navigate(`/subject-overview/${subject.subjectID}`, {
-                                  state: { subject },
-                                });
-                                setIsTabletOpen(false);
-                                setIsOpen(false);
-                                setIsSubjectFocused(false); // <-- add this
+                                navigate(homePath);
+                                setIsTabletOpen(false); // <-- add this
                               }}
                             >
                               <span className="flex-1 truncate text-[13px]">
@@ -1516,9 +1518,9 @@ const SideBarDropDown = ({
                               </span>
                               <div className="relative">
                                 {openKebabMenu === subject.subjectID && (
-                                  <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white shadow-lg">
+                                  <div className="absolute top-6 right-0 z-20 min-w-[120px] rounded-md border border-gray-200 bg-white dark:border-white/10 dark:bg-[#1a1a1a] shadow-lg">
                                     <button
-                                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100"
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-200"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleEditClick(subject);
@@ -1529,7 +1531,7 @@ const SideBarDropDown = ({
                                       Edit
                                     </button>
                                     <button
-                                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-red-400"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSubjectToDelete(subject);
@@ -1572,8 +1574,8 @@ const SideBarDropDown = ({
 
       {/* Add Assign Subject Modal */}
       {showAddModal && (
-        <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center p-2">
-          <div className="animate-fade-in-up outfit border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
+        <div className="faculty-subjects-theme lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-center p-2">
+          <div className="animate-fade-in-up font-inter border-color relative mx-auto w-full max-w-md rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700">
             <span>Assign a Subject</span>
           </div>
 
@@ -1668,7 +1670,7 @@ const SideBarDropDown = ({
       )}
 
       {showDeleteModal && subjectToDelete && (
-        <div className="bg-opacity-50 lightbox-bg fixed inset-0 z-57 flex items-center justify-center">
+        <div className="faculty-subjects-theme bg-opacity-50 lightbox-bg fixed inset-0 z-57 flex items-center justify-center">
           <div className="mx-3 w-full max-w-md rounded-md bg-white shadow-lg">
             {/* Yellow top border */}
             <div className="h-2 w-full rounded-t-md bg-[rgb(249,115,22)]" />

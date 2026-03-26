@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { getApiUrl } from "../utils/config";
 // Inline custom dropdown for Coverage and Difficulty Distribution
 import {
   useRef as useLocalRef,
@@ -9,7 +10,7 @@ import {
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import RegisterDropDownSmall from "./registerDropDownSmall";
-import { getApiBaseUrl } from "../utils/config";
+// Renders the practice exam config.
 const PracticeExamConfig = ({
   subjectID,
   isFormOpen,
@@ -20,7 +21,7 @@ const PracticeExamConfig = ({
   practiceExamSettings,
   setPracticeExamSettings,
 }) => {
-  const apiUrl = getApiBaseUrl();
+  const apiUrl = getApiUrl();
   const [mode, setMode] = useState("default");
   const [isEditing, setIsEditing] = useState(false);
   // Remove errorMessage state
@@ -83,6 +84,7 @@ const PracticeExamConfig = ({
 
   // Fetch current settings when form opens
   useEffect(() => {
+    // Fetches current settings.
     const fetchCurrentSettings = async () => {
       if (isFormOpen && subjectID) {
         try {
@@ -91,7 +93,7 @@ const PracticeExamConfig = ({
 
           // Fetch QE status
           const qeResponse = await fetch(
-            `${apiUrl}/subjects/${subjectID}/exam-questions-status`,
+            `${apiUrl}/api/subjects/${subjectID}/exam-questions-status`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -101,7 +103,7 @@ const PracticeExamConfig = ({
 
           // Fetch practice settings
           const practiceResponse = await fetch(
-            `${apiUrl}/practice-settings/${subjectID}`,
+            `${apiUrl}/api/practice-settings/${subjectID}`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -166,6 +168,7 @@ const PracticeExamConfig = ({
   const coverageButtonRef = useLocalRef(null);
 
   useLocalEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (
         coverageDropdownRef.current &&
@@ -186,6 +189,7 @@ const PracticeExamConfig = ({
   const diffButtonRef = useLocalRef(null);
 
   useLocalEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (
         diffDropdownRef.current &&
@@ -202,6 +206,7 @@ const PracticeExamConfig = ({
 
   const { toast, showToast } = useToast();
 
+  // Handles change.
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setSettings((prev) => ({
@@ -210,6 +215,7 @@ const PracticeExamConfig = ({
     }));
   };
 
+  // Handles submit.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsEditing(true);
@@ -263,8 +269,8 @@ const PracticeExamConfig = ({
       // If the toggle changed, update the backend and parent state
       if (localExamQuestionsEnabled !== isExamQuestionsEnabled) {
         const endpoint = localExamQuestionsEnabled
-          ? `${apiUrl}/subjects/${subjectID}/enable-exam-questions`
-          : `${apiUrl}/subjects/${subjectID}/disable-exam-questions`;
+          ? `${apiUrl}/api/subjects/${subjectID}/enable-exam-questions`
+          : `${apiUrl}/api/subjects/${subjectID}/disable-exam-questions`;
         const response = await fetch(endpoint, {
           method: "PATCH",
           headers: {
@@ -285,7 +291,7 @@ const PracticeExamConfig = ({
         duration_minutes: settings.enableTimer ? settings.duration_minutes : 0,
       };
 
-      const res = await fetch(`${apiUrl}/practice-settings`, {
+      const res = await fetch(`${apiUrl}/api/practice-settings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -336,6 +342,7 @@ const PracticeExamConfig = ({
     }
   };
 
+  // Handles cancel click.
   const handleCancelClick = () => {
     setIsFormOpen(false);
   };
@@ -353,6 +360,7 @@ const PracticeExamConfig = ({
 
   // Update active section on scroll
   useEffect(() => {
+    // Handles scroll.
     const handleScroll = () => {
       if (scrollLock) return;
       if (!qeRef.current || !practiceRef.current) return;
@@ -411,7 +419,7 @@ const PracticeExamConfig = ({
       <div className="block sm:hidden">
         {/* Form Display - Inside isFormOpen condition */}
         {isFormOpen && (
-          <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+          <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
             {/* Overlay click handler for closing modal on outside click */}
             <div
               className="absolute inset-0 z-0"
@@ -680,7 +688,7 @@ const PracticeExamConfig = ({
         <Toast message={toast.message} type={toast.type} show={toast.show} />
         {(isFormOpen || showModal) && (
           <div
-            className={`outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex justify-end transition-opacity duration-200 ${isFormOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            className={`open-sans bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex justify-end transition-opacity duration-200 ${isFormOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
           >
             {/* Overlay click handler for closing modal on outside click */}
             <div

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { getApiBaseUrl } from "../utils/config";
+import { getApiUrl } from "../utils/config";
 
 // Displays App Version
 const AppVersion = () => {
   const [version, setVersion] = useState("");
-  const apiUrl = getApiBaseUrl();
+  const apiUrl = getApiUrl();
 
   useEffect(() => {
-    fetch(`${apiUrl}/app-version`)
+    fetch(`${apiUrl}/api/app-version`)
       .then((response) => response.json())
       .then((data) => setVersion(data.version))
       .catch((error) => {

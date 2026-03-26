@@ -1,60 +1,57 @@
 // ============================================
-// API BASE CONFIGURATION (supports runtime override)
+// SERVER CONFIGURATION - CHANGE THESE TO UPDATE SERVER
 // ============================================
 
-const API_BASE_URL_KEY = "apiBaseUrl";
-const DEFAULT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+const DEFAULT_LOCAL_SERVER = 'http://100.91.44.24:8005';
+const DEFAULT_TEST_SERVER = import.meta.env.VITE_API_SERVER || 'http://18.142.190.113:8000';
+const USE_TEST_SERVER = true;
 
-// Ensures a base URL always ends with "/api" (no trailing slash).
-export const normalizeApiBaseUrl = (url) => {
-  if (!url) return "";
-  const trimmed = url.trim().replace(/\/+$/, "");
-  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
-};
+const API_BASE_URL_KEY = 'apiBaseUrl';
 
-// Removes a trailing "/api" (used for display inputs).
-export const stripApiBaseUrl = (url) => {
-  if (!url) return "";
-  const trimmed = url.trim().replace(/\/+$/, "");
-  return trimmed.endsWith("/api") ? trimmed.slice(0, -4) : trimmed;
+// Reads the saved API base URL and falls back to the selected default server.
+const getStoredApiUrl = () => {
+  // 1. Prioritize Test Server Flag
+  if (USE_TEST_SERVER) {
+    // Check if we need to clean up stale local data ONCE to avoid redundant writes
+    if (typeof window !== 'undefined' && localStorage.getItem(API_BASE_URL_KEY)) {
+      localStorage.removeItem(API_BASE_URL_KEY);
+    }
+    return DEFAULT_TEST_SERVER;
+  }
+
+  // 2. Local/Dev Mode Fallback
+  if (typeof window === 'undefined') return DEFAULT_LOCAL_SERVER;
+  
+  // Return stored IP (for dev override) or the default local IP
+  return localStorage.getItem(API_BASE_URL_KEY) || DEFAULT_LOCAL_SERVER;
 };
 
 // Returns the active backend base URL used by frontend requests.
-export const getApiBaseUrl = () => {
-  if (typeof window === "undefined") {
-    return normalizeApiBaseUrl(DEFAULT_API_BASE_URL);
-  }
-
-  const stored = localStorage.getItem(API_BASE_URL_KEY);
-  const normalized = normalizeApiBaseUrl(stored || DEFAULT_API_BASE_URL);
-
-  // Normalize any legacy stored value.
-  if (stored && stored !== normalized) {
-    localStorage.setItem(API_BASE_URL_KEY, normalized);
-  }
-
-  return normalized;
+export const getApiUrl = () => {
+  return getStoredApiUrl();
 };
 
-// Backwards-compatible helper name (returns base without /api).
-export const getApiUrl = () => stripApiBaseUrl(getApiBaseUrl());
+// Keeps the old helper name working while all callers use the same source.
+export const getApiBaseUrl = () => {
+  return getApiUrl();
+};
 
-// Server setup is always available because defaults exist.
-export const hasApiConfig = () => Boolean(getApiBaseUrl());
+// Server setup is now always considered available because the app ships with defaults.
+export const hasApiConfig = () => {
+  return true;
+};
 
 // Stores a local-network server target using an IP and port pair.
 export const setApiBaseUrl = (ip, port) => {
-  const base = `http://${ip}:${port}`;
-  const normalized = normalizeApiBaseUrl(base);
-  localStorage.setItem(API_BASE_URL_KEY, normalized);
-  return normalized;
+  const url = `http://${ip}:${port}`;
+  localStorage.setItem(API_BASE_URL_KEY, url);
+  return url;
 };
 
 // Stores a fully custom backend URL without rebuilding the app.
 export const setCustomApiUrl = (url) => {
-  const normalized = normalizeApiBaseUrl(url);
-  localStorage.setItem(API_BASE_URL_KEY, normalized);
-  return normalized;
+  localStorage.setItem(API_BASE_URL_KEY, url);
+  return url;
 };
 
 // Clears the saved backend override so the default server is used again.

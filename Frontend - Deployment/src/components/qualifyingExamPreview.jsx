@@ -3,6 +3,7 @@ import univLogo from "../assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
 import html2pdf from "html2pdf.js";
 
+// Renders the exam preview modal.
 export default function ExamPreviewModal({ previewData, onClose, loading }) {
   const [scale, setScale] = useState(1);
   const [error, setError] = useState(null);
@@ -40,6 +41,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
   }, [previewData]);
 
   useEffect(() => {
+    // Handles resize.
     function handleResize() {
       const screenWidth = window.innerWidth - 32; // account for modal padding
       const newScale = screenWidth < PAGE_WIDTH ? screenWidth / PAGE_WIDTH : 1;
@@ -82,6 +84,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
     }
   }
 
+  // Handles download.
   const handleDownload = async () => {
     try {
       setError(null);
@@ -147,6 +150,7 @@ export default function ExamPreviewModal({ previewData, onClose, loading }) {
     return Promise.all(promises);
   }
 
+  // Handles retry.
   const handleRetry = () => {
     setRetryCount(0);
     setError(null);

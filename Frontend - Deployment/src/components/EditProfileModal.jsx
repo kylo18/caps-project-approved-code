@@ -1,8 +1,9 @@
 import React, { useRef } from "react";
 
+// Renders the edit profile modal.
 const EditProfileModal = ({ isOpen, onClose }) => {
   return (
-    <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
+    <div className="font-inter bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
       <div className="edit-profile-modal-scrollbar relative mx-2 max-h-[90vh] w-full max-w-[480px] overflow-y-auto rounded-md bg-white shadow-2xl">
         {/* X Close Button */}
 

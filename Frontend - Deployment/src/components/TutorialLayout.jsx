@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 
+// Renders the tutorial layout.
 const TutorialLayout = () => {
   const [activeTab, setActiveTab] = useState("login");
 
@@ -11,6 +12,7 @@ const TutorialLayout = () => {
     { id: "settings", title: "Settings" },
   ];
 
+  // Handles render content.
   const renderContent = () => {
     switch (activeTab) {
       case "login":

@@ -2,19 +2,30 @@ import { useEffect, useState } from "react";
 import Sidebar from "./sideBar";
 import Header from "./header";
 import BottomNav from "./BottomNav";
-import { Outlet, useLocation } from "react-router-dom";
+import PrintExamModal from "./PrintExamModal";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import AllSubjectsDropDown from "./subjectsDean";
+import AllSubjectsDropDownProgramChair from "./subjectsProgramChair";
+import AssignedSubjectsDropDown from "./subjectsFaculty";
 
-// Main Layout
+/**
+ * Shared app shell that swaps sidebar vs. bottom navigation.
+ * Now supports full-screen mobile subject selection for Admin/Dean roles.
+ */
 const Layout = () => {
   const [role_id, setRoleId] = useState(null);
+  const navigate = useNavigate();
+  
   // Load selectedSubject from localStorage on mount
   const [selectedSubject, setSelectedSubject] = useState(() => {
     const saved = localStorage.getItem("selectedSubject");
     return saved ? JSON.parse(saved) : null;
   });
+
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isSubjectExpanded, setIsSubjectExpanded] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1025);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showSubjectModal, setShowSubjectModal] = useState(false);
   const location = useLocation();
 
   const roleMap = {
@@ -33,12 +44,11 @@ const Layout = () => {
   }, []);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1025);
+    const handleResize = () => setIsMobile(window.innerWidth <= 640);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Persist selectedSubject to localStorage whenever it changes
   useEffect(() => {
     if (selectedSubject) {
       localStorage.setItem("selectedSubject", JSON.stringify(selectedSubject));
@@ -51,75 +61,136 @@ const Layout = () => {
     role_id !== null && roleMap[role_id] ? roleMap[role_id] : "User";
 
   const isStudent = Number(role_id) === 1;
-  const isStudentQuizPage = /^\/quiz\/[^/]+$/.test(location.pathname);
   const isTutorialPage = location.pathname.includes("/help");
-  const isPrintQualifyingExam =
-    location.pathname === "/print-qualification-exam";
-  const isPrintPersonalQuiz = location.pathname === "/print-personal-quiz";
-  // Hide sidebar for quiz info, quiz taking, and quiz result pages
-  const isQuizPage =
-    location.pathname.includes("/quiz-info/") ||
-    location.pathname.includes("/quiz/") ||
-    location.pathname.includes("/quiz-result/");
-  // Hide sidebar for practice exam pages
-  const isPracticeExamPage =
-    location.pathname.includes("/practice-exam") ||
-    location.pathname.includes("/exam-preview");
-  // Use collapsed sidebar layout for Libraries page, Archived Quiz page, and SubjectList pages
-  const isLibrariesPage =
-    location.pathname === "/libraries" ||
-    location.pathname === "/archived-quiz" ||
-    location.pathname === "/dean/subjects" ||
-    location.pathname === "/asso-dean/subjects" ||
-    location.pathname === "/program-chair/subjects" ||
-    location.pathname === "/faculty/subjects" ||
-    location.pathname === "/student/subjects";
 
-  const isStudentDashboardPage = location.pathname === "/student-dashboard";
+  // Reusable item object for the subject dropdowns
+  const subjectItem = { icon: "bx-book-bookmark", label: "Classes" };
 
   return (
-    <div className="min-h-screen">
-      <div className="flex min-h-screen">
-        {!isTutorialPage &&
-          !isPrintQualifyingExam &&
-          !isPrintPersonalQuiz &&
-          !isQuizPage &&
-          !isPracticeExamPage && (
-            <Sidebar
-              role_id={role_id}
-              setSelectedSubject={setSelectedSubject}
-              selectedSubject={selectedSubject}
-              isExpanded={isExpanded}
-              setIsExpanded={setIsExpanded}
-              isSubjectExpanded={isSubjectExpanded}
-              setIsSubjectExpanded={setIsSubjectExpanded}
-            />
-          )}
+    <div className="min-h-screen bg-gray-100 dark:bg-black">
+      <div className="flex">
+        {/* Desktop Sidebar */}
+        {!isStudent && !isTutorialPage && !isMobile && (
+          <Sidebar
+            role_id={role_id}
+            setSelectedSubject={setSelectedSubject}
+            selectedSubject={selectedSubject}
+            isExpanded={isExpanded}
+            setIsExpanded={setIsExpanded}
+          />
+        )}
         <div
-          className={`flex flex-1 flex-col ${
-            isTutorialPage ||
-            isPrintQualifyingExam ||
-            isPrintPersonalQuiz ||
-            isQuizPage ||
-            isPracticeExamPage ||
-            isMobile
+          className={`flex min-w-0 overflow-hidden flex-1 flex-col transition-all duration-200 ${
+            isStudent || isTutorialPage
               ? "ml-0"
-              : isLibrariesPage
-                ? "ml-[63px]"
-                : "ml-[220px]"
+              : isMobile
+                ? "ml-0"
+                : isExpanded
+                  ? "ml-[307px]"
+                  : "ml-[55.5px]"
           }`}
         >
-          {!isStudentQuizPage && (
-            <Header title={roleTitle} className="lg:hidden" />
-          )}
-          <main
-            className={`${isTutorialPage || isQuizPage || isPracticeExamPage || isStudentDashboardPage ? "" : "lg:px-4"} h-full`}
-          >
+          <Header title={roleTitle} />
+          <main className={isTutorialPage ? "pt-14" : "pt-14 px-0 pb-30"}>
             <Outlet context={{ selectedSubject, setSelectedSubject }} />
           </main>
         </div>
       </div>
-      {!isTutorialPage && isStudent && <BottomNav role="student" />}
+
+      {/* Mobile Bottom Navigation triggered for everyone on mobile devices */}
+      {isMobile && (
+        <BottomNav
+          role={role_id}
+          onPrintClick={() => setShowPrintModal(true)}
+          onSubjectClick={() => setShowSubjectModal(true)}
+        />
+      )}
+
+      {/* Full-screen Subject Selection Modal triggered by the BottomNav Subjects button */}
+      {showSubjectModal && (
+        <div className="fixed inset-0 z-[200] bg-white dark:bg-black p-4 overflow-y-auto animate-fade-in">
+          <div className="flex justify-between items-center mb-6 border-b border-gray-100 dark:border-white/10 pb-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Select Subject</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Choose a subject to manage content</p>
+            </div>
+            <button 
+              onClick={() => setShowSubjectModal(false)} 
+              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
+            >
+              <i className="bx bx-x text-3xl"></i>
+            </button>
+          </div>
+
+          <div className="mobile-subject-list mt-4">
+            {/* 
+              Render the correct dropdown component based on role.
+              We pass all required props (item, isExpanded, etc.) to ensure 
+              the components render correctly without crashing.
+            */}
+            {role_id === 4 || role_id === 5 ? (
+              <AllSubjectsDropDown
+                item={subjectItem}
+                isExpanded={true}
+                setIsExpanded={setIsExpanded}
+                parsedRoleId={role_id}
+                isSubjectFocused={false}
+                setIsSubjectFocused={() => {}}
+                homePath="/dean/subjects"
+                className="bx bx-newspaper"
+                selectedSubject={selectedSubject}
+                showDirectly={true} // Add this to skip the icon
+                setSelectedSubject={(subj) => {
+                  setSelectedSubject(subj);
+                  setShowSubjectModal(false);
+                  navigate("/dean/subjects");
+                }}
+              />
+            ) : role_id === 3 ? (
+              <AllSubjectsDropDownProgramChair
+                item={subjectItem}
+                isExpanded={true}
+                setIsExpanded={setIsExpanded}
+                parsedRoleId={role_id}
+                isSubjectFocused={false}
+                setIsSubjectFocused={() => {}}
+                homePath="/program-chair/subjects"
+                className="bx bx-newspaper"
+                selectedSubject={selectedSubject}
+                showDirectly={true}
+                setSelectedSubject={(subj) => {
+                  setSelectedSubject(subj);
+                  setShowSubjectModal(false);
+                  navigate("/program-chair/subjects");
+                }}
+              />
+            ) : (
+              <AssignedSubjectsDropDown
+                item={subjectItem}
+                isExpanded={true}
+                setIsExpanded={setIsExpanded}
+                parsedRoleId={role_id}
+                isSubjectFocused={false}
+                setIsSubjectFocused={() => {}}
+                homePath="/faculty/subjects"
+                className="bx bx-newspaper"
+                selectedSubject={selectedSubject}
+                showDirectly={true}
+                setSelectedSubject={(subj) => {
+                  setSelectedSubject(subj);
+                  setShowSubjectModal(false);
+                  navigate("/faculty/subjects");
+                }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      <PrintExamModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+      />
     </div>
   );
 };

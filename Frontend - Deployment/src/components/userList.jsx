@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
+import { getApiUrl } from "../utils/config";
 import SortCustomDropdown from "./sortCustomDropdown";
 import ConfirmModal from "./confirmModal";
 import LoadingOverlay from "./loadingOverlay";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
-import { getApiBaseUrl } from "../utils/config";
 // Component to display and manage user list with filtering and actions
 // Features:
 // - Separate tabs for Students and Other users
@@ -74,7 +74,7 @@ const UserList = () => {
   // Add new state for user type tabs
   const [studentsOnly, setStudentsOnly] = useState(false); // true: students only, false: others only
 
-  const apiUrl = getApiBaseUrl();
+  const apiUrl = getApiUrl();
 
   // Get toast functions from hook
   const { toast, showToast } = useToast();
@@ -152,6 +152,7 @@ const UserList = () => {
   };
 
   useEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
@@ -227,7 +228,7 @@ const UserList = () => {
       });
 
       const response = await fetch(
-        `${apiUrl}/users?${queryParams.toString()}`,
+        `${apiUrl}/api/users?${queryParams.toString()}`,
         {
           method: "GET",
           headers: {
@@ -295,6 +296,7 @@ const UserList = () => {
     (user) => user.status === "pending",
   ).length;
 
+  // Handles search change.
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value); // Update the search term
   };
@@ -304,7 +306,7 @@ const UserList = () => {
     const token = localStorage.getItem("token");
     setIsApproving(true);
     try {
-      const response = await fetch(`${apiUrl}/users/${userID}/approve`, {
+      const response = await fetch(`${apiUrl}/api/users/${userID}/approve`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -344,7 +346,7 @@ const UserList = () => {
     const token = localStorage.getItem("token");
     setIsActivating(true);
     try {
-      const response = await fetch(`${apiUrl}/users/${userID}/activate`, {
+      const response = await fetch(`${apiUrl}/api/users/${userID}/activate`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -381,7 +383,7 @@ const UserList = () => {
     const token = localStorage.getItem("token");
     setIsDeactivating(true);
     try {
-      const response = await fetch(`${apiUrl}/users/${userID}/deactivate`, {
+      const response = await fetch(`${apiUrl}/api/users/${userID}/deactivate`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -420,7 +422,7 @@ const UserList = () => {
     }
 
     try {
-      const response = await fetch(`${apiUrl}/users/approve-multiple`, {
+      const response = await fetch(`${apiUrl}/api/users/approve-multiple`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -455,7 +457,7 @@ const UserList = () => {
     }
 
     try {
-      const response = await fetch(`${apiUrl}/users/activate-multiple`, {
+      const response = await fetch(`${apiUrl}/api/users/activate-multiple`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -493,7 +495,7 @@ const UserList = () => {
     }
 
     try {
-      const response = await fetch(`${apiUrl}/users/deactivate-multiple`, {
+      const response = await fetch(`${apiUrl}/api/users/deactivate-multiple`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -566,7 +568,7 @@ const UserList = () => {
         }
       }
 
-      const response = await fetch(`${apiUrl}/users/${userID}/role`, {
+      const response = await fetch(`${apiUrl}/api/users/${userID}/role`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -627,7 +629,7 @@ const UserList = () => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     setIsDeleting(true);
     try {
-      const response = await fetch(`${apiUrl}/users/${userID}`, {
+      const response = await fetch(`${apiUrl}/api/users/${userID}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -667,7 +669,7 @@ const UserList = () => {
       return;
     setIsDeletingMultiple(true);
     try {
-      const response = await fetch(`${apiUrl}/users/delete-multiple`, {
+      const response = await fetch(`${apiUrl}/api/users/delete-multiple`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -701,54 +703,54 @@ const UserList = () => {
         <div className="mb-4 flex items-center justify-between gap-2 text-[14px]">
           {/* Skeleton for top bar */}
           <div className="flex w-full items-center justify-between gap-4">
-            <div className="h-9 w-20 animate-pulse rounded-md bg-gray-200 lg:w-70"></div>
+            <div className="h-9 w-20 animate-pulse rounded-md bg-gray-200 dark:bg-white/10 lg:w-70"></div>
             <div className="flex gap-2">
-              <div className="h-9 w-10 animate-pulse rounded-md bg-gray-200"></div>
-              <div className="h-9 w-48 animate-pulse rounded-md bg-gray-200"></div>
-              <div className="h-9 w-10 animate-pulse rounded-md bg-gray-200"></div>
-              <div className="h-9 w-10 animate-pulse rounded-md bg-gray-200"></div>
+              <div className="h-9 w-10 animate-pulse rounded-md bg-gray-200 dark:bg-white/10"></div>
+              <div className="h-9 w-48 animate-pulse rounded-md bg-gray-200 dark:bg-white/10"></div>
+              <div className="h-9 w-10 animate-pulse rounded-md bg-gray-200 dark:bg-white/10"></div>
+              <div className="h-9 w-10 animate-pulse rounded-md bg-gray-200 dark:bg-white/10"></div>
             </div>
           </div>
         </div>
 
         {/* Skeleton for table header */}
-        <div className="rounded-t-sm border border-b-0 border-[rgb(200,200,200)] bg-white px-5 py-3">
-          <div className="h-5 w-48 animate-pulse rounded bg-gray-200"></div>
+        <div className="rounded-t-sm border border-b-0 border-[rgb(200,200,200)] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-5 py-3">
+          <div className="h-5 w-48 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
         </div>
 
         {/* Skeleton for table rows */}
         <div className="hidden min-[1000px]:block">
-          <div className="min-w-full table-fixed border border-[rgb(200,200,200)] bg-white shadow-md">
-            <div className="border-b border-[rgb(200,200,200)] bg-white p-5">
+          <div className="min-w-full table-fixed border border-[rgb(200,200,200)] dark:border-white/10 bg-white dark:bg-[#1a1a1a] shadow-md">
+            <div className="border-b border-[rgb(200,200,200)] dark:border-white/10 bg-white dark:bg-[#1a1a1a] p-5">
               <div className="grid grid-cols-10 gap-4">
-                <div className="h-4 w-4 animate-pulse rounded bg-gray-200"></div>
-                <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
-                <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
-                <div className="h-4 w-40 animate-pulse rounded bg-gray-200"></div>
-                <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
-                <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
-                <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
-                <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
-                <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
-                <div className="h-4 w-8 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-4 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                <div className="h-4 w-32 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                <div className="h-4 w-40 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                <div className="h-4 w-20 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                <div className="h-4 w-20 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                <div className="h-4 w-8 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
               </div>
             </div>
             {[...Array(5)].map((_, index) => (
               <div
                 key={index}
-                className="border-b border-[rgb(200,200,200)] p-5"
+                className="border-b border-[rgb(200,200,200)] dark:border-white/10 p-5"
               >
                 <div className="grid grid-cols-10 gap-4">
-                  <div className="h-4 w-4 animate-pulse rounded bg-gray-200"></div>
-                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
-                  <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
-                  <div className="h-4 w-40 animate-pulse rounded bg-gray-200"></div>
-                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
-                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
-                  <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
-                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
-                  <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
-                  <div className="h-4 w-8 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-4 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                  <div className="h-4 w-32 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                  <div className="h-4 w-40 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                  <div className="h-4 w-20 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                  <div className="h-4 w-20 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                  <div className="h-4 w-8 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
                 </div>
               </div>
             ))}
@@ -760,17 +762,17 @@ const UserList = () => {
           {[...Array(5)].map((_, index) => (
             <div
               key={index}
-              className="border border-gray-300 bg-white p-4 shadow-sm"
+              className="border border-gray-300 dark:border-white/10 bg-white dark:bg-[#1a1a1a] p-4 shadow-sm"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="h-4 w-4 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-4 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
                   <div className="space-y-2">
-                    <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
-                    <div className="h-3 w-24 animate-pulse rounded bg-gray-200"></div>
+                    <div className="h-4 w-32 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
+                    <div className="h-3 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
                   </div>
                 </div>
-                <div className="h-6 w-6 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-6 w-6 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
               </div>
             </div>
           ))}
@@ -785,15 +787,15 @@ const UserList = () => {
         <div className="mb-4 flex items-center justify-between gap-2 text-[14px]">
           {/* Keep the top bar with filters */}
           <div className="relative flex w-full items-center justify-between gap-4">
-            <div className="flex items-center gap-2 rounded-md bg-gray-300 md:flex-row md:gap-2">
-              <div className="hidden items-center gap-1 text-[12px] font-semibold text-gray-500 md:flex">
-                <button className="rounded-md px-8 py-[8px] text-gray-500">
+            <div className="flex items-center gap-2 rounded-md bg-gray-300 dark:bg-white/10 md:flex-row md:gap-2">
+              <div className="hidden items-center gap-1 text-[12px] font-semibold text-gray-500 dark:text-gray-400 md:flex">
+                <button className="rounded-md px-8 py-[8px] text-gray-500 dark:text-gray-400">
                   All
                 </button>
-                <button className="rounded-md px-6 py-[8px] text-gray-500">
+                <button className="rounded-md px-6 py-[8px] text-gray-500 dark:text-gray-400">
                   Pending
                 </button>
-                <button className="rounded-md px-5 py-[8px] text-gray-500">
+                <button className="rounded-md px-5 py-[8px] text-gray-500 dark:text-gray-400">
                   Approved
                 </button>
               </div>
@@ -801,13 +803,13 @@ const UserList = () => {
           </div>
         </div>
 
-        <div className="rounded-t-sm border border-b-0 border-[rgb(200,200,200)] bg-white px-5 py-3 text-[12px] shadow-sm sm:text-[14px]">
-          <span className="ml-0 text-sm font-medium text-gray-600">Users</span>
+        <div className="rounded-t-sm border border-b-0 border-[rgb(200,200,200)] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-5 py-3 text-[12px] shadow-sm sm:text-[14px]">
+          <span className="ml-0 text-sm font-medium text-gray-600 dark:text-gray-300">Users</span>
         </div>
 
         {/* Mobile Error View */}
         <div className="min-[1000px]:hidden">
-          <div className="border border-gray-300 bg-white p-4 text-center text-[14px] text-gray-700 shadow-sm">
+          <div className="border border-gray-300 dark:border-white/10 bg-white dark:bg-[#1a1a1a] p-4 text-center text-[14px] text-gray-700 dark:text-gray-300 shadow-sm">
             <div className="mb-2 text-red-500">
               <i className="bx bx-error-circle text-2xl"></i>
             </div>
@@ -820,9 +822,9 @@ const UserList = () => {
 
         {/* Desktop Error View */}
         <div className="hidden w-full overflow-x-auto min-[1000px]:block">
-          <table className="min-w-full table-fixed border border-[rgb(200,200,200)] bg-white shadow-md">
+          <table className="min-w-full table-fixed border border-[rgb(200,200,200)] dark:border-white/10 bg-white dark:bg-[#1a1a1a] shadow-md">
             <thead>
-              <tr className="border-b border-[rgb(200,200,200)] bg-white text-[10px] text-[rgb(78,78,78)] sm:text-[12px]">
+              <tr className="border-b border-[rgb(200,200,200)] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-[10px] text-[rgb(78,78,78)] dark:text-gray-400 sm:text-[12px]">
                 <th className="w-[5%] px-2 py-3 text-left"></th>
                 <th className="w-[10%] px-2 py-3 text-left font-semibold text-nowrap">
                   USER CODE
@@ -873,6 +875,7 @@ const UserList = () => {
     );
   }
 
+  // Handles render pagination.
   const renderPagination = () => {
     const pages = [];
     const maxVisiblePages = 5;
@@ -891,7 +894,7 @@ const UserList = () => {
           className={`mx-1 rounded-md px-3 py-1 text-sm ${
             currentPage === i
               ? "bg-orange-500 text-white"
-              : "bg-white text-gray-700 hover:bg-gray-100"
+              : "bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
           }`}
         >
           {i}
@@ -906,8 +909,8 @@ const UserList = () => {
           disabled={currentPage === 1}
           className={`rounded-md px-3 py-1 text-sm ${
             currentPage === 1
-              ? "cursor-not-allowed bg-gray-100 text-gray-400"
-              : "bg-white text-gray-700 hover:bg-gray-100"
+              ? "cursor-not-allowed bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500"
+              : "bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
           }`}
         >
           Previous
@@ -918,8 +921,8 @@ const UserList = () => {
           disabled={currentPage === totalPages}
           className={`rounded-md px-3 py-1 text-sm ${
             currentPage === totalPages
-              ? "cursor-not-allowed bg-gray-100 text-gray-400"
-              : "bg-white text-gray-700 hover:bg-gray-100"
+              ? "cursor-not-allowed bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500"
+              : "bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
           }`}
         >
           Next
@@ -965,9 +968,9 @@ const UserList = () => {
       <div className="mb-4 flex items-center justify-between gap-2 text-[14px]">
         <div className="relative flex w-full items-center justify-between gap-4">
           {/* Status Tabs (Left) */}
-          <div className="flex items-center gap-2 rounded-md bg-gray-300 md:flex-row md:gap-2">
+          <div className="flex items-center gap-2 rounded-md bg-gray-300 dark:bg-white/10 md:flex-row md:gap-2">
             {/* Status Buttons (Visible on medium screens and up) */}
-            <div className="hidden items-center gap-1 text-[12px] font-semibold text-gray-500 md:flex">
+            <div className="hidden items-center gap-1 text-[12px] font-semibold text-gray-500 dark:text-gray-400 md:flex">
               <button
                 onClick={() => {
                   setTabLoading(true);
@@ -975,8 +978,8 @@ const UserList = () => {
                 }}
                 className={`rounded-md px-8 py-[8px] ${
                   statusFilter === "all"
-                    ? "border-color border bg-gray-100 text-gray-700"
-                    : "cursor-pointer text-gray-500"
+                    ? "border-color border bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200"
+                    : "cursor-pointer text-gray-500 dark:text-gray-400"
                 }`}
               >
                 All
@@ -989,8 +992,8 @@ const UserList = () => {
                 }}
                 className={`rounded-md px-6 py-[8px] ${
                   statusFilter === "pending"
-                    ? "border-color border bg-gray-100 text-gray-700"
-                    : "cursor-pointer text-gray-500"
+                    ? "border-color border bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200"
+                    : "cursor-pointer text-gray-500 dark:text-gray-400"
                 }`}
               >
                 Pending
@@ -1003,8 +1006,8 @@ const UserList = () => {
                 }}
                 className={`rounded-md px-5 py-[8px] ${
                   statusFilter === "registered"
-                    ? "border-color border bg-gray-100 text-gray-700"
-                    : "cursor-pointer text-gray-500"
+                    ? "border-color border bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200"
+                    : "cursor-pointer text-gray-500 dark:text-gray-400"
                 }`}
               >
                 Approved
@@ -1015,7 +1018,7 @@ const UserList = () => {
             <div className="relative md:hidden">
               <button
                 onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+                className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white dark:bg-[#1a1a1a] p-1 text-gray-700 dark:text-gray-300 shadow-sm hover:bg-orange-500 hover:text-white"
               >
                 <span className="ml-2 text-sm capitalize">
                   {statusFilter === "all"
@@ -1028,15 +1031,15 @@ const UserList = () => {
               </button>
 
               {statusDropdownOpen && (
-                <div className="absolute left-0 z-50 mt-2 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
-                  <div className="py-1 text-sm text-gray-700">
+                <div className="absolute left-0 z-50 mt-2 w-35 rounded-md border border-gray-300 dark:border-white/10 bg-white dark:bg-[#1a1a1a] p-1 shadow-sm">
+                  <div className="py-1 text-sm text-gray-700 dark:text-gray-300">
                     <button
                       onClick={() => {
                         setTabLoading(true);
                         setStatusFilter("all");
                         setStatusDropdownOpen(false);
                       }}
-                      className="w-full rounded-sm px-4 py-2 text-left text-black"
+                      className="w-full rounded-sm px-4 py-2 text-left text-black dark:text-gray-200 dark:hover:bg-white/5"
                     >
                       All
                     </button>
@@ -1046,7 +1049,7 @@ const UserList = () => {
                         setStatusFilter("pending");
                         setStatusDropdownOpen(false);
                       }}
-                      className="w-full rounded-sm px-4 py-2 text-left text-black"
+                      className="w-full rounded-sm px-4 py-2 text-left text-black dark:text-gray-200 dark:hover:bg-white/5"
                     >
                       Pending
                     </button>
@@ -1056,7 +1059,7 @@ const UserList = () => {
                         setStatusFilter("registered");
                         setStatusDropdownOpen(false);
                       }}
-                      className="w-full rounded-sm px-4 py-2 text-left text-black"
+                      className="w-full rounded-sm px-4 py-2 text-left text-black dark:text-gray-200 dark:hover:bg-white/5"
                     >
                       Approved
                     </button>
@@ -1067,7 +1070,7 @@ const UserList = () => {
           </div>
           {/* Students only checkbox - separated and aligned right */}
           <div className="ml-6 flex items-center">
-            <label className="flex items-center gap-1 text-[13px] font-normal">
+            <label className="flex items-center gap-1 text-[13px] font-normal dark:text-gray-300">
               <input
                 type="checkbox"
                 checked={studentsOnly}
@@ -1085,22 +1088,22 @@ const UserList = () => {
             onClick={() => {
               window.location.reload();
             }}
-            className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-2xl text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+            className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white dark:bg-[#1a1a1a] p-1 text-2xl text-gray-700 dark:text-gray-300 shadow-sm hover:bg-orange-500 hover:text-white"
           >
             <i className="bx bx-refresh-ccw"></i>
           </button>
         </div>
 
         {/* Search Bar */}
-        <div className="border-color flex w-[50%] min-w-[100px] cursor-pointer items-center rounded-md border bg-white px-2 text-gray-700 shadow-sm sm:max-w-[300px]">
-          <i className="bx bx-search text-[20px] text-gray-500"></i>
+        <div className="border-color flex w-[50%] min-w-[100px] cursor-pointer items-center rounded-md border bg-white dark:bg-[#1a1a1a] px-2 text-gray-700 dark:text-gray-300 shadow-sm sm:max-w-[300px]">
+          <i className="bx bx-search text-[20px] text-gray-500 dark:text-gray-400"></i>
           <div className="flex flex-1">
             <input
               type="text"
               placeholder="Search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full flex-1 rounded-md p-2 text-[11px] text-gray-700 outline-none"
+              className="w-full flex-1 rounded-md bg-transparent p-2 text-[11px] text-gray-700 dark:text-gray-200 outline-none"
             />
           </div>
         </div>
@@ -1125,7 +1128,7 @@ const UserList = () => {
           )}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="border-color flex cursor-pointer items-center justify-center gap-1 rounded-md border bg-white px-[10px] py-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+            className="border-color flex cursor-pointer items-center justify-center gap-1 rounded-md border bg-white dark:bg-[#1a1a1a] px-[10px] py-1 text-gray-700 dark:text-gray-300 shadow-sm hover:bg-orange-500 hover:text-white"
           >
             <i className="bx bx-menu-filter text-2xl"></i>
             <span className="text-[12px] font-medium">Filters</span>
@@ -1140,18 +1143,18 @@ const UserList = () => {
         {/* Filter Dropdown */}
         {showFilters && (
           <div className="lightbox-bg fixed inset-0 z-100 flex flex-col items-center justify-end min-[448px]:justify-center min-[448px]:p-2">
-            <div className="open-sans border-color relative mx-auto w-full max-w-md rounded-t-2xl border bg-white py-2 pl-4 text-[14px] font-medium text-gray-700 min-[448px]:rounded-t-md">
+            <div className="open-sans border-color relative mx-auto w-full max-w-md rounded-t-2xl border bg-white dark:bg-[#1a1a1a] py-2 pl-4 text-[14px] font-medium text-gray-700 dark:text-gray-200 min-[448px]:rounded-t-md">
               <span>Filter Users</span>
 
               <button
                 onClick={() => setShowFilters(false)}
-                className="absolute top-1 right-2 cursor-pointer text-2xl text-gray-600 hover:text-gray-800"
+                className="absolute top-1 right-2 cursor-pointer text-2xl text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
               >
                 <i className="bx bx-x"></i>
               </button>
             </div>
 
-            <div className="border-color relative mx-auto w-full max-w-md border border-t-0 bg-white p-2 min-[448px]:rounded-b-md sm:px-4">
+            <div className="border-color relative mx-auto w-full max-w-md border border-t-0 bg-white dark:bg-[#1a1a1a] p-2 min-[448px]:rounded-b-md sm:px-4">
               {/* Campus Filter */}
               <div className="mb-2">
                 <span className="font-color-gray mb-2 block text-[12px]">
@@ -1255,7 +1258,7 @@ const UserList = () => {
                 </div>
               )}
 
-              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)] dark:bg-white/10" />
 
               <div className="flex justify-end gap-2">
                 <button
@@ -1267,7 +1270,7 @@ const UserList = () => {
                     setStateFilter("");
                     setRemarksFilter("");
                   }}
-                  className="mb-2 flex cursor-pointer items-center gap-1 rounded-md border bg-white px-[12px] py-[6px] text-gray-700 transition-all duration-150 hover:bg-gray-200"
+                  className="mb-2 flex cursor-pointer items-center gap-1 rounded-md border bg-white dark:bg-white/5 px-[12px] py-[6px] text-gray-700 dark:text-gray-300 transition-all duration-150 hover:bg-gray-200 dark:hover:bg-white/10"
                 >
                   <span className="px-1 text-[14px]">Reset</span>
                 </button>
@@ -1288,23 +1291,23 @@ const UserList = () => {
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             title="Actions"
-            className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white p-1 text-gray-700 shadow-sm hover:bg-orange-500 hover:text-white"
+            className="border-color flex cursor-pointer items-center gap-3 rounded border bg-white dark:bg-[#1a1a1a] p-1 text-gray-700 dark:text-gray-300 shadow-sm hover:bg-orange-500 hover:text-white"
           >
             <i className="bx bx-dots-vertical-rounded text-2xl"></i>
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 z-50 mt-2 w-35 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
-              <div className="text-sm text-gray-700">
+            <div className="absolute right-0 z-50 mt-2 w-35 rounded-md border border-gray-300 dark:border-white/10 bg-white dark:bg-[#1a1a1a] p-1 shadow-sm">
+              <div className="text-sm text-gray-700 dark:text-gray-300">
                 <button
                   onClick={(e) => {
                     e.preventDefault();
                     handleActionClick("approve");
                   }}
-                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
+                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black dark:text-gray-200 transition-colors ${
                     selectedUsers.length === 0
                       ? "cursor-not-allowed text-gray-400"
-                      : "hover:bg-gray-200"
+                      : "hover:bg-gray-200 dark:hover:bg-white/5"
                   }`}
                 >
                   <span className="block w-full">Approve</span>
@@ -1315,10 +1318,10 @@ const UserList = () => {
                     e.preventDefault();
                     handleActionClick("activate");
                   }}
-                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
+                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black dark:text-gray-200 transition-colors ${
                     selectedUsers.length === 0
                       ? "cursor-not-allowed text-gray-400"
-                      : "hover:bg-gray-200"
+                      : "hover:bg-gray-200 dark:hover:bg-white/5"
                   }`}
                 >
                   <span className="block w-full">Activate</span>
@@ -1329,10 +1332,10 @@ const UserList = () => {
                     e.preventDefault();
                     handleActionClick("deactivate");
                   }}
-                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
+                  className={`w-[130px] rounded-sm px-4 py-2 text-left text-black dark:text-gray-200 transition-colors ${
                     selectedUsers.length === 0
                       ? "cursor-not-allowed text-gray-400"
-                      : "hover:bg-gray-200"
+                      : "hover:bg-gray-200 dark:hover:bg-white/5"
                   }`}
                 >
                   <span className="block w-full">Deactivate</span>
@@ -1344,10 +1347,10 @@ const UserList = () => {
                       e.preventDefault();
                       handleDeleteSelectedUsers();
                     }}
-                    className={`w-[130px] rounded-sm px-4 py-2 text-left text-black transition-colors ${
+                    className={`w-[130px] rounded-sm px-4 py-2 text-left text-black dark:text-gray-200 transition-colors ${
                       selectedUsers.length === 0
                         ? "cursor-not-allowed text-gray-400"
-                        : "hover:bg-gray-200"
+                        : "hover:bg-gray-200 dark:hover:bg-white/5"
                     }`}
                   >
                     <span className="block w-full">Delete</span>
@@ -1363,10 +1366,10 @@ const UserList = () => {
       {showModal && selectedUser && (
         <>
           <div className="open-sans bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
-            <div className="custom-scrollbar relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
+            <div className="custom-scrollbar relative mx-2 w-full max-w-[480px] rounded-md bg-white dark:bg-[#1a1a1a] shadow-2xl">
               {/* Header */}
-              <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
-                <h2 className="text-[14px] font-medium text-gray-700">
+              <div className="border-color relative flex items-center justify-between border-b dark:border-white/10 py-2 pl-4">
+                <h2 className="text-[14px] font-medium text-gray-700 dark:text-gray-200">
                   User Information
                 </h2>
 
@@ -1375,7 +1378,7 @@ const UserList = () => {
                     setShowModal(false);
                     setRoleError(""); // Clear the error when modal is closed
                   }}
-                  className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
+                  className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                   title="Close"
                 >
                   <i className="bx bx-x text-[20px]"></i>
@@ -1386,50 +1389,50 @@ const UserList = () => {
                 {/* Fields */}
                 <div className="mb-4 grid grid-cols-2 gap-x-4 text-start">
                   <div>
-                    <span className="block text-[14px] text-gray-700">
+                    <span className="block text-[14px] text-gray-700 dark:text-gray-400">
                       First name
                     </span>
-                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 dark:border-white/10 px-4 py-[7px] text-[14px] text-gray-900 dark:text-gray-200 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
                       {selectedUser.firstName}
                     </div>
                   </div>
                   <div>
-                    <span className="block text-[14px] text-gray-700">
+                    <span className="block text-[14px] text-gray-700 dark:text-gray-400">
                       Last name
                     </span>
-                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 dark:border-white/10 px-4 py-[7px] text-[14px] text-gray-900 dark:text-gray-200 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
                       {selectedUser.lastName}
                     </div>
                   </div>
                   <div>
-                    <span className="mt-2 block text-[14px] text-gray-700">
+                    <span className="mt-2 block text-[14px] text-gray-700 dark:text-gray-400">
                       Campus
                     </span>
-                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 dark:border-white/10 px-4 py-[7px] text-[14px] text-gray-900 dark:text-gray-200 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
                       {selectedUser.campus}
                     </div>
                   </div>
                   <div>
-                    <span className="mt-2 block text-[14px] text-gray-700">
+                    <span className="mt-2 block text-[14px] text-gray-700 dark:text-gray-400">
                       User Code
                     </span>
-                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                    <div className="peer mt-1 w-full rounded-xl border border-gray-300 dark:border-white/10 px-4 py-[7px] text-[14px] text-gray-900 dark:text-gray-200 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
                       {selectedUser.userCode}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)] dark:bg-white/10" />
 
                 {/* Credentials */}
                 <div className="mb-4">
-                  <span className="block text-start text-[14px] text-gray-700">
+                  <span className="block text-start text-[14px] text-gray-700 dark:text-gray-400">
                     Program
                   </span>
-                  <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                  <div className="peer mt-1 w-full rounded-xl border border-gray-300 dark:border-white/10 px-4 py-[7px] text-[14px] text-gray-900 dark:text-gray-200 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
                     {selectedUser.program}
                   </div>
-                  <div className="mt-1 text-start text-[11px] text-gray-400">
+                  <div className="mt-1 text-start text-[11px] text-gray-400 dark:text-gray-500">
                     The program the user is assigned to. Used to filter subjects
                     and academic content specific to your curriculum.
                   </div>
@@ -1439,7 +1442,7 @@ const UserList = () => {
                 <div className="mb-4">
                   <div className="grid grid-cols-2 gap-x-4">
                     <div>
-                      <span className="mb-1 block text-start text-[14px] text-gray-700">
+                      <span className="mb-1 block text-start text-[14px] text-gray-700 dark:text-gray-400">
                         Position
                       </span>
                       <RegisterDropDownSmall
@@ -1535,10 +1538,10 @@ const UserList = () => {
                       />
                     </div>
                     <div>
-                      <span className="block text-start text-[14px] text-gray-700">
+                      <span className="block text-start text-[14px] text-gray-700 dark:text-gray-400">
                         Email Address
                       </span>
-                      <div className="peer mt-1 w-full truncate rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
+                      <div className="peer mt-1 w-full truncate rounded-xl border border-gray-300 dark:border-white/10 px-4 py-[7px] text-[14px] text-gray-900 dark:text-gray-200 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
                         {selectedUser.email}
                       </div>
                     </div>
@@ -1550,11 +1553,11 @@ const UserList = () => {
                   )}
                 </div>
 
-                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)] dark:bg-white/10" />
 
                 <div className="mb-3 flex flex-col gap-2">
                   <div className="flex justify-between">
-                    <span className="block text-start text-[14px] text-gray-700">
+                    <span className="block text-start text-[14px] text-gray-700 dark:text-gray-400">
                       Approval Status:
                     </span>
                     <span
@@ -1571,7 +1574,7 @@ const UserList = () => {
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="block text-start text-[14px] text-gray-700">
+                    <span className="block text-start text-[14px] text-gray-700 dark:text-gray-400">
                       Account Status:
                     </span>
                     <span
@@ -1586,7 +1589,7 @@ const UserList = () => {
                   </div>
                 </div>
 
-                <div className="mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+                <div className="mb-3 h-[0.5px] bg-[rgb(200,200,200)] dark:bg-white/10" />
 
                 {/* Action Buttons Row */}
                 {/* Single Description Above Buttons */}
@@ -1720,8 +1723,8 @@ const UserList = () => {
         </>
       )}
 
-      <div className="rounded-t-sm border border-b-0 border-[rgb(200,200,200)] bg-white px-5 py-3 text-[12px] shadow-sm sm:text-[14px]">
-        <span className="ml-0 text-sm font-medium text-gray-600">
+      <div className="rounded-t-sm border border-b-0 border-[rgb(200,200,200)] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-5 py-3 text-[12px] shadow-sm sm:text-[14px]">
+        <span className="ml-0 text-sm font-medium text-gray-600 dark:text-gray-300">
           {studentsOnly
             ? `${getFilteredUsers().length} Student${getFilteredUsers().length !== 1 ? "s" : ""}`
             : `${getFilteredUsers().length} Other User${getFilteredUsers().length !== 1 ? "s" : ""}`}
@@ -1736,18 +1739,18 @@ const UserList = () => {
       {/* User Table Mobile */}
       <div className="min-[1000px]:hidden">
         {loading || searchLoading || tabLoading ? (
-          <div className="flex items-center justify-center border border-gray-300 bg-white p-8 shadow-sm">
+          <div className="flex items-center justify-center border border-gray-300 dark:border-white/10 bg-white dark:bg-[#1a1a1a] p-8 shadow-sm">
             <div className="loader"></div>
           </div>
         ) : users.length === 0 ? (
-          <div className="border border-gray-300 bg-white p-4 text-center text-[14px] text-gray-700 shadow-sm">
+          <div className="border border-gray-300 dark:border-white/10 bg-white dark:bg-[#1a1a1a] p-4 text-center text-[14px] text-gray-700 dark:text-gray-300 shadow-sm">
             No users found.
           </div>
         ) : (
           getFilteredUsers().map((user) => (
             <div
               key={user.userID}
-              className="flex items-center justify-between border border-gray-300 bg-white p-4 shadow-sm"
+              className="flex items-center justify-between border border-gray-300 dark:border-white/10 bg-white dark:bg-[#1a1a1a] p-4 shadow-sm"
             >
               <div className="flex items-center space-x-3 overflow-hidden">
                 <input
@@ -1757,11 +1760,11 @@ const UserList = () => {
                   onChange={() => handleCheckboxChange(user.userID)}
                 />
                 <div className="truncate">
-                  <div className="max-w-[220px] truncate text-[12px] font-semibold text-gray-800 sm:max-w-full">
+                  <div className="max-w-[220px] truncate text-[12px] font-semibold text-gray-800 dark:text-gray-200 sm:max-w-full">
                     {user.firstName} {user.lastName}
                   </div>
 
-                  <div className="truncate text-[10px] text-gray-600">
+                  <div className="truncate text-[10px] text-gray-600 dark:text-gray-400">
                     {user.program}
                   </div>
 
@@ -1783,7 +1786,7 @@ const UserList = () => {
                     setSelectedUser(user);
                     setShowModal(true);
                   }}
-                  className="mr-2 flex items-center justify-center text-gray-700 hover:text-orange-500"
+                  className="mr-2 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:text-orange-500"
                 >
                   <i className="bx bx-contact-book text-[25px] leading-none"></i>
                 </button>
@@ -1807,9 +1810,9 @@ const UserList = () => {
 
       {/* User Table Desktop */}
       <div className="hidden w-full overflow-x-auto min-[1000px]:block">
-        <table className="min-w-full table-fixed border border-[rgb(200,200,200)] bg-white shadow-md">
+        <table className="min-w-full table-fixed border border-[rgb(200,200,200)] dark:border-white/10 bg-white dark:bg-[#1a1a1a] shadow-md">
           <thead>
-            <tr className="border-b border-[rgb(200,200,200)] bg-white text-[10px] text-[rgb(78,78,78)] sm:text-[12px]">
+            <tr className="border-b border-[rgb(200,200,200)] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-[10px] text-[rgb(78,78,78)] dark:text-gray-400 sm:text-[12px]">
               <th className="w-[5%] px-2 py-3 text-left">
                 <input
                   className="ml-3"
@@ -1870,7 +1873,7 @@ const UserList = () => {
               <tr>
                 <td
                   colSpan={studentsOnly ? "12" : "11"}
-                  className="py-4 text-center text-[14px] text-gray-700"
+                  className="py-4 text-center text-[14px] text-gray-700 dark:text-gray-300"
                 >
                   No users found.
                 </td>
@@ -1879,10 +1882,10 @@ const UserList = () => {
               getFilteredUsers().map((user) => (
                 <tr
                   key={user.userID}
-                  className={`border-b border-[rgb(200,200,200)] text-[12px] text-[rgb(78,78,78)] transition-colors ${
+                  className={`border-b border-[rgb(200,200,200)] dark:border-white/10 text-[12px] text-[rgb(78,78,78)] dark:text-gray-300 transition-colors ${
                     selectedUsers.includes(user.userID)
-                      ? "bg-gray-200 hover:bg-gray-100"
-                      : "hover:bg-gray-100"
+                      ? "bg-gray-200 dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/5"
+                      : "hover:bg-gray-100 dark:hover:bg-white/5"
                   } cursor-pointer`}
                   onClick={() => handleCheckboxChange(user.userID)}
                 >
@@ -1966,7 +1969,7 @@ const UserList = () => {
                           setSelectedUser(user);
                           setShowModal(true);
                         }}
-                        className="mr-1 flex items-center justify-center gap-2 text-gray-700 hover:text-orange-500"
+                        className="mr-1 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-300 hover:text-orange-500"
                       >
                         <i className="bx bx-contact-book text-[25px] leading-none"></i>
                       </button>

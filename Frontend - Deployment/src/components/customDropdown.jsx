@@ -17,6 +17,7 @@ const CustomDropdown = ({
 
   // Close dropdown when clicking outside
   useEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);

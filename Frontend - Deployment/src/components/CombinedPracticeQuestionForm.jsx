@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
+import { getApiUrl } from "../utils/config";
 import CustomDropdown from "./customDropdown";
 import WarnOnExit from "../hooks/WarnOnExit";
-import { getApiBaseUrl } from "../utils/config";
 
 // Practice Question Form or Adding Practice Questions
 const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
-  const apiUrl = getApiBaseUrl();
+  const apiUrl = getApiUrl();
   const [showTip, setShowTip] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const editorRef = useRef(null);
@@ -44,6 +44,7 @@ const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
 
   // Question text formatting handlers
   useEffect(() => {
+    // Handles selection change.
     const handleSelectionChange = () => {
       setIsBold(document.queryCommandState("bold"));
       setIsItalic(document.queryCommandState("italic"));
@@ -55,12 +56,14 @@ const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
       document.removeEventListener("selectionchange", handleSelectionChange);
   }, []);
 
+  // Handles format.
   const handleFormat = (command, setState) => {
     document.execCommand(command, false, null);
     setState(document.queryCommandState(command));
     editorRef.current.focus();
   };
 
+  // Checks formatting.
   const checkFormatting = () => {
     setTimeout(() => {
       setIsBold(document.queryCommandState("bold"));
@@ -103,6 +106,7 @@ const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
     setFormData((prev) => ({ ...prev, choices: updatedChoices }));
   };
 
+  // Handles choice image upload.
   const handleChoiceImageUpload = (index, event) => {
     const file = event.target.files[0];
     if (file) {
@@ -116,6 +120,7 @@ const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
     }
   };
 
+  // Removes choice image.
   const removeChoiceImage = (index) => {
     const updatedChoices = [...formData.choices];
     updatedChoices[index] = { choiceText: "", isCorrect: false, image: null };
@@ -165,13 +170,23 @@ const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
         questionFormData.append("image", formData.image);
       }
 
-      const questionResponse = await fetch(`${apiUrl}/questions/add`, {
+      const questionResponse = await fetch(`${apiUrl}/api/questions/add`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
         body: questionFormData,
       });
-
-      const questionResult = await questionResponse.json();
+      const questionRaw = await questionResponse.text();
+      let questionResult = {};
+      try {
+        questionResult = questionRaw ? JSON.parse(questionRaw) : {};
+      } catch (_e) {
+        throw new Error(
+          `Question API returned non-JSON response (HTTP ${questionResponse.status}).`,
+        );
+      }
 
       if (!questionResponse.ok) {
         throw new Error(questionResult.message || "Failed to add question.");
@@ -196,14 +211,25 @@ const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
         }
       });
 
-      const choicesResponse = await fetch(`${apiUrl}/questions/choices`, {
+      const choicesResponse = await fetch(`${apiUrl}/api/questions/choices`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
         body: choicesFormData,
       });
 
       if (!choicesResponse.ok) {
-        throw new Error("Failed to add choices.");
+        const choicesRaw = await choicesResponse.text();
+        let choicesMessage = "Failed to add choices.";
+        try {
+          const choicesResult = choicesRaw ? JSON.parse(choicesRaw) : {};
+          choicesMessage = choicesResult.message || choicesMessage;
+        } catch (_e) {
+          choicesMessage = `Choices API returned non-JSON response (HTTP ${choicesResponse.status}).`;
+        }
+        throw new Error(choicesMessage);
       }
 
       onComplete();
@@ -223,7 +249,7 @@ const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
         <div className="scrollbar-hide animate-fade-in-up flex max-h-[95vh] overflow-y-auto p-3">
           <div className="flex-1">
             {/* Header */}
-            <div className="outfit border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
+            <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
               <div className="flex items-center justify-between pr-4">
                 <span>ADD PRACTICE QUESTION</span>
                 <button

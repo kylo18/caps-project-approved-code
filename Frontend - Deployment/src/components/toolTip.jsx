@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
+// Renders the tooltip.
 const Tooltip = ({
   content,
   children,
@@ -72,6 +73,7 @@ const Tooltip = ({
     },
   };
 
+  // Handles show tooltip.
   const showTooltip = () => {
     if (delay) {
       timeoutId = setTimeout(() => {
@@ -82,6 +84,7 @@ const Tooltip = ({
     }
   };
 
+  // Handles hide tooltip.
   const hideTooltip = () => {
     if (timeoutId) {
       clearTimeout(timeoutId);
@@ -90,6 +93,7 @@ const Tooltip = ({
   };
 
   useEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (
         trigger === "click" &&
@@ -111,6 +115,7 @@ const Tooltip = ({
     };
   }, [trigger]);
 
+  // Handles trigger.
   const handleTrigger = () => {
     if (trigger === "hover") {
       return {

@@ -9,6 +9,7 @@ import { getApiUrl } from "../utils/config";
 import { FaMoon, FaSun } from "react-icons/fa";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 
+// Renders the register.
 export default function Register() {
   const [userCode, setUserCode] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -38,6 +39,7 @@ export default function Register() {
   const tooltipRef = useRef(null);
 
   useEffect(() => {
+    // Handles click outside.
     function handleClickOutside(event) {
       if (tooltipRef.current && !tooltipRef.current.contains(event.target)) {
         setShowTooltip(false);
@@ -64,6 +66,7 @@ export default function Register() {
     },
   ];
 
+  // Gets filtered programs.
   const getFilteredPrograms = () => {
     if (campusID === "2" || campusID === "3") {
       return allPrograms.filter((program) => program.id === "5");
@@ -111,6 +114,7 @@ export default function Register() {
     return { isValid: Object.keys(errors).length === 0, errors };
   };
 
+  // Validates step2.
   const validateStep2 = () => {
     const errors = {};
     if (!userCode.trim()) {
@@ -123,6 +127,7 @@ export default function Register() {
     return { isValid: Object.keys(errors).length === 0, errors };
   };
 
+  // Validates step3.
   const validateStep3 = () => {
     const errors = {};
     if (!roleID) {
@@ -137,6 +142,7 @@ export default function Register() {
     return { isValid: Object.keys(errors).length === 0, errors };
   };
 
+  // Validates step4.
   const validateStep4 = () => {
     const errors = {};
     if (!password) {
@@ -260,6 +266,7 @@ export default function Register() {
     }
   };
 
+  // Handles next step.
   const handleNextStep = () => {
     let validationResult;
     switch (currentStep) {
@@ -287,6 +294,7 @@ export default function Register() {
     }
   };
 
+  // Handles prev step.
   const handlePrevStep = () => {
     setErrors({});
     setCurrentStep((prevStep) => prevStep - 1);

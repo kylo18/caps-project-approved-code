@@ -4,10 +4,10 @@ const AltButton = ({ text, icon, onClick, className, type }) => {
     <button
       onClick={onClick}
       type={type}
-      className={`outfit border-color flex cursor-pointer items-center gap-1 rounded-xl border px-[14px] py-[6px] text-gray-700 hover:bg-gray-100`}
+      className={`flex cursor-pointer items-center gap-1 px-[10px] py-[1px] text-gray-700 ${className}`}
     >
-      <i className={`${icon} text-[14px]`}></i>
-      <span className="outfit-400 text-[12px]">{text}</span>
+      <i className={`${icon} text-[18px]`}></i>
+      <span className="hidden pr-1.5 text-[14px] sm:inline">{text}</span>
     </button>
   );
 };

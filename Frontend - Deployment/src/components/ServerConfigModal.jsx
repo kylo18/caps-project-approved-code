@@ -1,144 +1,140 @@
-import { useState, useEffect } from "react";
-import {
-  getApiBaseUrl,
-  setApiBaseUrl,
-  setCustomApiUrl,
-  normalizeApiBaseUrl,
-  stripApiBaseUrl,
-} from "../utils/config";
-import useToast from "../hooks/useToast";
-import Toast from "./Toast";
+import { useState, useEffect } from 'react';
+import { getApiBaseUrl, setApiBaseUrl, setCustomApiUrl, hasApiConfig } from '../utils/config';
+import useToast from '../hooks/useToast';
+import Toast from './Toast';
 
-const DEFAULT_TEST_IP = "18.142.190.113";
-const DEFAULT_TEST_PORT = "8000";
-const DEFAULT_LOCAL_PORT = "8000";
+const DEFAULT_TEST_IP = '18.142.190.113';
+const DEFAULT_TEST_PORT = '8000';
+const DEFAULT_LOCAL_PORT = '8005';
 
-const parseUrlParts = (url) => {
-  const cleaned = stripApiBaseUrl(url);
-  const match = cleaned.match(/^https?:\/\/([^:/]+)(?::(\d+))?/i);
-  if (!match) return null;
-  return {
-    host: match[1],
-    port: match[2] || "",
-  };
-};
-
+// Renders the server config modal.
 const ServerConfigModal = ({ isOpen, onClose, onSave }) => {
-  const [serverType, setServerType] = useState("local");
-  const [localIp, setLocalIp] = useState("");
+  const [serverType, setServerType] = useState('local');
+  const [localIp, setLocalIp] = useState('');
   const [localPort, setLocalPort] = useState(DEFAULT_LOCAL_PORT);
   const [testServerIp, setTestServerIp] = useState(DEFAULT_TEST_IP);
   const [testServerPort, setTestServerPort] = useState(DEFAULT_TEST_PORT);
-  const [customUrl, setCustomUrl] = useState("");
+  const [customUrl, setCustomUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast, showToast } = useToast();
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    const savedUrl = getApiBaseUrl();
-    const savedBase = stripApiBaseUrl(savedUrl);
-
-    if (savedBase) {
-      if (savedBase.includes(DEFAULT_TEST_IP)) {
-        setServerType("test");
-        const parts = parseUrlParts(savedBase);
-        if (parts) {
-          setTestServerIp(parts.host);
-          setTestServerPort(parts.port || DEFAULT_TEST_PORT);
-        }
-      } else if (savedBase.startsWith("http://") || savedBase.startsWith("https://")) {
-        setServerType("local");
-        const parts = parseUrlParts(savedBase);
-        if (parts) {
-          setLocalIp(parts.host);
-          setLocalPort(parts.port || DEFAULT_LOCAL_PORT);
+    if (isOpen) {
+      const savedUrl = getApiBaseUrl();
+      if (savedUrl) {
+        if (savedUrl.includes('18.142.190.113')) {
+          setServerType('test');
+          // Parse saved test server URL
+          const match = savedUrl.match(/http:\/\/([^:]+):(\d+)/);
+          if (match) {
+            setTestServerIp(match[1]);
+            setTestServerPort(match[2]);
+          }
+        } else if (savedUrl.startsWith('http://') && !savedUrl.includes('18.142.190.113')) {
+          setServerType('local');
+          // Parse saved local URL
+          const match = savedUrl.match(/http:\/\/([^:]+):(\d+)/);
+          if (match) {
+            setLocalIp(match[1]);
+            setLocalPort(match[2]);
+          } else {
+            // Fallback for URL without port
+            const ip = savedUrl.replace('http://', '').split(':')[0];
+            setLocalIp(ip);
+            setLocalPort(DEFAULT_LOCAL_PORT);
+          }
+        } else {
+          setServerType('custom');
+          setCustomUrl(savedUrl);
         }
       } else {
-        setServerType("custom");
-        setCustomUrl(savedBase);
+        // Reset to defaults when no saved URL
+        setTestServerIp(DEFAULT_TEST_IP);
+        setTestServerPort(DEFAULT_TEST_PORT);
+        setLocalPort(DEFAULT_LOCAL_PORT);
       }
-    } else {
-      setTestServerIp(DEFAULT_TEST_IP);
-      setTestServerPort(DEFAULT_TEST_PORT);
-      setLocalPort(DEFAULT_LOCAL_PORT);
     }
   }, [isOpen]);
 
-  const buildBaseUrl = () => {
-    if (serverType === "local") {
-      return `http://${localIp}:${localPort}`;
-    }
-    if (serverType === "test") {
-      return `http://${testServerIp}:${testServerPort}`;
-    }
-    return customUrl;
-  };
-
+  // Handles test connection.
   const handleTestConnection = async () => {
     setIsLoading(true);
-
-    const baseUrl = buildBaseUrl();
-    if (!baseUrl) {
-      showToast("Please enter a valid server URL.", "error");
-      setIsLoading(false);
-      return;
+    let testUrl = '';
+    
+    if (serverType === 'local') {
+      if (!localIp || !localPort) {
+        showToast('Please enter both IP address and port', 'error');
+        setIsLoading(false);
+        return;
+      }
+      testUrl = `http://${localIp}:${localPort}`;
+    } else if (serverType === 'test') {
+      if (!testServerIp || !testServerPort) {
+        showToast('Please enter both IP and port', 'error');
+        setIsLoading(false);
+        return;
+      }
+      testUrl = `http://${testServerIp}:${testServerPort}`;
+    } else if (serverType === 'custom') {
+      if (!customUrl) {
+        showToast('Please enter the custom URL', 'error');
+        setIsLoading(false);
+        return;
+      }
+      testUrl = customUrl;
     }
 
     try {
-      const apiBase = normalizeApiBaseUrl(baseUrl);
-      const testEndpoint = `${apiBase}/app-version`;
+      const testEndpoint = `${testUrl}/api/app-version`;
       const response = await fetch(testEndpoint, {
-        method: "GET",
-        headers: { Accept: "application/json" },
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
       });
-
+      
       if (response.ok) {
         const data = await response.json();
-        showToast(
-          `Connected! Server version: ${data.version || "OK"}`,
-          "success",
-        );
+        showToast(`Connected! Server version: ${data.version || 'OK'}`, 'success');
       } else {
         const text = await response.text();
-        if (text.startsWith("<")) {
-          showToast("Server returned HTML (not JSON). Check URL format.", "error");
+        if (text.startsWith('<')) {
+          showToast(`Server returned HTML (not JSON). Check URL format.`, 'error');
         } else {
-          showToast(`Server error ${response.status}: ${text.substring(0, 100)}`, "error");
+          showToast(`Server error ${response.status}: ${text.substring(0, 100)}`, 'error');
         }
       }
     } catch (error) {
-      showToast("Cannot reach the server. Check URL and network.", "error");
-      console.error("Connection test error:", error);
+      showToast(`Cannot reach ${testEndpoint}. Check URL and network.`, 'error');
+      console.error('Connection test error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Handles save.
   const handleSave = () => {
-    let apiUrl = "";
-
-    if (serverType === "local") {
+    let apiUrl = '';
+    
+    if (serverType === 'local') {
       if (!localIp || !localPort) {
-        showToast("Please enter both IP address and port", "error");
+        showToast('Please enter both IP address and port', 'error');
         return;
       }
       apiUrl = setApiBaseUrl(localIp, localPort);
-    } else if (serverType === "test") {
+    } else if (serverType === 'test') {
       if (!testServerIp || !testServerPort) {
-        showToast("Please enter both IP and port", "error");
+        showToast('Please enter both IP and port', 'error');
         return;
       }
-      apiUrl = setApiBaseUrl(testServerIp, testServerPort);
-    } else if (serverType === "custom") {
+      apiUrl = setCustomApiUrl(`http://${testServerIp}:${testServerPort}`);
+    } else if (serverType === 'custom') {
       if (!customUrl) {
-        showToast("Please enter the custom URL", "error");
+        showToast('Please enter the custom URL', 'error');
         return;
       }
       apiUrl = setCustomApiUrl(customUrl);
     }
 
-    showToast("Server configuration saved!", "success");
+    showToast('Server configuration saved!', 'success');
     onSave?.(apiUrl);
     onClose();
   };
@@ -148,7 +144,7 @@ const ServerConfigModal = ({ isOpen, onClose, onSave }) => {
   return (
     <div className="lightbox-bg fixed inset-0 z-[1000] flex items-center justify-center animate-fade-in">
       <Toast message={toast.message} type={toast.type} show={toast.show} />
-
+      
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-fade-in-up">
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-800">Server Configuration</h2>
@@ -162,8 +158,7 @@ const ServerConfigModal = ({ isOpen, onClose, onSave }) => {
 
         <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
           <p className="text-sm text-gray-600 mb-4">
-            Choose which server the app should connect to. The app will append{" "}
-            <span className="font-semibold">/api</span> automatically.
+            Configure which server the app should connect to.
           </p>
 
           {/* Server Type Selection */}
@@ -173,7 +168,7 @@ const ServerConfigModal = ({ isOpen, onClose, onSave }) => {
                 type="radio"
                 name="serverType"
                 value="local"
-                checked={serverType === "local"}
+                checked={serverType === 'local'}
                 onChange={(e) => setServerType(e.target.value)}
                 className="w-4 h-4 text-[#FE6902] focus:ring-[#FE6902]"
               />
@@ -188,7 +183,7 @@ const ServerConfigModal = ({ isOpen, onClose, onSave }) => {
                 type="radio"
                 name="serverType"
                 value="test"
-                checked={serverType === "test"}
+                checked={serverType === 'test'}
                 onChange={(e) => setServerType(e.target.value)}
                 className="w-4 h-4 text-[#FE6902] focus:ring-[#FE6902]"
               />
@@ -203,19 +198,19 @@ const ServerConfigModal = ({ isOpen, onClose, onSave }) => {
                 type="radio"
                 name="serverType"
                 value="custom"
-                checked={serverType === "custom"}
+                checked={serverType === 'custom'}
                 onChange={(e) => setServerType(e.target.value)}
                 className="w-4 h-4 text-[#FE6902] focus:ring-[#FE6902]"
               />
               <div className="ml-3">
                 <span className="block font-medium text-gray-800">Custom URL</span>
-                <span className="block text-xs text-gray-500">Enter full base URL</span>
+                <span className="block text-xs text-gray-500">Enter full API URL</span>
               </div>
             </label>
           </div>
 
           {/* Input Fields */}
-          {serverType === "local" && (
+          {serverType === 'local' && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Your Laptop IP Address & Port
@@ -251,7 +246,7 @@ const ServerConfigModal = ({ isOpen, onClose, onSave }) => {
             </div>
           )}
 
-          {serverType === "test" && (
+          {serverType === 'test' && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Test Server URL
@@ -282,12 +277,12 @@ const ServerConfigModal = ({ isOpen, onClose, onSave }) => {
                 Default: {DEFAULT_TEST_IP}:{DEFAULT_TEST_PORT} (editable)
               </p>
               <p className="text-xs text-green-600 mt-1">
-                OK: Pre-filled with verified working test server
+                ✓ Pre-filled with verified working test server
               </p>
             </div>
           )}
 
-          {serverType === "custom" && (
+          {serverType === 'custom' && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Custom Server URL
@@ -300,10 +295,10 @@ const ServerConfigModal = ({ isOpen, onClose, onSave }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:border-[#FE6902] focus:outline-none text-sm"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Base URL only (NO /api). Example: http://localhost:8000
+                Base URL only (NO /api). Example: https://caps-test.coeofjrmsu.com
               </p>
               <p className="text-xs text-orange-500 mt-1 font-medium">
-                Note: /api will be added automatically
+                ⚠️ Do NOT include /api - it will be added automatically
               </p>
             </div>
           )}
@@ -315,7 +310,7 @@ const ServerConfigModal = ({ isOpen, onClose, onSave }) => {
             disabled={isLoading}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
-            {isLoading ? "Testing..." : "Test Connection"}
+            {isLoading ? 'Testing...' : 'Test Connection'}
           </button>
           <button
             onClick={handleSave}

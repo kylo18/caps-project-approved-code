@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 
+// Provides toast.
 const useToast = () => {
   const [toast, setToast] = useState({
     message: "",
@@ -22,6 +23,7 @@ const useToast = () => {
     }
   }, [toast.message]);
 
+  // Handles show toast.
   const showToast = (message, type = "success") => {
     setToast({ message, type, show: false });
   };

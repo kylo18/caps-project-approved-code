@@ -7,6 +7,7 @@ const Sort = ({ sortOption, setSortOption }) => {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
+    // Handles click outside.
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -25,6 +26,7 @@ const Sort = ({ sortOption, setSortOption }) => {
     { value: "date", label: "Date Created" },
   ];
 
+  // Handles sort change.
   const handleSortChange = (e) => {
     const newValue = e.target.value;
 
@@ -66,7 +68,7 @@ const Sort = ({ sortOption, setSortOption }) => {
   };
 
   return (
-    <div className="outfit-400 flex flex-row gap-2 md:-mt-2">
+    <div className="open-sans flex flex-row gap-2">
       {/* Inline dropdown implementation, mimicking SortCustomDropdown */}
       <div className="flex items-center gap-2 text-[13px]">
         <div className="relative" ref={dropdownRef}>
@@ -77,7 +79,7 @@ const Sort = ({ sortOption, setSortOption }) => {
             className={`border-color relative flex cursor-pointer items-center rounded-lg px-3 py-2`}
           >
             {/* Add icon before label */}
-            <span className={`truncate text-gray-700`}>Sort by</span>
+            <span className={`truncate`}>Sort by</span>
             <i className="bx bx-carets-up-down ml-2 text-[18px] text-gray-500"></i>
           </button>
           {/* Dropdown Options */}
@@ -92,7 +94,7 @@ const Sort = ({ sortOption, setSortOption }) => {
                     handleSortChange({ target: { value: option.value } });
                     setIsOpen(false);
                   }}
-                  className={`mb-1 cursor-pointer rounded-sm px-3 py-[10px] text-[14px] text-gray-700 transition hover:bg-gray-100 ${
+                  className={`cursor-pointer rounded-sm px-3 py-[10px] text-[14px] text-black transition hover:bg-gray-200 ${
                     sortOption === option.value ||
                     sortOption === option.value + "_desc"
                       ? "text-orange-500"

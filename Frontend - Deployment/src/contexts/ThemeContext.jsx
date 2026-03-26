@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 
 const ThemeContext = createContext();
 
+// Renders the theme provider.
 export const ThemeProvider = ({ children }) => {
   const [isDark, setIsDark] = useState(() => {
     // Check localStorage or system preference
@@ -22,6 +23,7 @@ export const ThemeProvider = ({ children }) => {
     localStorage.setItem("theme", isDark ? "dark" : "light");
   }, [isDark]);
 
+  // Toggles theme.
   const toggleTheme = () => {
     setIsDark((prev) => !prev);
   };
@@ -33,6 +35,7 @@ export const ThemeProvider = ({ children }) => {
   );
 };
 
+// Provides theme.
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (!context) {

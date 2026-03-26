@@ -1,10 +1,12 @@
 import { useEffect } from "react";
-import { getApiBaseUrl } from "../utils/config";
+import { getApiUrl } from "../utils/config";
 
+// Provides auto logout on close.
 const useAutoLogoutOnClose = () => {
-  const apiUrl = getApiBaseUrl();
+  const apiUrl = getApiUrl();
 
   useEffect(() => {
+    // Handles unload.
     const handleUnload = () => {
       const token = localStorage.getItem("token");
 
@@ -13,11 +15,10 @@ const useAutoLogoutOnClose = () => {
 
         // Send a logout request using sendBeacon
         const blob = new Blob([logoutData], { type: "application/json" });
-        navigator.sendBeacon(`${apiUrl}/logout`, blob);
+        navigator.sendBeacon(`${apiUrl}/api/logout`, blob);
 
         // Clean up localStorage
         localStorage.removeItem("token");
-        localStorage.removeItem("user");
       }
     };
 
