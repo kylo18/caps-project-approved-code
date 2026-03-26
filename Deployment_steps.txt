@@ -96,7 +96,7 @@ step 6: go to backend - Deployment and make file called ".env" and paste this(ma
 APP_NAME=CAPS 
 APP_ENV=local
 APP_FORCE_HTTPS=true # Force app to be served in https
-APP_KEY=base64:qkf1SAcESPAiWvYZPpw7+wxYhdvcU6BgWr8pzS36jsc=
+APP_KEY=
 APP_DEBUG=true
 APP_URL=http://localhost:8000/api
 FRONTEND_URL= # added this line to make reset password through email work. Change this with the actual production url
