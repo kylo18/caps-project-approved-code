@@ -20,6 +20,7 @@
         "maatwebsite/excel": "*",
         "meilisearch/meilisearch-php": "^1.13",
         "nwidart/laravel-modules": "^12.0",
+        "predis/predis": "^3.4",
         "spatie/laravel-permission": "^6.16",
         "symfony/cache": "^7.2",
         "tightenco/ziggy": "^2.4"

@@ -1,5 +1,5 @@
 <?php
-
+use Modules\Analytics\Controllers\AnalyticsController;
 use App\Http\Middleware\TokenExpirationMiddleware;
 use Illuminate\Support\Facades\Route;
 use Modules\Users\Controllers\AuthController;
@@ -62,7 +62,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Get all exam results for all students (not filtered by subject)
     Route::get('/results/all-students', [PracticeExamController::class, 'getAllExamResults']);
-    
+
     // Practice Exam Leaderboard & Recent Takers (All authenticated users can access)
     Route::get('/practice-exam/leaderboard/{subjectID}', [PracticeExamLeaderboardController::class, 'leaderboard']);
     Route::get('/practice-exam/recent-takers/{subjectID}', [PracticeExamLeaderboardController::class, 'recentTakers']);
@@ -74,8 +74,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Get all classes
     Route::get('/classes/index', [ClassController::class, 'index']);
-
-
 });
 
 /*
@@ -116,12 +114,11 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/faculty/my-questions/{subjectID}', [QuestionController::class, 'mySubjectQuestions']);
     Route::post('/choices/update', [ChoiceController::class, 'updateChoices']);
     Route::post('/questions/{questionID}/duplicate', [QuestionController::class, 'duplicate']);
-    // New route: Get all questions without choices
     Route::get('/questions/count', [QuestionController::class, 'questionCount']);
 
     // Printable exam (PDF preview/download)
     Route::post('/generate-printable-exam/{subjectID}', [PrintController::class, 'generatePrintableExam']);
-    
+
     // Personal Quiz PDF Generation (Faculty only)
     Route::get('/personal-quiz/{personalQuizID}/questions', [PrintController::class, 'getPersonalQuizQuestions']);
     Route::post('/generate-personal-quiz-pdf', [PrintController::class, 'generatePersonalQuizPDF']);
@@ -132,7 +129,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     // Single-subject personal questions preview (Quiz)
     Route::post('/generate-single-subject-personal-preview', [PrintController::class, 'generateSingleSubjectPersonalPreview']);
 
-    //programs listing
+    // Programs listing
     Route::get('/programs', [ProgramController::class, 'index']);
 
     // Personal Quizzes (Libraries)
@@ -143,14 +140,15 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::patch('/personal-quizzes/{personalQuizID}/archive', [PersonalQuizController::class, 'archive']);
     Route::patch('/personal-quizzes/{personalQuizID}/unarchive', [PersonalQuizController::class, 'unarchive']);
     Route::delete('/personal-quizzes/{personalQuizID}', [PersonalQuizController::class, 'destroy']);
-    
-    // Personal Quiz Leaderboard and Recent Takers (Faculty only - returns data across all classes)
+
+    // Personal Quiz Leaderboard and Recent Takers
     Route::get('/personal-quiz/{personalQuizID}/leaderboard', [PersonalQuizLeaderboardController::class, 'leaderboard']);
     Route::get('/personal-quiz/{personalQuizID}/recent-takers', [PersonalQuizLeaderboardController::class, 'recentTakers']);
+
     // Personal Quiz Questions
     Route::get('/personal-quiz-questions/{personalQuizID}', [PersonalQuizQuestionController::class, 'index']);
     Route::post('/personal-quiz-questions', [PersonalQuizQuestionController::class, 'store']);
-    Route::post('/personal-quiz-questions/import', [PersonalQuizQuestionController::class, 'import']); // Handles multiple questions at once
+    Route::post('/personal-quiz-questions/import', [PersonalQuizQuestionController::class, 'import']);
     Route::post('/personal-quiz-questions/{personalQuizQuestionID}', [PersonalQuizQuestionController::class, 'update']);
     Route::post('/personal-quiz-questions/{personalQuizQuestionID}/duplicate', [PersonalQuizQuestionController::class, 'duplicate']);
     Route::delete('/personal-quiz-questions/{personalQuizQuestionID}', [PersonalQuizQuestionController::class, 'destroy']);
@@ -159,16 +157,16 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/personal-quiz-choices/{personalQuizQuestionID}', [PersonalQuizChoiceController::class, 'show']);
     Route::post('/personal-quiz-choices', [PersonalQuizChoiceController::class, 'store']);
     Route::put('/personal-quiz-choices', [PersonalQuizChoiceController::class, 'updateChoices']);
-    Route::post('/personal-quiz-choices/update', [PersonalQuizChoiceController::class, 'updateChoices']); // Alias for frontend compatibility
+    Route::post('/personal-quiz-choices/update', [PersonalQuizChoiceController::class, 'updateChoices']);
     Route::delete('/personal-quiz-choices/{personalQuizChoiceID}', [PersonalQuizChoiceController::class, 'destroy']);
 
-    // Class Personal Quiz Settings (CRUD) - per quiz assignment inside a class
+    // Class Personal Quiz Settings
     Route::get('/class-quizzes/{classPersonalQuizID}/settings', [PersonalQuizSettingController::class, 'show']);
     Route::post('/class-quizzes/{classPersonalQuizID}/settings', [PersonalQuizSettingController::class, 'store']);
     Route::put('/class-quizzes/{classPersonalQuizID}/settings', [PersonalQuizSettingController::class, 'update']);
     Route::delete('/class-quizzes/{classPersonalQuizID}/settings', [PersonalQuizSettingController::class, 'destroy']);
 
-    // Personal Exam Settings (store, show) - reusing PracticeExamSettingController
+    // Personal Exam Settings
     Route::post('/personal-exam-settings', [PracticeExamSettingController::class, 'store']);
     Route::get('/personal-exam-settings/{subjectID}', [PracticeExamSettingController::class, 'show']);
 
@@ -202,24 +200,36 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::put('/classes/quizzes/{classPersonalQuizID}', [ClassPersonalQuizController::class, 'update']);
     Route::patch('/classes/quizzes/{classPersonalQuizID}/dates', [ClassPersonalQuizController::class, 'updateDates']);
     Route::delete('/classes/quizzes/{classPersonalQuizID}', [ClassPersonalQuizController::class, 'destroy']);
-    
+
     // Personal Quiz to Classes Assignment (Faculty)
     Route::get('/personal-quizzes/{personalQuizID}/classes', [ClassPersonalQuizController::class, 'getClassesForQuiz']);
     Route::post('/personal-quizzes/{personalQuizID}/assign-classes', [ClassPersonalQuizController::class, 'assignQuizToClasses']);
-    
-    // Quiz Results (Faculty - can view results for their classes)
+
+    // Quiz Results (Faculty)
     Route::get('/quiz-results', [StudentQuizResultController::class, 'index']);
     Route::get('/quiz-results/{id}', [StudentQuizResultController::class, 'show']);
     Route::put('/quiz-results/{id}', [StudentQuizResultController::class, 'update']);
     Route::delete('/quiz-results/{id}', [StudentQuizResultController::class, 'destroy']);
-    
+
     // Quiz History & Analytics (Faculty)
     Route::get('/classes/{classID}/quiz-results', [StudentQuizResultController::class, 'classResults']);
     Route::get('/quizzes/{classPersonalQuizID}/results', [StudentQuizResultController::class, 'quizResults']);
     Route::get('/quizzes/{classPersonalQuizID}/non-takers', [StudentQuizResultController::class, 'quizNonTakers']);
-    
+
     // Quiz Sessions (Faculty)
     Route::get('/quiz-sessions/faculty-sessions', [QuizSessionController::class, 'facultySessions']);
+
+    // ── Analytics Routes — Faculty, Program Chair, Dean (roleID: 2,3,4,5) ───
+    Route::get('/analytics/content/lessons/{courseId}',
+        [AnalyticsController::class, 'getMostViewedLessons']);
+    Route::get('/analytics/content/questions/{examId}',
+        [AnalyticsController::class, 'getQuestionStats']);
+    Route::get('/analytics/content/skipped/{courseId}',
+        [AnalyticsController::class, 'getMostSkippedTopics']);
+    Route::get('/analytics/difficulty/{topicId}',
+        [AnalyticsController::class, 'getDifficultyAnalytics']);
+    Route::get('/analytics/faculty/summary/{classId}',
+        [AnalyticsController::class, 'getFacultySummary']);
 });
 
 /*
@@ -238,12 +248,10 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
 
     // Enroll under a teacher
     Route::post('/enroll-teacher', [StudentTeacherEnrollmentController::class, 'enroll']);
-    // Get all teachers a student is enrolled with
     Route::get('/my-teachers', [StudentTeacherEnrollmentController::class, 'myTeachers']);
 
     // Generate personal exam for a subject and teacher
     Route::post('/personal-exam/generate/{subjectID}/{teacherID}', [PracticeExamController::class, 'generatePersonalExam']);
-    // Submit personal exam results
     Route::post('/personal-exam/submit', [PracticeExamController::class, 'submitPersonalExam']);
 
     // Class Enrollments (Students)
@@ -254,22 +262,42 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
 
     // Class Quizzes (Students)
     Route::get('/classes/{classID}/quizzes/student', [ClassPersonalQuizController::class, 'studentQuizzes']);
-    
+
     // Take Quiz
     Route::get('/quizzes/{classPersonalQuizID}/info', [StudentQuizController::class, 'getQuizInfo']);
     Route::post('/quizzes/{classPersonalQuizID}/start', [StudentQuizController::class, 'startQuiz']);
     Route::post('/quizzes/{classPersonalQuizID}/submit', [StudentQuizController::class, 'submitQuiz']);
-    
+
     // Quiz Results (Students - own results only)
     Route::get('/quiz-results', [StudentQuizResultController::class, 'index']);
     Route::get('/quiz-results/{id}', [StudentQuizResultController::class, 'show']);
-    
+
     // Quiz History (Students)
     Route::get('/classes/{classID}/quiz-history', [StudentQuizResultController::class, 'classHistory']);
     Route::get('/quizzes/{classPersonalQuizID}/history', [StudentQuizResultController::class, 'quizHistory']);
-    
-// Quiz Sessions (Students)
+
+    // Quiz Sessions (Students)
     Route::get('/quiz-sessions', [QuizSessionController::class, 'studentSessions']);
+
+    // ── Analytics Routes — Students (roleID: 1) ───────────────────────────
+    Route::post('/analytics/score/{attemptId}',
+        [AnalyticsController::class, 'computeScore']);
+    Route::get('/analytics/weak-topics/{userId}',
+        [AnalyticsController::class, 'getWeakTopics']);
+    Route::get('/analytics/recommendations/{attemptId}',
+        [AnalyticsController::class, 'getRecommendations']);
+    Route::get('/analytics/rank/{examId}/{userId}',
+        [AnalyticsController::class, 'getRank']);
+    Route::get('/analytics/progress/{userId}/{subjectId}',
+        [AnalyticsController::class, 'getProgress']);
+    Route::post('/analytics/lesson-view',
+        [AnalyticsController::class, 'logLessonView']);
+    Route::post('/analytics/question-stats',
+        [AnalyticsController::class, 'updateQuestionStats']);
+    Route::get('/analytics/subject-score/{userId}/{subjectId}',
+    [AnalyticsController::class, 'getSubjectScore']);
+    Route::get('/analytics/student-summary/{userId}/{attemptId}',
+        [AnalyticsController::class, 'getStudentSummary']);
 });
 
 /*
@@ -278,7 +306,6 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:3'])->group(function () {
-    // Program-specific questions
     Route::get('/program/{subjectID}', [QuestionController::class, 'indexQuestionsByProgram']);
 });
 
@@ -288,17 +315,10 @@ Route::middleware(['auth:sanctum', 'role:3'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:3,4,5'])->group(function () {
-    // Question approval (approve/disapprove)
     Route::patch('/questions/{questionID}/status', [QuestionController::class, 'updateStatus']);
-
-    // Practice Exam Settings
     Route::get('/practice-settings/{subjectID}', [PracticeExamSettingController::class, 'show']);
     Route::post('/practice-settings', [PracticeExamSettingController::class, 'store']);
-
-    // Multi-subject exam generation
     Route::post('/generate-multi-subject-exam', [PrintController::class, 'generateMultiSubjectExam']);
-
-
     Route::patch('/users/{userID}/role', [UserController::class, 'changeUserRole']);
 });
 
@@ -308,17 +328,11 @@ Route::middleware(['auth:sanctum', 'role:3,4,5'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:4,5'])->group(function () {
-
-    // Subject management
     Route::post('/add-subjects', [SubjectController::class, 'store']);
     Route::delete('/subjects/{subjectID}/delete', [SubjectController::class, 'destroy']);
     Route::put('/subjects/{subjectID}/update', [SubjectController::class, 'update']);
-
-    // User deletion (Dean and Associate Dean only)
     Route::delete('/users/{userID}', [UserController::class, 'deleteUser']);
     Route::post('/users/delete-multiple', [UserController::class, 'deleteMultipleUsers']);
-
-    // Exam questions management
     Route::patch('/subjects/{subjectID}/enable-exam-questions', [SubjectController::class, 'enableExamQuestions']);
     Route::patch('/subjects/{subjectID}/disable-exam-questions', [SubjectController::class, 'disableExamQuestions']);
 });
