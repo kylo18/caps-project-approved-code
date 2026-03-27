@@ -544,7 +544,7 @@ const Sidebar = ({
   const classes = [{ icon: "bx-book-bookmark", label: "Subjects" }];
   const analyticsMenuItems = [
     { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
-    { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart-alt" },
+    { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart"},
     { label: "Content Analytics", path: "/analytics/content-analytics", icon: "bx bx-file" },
     { label: "Difficult Analytics", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
   ];
@@ -612,16 +612,22 @@ const Sidebar = ({
   // Mobile bottom navigation, this is home for mobile
   if (isMobile) {
     const homeItem = menuItems.find((item) => item.label === "Home");
-    const mobileNavItems = [
+    const mobileNavItems = parsedRoleId === 1
+    ? [
       { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
-      { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart-alt" },
+      { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart" },
       { label: "Classes", path: "/class", image: ClassIcon, activeImage: ClassIconH },
-      { label: "Home", path: homeItem?.path || "/", image: DashboardIconW, home: true },
+      { label: "Home", path: homeItem?.path || "/", icon: "bx-home-alt-3", home: true },
       { label: "Sessions", path: "/sessions", image: SessionsIcon, activeImage: SessionsIconH },
       { label: "Content", path: "/analytics/content-analytics", icon: "bx bx-file" },
       { label: "Difficult", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
+    ]
+    : [
+      { label: "Classes",  path: "/class",     image: ClassIcon,    activeImage: ClassIconH    },
+      { label: "Home",     path: homeItem?.path || "/", icon: "bx-home-alt-3", home: true     },
+      { label: "Sessions", path: "/sessions",  image: SessionsIcon, activeImage: SessionsIconH },
     ];
-
+    
     return (
       <>
         <div className="fixed right-0 bottom-0 left-0 z-50 flex justify-center pb-4">
@@ -697,7 +703,7 @@ const Sidebar = ({
 
   return (
     <>
-      {/* Sidebar */}
+      {/* Sidebar yes*/}
       <div
         ref={sidebarRef}
         className={`border-color fixed top-0 left-0 z-55 h-[100vh] border-r border-gray-200 bg-white ${
@@ -966,61 +972,63 @@ const Sidebar = ({
               </li>
             );
           })}
-
-          <li className="px-3 pt-3">
-            <div className="outfit-500 px-2 text-[13px] font-semibold text-gray-500">
-              ANALYTICS yes
-            </div>
-            <ul className="mt-2 space-y-[5px] px-0">
-              {analyticsMenuItems.map((item, idx) => (
-                <li key={idx} className="group relative">
-                  <span
-                    className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                      isActive(item.path) ? "bg-orange-500" : "bg-transparent"
-                    }`}
-                  ></span>
-                  <div className="px-3">
-                    <Link
-                      to={item.path}
-                      onClick={handleMenuClick}
-                      className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                        isUsersPage
-                          ? "justify-center py-[10px]"
-                          : "justify-start py-[6px]"
-                      } ${
-                        isActive(item.path)
-                          ? "bg-gray-100 text-orange-600"
-                          : "hover:text-gray-800"
+          {/* ANALYTICS — students only */}
+          {parsedRoleId === 1 && (
+            <li className="px-3 pt-3">
+              <div className="outfit-500 px-2 text-[13px] font-semibold text-gray-500">
+                ANALYTICS
+              </div>
+              <ul className="mt-2 space-y-[5px] px-0">
+                {analyticsMenuItems.map((item, idx) => (
+                  <li key={idx} className="group relative">
+                    <span
+                      className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
+                        isActive(item.path) ? "bg-orange-500" : "bg-transparent"
                       }`}
-                    >
-                      <div
-                        className={`flex items-center ${
-                          isUsersPage ? "justify-center" : "ml-3 gap-3"
+                    ></span>
+                    <div className="px-3">
+                      <Link
+                        to={item.path}
+                        onClick={handleMenuClick}
+                        className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
+                          isUsersPage
+                            ? "justify-center py-[10px]"
+                            : "justify-start py-[6px]"
+                        } ${
+                          isActive(item.path)
+                            ? "bg-gray-100 text-orange-600"
+                            : "hover:text-gray-800"
                         }`}
                       >
-                        <i
-                          className={`bx ${item.icon} flex-shrink-0 ${
-                            isUsersPage ? "text-[20px]" : "text-[18px]"
+                        <div
+                          className={`flex items-center ${
+                            isUsersPage ? "justify-center" : "ml-3 gap-3"
                           }`}
-                        ></i>
-                        {!isUsersPage && (
-                          <span
-                            className={`outfit-500 text-[15px] whitespace-nowrap ${
-                              isActive(item.path)
-                                ? "font-[18px] text-black"
-                                : "text-gray-600"
+                        >
+                          <i
+                            className={`bx ${item.icon} flex-shrink-0 ${
+                              isUsersPage ? "text-[20px]" : "text-[18px]"
                             }`}
-                          >
-                            {item.label}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </li>
+                          ></i>
+                          {!isUsersPage && (
+                            <span
+                              className={`outfit-500 text-[15px] whitespace-nowrap ${
+                                isActive(item.path)
+                                  ? "font-[18px] text-black"
+                                  : "text-gray-600"
+                              }`}
+                            >
+                              {item.label}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          )}
         </ul>
 
         {/* Different Dropdowns for Different Roles*/}

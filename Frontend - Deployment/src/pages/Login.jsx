@@ -33,7 +33,6 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const { toast, showToast } = useToast();
   const [isLogIn, setIsLogIn] = useState(false);
@@ -104,23 +103,9 @@ export default function LoginPage() {
     }
   };
 
+  //  new added: for google login
   const handleGoogleLogin = () => {
-    if (!googleClientId) {
-      showToast("Google login is not configured. Set VITE_GOOGLE_CLIENT_ID.", "error");
-      return;
-    }
-
-    const redirectUri = `${window.location.origin}/google-auth-callback`;
-    const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-    authUrl.searchParams.set("client_id", googleClientId);
-    authUrl.searchParams.set("redirect_uri", redirectUri);
-    authUrl.searchParams.set("response_type", "id_token");
-    authUrl.searchParams.set("scope", "openid email profile");
-    authUrl.searchParams.set("prompt", "select_account");
-    authUrl.searchParams.set("nonce", crypto.randomUUID());
-    authUrl.searchParams.set("state", "google-login");
-
-    window.location.href = authUrl.toString();
+    window.location.href = `${apiUrl}/auth/google`;
   };
 
   return (
