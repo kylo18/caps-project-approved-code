@@ -527,6 +527,7 @@ const AdminHeader = ({ title }) => {
           <button
             type="button"
             onClick={() => setShowNotificationPanel(true)}
+            title={userInfo?.roleID === 1 ? "Notifications" : "Student Messages"}
             className="relative border-color flex cursor-pointer items-center gap-1 rounded-lg border bg-white px-2 py-1.5 text-gray-800 shadow-sm transition hover:bg-gray-100 dark:border-white/10 dark:bg-[var(--color-bg-secondary)] dark:text-white dark:hover:bg-[var(--color-bg-tertiary)]"
           >
             <i className="bx bx-bell text-[20px]"></i>
@@ -539,10 +540,13 @@ const AdminHeader = ({ title }) => {
           <button
             type="button"
             onClick={() => setShowHelpModal(true)}
+            title={userInfo?.roleID === 1 ? "Help Center" : "Create Announcement"}
             className="border-color flex cursor-pointer items-center gap-1 rounded-lg border bg-white px-2 py-1.5 text-gray-800 shadow-sm transition hover:bg-gray-100 dark:border-white/10 dark:bg-[var(--color-bg-secondary)] dark:text-white dark:hover:bg-[var(--color-bg-tertiary)]"
           >
             <i className="bx bx-message-question-mark text-md ml-1"></i>
-            <span className="hidden sm:inline pr-1.5 text-[14px]">Help</span>
+            <span className="hidden sm:inline pr-1.5 text-[14px]">
+              {userInfo?.roleID === 1 ? "Help" : "Announce"}
+            </span>
           </button>
 
           {/* Three-dot Dropdown */}
@@ -1000,6 +1004,7 @@ const AdminHeader = ({ title }) => {
         isOpen={showHelpModal}
         onClose={() => setShowHelpModal(false)}
         showToast={showToast}
+        roleId={userInfo?.roleID}
       />
       {/* Renders the full notification panel and clears the header badge when closed. */}
       <NotificationPanel
@@ -1009,6 +1014,7 @@ const AdminHeader = ({ title }) => {
           setNotificationUnreadCount(0);
         }}
         navigate={navigate}
+        roleId={userInfo?.roleID}
       />
     </div>
   );

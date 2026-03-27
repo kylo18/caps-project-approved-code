@@ -31,10 +31,21 @@ const AdminSupport = () => {
   useEffect(() => {
     if (!selectedId) return;
 
-    // Fetch the detail for the currently selected request. This mirrors a real
-    // list/detail backend flow where the detail payload can evolve separately.
+    // Fetch the detail for the currently selected request.
     getSupportRequestById(selectedId).then((response) => {
-      setSelectedRequest(response.data);
+      const request = response.data;
+      setSelectedRequest(request);
+
+      // AUTOMATIC TRANSITION: If the request is currently 'pending', 
+      // mark it as 'in_review' so the student knows someone is looking at it.
+      if (request && request.status === "pending") {
+        updateSupportRequestStatus(selectedId, { status: "in_review" }).then((updateResponse) => {
+          // Sync the UI state with the new status
+          const updatedStatus = updateResponse.data.status;
+          setSelectedRequest(prev => prev ? { ...prev, status: updatedStatus } : prev);
+          setRequests(prev => prev.map(r => r.id === selectedId ? { ...r, status: updatedStatus } : r));
+        });
+      }
     });
   }, [selectedId]);
 

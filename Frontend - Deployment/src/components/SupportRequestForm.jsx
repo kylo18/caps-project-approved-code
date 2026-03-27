@@ -5,6 +5,9 @@ const SupportRequestForm = ({
   onSubmit,
   isSubmitting,
   error,
+  buttonLabel = "Submit Request",
+  subjectPlaceholder = "Briefly describe the issue",
+  messagePlaceholder = "Tell us what happened and where you got stuck.",
 }) => {
   return (
     // This component only renders the fields; parent components handle validation and submission.
@@ -18,7 +21,7 @@ const SupportRequestForm = ({
           name="subject"
           value={formData.subject}
           onChange={onChange}
-          placeholder="Briefly describe the issue"
+          placeholder={subjectPlaceholder}
           maxLength={100}
           className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[14px] text-gray-900 transition outline-none focus:border-orange-500 dark:border-white/10 dark:bg-[var(--color-bg-tertiary)] dark:text-white"
         />
@@ -36,7 +39,7 @@ const SupportRequestForm = ({
           value={formData.message}
           onChange={onChange}
           rows={4}
-          placeholder="Tell us what happened and where you got stuck."
+          placeholder={messagePlaceholder}
           maxLength={1000}
           className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-[14px] text-gray-900 transition outline-none focus:border-orange-500 dark:border-white/10 dark:bg-[var(--color-bg-tertiary)] dark:text-white"
         />
@@ -57,7 +60,7 @@ const SupportRequestForm = ({
         className="w-full rounded-xl bg-orange-500 px-4 py-3 text-[14px] font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-500"
       >
         {/* Button text reflects the current submit state from the parent modal. */}
-        {isSubmitting ? "Submitting..." : "Submit Request"}
+        {isSubmitting ? "Submitting..." : buttonLabel}
       </button>
     </form>
   );

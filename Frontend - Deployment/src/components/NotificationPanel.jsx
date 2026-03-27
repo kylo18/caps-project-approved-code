@@ -4,20 +4,39 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "../services/notificationService";
+import { getSupportRequests } from "../services/adminSupportService";
 
 // Render the notification panel component.
-const NotificationPanel = ({ isOpen, onClose, navigate }) => {
+const NotificationPanel = ({ isOpen, onClose, navigate, roleId }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    getNotifications().then((response) => {
-      setNotifications(response.data || []);
-      setUnreadCount(response.meta?.unread_count || 0);
-    });
-  }, [isOpen]);
+    if (roleId === 1) {
+      // Student View: Standard notifications.
+      getNotifications().then((response) => {
+        setNotifications(response.data || []);
+        setUnreadCount(response.meta?.unread_count || 0);
+      });
+    } else {
+      // Staff/Admin View (2, 3, 4): Student Support Messages.
+      getSupportRequests().then((response) => {
+        const mapped = (response.data || []).map((req) => ({
+          id: req.id,
+          title: `From: ${req.student?.name || "Student"}`,
+          message: req.subject,
+          type: "support_request",
+          is_read: req.status === "resolved",
+          created_at: req.created_at,
+          action_url: "/admin/support",
+        }));
+        setNotifications(mapped);
+        setUnreadCount(mapped.filter((n) => !n.is_read).length);
+      });
+    }
+  }, [isOpen, roleId]);
 
   useEffect(() => {
     if (!isOpen) return;

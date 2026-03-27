@@ -4,7 +4,7 @@ import SupportRequestForm from "./SupportRequestForm";
 import { getFaqs, submitSupportRequest } from "../services/helpService";
 
 // Render the help center modal component.
-const HelpCenterModal = ({ isOpen, onClose, showToast }) => {
+const HelpCenterModal = ({ isOpen, onClose, showToast, roleId }) => {
   const [faqs, setFaqs] = useState([]);
   const [activeFaqId, setActiveFaqId] = useState(null);
   // Holds the user-entered support ticket fields before submission.
@@ -82,10 +82,12 @@ const HelpCenterModal = ({ isOpen, onClose, showToast }) => {
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-white/10">
           <div>
             <h2 className="text-[18px] font-semibold text-gray-900 dark:text-white">
-              Help Center
+              {roleId === 1 ? "Help Center" : "Create Announcement"}
             </h2>
             <p className="mt-1 text-[12px] text-gray-500 dark:text-gray-300">
-              FAQs and support requests in one place.
+              {roleId === 1
+                ? "FAQs and support requests in one place."
+                : "Broadcast a message to all students."}
             </p>
           </div>
           <button
@@ -98,33 +100,53 @@ const HelpCenterModal = ({ isOpen, onClose, showToast }) => {
         </div>
 
         <div className="space-y-6 overflow-y-auto px-5 py-5">
-          <section>
-            <h3 className="mb-3 text-[14px] font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-300">
-              Frequently Asked Questions
-            </h3>
-            {/* FAQ list uses sorted mock/service data and expands one item at a time. */}
-            <FaqAccordion
-              faqs={sortedFaqs}
-              activeId={activeFaqId}
-              onToggle={(id) =>
-                setActiveFaqId((current) => (current === id ? null : id))
-              }
-            />
-          </section>
+          {roleId === 1 ? (
+            <>
+              <section>
+                <h3 className="mb-3 text-[14px] font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-300">
+                  Frequently Asked Questions
+                </h3>
+                {/* FAQ list uses sorted mock/service data and expands one item at a time. */}
+                <FaqAccordion
+                  faqs={sortedFaqs}
+                  activeId={activeFaqId}
+                  onToggle={(id) =>
+                    setActiveFaqId((current) => (current === id ? null : id))
+                  }
+                />
+              </section>
 
-          <section>
-            <h3 className="mb-3 text-[14px] font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-300">
-              Report a Problem
-            </h3>
-            {/* Support form is presentational; submit and validation logic stay in this modal. */}
-            <SupportRequestForm
-              formData={formData}
-              onChange={handleChange}
-              onSubmit={handleSubmit}
-              isSubmitting={isSubmitting}
-              error={error}
-            />
-          </section>
+              <section>
+                <h3 className="mb-3 text-[14px] font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-300">
+                  Report a Problem
+                </h3>
+                {/* Support form is presentational; submit and validation logic stay in this modal. */}
+                <SupportRequestForm
+                  formData={formData}
+                  onChange={handleChange}
+                  onSubmit={handleSubmit}
+                  isSubmitting={isSubmitting}
+                  error={error}
+                />
+              </section>
+            </>
+          ) : (
+            <section>
+              <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                Type your message below to send it to all students' notification panels.
+              </p>
+              <SupportRequestForm
+                formData={formData}
+                onChange={handleChange}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+                error={error}
+                buttonLabel="Send Announcement"
+                subjectPlaceholder="Announcement Title"
+                messagePlaceholder="Type your announcement details here..."
+              />
+            </section>
+          )}
         </div>
       </div>
     </div>
