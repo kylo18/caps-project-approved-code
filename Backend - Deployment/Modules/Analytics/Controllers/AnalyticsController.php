@@ -15,6 +15,10 @@ use Modules\Analytics\Models\ExamDifficultyAnalytics;
 use Modules\Analytics\Models\ExamRecommendation;
 use Modules\Analytics\Models\LessonView;
 use Modules\Analytics\Models\QuestionStatsDaily;
+use App\Services\LeaderboardService;
+use Modules\Users\Services\EmailNotificationService;
+use Carbon\Carbon;
+
 
 class AnalyticsController extends Controller
 {
@@ -119,6 +123,42 @@ class AnalyticsController extends Controller
                         'score_pct' => $diffScore,
                     ]
                 );
+            }
+
+            // ── Leaderboard Push (Real-Time) ──────────────────────────────────
+            try {
+                $leaderboard = app(LeaderboardService::class);
+                $finishedAt = Carbon::now();
+                $composite = $leaderboard->computeComposite($overallScore, $finishedAt);
+
+                // 1. Global Leaderboard
+                $leaderboard->updateScoreConditionally($leaderboard->buildKey('global'), $composite, $attempt->user_id);
+
+                // 2. Per-Exam Leaderboard
+                $leaderboard->updateScoreConditionally($leaderboard->buildKey('exam', $attempt->exam_id), $composite, $attempt->user_id);
+
+                // 3. Per-Class Leaderboard (for each class the student is in)
+                $classes = DB::table('class_enrollments')
+                    ->where('studentID', $attempt->user_id)
+                    ->pluck('classID');
+
+                foreach ($classes as $classId) {
+                    $leaderboard->updateScoreConditionally($leaderboard->buildKey('class', $classId), $composite, $attempt->user_id);
+                }
+            } catch (\Exception $e) {
+                // We log but don't fail the request if Redis is down
+                Log::warning('Leaderboard push failed in computeScore: ' . $e->getMessage());
+            }
+
+            // ── Send Email Notification (Point 2 in Enhancement Plan) ─────────
+            try {
+                $userModel = \Modules\Users\Models\User::find($attempt->user_id);
+                if ($userModel) {
+                    $emailService = app(EmailNotificationService::class);
+                    $emailService->sendExamCompletionNotification($userModel, $overallScore);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Exam completion email failed: ' . $e->getMessage());
             }
 
             // ── Return All ────────────────────────────────────────────────────

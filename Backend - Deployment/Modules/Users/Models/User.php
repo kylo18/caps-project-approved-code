@@ -46,6 +46,8 @@ class User extends Authenticatable
         'isActive',
         'status_id',
         'programID',
+        'google_id',
+        'email_verified_at',
     ];
 
     protected $hidden = [

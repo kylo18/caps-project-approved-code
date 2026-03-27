@@ -9,9 +9,17 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Modules\Users\Services\EmailNotificationService;
 
 class UserController extends Controller
 {
+    protected $emailService;
+
+    public function __construct(EmailNotificationService $emailService)
+    {
+        $this->emailService = $emailService;
+    }
+
     /**
      * Get all active users (Only Admins can access this).
      */
@@ -176,6 +184,10 @@ class UserController extends Controller
             }
 
             $this->updateUserStatus($user, 'registered', true);
+            
+            // Send email notification
+            $this->emailService->sendStatusNotification($user, 'approved');
+
             return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
 
         } catch (\Exception $e) {
@@ -227,6 +239,10 @@ class UserController extends Controller
         $user = User::findOrFail($userID);
 
         $this->updateUserStatus($user, 'disapproved', false);
+
+        // Send email notification
+        $this->emailService->sendStatusNotification($user, 'disapproved');
+
         return response()->json(['message' => 'User has been disapproved.', 'user' => $user], 200);
     }
 
@@ -613,9 +629,11 @@ class UserController extends Controller
             }
 
             $user->update([
-                'status_id' => $statusIds['registered'],
                 'isActive' => true
             ]);
+
+            // Send email notification
+            $this->emailService->sendStatusNotification($user, 'approved');
 
             $approved[] = $user;
         }

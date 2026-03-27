@@ -3,6 +3,7 @@ use Modules\Analytics\Controllers\AnalyticsController;
 use App\Http\Middleware\TokenExpirationMiddleware;
 use Illuminate\Support\Facades\Route;
 use Modules\Users\Controllers\AuthController;
+use Modules\Users\Controllers\GoogleAuthController;
 use Modules\Subjects\Controllers\SubjectController;
 use Modules\FacultySubjects\Controllers\FacultySubjectController;
 use Modules\Questions\Controllers\QuestionController;
@@ -42,6 +43,10 @@ Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkE
 Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 Route::get('/app-version', [AppController::class, 'getVersion']);
 
+// Google OAuth Routes
+Route::get('/auth/google', [GoogleAuthController::class, 'redirectToGoogle']);
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated Routes (All roles)
@@ -74,6 +79,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Get all classes
     Route::get('/classes/index', [ClassController::class, 'index']);
+
+    // Customer Support (All Authenticated Users)
+    Route::post('/support-tickets', [\Modules\Support\Controllers\SupportTicketController::class, 'store']);
+    Route::get('/support-tickets/me', [\Modules\Support\Controllers\SupportTicketController::class, 'myTickets']);
 });
 
 /*
@@ -335,6 +344,9 @@ Route::middleware(['auth:sanctum', 'role:4,5'])->group(function () {
     Route::post('/users/delete-multiple', [UserController::class, 'deleteMultipleUsers']);
     Route::patch('/subjects/{subjectID}/enable-exam-questions', [SubjectController::class, 'enableExamQuestions']);
     Route::patch('/subjects/{subjectID}/disable-exam-questions', [SubjectController::class, 'disableExamQuestions']);
+
+    // Admin Customer Support
+    Route::get('/support-tickets', [\Modules\Support\Controllers\SupportTicketController::class, 'index']);
 });
 
 // Serve question_images and choices with CORS headers for frontend PDF rendering
@@ -345,6 +357,16 @@ Route::get('storage/question_images/{filename}', function ($filename) {
     }
     return response()->file($path);
 })->middleware('image.cors');
+
+/*
+|--------------------------------------------------------------------------
+| Leaderboard Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/leaderboard', [Modules\Leaderboard\Controllers\LeaderboardController::class, 'index'])->name('leaderboard.index');
+    Route::get('/leaderboard/me', [Modules\Leaderboard\Controllers\LeaderboardController::class, 'me'])->name('leaderboard.me');
+});
 
 Route::get('storage/choices/{filename}', function ($filename) {
     $path = public_path('storage/choices/' . $filename);
