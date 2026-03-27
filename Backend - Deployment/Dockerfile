@@ -5,11 +5,12 @@ FROM php:8.2-apache
 RUN apt-get update && apt-get install -y \
     unzip \
     curl \
-    git \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
-    && docker-php-ext-install pdo pdo_mysql gd
+    libzip-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_mysql gd zip
 
 # Enable Apache rewrite module (Laravel requires this)
 RUN a2enmod rewrite
@@ -25,12 +26,11 @@ WORKDIR /var/www/html
 
 # Copy Laravel project files into the container
 COPY . .
-
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Install Laravel PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN composer update --no-dev --optimize-autoloader --ignore-platform-reqs
 
 # Set correct permissions for storage and cache
 RUN chown -R www-data:www-data /var/www/html \
@@ -39,10 +39,8 @@ RUN chown -R www-data:www-data /var/www/html \
 
 # Copy custom entrypoint script
 COPY docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
-
-# Expose port 80
-EXPOSE 80
+CMD ["apache2-foreground"]

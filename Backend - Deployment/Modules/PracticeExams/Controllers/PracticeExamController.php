@@ -17,6 +17,7 @@ use Modules\Questions\Models\Difficulty;
 use Modules\PracticeExams\Models\PersonalExamSetting;
 use Modules\Users\Models\StudentTeacherEnrollment;
 use Modules\Users\Models\User;
+use Modules\Leaderboard\Models\Leaderboard;
 
 class PracticeExamController extends Controller
 {
@@ -719,18 +720,39 @@ class PracticeExamController extends Controller
                 'isCorrect' => $isCorrect,
                 'pointsEarned' => $isCorrect ? $questionScore : 0,
                 'pointsPossible' => $questionScore,
+                'selectedChoiceID' => $answer['selectedChoiceID'] ?? null,
             ];
         }
 
         $percentage = ($earnedPoints / max(1, $totalPoints)) * 100;
 
-        PracticeExamResult::create([
+        $examResult = PracticeExamResult::create([
             'userID' => $user->userID,
             'subjectID' => $validated['subjectID'],
             'totalPoints' => $totalPoints,
             'earnedPoints' => $earnedPoints,
             'percentage' => round($percentage, 2),
         ]);
+
+        // Save individual question answers for Analytics tracking
+        $answersData = [];
+        foreach ($results as $res) {
+            $answersData[] = [
+                'result_id' => $examResult->resultID,
+                'user_id' => $user->userID,
+                'question_id' => $res['questionID'],
+                'selected_choice_id' => $res['selectedChoiceID'],
+                'is_correct' => $res['isCorrect'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        if (!empty($answersData)) {
+            \Illuminate\Support\Facades\DB::table('practice_exam_answers')->insert($answersData);
+        }
+
+        // Update leaderboard with exam result (uses atomic transaction to prevent race conditions)
+        Leaderboard::updateOrCreateRecord($user->userID, $validated['subjectID'], round($percentage, 2));
 
         return response()->json([
             'message' => 'Exam submitted successfully.',
@@ -851,95 +873,6 @@ class PracticeExamController extends Controller
         return response()->json([
             'message' => 'History retrieved successfully.',
             'history' => $history,
-        ]);
-    }
-
-    /**
-     * Get all exam results for the authenticated student for a given subject,
-     * including each score, average score, date/time, their name, and their program.
-     */
-    public function subjectExamResults(Request $request, $subjectID)
-    {
-        // Fetch all results for the given subject, with user and program info
-        $results = PracticeExamResult::with(['subject', 'user.program'])
-            ->where('subjectID', $subjectID)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        // Map results to include student-specific info
-        $history = $results->map(function ($record) {
-            $user = $record->user;
-            return [
-                'resultID' => $record->resultID,
-                'subjectID' => $record->subjectID,
-                'subjectName' => $record->subject->subjectName ?? 'Unknown Subject',
-                'totalPoints' => $record->totalPoints,
-                'earnedPoints' => $record->earnedPoints,
-                'percentage' => $record->percentage,
-                'created_at' => $record->created_at,
-                'studentName' => $user ? ($user->firstName . ' ' . $user->lastName) : 'Unknown Student',
-                'program' => $user ? optional($user->program)->programName : null,
-            ];
-        });
-
-        // Calculate the overall average score for the subject
-        $averageScore = $results->avg('percentage');
-
-        return response()->json([
-            'message' => 'All exam results for subject retrieved successfully.',
-            'history' => $history,
-            'averageScore' => round($averageScore, 2),
-        ]);
-    }
-    /**
-     * Get all exam results for all students (not filtered by subject).
-     */
-
-    public function getAllExamResults(Request $request)
-    {
-        try {
-            $results = PracticeExamResult::all();
-            \Log::info('Eloquent results count', ['count' => $results->count()]);
-            \Log::info('Eloquent results sample', ['sample' => $results->take(3)]);
-            return response()->json([
-                'message' => 'All exam results for all students retrieved successfully.',
-                'results' => $results,
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('getAllExamResults error: ' . $e->getMessage());
-            return response()->json([
-                'message' => 'An error occurred while fetching all student exam results.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-    /**
-     * Leaderboard: Returns students' average exam percentages for a subject, sorted highest to lowest.
-     * Includes student name, program, and average score.
-     */
-    public function leaderboard(Request $request, $subjectID)
-    {
-        // Get all students who took the exam for this subject
-        $results = PracticeExamResult::with('user.program')
-            ->where('subjectID', $subjectID)
-            ->get();
-
-        // Group by user and calculate average
-        $leaderboard = $results->groupBy('userID')->map(function($records, $userID) {
-            $user = $records->first()->user;
-            $average = $records->avg('percentage');
-            return [
-                'userID' => $userID,
-                'studentName' => $user ? ($user->firstName . ' ' . $user->lastName) : 'Unknown',
-                'program' => optional($user->program)->programName,
-                'averageScore' => round($average, 2),
-                'attempts' => $records->count(),
-            ];
-        })->values()->sortByDesc('averageScore')->values();
-
-        return response()->json([
-            'message' => 'Leaderboard retrieved successfully.',
-            'leaderboard' => $leaderboard
         ]);
     }
 }

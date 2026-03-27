@@ -171,49 +171,25 @@ class AuthController extends Controller
 
             // Automatically assign student to student_curricula table if roleID is 1
             if ($user->roleID == 1) {
-                try {
-                    // Assign New Curriculum (2) if userCode starts with 24- or higher, else Old (1)
-                    $yearPrefix = intval(substr($user->userCode, 0, 2));
-                    $curriculumID = ($yearPrefix >= 24) ? 2 : 1;
-                    DB::table('student_curricula')->updateOrInsert(
-                        ['userID' => $user->userID],
-                        [
-                            'curriculumID' => $curriculumID,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]
-                    );
-                } catch (\Exception $e) {
-                    // Log the error but don't fail registration
-                    Log::warning('Failed to assign curriculum to student', [
-                        'userID' => $user->userID,
-                        'userCode' => $user->userCode,
-                        'error' => $e->getMessage()
-                    ]);
-                }
+                // Assign New Curriculum (2) if userCode starts with 24- or higher, else Old (1)
+                $yearPrefix = intval(substr($user->userCode, 0, 2));
+                $curriculumID = ($yearPrefix >= 24) ? 2 : 1;
+                \DB::table('student_curricula')->updateOrInsert(
+                    ['userID' => $user->userID],
+                    [
+                        'curriculumID' => $curriculumID,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
             }
 
             Log::info('User registered successfully: ' . $validated['userCode']);
 
-            // Return only safe user data without relationships to avoid serialization issues
-            $userData = [
-                'userID' => $user->userID,
-                'userCode' => $user->userCode,
-                'firstName' => $user->firstName,
-                'lastName' => $user->lastName,
-                'email' => $user->email,
-                'roleID' => $user->roleID,
-                'campusID' => $user->campusID,
-                'programID' => $user->programID,
-                'isActive' => $user->isActive,
-                'status_id' => $user->status_id,
-                'created_at' => $user->created_at,
-                'updated_at' => $user->updated_at,
-            ];
-
+            // Return the newly created user
             return response()->json([
                 'message' => 'User registered successfully.',
-                'user' => $userData
+                'user' => $user
             ], 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {

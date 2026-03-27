@@ -215,31 +215,35 @@ class SocialAuthController extends Controller
     // Links an OAuth provider to an already authenticated CAPS account after token verification.
     public function verifyLink(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email|exists:users,email',
-            'provider' => 'required|in:google,facebook',
-            'oauth_token' => 'required|string'
-        ]);
-
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
-        }
-
-        $provider = $request->provider;
-        $providerId = $provider . '_id';
-
-        if ($user->$providerId) {
-            return response()->json(['message' => 'Account already linked'], 400);
-        }
-
         try {
+            // Validate request inputs
+            $request->validate([
+                'email' => 'required|email|exists:users,email',
+                'provider' => 'required|in:google,facebook',
+                'oauth_token' => 'required|string'
+            ]);
+
+            // Look up user by email inside try-catch to prevent naked database stack traces
+            $user = User::where('email', $request->email)->first();
+
+            if (!$user) {
+                return response()->json(['message' => 'User not found'], 404);
+            }
+
+            $provider = $request->provider;
+            $providerId = $provider . '_id';
+
+            if ($user->$providerId) {
+                return response()->json(['message' => 'Account already linked'], 400);
+            }
+
+            // Verify OAuth token and link account
             $oauthUser = Socialite::driver($provider)->userFromToken($request->oauth_token);
             
             $user->$providerId = $oauthUser->getId();
             $user->save();
 
+            // Log in user and generate token
             Auth::login($user);
             $token = $user->createToken('auth-token')->plainTextToken;
 
@@ -248,9 +252,15 @@ class SocialAuthController extends Controller
                 'user' => $user,
                 'token' => $token
             ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Handle validation errors with proper error format
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Link verification error: ' . $e->getMessage());
-            return response()->json(['message' => 'Failed to verify OAuth token'], 500);
+            return response()->json(['message' => 'Failed to verify OAuth token', 'error' => $e->getMessage()], 500);
         }
     }
 }

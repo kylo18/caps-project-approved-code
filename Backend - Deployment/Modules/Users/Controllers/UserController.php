@@ -205,6 +205,7 @@ class UserController extends Controller
             } catch (\Exception $e) {
                 Log::warning('Failed to send approval email: ' . $e->getMessage());
             }
+
             return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
 
         } catch (\Exception $e) {
@@ -256,12 +257,13 @@ class UserController extends Controller
         $user = User::findOrFail($userID);
 
         $this->updateUserStatus($user, 'disapproved', false);
-        
+
         try {
             Mail::to($user->email)->send(new UserDisapprovedMail($user));
         } catch (\Exception $e) {
             Log::warning('Failed to send disapproval email: ' . $e->getMessage());
         }
+
         return response()->json(['message' => 'User has been disapproved.', 'user' => $user], 200);
     }
 

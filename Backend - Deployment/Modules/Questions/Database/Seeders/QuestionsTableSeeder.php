@@ -109,7 +109,7 @@ class QuestionsTableSeeder extends Seeder
         // Questions will be added by users 1-3
         $allowedUserIds = [1, 2, 3];
         
-        $questionsPerType = 250; // 250 questions per type (practice and exam)
+        $questionsPerType = 5; // 5 questions per type (practice and exam) = 10 per subject
         $batchSize = 100; // Insert questions in batches for better performance
 
         foreach ($subjects as $subject) {

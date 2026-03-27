@@ -13,12 +13,4 @@ class Coverage extends Model
     {
         return $this->hasMany(Question::class);
     }
-
-    /**
-     * Relationship: Coverage has many PersonalQuizzes
-     */
-    public function personalQuizzes()
-    {
-        return $this->hasMany(\Modules\PersonalExams\Models\PersonalQuiz::class, 'coverage_id', 'id');
-    }
 }

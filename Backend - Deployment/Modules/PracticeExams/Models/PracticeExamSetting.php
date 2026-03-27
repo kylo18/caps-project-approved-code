@@ -10,7 +10,6 @@ class PracticeExamSetting extends Model
 {
     protected $fillable = [
         'subjectID',
-        'isEnabled',
         'enableTimer',
         'duration_minutes',
         'coverage',
