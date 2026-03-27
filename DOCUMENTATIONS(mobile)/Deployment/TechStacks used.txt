@@ -1,0 +1,4 @@
+App: Laravel backend + JS frontend (Vite + Capacitor)
+DB: MySQL
+Deployment: Docker + docker-compose
+Tests: Cypress + PHPUnit/Pest (Laravel tests)
