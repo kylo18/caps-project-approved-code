@@ -1,0 +1,168 @@
+NOTES: THIS IS THE DATABASE CHANGES FOR WEEK OF MARCH 23–27, 2026
+
+1. Navigate to the project folder:
+
+    cd /home/ubuntu/CAPS/Testing_final
+
+2. Open the database (phpMyAdmin or MySQL client).
+
+    phpMyAdmin: http://localhost:8080
+    MySQL CLI:  mysql -u root -p -h 127.0.0.1 -P 4406 laravel
+
+3. Check if the new tables exist:
+
+    SHOW TABLES;
+
+SUMMARY: NEW TABLES FOR PRACTICE EXAM ANSWERS, FAQS, SUPPORT TICKETS, NOTIFICATIONS, ACHIEVEMENTS, AND CONTENT ANALYTICS. ADDITIONAL MIGRATIONS FOR CURRICULUM, REMARKS, STUDENT GRADES, AND SOCIAL LOGIN COLUMNS ARE INCLUDED BELOW.
+
+NOTES: THESE ARE THE NEW TABLES ADDED THIS WEEK.
+
+practice_exam_answers:     // this is the name of the table
+    -id                    // this is the name of the fields, follow this format
+    -result_id
+    -user_id
+    -question_id
+    -selected_choice_id
+    -is_correct
+    -created_at
+    -updated_at
+
+faq_categories:
+    -id
+    -name
+    -display_order
+    -created_at
+    -updated_at
+
+faqs:
+    -id
+    -category_id
+    -question
+    -answer
+    -is_active
+    -display_order
+    -created_at
+    -updated_at
+
+support_tickets:
+    -id
+    -user_id
+    -subject
+    -description
+    -category
+    -status
+    -priority
+    -attachment_path
+    -resolved_by
+    -resolved_at
+    -created_at
+    -updated_at
+
+notifications:
+    -id
+    -user_id
+    -type
+    -title
+    -message
+    -data
+    -is_read
+    -action_url
+    -created_at
+    -updated_at
+
+achievements:
+    -id
+    -title
+    -description
+    -icon_path
+    -required_exams
+    -tier
+    -created_at
+    -updated_at
+
+user_achievements:
+    -id
+    -user_id
+    -achievement_id
+    -earned_at
+    -created_at
+    -updated_at
+
+content_analytics:
+    -id
+    -user_id
+    -subject_id
+    -interaction_type
+    -time_spent_seconds
+    -created_at
+    -updated_at
+
+NOTES: ADDITIONAL APPLIED MIGRATIONS (OLDER BUT STILL INCLUDED)
+
+curriculum:
+    -curriculumID
+    -curriculumName
+    -created_at
+    -updated_at
+
+remarks:
+    -remarkID
+    -remarkName
+    -created_at
+    -updated_at
+
+student_grades:
+    -gradeID
+    -studentID
+    -subjectID
+    -grade
+    -created_at
+    -updated_at
+
+students:   // added column
+    -curriculumID
+
+student_remarks:
+    -id
+    -studentID
+    -remarkID
+    -created_at
+    -updated_at
+
+student_curricula:
+    -id
+    -studentID
+    -curriculumID
+    -created_at
+    -updated_at
+
+student_teacher_enrollments:
+    -id
+    -studentID
+    -teacherID
+    -created_at
+    -updated_at
+
+personal_exam_settings:
+    -id
+    -userID
+    -settings
+    -created_at
+    -updated_at
+
+personal_practice_exam_results:
+    -id
+    -userID
+    -result
+    -created_at
+    -updated_at
+
+students:   // added fields
+    -subject_image
+    -subject_grouping
+
+users:      // added fields
+    -google_id
+    -facebook_id
+
+NOTES: THIS WEEK’S CHANGES ARE ALL NEW TABLES. NO EXISTING TABLES WERE ALTERED.
