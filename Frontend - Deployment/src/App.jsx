@@ -12,6 +12,10 @@ import FacultyDashboard from "./pages/FacultyDashboard";
 import ProgramChairDashboard from "./pages/ProgramChairDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AssoDeanDashboard from "./pages/AssoDeanDashboard";
+import ScoreHistory from "./pages/ScoreHistory";
+import Leaderboard from "./pages/Leaderboard";
+import ContentAnalytics from "./pages/ContentAnalytics";
+import DifficultyAnalytics from "./pages/DifficultyAnalytics";
 
 import Users from "./pages/Users";
 
@@ -27,6 +31,7 @@ import PracticeExamPreview from "./pages/PracticeExamPreview";
 import ResetPasswordPage from "./components/resetPassForm";
 import ForgotPasswordForm from "./components/forgotPassForm";
 import PracticeExamInfo from "./pages/PracticeExamInfo";
+import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 
 import TestLogin from "./tests/testLogin";
 import PrintQualifyingExam from "./pages/PrintQualifyingExam";
@@ -54,16 +59,6 @@ import QuizInfo from "./pages/QuizInfo";
 import StudentQuiz from "./pages/StudentQuiz";
 import StudentQuizResults from "./pages/StudentQuizResults";
 
-import Leaderboard from "./pages/Leaderboard"; //Added for leaderboard page
-
-import StudentAnalyticsDashboard from "./pages/StudentAnalyticsDashboard"; // Added for student analytics dashboard
-
-import ContentAnalytics   from "./pages/ContentAnalytics";
-import DifficultyAnalytics from "./pages/DifficultyAnalytics";
-import MasteryAnalytics   from "./pages/MasteryAnalytics";
-
-import ScoreHistory from "./pages/ScoreHistory"; //new added for achievements component
-
 function App() {
   return (
     <Router>
@@ -75,6 +70,7 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
         <Route path="/team-caps" element={<Credits />} />
+        <Route path="/google-auth-callback" element={<GoogleAuthCallback />} />
 
         {/* Public Landing Page */}
         <Route path="/landing" element={<LandingPage />} />
@@ -108,14 +104,6 @@ function App() {
           element={<ProtectedRoute element={<Layout />} />}
         >
           <Route index element={<ArchivedClass />} />
-        </Route>
-
-        {/* Leaderboard */}
-        <Route
-          path="/leaderboard"
-          element={<ProtectedRoute element={<Layout />} />}
-        >
-          <Route index element={<Leaderboard />} />
         </Route>
 
         {/* Archived quizzes */}
@@ -194,6 +182,32 @@ function App() {
         >
           <Route index element={<StudentDashboard />} />
           <Route path="dashboard" element={<StudentDashboard />} />
+        </Route>
+
+        {/* Analytics Routes */}
+        <Route
+          path="/analytics/achievements"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<ScoreHistory />} />
+        </Route>
+        <Route
+          path="/analytics/leaderboards"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<Leaderboard />} />
+        </Route>
+        <Route
+          path="/analytics/content-analytics"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<ContentAnalytics />} />
+        </Route>
+        <Route
+          path="/analytics/difficult-analytics"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<DifficultyAnalytics />} />
         </Route>
 
         {/* Faculty Routes */}
@@ -307,45 +321,11 @@ function App() {
           <Route index element={<StudentQuizResults />} />
         </Route>
 
-        {/* Analytics Route */}
-        <Route
-          path="/analytics"
-          element={<ProtectedRoute element={<Layout />} />}
-        >
-          <Route index element={<StudentAnalyticsDashboard />} />
-        </Route>
-
-        <Route  //for web
-          path="/analytics/score-history"
-          element={<ProtectedRoute element={<Layout />} />}
-        >
-          <Route index element={<ScoreHistory />} />
-        </Route>
-
-        {/* Achievemnt Score History Route */}
-        <Route  //for mobile
-          path="/score-history"
-          element={<ProtectedRoute element={<Layout />} />}
-        >
-          <Route index element={<ScoreHistory />} />
-        </Route>
-
         {/* Users Route */}
         <Route path="/users" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<Users />} />
           <Route path="users" element={<Users />} />
         </Route>
-
-        <Route path="/analytics/content"    element={<ProtectedRoute element={<Layout />} />}>
-          <Route index element={<ContentAnalytics />} />
-        </Route>
-        <Route path="/analytics/difficulty" element={<ProtectedRoute element={<Layout />} />}>
-          <Route index element={<DifficultyAnalytics />} />
-        </Route>
-        <Route path="/analytics/mastery"    element={<ProtectedRoute element={<Layout />} />}>
-          <Route index element={<MasteryAnalytics />} />
-        </Route>
-        
       </Routes>
     </Router>
   );

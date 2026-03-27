@@ -406,6 +406,153 @@ class AnalyticsController extends Controller
     }
 
     /**
+     * Get practice exam content analytics for the frontend.
+     * GET /api/practice-exam/content-analytics
+     */
+    public function getPracticeContentAnalytics()
+    {
+        try {
+            $totalViews = LessonView::count();
+            $totalAttempts = QuestionStatsDaily::sum('total_attempts');
+            $totalSkipped = QuestionStatsDaily::sum('total_skipped');
+            $avgErrorRate = QuestionStatsDaily::selectRaw('CASE WHEN SUM(total_attempts) = 0 THEN 0 ELSE SUM(total_incorrect) / SUM(total_attempts) END as rate')
+                ->value('rate');
+
+            $mostViewed = LessonView::select('lesson_id', DB::raw('COUNT(*) as views'))
+                ->groupBy('lesson_id')
+                ->orderByDesc('views')
+                ->limit(10)
+                ->get()
+                ->map(fn($item) => [
+                    'lessonId' => $item->lesson_id,
+                    'lessonName' => "Lesson #{$item->lesson_id}",
+                    'views' => (int) $item->views,
+                ]);
+
+            $mostAttempted = QuestionStatsDaily::select(
+                    'question_stats_daily.question_id',
+                    DB::raw('SUM(total_attempts) as count'),
+                    'questions.questionText'
+                )
+                ->join('questions', 'question_stats_daily.question_id', '=', 'questions.questionID')
+                ->groupBy('question_stats_daily.question_id', 'questions.questionText')
+                ->orderByDesc('count')
+                ->limit(10)
+                ->get()
+                ->map(fn($item) => [
+                    'questionId' => $item->question_id,
+                    'questionText' => $item->questionText,
+                    'count' => (int) $item->count,
+                ]);
+
+            $highestError = QuestionStatsDaily::select(
+                    'question_stats_daily.question_id',
+                    DB::raw('SUM(total_incorrect) as total_wrong'),
+                    DB::raw('SUM(total_attempts) as total_tries'),
+                    DB::raw('ROUND(SUM(total_incorrect) / NULLIF(SUM(total_attempts), 0), 4) as rate'),
+                    'questions.questionText'
+                )
+                ->join('questions', 'question_stats_daily.question_id', '=', 'questions.questionID')
+                ->groupBy('question_stats_daily.question_id', 'questions.questionText')
+                ->orderByDesc('rate')
+                ->limit(10)
+                ->get()
+                ->map(fn($item) => [
+                    'questionId' => $item->question_id,
+                    'questionText' => $item->questionText,
+                    'rate' => (float) $item->rate,
+                    'totalWrong' => (int) $item->total_wrong,
+                    'totalTries' => (int) $item->total_tries,
+                ]);
+
+            $mostSkipped = QuestionStatsDaily::select(
+                    'question_stats_daily.topic_id',
+                    DB::raw('SUM(total_skipped) as skipped_count'),
+                    'coverages.name as topicName'
+                )
+                ->join('coverages', 'question_stats_daily.topic_id', '=', 'coverages.id')
+                ->groupBy('question_stats_daily.topic_id', 'coverages.name')
+                ->orderByDesc('skipped_count')
+                ->limit(10)
+                ->get()
+                ->map(fn($item) => [
+                    'topicId' => $item->topic_id,
+                    'name' => $item->topicName,
+                    'skipped_count' => (int) $item->skipped_count,
+                ]);
+
+            return response()->json([
+                'totalViews' => $totalViews,
+                'totalAttempts' => $totalAttempts,
+                'avgErrorRate' => round($avgErrorRate * 100, 2),
+                'totalSkipped' => $totalSkipped,
+                'mostViewed' => $mostViewed,
+                'mostAttempted' => $mostAttempted,
+                'highestError' => $highestError,
+                'mostSkipped' => $mostSkipped,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('getPracticeContentAnalytics failed: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get aggregated difficulty analytics for the frontend.
+     * GET /api/practice-exam/difficulty-analytics
+     */
+    public function getPracticeDifficultyAnalytics()
+    {
+        try {
+            $difficultyBands = ExamResult::selectRaw(
+                    'difficulty, COUNT(*) as total, SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct'
+                )
+                ->groupBy('difficulty')
+                ->get()
+                ->map(fn($item) => [
+                    'level' => ucfirst($item->difficulty),
+                    'score' => $item->total > 0 ? round(($item->correct / $item->total) * 100, 2) : 0,
+                    'total' => (int) $item->total,
+                    'correct' => (int) $item->correct,
+                ]);
+
+            $topicBreakdown = ExamResult::selectRaw(
+                    'exam_results.topic_id, coverages.name as topicName, '
+                    . 'SUM(CASE WHEN difficulty = "easy" THEN 1 ELSE 0 END) as easy_total, '
+                    . 'SUM(CASE WHEN difficulty = "easy" AND is_correct = 1 THEN 1 ELSE 0 END) as easy_correct, '
+                    . 'SUM(CASE WHEN difficulty = "moderate" THEN 1 ELSE 0 END) as moderate_total, '
+                    . 'SUM(CASE WHEN difficulty = "moderate" AND is_correct = 1 THEN 1 ELSE 0 END) as moderate_correct, '
+                    . 'SUM(CASE WHEN difficulty = "hard" THEN 1 ELSE 0 END) as hard_total, '
+                    . 'SUM(CASE WHEN difficulty = "hard" AND is_correct = 1 THEN 1 ELSE 0 END) as hard_correct, '
+                    . 'COUNT(*) as total_questions, '
+                    . 'SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as total_correct'
+                )
+                ->join('coverages', 'exam_results.topic_id', '=', 'coverages.id')
+                ->groupBy('exam_results.topic_id', 'coverages.name')
+                ->orderByDesc('total_questions')
+                ->limit(10)
+                ->get()
+                ->map(fn($item) => [
+                    'topicId' => $item->topic_id,
+                    'topicName' => $item->topicName,
+                    'easyScore' => $item->easy_total > 0 ? round(($item->easy_correct / $item->easy_total) * 100, 2) : 0,
+                    'moderateScore' => $item->moderate_total > 0 ? round(($item->moderate_correct / $item->moderate_total) * 100, 2) : 0,
+                    'hardScore' => $item->hard_total > 0 ? round(($item->hard_correct / $item->hard_total) * 100, 2) : 0,
+                    'overallScore' => $item->total_questions > 0 ? round(($item->total_correct / $item->total_questions) * 100, 2) : 0,
+                    'avgAttempts' => 0,
+                ]);
+
+            return response()->json([
+                'difficultyBands' => $difficultyBands,
+                'topicBreakdown' => $topicBreakdown,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('getPracticeDifficultyAnalytics failed: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Get difficulty analytics for a topic.
      * GET /api/analytics/difficulty/{topicId}
      */

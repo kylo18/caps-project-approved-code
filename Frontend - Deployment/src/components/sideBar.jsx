@@ -37,8 +37,6 @@ import SupportIconH from "/src/assets/symbols/supporthover.svg";
 import SubjectsIcon from "/src/assets/symbols/subjects.svg";
 import SubjectsIconH from "/src/assets/symbols/subjectshover.svg";
 
-
-
 // Utility to get a random color from a palette
 const AVATAR_COLORS = [
   "bg-orange-500",
@@ -109,8 +107,6 @@ const Sidebar = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
-  const [showUnderDev, setShowUnderDev] = useState(false);    //added
-  const [underDevLabel, setUnderDevLabel] = useState("");     
   const [userInfo, setUserInfo] = useState(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -529,7 +525,7 @@ const Sidebar = ({
               ? "/asso-dean-dashboard"
               : "/";
 
-  const baseMenuItems = [
+  const baseMenuItems = [ //this is for Home in sidebar
     { icon: "bx-home-alt-3", label: "Home", path: homePath },
   ];
   const librariesItem = {
@@ -546,6 +542,12 @@ const Sidebar = ({
   };
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
   const classes = [{ icon: "bx-book-bookmark", label: "Subjects" }];
+  const analyticsMenuItems = [
+    { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
+    { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart"},
+    { label: "Content Analytics", path: "/analytics/content-analytics", icon: "bx bx-file" },
+    { label: "Difficult Analytics", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
+  ];
   const studentSubjectsItem = {
     label: "Subjects",
     path: "/student/subjects",
@@ -607,267 +609,71 @@ const Sidebar = ({
     setActiveMenu(null);
   };
 
-  // For features that are not yet implemented, show "Under Development" toast, added
-  const handleUnderDev = (label) => {
-    setUnderDevLabel(label);
-    setShowUnderDev(true);
-  };
-
-  // Mobile bottom navigation
+  // Mobile bottom navigation, this is home for mobile
   if (isMobile) {
     const homeItem = menuItems.find((item) => item.label === "Home");
-
+    const mobileNavItems = parsedRoleId === 1
+    ? [
+      { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
+      { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart" },
+      { label: "Classes", path: "/class", image: ClassIcon, activeImage: ClassIconH },
+      { label: "Home", path: homeItem?.path || "/", icon: "bx-home-alt-3", home: true },
+      { label: "Sessions", path: "/sessions", image: SessionsIcon, activeImage: SessionsIconH },
+      { label: "Content", path: "/analytics/content-analytics", icon: "bx bx-file" },
+      { label: "Difficult", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
+    ]
+    : [
+      { label: "Classes",  path: "/class",     image: ClassIcon,    activeImage: ClassIconH    },
+      { label: "Home",     path: homeItem?.path || "/", icon: "bx-home-alt-3", home: true     },
+      { label: "Sessions", path: "/sessions",  image: SessionsIcon, activeImage: SessionsIconH },
+    ];
+    
     return (
       <>
         <div className="fixed right-0 bottom-0 left-0 z-50 flex justify-center pb-4">
-          <div className="border-color mx-4 w-full max-w-md rounded-2xl border border-gray-200 bg-white px-4 py-2 shadow-lg min-[500px]:px-6">
-            <div
-              className={
-                parsedRoleId === 1
-                  ? "flex items-center justify-evenly"
-                  : "flex items-center justify-between gap-8"
-              }
-            >
-              {parsedRoleId === 1 ? (
-                <>
-                
-
-                  {/* Classes (student) */}
-                  <div className="flex h-16 flex-col items-center justify-center">
-                    <Link
-                      to="/class"
-                      onClick={handleMenuClick}
-                      className={`flex flex-col items-center transition-colors ${
-                        isActive("/class")
-                          ? "text-orange-600"
-                          : "text-gray-700 hover:text-gray-800"
+          <div className="border-color mx-4 w-full max-w-md rounded-2xl border border-gray-200 bg-white px-2 py-2 shadow-lg min-[500px]:px-4">
+            <div className="grid grid-cols-7 gap-1">
+              {mobileNavItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="flex h-14 flex-col items-center justify-center"
+                >
+                  <Link
+                    to={item.path}
+                    onClick={handleMenuClick}
+                    className={`flex flex-col items-center transition-colors ${
+                      isActive(item.path)
+                        ? "text-orange-600"
+                        : "text-gray-700 hover:text-gray-800"
+                    }`}
+                  >
+                    <span
+                      className={`mb-1 flex items-center justify-center ${
+                        item.home
+                          ? "h-10 w-10 rounded-full bg-orange-500 shadow-lg"
+                          : "h-6 w-6"
                       }`}
                     >
-                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                      {item.image ? (
                         <img
-                          src={isActive("/class") ? ClassIconH : ClassIcon}
-                          alt="Classes"
-                          className="h-6 w-6 object-contain"
+                          src={isActive(item.path) ? item.activeImage : item.image}
+                          alt={item.label}
+                          className={`object-contain ${item.home ? "h-5 w-5" : "h-5 w-5"}`}
                         />
-                      </span>
-                      <span className="outfit-500 text-xs">Classes</span>
-                    </Link>
-                  </div>
-
-                  {/* Home (student, orange circle) */}
-                  {homeItem && (
-                    <div className="flex h-16 flex-col items-center justify-center">
-                      <Link
-                        to={homeItem.path}
-                        onClick={handleMenuClick}
-                        className="flex flex-col items-center"
-                      >
-                        <span className="mb-1 flex items-center justify-center">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 shadow-lg">
-                            <img
-                              src={DashboardIconW}
-                              alt="Dashboard"
-                              className="h-5 w-5 object-contain"
-                            />
-                          </span>
-                        </span>
-                        <span
-                          className={`outfit-500 text-xs ${
-                            isActive(homeItem.path)
-                              ? "text-orange-600"
-                              : "text-gray-700"
+                      ) : (
+                        <i
+                          className={`${item.icon} text-[18px] ${
+                            item.home ? "text-white" : ""
                           }`}
-                        >
-                          Home
-                        </span>
-                      </Link>
-                    </div>
-                  )}
-                  {/* Sessions (student) */}
-                  <div className="flex h-16 flex-col items-center justify-center">
-                    <Link
-                      to="/sessions"
-                      onClick={handleMenuClick}
-                      className={`flex flex-col items-center transition-colors ${
-                        isActive("/sessions")
-                          ? "text-orange-600"
-                          : "text-gray-700 hover:text-gray-800"
-                      }`}
-                    >
-                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                        <img
-                          src={
-                            isActive("/sessions") ? SessionsIconH : SessionsIcon
-                          }
-                          alt="Sessions"
-                          className="h-6 w-6 object-contain"
-                        />
-                      </span>
-                      <span className="outfit-500 text-xs">Sessions</span>
-                    </Link>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* My Library */}
-                  <div className="flex h-16 flex-1 flex-col items-center justify-center">
-                    <Link
-                      to="/libraries"
-                      onClick={handleMenuClick}
-                      className={`flex flex-col items-center transition-colors ${
-                        isActive("/libraries")
-                          ? "text-orange-600"
-                          : "text-gray-700 hover:text-gray-800"
-                      }`}
-                    >
-                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                        <img
-                          src={
-                            isActive("/libraries")
-                              ? LibrariesIconH
-                              : LibrariesIcon
-                          }
-                          alt="Quizzes"
-                          className="h-6 w-6 object-contain"
-                        />
-                      </span>
-                      <span className="outfit-500 text-xs">Quizzes</span>
-                    </Link>
-                  </div>
-
-                  {/* Classes */}
-                  <div className="flex h-16 flex-1 flex-col items-center justify-center">
-                    <Link
-                      to="/class"
-                      onClick={handleMenuClick}
-                      className={`flex flex-col items-center transition-colors ${
-                        isActive("/class")
-                          ? "text-orange-600"
-                          : "text-gray-700 hover:text-gray-800"
-                      }`}
-                    >
-                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                        <img
-                          src={isActive("/class") ? ClassIconH : ClassIcon}
-                          alt="Classes"
-                          className="h-6 w-6 object-contain"
-                        />
-                      </span>
-                      <span className="outfit-500 text-xs">Classestry</span>
-                    </Link>
-                  </div>
-
-                  {/* Home (orange circle) */}
-                  {homeItem && (
-                    <div className="flex h-16 flex-1 flex-col items-center justify-center">
-                      <Link
-                        to={homeItem.path}
-                        onClick={handleMenuClick}
-                        className="flex flex-col items-center"
-                      >
-                        <span className="mb-1 flex items-center justify-center">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 shadow-lg">
-                            <img
-                              src={DashboardIconW}
-                              alt="Dashboard"
-                              className="h-5 w-5 object-contain"
-                            />
-                          </span>
-                        </span>
-                        <span
-                          className={`outfit-500 text-xs ${
-                            isActive(homeItem.path)
-                              ? "text-orange-600"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          Home
-                        </span>
-                      </Link>
-                    </div>
-                  )}
-
-                  {/* Users */}
-                  {parsedRoleId >= 2 && (
-                    <div className="flex h-16 flex-1 flex-col items-center justify-center">
-                      <Link
-                        to="/users"
-                        onClick={handleMenuClick}
-                        className={`flex flex-col items-center transition-colors ${
-                          isActive("/users")
-                            ? "text-orange-600"
-                            : "text-gray-700 hover:text-gray-800"
-                        }`}
-                      >
-                        <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                          <img
-                            src={isActive("/users") ? UsersIconH : UsersIcon}
-                            alt="Users"
-                            className="h-6 w-6 object-contain"
-                          />
-                        </span>
-                        <span className="outfit-500 text-xs">Users</span>
-                      </Link>
-                    </div>
-                  )}
-
-                  {/* Subjects (qualifying exam entry point) */}
-                  {parsedRoleId >= 2 && (
-                    <div className="flex h-16 flex-1 flex-col items-center justify-center">
-                      <Link
-                        to={
-                          parsedRoleId === 2
-                            ? "/faculty/subjects"
-                            : parsedRoleId === 3
-                              ? "/program-chair/subjects"
-                              : parsedRoleId === 4
-                                ? "/dean/subjects"
-                                : "/asso-dean/subjects"
-                        }
-                        onClick={() => {
-                          handleMenuClick();
-                          setIsSubjectFocused(false);
-                          setIsSubjectExpanded(false);
-                        }}
-                        className={`flex flex-col items-center transition-colors ${
-                          isActive(
-                            parsedRoleId === 2
-                              ? "/faculty/subjects"
-                              : parsedRoleId === 3
-                                ? "/program-chair/subjects"
-                                : parsedRoleId === 4
-                                  ? "/dean/subjects"
-                                  : "/asso-dean/subjects",
-                          )
-                            ? "text-orange-600"
-                            : "text-gray-700 hover:text-gray-800"
-                        }`}
-                      >
-                        <span className="mb-1 flex h-6 w-6 items-center justify-center">
-                          <img
-                            src={
-                              isActive(
-                                parsedRoleId === 2
-                                  ? "/faculty/subjects"
-                                  : parsedRoleId === 3
-                                    ? "/program-chair/subjects"
-                                    : parsedRoleId === 4
-                                      ? "/dean/subjects"
-                                      : "/asso-dean/subjects",
-                              )
-                                ? SubjectsIconH
-                                : SubjectsIcon
-                            }
-                            alt="Subjects"
-                            className="h-6 w-6 object-contain"
-                          />
-                        </span>
-                        <span className="outfit-500 text-xs">Subjects</span>
-                      </Link>
-                    </div>
-                  )}
-                </>
-              )}
+                        ></i>
+                      )}
+                    </span>
+                    <span className="outfit-500 text-[9px] leading-4 text-center">
+                      {item.label}
+                    </span>
+                  </Link>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -878,9 +684,6 @@ const Sidebar = ({
       </>
     );
   }
-
-  //new added
-  if (parsedRoleId === 1) return null;
 
   // Desktop sidebar
   const handleSupportClick = () => {
@@ -900,12 +703,10 @@ const Sidebar = ({
 
   return (
     <>
-      {/* Sidebar */}
+      {/* Sidebar yes*/}
       <div
         ref={sidebarRef}
-
-        
-        className={`fixed top-0 left-0 z-55 h-[100vh] border-r border-[rgba(255,255,255,0.07)] bg-[#1E4080] ${
+        className={`border-color fixed top-0 left-0 z-55 h-[100vh] border-r border-gray-200 bg-white ${
           isUsersPage ? "w-[63px]" : "w-[220px]"
         }`}
       >
@@ -913,12 +714,10 @@ const Sidebar = ({
         <div className="relative px-3 pt-3" ref={userDropdownRef}>
           <div
             onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-
-
-            className={`outfit-500 group flex w-full cursor-pointer items-center rounded-[12px] border border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.05)] transition-colors ${
-              isUsersPage 
+            className={`outfit-500 group flex w-full cursor-pointer items-center rounded-[8px] transition-colors ${
+              isUsersPage
                 ? "justify-center px-2 py-1"
-                : "gap-3 px-2 py-2.5 hover:bg-[rgba(255,255,255,0.08)]"
+                : "gap-3 bg-[rgb(245,247,246)] px-2 py-2.5 hover:bg-gray-100"
             }`}
           >
             {/* Circle with initial */}
@@ -943,19 +742,19 @@ const Sidebar = ({
             {/* Text content */}
             {!isUsersPage && (
               <div className="flex flex-1 flex-col">
-               <span className="text-sm font-bold text-white">
-                {getDisplayName()}
-              </span>
-              <span className="text-xs font-normal text-[rgba(255,255,255,0.38)]">
-                {getRoleName(role_id)}
-              </span>
+                <span className="text-sm font-bold text-gray-700">
+                  {getDisplayName()}
+                </span>
+                <span className="text-xs font-normal text-gray-500">
+                  {getRoleName(role_id)}
+                </span>
               </div>
             )}
 
             {/* Chevron icon */}
             {!isUsersPage && (
               <i
-                className={`bx flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.08)] text-[23px] leading-none text-[rgba(255,255,255,0.5)]  ${userDropdownOpen ? "bx-chevron-left" : "bx-chevron-right"} `}
+                className={`bx flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-[23px] leading-none text-gray-500 shadow-sm ${userDropdownOpen ? "bx-chevron-left" : "bx-chevron-right"} `}
               ></i>
             )}
           </div>
@@ -1037,16 +836,13 @@ const Sidebar = ({
             </div>
           )}
           {/* Separator */}
-          <div className="mt-2 mb-4 h-[1.5px] w-full bg-[rgba(255,255,255,0.07)]"></div>{" "}
+          <div className="mt-2 mb-4 h-[1.5px] w-full bg-gray-200"></div>{" "}
           {!isUsersPage && (
-            <div className="outfit-500 px-2 text-[12px] font-semibold text-[rgba(255,255,255,0.22)]">
-              MAIN
+            <div className="outfit-500 px-2 text-[12px] font-semibold text-gray-500">
+              MAIN{" "}
             </div>
           )}
         </div>
-
-        
-
         {/* Sidebar menu items */}
         <ul className="mt-2 mb-3 space-y-[5px] px-0">
           {menuItems.map((item, index) => {
@@ -1059,29 +855,25 @@ const Sidebar = ({
 
             return (
               <li key={index} className="group relative">
-                
                 {/* Active left indicator - positioned outside button/link */}
                 <span
                   className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                    isItemActive 
-                    ? "bg-orange-500" 
-                    : "bg-transparent"
+                    isItemActive ? "bg-orange-500" : "bg-transparent"
                   }`}
                 ></span>
 
                 <div className="px-3">
-
                   <Link
                     to={item.path}
                     onClick={handleMenuClick}
-                    className={`group flex cursor-pointer items-center rounded-lg transition-colors ${
+                    className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
                       isUsersPage
                         ? "justify-center py-[10px]"
                         : "justify-start py-[6px]"
                     } ${
                       isItemActive
                         ? "bg-gray-100 text-orange-600"
-                        : "hover:bg-[rgba(255,255,255,0.06)]"
+                        : "hover:text-gray-800"
                     }`}
                   >
                     {/* Icon + label wrapper with padding */}
@@ -1097,7 +889,7 @@ const Sidebar = ({
                             alt="Dashboard"
                             className={`${
                               isUsersPage ? "size-[20px]" : "size-[18px]"
-                            } flex-shrink-0 ${!isItemActive ? "brightness-0 invert opacity-65" : ""}`}
+                            } flex-shrink-0`}
                           />
                         </span>
                       ) : item.label === "Quizzes" ? (
@@ -1117,7 +909,7 @@ const Sidebar = ({
                             alt="Sessions"
                             className={`${
                               isUsersPage ? "size-[20px]" : "size-[18px]"
-                            } flex-shrink-0 ${!isItemActive ? "brightness-0 invert opacity-65" : ""}`}
+                            } flex-shrink-0`}
                           />
                         </span>
                       ) : item.label === "Users" ? (
@@ -1137,7 +929,7 @@ const Sidebar = ({
                             alt="Class"
                             className={`${
                               isUsersPage ? "size-[20px]" : "size-[18px]"
-                            } flex-shrink-0 ${!isItemActive ? "brightness-0 invert opacity-65" : ""}`}
+                            } flex-shrink-0`}
                           />
                         </span>
                       ) : item.label === "Subjects" ? (
@@ -1163,7 +955,7 @@ const Sidebar = ({
                           className={`outfit-500 text-[15px] whitespace-nowrap ${
                             isItemActive
                               ? "font-[18px] text-black"
-                              : "text-[rgba(255,255,255,0.65)]"
+                              : "text-gray-600"
                           }`}
                         >
                           {item.label}
@@ -1180,175 +972,64 @@ const Sidebar = ({
               </li>
             );
           })}
+          {/* ANALYTICS — students only */}
+          {parsedRoleId === 1 && (
+            <li className="px-3 pt-3">
+              <div className="outfit-500 px-2 text-[13px] font-semibold text-gray-500">
+                ANALYTICS
+              </div>
+              <ul className="mt-2 space-y-[5px] px-0">
+                {analyticsMenuItems.map((item, idx) => (
+                  <li key={idx} className="group relative">
+                    <span
+                      className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
+                        isActive(item.path) ? "bg-orange-500" : "bg-transparent"
+                      }`}
+                    ></span>
+                    <div className="px-3">
+                      <Link
+                        to={item.path}
+                        onClick={handleMenuClick}
+                        className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
+                          isUsersPage
+                            ? "justify-center py-[10px]"
+                            : "justify-start py-[6px]"
+                        } ${
+                          isActive(item.path)
+                            ? "bg-gray-100 text-orange-600"
+                            : "hover:text-gray-800"
+                        }`}
+                      >
+                        <div
+                          className={`flex items-center ${
+                            isUsersPage ? "justify-center" : "ml-3 gap-3"
+                          }`}
+                        >
+                          <i
+                            className={`bx ${item.icon} flex-shrink-0 ${
+                              isUsersPage ? "text-[20px]" : "text-[18px]"
+                            }`}
+                          ></i>
+                          {!isUsersPage && (
+                            <span
+                              className={`outfit-500 text-[15px] whitespace-nowrap ${
+                                isActive(item.path)
+                                  ? "font-[18px] text-black"
+                                  : "text-gray-600"
+                              }`}
+                            >
+                              {item.label}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          )}
         </ul>
-
-        {/* ANALYTICS SECTION */}
-        {!isUsersPage && parsedRoleId === 1 && (
-        <div className="px-3 mt-2 mb-1">
-            <div className="mb-3 h-[1.5px] w-full bg-[rgba(255,255,255,0.07)]"></div>
-            <div className="outfit-500 px-2 text-[12px] font-semibold text-[rgba(255,255,255,0.22)] mb-1">
-              ANALYTICS
-            </div>
-          </div>
-        )}
-        {parsedRoleId === 1 && <ul className="mb-3 space-y-[5px] px-0">
-          {[
-            { label: "Achievements", path: "/analytics/score-history" },
-            { label: "Leaderboard",           path: "/leaderboard" },
-            { label: "Content Analytics",     path: "/analytics/content" },
-            { label: "Difficulty Analytics",  path: "/analytics/difficulty" },
-          ].map((item, index) => {
-            const isAnalyticsActive = location.pathname === item.path;
-            return (
-            <li key={index} className="group relative">
-              
-              <span className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                location.pathname === (
-                  item.label === "Leaderboard" ? "/leaderboard" :
-                  item.label === "Achievements" ? "/analytics/score-history" :
-                  item.label === "Content Analytics" ? "/analytics/content" :
-                  item.label === "Difficulty Analytics" ? "/analytics/difficulty" : ""
-                )
-                  ? "bg-orange-500"
-                  : "bg-transparent"
-              }`}></span>
-
-              <div className="px-3">
-                <button
-                  onClick={() => {
-                    if (item.label === "Leaderboard") {
-                      navigate("/leaderboard");
-                    } else if (item.label === "Achievements") {
-                      navigate("/analytics/score-history");
-                    } else if (item.label === "Content Analytics") {
-                      navigate("/analytics/content");
-                    } else if (item.label === "Difficulty Analytics") {
-                      navigate("/analytics/difficulty");
-                    } else {
-                      handleUnderDev(item.label);
-                    }
-                  }}
-                  className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors ${
-                    isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
-                  } ${
-                    location.pathname === (
-                      item.label === "Leaderboard" ? "/leaderboard" :
-                      item.label === "Achievements" ? "/analytics/score-history" :
-                      item.label === "Content Analytics" ? "/analytics/content" :
-                      item.label === "Difficulty Analytics" ? "/analytics/difficulty" : ""
-                    )
-                      ? "bg-gray-100 text-orange-600"
-                      : "hover:bg-[rgba(255,255,255,0.06)]"
-                  }`}
-                >
-                  <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-3"}`}>
-                    {item.label === "Achievements" && (
-                      <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke={isAnalyticsActive ? "#FF6014" : "rgba(255,255,255,0.45)"} strokeWidth="1.5">
-                        <polyline points="2,12 6,7 9,10 12,5 14,7"/>
-                      </svg>
-                    )}
-                    {item.label === "Leaderboard" && (
-                      <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke={isAnalyticsActive ? "#FF6014" : "rgba(255,255,255,0.45)"} strokeWidth="1.5">
-                        <rect x="1" y="10" width="3" height="5" rx="1"/>
-                        <rect x="6" y="6" width="3" height="9" rx="1"/>
-                        <rect x="11" y="2" width="3" height="13" rx="1"/>
-                      </svg>
-                    )}
-                    {item.label === "Content Analytics" && (
-                      <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke={isAnalyticsActive ? "#FF6014" : "rgba(255,255,255,0.45)"} strokeWidth="1.5">
-                        <path d="M3 2h8l2 2v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/>
-                        <line x1="5" y1="6" x2="11" y2="6"/>
-                        <line x1="5" y1="9" x2="9" y2="9"/>
-                      </svg>
-                    )}
-                    {item.label === "Difficulty Analytics" && (
-                      <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke={isAnalyticsActive ? "#FF6014" : "rgba(255,255,255,0.45)"} strokeWidth="1.5">
-                        <circle cx="8" cy="8" r="6"/>
-                        <line x1="8" y1="5" x2="8" y2="8"/>
-                        <circle cx="8" cy="11" r="0.6" fill={isAnalyticsActive ? "#FF6014" : "rgba(255,255,255,0.45)"} stroke="none"/>
-                      </svg>
-                    )}
-                    {!isUsersPage && (
-                      <span className={`outfit-500 text-[15px] whitespace-nowrap ${
-                        location.pathname === (
-                          item.label === "Leaderboard" ? "/leaderboard" :
-                          item.label === "Achievements" ? "/analytics/score-history" :
-                          item.label === "Content Analytics" ? "/analytics/content" :
-                          item.label === "Difficulty Analytics" ? "/analytics/difficulty" : ""
-                        )
-                          ? "text-black"
-                          : "text-[rgba(255,255,255,0.45)]"
-                      }`}>
-                        {item.label}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                {isUsersPage && (
-                  <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
-                    {item.label}
-                  </span>
-                )}
-              </div>
-            </li>
-          ); })}
-        </ul>}
-
-
-        {/* SYSTEM SECTION */}
-        {!isUsersPage && parsedRoleId === 1 && (
-        <div className="px-3 mt-2 mb-1">
-            <div className="mb-3 h-[1.5px] w-full bg-[rgba(255,255,255,0.07)]"></div>
-            <div className="outfit-500 px-2 text-[12px] font-semibold text-[rgba(255,255,255,0.22)] mb-1">
-              SYSTEM
-            </div>
-          </div>
-        )}
-        {parsedRoleId === 1 && <ul className="mb-3 space-y-[5px] px-0">
-          {[
-            { label: "Notifications" },
-            { label: "Google Login" },
-          ].map((item, index) => (
-            <li key={index} className="group relative">
-
-
-              <div className="px-3">
-                <button
-                  onClick={() => handleUnderDev(item.label)}
-                  className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-[rgba(255,255,255,0.06)] ${
-                    isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
-                  }`}
-                >
-                  
-                  <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-3"}`}>
-                    {item.label === "Notifications" && (
-                      <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5">
-                        <path d="M8 1a5 5 0 015 5c0 3 1 4 1 4H2s1-1 1-4a5 5 0 015-5z"/>
-                        <line x1="6.5" y1="14" x2="9.5" y2="14" strokeLinecap="round"/>
-                      </svg>
-                    )}
-                    {item.label === "Google Login" && (
-                      <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5">
-                        <circle cx="8" cy="8" r="6"/>
-                        <path d="M8 8h4M8 8V5" strokeLinecap="round"/>
-                      </svg>
-                    )}
-                    {!isUsersPage && (
-                      <span className="outfit-500 text-[15px] whitespace-nowrap text-[rgba(255,255,255,0.45)]">
-                        {item.label}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                {isUsersPage && (
-                  <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
-                    {item.label}
-                  </span>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>}
 
         {/* Different Dropdowns for Different Roles*/}
         {(parsedRoleId === 4 || parsedRoleId === 5) && (
@@ -1946,10 +1627,10 @@ const Sidebar = ({
                 setActiveMenu("Support");
                 handleSupportClick();
               }}
-              className={`group mb-2 flex w-full cursor-pointer items-center rounded-lg py-[8px] transition-colors hover:bg-[rgba(255,255,255,0.06)] ${
+              className={`group mb-2 flex w-full cursor-pointer items-center rounded-lg py-[8px] transition-colors hover:bg-gray-100 hover:text-gray-800 ${
                 isUsersPage ? "justify-center" : "justify-start"
               } ${
-                activeMenu === "Support" ? "bg-[rgba(255,255,255,0.1)]" : ""
+                activeMenu === "Support" ? "bg-gray-100 text-orange-600" : ""
               }`}
             >
               <div
@@ -1960,11 +1641,11 @@ const Sidebar = ({
                 <img
                   src={activeMenu === "Support" ? SupportIconH : SupportIcon}
                   alt="Support"
-                  className="size-[20px] flex-shrink-0 brightness-0 invert opacity-65"
+                  className="size-[20px] flex-shrink-0"
                 />
                 {!isUsersPage && (
-                  <span className="outfit-500 text-[15px] whitespace-nowrap text-[rgba(255,255,255,0.65)]">
-                    Support & Help
+                  <span className="outfit-500 text-[15px] whitespace-nowrap text-gray-600">
+                    Support
                   </span>
                 )}
               </div>
@@ -1976,8 +1657,8 @@ const Sidebar = ({
               onClick={() => {
                 navigate("/team-caps");
               }}
-              className={`group flex w-full cursor-pointer items-center rounded-lg px-3 py-[8px] transition-colors hover:bg-[rgba(255,255,255,0.06)] ${
-                activeMenu === "Support" ? "bg-[rgba(255,255,255,0.1)]" : ""
+              className={`group flex w-full cursor-pointer items-center rounded-lg px-3 py-[8px] transition-colors hover:bg-gray-100 hover:text-gray-800 ${
+                activeMenu === "Support" ? "bg-gray-100 text-orange-600" : ""
               } ${isUsersPage ? "justify-center" : "justify-between"}`}
             >
               {/* Left side */}
@@ -1992,7 +1673,7 @@ const Sidebar = ({
                   className="size-[20px] flex-shrink-0"
                 />
                 {!isUsersPage && (
-                  <span className="outfit-500 text-[15px] whitespace-nowrap text-[rgba(255,255,255,0.65)]">
+                  <span className="outfit-500 text-[15px] whitespace-nowrap text-gray-600">
                     CAPS
                   </span>
                 )}
@@ -2000,7 +1681,7 @@ const Sidebar = ({
 
               {/* Right side */}
               {!isUsersPage && (
-                <span className="text-xs font-medium text-[rgba(255,255,255,0.65)]">
+                <span className="text-xs font-medium text-gray-400">
                   <AppVersion />
                 </span>
               )}
@@ -2375,34 +2056,6 @@ const Sidebar = ({
             </div>
           </div>
         </>
-      )}
-
-      {/* Under Development Modal */}
-      {showUnderDev && (
-        <div className="lightbox-bg fixed inset-0 z-[200] flex items-center justify-center">
-          <div className="animate-fade-in-up flex w-[90vw] max-w-xs flex-col items-center rounded-2xl bg-white p-6 shadow-xl">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-50">
-              <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#FF6014" strokeWidth="1.8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z"/>
-              </svg>
-            </div>
-            <div className="outfit-700 mb-1 text-center text-[18px] font-bold text-gray-800">
-              Under Development
-            </div>
-            <div className="outfit-400 mb-1 text-center text-[13px] font-semibold text-orange-500">
-              {underDevLabel}
-            </div>
-            <div className="outfit-400 mb-5 text-center text-[13px] text-gray-500">
-              This feature is currently being built and will be available in a future update.
-            </div>
-            <button
-              className="outfit-400 w-full cursor-pointer rounded-lg bg-orange-500 py-2 text-[15px] font-semibold text-white transition hover:bg-orange-600 active:scale-95"
-              onClick={() => setShowUnderDev(false)}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
       )}
 
       <Toast message={toast.message} type={toast.type} show={toast.show} />

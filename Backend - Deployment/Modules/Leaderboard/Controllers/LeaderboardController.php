@@ -40,18 +40,30 @@ class LeaderboardController extends Controller
             $studentIds = array_keys($topRedis);
             $users = DB::table('users')
                 ->whereIn('userID', $studentIds)
-                ->select('userID', DB::raw("CONCAT(firstName, ' ', lastName) as name"))
+                ->select('userID', 'firstName', 'lastName', 'userCode', 'program')
                 ->get()
                 ->keyBy('userID');
+
+            $examCounts = DB::table('exam_analytics')
+                ->whereIn('user_id', $studentIds)
+                ->select('user_id', DB::raw('COUNT(DISTINCT attempt_id) as totalExams'))
+                ->groupBy('user_id')
+                ->pluck('totalExams', 'user_id');
 
             $data = [];
             $rank = 1;
             foreach ($topRedis as $studentId => $composite) {
+                $user = $users[$studentId] ?? null;
                 $data[] = [
                     'rank' => $rank++,
                     'student_id' => $studentId,
-                    'name' => $users[$studentId]->name ?? 'Unknown Student',
+                    'firstName' => $user->firstName ?? null,
+                    'lastName' => $user->lastName ?? null,
+                    'name' => $user ? trim(($user->firstName ?? '') . ' ' . ($user->lastName ?? '')) : 'Unknown Student',
+                    'userCode' => $user->userCode ?? null,
+                    'program' => $user->program ?? null,
                     'score' => (int) floor($composite / 10000000000.0),
+                    'totalExams' => (int) ($examCounts[$studentId] ?? 0),
                 ];
             }
 
@@ -127,9 +139,16 @@ class LeaderboardController extends Controller
     {
         $query = DB::table('exam_analytics')
             ->join('users', 'exam_analytics.user_id', '=', 'users.userID')
-            ->select(DB::raw("CONCAT(firstName, ' ', lastName) as name"), 'exam_analytics.user_id as student_id')
-            ->selectRaw('MAX(exam_analytics.overall_score) as score')
-            ->groupBy('exam_analytics.user_id', 'users.firstName', 'users.lastName')
+            ->select(
+                'users.userID as student_id',
+                'users.firstName',
+                'users.lastName',
+                'users.userCode',
+                'users.program'
+            )
+            ->selectRaw('MAX(exam_analytics.overall_score) as score, COUNT(DISTINCT exam_analytics.attempt_id) as totalExams')
+            ->where('users.roleID', 1)
+            ->groupBy('users.userID', 'users.firstName', 'users.lastName', 'users.userCode', 'users.program')
             ->orderByDesc('score')
             ->limit($limit);
 
@@ -148,8 +167,13 @@ class LeaderboardController extends Controller
             return [
                 'rank' => $rank++,
                 'student_id' => $row->student_id,
-                'name' => $row->name,
+                'firstName' => $row->firstName,
+                'lastName' => $row->lastName,
+                'name' => trim(($row->firstName ?? '') . ' ' . ($row->lastName ?? '')),
+                'userCode' => $row->userCode,
+                'program' => $row->program,
                 'score' => (int) $row->score,
+                'totalExams' => (int) $row->totalExams,
             ];
         });
 
