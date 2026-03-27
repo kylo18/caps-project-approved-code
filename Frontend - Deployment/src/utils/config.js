@@ -3,7 +3,7 @@
 // ============================================
 
 const DEFAULT_LOCAL_SERVER = 'http://100.91.44.24:8005';
-const DEFAULT_TEST_SERVER = import.meta.env.VITE_API_SERVER || 'http://18.142.190.113:8000';
+const DEFAULT_TEST_SERVER = import.meta.env.VITE_API_SERVER || 'https://caps-test2.coeofjrmsu.com';
 const USE_TEST_SERVER = true;
 
 const API_BASE_URL_KEY = 'apiBaseUrl';
