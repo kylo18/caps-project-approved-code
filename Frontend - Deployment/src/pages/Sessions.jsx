@@ -417,9 +417,13 @@ const Sessions = () => {
             ) : (
               <>
                 {/* Mobile expandable list - picture, name, status, arrow */}
-                <div className="outfit-400 space-y-0 overflow-hidden rounded-xl border border-gray-200 bg-white xl:hidden">
-                  {filteredQuizzes.map((quiz) => {
-                    const quizId = quiz.classPersonalQuizID;
+                <div className="outfit-400 space-y-3 overflow-hidden rounded-xl border border-gray-200 bg-white xl:hidden">
+                  {filteredQuizzes.map((quiz, index) => {
+                    const quizId =
+                      quiz.classPersonalQuizID ??
+                      quiz.quiz?.personalQuizID ??
+                      quiz.quiz?.id ??
+                      index;
                     const isExpanded = expandedSessionId === quizId;
 
                     if (isFaculty) {
@@ -485,6 +489,11 @@ const Sessions = () => {
                                 {quiz.class?.className || "—"}
                               </div>
                             </div>
+                            {statusBadge && (
+                              <div className="flex-shrink-0">
+                                {statusBadge}
+                              </div>
+                            )}
                             <i
                               className={`bx bx-chevron-down ml-auto flex-shrink-0 text-xl text-gray-400 transition-transform ${
                                 isExpanded ? "rotate-180" : ""
@@ -663,7 +672,7 @@ const Sessions = () => {
                               {quiz.quiz?.subject?.subjectName || "Custom Quiz"}
                             </div>
                           </div>
-                          {activeTab === "all" && (
+                          {statusBadge && (
                             <div className="ml-auto flex-shrink-0">
                               {statusBadge}
                             </div>

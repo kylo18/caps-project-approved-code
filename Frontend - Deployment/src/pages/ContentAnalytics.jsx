@@ -7,6 +7,13 @@ const ContentAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [data,    setData]    = useState(null);
   const [tab,     setTab]     = useState("viewed"); // viewed | attempted | errors | skipped
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -45,7 +52,7 @@ const ContentAnalytics = () => {
     <div style={{ background: "#F5F3EF", minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
 
       {/* TOP BAR */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #EAE8E2", padding: "16px 28px", paddingTop: window.innerWidth <= 768 ? "60px" : "16px", display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid #EAE8E2", padding: isMobile ? "16px 16px" : "16px 28px", paddingTop: isMobile ? "60px" : "16px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <button onClick={() => navigate("/student-dashboard")}
           style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid #EAE8E2", background: "#F5F3EF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5C5955" strokeWidth="1.8"><polyline points="10,3 5,8 10,13"/></svg>
@@ -56,10 +63,10 @@ const ContentAnalytics = () => {
         </div>
       </div>
 
-      <div style={{ padding: "24px 28px", paddingBottom: 100 }}>
+      <div style={{ padding: isMobile ? "16px 16px 100px" : "24px 28px", paddingBottom: 100 }}>
 
         {/* STAT CARDS */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
           {[
             { label: "Lessons Viewed",    value: loading ? "—" : data?.totalViews     ?? 0, accent: "#FF6014" },
             { label: "Questions Attempted",value: loading ? "—" : data?.totalAttempts  ?? 0, accent: "#3B8BD4" },
@@ -78,10 +85,10 @@ const ContentAnalytics = () => {
         <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #EAE8E2", overflow: "hidden" }}>
           <div style={{ padding: "14px 20px 0", borderBottom: "1px solid #F0EDE8" }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#1A1814", marginBottom: 12 }}>Content Breakdown</div>
-            <div style={{ display: "flex", gap: 0 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {TABS.map(t => (
                 <button key={t.id} onClick={() => setTab(t.id)}
-                  style={{ fontSize: 12, fontWeight: 500, padding: "8px 18px", cursor: "pointer", background: "transparent", border: "none", fontFamily: "inherit",
+                  style={{ fontSize: 12, fontWeight: 500, padding: "8px 16px", cursor: "pointer", background: "transparent", border: "none", fontFamily: "inherit",
                     color:       tab === t.id ? t.color  : "#9B9790",
                     borderBottom: tab === t.id ? `2px solid ${t.color}` : "2px solid transparent",
                     marginBottom: -1, transition: "all 0.15s" }}>
@@ -124,7 +131,7 @@ const ContentAnalytics = () => {
         {/* INFO BOX */}
         <div style={{ marginTop: 18, background: "#fff", borderRadius: 14, border: "1px solid #EAE8E2", padding: "16px 20px" }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#1A1814", marginBottom: 10 }}>What does this mean?</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
             {[
               { color: "#FF6014", title: "Most Viewed Lessons",         desc: "Lessons you opened the most. These are your primary study materials." },
               { color: "#3B8BD4", title: "Most Attempted Questions",    desc: "Questions you practiced the most — usually ones you found challenging." },

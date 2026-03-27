@@ -2,10 +2,17 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const DifficultyAnalytics = () => {
-  const navigate  = useNavigate();
-  const apiUrl    = import.meta.env.VITE_API_BASE_URL;
+  const navigate = useNavigate();
+  const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [loading, setLoading] = useState(true);
-  const [data,    setData]    = useState(null);
+  const [data, setData] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -46,7 +53,7 @@ const DifficultyAnalytics = () => {
     <div style={{ background: "#F5F3EF", minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
 
       {/* TOP BAR */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #EAE8E2", padding: "16px 28px", paddingTop: window.innerWidth <= 768 ? "60px" : "16px", display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid #EAE8E2", padding: isMobile ? "16px 16px" : "16px 28px", paddingTop: isMobile ? "60px" : "16px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <button onClick={() => navigate("/student-dashboard")}
           style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid #EAE8E2", background: "#F5F3EF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5C5955" strokeWidth="1.8"><polyline points="10,3 5,8 10,13"/></svg>
@@ -57,10 +64,10 @@ const DifficultyAnalytics = () => {
         </div>
       </div>
 
-      <div style={{ padding: "24px 28px", paddingBottom: 100 }}>
+      <div style={{ padding: isMobile ? "16px 16px 100px" : "24px 28px", paddingBottom: 100 }}>
 
         {/* SUMMARY CARDS */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
           {[
             { label: "Avg Attempts to Pass", value: loading ? "—" : avgAttempts ?? "—", accent: "#FF6014" },
             { label: "Avg Time / Topic",      value: loading ? "—" : avgTime     ?? "—", accent: "#3B8BD4" },
@@ -80,7 +87,7 @@ const DifficultyAnalytics = () => {
           <div style={{ padding: "14px 20px 12px", borderBottom: "1px solid #F0EDE8" }}>
             <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1814" }}>Score by Difficulty Level</span>
           </div>
-          <div style={{ padding: "20px", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+          <div style={{ padding: "20px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 16 }}>
             {diffBands.map(band => {
               const cfg = levelCfg[band.level] || levelCfg.Moderate;
               return (
@@ -114,11 +121,13 @@ const DifficultyAnalytics = () => {
           </div>
 
           {/* Column headers */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 90px 90px 110px 110px", gap: 12, padding: "10px 20px", background: "#F8F6F3" }}>
-            {["Topic", "Easy", "Moderate", "Hard", "Overall", "Avg Tries"].map((h, i) => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "#9B9790", textTransform: "uppercase", letterSpacing: "1px", textAlign: i === 0 ? "left" : "center" }}>{h}</span>
-            ))}
-          </div>
+          {!isMobile && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 90px 90px 110px 110px", gap: 12, padding: "10px 20px", background: "#F8F6F3" }}>
+              {["Topic", "Easy", "Moderate", "Hard", "Overall", "Avg Tries"].map((h, i) => (
+                <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "#9B9790", textTransform: "uppercase", letterSpacing: "1px", textAlign: i === 0 ? "left" : "center" }}>{h}</span>
+              ))}
+            </div>
+          )}
 
           {loading ? (
             <div style={{ padding: 20 }}>
@@ -128,25 +137,56 @@ const DifficultyAnalytics = () => {
             <EmptyState message="No difficulty data yet. Complete at least one exam to see your breakdown by topic and difficulty level."/>
           ) : (
             topics.map((t, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 90px 90px 90px 110px 110px", gap: 12, padding: "13px 20px", borderBottom: "1px solid #F8F6F3", alignItems: "center" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#FFFAF7"}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <div key={i} style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 90px 90px 90px 110px 110px",
+                gap: 12,
+                padding: "13px 20px",
+                borderBottom: "1px solid #F8F6F3",
+                alignItems: "center",
+                background: isMobile ? "#fff" : "transparent",
+                borderRadius: isMobile ? 14 : 0,
+                marginBottom: isMobile ? 12 : 0,
+              }}
+                onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = "#FFFAF7" }}
+                onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = "transparent" }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: "#1A1814" }}>{t.topicName}</div>
-                {["easyScore","moderateScore","hardScore"].map(key => (
-                  <div key={key} style={{ textAlign: "center" }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: sc(t[key] ?? 0) }}>{t[key] != null ? `${t[key]}%` : "—"}</span>
+                {isMobile ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 8 }}>
+                    {[
+                      { label: "Easy", value: t.easyScore },
+                      { label: "Moderate", value: t.moderateScore },
+                      { label: "Hard", value: t.hardScore },
+                      { label: "Overall", value: t.overallScore },
+                      { label: "Avg Tries", value: t.avgAttempts, suffix: "x" },
+                    ].map((item) => (
+                      <div key={item.label} style={{ padding: 12, background: "#F8F6F3", borderRadius: 12 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#9B9790", marginBottom: 4 }}>{item.label}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: item.value != null ? sc(item.value ?? 0) : "#5C5955" }}>
+                          {item.value != null ? `${item.value}${item.suffix ?? "%"}` : "—"}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                <div style={{ textAlign: "center" }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: sc(t.overallScore ?? 0) }}>{t.overallScore != null ? `${t.overallScore}%` : "—"}</span>
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
-                    background: (t.avgAttempts ?? 0) >= 3 ? "#FCEBEB" : (t.avgAttempts ?? 0) >= 2 ? "#FEF0EA" : "#EAF7F1",
-                    color:      (t.avgAttempts ?? 0) >= 3 ? "#A32D2D" : (t.avgAttempts ?? 0) >= 2 ? "#FF6014" : "#22A56D" }}>
-                    {t.avgAttempts != null ? `${t.avgAttempts}x` : "—"}
-                  </span>
-                </div>
+                ) : (
+                  <>
+                    {['easyScore','moderateScore','hardScore'].map((key) => (
+                      <div key={key} style={{ textAlign: "center" }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: sc(t[key] ?? 0) }}>{t[key] != null ? `${t[key]}%` : "—"}</span>
+                      </div>
+                    ))}
+                    <div style={{ textAlign: "center" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: sc(t.overallScore ?? 0) }}>{t.overallScore != null ? `${t.overallScore}%` : "—"}</span>
+                    </div>
+                    <div style={{ textAlign: "center" }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
+                        background: (t.avgAttempts ?? 0) >= 3 ? "#FCEBEB" : (t.avgAttempts ?? 0) >= 2 ? "#FEF0EA" : "#EAF7F1",
+                        color:      (t.avgAttempts ?? 0) >= 3 ? "#A32D2D" : (t.avgAttempts ?? 0) >= 2 ? "#FF6014" : "#22A56D" }}>
+                        {t.avgAttempts != null ? `${t.avgAttempts}x` : "—"}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             ))
           )}

@@ -31,6 +31,13 @@ use Modules\PersonalExams\Controllers\StudentQuizResultController;
 use Modules\PersonalExams\Controllers\StudentQuizController;
 use Modules\PersonalExams\Controllers\QuizSessionController;
 
+use Modules\Leaderboard\Controllers\LeaderboardController;
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/leaderboard',    [LeaderboardController::class, 'index']);
+    Route::get('/leaderboard/me', [LeaderboardController::class, 'me']);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Public API Routes (No authentication required)
@@ -73,6 +80,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/practice-exam/recent-takers/{subjectID}', [PracticeExamLeaderboardController::class, 'recentTakers']);
     Route::get('/practice-exam/overall-leaderboard', [PracticeExamLeaderboardController::class, 'overallLeaderboard']);
     Route::get('/practice-exam/overall-recent-takers', [PracticeExamLeaderboardController::class, 'overallRecentTakers']);
+
+    // Practice Exam analytics endpoints used by frontend content / difficulty views
+    Route::get('/practice-exam/content-analytics', [AnalyticsController::class, 'getPracticeContentAnalytics']);
+    Route::get('/practice-exam/difficulty-analytics', [AnalyticsController::class, 'getPracticeDifficultyAnalytics']);
 
     // Get all personal quizzes for a class
     Route::get('/classes/{classID}/quizzes', [ClassPersonalQuizController::class, 'index']);

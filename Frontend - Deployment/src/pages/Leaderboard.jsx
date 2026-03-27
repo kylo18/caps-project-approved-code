@@ -351,6 +351,8 @@ const Leaderboard = () => {
   const [search,          setSearch]          = useState("");
   const [selectedProgram, setSelectedProgram] = useState("All");
   const [programs,        setPrograms]        = useState(["All"]);
+  const [myApiRank,       setMyApiRank]       = useState(null);
+  const [myApiScore,      setMyApiScore]      = useState(null);
 
   const isMobile = useIsMobile();
   const pad      = isMobile ? "0 14px" : "0 40px";
@@ -369,8 +371,8 @@ const Leaderboard = () => {
         });
         const userData = await userRes.json();
 
-        const usersRes  = await fetch(`${apiUrl}/users`, {
-          headers: { Authorization: `Bearer ${SERVICE_TOKEN}` },
+        const usersRes = await fetch(`${apiUrl}/users`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
         const usersData = await usersRes.json();
 
@@ -382,20 +384,41 @@ const Leaderboard = () => {
 
         let scoreMap = {};
         try {
-          const lbRes  = await fetch(`${apiUrl}/practice-exam/overall-leaderboard`, {
-            headers: { Authorization: `Bearer ${SERVICE_TOKEN}` },
+          const lbRes = await fetch(`${apiUrl}/leaderboard?scope=global&limit=200`, {
+            headers: { Authorization: `Bearer ${token}` },
           });
           const lbData = await lbRes.json();
-          if (lbData.leaderboard?.length > 0) {
-            lbData.leaderboard.forEach(entry => {
-              const uid = entry.userID || entry.user_id || entry.id;
+          if (lbData.data?.length > 0) {
+            lbData.data.forEach(entry => {
+              const uid = entry.student_id;
               scoreMap[uid] = {
-                avgScore:   Math.round(entry.avgScore ?? entry.avg_score ?? entry.average ?? 0),
-                totalExams: entry.totalExams ?? entry.total_exams ?? entry.examCount ?? 0,
+                avgScore:   entry.score != null ? Math.round(entry.score) : null,
+                totalExams: entry.totalExams ?? 0,
               };
             });
           }
-        } catch (_) {}
+        } catch (_) {
+          // fallback silently if leaderboard API is unavailable
+        }
+
+        try {
+          const meRes = await fetch(`${apiUrl}/leaderboard/me?scope=global`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const meData = await meRes.json();
+          if (meRes.ok) {
+            setMyApiRank(meData.rank ?? null);
+            setMyApiScore(meData.score ?? null);
+            if (meData.score != null && userData?.userID) {
+              scoreMap[userData.userID] = {
+                avgScore: Math.round(meData.score),
+                totalExams: scoreMap[userData.userID]?.totalExams ?? 0,
+              };
+            }
+          }
+        } catch (_) {
+          // ignore leaderboard/me failure
+        }
 
         const raw = usersData.users || usersData || [];
         const studentList = raw
@@ -439,7 +462,8 @@ const Leaderboard = () => {
   });
 
   const myEntry    = students.find(s => s.isMe);
-  const myRank     = myEntry ? students.indexOf(myEntry) + 1 : null;
+  const myRank     = myApiRank ?? (myEntry ? students.indexOf(myEntry) + 1 : null);
+  const myScore    = myApiScore ?? myEntry?.avgScore;
   const meVisible  = filtered.some(s => s.isMe);
   const top3       = students.slice(0, 3);
   const percentile = myRank ? Math.round(((students.length - myRank) / students.length) * 100) : 0;
@@ -583,7 +607,7 @@ const Leaderboard = () => {
               <div style={{ display: "flex", gap: 0, justifyContent: "space-between" }}>
                 {[
                   { label: "Rank",       value: myRank ? `#${myRank}` : "—",                             color: "#FF6014" },
-                  { label: "Avg Score",  value: myEntry.avgScore != null ? `${myEntry.avgScore}%` : "—", color: "#fff"    },
+                  { label: "Avg Score",  value: myScore != null ? `${myScore}%` : "—", color: "#fff"    },
                   { label: "Exams",      value: myEntry.totalExams ?? 0,                                  color: "#fff"    },
                   { label: "Top",        value: myRank ? `${percentile}%` : "—",                         color: "#fff"    },
                 ].map(item => (
@@ -614,7 +638,7 @@ const Leaderboard = () => {
               <div style={{ display: "flex", gap: 32 }}>
                 {[
                   { label: "Rank",       value: myRank ? `#${myRank}` : "—",                              color: "#FF6014" },
-                  { label: "Avg Score",  value: myEntry.avgScore != null ? `${myEntry.avgScore}%` : "—",  color: "#fff"    },
+                  { label: "Avg Score",  value: myScore != null ? `${myScore}%` : "—",  color: "#fff"    },
                   { label: "Exams",      value: myEntry.totalExams ?? 0,                                   color: "#fff"    },
                   { label: "Percentile", value: myRank ? `Top ${percentile}%` : "—",                      color: "#fff"    },
                 ].map(item => (

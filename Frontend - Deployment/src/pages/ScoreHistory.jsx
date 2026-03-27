@@ -7,6 +7,13 @@ const ScoreHistory = () => {
   const [loading,  setLoading]  = useState(true);
   const [history,  setHistory]  = useState([]);
   const [filter,   setFilter]   = useState("all"); // all | pass | fail
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -71,12 +78,13 @@ const ScoreHistory = () => {
   const sc = (pct) => pct >= 75 ? "#22A56D" : pct >= 60 ? "#FF6014" : "#E55012";
 
   const EMPTY = history.length === 0 && !loading;
+  const tableGrid = isMobile ? "1fr" : "1fr 120px 100px 100px 110px";
 
   return (
     <div style={{ background: "#F5F3EF", minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
 
       {/* ── TOP BAR ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #EAE8E2", padding: "16px 28px", paddingTop: window.innerWidth <= 768 ? "60px" : "16px", display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid #EAE8E2", padding: isMobile ? "16px 16px" : "16px 28px", paddingTop: isMobile ? "60px" : "16px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <button onClick={() => navigate("/student-dashboard")}
           style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid #EAE8E2", background: "#F5F3EF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5C5955" strokeWidth="1.8"><polyline points="10,3 5,8 10,13"/></svg>
@@ -87,10 +95,10 @@ const ScoreHistory = () => {
         </div>
       </div>
 
-      <div style={{ padding: "24px 28px", paddingBottom: 100 }}>
+      <div style={{ padding: isMobile ? "16px 16px 100px" : "24px 28px", paddingBottom: 100 }}>
 
         {/* ── STAT CARDS ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
           {[
             { label: "Total Exams",   value: loading ? "—" : history.length,                         accent: "#FF6014" },
             { label: "Avg. Score",    value: loading ? "—" : avgScore != null ? `${avgScore}%` : "—", accent: "#22A56D" },
@@ -166,11 +174,13 @@ const ScoreHistory = () => {
           </div>
 
           {/* Header */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px 100px 110px", gap: 12, padding: "10px 20px", background: "#F8F6F3" }}>
-            {["Subject", "Date", "Score", "Status", "Attempt"].map((h, i) => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "#9B9790", textTransform: "uppercase", letterSpacing: "1px", textAlign: i === 0 ? "left" : "center" }}>{h}</span>
-            ))}
-          </div>
+          {!isMobile && (
+            <div style={{ display: "grid", gridTemplateColumns: tableGrid, gap: 12, padding: "10px 20px", background: "#F8F6F3" }}>
+              {["Subject", "Date", "Score", "Status", "Attempt"].map((h, i) => (
+                <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "#9B9790", textTransform: "uppercase", letterSpacing: "1px", textAlign: i === 0 ? "left" : "center" }}>{h}</span>
+              ))}
+            </div>
+          )}
 
           {loading ? (
             <div style={{ padding: 20 }}>
@@ -181,12 +191,36 @@ const ScoreHistory = () => {
           ) : EMPTY || filtered.length === 0 ? (
             <EmptyState message={EMPTY ? "No exams taken yet. Start your first practice exam!" : "No results match this filter."} height={160}/>
           ) : (
-            <div>
+            <div style={{ display: "grid", gap: 12, padding: isMobile ? "12px" : "0" }}>
               {filtered.map((h, i) => {
                 const date  = h.completedAt ? new Date(h.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
                 const color = sc(h.score ?? 0);
-                return (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px 100px 110px", gap: 12, padding: "13px 20px", borderBottom: "1px solid #F8F6F3", alignItems: "center", transition: "background 0.1s" }}
+                return isMobile ? (
+                  <div key={i} style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1814" }}>{h.subjectName || "Practice Exam"}</div>
+                      <div style={{ fontSize: 12, color: "#9B9790" }}>{date}</div>
+                    </div>
+                    {h.subjectCode && <div style={{ fontSize: 11, color: "#9B9790", marginBottom: 12 }}>{h.subjectCode}</div>}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div style={{ background: "#F8F6F3", borderRadius: 12, padding: 12 }}>
+                        <div style={{ fontSize: 10, color: "#9B9790", marginBottom: 4 }}>Score</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color }}>{h.score != null ? `${h.score}%` : "—"}</div>
+                      </div>
+                      <div style={{ background: "#F8F6F3", borderRadius: 12, padding: 12 }}>
+                        <div style={{ fontSize: 10, color: "#9B9790", marginBottom: 4 }}>Status</div>
+                        <span style={{ display: "inline-block", fontSize: 12, fontWeight: 600, padding: "5px 10px", borderRadius: 20, background: h.passed ? "#EAF7F1" : "#FEF0EA", color: h.passed ? "#22A56D" : "#FF6014" }}>
+                          {h.passed ? "Passed" : "Failed"}
+                        </span>
+                      </div>
+                      <div style={{ background: "#F8F6F3", borderRadius: 12, padding: 12, gridColumn: "span 2" }}>
+                        <div style={{ fontSize: 10, color: "#9B9790", marginBottom: 4 }}>Attempt</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1814" }}>#{h.attemptNumber ?? i + 1}</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: tableGrid, gap: 12, padding: "13px 20px", borderBottom: "1px solid #F8F6F3", alignItems: "center", transition: "background 0.1s" }}
                     onMouseEnter={e => e.currentTarget.style.background = "#FFFAF7"}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <div>
