@@ -103,7 +103,11 @@ class UserController extends Controller
         }
 
         return response()->json([
+            'userCode' => $user->userCode,
             'email' => $user->email,
+            'firstName' => $user->firstName,
+            'lastName' => $user->lastName,
+            'roleID' => $user->roleID,
             'fullName' => $user->firstName . ' ' . $user->lastName,
             'remarks' => $remarks,
             'curriculum' => $curriculum,

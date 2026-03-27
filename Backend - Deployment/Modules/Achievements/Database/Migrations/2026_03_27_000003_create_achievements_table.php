@@ -28,7 +28,7 @@ return new class extends Migration
             $table->id();
             
             // Achievement name
-            $table->string('name', 100)->notNullable();
+            $table->string('name', 100);
             
             // Detailed description
             $table->text('description')->nullable();
@@ -43,10 +43,10 @@ return new class extends Migration
                 'streak', 
                 'subject_mastery',
                 'perfect_score'
-            ])->notNullable();
+            ]);
             
             // Value required to earn the achievement
-            $table->integer('criteria_value')->notNullable();
+            $table->integer('criteria_value');
             
             // Points awarded when earned
             $table->unsignedInteger('points')->default(0);

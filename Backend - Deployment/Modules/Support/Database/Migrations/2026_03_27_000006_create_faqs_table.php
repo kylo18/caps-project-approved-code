@@ -25,10 +25,10 @@ return new class extends Migration
             $table->unsignedBigInteger('category_id')->nullable();
             
             // The question
-            $table->string('question', 500)->notNullable();
+            $table->string('question', 500);
             
             // The answer
-            $table->text('answer')->notNullable();
+            $table->text('answer');
             
             // Display order within category
             $table->unsignedInteger('display_order')->default(0);

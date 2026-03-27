@@ -22,13 +22,13 @@ return new class extends Migration
             $table->id();
             
             // User who created the ticket
-            $table->unsignedBigInteger('user_id')->notNullable();
+            $table->unsignedBigInteger('user_id');
             
             // Ticket subject/title
-            $table->string('subject', 255)->notNullable();
+            $table->string('subject', 255);
             
             // Detailed description of the issue
-            $table->text('description')->notNullable();
+            $table->text('description');
             
             // Category of the issue
             $table->enum('category', [

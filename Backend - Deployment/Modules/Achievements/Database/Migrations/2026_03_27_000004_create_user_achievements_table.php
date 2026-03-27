@@ -21,11 +21,11 @@ return new class extends Migration
             // Primary key
             $table->id();
             
-            // User who earned the achievement
-            $table->unsignedBigInteger('user_id')->notNullable();
+            // Achievement earned
+            $table->unsignedBigInteger('achievement_id');
             
-            // Achievement that was earned
-            $table->unsignedBigInteger('achievement_id')->notNullable();
+            // Student who earned it
+            $table->unsignedBigInteger('user_id');
             
             // When the achievement was earned
             $table->timestamp('achieved_at')->useCurrent();
