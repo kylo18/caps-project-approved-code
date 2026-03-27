@@ -6,17 +6,12 @@ import useToast from "../hooks/useToast";
 import collegeLogo from "/src/assets/college-logo.png";
 import { logoutUser } from "../utils/logoutUser";
 
+import { version } from "../../package.json";
+import AppVersion from "../components/appVersion";
+
 // Utility to get a random color from a palette
 const AVATAR_COLORS = [
-  "bg-orange-500",
-  "bg-green-700",
-  "bg-blue-600",
-  "bg-purple-600",
-  "bg-pink-500",
-  "bg-yellow-500",
-  "bg-red-500",
-  "bg-teal-600",
-  "bg-indigo-600",
+  "bg-orange-500"
 ];
 function getRandomAvatarColor() {
   return AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
@@ -90,7 +85,7 @@ const AdminHeader = ({ title, className = "" }) => {
   const [wasProfileModalOpen, setWasProfileModalOpen] = useState(false);
 
   // Store a persistent color for the avatar per user
-  const [avatarColor, setAvatarColor] = useState("bg-gray-300");
+  const [avatarColor, setAvatarColor] = useState("bg-orange-500");
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -203,12 +198,7 @@ const AdminHeader = ({ title, className = "" }) => {
 
   useEffect(() => {
     if (userInfo) {
-      let color = getPersistedAvatarColor(userInfo);
-      if (!color) {
-        color = getRandomAvatarColor();
-        setPersistedAvatarColor(userInfo, color);
-      }
-      setAvatarColor(color);
+      setAvatarColor("bg-orange-500");
     }
   }, [userInfo]);
 
@@ -415,6 +405,7 @@ const AdminHeader = ({ title, className = "" }) => {
       <div className="outfit-400 border-color fixed top-0 left-0 z-49 flex h-[44px] w-full items-center justify-between border-b bg-white px-6 py-[10px] sm:z-52">
         <div className="-ml-3 flex items-center gap-2">
           <img src={collegeLogo} alt="College Logo" className="size-[30px]" />
+          <AppVersion />
         </div>
 
         {/* Actions */}

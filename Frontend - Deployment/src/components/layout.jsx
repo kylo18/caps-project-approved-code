@@ -74,7 +74,9 @@ const Layout = () => {
     location.pathname === "/faculty/subjects" ||
     location.pathname === "/student/subjects";
 
+  //New Added for Student Dashboard Page 
   const isStudentDashboardPage = location.pathname === "/student-dashboard";
+  const isStudentPage = Number(role_id) === 1;
 
   return (
     <div className="min-h-screen">
@@ -101,7 +103,8 @@ const Layout = () => {
             isPrintPersonalQuiz ||
             isQuizPage ||
             isPracticeExamPage ||
-            isMobile
+            isMobile ||
+            isStudentPage
               ? "ml-0"
               : isLibrariesPage
                 ? "ml-[63px]"

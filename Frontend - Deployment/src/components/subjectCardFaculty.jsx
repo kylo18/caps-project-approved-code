@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import SubPhoto from "../assets/gottfield.jpg";
 import { Textfit } from "react-textfit";
 
@@ -24,6 +25,7 @@ const SubjectCard = ({
   searchQuery,
   setSearchQuery,
 }) => {
+  const navigate = useNavigate();
   // Move all useState declarations to the top
   const [mobileIndicatorStyle, setMobileIndicatorStyle] = useState({
     left: 0,

@@ -54,6 +54,16 @@ import QuizInfo from "./pages/QuizInfo";
 import StudentQuiz from "./pages/StudentQuiz";
 import StudentQuizResults from "./pages/StudentQuizResults";
 
+import Leaderboard from "./pages/Leaderboard"; //Added for leaderboard page
+
+import StudentAnalyticsDashboard from "./pages/StudentAnalyticsDashboard"; // Added for student analytics dashboard
+
+import ContentAnalytics   from "./pages/ContentAnalytics";
+import DifficultyAnalytics from "./pages/DifficultyAnalytics";
+import MasteryAnalytics   from "./pages/MasteryAnalytics";
+
+import ScoreHistory from "./pages/ScoreHistory"; //new added for achievements component
+
 function App() {
   return (
     <Router>
@@ -98,6 +108,14 @@ function App() {
           element={<ProtectedRoute element={<Layout />} />}
         >
           <Route index element={<ArchivedClass />} />
+        </Route>
+
+        {/* Leaderboard */}
+        <Route
+          path="/leaderboard"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<Leaderboard />} />
         </Route>
 
         {/* Archived quizzes */}
@@ -289,11 +307,45 @@ function App() {
           <Route index element={<StudentQuizResults />} />
         </Route>
 
+        {/* Analytics Route */}
+        <Route
+          path="/analytics"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<StudentAnalyticsDashboard />} />
+        </Route>
+
+        <Route  //for web
+          path="/analytics/score-history"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<ScoreHistory />} />
+        </Route>
+
+        {/* Achievemnt Score History Route */}
+        <Route  //for mobile
+          path="/score-history"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<ScoreHistory />} />
+        </Route>
+
         {/* Users Route */}
         <Route path="/users" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<Users />} />
           <Route path="users" element={<Users />} />
         </Route>
+
+        <Route path="/analytics/content"    element={<ProtectedRoute element={<Layout />} />}>
+          <Route index element={<ContentAnalytics />} />
+        </Route>
+        <Route path="/analytics/difficulty" element={<ProtectedRoute element={<Layout />} />}>
+          <Route index element={<DifficultyAnalytics />} />
+        </Route>
+        <Route path="/analytics/mastery"    element={<ProtectedRoute element={<Layout />} />}>
+          <Route index element={<MasteryAnalytics />} />
+        </Route>
+        
       </Routes>
     </Router>
   );
