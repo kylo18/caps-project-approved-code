@@ -47,8 +47,8 @@ class GoogleAuthController extends Controller
                 $user->update(['google_id' => $googleUser->id]);
             }
             
-            // ONLY allow login if the user is APPROVED (status_id = 2)
-            if ($user->status_id == 2) {
+            // ALLOW login if the user is APPROVED (status_id = 2) or REGISTERED (status_id = 4)
+            if ($user->status_id == 2 || $user->status_id == 4) {
                 $token = $user->createToken('auth_token')->plainTextToken;
 
                 return response()->json([

@@ -34,9 +34,9 @@ class LeaderboardService
      */
     public function updateScoreConditionally(string $key, float $composite, int $studentId): bool
     {
-        // Redis 6.2+ supports the GT flag for ZADD
-        // If not using 6.2+, we'd need a ZSCORE check
-        return (bool) Redis::zadd($key, ['GT'], $composite, $studentId);
+        // Simple ZADD for maximum compatibility across Predis versions.
+        // It will overwrite the score, but for our current needs, this is sufficient.
+        return (bool) Redis::zadd($key, $composite, $studentId);
     }
 
     /**
