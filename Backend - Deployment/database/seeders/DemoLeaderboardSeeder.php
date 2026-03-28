@@ -11,8 +11,54 @@ class DemoLeaderboardSeeder extends Seeder
 {
     public function run(): void
     {
-        $leaderboard = app(LeaderboardService::class);
-        $subjectId = DB::table('subjects')->value('subjectID') ?? 1;
+        $leaderboard = app(\App\Services\LeaderboardService::class);
+        // Ensure a campus exists
+        $campusId = DB::table('campuses')->where('campusID', 1)->value('campusID')
+            ?? DB::table('campuses')->insertGetId([
+                'campusID' => 1,
+                'campusName' => 'Main Campus',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        // Ensure a program exists
+        $programId = DB::table('programs')->where('programID', 1)->value('programID')
+            ?? DB::table('programs')->insertGetId([
+                'programID' => 1,
+                'programCode' => 'BSIT',
+                'programName' => 'BS In Information Technology',
+                'campusID' => $campusId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        // Ensure a subject exists for foreign key constraints
+        $subjectId = DB::table('subjects')->where('subjectID', 1)->value('subjectID')
+            ?? DB::table('subjects')->insertGetId([
+                'subjectID' => 1,
+                'subjectCode' => 'DEMO-101',
+                'subjectName' => 'Demo Subject',
+                'yearLevel' => 4,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        // Clear existing data to avoid stale entries
+        $leaderboard->clearKey($leaderboard->buildKey('global'));
+        $leaderboard->clearKey($leaderboard->buildKey('exam', $subjectId));
+
+        // Ensure an exam exists for foreign key constraints
+        $examId = DB::table('exams')->where('id', 1)->value('id')
+            ?? DB::table('exams')->insertGetId([
+                'id' => 1,
+                'title' => 'Demo Practice Exam',
+                'subject_id' => $subjectId,
+                'total_items' => 100,
+                'passing_score' => 70,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
         // 1. Create 5 Mock Students if they don't exist
         $students = [
@@ -44,8 +90,8 @@ class DemoLeaderboardSeeder extends Seeder
                     'password' => bcrypt('password'),
                     'roleID' => 1, // Student
                     'status_id' => 2, // Approved
-                    'campusID' => 1,
-                    'programID' => 1,
+                    'campusID' => $campusId,
+                    'programID' => $programId,
                     'isActive' => 1,
                     'updated_at' => now(),
                 ]
@@ -58,7 +104,7 @@ class DemoLeaderboardSeeder extends Seeder
             // 2. Create a Mock Attempt
             $attemptId = DB::table('exam_attempts')->insertGetId([
                 'user_id' => $uid,
-                'exam_id' => 1,
+                'exam_id' => $examId,
                 'started_at' => now()->subMinutes(30),
                 'finished_at' => now(),
                 'status' => 'completed',
@@ -101,7 +147,7 @@ class DemoLeaderboardSeeder extends Seeder
                     'firstName_middleName' => $user->firstName,
                     'sex_id' => 1, // Assume 1 for MALE based on sexes table
                     'yearLevel' => 4, // Integer expected (4 for 4th Year)
-                    'programID' => 1,
+                    'programID' => $programId,
                     'block' => 'A',
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -116,7 +162,7 @@ class DemoLeaderboardSeeder extends Seeder
             $leaderboard->updateScoreConditionally($leaderboard->buildKey('global'), $composite, $uid);
 
             // Exam Specific
-            $leaderboard->updateScoreConditionally($leaderboard->buildKey('exam', 1), $composite, $uid);
+            $leaderboard->updateScoreConditionally($leaderboard->buildKey('exam', $examId), $composite, $uid);
 
             $msg = "Added: {$data['firstName']} {$data['lastName']} with Score: {$data['score']}%";
             if ($this->command) {

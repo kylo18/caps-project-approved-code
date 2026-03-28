@@ -73,4 +73,12 @@ class LeaderboardService
     {
         return (int) Redis::zcard($key);
     }
+
+    /**
+     * Clear all data from a specific leaderboard key.
+     */
+    public function clearKey(string $key): void
+    {
+        \Illuminate\Support\Facades\Redis::del($key);
+    }
 }
