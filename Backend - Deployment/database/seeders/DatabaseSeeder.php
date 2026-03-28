@@ -23,10 +23,7 @@ require_once base_path('Modules/Users/Database/Seeders/SexesTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/CurriculumSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/RemarksSeeder.php');
 require_once base_path('Modules/PracticeExams/Database/Seeders/LeaderboardDummyDataSeeder.php');
-require_once base_path('Modules/Analytics/Database/Seeders/AnalyticsSeeder.php');
-require_once base_path('Modules/Achievements/Database/Seeders/AchievementSeeder.php');
-require_once base_path('Modules/Support/Database/Seeders/SupportSeeder.php');
-require_once base_path('Modules/Notifications/Database/Seeders/NotificationSeeder.php');
+require_once base_path('database/seeders/FeatureTablesSeeder.php');
 
 
 class DatabaseSeeder extends Seeder
@@ -64,11 +61,8 @@ class DatabaseSeeder extends Seeder
             // 6. Practice exams (needs users and subjects)
             \Modules\PracticeExams\Database\Seeders\LeaderboardDummyDataSeeder::class,
             
-            // 7. NEW FEATURES - runs AFTER students exist
-            \Modules\Analytics\Database\Seeders\AnalyticsSeeder::class,
-            \Modules\Achievements\Database\Seeders\AchievementSeeder::class,
-            \Modules\Support\Database\Seeders\SupportSeeder::class,
-            \Modules\Notifications\Database\Seeders\NotificationSeeder::class,
+            // 7. Feature tables from database/migrations
+            \Database\Seeders\FeatureTablesSeeder::class,
         ];
 
         foreach ($seeders as $seeder) {
