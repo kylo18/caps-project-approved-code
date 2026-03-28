@@ -39,8 +39,19 @@ class LeaderboardController extends Controller
         if (!empty($topRedis)) {
             $studentIds = array_keys($topRedis);
             $users = DB::table('users')
-                ->whereIn('userID', $studentIds)
-                ->select('userID', 'firstName', 'lastName', 'userCode', 'program')
+                ->leftJoin('programs', 'users.programID', '=', 'programs.programID')
+                ->leftJoin('students', 'users.userCode', '=', 'students.userCode')
+                ->whereIn('users.userID', $studentIds)
+                ->select(
+                    'users.userID', 
+                    'users.firstName', 
+                    'users.lastName', 
+                    'users.userCode', 
+                    'programs.programName as program',
+                    'programs.programName as course', // Added course alias
+                    'students.yearLevel as year', // Added year alias
+                    'students.yearLevel as yearLevel'
+                )
                 ->get()
                 ->keyBy('userID');
 
@@ -62,6 +73,9 @@ class LeaderboardController extends Controller
                     'name' => $user ? trim(($user->firstName ?? '') . ' ' . ($user->lastName ?? '')) : 'Unknown Student',
                     'userCode' => $user->userCode ?? null,
                     'program' => $user->program ?? null,
+                    'course' => $user->course ?? null,
+                    'year' => $user->year ?? null,
+                    'yearLevel' => $user->yearLevel ?? null,
                     'score' => (int) floor($composite / 10000000000.0),
                     'totalExams' => (int) ($examCounts[$studentId] ?? 0),
                 ];
@@ -139,16 +153,21 @@ class LeaderboardController extends Controller
     {
         $query = DB::table('exam_analytics')
             ->join('users', 'exam_analytics.user_id', '=', 'users.userID')
+            ->leftJoin('programs', 'users.programID', '=', 'programs.programID')
+            ->leftJoin('students', 'users.userCode', '=', 'students.userCode')
             ->select(
                 'users.userID as student_id',
                 'users.firstName',
                 'users.lastName',
                 'users.userCode',
-                'users.program'
+                'programs.programName as program',
+                'programs.programName as course',
+                'students.yearLevel as year',
+                'students.yearLevel as yearLevel'
             )
             ->selectRaw('MAX(exam_analytics.overall_score) as score, COUNT(DISTINCT exam_analytics.attempt_id) as totalExams')
             ->where('users.roleID', 1)
-            ->groupBy('users.userID', 'users.firstName', 'users.lastName', 'users.userCode', 'users.program')
+            ->groupBy('users.userID', 'users.firstName', 'users.lastName', 'users.userCode', 'programs.programName')
             ->orderByDesc('score')
             ->limit($limit);
 

@@ -23,28 +23,35 @@ class DemoLeaderboardSeeder extends Seeder
             ['firstName' => 'Emilio', 'lastName' => 'Aguinaldo', 'email' => 'emilio@example.test', 'score' => 75],
         ];
 
-        $this->command->info('Seeding Demo Data...');
+        if ($this->command) {
+            $this->command->info('Seeding Demo Data...');
+        } else {
+            echo "Seeding Demo Data...\n";
+        }
 
         foreach ($students as $data) {
-            // Create User
-            $userId = DB::table('users')->updateOrInsert(
+            // Check if user exists
+            $user = DB::table('users')->where('email', $data['email'])->first();
+            $userCode = $user ? $user->userCode : 'STU-' . rand(1000, 9999);
+
+            // Create/Update User
+            DB::table('users')->updateOrInsert(
                 ['email' => $data['email']],
                 [
                     'firstName' => $data['firstName'],
                     'lastName' => $data['lastName'],
-                    'userCode' => 'STU-' . rand(1000, 9999),
+                    'userCode' => $userCode,
                     'password' => bcrypt('password'),
                     'roleID' => 1, // Student
                     'status_id' => 2, // Approved
-                    'campusID' => 1, // Added to fix missing default value
-                    'programID' => 1, // Added to ensure completeness
+                    'campusID' => 1,
+                    'programID' => 1,
                     'isActive' => 1,
-                    'created_at' => now(),
                     'updated_at' => now(),
                 ]
             );
 
-            // Get the ID (since updateOrInsert doesn't return it directly)
+            // Get the fresh user data
             $user = DB::table('users')->where('email', $data['email'])->first();
             $uid = $user->userID;
 
@@ -70,19 +77,59 @@ class DemoLeaderboardSeeder extends Seeder
                 ]
             );
 
-            // 4. PUSH TO REDIS LEADERBOARD (The most important part for the demo)
+            // 4. Create Practice Exam Result Record
+            DB::table('practice_exam_results')->updateOrInsert(
+                [
+                    'userID' => $uid,
+                    'subjectID' => $subjectId,
+                ],
+                [
+                    'totalPoints' => 100,
+                    'earnedPoints' => $data['score'],
+                    'percentage' => $data['score'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+
+            // 5. Create Student Record (Ensures Year Level is visible)
+            DB::table('students')->updateOrInsert(
+                ['userCode' => $user->userCode],
+                [
+                    'fullName' => $user->firstName . ' ' . $user->lastName,
+                    'lastName' => $user->lastName,
+                    'firstName_middleName' => $user->firstName,
+                    'sex_id' => 1, // Assume 1 for MALE based on sexes table
+                    'yearLevel' => 4, // Integer expected (4 for 4th Year)
+                    'programID' => 1,
+                    'block' => 'A',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+
+            // 6. PUSH TO REDIS LEADERBOARD
             $finishedAt = Carbon::now();
             $composite = $leaderboard->computeComposite($data['score'], $finishedAt);
-            
+
             // Global
             $leaderboard->updateScoreConditionally($leaderboard->buildKey('global'), $composite, $uid);
-            
+
             // Exam Specific
             $leaderboard->updateScoreConditionally($leaderboard->buildKey('exam', 1), $composite, $uid);
 
-            $this->command->info("Added: {$data['firstName']} {$data['lastName']} with Score: {$data['score']}%");
+            $msg = "Added: {$data['firstName']} {$data['lastName']} with Score: {$data['score']}%";
+            if ($this->command) {
+                $this->command->info($msg);
+            } else {
+                echo $msg . "\n";
+            }
         }
 
-        $this->command->info('Demo data seeded successfully! Check your leaderboard now.');
+        if ($this->command) {
+            $this->command->info('Demo data seeded successfully! Check your leaderboard now.');
+        } else {
+            echo "Demo data seeded successfully!\n";
+        }
     }
 }

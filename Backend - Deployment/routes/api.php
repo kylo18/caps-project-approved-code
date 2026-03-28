@@ -31,13 +31,6 @@ use Modules\PersonalExams\Controllers\StudentQuizResultController;
 use Modules\PersonalExams\Controllers\StudentQuizController;
 use Modules\PersonalExams\Controllers\QuizSessionController;
 
-use Modules\Leaderboard\Controllers\LeaderboardController;
-
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/leaderboard',    [LeaderboardController::class, 'index']);
-    Route::get('/leaderboard/me', [LeaderboardController::class, 'me']);
-});
-
 /*
 |--------------------------------------------------------------------------
 | Public API Routes (No authentication required)
@@ -81,6 +74,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/practice-exam/overall-leaderboard', [PracticeExamLeaderboardController::class, 'overallLeaderboard']);
     Route::get('/practice-exam/overall-recent-takers', [PracticeExamLeaderboardController::class, 'overallRecentTakers']);
 
+    // Common Subjects listing for all authenticated users
+    Route::get('/subjects', [SubjectController::class, 'index']);
+
+    // Year Levels for all authenticated users
+    Route::get('/year-levels', [YearLevelController::class, 'index']);
+
     // Practice Exam analytics endpoints used by frontend content / difficulty views
     Route::get('/practice-exam/content-analytics', [AnalyticsController::class, 'getPracticeContentAnalytics']);
     Route::get('/practice-exam/difficulty-analytics', [AnalyticsController::class, 'getPracticeDifficultyAnalytics']);
@@ -116,15 +115,11 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::post('/questions/choices', [ChoiceController::class, 'store']);
     Route::get('/questions/{questionID}/choices', [ChoiceController::class, 'showChoices']);
 
-    // Subjects
-    Route::get('/subjects', [SubjectController::class, 'index']);
+    // Subjects (Restricted operations like assignment)
     Route::post('/faculty/assign-subject', [FacultySubjectController::class, 'assignSubject']);
     Route::get('/faculty/my-subjects', [FacultySubjectController::class, 'mySubjects']);
     Route::get('/faculty/availableSubjects', [FacultySubjectController::class, 'availableSubjects']);
     Route::delete('/remove-assigned-subject/{subjectID}', [FacultySubjectController::class, 'removeAssignedSubject']);
-
-    // Year Levels
-    Route::get('/year-levels', [YearLevelController::class, 'index']);
 
     // Questions
     Route::post('/questions/add', [QuestionController::class, 'store']);
@@ -196,10 +191,9 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     // Get exam questions status
     Route::get('/subjects/{subjectID}/exam-questions-status', [SubjectController::class, 'getExamQuestionsStatus']);
 
-    // Get leaderboard for a subject (enhanced version)
+    // Practice Exam Leaderboard & Recent Takers (Faculty enhanced version)
     Route::get('/practice-exam/leaderboard/{subjectID}', [PracticeExamLeaderboardController::class, 'leaderboard']);
     Route::get('/practice-exam/recent-takers/{subjectID}', [PracticeExamLeaderboardController::class, 'recentTakers']);
-    Route::get('/practice-exam/overall-leaderboard', [PracticeExamLeaderboardController::class, 'overallLeaderboard']);
 
     // Personal Classes (Faculty)
     Route::post('/classes', [ClassController::class, 'store']);
@@ -240,16 +234,26 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/quiz-sessions/faculty-sessions', [QuizSessionController::class, 'facultySessions']);
 
     // ── Analytics Routes — Faculty, Program Chair, Dean (roleID: 2,3,4,5) ───
-    Route::get('/analytics/content/lessons/{courseId}',
-        [AnalyticsController::class, 'getMostViewedLessons']);
-    Route::get('/analytics/content/questions/{examId}',
-        [AnalyticsController::class, 'getQuestionStats']);
-    Route::get('/analytics/content/skipped/{courseId}',
-        [AnalyticsController::class, 'getMostSkippedTopics']);
-    Route::get('/analytics/difficulty/{topicId}',
-        [AnalyticsController::class, 'getDifficultyAnalytics']);
-    Route::get('/analytics/faculty/summary/{classId}',
-        [AnalyticsController::class, 'getFacultySummary']);
+    Route::get(
+        '/analytics/content/lessons/{courseId}',
+        [AnalyticsController::class, 'getMostViewedLessons']
+    );
+    Route::get(
+        '/analytics/content/questions/{examId}',
+        [AnalyticsController::class, 'getQuestionStats']
+    );
+    Route::get(
+        '/analytics/content/skipped/{courseId}',
+        [AnalyticsController::class, 'getMostSkippedTopics']
+    );
+    Route::get(
+        '/analytics/difficulty/{topicId}',
+        [AnalyticsController::class, 'getDifficultyAnalytics']
+    );
+    Route::get(
+        '/analytics/faculty/summary/{classId}',
+        [AnalyticsController::class, 'getFacultySummary']
+    );
 });
 
 /*
@@ -300,24 +304,42 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
     Route::get('/quiz-sessions', [QuizSessionController::class, 'studentSessions']);
 
     // ── Analytics Routes — Students (roleID: 1) ───────────────────────────
-    Route::post('/analytics/score/{attemptId}',
-        [AnalyticsController::class, 'computeScore']);
-    Route::get('/analytics/weak-topics/{userId}',
-        [AnalyticsController::class, 'getWeakTopics']);
-    Route::get('/analytics/recommendations/{attemptId}',
-        [AnalyticsController::class, 'getRecommendations']);
-    Route::get('/analytics/rank/{examId}/{userId}',
-        [AnalyticsController::class, 'getRank']);
-    Route::get('/analytics/progress/{userId}/{subjectId}',
-        [AnalyticsController::class, 'getProgress']);
-    Route::post('/analytics/lesson-view',
-        [AnalyticsController::class, 'logLessonView']);
-    Route::post('/analytics/question-stats',
-        [AnalyticsController::class, 'updateQuestionStats']);
-    Route::get('/analytics/subject-score/{userId}/{subjectId}',
-    [AnalyticsController::class, 'getSubjectScore']);
-    Route::get('/analytics/student-summary/{userId}/{attemptId}',
-        [AnalyticsController::class, 'getStudentSummary']);
+    Route::post(
+        '/analytics/score/{attemptId}',
+        [AnalyticsController::class, 'computeScore']
+    );
+    Route::get(
+        '/analytics/weak-topics/{userId}',
+        [AnalyticsController::class, 'getWeakTopics']
+    );
+    Route::get(
+        '/analytics/recommendations/{attemptId}',
+        [AnalyticsController::class, 'getRecommendations']
+    );
+    Route::get(
+        '/analytics/rank/{examId}/{userId}',
+        [AnalyticsController::class, 'getRank']
+    );
+    Route::get(
+        '/analytics/progress/{userId}/{subjectId}',
+        [AnalyticsController::class, 'getProgress']
+    );
+    Route::post(
+        '/analytics/lesson-view',
+        [AnalyticsController::class, 'logLessonView']
+    );
+    Route::post(
+        '/analytics/question-stats',
+        [AnalyticsController::class, 'updateQuestionStats']
+    );
+    Route::get(
+        '/analytics/subject-score/{userId}/{subjectId}',
+        [AnalyticsController::class, 'getSubjectScore']
+    );
+    Route::get(
+        '/analytics/student-summary/{userId}/{attemptId}',
+        [AnalyticsController::class, 'getStudentSummary']
+    );
 });
 
 /*
@@ -374,8 +396,9 @@ Route::get('storage/question_images/{filename}', function ($filename) {
 | Leaderboard Routes
 |--------------------------------------------------------------------------
 */
+Route::get('/leaderboard', [Modules\Leaderboard\Controllers\LeaderboardController::class, 'index'])->name('leaderboard.index');
+
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/leaderboard', [Modules\Leaderboard\Controllers\LeaderboardController::class, 'index'])->name('leaderboard.index');
     Route::get('/leaderboard/me', [Modules\Leaderboard\Controllers\LeaderboardController::class, 'me'])->name('leaderboard.me');
 });
 

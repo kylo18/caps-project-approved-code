@@ -58,7 +58,7 @@ class RebuildLeaderboard extends Command
             ->join('exam_attempts', 'exam_analytics.attempt_id', '=', 'exam_attempts.id')
             ->where('exam_attempts.status', 'completed')
             ->select('exam_analytics.user_id')
-            ->selectRaw('MAX((overall_score * 10000000000) + (9999999999 - UNIX_TIMESTAMP(exam_attempts.completed_at))) as best_composite')
+            ->selectRaw('MAX((overall_score * 10000000000) + (9999999999 - UNIX_TIMESTAMP(exam_attempts.updated_at))) as best_composite')
             ->groupBy('exam_analytics.user_id')
             ->get();
 
@@ -100,7 +100,7 @@ class RebuildLeaderboard extends Command
                 ->where('exam_attempts.status', 'completed')
                 ->where('exam_attempts.exam_id', $examId)
                 ->select('exam_analytics.user_id')
-                ->selectRaw('MAX((overall_score * 10000000000) + (9999999999 - UNIX_TIMESTAMP(exam_attempts.completed_at))) as best_composite')
+                ->selectRaw('MAX((overall_score * 10000000000) + (9999999999 - UNIX_TIMESTAMP(exam_attempts.updated_at))) as best_composite')
                 ->groupBy('exam_analytics.user_id')
                 ->get();
 
@@ -139,7 +139,7 @@ class RebuildLeaderboard extends Command
                 ->where('exam_attempts.status', 'completed')
                 ->where('class_enrollments.classID', $classId)
                 ->select('exam_analytics.user_id')
-                ->selectRaw('MAX((overall_score * 1000000) + (9999999999 - UNIX_TIMESTAMP(exam_attempts.completed_at))) as best_composite')
+                ->selectRaw('MAX((overall_score * 10000000000) + (9999999999 - UNIX_TIMESTAMP(exam_attempts.updated_at))) as best_composite')
                 ->groupBy('exam_analytics.user_id')
                 ->get();
 

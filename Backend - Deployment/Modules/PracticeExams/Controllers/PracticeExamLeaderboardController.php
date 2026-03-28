@@ -326,6 +326,7 @@ class PracticeExamLeaderboardController extends Controller
                     'firstName' => $user->firstName,
                     'lastName' => $user->lastName,
                     'course' => $user->program ? $user->program->programName : 'N/A',
+                    'program' => $user->program ? $user->program->programName : 'N/A',
                     'programID' => $user->programID,
                     'year' => $student ? $student->yearLevel : null,
                     'yearLevel' => $student ? $student->yearLevel : null,
