@@ -27,7 +27,7 @@ return new class extends Migration
             $table->id();
             
             // User who receives the notification
-            $table->unsignedBigInteger('user_id')->notNullable();
+            $table->unsignedBigInteger('user_id');
             
             // Type of notification for frontend styling
             $table->enum('type', [
@@ -37,13 +37,16 @@ return new class extends Migration
                 'system_announcement',
                 'milestone',
                 'enrollment'
-            ])->notNullable();
+            ]);
+            
+            // Name of the notification type/category
+            $table->string('name', 100);
             
             // Notification title
-            $table->string('title', 255)->notNullable();
+            $table->string('title', 255);
             
             // Notification message body
-            $table->text('message')->notNullable();
+            $table->text('message');
             
             // Optional JSON data for deep linking/actions
             $table->json('data')->nullable();

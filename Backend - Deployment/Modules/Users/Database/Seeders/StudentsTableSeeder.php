@@ -112,9 +112,28 @@ class StudentsTableSeeder extends Seeder
                     try {
                         // Update or create student record
                         DB::table('students')->updateOrInsert(
-                            ['userCode' => $studentData['userCode']], // The unique key to check
-                            $studentData // The data to update or insert
+                            ['userCode' => $studentData['userCode']],
+                            $studentData
                         );
+
+                        // Sync to users table so analytics/leaderboard can work
+                        DB::table('users')->updateOrInsert(
+                            ['userCode' => $studentData['userCode']],
+                            [
+                                'firstName' => $studentData['lastName'], // Approximate for dummy data
+                                'lastName' => $studentData['firstName_middleName'],
+                                'email' => strtolower(str_replace(' ', '', $studentData['userCode'])) . '@student.university.edu',
+                                'password' => bcrypt('12345678'),
+                                'roleID' => 1, // Student
+                                'campusID' => 1,
+                                'isActive' => true,
+                                'status_id' => 1, // registered
+                                'programID' => $studentData['programID'],
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]
+                        );
+
                         $insertedRecords++;
                         Log::info("Successfully processed student with ID: {$studentData['userCode']}");
                     } catch (\Exception $e) {

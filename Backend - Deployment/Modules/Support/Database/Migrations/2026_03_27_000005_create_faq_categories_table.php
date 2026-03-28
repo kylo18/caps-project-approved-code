@@ -21,8 +21,8 @@ return new class extends Migration
             // Primary key
             $table->id();
             
-            // Category name
-            $table->string('name', 100)->notNullable();
+            // Subject matter for categorization
+            $table->string('subject', 100);
             
             // Optional description
             $table->text('description')->nullable();
