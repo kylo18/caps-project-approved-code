@@ -1,0 +1,21 @@
+{
+  "appId": "com.caps.mobile",
+  "appName": "CAPS",
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#FE6902"
+    },
+    "StatusBar": {
+      "style": "light",
+      "backgroundColor": "#FE6902"
+    }
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

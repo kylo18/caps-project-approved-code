@@ -1,0 +1,12 @@
+node_modules
+package-lock.json
+.git
+.gitignore
+*.md
+.vscode
+.idea
+android
+ios
+dist
+.DS_Store
+*.log
