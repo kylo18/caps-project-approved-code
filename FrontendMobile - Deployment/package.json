@@ -21,7 +21,7 @@
     "@capgo/capacitor-llm": "^8.0.8",
     "@mediapipe/tasks-genai": "^0.10.14",
     "@capacitor/filesystem": "^6.0.0",
-    "@capacitor/file-transfer": "^8.0.0",
+    "@capacitor/file-transfer": "^2.0.4",
     "react-markdown": "^9.0.1",
     "remark-math": "^6.0.0",
     "rehype-katex": "^7.0.0",
