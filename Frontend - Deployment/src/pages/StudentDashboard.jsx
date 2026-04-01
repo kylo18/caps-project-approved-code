@@ -4,7 +4,150 @@ import { getApiUrl } from "../utils/config";
 import DashboardCarousel from "../components/DashboardCarousel";
 import StudentSubjectCard from "../components/StudentSubjectCard";
 
-// Renders the student dashboard.
+
+/* ── Colour palette cycling for the left-panel icon bg ─────── */
+const ICON_COLORS = [
+  { bg: "#fff7ed", iconColor: "#f97316" }, // orange
+  { bg: "#eff6ff", iconColor: "#3b82f6" }, // blue
+  { bg: "#f0fdf4", iconColor: "#22c55e" }, // green
+  { bg: "#fdf4ff", iconColor: "#a855f7" }, // purple
+  { bg: "#fef2f2", iconColor: "#ef4444" }, // red
+  { bg: "#f0fdfa", iconColor: "#14b8a6" }, // teal
+];
+
+/* ── Icon pool — varied per card ────────────────────────────── */
+const SUBJECT_ICONS = [
+  "bx bx-book",
+  "bx bx-calculator",
+  "bx bx-dna",
+  "bx bx-globe",
+  "bx bx-heart-plus",
+  "bx bx-code",
+  "bx bx-palette",
+  "bx bx-music",
+  "bx bx-chart-sine",
+  "bx bx-briefcase-alt",
+  "bx bx-leaf",
+];
+
+/* Pick icon + color deterministically from subjectID */
+const getCardStyle = (subjectID) => {
+  const n = parseInt(subjectID, 10) || 0;
+  return {
+    icon: SUBJECT_ICONS[n % SUBJECT_ICONS.length],
+    ...ICON_COLORS[n % ICON_COLORS.length],
+  };
+};
+
+/* ── Expand program abbreviations to full names ───────── */
+const PROGRAM_NAMES = {
+  // General
+  GE: "General Subject",
+  // Engineering
+  CpE: "Computer Engineering",
+  CE: "Civil Engineering",
+  ECE: "Electronics & Communications Engineering",
+  EE: "Electrical Engineering",
+  ABE: "Agricultural and Biosystems Engineering",
+};
+
+const expandProgram = (name) => {
+  if (!name) return "—";
+  // If exact match in map, return full name
+  if (PROGRAM_NAMES[name]) return PROGRAM_NAMES[name];
+  // If the name starts with "BS " or "AB " it's already expanded
+  if (/^(BS|AB|BEd|BEEd|Bachelor)\b/.test(name)) return name;
+  return name;
+};
+
+/* ── Subject card ───────────────────────────────────────────── */
+const SubjectCard = ({ subject, onExplore }) => {
+  const rows = [
+    {
+      label: "TOTAL QUESTIONS",
+      value: subject.questionCount
+        ? `${subject.questionCount} Practice Questions`
+        : "—",
+    },
+    {
+      label: "DURATION",
+      value: subject.durationMinutes
+        ? `${subject.durationMinutes} Minutes`
+        : "No timer",
+    },
+    {
+      label: "YEAR LEVEL",
+      value: subject.yearLevel || "—",
+    },
+    {
+      label: "PROGRAM",
+      value: expandProgram(subject.programName),
+    },
+  ];
+
+  const cardStyle = getCardStyle(subject.subjectID);
+
+  return (
+    <div className="relative overflow-hidden rounded-xl rounded-b-xl border border-gray-200 bg-white transition hover:shadow-md">
+      <div className="flex flex-col sm:flex-row">
+        {/* Left panel — checker-grid background */}
+        <div
+          className="relative flex w-full shrink-0 flex-row items-center gap-3 border-b border-gray-100 px-4 py-4 sm:w-48 sm:flex-col sm:items-start sm:justify-center sm:gap-0 sm:border-r sm:border-b-0 sm:px-5 sm:py-6"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(0deg,transparent,transparent 15px,rgba(0,0,0,0.03) 15px,rgba(0,0,0,0.03) 16px),repeating-linear-gradient(90deg,transparent,transparent 15px,rgba(0,0,0,0.03) 15px,rgba(0,0,0,0.03) 16px)",
+          }}
+        >
+          <div className="mb-0 flex h-10 w-10 shrink-0 items-center justify-center rounded-full sm:mb-1 sm:h-9 sm:w-9">
+            <i
+              className={`${cardStyle.icon} text-[22px] sm:text-[20px]`}
+              style={{ color: cardStyle.iconColor }}
+            />
+          </div>
+          <div>
+            <h3 className="outfit-700 text-[15px] leading-snug font-bold text-gray-900 sm:text-[16px]">
+              {subject.subjectName}
+            </h3>
+            <p className="outfit-500 mt-0 text-[12px] text-gray-400 sm:mt-1">
+              {subject.subjectCode}
+            </p>
+          </div>
+        </div>
+
+        {/* Right panel */}
+        <div className="flex flex-1 flex-col justify-between px-4 py-4 sm:px-6 sm:py-5">
+          <dl className="space-y-2">
+            {rows.map(({ label, value }) => (
+              <div
+                key={label}
+                className="flex flex-col sm:flex-row sm:items-start sm:gap-4"
+              >
+                <dt className="outfit-400 mb-0.5 w-full shrink-0 text-[10px] font-semibold tracking-wide text-gray-400 uppercase sm:mb-0 sm:w-36">
+                  {label}
+                </dt>
+                <dd className="outfit-400 text-[13px] text-gray-700">
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <div className="flex w-full justify-end">
+            <button
+              onClick={() => onExplore(subject)}
+              className="mt-4 flex w-max cursor-pointer items-center gap-1.5 text-[13px] font-semibold text-orange-500 transition hover:text-orange-600 sm:mt-5"
+            >
+              Start Exam
+              <i className="bx bx-arrow-right-stroke text-[18px] sm:text-[16px]" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── Main component ─────────────────────────────────────────── */
+
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [subjectID, setSubjectID] = useState("");

@@ -12,9 +12,17 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\UserApprovedMail;
 use App\Mail\UserDisapprovedMail;
 use Illuminate\Validation\Rule;
+use Modules\Users\Services\EmailNotificationService;
 
 class UserController extends Controller
 {
+    protected $emailService;
+
+    public function __construct(EmailNotificationService $emailService)
+    {
+        $this->emailService = $emailService;
+    }
+
     /**
      * Get all active users (Only Admins can access this).
      */
@@ -204,11 +212,13 @@ class UserController extends Controller
 
             $this->updateUserStatus($user, 'registered', true);
 
+
             try {
                 Mail::to($user->email)->send(new UserApprovedMail($user));
             } catch (\Exception $e) {
                 Log::warning('Failed to send approval email: ' . $e->getMessage());
             }
+
 
             return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
 
@@ -262,11 +272,13 @@ class UserController extends Controller
 
         $this->updateUserStatus($user, 'disapproved', false);
 
+
         try {
             Mail::to($user->email)->send(new UserDisapprovedMail($user));
         } catch (\Exception $e) {
             Log::warning('Failed to send disapproval email: ' . $e->getMessage());
         }
+
 
         return response()->json(['message' => 'User has been disapproved.', 'user' => $user], 200);
     }
@@ -673,9 +685,11 @@ class UserController extends Controller
             }
 
             $user->update([
-                'status_id' => $statusIds['registered'],
                 'isActive' => true
             ]);
+
+            // Send email notification
+            $this->emailService->sendStatusNotification($user, 'approved');
 
             $approved[] = $user;
         }

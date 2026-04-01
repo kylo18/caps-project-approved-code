@@ -30,7 +30,12 @@ class AppServiceProvider extends ServiceProvider
             base_path('Modules/Users/Database/Migrations'),
             base_path('Modules/Subjects/Database/Migrations'),
             base_path('Modules/PracticeExams/Database/Migrations'),
-        ]);
+            base_path('Modules/Semester/Database/Migrations'),
+            base_path('Modules/PersonalExams/Database/Migrations'),
+            base_path('Modules/PersonalClasses/Database/Migrations'),
+            base_path('Modules/Leaderboard/Database/Migrations'),
+        ]); 
+
 
         Schema::defaultStringLength(191);
 

@@ -1,36 +1,29 @@
 <?php
-
+//normalization
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
+return new class extends Migration {
     public function up(): void
     {
-        Schema::create('choices', function (Blueprint $table) {
-            $table->id('choiceID');
-            $table->unsignedBigInteger('questionID');
-            $table->text('choiceText')->nullable();
-            $table->boolean('isCorrect')->default(false);
-            $table->string('image')->nullable();
-            $table->integer('position')->default(0);
+        Schema::create('exam_attempts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users', 'userID')->onDelete('cascade');
+            $table->foreignId('exam_id')->constrained('exams', 'examID')->onDelete('cascade');
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('finished_at')->nullable();
+            $table->string('status')->default('in_progress');
+            // status: in_progress | completed | abandoned
             $table->timestamps();
-            $table->foreign('questionID')
-                  ->references('questionID')
-                  ->on('questions')
-                  ->onDelete('cascade');
+
+            $table->index(['user_id', 'exam_id']);
+            $table->index('status');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('choices');
+        Schema::dropIfExists('exam_attempts');
     }
-}; 
+};

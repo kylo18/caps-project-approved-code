@@ -54,8 +54,10 @@ const Sidebar = ({
             ? "/dean-dashboard"
             : "/";
 
+
   const baseMenuItems = [
     { icon: "bx-home-alt-3", label: "Dashboard", path: homePath },
+
   ];
   let facultyItems = [];
   if (parsedRoleId === 2) {
@@ -78,6 +80,7 @@ const Sidebar = ({
     ];
   }
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
+
   const adminFeatureItems = [
     { icon: "bx-support", label: "Support", path: "/admin/support" },
     {
@@ -87,6 +90,7 @@ const Sidebar = ({
     },
   ];
   const classes = [{ icon: "bx-book-bookmark", label: "Classes" }];
+
 
   let menuItems = [];
 
@@ -108,6 +112,7 @@ const Sidebar = ({
     setIsSubjectFocused(false);
     setSelectedSubject(null);
   };
+
 
   //commented out mobile bottom navigation to focus on desktop sidebar for now, can be re-enabled later when needed
   /*
@@ -337,6 +342,7 @@ const Sidebar = ({
                   </div>
                 </>
               )}
+
             </div>
           </div>
         </div>
@@ -351,7 +357,7 @@ const Sidebar = ({
   // Desktop sidebar (unchanged)
   return (
     <>
-      {/* Sidebar */}
+      {/* Sidebar yes*/}
       <div
         ref={sidebarRef}
         className={`fixed top-0 left-0 z-55 h-[100vh] border-r border-gray-300 bg-white px-2 py-3 text-gray-700 transition-all duration-300 ease-in-out dark:border-white/10 dark:bg-black dark:text-gray-200 ${isExpanded ? "w-[55.5px]" : "w-[55.5px]"
@@ -392,6 +398,7 @@ const Sidebar = ({
                       className={`bx ${item.icon} text-2xl hover:text-gray-800`}
                     ></i>
                   </Link>
+
                 )}
               </SideBarToolTip>
             </li>
@@ -399,6 +406,7 @@ const Sidebar = ({
         </ul>
 
         {parsedRoleId === 5 && (
+
           <div className="flex flex-col space-y-[5px]">
             <>
               <div className="mb-3 h-[1px] w-full bg-[rgb(200,200,200)] dark:bg-white/10"></div>

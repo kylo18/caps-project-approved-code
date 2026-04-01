@@ -18,6 +18,7 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 
 import Leaderboard from "./pages/Leaderboard";
 
+
 import Users from "./pages/Users";
 
 import AdminContent from "./pages/AdminContent";
@@ -32,6 +33,7 @@ import PracticeExamPreview from "./pages/PracticeExamPreview";
 import ResetPasswordPage from "./components/resetPassForm";
 import ForgotPasswordForm from "./components/forgotPassForm";
 import PracticeExamInfo from "./pages/PracticeExamInfo";
+import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 
 import TestLogin from "./tests/testLogin";
 
@@ -49,6 +51,7 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
         <Route path="/team-caps" element={<Credits />} />
+        <Route path="/google-auth-callback" element={<GoogleAuthCallback />} />
 
         <Route path="/help" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<TutorialLayout />} />
@@ -96,6 +99,7 @@ function App() {
           <Route path="dashboard" element={<StudentDashboard />} />
         </Route>
 
+
         <Route
           path="/student-insights"
           element={<ProtectedRoute element={<Layout />} />}
@@ -110,6 +114,7 @@ function App() {
         >
           <Route index element={<Leaderboard />} />
           <Route path="content" element={<Leaderboard />} />
+
         </Route>
 
         {/* Faculty Routes */}

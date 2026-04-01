@@ -10,7 +10,7 @@ return [
     | This option controls the default mailer that is used to send all email
     | messages unless another mailer is explicitly specified when sending
     | the message. All additional mailers can be configured within the
-    | "mailers" array. Examples of each type of mailer are provided.
+    | "mailers" array. ples of each type of mailer are provided.
     |
     */
 
@@ -46,7 +46,15 @@ return [
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://100.67.127.17:5173'), PHP_URL_HOST)),
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost:8000'), PHP_URL_HOST)),
+            'verify_peer' => false,
+            'stream' => [
+                'ssl' => [
+                    'allow_self_signed' => true,
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                ],
+            ],
         ],
 
         'ses' => [

@@ -16,11 +16,13 @@
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/scout": "^10.13",
-        "laravel/socialite": "^5.0",
+
+        "laravel/socialite": "^5.26",
         "laravel/tinker": "^2.10.1",
         "maatwebsite/excel": "*",
         "meilisearch/meilisearch-php": "^1.13",
         "nwidart/laravel-modules": "^12.0",
+        "predis/predis": "^3.4",
         "spatie/laravel-permission": "^6.16",
         "symfony/cache": "^7.2",
         "tightenco/ziggy": "^2.4"
