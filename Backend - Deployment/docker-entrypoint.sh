@@ -40,8 +40,14 @@ fi
 #   php artisan jwt:secret --force
 # fi
 
+# Clear all caches to ensure fresh settings are loaded
 php artisan optimize:clear
-php artisan config:cache
+php artisan config:clear
+php artisan route:clear
+php artisan cache:clear
+
+# Skip config:cache here to allow runtime .env changes
+# php artisan config:cache 
 php artisan storage:link || true
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
