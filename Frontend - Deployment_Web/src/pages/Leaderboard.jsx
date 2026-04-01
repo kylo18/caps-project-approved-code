@@ -1,363 +1,746 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getApiUrl } from '../utils/config';
+import { useState, useEffect } from "react";
 
-// Renders the student leaderboard and keeps program/subject filters in sync with the backend data.
-const Leaderboard = () => {
-  const navigate = useNavigate();
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [selectedProgram, setSelectedProgram] = useState(null);
-  const [selectedSubject, setSelectedSubject] = useState(null);
-  const [showProgramDropdown, setShowProgramDropdown] = useState(false);
-  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
-  const [leaderboardData, setLeaderboardData] = useState([]);
-  const [programs, setPrograms] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+const SERVICE_TOKEN = "64|zu1zvgrl4AVLZlgHnGbVaGIMMiOPWKPFFTCPniF855f71d32";
 
-  const programDropdownRef = useRef(null);
-  const subjectDropdownRef = useRef(null);
+const getInitials = (firstName, lastName) =>
+  ((firstName?.[0] || "") + (lastName?.[0] || "")).toUpperCase();
 
+const AVATAR_COLORS = [
+  "#E55012","#3B6CB5","#0F7A5A","#7C3AED",
+  "#BE185D","#0F6E56","#B45309","#1D4ED8","#9D174D",
+];
+const getAvatarColor = (name) =>
+  AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+
+const getTier = (score) => {
+  if (score >= 90) return { label: "Elite",      color: "#F0C040", bg: "rgba(240,192,64,0.12)",  border: "rgba(240,192,64,0.25)"  };
+  if (score >= 80) return { label: "Advanced",   color: "#60a0e0", bg: "rgba(60,130,220,0.12)",  border: "rgba(60,130,220,0.25)"  };
+  if (score >= 70) return { label: "Proficient", color: "#50c878", bg: "rgba(50,180,100,0.12)",  border: "rgba(50,180,100,0.25)"  };
+  return                   { label: "No Exams",  color: "rgba(255,255,255,0.35)", bg: "rgba(255,255,255,0.06)", border: "rgba(255,255,255,0.1)" };
+};
+
+const getScoreColor = (score) => {
+  if (score == null) return "rgba(255,255,255,0.3)";
+  if (score >= 90) return "#F0C040";
+  if (score >= 80) return "#60a0e0";
+  if (score >= 70) return "#50c878";
+  return "rgba(255,255,255,0.4)";
+};
+
+const PROGRAM_TABS = ["All", "BSCpE", "CE", "ECE", "EE"];
+
+const normalizeProgram = (program) => {
+  if (!program) return "—";
+  const key = program.toString().trim().toUpperCase().replace(/^BS-/, "");
+  if (key === "CPE") return "BSCpE";
+  if (key === "CE") return "CE";
+  if (key === "ECE") return "ECE";
+  if (key === "EE") return "EE";
+  return program.replace(/^BS-/, "");
+};
+
+// ─── HOOK: detect mobile ──────────────────────────────────────────────────────
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   useEffect(() => {
-    // Closes either dropdown when the user taps outside of its container.
-    const handleClickOutside = (e) => {
-      if (programDropdownRef.current && !programDropdownRef.current.contains(e.target)) {
-        setShowProgramDropdown(false);
-      }
-      if (subjectDropdownRef.current && !subjectDropdownRef.current.contains(e.target)) {
-        setShowSubjectDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const handler = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
   }, []);
+  return isMobile;
+};
 
-  // Loads ranked students plus the dropdown options for the active filter set.
-  const fetchLeaderboard = async (program = null, subject = null) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const apiUrl = getApiUrl();
-      let url = `${apiUrl}/api/leaderboard`;
-      
-      const params = new URLSearchParams();
-      if (program) params.append('program', program);
-      if (subject) params.append('subject', subject);
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch leaderboard: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      setLeaderboardData(data.leaderboard || []);
-      setPrograms(data.programs || []);
-      setSubjects(data.subjects || []);
-      
-    } catch (err) {
-      console.error('Error fetching leaderboard:', err);
-      setError(err.message || 'Failed to load leaderboard');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLeaderboard();
-  }, []);
-
-  // Applies a program filter and resets the subject filter so the request stays unambiguous.
-  const handleProgramFilter = (program) => {
-    setActiveFilter('Program');
-    setSelectedProgram(program);
-    setSelectedSubject(null);
-    setShowProgramDropdown(false);
-    fetchLeaderboard(program.programID, null);
-  };
-
-  // Applies a subject filter and resets the program filter so the request stays unambiguous.
-  const handleSubjectFilter = (subject) => {
-    setActiveFilter('Subject');
-    setSelectedSubject(subject);
-    setSelectedProgram(null);
-    setShowSubjectDropdown(false);
-    fetchLeaderboard(null, subject.subjectID);
-  };
-
-  // Clears all filter state and reloads the global leaderboard.
-  const handleAllFilter = () => {
-    setActiveFilter('All');
-    setSelectedProgram(null);
-    setSelectedSubject(null);
-    setShowProgramDropdown(false);
-    setShowSubjectDropdown(false);
-    fetchLeaderboard(null, null);
-  };
-
-  const filteredStudents = useMemo(
-    () => [...leaderboardData].sort((a, b) => b.points - a.points),
-    [leaderboardData],
+// ─── STAR FIELD ───────────────────────────────────────────────────────────────
+const StarField = () => {
+  const stars = Array.from({ length: 40 }, (_, i) => ({
+    id: i,
+    size: Math.random() * 2 + 0.5,
+    top: Math.random() * 100,
+    left: Math.random() * 100,
+    opacity: Math.random() * 0.4 + 0.1,
+  }));
+  return (
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      {stars.map((s) => (
+        <div key={s.id} style={{
+          position: "absolute",
+          width: s.size, height: s.size,
+          borderRadius: "50%", background: "#fff",
+          top: `${s.top}%`, left: `${s.left}%`,
+          opacity: s.opacity,
+        }}/>
+      ))}
+    </div>
   );
+};
 
-  const topThree = filteredStudents.slice(0, 3);
+// ─── PODIUM CARD ─────────────────────────────────────────────────────────────
+const PodiumCard = ({ student, position, isMobile }) => {
+  if (!student) return null;
 
-  const programTabLabel =
-    activeFilter === 'Program' && selectedProgram
-      ? selectedProgram.programName
-      : 'Program';
-  const subjectTabLabel =
-    activeFilter === 'Subject' && selectedSubject
-      ? (selectedSubject.subjectCode || selectedSubject.subjectName)
-      : 'Subject';
-
-  // Prefers the backend-computed full name but still guards against missing data.
-  const getDisplayName = (student) => student?.name || 'Unknown Student';
-
-  // Builds a stable two-letter avatar fallback when no profile image exists.
-  const getDisplayAvatar = (student) =>
-    student?.avatar ||
-    getDisplayName(student)
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() ||
-    '?';
-
-  // Shows program and subject context under each entry when that metadata is available.
-  const getSecondaryLabel = (student) => {
-    const subjectLabel =
-      student?.subject ||
-      (activeFilter === 'Subject'
-        ? selectedSubject?.subjectCode || selectedSubject?.subjectName
-        : null);
-
-    return [student?.program, subjectLabel].filter(Boolean).join(' • ');
+  const configs = {
+    1: {
+      avatarSize: isMobile ? 42 : 52,
+      nameSize:   isMobile ? 11 : 12,
+      scoreSize:  isMobile ? 13 : 16,
+      baseH:      isMobile ? 44 : 55,
+      baseW:      isMobile ? 80 : 110,
+      ring: "#F0C040", badge: { bg: "#F0C040", color: "#7a5c00" }, crown: "👑", mb: 0,
+    },
+    2: {
+      avatarSize: isMobile ? 34 : 44,
+      nameSize:   isMobile ? 10 : 11,
+      scoreSize:  isMobile ? 12 : 14,
+      baseH:      isMobile ? 32 : 40,
+      baseW:      isMobile ? 72 : 100,
+      ring: "#A8B4C0", badge: { bg: "#A8B4C0", color: "#3a4a54" }, crown: "🥈", mb: isMobile ? 10 : 14,
+    },
+    3: {
+      avatarSize: isMobile ? 30 : 38,
+      nameSize:   isMobile ? 9  : 10,
+      scoreSize:  isMobile ? 11 : 13,
+      baseH:      isMobile ? 24 : 30,
+      baseW:      isMobile ? 64 : 90,
+      ring: "#CD7F32", badge: { bg: "#CD7F32", color: "#5a3010" }, crown: "🥉", mb: isMobile ? 18 : 25,
+    },
   };
+
+  const c = configs[position];
+  const scoreColor = position === 1 ? "#F0C040" : position === 2 ? "#A8B4C0" : "#CD7F32";
+  const maxNameLen = isMobile ? 8 : 16;
+  const name = `${student.firstName} ${student.lastName}`;
+  const displayName = name.length > maxNameLen ? name.slice(0, maxNameLen) + "…" : name;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black px-3 sm:px-4 pt-14 pb-32">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-full bg-white dark:bg-gray-900 shadow-sm text-gray-600 dark:text-gray-400"
-        >
-          <i className='bx bx-left-arrow-alt text-2xl'></i>
-        </button>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Leaderboard</h1>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: c.mb, zIndex: position === 1 ? 2 : 1 }}>
+      <div style={{ fontSize: isMobile ? 16 : 20, marginBottom: 4, textAlign: "center" }}>{c.crown}</div>
+      <div style={{ position: "relative", marginBottom: 6 }}>
+        <div style={{
+          width: c.avatarSize, height: c.avatarSize, borderRadius: "50%",
+          background: getAvatarColor(student.firstName),
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#fff", fontWeight: 900, fontSize: Math.round(c.avatarSize * 0.34),
+        }}>
+          {getInitials(student.firstName, student.lastName)}
+        </div>
+        <div style={{ position: "absolute", inset: -3, borderRadius: "50%", border: `2px solid ${c.ring}` }}/>
+        <div style={{
+          position: "absolute", bottom: -4, right: -4,
+          width: isMobile ? 18 : 22, height: isMobile ? 18 : 22, borderRadius: "50%",
+          background: c.badge.bg, color: c.badge.color,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: isMobile ? 8 : 10, fontWeight: 900, border: "2px solid #0d1b3e",
+        }}>{position}</div>
+      </div>
+      <div style={{ fontSize: c.nameSize, fontWeight: 700, color: "#fff", textAlign: "center", marginBottom: 2, maxWidth: c.baseW }}>
+        {displayName}
+      </div>
+      <div style={{ fontSize: isMobile ? 9 : 10, color: "rgba(255,255,255,0.4)", textAlign: "center", marginBottom: 4 }}>
+        {student.program?.replace("BS-", "") || "—"}
+      </div>
+      <div style={{ fontSize: c.scoreSize, fontWeight: 900, color: scoreColor, textAlign: "center", marginBottom: 8 }}>
+        {student.avgScore != null ? `${student.avgScore}%` : "—"}
+      </div>
+      <div style={{
+        width: c.baseW, height: c.baseH,
+        background: position === 1 ? "linear-gradient(180deg,#2a4a8a,#1a3060)"
+          : position === 2 ? "linear-gradient(180deg,#223a70,#162850)"
+          : "linear-gradient(180deg,#1c3060,#122040)",
+        borderRadius: "10px 10px 0 0",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: isMobile ? 16 : 22, fontWeight: 900, color: "rgba(255,255,255,0.15)",
+      }}>
+        {position}
+      </div>
+    </div>
+  );
+};
+
+// ─── DESKTOP STUDENT ROW ──────────────────────────────────────────────────────
+const StudentRowDesktop = ({ student, rank, pinned = false }) => {
+  const tier       = getTier(student.avgScore);
+  const scoreColor = getScoreColor(student.avgScore);
+  const isTop3     = rank <= 3;
+  const isMe       = student.isMe || pinned;
+
+  const rankDisplay = () => {
+    if (rank === 1) return "🏆";
+    if (rank === 2) return "🥈";
+    if (rank === 3) return "🥉";
+    return `#${rank}`;
+  };
+
+  const rankColor = rank === 1 ? "#F0C040" : rank === 2 ? "#A8B4C0" : rank === 3 ? "#CD7F32" : isMe ? "#FF6014" : "rgba(255,255,255,0.3)";
+
+  return (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "56px 1fr 110px 110px 80px 110px",
+      gap: 12, padding: "13px 20px", borderRadius: 12, marginBottom: 4,
+      alignItems: "center", cursor: "pointer", border: "1px solid",
+      borderColor: isMe ? "rgba(255,96,20,0.25)" : isTop3 ? "rgba(240,192,64,0.12)" : "transparent",
+      background: isMe ? "rgba(255,96,20,0.1)" : isTop3 ? "rgba(240,192,64,0.05)" : "transparent",
+      transition: "background 0.15s",
+    }}>
+      <div style={{ textAlign: "center", fontSize: rank <= 3 ? 18 : 14, fontWeight: 800, color: rankColor }}>
+        {rankDisplay()}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+          background: isMe ? "#FF6014" : getAvatarColor(student.firstName),
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 12, fontWeight: 700, color: "#fff",
+          boxShadow: isMe ? "0 0 0 2px rgba(255,96,20,0.35)" : "none",
+        }}>
+          {getInitials(student.firstName, student.lastName)}
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: isMe ? "#FF6014" : "#fff", marginBottom: 1 }}>
+            {student.firstName} {student.lastName}
+            {isMe && (
+              <span style={{
+                fontSize: 9, fontWeight: 800, background: "#FF6014", color: "#fff",
+                padding: "1px 6px", borderRadius: 4, marginLeft: 6,
+              }}>YOU</span>
+            )}
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{student.userCode}</div>
+        </div>
+      </div>
+      <div style={{ textAlign: "center" }}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 7,
+          background: "rgba(30,64,128,0.6)", color: "rgba(100,140,220,0.9)",
+          border: "1px solid rgba(50,90,160,0.4)",
+        }}>
+          {student.program?.replace("BS-", "") || "—"}
+        </span>
+      </div>
+      <div style={{ textAlign: "center" }}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 7,
+          background: tier.bg, color: tier.color, border: `1px solid ${tier.border}`,
+        }}>
+          {tier.label}
+        </span>
+      </div>
+      <div style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>
+        {student.totalExams ?? 0}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+        <div style={{ fontSize: 15, fontWeight: 900, color: scoreColor }}>
+          {student.avgScore != null ? `${student.avgScore}%` : "—"}
+        </div>
+        <div style={{ width: 50, height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ height: "100%", borderRadius: 3, width: `${student.avgScore ?? 0}%`, background: scoreColor }}/>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── MOBILE STUDENT ROW ───────────────────────────────────────────────────────
+const StudentRowMobile = ({ student, rank, pinned = false }) => {
+  const tier       = getTier(student.avgScore);
+  const scoreColor = getScoreColor(student.avgScore);
+  const isMe       = student.isMe || pinned;
+
+  const rankDisplay = () => {
+    if (rank === 1) return "🏆";
+    if (rank === 2) return "🥈";
+    if (rank === 3) return "🥉";
+    return `#${rank}`;
+  };
+
+  const rankColor = rank === 1 ? "#F0C040" : rank === 2 ? "#A8B4C0" : rank === 3 ? "#CD7F32" : isMe ? "#FF6014" : "rgba(255,255,255,0.4)";
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "11px 14px", borderRadius: 12, marginBottom: 6,
+      border: "1px solid",
+      borderColor: isMe ? "rgba(255,96,20,0.3)" : rank <= 3 ? "rgba(240,192,64,0.12)" : "rgba(255,255,255,0.05)",
+      background: isMe ? "rgba(255,96,20,0.08)" : rank <= 3 ? "rgba(240,192,64,0.04)" : "rgba(255,255,255,0.02)",
+    }}>
+      {/* Rank */}
+      <div style={{
+        width: 30, textAlign: "center", flexShrink: 0,
+        fontSize: rank <= 3 ? 18 : 13, fontWeight: 800, color: rankColor,
+      }}>
+        {rankDisplay()}
       </div>
 
-      {/* Filter Tabs */}
-      <div className="relative flex gap-2 mb-8 bg-gray-100 dark:bg-gray-900/50 p-1 rounded-2xl">
-        {/* All Tab */}
-        <button
-          onClick={handleAllFilter}
-          className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-200 ${activeFilter === 'All'
-              ? 'bg-white dark:bg-black text-[var(--color-primary)] shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
-        >
-          All
-        </button>
+      {/* Avatar */}
+      <div style={{
+        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+        background: isMe ? "#FF6014" : getAvatarColor(student.firstName),
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 12, fontWeight: 700, color: "#fff",
+        boxShadow: isMe ? "0 0 0 2px rgba(255,96,20,0.4)" : "none",
+      }}>
+        {getInitials(student.firstName, student.lastName)}
+      </div>
 
-        {/* Program Tab */}
-        <div ref={programDropdownRef} className="flex-1 relative">
-          <button
-            onClick={() => {
-              setActiveFilter('Program');
-              setShowSubjectDropdown(false);
-              setShowProgramDropdown(prev => !prev);
-            }}
-            className={`w-full py-2.5 text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-1 ${activeFilter === 'Program'
-                ? 'bg-white dark:bg-black text-[var(--color-primary)] shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-          >
-            <span className="truncate max-w-[90px]">{programTabLabel}</span>
-            <i className={`bx bx-chevron-down text-base transition-transform duration-200 ${showProgramDropdown ? 'rotate-180' : ''}`}></i>
-          </button>
-
-          {showProgramDropdown && programs.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-black rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden">
-              {programs.map((prog) => (
-                <button
-                  key={prog.programID}
-                  onClick={() => { handleProgramFilter(prog); }}
-                  className={`w-full px-4 py-2.5 text-sm font-bold text-left transition-colors hover:bg-orange-50 dark:hover:bg-orange-900/20 ${selectedProgram?.programID === prog.programID
-                      ? 'text-[var(--color-primary)] bg-orange-50 dark:bg-orange-900/20'
-                      : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                >
-                  {prog.programName}
-                </button>
-              ))}
-            </div>
+      {/* Name + meta */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 13, fontWeight: 600,
+          color: isMe ? "#FF6014" : "#fff",
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        }}>
+          {student.firstName} {student.lastName}
+          {isMe && (
+            <span style={{
+              fontSize: 8, fontWeight: 800, background: "#FF6014", color: "#fff",
+              padding: "1px 5px", borderRadius: 4, marginLeft: 6,
+            }}>YOU</span>
           )}
         </div>
-
-        {/* Subject Tab */}
-        <div ref={subjectDropdownRef} className="flex-1 relative">
-          <button
-            onClick={() => {
-              setActiveFilter('Subject');
-              setShowProgramDropdown(false);
-              setShowSubjectDropdown(prev => !prev);
-            }}
-            className={`w-full py-2.5 text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-1 ${activeFilter === 'Subject'
-                ? 'bg-white dark:bg-black text-[var(--color-primary)] shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-          >
-            <span className="truncate max-w-[90px]">{subjectTabLabel}</span>
-            <i className={`bx bx-chevron-down text-base transition-transform duration-200 ${showSubjectDropdown ? 'rotate-180' : ''}`}></i>
-          </button>
-
-          {showSubjectDropdown && subjects.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-black rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden">
-              {subjects.map((subj) => (
-                <button
-                  key={subj.subjectID}
-                  onClick={() => { handleSubjectFilter(subj); }}
-                  className={`w-full px-4 py-2.5 text-sm font-bold text-left transition-colors hover:bg-orange-50 dark:hover:bg-orange-900/20 ${selectedSubject?.subjectID === subj.subjectID
-                      ? 'text-[var(--color-primary)] bg-orange-50 dark:bg-orange-900/20'
-                      : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                >
-                  {subj.subjectCode || subj.subjectName}
-                </button>
-              ))}
-            </div>
-          )}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+          <span style={{
+            fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 5,
+            background: "rgba(30,64,128,0.6)", color: "rgba(100,140,220,0.9)",
+          }}>
+            {student.program?.replace("BS-", "") || "—"}
+          </span>
+          <span style={{
+            fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 5,
+            background: tier.bg, color: tier.color,
+          }}>
+            {tier.label}
+          </span>
         </div>
       </div>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Loading leaderboard...</p>
+      {/* Score */}
+      <div style={{ flexShrink: 0, textAlign: "right" }}>
+        <div style={{ fontSize: 15, fontWeight: 900, color: scoreColor }}>
+          {student.avgScore != null ? `${student.avgScore}%` : "—"}
         </div>
-      )}
-
-      {/* Error State */}
-      {error && !isLoading && (
-        <div className="flex flex-col items-center justify-center py-20 px-4">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center max-w-sm">
-              <i className='bx bx-error-circle text-4xl text-red-500 mb-3'></i>
-              <p className="text-red-600 dark:text-red-400 text-sm mb-4">{error}</p>
-              <button
-              onClick={() =>
-                fetchLeaderboard(
-                  selectedProgram?.programID ?? null,
-                  selectedSubject?.subjectID ?? null,
-                )
-              }
-              className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
+        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 1 }}>
+          {student.totalExams ?? 0} exams
         </div>
-      )}
+      </div>
+    </div>
+  );
+};
 
-      {/* Podium (Top 3) */}
-      {!isLoading && !error && topThree.length >= 3 && (
-        <div className="flex justify-center items-end gap-1 sm:gap-2 mb-10 mt-4 px-1 sm:px-2">
-          {/* 2nd Place */}
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gray-200 dark:bg-black border-2 border-gray-300 dark:border-gray-700 flex items-center justify-center text-lg sm:text-xl font-bold text-gray-600 dark:text-gray-400 mb-2">
-              {getDisplayAvatar(topThree[1])}
-            </div>
-            <div className="h-16 sm:h-24 w-14 sm:w-20 bg-gray-100 dark:bg-gray-900 rounded-t-lg flex flex-col items-center justify-center border-x border-t border-gray-200 dark:border-gray-800">
-              <span className="text-xl sm:text-2xl font-bold text-gray-400">2</span>
-            </div>
-            <span className="text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 dark:text-gray-300 uppercase truncate w-14 sm:w-16 text-center">{getDisplayName(topThree[1]).split(' ')[0]}</span>
-          </div>
-          {/* 1st Place */}
-          <div className="flex flex-col items-center">
-            <div className="relative mb-2">
-              <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-400 flex items-center justify-center text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {getDisplayAvatar(topThree[0])}
-              </div>
-              <div className="absolute -top-2 sm:-top-3 left-1/2 -translate-x-1/2 text-yellow-500 text-xl sm:text-2xl">
-                <i className='bx bxs-crown'></i>
-              </div>
-            </div>
-            <div className="h-24 sm:h-32 w-16 sm:w-24 bg-gradient-to-b from-orange-400 to-orange-600 rounded-t-lg flex flex-col items-center justify-center shadow-lg shadow-orange-500/20">
-              <span className="text-2xl sm:text-3xl font-bold text-white">1</span>
-            </div>
-            <span className="text-xs sm:text-sm font-bold mt-1 sm:mt-2 dark:text-white truncate w-16 sm:w-24 text-center">{getDisplayName(topThree[0]).split(' ')[0]}</span>
-          </div>
-          {/* 3rd Place */}
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-orange-50 dark:bg-orange-900/10 border-2 border-orange-200 dark:border-orange-900/50 flex items-center justify-center text-lg sm:text-xl font-bold text-orange-400 dark:text-orange-300 mb-2">
-              {getDisplayAvatar(topThree[2])}
-            </div>
-            <div className="h-12 sm:h-16 w-14 sm:w-20 bg-gray-50 dark:bg-gray-900 rounded-t-lg flex flex-col items-center justify-center border-x border-t border-gray-200 dark:border-gray-800">
-              <span className="text-xl sm:text-2xl font-bold text-gray-300 dark:text-gray-600">3</span>
-            </div>
-            <span className="text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 dark:text-gray-300 uppercase truncate w-14 sm:w-16 text-center">{getDisplayName(topThree[2]).split(' ')[0]}</span>
-          </div>
-        </div>
-      )}
+// ─── SKELETON ─────────────────────────────────────────────────────────────────
+const SkeletonRowMobile = () => (
+  <div style={{
+    display: "flex", alignItems: "center", gap: 10,
+    padding: "11px 14px", borderRadius: 12, marginBottom: 6,
+    background: "rgba(255,255,255,0.03)", animation: "pulse 1.5s infinite",
+  }}>
+    <div style={{ width: 30, height: 14, borderRadius: 6, background: "rgba(255,255,255,0.06)", flexShrink: 0 }}/>
+    <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.06)", flexShrink: 0 }}/>
+    <div style={{ flex: 1 }}>
+      <div style={{ height: 13, borderRadius: 6, background: "rgba(255,255,255,0.06)", marginBottom: 6 }}/>
+      <div style={{ height: 10, width: "60%", borderRadius: 6, background: "rgba(255,255,255,0.04)" }}/>
+    </div>
+    <div style={{ width: 40, height: 20, borderRadius: 6, background: "rgba(255,255,255,0.06)" }}/>
+  </div>
+);
 
-      {/* List */}
-      {!isLoading && !error && (
-        filteredStudents.length > 0 ? (
-          <div className="space-y-3">
-            {filteredStudents.map((student, index) => (
-              <div
-                key={student.userID || student.id}
-                className={`flex items-center gap-3 p-3 sm:p-4 rounded-xl border ${index === 0
-                    ? 'bg-orange-50/50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30'
-                    : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'
-                  } transition-all duration-300 hover:scale-[1.01]`}
-              >
-                <span className={`w-5 sm:w-6 text-center font-bold ${index < 3 ? 'text-[var(--color-primary)]' : 'text-gray-400'}`}>
-                  {index + 1}
-                </span>
-                <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-gray-100 dark:bg-black flex items-center justify-center font-semibold text-gray-600 dark:text-gray-300">
-                  {getDisplayAvatar(student)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white leading-tight truncate">{getDisplayName(student)}</h3>
-                  {getSecondaryLabel(student) && (
-                    <p className="text-[10px] sm:text-xs uppercase font-bold text-[var(--color-primary)] mt-0.5">
-                      {getSecondaryLabel(student)}
-                    </p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <span className="block font-extrabold text-sm sm:text-base text-gray-900 dark:text-white leading-none">{student.points}</span>
-                  <span className="text-[8px] sm:text-[9px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold">PTS</span>
-                </div>
-              </div>
+const SkeletonRowDesktop = () => (
+  <div style={{
+    display: "grid", gridTemplateColumns: "56px 1fr 110px 110px 80px 110px",
+    gap: 12, padding: "13px 20px", borderRadius: 12, marginBottom: 4,
+    background: "rgba(255,255,255,0.03)", animation: "pulse 1.5s infinite",
+  }}>
+    {[40, 200, 70, 80, 40, 60].map((w, i) => (
+      <div key={i} style={{ height: 14, borderRadius: 6, background: "rgba(255,255,255,0.06)", width: w, margin: "auto" }}/>
+    ))}
+  </div>
+);
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
+const Leaderboard = () => {
+  const [students,        setStudents]        = useState([]);
+  const [loading,         setLoading]         = useState(true);
+  const [error,           setError]           = useState(null);
+  const [search,          setSearch]          = useState("");
+  const [selectedProgram, setSelectedProgram] = useState("All");
+  const [programs,        setPrograms]        = useState(["All"]);
+  const [myApiRank,       setMyApiRank]       = useState(null);
+  const [myApiScore,      setMyApiScore]      = useState(null);
+
+  const isMobile = useIsMobile();
+  const pad      = isMobile ? "0 14px" : "0 40px";
+
+  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const token  = sessionStorage.getItem("token");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const userRes  = await fetch(`${apiUrl}/user/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const userData = await userRes.json();
+
+        let lbData = { data: [] };
+        try {
+          const lbRes = await fetch(`${apiUrl}/leaderboard?scope=global&limit=200`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          lbData = await lbRes.json();
+          if (!lbRes.ok) {
+            throw new Error(lbData.message || 'Unable to load leaderboard data.');
+          }
+        } catch (err) {
+          setError('Unable to load leaderboard data.');
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const meRes = await fetch(`${apiUrl}/leaderboard/me?scope=global`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const meData = await meRes.json();
+          if (meRes.ok) {
+            setMyApiRank(meData.rank ?? null);
+            setMyApiScore(meData.score ?? null);
+          }
+        } catch (_) {
+          // ignore leaderboard/me failure
+        }
+
+        const studentList = (lbData.data || []).map(entry => ({
+          userID:     entry.student_id,
+          firstName:  entry.firstName ?? entry.name?.split(' ')[0] ?? '',
+          lastName:   entry.lastName ?? entry.name?.split(' ').slice(1).join(' ') ?? '',
+          userCode:   entry.userCode ?? '',
+          program:    normalizeProgram(entry.program || '—'),
+          isMe:       entry.student_id === userData?.userID,
+          avgScore:   entry.score != null ? Math.round(entry.score) : null,
+          totalExams: entry.totalExams ?? 0,
+        }));
+
+        const sorted = studentList.sort((a, b) => {
+          if (a.avgScore == null && b.avgScore == null) return 0;
+          if (a.avgScore == null) return 1;
+          if (b.avgScore == null) return -1;
+          return b.avgScore - a.avgScore;
+        });
+
+        setStudents(sorted);
+        setPrograms(PROGRAM_TABS);
+      } catch (err) {
+        setError("Something went wrong loading the leaderboard.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [apiUrl, token]);
+
+  const filtered = students.filter(s => {
+    const fullName     = `${s.firstName} ${s.lastName}`.toLowerCase();
+    const matchProgram = selectedProgram === "All" || s.program === selectedProgram;
+    const matchSearch  = fullName.includes(search.toLowerCase());
+    return matchProgram && matchSearch;
+  });
+
+  const myEntry    = students.find(s => s.isMe);
+  const myRank     = myApiRank ?? (myEntry ? students.indexOf(myEntry) + 1 : null);
+  const myScore    = myApiScore ?? myEntry?.avgScore;
+  const meVisible  = filtered.some(s => s.isMe);
+  const top3       = students.slice(0, 3);
+  const percentile = myRank ? Math.round(((students.length - myRank) / students.length) * 100) : 0;
+
+  return (
+    <div style={{
+      background: "#0d1b3e", 
+      minHeight: "100vh",
+      width: "100%", 
+      display: "flex", 
+      flexDirection: "column",
+      fontFamily: "'Segoe UI', system-ui, sans-serif",
+    }}>
+
+      {/* ── HERO HEADER ── */}
+      <div style={{
+        background: "linear-gradient(180deg,#0a1628 0%,#1E4080 100%)",
+        padding: isMobile ? "54px 14px 0" : "32px 40px 0",
+        position: "relative", overflow: "hidden", flexShrink: 0,
+      }}>
+        <StarField />
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{
+            fontSize: isMobile ? 20 : 28, fontWeight: 900, color: "#fff",
+            letterSpacing: isMobile ? 2 : 4, textTransform: "uppercase",
+            textAlign: "center", marginBottom: 4,
+          }}>
+            Leaderboards
+          </div>
+          <div style={{
+            fontSize: 11, color: "rgba(255,255,255,0.35)", textAlign: "center",
+            letterSpacing: "1px", marginBottom: 20,
+          }}>
+            Rankings · All Programs · JRMSU CAPS
+          </div>
+
+          {/* Program filter tabs — horizontal scroll on mobile */}
+          <div style={{
+            display: "flex",
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+            gap: 0,
+            paddingBottom: 0,
+            justifyContent: "center",
+          }}>
+            {programs.map(p => (
+              <button key={p} onClick={() => setSelectedProgram(p)} style={{
+                padding: isMobile ? "8px 14px" : "10px 28px",
+                fontSize: isMobile ? 11 : 13,
+                fontWeight: 700, cursor: "pointer",
+                background: "transparent", border: "none",
+                flexShrink: 0,
+                color: selectedProgram === p ? "#FF6014" : "rgba(255,255,255,0.4)",
+                borderBottom: selectedProgram === p ? "2px solid #FF6014" : "2px solid transparent",
+                letterSpacing: "0.5px", transition: "all 0.2s",
+                whiteSpace: "nowrap",
+              }}>
+                {p}
+              </button>
             ))}
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
-              <i className='bx bx-trophy text-5xl text-gray-300 dark:text-gray-600 mb-4'></i>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">No leaderboard data available yet.</p>
-              <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Complete practice exams to appear on the leaderboard!</p>
-            </div>
-          </div>
-        )
+        </div>
+      </div>
+
+      {/* ── PODIUM ── */}
+      {!loading && !error && top3.length >= 3 && selectedProgram === "All" && !search && (
+        <div style={{
+          background: "#0d1b3e",
+          padding: isMobile ? "20px 14px 12px" : "28px 40px 20px",
+          display: "flex", justifyContent: "center", alignItems: "flex-end",
+          gap: isMobile ? 8 : 16, flexShrink: 0,
+        }}>
+          <PodiumCard student={top3[1]} position={2} isMobile={isMobile} />
+          <PodiumCard student={top3[0]} position={1} isMobile={isMobile} />
+          <PodiumCard student={top3[2]} position={3} isMobile={isMobile} />
+        </div>
       )}
+
+      {/* ── SEARCH ── */}
+      <div style={{ padding: isMobile ? "6px 14px 10px" : "6px 40px 12px", flexShrink: 0 }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 12, padding: "0 14px", height: 38,
+          maxWidth: isMobile ? "100%" : 280,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.6">
+            <circle cx="7" cy="7" r="5"/><line x1="11" y1="11" x2="14" y2="14"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Search student..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              flex: 1, border: "none", outline: "none",
+              fontSize: 13, background: "transparent", color: "#fff",
+            }}
+          />
+          {search && (
+            <button onClick={() => setSearch("")} style={{
+              background: "none", border: "none", color: "rgba(255,255,255,0.4)",
+              cursor: "pointer", fontSize: 18, lineHeight: 1,
+            }}>×</button>
+          )}
+        </div>
+      </div>
+
+      {/* ── DIVIDER ── */}
+      <div style={{
+        height: 1,
+        background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)",
+        margin: `0 ${isMobile ? 14 : 40}px`,
+        flexShrink: 0,
+      }}/>
+
+      {/* ── MY RANK BANNER ── */}
+      {myEntry && !loading && (
+        <div style={{
+          background: "#162f5e",
+          padding: isMobile ? "10px 14px" : "10px 40px",
+          flexShrink: 0,
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
+        }}>
+          {isMobile ? (
+            // Mobile: compact 2-row layout
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: 10, background: "#FF6014",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 700, color: "#fff",
+                }}>
+                  {getInitials(myEntry.firstName, myEntry.lastName)}
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#FF6014" }}>
+                    {myEntry.firstName} {myEntry.lastName}
+                  </div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>Your current position</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 0, justifyContent: "space-between" }}>
+                {[
+                  { label: "Rank",       value: myRank ? `#${myRank}` : "—",                             color: "#FF6014" },
+                  { label: "Avg Score",  value: myScore != null ? `${myScore}%` : "—", color: "#fff"    },
+                  { label: "Exams",      value: myEntry.totalExams ?? 0,                                  color: "#fff"    },
+                  { label: "Top",        value: myRank ? `${percentile}%` : "—",                         color: "#fff"    },
+                ].map(item => (
+                  <div key={item.label} style={{ textAlign: "center", flex: 1 }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{item.label}</div>
+                    <div style={{ fontSize: 15, fontWeight: 900, color: item.color }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            // Desktop: original layout
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10, background: "#FF6014",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 12, fontWeight: 700, color: "#fff",
+                  boxShadow: "0 0 0 2px rgba(255,96,20,0.35)",
+                }}>
+                  {getInitials(myEntry.firstName, myEntry.lastName)}
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#FF6014" }}>{myEntry.firstName} {myEntry.lastName}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>Your current position</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 32 }}>
+                {[
+                  { label: "Rank",       value: myRank ? `#${myRank}` : "—",                              color: "#FF6014" },
+                  { label: "Avg Score",  value: myScore != null ? `${myScore}%` : "—",  color: "#fff"    },
+                  { label: "Exams",      value: myEntry.totalExams ?? 0,                                   color: "#fff"    },
+                  { label: "Percentile", value: myRank ? `Top ${percentile}%` : "—",                      color: "#fff"    },
+                ].map(item => (
+                  <div key={item.label} style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1px" }}>{item.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: item.color }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── COLUMN HEADERS (desktop only) ── */}
+      {!isMobile && (
+        <div style={{
+          display: "grid", gridTemplateColumns: "56px 1fr 110px 110px 80px 110px",
+          gap: 12, padding: "10px 20px", margin: "0 40px 4px", flexShrink: 0,
+        }}>
+          {["Rank","Student","Program","Tier","Exams","Avg Score"].map((h, i) => (
+            <span key={h} style={{
+              fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.25)",
+              textTransform: "uppercase", letterSpacing: "1.5px",
+              textAlign: i === 1 ? "left" : "center",
+            }}>{h}</span>
+          ))}
+        </div>
+      )}
+
+      {/* ── LIST ── */}
+      <div style={{
+        flex: 1, overflowY: "auto",
+        padding: isMobile ? "8px 14px" : "0 40px",
+        minHeight: 0,
+      }}>
+        {loading && [...Array(5)].map((_, i) =>
+          isMobile ? <SkeletonRowMobile key={i} /> : <SkeletonRowDesktop key={i} />
+        )}
+
+        {!loading && error && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 12 }}>
+            <div style={{ fontSize: 36 }}>😕</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.6)", textAlign: "center" }}>{error}</div>
+          </div>
+        )}
+
+        {!loading && !error && filtered.length === 0 && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 12 }}>
+            <div style={{ fontSize: 36 }}>🔍</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>No students found.</div>
+          </div>
+        )}
+
+        {!loading && !error && filtered.map(s => {
+          const globalRank = students.indexOf(s) + 1;
+          return isMobile
+            ? <StudentRowMobile key={s.userID} student={s} rank={globalRank} />
+            : <StudentRowDesktop key={s.userID} student={s} rank={globalRank} />;
+        })}
+      </div>
+
+      {/* ── PINNED YOU ROW ── */}
+      {myEntry && !meVisible && !loading && (
+        <div style={{ flexShrink: 0 }}>
+          <div style={{
+            borderTop: "2px solid rgba(255,96,20,0.3)",
+            background: "rgba(255,96,20,0.05)",
+            padding: isMobile ? "6px 14px 0" : "6px 40px 0",
+          }}>
+            <div style={{
+              fontSize: 9, fontWeight: 800, color: "#FF6014",
+              textTransform: "uppercase", letterSpacing: "2px",
+              textAlign: "center", paddingBottom: 6,
+            }}>
+              Your Position
+            </div>
+            {isMobile
+              ? <StudentRowMobile student={myEntry} rank={myRank} pinned />
+              : <StudentRowDesktop student={myEntry} rank={myRank} pinned />
+            }
+          </div>
+        </div>
+      )}
+
+      {/* ── BOTTOM BAR ── */}
+      <div style={{
+        background: "#0a1628", borderTop: "1px solid rgba(255,255,255,0.06)",
+        padding: isMobile ? "10px 14px" : "10px 40px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexShrink: 0, gap: 8,
+      }}>
+        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>
+          {loading ? "Loading..." : `${filtered.length} / ${students.length} students`}
+        </span>
+        {myRank && (
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>
+            Rank: <span style={{ color: "#FF6014", fontWeight: 800 }}>#{myRank}</span>
+            {!isMobile && ` · Top ${percentile}%`}
+          </span>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        input::placeholder { color: rgba(255,255,255,0.25) !important; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        div::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   );
 };
