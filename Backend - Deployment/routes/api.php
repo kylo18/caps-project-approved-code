@@ -122,7 +122,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Customer Support (Keeping the Jdev version)
     Route::post('/support-tickets', [\Modules\Support\Controllers\SupportTicketController::class, 'store']);
     Route::get('/support-tickets/me', [\Modules\Support\Controllers\SupportTicketController::class, 'myTickets']);
-
+});
 /*
 |--------------------------------------------------------------------------
 | Routes for Faculty (roleID: 2), Program Chair (roleID: 3), Dean (roleID: 4), and Associate Dean (roleID: 5)
