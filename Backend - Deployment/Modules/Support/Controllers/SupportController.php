@@ -78,8 +78,8 @@ class SupportController extends Controller
         } catch (\Exception $e) {
             Log::error('FAQ retrieval error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Error retrieving FAQs',
-                'error' => $e->getMessage()
+                'message' => 'An internal server error occurred',
+                'type' => 'server_error'
             ], 500);
         }
     }
@@ -145,8 +145,8 @@ class SupportController extends Controller
         } catch (\Exception $e) {
             Log::error('Ticket creation error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Error creating support ticket',
-                'error' => $e->getMessage()
+                'message' => 'An internal server error occurred',
+                'type' => 'server_error'
             ], 500);
         }
     }
@@ -183,8 +183,8 @@ class SupportController extends Controller
         } catch (\Exception $e) {
             Log::error('Ticket retrieval error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Error retrieving tickets',
-                'error' => $e->getMessage()
+                'message' => 'An internal server error occurred',
+                'type' => 'server_error'
             ], 500);
         }
     }
@@ -221,8 +221,8 @@ class SupportController extends Controller
         } catch (\Exception $e) {
             Log::error('Ticket detail error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Error retrieving ticket',
-                'error' => $e->getMessage()
+                'message' => 'An internal server error occurred',
+                'type' => 'server_error'
             ], 500);
         }
     }
@@ -306,8 +306,8 @@ class SupportController extends Controller
         } catch (\Exception $e) {
             Log::error('Admin ticket retrieval error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Error retrieving tickets',
-                'error' => $e->getMessage()
+                'message' => 'An internal server error occurred',
+                'type' => 'server_error'
             ], 500);
         }
     }
@@ -373,8 +373,8 @@ class SupportController extends Controller
         } catch (\Exception $e) {
             Log::error('Ticket update error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Error updating ticket',
-                'error' => $e->getMessage()
+                'message' => 'An internal server error occurred',
+                'type' => 'server_error'
             ], 500);
         }
     }
@@ -400,7 +400,10 @@ class SupportController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Category retrieval error: ' . $e->getMessage());
-            return response()->json(['message' => 'Error retrieving categories', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'message' => 'An internal server error occurred',
+                'type' => 'server_error'
+            ], 500);
         }
     }
 }

@@ -23,6 +23,7 @@ use Modules\Users\Controllers\SystemNotificationController;
 use Modules\Users\Controllers\SocialAuthController;
 use Modules\Analytics\Controllers\AdminAnalyticsController;
 use Modules\Analytics\Controllers\StudentAnalyticsController;
+use Modules\Support\Controllers\AIController;
 use Modules\Support\Controllers\SupportController;
 use Modules\Notifications\Controllers\NotificationController;
 
@@ -188,6 +189,10 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
 |--------------------------------------------------------------------------
 */
 Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
+    // AI Chat Assistant
+    Route::post('/ai/chat', [AIController::class, 'chat'])->middleware('throttle:10,1');
+
+
     // Get subjects specific to student's program
     Route::get('/student/practice-subjects', [SubjectController::class, 'getProgramSubjects']);
 

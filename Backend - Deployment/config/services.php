@@ -47,4 +47,8 @@ return [
         'redirect' => env('FACEBOOK_REDIRECT_URI'),
     ],
 
+    'ai' => [
+        'url' => env('AI_SERVICE_URL', 'http://ai-service:5000/generate'),
+    ],
+
 ];
