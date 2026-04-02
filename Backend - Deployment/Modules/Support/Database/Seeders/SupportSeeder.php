@@ -107,6 +107,8 @@ class SupportSeeder extends Seeder
                     'category' => 'technical',
                     'status' => 'open',
                     'priority' => 'high',
+                    'resolved_by' => null,
+                    'resolved_at' => null,
                     'created_at' => now()->subDays(2),
                     'updated_at' => now(),
                 ],
