@@ -38,7 +38,8 @@ class DemoLeaderboardSeeder extends Seeder
                 'subjectID' => 1,
                 'subjectCode' => 'DEMO-101',
                 'subjectName' => 'Demo Subject',
-                'yearLevel' => 4,
+                'programID' => $programId,
+                'yearLevelID' => DB::table('year_levels')->value('yearLevelID') ?? 4,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

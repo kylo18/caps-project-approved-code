@@ -22,6 +22,20 @@ class AnalyticsTestSeeder extends Seeder
         $topicIds  = DB::table('coverages')->pluck('id')->toArray();
         $questionIds = DB::table('questions')->pluck('questionID')->take(10)->toArray();
 
+        // Ensure an exam exists for foreign key constraints
+        $examId = DB::table('exams')->value('id');
+        if (!$examId) {
+            $examId = DB::table('exams')->insertGetId([
+                'title' => 'Analytics Demo Exam',
+                'subject_id' => $subjectId,
+                'total_items' => 10,
+                'passing_score' => 7,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         DB::table('exam_results')->whereIn('attempt_id', function($q) use ($userIds) {
             $q->select('id')->from('exam_attempts')->whereIn('user_id', $userIds);
         })->delete();
@@ -61,7 +75,7 @@ class AnalyticsTestSeeder extends Seeder
             DB::table('exam_attempts')->insert([
                 [
                     'user_id'     => $userId,
-                    'exam_id'     => 1,
+                    'exam_id'     => $examId,
                     'started_at'  => now()->subDays(10),
                     'finished_at' => now()->subDays(10),
                     'status'      => 'completed',
@@ -70,7 +84,7 @@ class AnalyticsTestSeeder extends Seeder
                 ],
                 [
                     'user_id'     => $userId,
-                    'exam_id'     => 1,
+                    'exam_id'     => $examId,
                     'started_at'  => now()->subDays(5),
                     'finished_at' => now()->subDays(5),
                     'status'      => 'completed',
@@ -79,7 +93,7 @@ class AnalyticsTestSeeder extends Seeder
                 ],
                 [
                     'user_id'     => $userId,
-                    'exam_id'     => 1,
+                    'exam_id'     => $examId,
                     'started_at'  => now(),
                     'finished_at' => now(),
                     'status'      => 'completed',
