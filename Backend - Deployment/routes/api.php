@@ -309,6 +309,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
 Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
     // AI Chat Assistant
     Route::post('/ai/chat', [AIController::class, 'chat'])->middleware('throttle:10,1');
+    Route::get('/ai/status', [AIController::class, 'status']);
 
 
     // Get subjects specific to student's program

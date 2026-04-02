@@ -80,7 +80,7 @@ const Layout = () => {
           />
         )}
         <div
-          className={`flex min-w-0 overflow-hidden flex-1 flex-col transition-all duration-200 ${
+          className={`flex min-h-dvh min-w-0 flex-1 flex-col bg-gray-100 transition-all duration-200 dark:bg-black ${
             isStudent || isTutorialPage
               ? "ml-0"
               : isMobile

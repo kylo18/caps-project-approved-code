@@ -3,10 +3,36 @@ import axios from "axios";
 import { getApiUrl } from "../utils/config";
 import { localAiService, AVAILABLE_MODELS, DEFAULT_MODEL, isNativePlatform } from "../services/localAiService";
 import { 
-  IoSend, IoClose, IoChatbubbleEllipses, IoSettingsSharp, 
+  IoSend, IoStop, IoClose, IoChatbubbleEllipses, IoSettingsSharp, 
   IoCheckmarkCircle, IoCloudDone, IoPhonePortrait, IoDownload, IoAlertCircle,
-  IoPlay, IoPause, IoTrash, IoRefresh, IoWifi, IoPhonePortraitOutline
+  IoPlay, IoPause, IoTrash, IoRefresh, IoWifi, IoPhonePortraitOutline,
+  IoChevronDown, IoInfinite
 } from "react-icons/io5";
+
+const extractThinkingData = (message) => {
+  const explicitThinking = typeof message?.thinking === "string" ? message.thinking.trim() : "";
+  const rawContent = typeof message?.content === "string" ? message.content : "";
+
+  const qwenMatch = rawContent.match(/<\|think\|>([\s\S]*?)<\|\/think\|>/);
+  const deepseekMatch = rawContent.match(/<think>([\s\S]*?)<\/think>/);
+  const parsedThinking = (qwenMatch?.[1] || deepseekMatch?.[1] || "").trim();
+  const cleanContent = rawContent
+    .replace(/<\|think\|>[\s\S]*?<\|\/think\|>/g, "")
+    .replace(/<think>[\s\S]*?<\/think>/g, "")
+    .trim();
+
+  return {
+    thinking: explicitThinking || parsedThinking,
+    content: cleanContent || rawContent,
+  };
+};
+
+const MODEL_SWITCH_WARNING =
+  "Changing models in the middle of a conversation may degrade performance. Clear the conversation for the best performance?";
+const WELCOME_MESSAGES = new Set([
+  "Hello! I'm CAPS AI, your exam preparation assistant. How can I help you today?",
+  "Hello! I'm CAPS AI, your friendly exam preparation assistant. How can I help you today?",
+]);
 
 const AIChatAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,7 +51,7 @@ const AIChatAssistant = () => {
   const [selectedCloudModel, setSelectedCloudModel] = useState(() => {
     const saved = localStorage.getItem("selectedCloudModel");
     // Validate saved value is still valid (in case of old cached values)
-    const validModels = ["lfm2-350m", "tinyllama-1.1b", "llama-3.2-1b", "qwen-2.5-1.5b", "deepseek-r1-1.5b"];
+    const validModels = ["lfm2-350m", "llama-3.2-1b", "qwen-3-0.6b", "qwen-3-1.7b", "deepseek-r1-1.5b", "qwen-2.5-1.5b"];
     if (saved && validModels.includes(saved)) {
       return saved;
     }
@@ -34,23 +60,39 @@ const AIChatAssistant = () => {
     return "lfm2-350m";
   });
   const [selectedLocalModel, setSelectedLocalModel] = useState(() => localStorage.getItem("selectedLocalModel") || DEFAULT_MODEL);
+  const [activeLocalModel, setActiveLocalModel] = useState(null);
+  const [isModelLoading, setIsModelLoading] = useState(false);
   
   // Local Model Management State
   const [modelStatuses, setModelStatuses] = useState({});
   const [downloadProgress, setDownloadProgress] = useState({});
   const [isDownloading, setIsDownloading] = useState({});
   const [storageUsed, setStorageUsed] = useState(0);
+  const [pendingModelChange, setPendingModelChange] = useState(null);
 
   const messagesEndRef = useRef(null);
+  const cloudCancelRef = useRef(null);
+  const [isWebGPUSupported, setIsWebGPUSupported] = useState(true);
+  const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const apiUrl = getApiUrl();
+  const hasConversationHistory = messages.some(
+    (message) => message.role !== "assistant" || !WELCOME_MESSAGES.has(message.content)
+  );
+
+  useEffect(() => {
+    if (!isNativePlatform()) {
+      setIsWebGPUSupported(localAiService.isWebGPUSupported());
+    }
+  }, []);
 
   // Available cloud models (backend-powered, no download needed) - Same 5 models as local
   const CLOUD_MODELS = [
-    { id: "lfm2-350m", name: "LFM2-350M", description: "Fastest - Works on all phones (4GB+ RAM)", size: "~230MB", speed: "50+ tok/s", recommended: true },
-    { id: "tinyllama-1.1b", name: "TinyLlama 1.1B", description: "Ultra-lightweight - Trained on 3T tokens", size: "~700MB", speed: "28-35 tok/s" },
-    { id: "llama-3.2-1b", name: "Llama 3.2 1B", description: "Meta's latest - Best 1B model", size: "~750MB", speed: "25-30 tok/s" },
-    { id: "qwen-2.5-1.5b", name: "Qwen 2.5 1.5B", description: "Best multilingual - Great for Filipino students", size: "~1GB", speed: "15-25 tok/s" },
-    { id: "deepseek-r1-1.5b", name: "DeepSeek-R1 1.5B", description: "Reasoning model - Shows step-by-step thinking", size: "~1.1GB", speed: "15-22 tok/s" },
+    { id: "lfm2-350m", name: "Light", description: "Ultra-fast response", size: "230 MB", recommended: true },
+    { id: "qwen-3-0.6b", name: "Nano", description: "Smart & efficient", size: "450 MB" },
+    { id: "qwen-3-1.7b", name: "Smart", description: "High quality all-rounder", size: "1.1 GB" },
+    { id: "deepseek-r1-1.5b", name: "Reasoning", description: "Reasoning & logic", size: "1.0 GB" },
+    { id: "llama-3.2-1b", name: "Advanced", description: "Meta's flagship", size: "750 MB" },
+    { id: "qwen-2.5-1.5b", name: "Pro", description: "Multilingual leader", size: "1.0 GB" },
   ];
 
   // Refresh local model statuses
@@ -146,25 +188,73 @@ const AIChatAssistant = () => {
     }
   };
 
-  const handleCloudModelSelect = (modelId) => {
-    setSelectedCloudModel(modelId);
-    localStorage.setItem("selectedCloudModel", modelId);
-    // Switch to cloud mode
-    setUseLocalMode(false);
-    localStorage.setItem("useLocalMode", "false");
+  const resetConversation = () => {
+    setMessages([
+      { role: "assistant", content: "Hello! I'm CAPS AI, your exam preparation assistant. How can I help you today?" }
+    ]);
   };
 
-  const handleLocalModelSelect = (modelId) => {
-    const status = modelStatuses[modelId];
-    if (!status?.downloaded) {
-      // Model not downloaded - don't select, the UI shows Download button
+  const applyModelChange = (change) => {
+    if (!change) return;
+    if (change.kind === "cloud") {
+      setSelectedCloudModel(change.modelId);
+      localStorage.setItem("selectedCloudModel", change.modelId);
+      setUseLocalMode(false);
+      localStorage.setItem("useLocalMode", "false");
+    } else {
+      setSelectedLocalModel(change.modelId);
+      localStorage.setItem("selectedLocalModel", change.modelId);
+      setUseLocalMode(true);
+      localStorage.setItem("useLocalMode", "true");
+    }
+
+    if (change.clearConversation) {
+      resetConversation();
+    }
+    setPendingModelChange(null);
+  };
+
+  const handleCloudModelSelect = (modelId) => {
+    if (selectedCloudModel === modelId) return;
+    if (hasConversationHistory) {
+      setPendingModelChange({ kind: "cloud", modelId, clearConversation: true });
       return;
     }
-    setSelectedLocalModel(modelId);
-    localStorage.setItem("selectedLocalModel", modelId);
-    // Switch to local mode
-    setUseLocalMode(true);
-    localStorage.setItem("useLocalMode", "true");
+    applyModelChange({ kind: "cloud", modelId, clearConversation: false });
+  };
+
+  const handleLocalModelSelect = async (modelId) => {
+    const status = modelStatuses[modelId];
+    if (!status?.downloaded) return;
+    if (selectedLocalModel === modelId && activeLocalModel === modelId) {
+      await localAiService.unload();
+      setActiveLocalModel(null);
+      return;
+    }
+    if (activeLocalModel) {
+      await localAiService.unload();
+      setActiveLocalModel(null);
+    }
+    if (hasConversationHistory) {
+      setPendingModelChange({ kind: "local", modelId, clearConversation: true });
+      return;
+    }
+    applyModelChange({ kind: "local", modelId, clearConversation: false });
+  };
+
+  const handleLoadModel = async (modelId) => {
+    const status = modelStatuses[modelId];
+    if (!status?.downloaded) return;
+    setActiveLocalModel(modelId);
+    setIsModelLoading(true);
+    try {
+      await localAiService.initialize(modelId);
+    } catch (e) {
+      console.error("Failed to load model:", e);
+      setActiveLocalModel(null);
+    } finally {
+      setIsModelLoading(false);
+    }
   };
 
   const handleSendMessage = async (e) => {
@@ -176,9 +266,8 @@ const AIChatAssistant = () => {
     setInput("");
     setIsLoading(true);
 
-    const welcomeText = "Hello! I'm CAPS AI, your exam preparation assistant. How can I help you today?";
     const contextMessages = messages
-      .filter(m => m.content !== welcomeText)
+      .filter((message) => !(message.role === "assistant" && WELCOME_MESSAGES.has(message.content)))
       .slice(-20);
 
     // Determine if we should use local or cloud
@@ -207,7 +296,8 @@ const AIChatAssistant = () => {
               newMsgs[newMsgs.length - 1].content = full;
               return newMsgs;
             });
-          }
+          },
+          { thinking: thinkingEnabled }
         );
       } else {
         // --- CLOUD API ---
@@ -228,28 +318,50 @@ const AIChatAssistant = () => {
             content: "You are CAPS AI, a friendly and concise exam preparation assistant for Filipino students. Respond naturally and avoid overly formal phrases." 
           };
 
+          cloudCancelRef.current = axios.CancelToken.source();
           const response = await axios.post(
             `${apiUrl}/api/ai/chat`,
             { 
               messages: [systemPrompt, ...contextMessages, userMessage],
-              model: selectedCloudModel 
+              model: selectedCloudModel,
+              thinking: thinkingEnabled && (selectedCloudModel === "qwen-3-0.6b" || selectedCloudModel === "qwen-3-1.7b"),
             },
             {
               headers: { Authorization: `Bearer ${token}` },
-              timeout: 60000
+              timeout: 90000,
+              cancelToken: cloudCancelRef.current.token,
             }
           );
 
           if (response.data && response.data.content) {
-            setMessages((prev) => [...prev, { role: "assistant", content: response.data.content }]);
+            setMessages((prev) => [...prev, {
+              role: "assistant",
+              content: response.data.content,
+              thinking: response.data.thinking || null,
+            }]);
           } else {
             throw new Error("Invalid response from AI service");
           }
         } catch (error) {
+          if (axios.isCancel(error)) {
+            setMessages((prev) => [
+              ...prev,
+              { role: "assistant", content: "Response stopped by user." }
+            ]);
+            return;
+          }
           console.error("AI Chat Error:", error);
+          let errorMsg = "Sorry, I'm having trouble connecting to the service right now.";
+          
+          if (error.response?.status === 503) {
+            errorMsg = "The AI service is currently busy or loading a large model. Please try again in 1-2 minutes.";
+          } else if (error.code === 'ECONNABORTED') {
+            errorMsg = "The AI is taking a bit long to reason. Please try a smaller model like 'Light' for faster answers.";
+          }
+          
           setMessages((prev) => [
             ...prev,
-            { role: "assistant", content: "Sorry, I'm having trouble connecting to the service right now. Please try again later." }
+            { role: "assistant", content: errorMsg }
           ]);
         }
       }
@@ -262,6 +374,22 @@ const AIChatAssistant = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleStop = async () => {
+    const selectedStatus = modelStatuses[selectedLocalModel];
+    const canUseLocal = selectedStatus?.downloaded;
+    const shouldUseLocal = useLocalMode && canUseLocal;
+    
+    if (shouldUseLocal || (!isOnline && canUseLocal)) {
+      await localAiService.stop();
+    } else {
+      if (cloudCancelRef.current) {
+        cloudCancelRef.current.cancel("User stopped generation");
+        cloudCancelRef.current = null;
+      }
+    }
+    setIsLoading(false);
   };
 
   const selectedStatus = modelStatuses[selectedLocalModel];
@@ -298,6 +426,28 @@ const AIChatAssistant = () => {
       {/* Chat Window */}
       {isOpen && (
         <div className="flex h-[500px] w-[350px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900 sm:w-[400px]">
+          {pendingModelChange && (
+            <div className="absolute inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 sm:items-center">
+              <div className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-2xl dark:bg-gray-900">
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Switch model?</h4>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{MODEL_SWITCH_WARNING}</p>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={() => setPendingModelChange(null)}
+                    className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => applyModelChange(pendingModelChange)}
+                    className="flex-1 rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white"
+                  >
+                    Switch and Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Header */}
           <div className="flex items-center justify-between bg-orange-500 p-4 text-white">
             <div className="flex items-center gap-3">
@@ -455,15 +605,15 @@ const AIChatAssistant = () => {
                     </p>
                   </div>
 
-                  {/* Web Mode Warning */}
+                  {/* Web Mode Info */}
                   {!isNativePlatform() && (
-                    <div className="rounded-xl bg-yellow-50 p-3 text-center dark:bg-yellow-950/20">
-                      <IoAlertCircle className="mx-auto mb-1 text-yellow-600" size={20} />
-                      <p className="text-xs text-yellow-800 dark:text-yellow-300 font-medium">
+                    <div className="rounded-xl bg-green-50 p-3 text-center dark:bg-green-950/20">
+                      <IoCheckmarkCircle className="mx-auto mb-1 text-green-600" size={20} />
+                      <p className="text-xs text-green-800 dark:text-green-300 font-medium">
                         Web Browser Mode
                       </p>
-                      <p className="text-[10px] text-yellow-600 dark:text-yellow-400">
-                        Local model download only works in the mobile app (APK). Please use Cloud mode or install the APK.
+                      <p className="text-[10px] text-green-600 dark:text-green-400">
+                        Local AI runs in your browser using WebGPU. Models are cached in IndexedDB.
                       </p>
                     </div>
                   )}
@@ -580,6 +730,33 @@ const AIChatAssistant = () => {
                                 >
                                   {isSelected ? "✓ Selected" : "Select"}
                                 </button>
+                                {isSelected && (
+                                  <button 
+                                    onClick={() => activeLocalModel === modelId ? localAiService.unload().then(() => setActiveLocalModel(null)) : handleLoadModel(modelId)}
+                                    disabled={isModelLoading}
+                                    className={`flex-1 rounded-lg py-2 text-sm font-bold transition-colors ${
+                                      activeLocalModel === modelId
+                                        ? "bg-blue-500 text-white"
+                                        : isModelLoading
+                                        ? "bg-blue-200 text-blue-600"
+                                        : "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                                    }`}
+                                  >
+                                    {isModelLoading && activeLocalModel === modelId ? (
+                                      <span className="flex items-center justify-center gap-1">
+                                        <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                        </svg>
+                                        Loading...
+                                      </span>
+                                    ) : activeLocalModel === modelId ? (
+                                      "✓ Loaded"
+                                    ) : (
+                                      "Load"
+                                    )}
+                                  </button>
+                                )}
                                 <button 
                                   onClick={() => handleDeleteModel(modelId)}
                                   className="flex items-center justify-center rounded-lg bg-red-100 px-4 text-red-600 transition-colors hover:bg-red-200"
@@ -600,22 +777,31 @@ const AIChatAssistant = () => {
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900/50">
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
+            {messages.map((msg, index) => {
+              const parsed = extractThinkingData(msg);
+              return (
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
-                    msg.role === "user"
-                      ? "bg-orange-500 text-white rounded-tr-none"
-                      : "bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-700"
-                  }`}
+                  key={index}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
-                  {msg.content}
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
+                      msg.role === "user"
+                        ? "bg-orange-500 text-white rounded-tr-none"
+                        : "bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-700"
+                    }`}
+                  >
+                    {msg.role !== "user" && parsed.thinking && (
+                      <div className="mb-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-800 dark:border-purple-900 dark:bg-purple-950/30 dark:text-purple-300 whitespace-pre-wrap">
+                        <div className="mb-1 font-semibold">Reasoning Process</div>
+                        <div>{parsed.thinking}</div>
+                      </div>
+                    )}
+                    <div className="whitespace-pre-wrap">{parsed.content}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {isLoading && currentMode === "cloud" && (
               <div className="flex justify-start">
                 <div className="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-none px-4 py-2 border border-gray-100 dark:border-gray-700">
@@ -638,6 +824,13 @@ const AIChatAssistant = () => {
             </div>
           )}
 
+          {currentMode === "local" && !isNativePlatform() && !isWebGPUSupported && (
+            <div className="bg-amber-50 p-2 text-center text-[10px] text-amber-600 font-bold dark:bg-amber-950/20">
+              <IoAlertCircle className="inline mr-1" size={14} />
+              WebGPU not supported. Local AI requires Chrome 113+ or Edge 113+.
+            </div>
+          )}
+
           {/* Input Area */}
           <form onSubmit={handleSendMessage} className="border-t border-gray-100 p-4 dark:border-gray-800 bg-white dark:bg-gray-900">
             <div className="relative flex items-center">
@@ -650,13 +843,31 @@ const AIChatAssistant = () => {
                 disabled={isLoading || (!isOnline && currentMode === "cloud")}
               />
               <button
-                type="submit"
-                disabled={isLoading || !input.trim() || (!isOnline && currentMode === "cloud")}
-                className="absolute right-2 flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white transition-colors hover:bg-orange-600 disabled:bg-gray-300"
+                type={isLoading ? "button" : "submit"}
+                onClick={isLoading ? handleStop : undefined}
+                disabled={!isLoading && (!input.trim() || (!isOnline && currentMode === "cloud"))}
+                className={`absolute right-2 flex h-8 w-8 items-center justify-center rounded-full text-white transition-colors ${
+                  isLoading
+                    ? "bg-red-500 hover:bg-red-600 animate-pulse"
+                    : "bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300"
+                }`}
               >
-                <IoSend size={16} />
+                {isLoading ? <IoStop size={16} /> : <IoSend size={16} />}
               </button>
             </div>
+            {(selectedLocalModel === "qwen-3-0.6b" || selectedLocalModel === "qwen-3-1.7b" || selectedCloudModel === "qwen-3-0.6b" || selectedCloudModel === "qwen-3-1.7b") && (
+              <button
+                type="button"
+                onClick={() => setThinkingEnabled((prev) => !prev)}
+                className={`mx-auto mt-2 flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-medium transition-all ${
+                  thinkingEnabled
+                    ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                    : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                }`}
+              >
+                {thinkingEnabled ? "🧠 Thinking" : "💭 No Thinking"}
+              </button>
+            )}
           </form>
         </div>
       )}

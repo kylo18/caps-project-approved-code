@@ -10,6 +10,13 @@ import threading
 import time
 import gc
 import hashlib
+import asyncio
+import logging
+import re
+
+# Setup basic logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("ai-service")
 
 app = FastAPI(title="CAPS AI Service - Multi-Model Manager")
 
@@ -26,8 +33,41 @@ app.add_middleware(
 # AVAILABLE MODELS CONFIGURATION
 # ============================================================
 AVAILABLE_MODELS: Dict[str, dict] = {
+    "qwen-3-0.6b": {
+        "name": "Nano (Qwen3 0.6B)",
+        "description": "Fast & Smart - Optimized for CPU",
+        "size": "~450MB",
+        "size_bytes": 472000000,
+        "ram": "~1GB",
+        "speed": "40+ tok/s",
+        "url": "https://huggingface.co/bartowski/Qwen_Qwen3-0.6B-GGUF/resolve/main/Qwen_Qwen3-0.6B-Q4_K_M.gguf",
+        "filename": "qwen3-0.6b-q4_k_m.gguf",
+        "recommended_for": "Lower-end phones",
+    },
+    "qwen-3-1.7b": {
+        "name": "Smart (Qwen3 1.7B)",
+        "description": "High intelligence, small size",
+        "size": "~1.1GB",
+        "size_bytes": 1100000000,
+        "ram": "~2GB",
+        "speed": "20+ tok/s",
+        "url": "https://huggingface.co/bartowski/Qwen_Qwen3-1.7B-GGUF/resolve/main/Qwen_Qwen3-1.7B-Q4_K_M.gguf",
+        "filename": "qwen3-1.7b-q4_k_m.gguf",
+        "recommended_for": "Mid-tier phones",
+    },
+    "deepseek-r1-1.5b": {
+        "name": "Reasoning (DeepSeek R1)",
+        "description": "Advanced reasoning - Thinks before speaking",
+        "size": "1 GB",
+        "size_bytes": 1100000000,
+        "ram": "~2.5GB",
+        "speed": "12-18 tok/s",
+        "url": "https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf",
+        "filename": "DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf",
+        "recommended_for": "Reasoning tasks, complex math",
+    },
     "lfm2-350m": {
-        "name": "LFM2-350M",
+        "name": "Light (LFM2)",
         "description": "Fastest - Works on all phones (4GB+ RAM)",
         "size": "~230MB",
         "size_bytes": 241000000,
@@ -35,69 +75,41 @@ AVAILABLE_MODELS: Dict[str, dict] = {
         "speed": "50+ tok/s",
         "url": "https://huggingface.co/LiquidAI/LFM2-350M-GGUF/resolve/main/LFM2-350M-Q4_K_M.gguf",
         "filename": "LFM2-350M-Q4_K_M.gguf",
-        "recommended_for": "All phones, fastest responses"
-    },
-    "tinyllama-1.1b": {
-        "name": "TinyLlama 1.1B",
-        "description": "Ultra-lightweight - Trained on 3T tokens",
-        "size": "~700MB", 
-        "size_bytes": 734000000,
-        "ram": "~1GB",
-        "speed": "28-35 tok/s",
-        "url": "https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
-        "filename": "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
-        "recommended_for": "4GB RAM phones, quick chat"
+        "recommended_for": "Instant responses",
     },
     "llama-3.2-1b": {
-        "name": "Llama 3.2 1B",
+        "name": "Advanced (Llama 3.2)",
         "description": "Meta's latest - Best 1B model",
         "size": "~750MB",
         "size_bytes": 786000000,
-        "ram": "~1.5GB", 
+        "ram": "~1.5GB",
         "speed": "25-30 tok/s",
         "url": "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf",
         "filename": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
-        "recommended_for": "6GB RAM phones, balanced quality"
-    },
-    "gemma-2b": {
-        "name": "Gemma 2B",
-        "description": "Google's lightweight model",
-        "size": "~1.5GB",
-        "size_bytes": 1573000000,
-        "ram": "~2GB",
-        "speed": "20-25 tok/s",
-        "url": "https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf",
-        "filename": "gemma-2-2b-it-Q4_K_M.gguf",
-        "recommended_for": "6-8GB RAM phones, Google ecosystem"
+        "recommended_for": "Balanced quality",
     },
     "qwen-2.5-1.5b": {
-        "name": "Qwen 2.5 1.5B",
-        "description": "Best multilingual - Great for Filipino students",
+        "name": "Pro",
+        "description": "Best for complex tasks",
         "size": "~1GB",
         "size_bytes": 1044000000,
         "ram": "~2GB",
-        "speed": "15-25 tok/s",
+        "speed": "15-20 tok/s",
         "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf",
         "filename": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
-        "recommended_for": "8GB+ RAM, multilingual, best quality"
+        "recommended_for": "Complex tasks, multilingual",
     },
-    "deepseek-r1-1.5b": {
-        "name": "DeepSeek-R1 1.5B",
-        "description": "Reasoning model - Shows step-by-step thinking",
-        "size": "~1.1GB",
-        "size_bytes": 1120000000,
-        "ram": "~2GB",
-        "speed": "15-22 tok/s",
-        "url": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf",
-        "filename": "DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf",
-        "recommended_for": "8GB+ RAM, reasoning tasks, math/coding"
-    }
 }
 
 # Global state
 models: Dict[str, any] = {}
-model_threads: Dict[str, threading.Thread] = {}
+model_locks: Dict[str, asyncio.Lock] = {}
 CURRENT_MODEL_KEY: Optional[str] = None
+
+# Initialize locks for all available models
+for key in AVAILABLE_MODELS:
+    model_locks[key] = asyncio.Lock()
+
 
 class ModelStatus:
     def __init__(self):
@@ -110,16 +122,20 @@ class ModelStatus:
         self.partial = False
         self.downloaded_bytes = 0
         self.total_bytes = 0
-        
+
+
 model_status: Dict[str, ModelStatus] = {}
 for key in AVAILABLE_MODELS:
     model_status[key] = ModelStatus()
 
+
 def get_model_path(key: str) -> str:
     return f"/app/models/{AVAILABLE_MODELS[key]['filename']}"
 
+
 def get_partial_path(key: str) -> str:
     return f"/app/models/{AVAILABLE_MODELS[key]['filename']}.partial"
+
 
 def check_download_status(key: str) -> dict:
     """
@@ -135,89 +151,98 @@ def check_download_status(key: str) -> dict:
     config = AVAILABLE_MODELS[key]
     model_path = get_model_path(key)
     partial_path = get_partial_path(key)
-    total_bytes = config.get('size_bytes', 0)
-    
+    total_bytes = config.get("size_bytes", 0)
+
     # Check if fully downloaded
     if os.path.exists(model_path):
         actual_size = os.path.getsize(model_path)
         # Allow 5% tolerance for size mismatch (headers, metadata differences)
         min_expected = total_bytes * 0.95 if total_bytes else actual_size * 0.9
-        
+
         if actual_size >= min_expected:
             return {
-                'downloaded': True,
-                'partial': False,
-                'downloaded_bytes': actual_size,
-                'total_bytes': total_bytes or actual_size,
-                'percent': 100
+                "downloaded": True,
+                "partial": False,
+                "downloaded_bytes": actual_size,
+                "total_bytes": total_bytes or actual_size,
+                "percent": 100,
             }
         else:
             # File exists but is too small - corrupted/partial
             return {
-                'downloaded': False,
-                'partial': True,
-                'downloaded_bytes': actual_size,
-                'total_bytes': total_bytes or actual_size,
-                'percent': min(99, int((actual_size / total_bytes) * 100)) if total_bytes else 50
+                "downloaded": False,
+                "partial": True,
+                "downloaded_bytes": actual_size,
+                "total_bytes": total_bytes or actual_size,
+                "percent": min(99, int((actual_size / total_bytes) * 100))
+                if total_bytes
+                else 50,
             }
-    
+
     # Check for partial download file
     if os.path.exists(partial_path):
         partial_size = os.path.getsize(partial_path)
         return {
-            'downloaded': False,
-            'partial': True,
-            'downloaded_bytes': partial_size,
-            'total_bytes': total_bytes or partial_size,
-            'percent': min(99, int((partial_size / total_bytes) * 100)) if total_bytes else 50
+            "downloaded": False,
+            "partial": True,
+            "downloaded_bytes": partial_size,
+            "total_bytes": total_bytes or partial_size,
+            "percent": min(99, int((partial_size / total_bytes) * 100))
+            if total_bytes
+            else 50,
         }
-    
+
     # Not downloaded at all
     return {
-        'downloaded': False,
-        'partial': False,
-        'downloaded_bytes': 0,
-        'total_bytes': total_bytes,
-        'percent': 0
+        "downloaded": False,
+        "partial": False,
+        "downloaded_bytes": 0,
+        "total_bytes": total_bytes,
+        "percent": 0,
     }
+
 
 def update_model_status_from_files():
     """Update all model statuses based on file system check"""
     for key in AVAILABLE_MODELS:
         status = check_download_status(key)
-        model_status[key].downloaded = status['downloaded']
-        model_status[key].partial = status['partial']
-        model_status[key].downloaded_bytes = status['downloaded_bytes']
-        model_status[key].total_bytes = status['total_bytes']
-        
-        if status['downloaded']:
+        model_status[key].downloaded = status["downloaded"]
+        model_status[key].partial = status["partial"]
+        model_status[key].downloaded_bytes = status["downloaded_bytes"]
+        model_status[key].total_bytes = status["total_bytes"]
+
+        if status["downloaded"]:
             model_status[key].step = "Downloaded (not loaded)"
             model_status[key].progress = 100
-        elif status['partial']:
-            model_status[key].step = f"Incomplete ({status['percent']:.0f}%) - Tap to resume"
-            model_status[key].progress = status['percent']
+        elif status["partial"]:
+            model_status[
+                key
+            ].step = f"Incomplete ({status['percent']:.0f}%) - Tap to resume"
+            model_status[key].progress = status["percent"]
         else:
             model_status[key].step = "Not downloaded"
             model_status[key].progress = 0
+
 
 def cleanup_partial_download(key: str):
     """Clean up partial/incomplete download files"""
     partial_path = get_partial_path(key)
     model_path = get_model_path(key)
-    
+
     if os.path.exists(partial_path):
         os.remove(partial_path)
         print(f"Cleaned up partial file: {partial_path}", flush=True)
-    
+
     # Also check if main file is incomplete
     if os.path.exists(model_path):
         config = AVAILABLE_MODELS[key]
         actual_size = os.path.getsize(model_path)
-        expected_size = config.get('size_bytes', 0)
-        
+        expected_size = config.get("size_bytes", 0)
+
         if expected_size and actual_size < expected_size * 0.95:
             os.remove(model_path)
             print(f"Cleaned up incomplete file: {model_path}", flush=True)
+
 
 def unload_model(key: str):
     """Unload model from memory to free RAM"""
@@ -230,42 +255,40 @@ def unload_model(key: str):
         model_status[key].step = "Downloaded (not loaded)"
         print(f"Model {key} unloaded successfully", flush=True)
 
+
 def load_model_thread(key: str):
     """Load a model in background"""
     from llama_cpp import Llama
-    
+
     status = model_status[key]
     model_config = AVAILABLE_MODELS[key]
     model_path = get_model_path(key)
-    
+
     try:
         # Check download status first
         download_status = check_download_status(key)
-        if not download_status['downloaded']:
+        if not download_status["downloaded"]:
             status.step = "Not downloaded"
             status.downloaded = False
             status.ready = False
             return
-        
+
         status.downloaded = True
         status.loading = True
         status.step = "Loading into memory..."
         status.progress = 60
-        
+
         # Load with llama.cpp
         models[key] = Llama(
-            model_path=model_path,
-            n_threads=4,
-            n_ctx=2048,
-            verbose=False
+            model_path=model_path, n_threads=4, n_ctx=2048, verbose=False
         )
-        
+
         status.step = "Ready"
         status.progress = 100
         status.ready = True
         status.loading = False
         print(f"--- {model_config['name']} loaded successfully ---", flush=True)
-        
+
     except Exception as e:
         print(f"ERROR loading {key}: {str(e)}", flush=True)
         status.step = "Error"
@@ -273,79 +296,84 @@ def load_model_thread(key: str):
         status.loading = False
         status.ready = False
 
+
 def download_model_thread(key: str, resume: bool = False):
     """Download a model with resume support"""
     import urllib.request
-    
+
     status = model_status[key]
     model_config = AVAILABLE_MODELS[key]
     model_path = get_model_path(key)
     partial_path = get_partial_path(key)
-    
+
     try:
         status.loading = True
         status.step = "Downloading..."
-        
+
         # Check if we should resume or start fresh
         download_file = partial_path
         resume_byte_pos = 0
-        
+
         if resume and os.path.exists(partial_path):
             resume_byte_pos = os.path.getsize(partial_path)
             status.downloaded_bytes = resume_byte_pos
-            status.step = f"Resuming download... ({resume_byte_pos//1024//1024}MB already)"
-            print(f"Resuming download for {key} from {resume_byte_pos} bytes", flush=True)
+            status.step = (
+                f"Resuming download... ({resume_byte_pos // 1024 // 1024}MB already)"
+            )
+            print(
+                f"Resuming download for {key} from {resume_byte_pos} bytes", flush=True
+            )
         elif os.path.exists(partial_path):
             # Clean up old partial
             os.remove(partial_path)
-        
+
         # Create request with resume header if needed
-        req = urllib.request.Request(model_config['url'])
+        req = urllib.request.Request(model_config["url"])
         if resume_byte_pos > 0:
-            req.add_header('Range', f'bytes={resume_byte_pos}-')
-        
-        status.total_bytes = model_config.get('size_bytes', 0)
-        
+            req.add_header("Range", f"bytes={resume_byte_pos}-")
+
+        status.total_bytes = model_config.get("size_bytes", 0)
+
         with urllib.request.urlopen(req, timeout=30) as response:
-            total_size = int(response.headers.get('Content-Length', 0))
+            total_size = int(response.headers.get("Content-Length", 0))
             if resume_byte_pos > 0 and total_size > 0:
                 total_size += resume_byte_pos
             elif total_size == 0:
                 total_size = status.total_bytes or 1
-            
+
             status.total_bytes = total_size
-            
-            mode = 'ab' if resume_byte_pos > 0 else 'wb'
+
+            mode = "ab" if resume_byte_pos > 0 else "wb"
             with open(download_file, mode) as f:
                 downloaded = resume_byte_pos
                 chunk_size = 8192
-                
+
                 while True:
                     chunk = response.read(chunk_size)
                     if not chunk:
                         break
-                    
+
                     f.write(chunk)
                     downloaded += len(chunk)
                     status.downloaded_bytes = downloaded
-                    
+
                     # Update progress
                     percent = min(int((downloaded / total_size) * 90) + 10, 99)
                     status.progress = percent
-                    status.step = f"Downloading... {downloaded//1024//1024}MB / {total_size//1024//1024}MB"
-                    
+                    status.step = f"Downloading... {downloaded // 1024 // 1024}MB / {total_size // 1024 // 1024}MB"
+
                     # Small delay to prevent UI freezing
                     time.sleep(0.001)
-        
+
         # Move from partial to final location
         if os.path.exists(partial_path):
             if os.path.exists(model_path):
                 os.remove(model_path)
             os.rename(partial_path, model_path)
-        
+
         # Verify the download
         final_status = check_download_status(key)
-        if final_status['downloaded']:
+        if final_status["downloaded"]:
             status.downloaded = True
             status.partial = False
             status.step = "Downloaded (not loaded)"
@@ -355,7 +383,7 @@ def download_model_thread(key: str, resume: bool = False):
             status.step = "Download incomplete - check connection"
             status.error = "File size mismatch"
             status.partial = True
-            
+
     except Exception as e:
         print(f"Download failed for {key}: {str(e)}", flush=True)
         status.step = f"Download failed - {str(e)[:30]}"
@@ -365,6 +393,7 @@ def download_model_thread(key: str, resume: bool = False):
     finally:
         status.loading = False
 
+
 # Initialize - check which models are already downloaded
 print("--- Starting CAPS AI Service (Multi-Model Manager) ---", flush=True)
 update_model_status_from_files()
@@ -372,19 +401,27 @@ for key in AVAILABLE_MODELS:
     if model_status[key].downloaded:
         print(f"Found downloaded: {AVAILABLE_MODELS[key]['name']}", flush=True)
     elif model_status[key].partial:
-        print(f"Found partial download: {AVAILABLE_MODELS[key]['name']} ({model_status[key].progress:.0f}%)", flush=True)
+        print(
+            f"Found partial download: {AVAILABLE_MODELS[key]['name']} ({model_status[key].progress:.0f}%)",
+            flush=True,
+        )
+
 
 class Message(BaseModel):
     role: str
     content: str
 
+
 class ChatRequest(BaseModel):
     messages: List[Message]
     model: Optional[str] = None
+    thinking: Optional[bool] = False
+
 
 # ============================================================
 # API ENDPOINTS
 # ============================================================
+
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
@@ -898,12 +935,13 @@ async def root():
     </html>
     """
 
+
 @app.get("/api/status")
 async def api_status():
     """Get current status of all models"""
     # Refresh status from filesystem
     update_model_status_from_files()
-    
+
     return {
         "current_model": CURRENT_MODEL_KEY,
         "models": AVAILABLE_MODELS,
@@ -917,55 +955,59 @@ async def api_status():
                 "loading": model_status[key].loading,
                 "partial": model_status[key].partial,
                 "downloaded_bytes": model_status[key].downloaded_bytes,
-                "total_bytes": model_status[key].total_bytes
+                "total_bytes": model_status[key].total_bytes,
             }
             for key in AVAILABLE_MODELS
-        }
+        },
     }
+
 
 @app.post("/api/download/{model_key}")
 async def download_model(model_key: str, resume: bool = False):
     """Download a model"""
     if model_key not in AVAILABLE_MODELS:
         raise HTTPException(status_code=404, detail="Model not found")
-    
+
     status = model_status[model_key]
-    
+
     # Check if already downloading
     if status.loading:
         return {"message": "Already downloading"}
-    
+
     # Check if already downloaded
     if status.downloaded and not resume:
         return {"message": "Already downloaded"}
-    
+
     # Clean up any previous partial download if not resuming
     if not resume:
         cleanup_partial_download(model_key)
-    
+
     # Start download in background
     status.loading = True
     status.error = None
     thread = threading.Thread(target=download_model_thread, args=(model_key, resume))
     thread.daemon = True
     thread.start()
-    
-    return {"message": f"Download {'resumed' if resume else 'started'} for {AVAILABLE_MODELS[model_key]['name']}"}
+
+    return {
+        "message": f"Download {'resumed' if resume else 'started'} for {AVAILABLE_MODELS[model_key]['name']}"
+    }
+
 
 @app.delete("/api/delete/{model_key}")
 async def delete_model(model_key: str):
     """Delete a downloaded model"""
     if model_key not in AVAILABLE_MODELS:
         raise HTTPException(status_code=404, detail="Model not found")
-    
+
     # Unload if in memory
     if model_key in models:
         unload_model(model_key)
-    
+
     # Delete files
     model_path = get_model_path(model_key)
     partial_path = get_partial_path(model_key)
-    
+
     deleted = False
     if os.path.exists(model_path):
         os.remove(model_path)
@@ -973,56 +1015,59 @@ async def delete_model(model_key: str):
     if os.path.exists(partial_path):
         os.remove(partial_path)
         deleted = True
-    
+
     # Reset status
     model_status[model_key] = ModelStatus()
-    
+
     if deleted:
         return {"message": f"Deleted {AVAILABLE_MODELS[model_key]['name']}"}
     else:
         return {"message": "Nothing to delete"}
 
+
 @app.post("/api/use/{model_key}")
 async def use_model(model_key: str):
     """Load a model into memory"""
     global CURRENT_MODEL_KEY
-    
+
     if model_key not in AVAILABLE_MODELS:
         raise HTTPException(status_code=404, detail="Model not found")
-    
+
     # Check if downloaded
     download_status = check_download_status(model_key)
-    if not download_status['downloaded']:
+    if not download_status["downloaded"]:
         raise HTTPException(status_code=400, detail="Model not downloaded")
-    
+
     # Check if already loading
     if model_status[model_key].loading:
         return {"message": "Already loading"}
-    
+
     # Check if already loaded
     if model_status[model_key].ready:
         CURRENT_MODEL_KEY = model_key
         return {"message": f"{AVAILABLE_MODELS[model_key]['name']} is already active"}
-    
+
     # Start loading
     CURRENT_MODEL_KEY = model_key
     model_status[model_key].loading = True
     model_status[model_key].step = "Loading into memory..."
-    
+
     thread = threading.Thread(target=load_model_thread, args=(model_key,))
     thread.daemon = True
     thread.start()
-    
+
     return {"message": f"Loading {AVAILABLE_MODELS[model_key]['name']}..."}
+
 
 @app.post("/api/unload/{model_key}")
 async def unload_model_endpoint(model_key: str):
     """Unload a model from memory"""
     if model_key not in AVAILABLE_MODELS:
         raise HTTPException(status_code=404, detail="Model not found")
-    
+
     unload_model(model_key)
     return {"message": f"Unloaded {AVAILABLE_MODELS[model_key]['name']}"}
+
 
 @app.get("/chat", response_class=HTMLResponse)
 async def chat_ui(model: Optional[str] = None):
@@ -1030,57 +1075,34 @@ async def chat_ui(model: Optional[str] = None):
     model_key = model or CURRENT_MODEL_KEY
     if not model_key or model_key not in AVAILABLE_MODELS:
         model_key = "lfm2-350m"
-    
+
     config = AVAILABLE_MODELS[model_key]
     status = model_status[model_key]
-    
+
+    # If model is not ready, show a friendly redirect page
     if not status.ready:
-        return f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <meta http-equiv="refresh" content="2">
-            <style>
-                * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-                body {{
-                    font-family: -apple-system, sans-serif;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    height: 100vh;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    padding: 20px;
-                }}
-                .loading {{
-                    text-align: center;
-                }}
-                .spinner {{
-                    width: 50px;
-                    height: 50px;
-                    border: 4px solid rgba(255,255,255,0.3);
-                    border-top-color: white;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                    margin: 0 auto 20px;
-                }}
-                @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
-                h2 {{ margin-bottom: 10px; font-size: 20px; }}
-                p {{ opacity: 0.9; font-size: 14px; }}
-            </style>
-        </head>
-        <body>
-            <div class="loading">
-                <div class="spinner"></div>
-                <h2>Loading {config['name']}...</h2>
-                <p>{status.step}</p>
-            </div>
-        </body>
-        </html>
-        """
-    
-    return f"""
+        return HTMLResponse(f"""
+        <html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{ font-family: -apple-system, sans-serif; background: linear-gradient(135deg, #667eea, #764ba2);
+                   display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }}
+            .card {{ background: white; border-radius: 16px; padding: 32px; text-align: center;
+                     max-width: 400px; margin: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }}
+            .card h2 {{ color: #333; margin-bottom: 12px; }}
+            .card p {{ color: #666; margin-bottom: 20px; line-height: 1.5; }}
+            .btn {{ display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white; padding: 12px 24px; border-radius: 24px; text-decoration: none;
+                    font-weight: 600; }}
+        </style></head>
+        <body><div class="card">
+            <h2>⏳ Model Not Loaded</h2>
+            <p>{config["name"]} is downloaded but not loaded into memory.<br>Load it from the Model Manager first.</p>
+            <a href="/" class="btn">← Go to Model Manager</a>
+        </div></body></html>
+        """)
+
+    # Build the HTML template using string concatenation to avoid f-string escaping issues
+    html = f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -1088,7 +1110,7 @@ async def chat_ui(model: Optional[str] = None):
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <meta name="theme-color" content="#667eea">
         <meta name="apple-mobile-web-app-capable" content="yes">
-        <title>CAPS AI Chat - {config['name']}</title>
+        <title>CAPS AI Chat - {config["name"]}</title>
         <style>
             * {{ box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }}
             html {{ touch-action: manipulation; height: 100%; }}
@@ -1251,71 +1273,126 @@ async def chat_ui(model: Optional[str] = None):
                 0%, 80%, 100% {{ transform: scale(0); }}
                 40% {{ transform: scale(1); }}
             }}
+            #thinkingToggle {{
+                display: none;
+                text-align: center;
+                padding: 8px;
+                background: #f8f9fa;
+                border-top: 1px solid #e0e0e0;
+            }}
+            #thinkingBtn {{
+                background: #f3f4f6;
+                border: 1px solid #d1d5db;
+                border-radius: 9999px;
+                padding: 6px 16px;
+                font-size: 13px;
+                cursor: pointer;
+                color: #6b7280;
+                transition: all 0.2s;
+            }}
+            #thinkingBtn:hover {{ background: #e5e7eb; }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
                 <div class="header-top">
-                    <h1>🤖 CAPS AI</h1>
-                    <span class="model-badge">{config['name']}</span>
+                    <h1>CAPS AI</h1>
+                    <span class="model-badge">{config["name"]}</span>
                 </div>
-                <div class="model-info">{config['description']} | {config['speed']}</div>
+                <div class="model-info">{config["description"]} | {config["speed"]}</div>
                 <a href="/" class="back-btn">← Models</a>
             </div>
             <div class="chat-container" id="chatContainer">
                 <div class="welcome">
-                    <h3>👋 Welcome to CAPS AI!</h3>
+                    <h3>Welcome to CAPS AI!</h3>
                     <p>I'm running locally on your device. Your conversations stay private and work offline.</p>
                 </div>
+            </div>
+            <div id="thinkingToggle">
+                <button id="thinkingBtn">💭 No Thinking</button>
             </div>
             <div class="input-container">
                 <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
                 <button id="sendBtn">Send</button>
             </div>
         </div>
+    """
 
+    # Add JavaScript separately to avoid f-string escaping issues
+    is_qwen3 = model_key in ("qwen-3-0.6b", "qwen-3-1.7b")
+    html += f"""
         <script>
-            const chatContainer = document.getElementById('chatContainer');
-            const messageInput = document.getElementById('messageInput');
-            const sendBtn = document.getElementById('sendBtn');
-            let isGenerating = false;
+            var chatContainer = document.getElementById('chatContainer');
+            var messageInput = document.getElementById('messageInput');
+            var sendBtn = document.getElementById('sendBtn');
+            var thinkingToggle = document.getElementById('thinkingToggle');
+            var thinkingBtn = document.getElementById('thinkingBtn');
+            var isGenerating = false;
+            var thinkingEnabled = false;
 
-            // Load system prompt
-            const SYSTEM_PROMPT = `You are CAPS AI, a helpful AI assistant for students. You provide clear, educational answers with examples. Keep responses concise (2-4 sentences for simple questions, longer for complex topics). You can help with explaining concepts, brainstorming, writing assistance, math problems, and general questions. Always be encouraging and supportive.`;
+            // Show thinking toggle only for Qwen3 models
+            if ({'true' if is_qwen3 else 'false'}) {{
+                thinkingToggle.style.display = 'block';
+            }}
+
+            thinkingBtn.addEventListener('click', function() {{
+                thinkingEnabled = !thinkingEnabled;
+                thinkingBtn.textContent = thinkingEnabled ? '🧠 Thinking ON' : '💭 No Thinking';
+                thinkingBtn.style.background = thinkingEnabled ? '#ede9fe' : '#f3f4f6';
+                thinkingBtn.style.color = thinkingEnabled ? '#7c3aed' : '#6b7280';
+                thinkingBtn.style.borderColor = thinkingEnabled ? '#8b5cf6' : '#d1d5db';
+            }});
+
+            var SYSTEM_PROMPT = 'You are CAPS AI, a helpful AI assistant for students. You provide clear, educational answers with examples. Keep responses concise.';
 
             function addMessage(role, content) {{
-                const div = document.createElement('div');
-                div.className = `message ${{role}}`;
-                div.innerHTML = `<div class="message-content"></div>`;
-                div.querySelector('.message-content').textContent = content;
+                var div = document.createElement('div');
+                div.className = 'message ' + role;
+                var contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = content;
+                div.appendChild(contentDiv);
                 chatContainer.appendChild(div);
                 chatContainer.scrollTop = chatContainer.scrollHeight;
                 return div;
             }}
 
+            function addThinkingBlock(thinkingText) {{
+                var div = document.createElement('div');
+                div.className = 'message assistant';
+                var contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.style.background = '#f3f0ff';
+                contentDiv.style.color = '#6b21a8';
+                contentDiv.style.fontSize = '13px';
+                contentDiv.style.borderLeft = '3px solid #8b5cf6';
+                contentDiv.innerHTML = '<strong>🧠 Thinking:</strong><br>' +
+                    thinkingText.replace(/\\n/g, '<br>');
+                div.appendChild(contentDiv);
+                chatContainer.appendChild(div);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }}
+
             function showTyping() {{
-                const div = document.createElement('div');
+                var div = document.createElement('div');
                 div.className = 'message assistant';
                 div.id = 'typing';
-                div.innerHTML = `
-                    <div class="message-content">
-                        <div class="typing-indicator">
-                            <span></span><span></span><span></span>
-                        </div>
-                    </div>
-                `;
+                var contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+                div.appendChild(contentDiv);
                 chatContainer.appendChild(div);
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             }}
 
             function removeTyping() {{
-                const typing = document.getElementById('typing');
+                var typing = document.getElementById('typing');
                 if (typing) typing.remove();
             }}
 
-            async function sendMessage() {{
-                const message = messageInput.value.trim();
+            function sendMessage() {{
+                var message = messageInput.value.trim();
                 if (!message || isGenerating) return;
 
                 messageInput.value = '';
@@ -1324,141 +1401,151 @@ async def chat_ui(model: Optional[str] = None):
                 sendBtn.disabled = true;
                 isGenerating = true;
 
-                try {{
-                    const response = await fetch('/generate', {{
-                        method: 'POST',
-                        headers: {{'Content-Type': 'application/json'}},
-                        body: JSON.stringify({{
-                            messages: [
-                                {{role: 'system', content: SYSTEM_PROMPT}},
-                                {{role: 'user', content: message}}
-                            ],
-                            model: '{model_key}'
-                        }})
-                    }});
-
+                fetch('/generate', {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{
+                        messages: [
+                            {{role: 'system', content: SYSTEM_PROMPT}},
+                            {{role: 'user', content: message}}
+                        ],
+                        model: '{model_key}',
+                        thinking: thinkingEnabled
+                    }})
+                }})
+                .then(function(response) {{
                     removeTyping();
-                    
                     if (response.ok) {{
-                        const data = await response.json();
-                        addMessage('assistant', data.content);
+                        return response.json();
                     }} else {{
-                        const error = await response.json();
-                        addMessage('assistant', '⚠️ Error: ' + (error.detail || 'Something went wrong'));
+                        return response.json().then(function(err) {{
+                            throw new Error(err.detail || 'Something went wrong');
+                        }});
                     }}
-                }} catch (e) {{
+                }})
+                .then(function(data) {{
+                    if (data.thinking) {{
+                        addThinkingBlock(data.thinking);
+                    }}
+                    addMessage('assistant', data.content);
+                }})
+                .catch(function(error) {{
                     removeTyping();
-                    addMessage('assistant', '⚠️ Network error. Please check your connection.');
-                }}
-
-                sendBtn.disabled = false;
-                isGenerating = false;
-                messageInput.focus();
+                    addMessage('assistant', 'Error: ' + error.message);
+                }})
+                .finally(function() {{
+                    sendBtn.disabled = false;
+                    isGenerating = false;
+                    messageInput.focus();
+                }});
             }}
 
             sendBtn.addEventListener('click', sendMessage);
-            messageInput.addEventListener('keypress', (e) => {{
+            messageInput.addEventListener('keypress', function(e) {{
                 if (e.key === 'Enter') sendMessage();
             }});
-            
-            // Focus input on load
-            messageInput.focus();
         </script>
     </body>
     </html>
     """
 
+    return html
+
+
 @app.post("/generate")
 async def generate(request: ChatRequest):
-    """Generate text using the specified model"""
+    """Generate text using the specified model - Thread safe and non-blocking"""
     global CURRENT_MODEL_KEY
-    
+
     model_key = request.model or CURRENT_MODEL_KEY or "lfm2-350m"
-    
+
     if model_key not in AVAILABLE_MODELS:
         available = ", ".join(AVAILABLE_MODELS.keys())
-        raise HTTPException(status_code=404, detail=f"Model '{model_key}' not found. Available: {available}")
-    
+        raise HTTPException(
+            status_code=404,
+            detail=f"Model '{model_key}' not found. Available: {available}",
+        )
+
     # Check if downloaded
     download_status = check_download_status(model_key)
-    if not download_status['downloaded']:
-        model_name = AVAILABLE_MODELS[model_key]['name']
+    if not download_status["downloaded"]:
+        model_name = AVAILABLE_MODELS[model_key]["name"]
         raise HTTPException(
-            status_code=503, 
-            detail=f"Model '{model_name}' is not downloaded. Please download it first via the Model Manager UI at http://localhost:5000/"
+            status_code=503,
+            detail=f"Model '{model_name}' is not downloaded. Please download it first via the Model Manager UI at http://localhost:5000/",
         )
-    
-    # Check if in memory, if not load it (and unload others)
+
+    # Ensure model is in memory (load if needed)
     if not model_status[model_key].ready:
-        # Unload current model if different
-        if CURRENT_MODEL_KEY and CURRENT_MODEL_KEY != model_key and CURRENT_MODEL_KEY in models:
-            unload_model(CURRENT_MODEL_KEY)
-        
-        # Load requested model
-        CURRENT_MODEL_KEY = model_key
-        load_model_thread(model_key)
-        
+        # Load requested model in a thread if not ready
+        if not model_status[model_key].loading:
+            threading.Thread(
+                target=load_model_thread, args=(model_key,), daemon=True
+            ).start()
+
         # Wait for loading (with timeout)
-        timeout = 60  # seconds
+        timeout = 60
         start = time.time()
         while not model_status[model_key].ready and time.time() - start < timeout:
-            time.sleep(0.1)
-        
-        if not model_status[model_key].ready:
-            raise HTTPException(status_code=503, detail="Model is still loading. Please try again in a moment.")
-    
-    CURRENT_MODEL_KEY = model_key
-    
-    # Generate response
-    try:
-        from llama_cpp import Llama
-        
-        # Format messages for the model
-        messages = [{"role": m.role, "content": m.content} for m in request.messages]
-        
-        output = models[model_key].create_chat_completion(
-            messages=messages,
-            max_tokens=512,
-            temperature=0.7,
-            stop=["</s>", "<|im_end|>", "<|endoftext|>"]
-        )
-        
-        content = output["choices"][0]["message"]["content"]
-        return {"content": content}
-        
-    except Exception as e:
-        print(f"Generation error: {str(e)}", flush=True)
-        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+            await asyncio.sleep(0.5)
 
-@app.get("/api/status")
-async def api_status():
-    """Get current status of all models"""
-    # Refresh status from filesystem
-    update_model_status_from_files()
-    
-    return {
-        "current_model": CURRENT_MODEL_KEY,
-        "models": AVAILABLE_MODELS,
-        "status": {
-            key: {
-                "step": model_status[key].step,
-                "progress": model_status[key].progress,
-                "error": model_status[key].error,
-                "ready": model_status[key].ready,
-                "downloaded": model_status[key].downloaded,
-                "loading": model_status[key].loading,
-                "partial": model_status[key].partial,
-                "downloaded_bytes": model_status[key].downloaded_bytes,
-                "total_bytes": model_status[key].total_bytes
+        if not model_status[model_key].ready:
+            raise HTTPException(
+                status_code=503,
+                detail="Model is still loading. Please try again in a moment.",
+            )
+
+    CURRENT_MODEL_KEY = model_key
+
+    # Generate response with per-model lock for thread safety
+    async with model_locks[model_key]:
+        try:
+            # Format messages for the model
+            messages = [
+                {"role": m.role, "content": m.content} for m in request.messages
+            ]
+
+            # Add thinking directive for Qwen3 models
+            if model_key in ("qwen-3-0.6b", "qwen-3-1.7b") and messages:
+                think_directive = " /think" if request.thinking else " /no_think"
+                last_msg = messages[-1]
+                if last_msg.get("role") == "user":
+                    last_msg["content"] = last_msg["content"] + think_directive
+
+            # Build kwargs for inference
+            inference_kwargs = {
+                "messages": messages,
+                "max_tokens": 2048,
+                "temperature": 0.7,
             }
-            for key in AVAILABLE_MODELS
-        }
-    }
+
+            # Run inference in a separate thread to keep the event loop responsive
+            def do_inference():
+                return models[model_key].create_chat_completion(**inference_kwargs)
+
+            output = await asyncio.to_thread(do_inference)
+            content = output["choices"][0]["message"]["content"]
+
+            # Parse Qwen3 thinking blocks from the response
+            thinking_text = None
+            if model_key in ("qwen-3-0.6b", "qwen-3-1.7b") and content:
+                think_match = re.search(r'<think>(.*?)</think>', content, re.DOTALL)
+                if think_match:
+                    thinking_text = think_match.group(1).strip()
+                    content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
+
+            return {"content": content, "thinking": thinking_text}
+
+        except Exception as e:
+            logger.error(f"Generation error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "CAPS AI Service"}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=5000)

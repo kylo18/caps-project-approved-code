@@ -237,7 +237,7 @@ const Leaderboard = () => {
                       : 'text-gray-700 dark:text-gray-300'
                     }`}
                 >
-                  {subj.subjectCode || subj.subjectName}
+                  {subj.subjectName}
                 </button>
               ))}
             </div>

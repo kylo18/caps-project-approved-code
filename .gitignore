@@ -158,17 +158,25 @@ DocumentedLearning/interview-questions-and-answers.txt
 DocumentedLearning/learn.md
 DocumentedLearning/March_11_26_Code_Details.md
 DocumentedLearning/March_11_26_Git_Verification.md
-.gitignore
-.gitignore
-<<<<<<< Updated upstream
-=======
 BUGS & SOLUTION IN TESTING ENVIRONMENT/APK_CONNECTION_FIX.md
 FrontendMobile - Deployment/darkmode_fix_explanation.txt
 
 # AI model files (too large for GitHub)
 *.gguf
 *.bin
->>>>>>> Stashed changes
 
-# AI model files (too large for GitHub)
-*.gguf
+# Local planning artifacts
+.kilo/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Android/IDE generated files
+**/.gradle/
+**/build/reports/
+FrontendMobile - Deployment/android/app/.project
+FrontendMobile - Deployment/android/app/.settings/
+
+# Local Android native dependency (kept out of repo)
+FrontendMobile - Deployment/android/app/src/main/cpp/llama/

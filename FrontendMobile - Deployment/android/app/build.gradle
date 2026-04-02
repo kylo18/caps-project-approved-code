@@ -3,6 +3,8 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.caps.mobile"
     compileSdk = rootProject.ext.compileSdkVersion
+    ndkVersion "28.2.13676358"
+
     defaultConfig {
         applicationId "com.caps.mobile"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -11,15 +13,44 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
-            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+             // Files and dirs to omit from the packaged assets dir
+             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+        ndk {
+            abiFilters "arm64-v8a"
+        }
+        externalNativeBuild {
+            cmake {
+                arguments "-DCMAKE_BUILD_TYPE=Release"
+                arguments "-DBUILD_SHARED_LIBS=ON"
+                arguments "-DLLAMA_BUILD_COMMON=ON"
+                arguments "-DLLAMA_OPENSSL=OFF"
+                arguments "-DGGML_NATIVE=OFF"
+                arguments "-DGGML_BACKEND_DL=ON"
+                arguments "-DGGML_CPU_ALL_VARIANTS=ON"
+                arguments "-DGGML_LLAMAFILE=OFF"
+                // Vulkan removed — all target devices are CPU-only Android phones
+            }
         }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version = "3.22.1"
+        }
+    }
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging true
+        }
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
 }

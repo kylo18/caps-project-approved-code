@@ -94,7 +94,7 @@ const DashboardCarousel = () => {
   };
 
   return (
-    <section className="relative mt-2 overflow-hidden rounded-2xl border border-slate-200/75 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.12),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_24px_44px_rgba(148,163,184,0.16)] dark:border-white/10 dark:bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.08),transparent_32%),linear-gradient(180deg,rgba(15,23,42,0.96)_0%,rgba(2,6,23,0.98)_100%)] dark:shadow-[0_24px_44px_rgba(2,6,23,0.34)]">
+    <section className="relative mt-2 overflow-hidden rounded-2xl border border-slate-200/75 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.12),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_24px_44px_rgba(148,163,184,0.16)] dark:border-white/10 dark:bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.08),transparent_32%),linear-gradient(180deg,rgba(15,23,42,0.96)_0%,rgba(2,6,23,0.98)_100%)] dark:shadow-[0_24px_44px_rgba(2,6,23,0.34)]" style={{ marginTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }}>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/60 dark:bg-white/10"></div>
       <div
         ref={scrollRef}

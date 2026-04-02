@@ -12,13 +12,13 @@ const BottomNav = ({ role, onPrintClick, onSubjectClick }) => {
 
     // 1. Navigation for Students
     // Order: Home → Insights → Leaderboard → AI Chat (last position)
-    // AI Chat uses bx-message-square-dots icon for better visibility in bottom nav
+    // AI Chat uses bx-star icon - confirmed working in Boxicons basic set
     if (roleId === 1) {
       return [
         { name: "Home", path: "/student-dashboard", icon: "bx-home" },
         { name: "Insights", path: "/student-insights", icon: "bx-pie-chart-alt" },
         { name: "Leaderboard", path: "/leaderboard", icon: "bx-trophy" },
-        { name: "AI Chat", path: "/ai-chat", icon: "bx-message-square-dots" },
+        { name: "AI Chat", path: "/ai-chat", icon: "bx-robot" },
       ];
     }
 
@@ -60,7 +60,7 @@ const BottomNav = ({ role, onPrintClick, onSubjectClick }) => {
               onClick={item.onClick}
               className="flex min-w-[3.5rem] flex-1 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl py-1.5 transition-all duration-200 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
-              <i className={`${item.icon} text-[1.6rem]`}></i>
+              <i className={`bx ${item.icon} text-[1.6rem]`}></i>
               <span className="text-[clamp(0.65rem,2vw,0.74rem)] leading-none font-medium opacity-75">
                 {item.name}
               </span>
@@ -78,7 +78,7 @@ const BottomNav = ({ role, onPrintClick, onSubjectClick }) => {
             >
               {({ isActive }) => (
                 <>
-                  <i className={`${item.icon} text-[1.6rem]`}></i>
+                  <i className={`bx ${item.icon} text-[1.6rem]`}></i>
                   <span
                     className={`text-[clamp(0.65rem,2vw,0.74rem)] leading-none font-medium ${isActive ? "opacity-100" : "opacity-75"}`}
                   >
