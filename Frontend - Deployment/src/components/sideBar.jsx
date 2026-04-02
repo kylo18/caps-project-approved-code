@@ -136,6 +136,25 @@ const Sidebar = ({
   const [profileSuccess, setProfileSuccess] = useState("");
   const [wasProfileModalOpen, setWasProfileModalOpen] = useState(false);
   const [avatarColor, setAvatarColor] = useState("bg-gray-300");
+
+  // Dark mode toggle (shared via `theme` in localStorage + `html.dark`)
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => localStorage.getItem("theme") === "dark",
+  );
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDarkMode);
+    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+    window.dispatchEvent(new Event("themechange"));
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    const handler = () =>
+      setIsDarkMode(document.documentElement.classList.contains("dark"));
+    window.addEventListener("themechange", handler);
+    return () => window.removeEventListener("themechange", handler);
+  }, []);
+
   const sidebarRef = useRef();
   const userDropdownRef = useRef(null);
   const profileModalRef = useRef(null);
@@ -936,7 +955,7 @@ const Sidebar = ({
             {/* Chevron icon */}
             {!isUsersPage && (
               <i
-                className={`bx flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-[23px] leading-none text-gray-500 shadow-sm ${userDropdownOpen ? "bx-chevron-left" : "bx-chevron-right"} `}
+                className={`bx shadow-s flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-[23px] leading-none text-gray-500 ${userDropdownOpen ? "bx-chevron-left" : "bx-chevron-right"} `}
               ></i>
             )}
           </div>
@@ -992,11 +1011,14 @@ const Sidebar = ({
               <button
                 onClick={() => {
                   setUserDropdownOpen(false);
-                  alert("The dark mode feature is still under development.");
+                  setIsDarkMode((prev) => !prev);
                 }}
                 className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
               >
-                <i className="bx bx-moon mr-2 text-[16px]"></i> Dark Mode
+                <i
+                  className={`bx ${isDarkMode ? "bx-sun" : "bx-moon"} mr-2 text-[16px]`}
+                ></i>{" "}
+                Dark Mode
               </button>
 
               <button

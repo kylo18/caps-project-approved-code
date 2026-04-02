@@ -862,33 +862,39 @@ const StudentQuiz = () => {
           ? parseInt(answers[q.personalQuizQuestionID])
           : null,
       }));
+
       const startTime = quizData.startedAt
         ? new Date(quizData.startedAt)
         : new Date(quizStartTime);
       const timeTakenSeconds = Math.floor((new Date() - startTime) / 1000);
       const token = sessionStorage.getItem("token");
 
-      const response = await fetch(`${apiUrl}/quizzes/${quizID}/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${apiUrl}/quizzes/${quizID}/submit`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            attempt_number: quizData.attemptNumber,
+            answers: allAnswers,
+            started_at: quizData.startedAt || quizStartTime,
+            time_taken_seconds: timeTakenSeconds,
+          }),
         },
-        credentials: "include",
-        body: JSON.stringify({
-          attempt_number: quizData.attemptNumber,
-          answers: allAnswers,
-          started_at: quizData.startedAt || quizStartTime,
-          time_taken_seconds: timeTakenSeconds,
-        }),
-      });
+      );
 
-      const result = await response.json();
+      const data = await response.json();
+
       if (!response.ok)
-        throw new Error(result.message || "Failed to submit answers");
-      if (!result.success)
-        throw new Error(result.message || "Failed to submit quiz");
+        throw new Error(data.message || "Failed to submit answers");
+      if (!data.success)
+        throw new Error(data.message || "Failed to submit quiz");
 
+      // Clear persisted quiz session data
       if (quizKey) {
         [
           "",
@@ -900,18 +906,28 @@ const StudentQuiz = () => {
         ].forEach((suffix) => localStorage.removeItem(`${quizKey}${suffix}`));
         localStorage.removeItem(`quiz_${quizID}_meta`);
       }
+
       setSecondsLeft(0);
+
+      // Navigate to the results page, forwarding all fields from the new API
+      // response. Note: when showScoreAfterQuiz is false the backend returns
+      // null for score/total_score/percentage/isPassed — the result page should
+      // handle those gracefully.
       navigate(`/quiz-result/${quizID}`, {
         state: {
-          result: result.result,
-          questions: result.questions,
-          quiz: result.quiz,
-          settings: result.settings,
+          result: data.result,       // { id, attempt_number, score, total_score, percentage, isPassed,
+                                     //   time_taken_seconds, time_taken_minutes, time_taken_formatted,
+                                     //   started_at, submitted_at, showScoreAfterQuiz }
+          questions: data.questions, // per-question breakdown (respects showCorrectQuestion /
+                                     //   showCorrectAnswers settings)
+          quiz: data.quiz,           // { personalQuizID, title, description }
+          settings: data.settings,   // { showScoreAfterQuiz, showCorrectQuestion, showCorrectAnswers }
           classID,
           classPersonalQuizID: quizID,
         },
         replace: true,
       });
+
       setAnswers({});
     } catch (err) {
       showToast(

@@ -92,6 +92,28 @@ const AdminHeader = ({ title, className = "" }) => {
   // Store a persistent color for the avatar per user
   const [avatarColor, setAvatarColor] = useState("bg-gray-300");
 
+  // Dark mode toggle
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => localStorage.getItem("theme") === "dark",
+  );
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDarkMode);
+    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+    // Let other components (like sidebar) stay in sync.
+    window.dispatchEvent(new Event("themechange"));
+  }, [isDarkMode]);
+
+  // Keep state in sync if another component (e.g. sidebar) toggles the theme.
+  useEffect(() => {
+    const handler = () =>
+      setIsDarkMode(document.documentElement.classList.contains("dark"));
+    window.addEventListener("themechange", handler);
+    return () => window.removeEventListener("themechange", handler);
+  }, []);
+
+  const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
+
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Refs for modal content
@@ -421,8 +443,6 @@ const AdminHeader = ({ title, className = "" }) => {
         <div className="flex items-center gap-2">
           <span className="text-[14px] text-gray-500">{title}</span>
 
-          
-
           {/* Three-dot Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
@@ -442,7 +462,7 @@ const AdminHeader = ({ title, className = "" }) => {
 
             {/* Dropdown Buttons */}
             {dropdownOpen && (
-              <div className="fade-in absolute top-[44px] right-[-10px] z-51 w-60 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
+              <div className="fade-in 4] absolute top-[44px] right-[-10px] z-51 w-60 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
                 <div className="flex items-center gap-3 border-gray-200 px-2 py-3">
                   <div
                     className={`flex h-8 w-10 items-center justify-center rounded-full ${userInfo ? avatarColor : "bg-gray-300"} text-sm font-bold text-white`}
@@ -487,12 +507,16 @@ const AdminHeader = ({ title, className = "" }) => {
                 </button>
 
                 <button
-                  onClick={() =>
-                    alert("The dark mode feature is still under development.")
-                  }
+                  onClick={() => {
+                    toggleDarkMode();
+                    setDropdownOpen(false);
+                  }}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i className="bx bx-moon mr-2 text-[16px]"></i> Dark Mode
+                  <i
+                    className={`bx ${isDarkMode ? "bx-sun" : "bx-moon"} mr-2 text-[16px]`}
+                  ></i>{" "}
+                  Dark Mode
                 </button>
 
                 <button
@@ -511,7 +535,8 @@ const AdminHeader = ({ title, className = "" }) => {
                   }}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i className="bx bx-message-question-mark mr-2 text-[16px]"></i> Support
+                  <i className="bx bx-message-question-mark mr-2 text-[16px]"></i>{" "}
+                  Support
                 </button>
 
                 <button

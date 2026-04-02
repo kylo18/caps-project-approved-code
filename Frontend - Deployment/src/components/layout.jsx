@@ -112,7 +112,7 @@ const Layout = () => {
             <Header title={roleTitle} className="lg:hidden" />
           )}
           <main
-            className={`${isTutorialPage || isQuizPage || isPracticeExamPage || isStudentDashboardPage ? "" : "lg:px-4"} h-full`}
+            className={`${isTutorialPage || isQuizPage || isPracticeExamPage || isStudentDashboardPage ? "" : "lg:px-4"} h-full bg-white`}
           >
             <Outlet context={{ selectedSubject, setSelectedSubject }} />
           </main>
