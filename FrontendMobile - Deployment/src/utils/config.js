@@ -28,10 +28,13 @@ const isDev = () => {
   return import.meta.env.DEV === true;
 };
 
-// Tailscale server (secure mesh VPN) - Primary server
-// This is the main server for all builds (APK and web)
-const SERVER_IP = '100.112.226.110';
-const TAILSCALE_SERVER = `http://${SERVER_IP}:8000`;
+// Single source of truth for server address
+const DEFAULT_SERVER_IP = '100.112.226.110';
+const SERVER_IP = import.meta.env.VITE_SERVER_IP || DEFAULT_SERVER_IP;
+const API_PORT = import.meta.env.VITE_API_PORT || '8000';
+const AI_PORT = import.meta.env.VITE_AI_PORT || '8001';
+const TAILSCALE_SERVER = `http://${SERVER_IP}:${API_PORT}`;
+const TAILSCALE_AI_SERVER = `http://${SERVER_IP}:${AI_PORT}`;
 
 /**
  * Determines the default API server URL based on environment
@@ -81,7 +84,7 @@ export const getApiUrl = () => {
  * @returns {string} The AI service URL
  */
 export const getAiServiceUrl = () => {
-  return import.meta.env.VITE_AI_SERVICE_URL || `http://${SERVER_IP}:8001`;
+  return import.meta.env.VITE_AI_SERVICE_URL || TAILSCALE_AI_SERVER;
 };
 
 /**
@@ -144,6 +147,7 @@ export const getDebugInfo = () => {
   return {
     isCapacitor: isCapacitor(),
     isDev: isDev(),
+    serverIp: SERVER_IP,
     currentUrl: getApiUrl(),
     savedUrl: getSavedServer(),
     envUrl: import.meta.env.VITE_API_SERVER,

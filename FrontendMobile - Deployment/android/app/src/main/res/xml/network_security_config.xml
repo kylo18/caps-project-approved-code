@@ -9,21 +9,8 @@
   This config explicitly allows HTTP connections to development and production servers.
 -->
 <network-security-config>
-    <!-- 
-      Domain Config: Allow cleartext HTTP traffic to specific domains
-      This is required because the backend currently uses HTTP, not HTTPS
-    -->
-    <domain-config cleartextTrafficPermitted="true">
-        <!-- Local development IPs for testing -->
-        <domain includeSubdomains="true">192.168.8.184</domain>
-        <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">127.0.0.1</domain>
-        <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android emulator localhost -->
-        
-        <!-- Test/Production servers -->
-        <domain includeSubdomains="true">18.142.190.113</domain>
-        <domain includeSubdomains="true">100.112.226.110</domain>
-    </domain-config>
+    <!-- Allow cleartext HTTP traffic for all destinations -->
+    <base-config cleartextTrafficPermitted="true" />
     
     <!-- 
       Debug Overrides: Allow user-added certificates for debugging

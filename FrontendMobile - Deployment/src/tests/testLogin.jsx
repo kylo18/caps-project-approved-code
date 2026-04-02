@@ -5,6 +5,7 @@ import collegeLogo from "/src/assets/college-logo.png";
 import LoadingOverlay from "../components/loadingOverlay";
 import RegisterDropDown from "../components/registerDropDown";
 import AppVersion from "../components/appVersion";
+import { getApiUrl } from "../utils/config";
 
 export default function LoginPage() {
   const [userCode, setUserCode] = useState("");
@@ -24,7 +25,7 @@ export default function LoginPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiUrl = getApiUrl();
 
   const allPrograms = [
     { id: "1", name: "Bachelor of Science in Computer Engineering" },
