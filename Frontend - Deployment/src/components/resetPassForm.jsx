@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import { Navigate } from "react-router-dom";
 
 // Immediately redirects /reset-password?token=...&email=... → /landing?token=...&email=...
