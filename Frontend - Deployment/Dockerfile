@@ -40,6 +40,9 @@ RUN npm install @rollup/rollup-linux-x64-gnu --force \
     && npm install @tailwindcss/oxide-linux-x64-gnu --force \
     && npm install lightningcss-linux-x64-gnu --force
 
+# Force compatible versions of vite + vite-plugin-pwa
+RUN npm install vite@latest vite-plugin-pwa@latest --force
+
 # Copy the rest of the application code
 COPY . .
 
