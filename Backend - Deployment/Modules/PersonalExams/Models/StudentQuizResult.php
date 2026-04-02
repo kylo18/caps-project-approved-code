@@ -4,6 +4,7 @@ namespace Modules\PersonalExams\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\PersonalClasses\Models\ClassPersonalQuiz;
 use Modules\Users\Models\User;
 
@@ -53,6 +54,14 @@ class StudentQuizResult extends Model
     public function student()
     {
         return $this->belongsTo(User::class, 'studentID', 'userID');
+    }
+
+    /**
+     * Per-question outcomes (for analytics: weak subjects / weak questions).
+     */
+    public function answerDetails(): HasMany
+    {
+        return $this->hasMany(StudentQuizAnswerDetail::class, 'student_quiz_result_id', 'id');
     }
 }
 

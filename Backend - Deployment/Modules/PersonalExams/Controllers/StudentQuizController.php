@@ -14,6 +14,7 @@ use Modules\PersonalClasses\Models\ClassEnrollment;
 use Modules\PersonalExams\Models\PersonalQuiz;
 use Modules\PersonalExams\Models\PersonalQuizQuestion;
 use Modules\PersonalExams\Models\PersonalQuizChoice;
+use Modules\PersonalExams\Models\StudentQuizAnswerDetail;
 use Modules\PersonalExams\Models\StudentQuizResult;
 use Modules\PersonalExams\Models\StudentQuizAttempt;
 
@@ -620,8 +621,8 @@ class StudentQuizController extends Controller
                 ], 422);
             }
 
-            // Get class quiz assignment
-            $classQuizAssignment = ClassPersonalQuiz::with(['personalQuiz.setting', 'class'])
+            // Get class quiz assignment with per-class settings
+            $classQuizAssignment = ClassPersonalQuiz::with(['setting', 'personalQuiz', 'class'])
                 ->find($classPersonalQuizID);
 
             if (!$classQuizAssignment) {
@@ -638,7 +639,7 @@ class StudentQuizController extends Controller
             }
 
             $quiz = $classQuizAssignment->personalQuiz;
-            $settings = $quiz->setting;
+            $settings = $classQuizAssignment->setting;
 
             // Check if result already exists for this attempt
             $existingResult = StudentQuizResult::where('class_quiz_assignment_id', $classPersonalQuizID)
@@ -656,9 +657,9 @@ class StudentQuizController extends Controller
             DB::beginTransaction();
 
             try {
-                // Get all questions with correct answers
+                // Get all questions with correct answers (+ bank question for subject resolution)
                 $questions = PersonalQuizQuestion::where('personalQuizID', $quiz->personalQuizID)
-                    ->with('personalQuizChoices')
+                    ->with(['personalQuizChoices', 'question'])
                     ->get()
                     ->keyBy('personalQuizQuestionID');
 
@@ -666,6 +667,7 @@ class StudentQuizController extends Controller
                 $earnedScore = 0;
                 $correctAnswers = [];
                 $studentAnswers = [];
+                $pendingAnswerDetails = [];
 
                 // Calculate score
                 foreach ($validated['answers'] as $answer) {
@@ -733,6 +735,24 @@ class StudentQuizController extends Controller
                         'personalQuizQuestionID' => $questionID,
                         'selectedChoiceID' => $selectedChoiceID,
                     ];
+
+                    $subjectId = $this->resolveSubjectIdForQuizQuestion($question, $quiz);
+                    $pendingAnswerDetails[] = [
+                        'personalQuizQuestionID' => $questionID,
+                        'bank_questionID' => $question->questionID,
+                        'subjectID' => $subjectId,
+                        'selected_personalQuizChoiceID' => $selectedChoiceID,
+                        'is_correct' => $isCorrect,
+                        'points_possible' => (float) $question->personalQuizScore,
+                        'points_earned' => $isCorrect ? (float) $question->personalQuizScore : 0.0,
+                        'question_snapshot' => [
+                            'version' => 1,
+                            'questionText' => $questionText,
+                            'selectedChoiceText' => $selectedChoiceText,
+                            'correctChoiceID' => $correctChoice ? $correctChoice->personalQuizChoiceID : null,
+                            'correctChoiceText' => $correctChoiceText,
+                        ],
+                    ];
                 }
 
                 // Calculate percentage
@@ -758,6 +778,13 @@ class StudentQuizController extends Controller
 
                 // Create result
                 $result = StudentQuizResult::create($resultData);
+
+                foreach ($pendingAnswerDetails as $detail) {
+                    StudentQuizAnswerDetail::create(array_merge($detail, [
+                        'student_quiz_result_id' => $result->id,
+                        'studentID' => $user->userID,
+                    ]));
+                }
 
                 // Update student quiz attempt
                 $attempt = StudentQuizAttempt::where('personalQuizID', $quiz->personalQuizID)
@@ -985,5 +1012,27 @@ class StudentQuizController extends Controller
                 'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
+    }
+
+    /**
+     * Subject for analytics: per-question override, bank question, or quiz-level subject.
+     */
+    private function resolveSubjectIdForQuizQuestion(PersonalQuizQuestion $question, PersonalQuiz $quiz): ?int
+    {
+        if ($question->personalQuizSubjectID) {
+            return (int) $question->personalQuizSubjectID;
+        }
+        if ($question->questionID && $question->relationLoaded('question') && $question->question) {
+            $sid = $question->question->subjectID;
+
+            return $sid !== null ? (int) $sid : null;
+        }
+        if ($question->questionID) {
+            $bank = $question->question()->first();
+
+            return $bank && $bank->subjectID !== null ? (int) $bank->subjectID : null;
+        }
+
+        return $quiz->subjectID !== null ? (int) $quiz->subjectID : null;
     }
 }

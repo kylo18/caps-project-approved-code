@@ -127,7 +127,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::post('/generate-personal-quiz-pdf', [PrintController::class, 'generatePersonalQuizPDF']);
 
     // Practice exam preview (Dean/Chair/Instructor can preview)
-    Route::get('/practice-exam/preview/{subjectID\}', [PracticeExamController::class, 'previewPracticeExam']);
+    Route::get('/practice-exam/preview/{subjectID}', [PracticeExamController::class, 'previewPracticeExam']);
 
     // Single-subject personal questions preview (Quiz)
     Route::post('/generate-single-subject-personal-preview', [PrintController::class, 'generateSingleSubjectPersonalPreview']);

@@ -10,6 +10,7 @@ use Modules\PersonalExams\Models\QuizType;
 use Modules\PersonalExams\Models\PersonalQuizQuestion;
 use Modules\PersonalExams\Models\PersonalQuizSetting;
 use Modules\Questions\Models\Coverage;
+use Modules\PersonalClasses\Models\ClassPersonalQuiz;
 
 class PersonalQuiz extends Model
 {
@@ -58,11 +59,22 @@ class PersonalQuiz extends Model
     }
 
     /**
-     * Relationship: PersonalQuiz has one PersonalQuizSetting
+     * Per-class settings live on the class assignment (`class_personal_quizzes`).
+     *
+     * This relation is kept for backward compatibility, but it does **not**
+     * represent a single global setting for the quiz; it returns the first
+     * available class-assignment setting (if any).
      */
     public function setting()
     {
-        return $this->hasOne(PersonalQuizSetting::class, 'personalQuizID', 'personalQuizID');
+        return $this->hasOneThrough(
+            PersonalQuizSetting::class,
+            ClassPersonalQuiz::class,
+            'personalQuizID',        // Foreign key on class_personal_quizzes...
+            'classPersonalQuizID',   // Foreign key on class_personal_quiz_settings...
+            'personalQuizID',        // Local key on personal_quizzes...
+            'classPersonalQuizID'    // Local key on class_personal_quizzes...
+        );
     }
 
     public function coverage()

@@ -873,8 +873,8 @@ class StudentQuizResultController extends Controller
                 return response()->json(['success' => false, 'message' => 'Only faculty can view non-takers.'], 403);
             }
 
-            // Get class quiz assignment
-            $classQuizAssignment = ClassPersonalQuiz::with(['personalQuiz', 'class'])
+            // Get class quiz assignment (include per-class settings)
+            $classQuizAssignment = ClassPersonalQuiz::with(['setting', 'personalQuiz', 'class'])
                 ->find($classPersonalQuizID);
 
             if (!$classQuizAssignment) {
@@ -898,7 +898,7 @@ class StudentQuizResultController extends Controller
                 ->toArray();
 
             // Get quiz settings to check for late submission
-            $settings = $classQuizAssignment->personalQuiz->setting;
+            $settings = $classQuizAssignment->setting;
             $now = now();
             $isPastDeadline = false;
             if ($classQuizAssignment->deadlineDate) {

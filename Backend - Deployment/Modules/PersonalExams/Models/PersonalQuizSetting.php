@@ -4,7 +4,7 @@ namespace Modules\PersonalExams\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Modules\PersonalExams\Models\PersonalQuiz;
+use Modules\PersonalClasses\Models\ClassPersonalQuiz;
 
 class PersonalQuizSetting extends Model
 {
@@ -55,11 +55,11 @@ class PersonalQuizSetting extends Model
     ];
 
     /**
-     * Relationship: PersonalQuizSetting belongs to PersonalQuiz
+     * Relationship: PersonalQuizSetting belongs to ClassPersonalQuiz assignment.
      */
-    public function personalQuiz()
+    public function classPersonalQuiz()
     {
-        return $this->belongsTo(PersonalQuiz::class, 'personalQuizID', 'personalQuizID');
+        return $this->belongsTo(ClassPersonalQuiz::class, 'classPersonalQuizID', 'classPersonalQuizID');
     }
 }
 
