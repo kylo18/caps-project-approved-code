@@ -537,7 +537,7 @@ function LandingPage() {
                   </p>
                   <div className="mt-2 flex justify-start md:mt-4">
                     <button
-                      onClick={() => navigate("/register")}
+                      onClick={() => setIsRegisterOpen(true)}
                       className="flex cursor-pointer items-center gap-1 rounded-full bg-[rgb(255,246,0)] px-3 py-1.5 text-[10px] font-semibold text-black shadow-md transition hover:bg-yellow-300 active:scale-95 sm:px-4 sm:py-2 sm:text-[12px] md:gap-2 md:px-5 md:py-2.5 md:text-[13px] lg:px-6 lg:py-3 lg:text-sm"
                     >
                       <span className="outfit-500">Get Started</span>
