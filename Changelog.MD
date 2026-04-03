@@ -8,15 +8,6 @@
        - [New] Set up exam for practice question
        - [New] Add subject
        - [New] Copy & Edit Question to another tab 
-        
-    Associate Dean Functionalities:
-        - [New] Add Question
-        - [New] Edit Question
-        - [New] Remove Question
-        - [New] Approve Question
-        - [New] Set up exam for practice question
-        - [New] Add subject
-        - [New] Copy & Edit Question to another tab  
 
     Program Chair Functionalities:
         - [New] Add Question 
@@ -36,6 +27,34 @@
     General Features:
         - [New] Change Password through email
         - [New] Change Name
+
+[V1.4] 04-07-25
+
+    Dean Functionalities:
+        - [New] Print Qualifying Exam Answer sheets
+        - [New] Can now turn on/off the practice test of a specific subject 
+        - [New] Can edit Number of Questions in Practice Test, default is 100.
+
+    Associate Dean Functionalities:
+        - [New] Add Question
+        - [New] Edit Question
+        - [New] Remove Question
+        - [New] Approve Question
+        - [New] Set up exam for practice question
+        - [New] Add subject
+        - [New] Copy & Edit Question to another tab
+        - [New] Print Qualifying Exam Answer sheets
+        - [New] Can now turn on/off the practice test of a specific subject 
+        - [New] Can edit Number of Questions in Practice Test, default is 100. 
+        - [New] Associate deans are only allowed to view their campus question only
+
+    Program Chair Functionalities:
+        - [New] Can only view program's question only
+
+    General Features:
+        - [New] 3 Associate Dean Added (1 per campus only)
+        - [New] Auto Approval of accounts if credentials from student's records match
+        
 
 [V1.5] 05-28-25
 
