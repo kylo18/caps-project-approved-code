@@ -124,7 +124,7 @@
         - [New] Quiz Session Monitoring
         - [New] Qualifying Exam (QE) Reports
     
-     Chair Functionalities:
+     Program Chair Functionalities:
         - [New] Display of users who recently answered practice questions
         - [New] Leaderboard showing highest average scores and highest individual scores
         - [New] Quiz Management
