@@ -1,3 +1,42 @@
+[V1.3] 03-16-25
+
+    Dean Functionalities:
+       - [New] Add Question
+       - [New] Edit Question
+       - [New] Remove Question
+       - [New] Approve Question
+       - [New] Set up exam for practice question
+       - [New] Add subject
+       - [New] Copy & Edit Question to another tab 
+        
+    Associate Dean Functionalities:
+        - [New] Add Question
+        - [New] Edit Question
+        - [New] Remove Question
+        - [New] Approve Question
+        - [New] Set up exam for practice question
+        - [New] Add subject
+        - [New] Copy & Edit Question to another tab  
+
+    Program Chair Functionalities:
+        - [New] Add Question 
+        - [New] Edit Question
+        - [New] Remove Question
+        - [New] Approve Question
+        - [New] Copy & Edit Question to another tab 
+        
+    Instructor Functionalities:
+        - [New] Add Question
+        - [New] Edit Question
+        - [New] Copy & Edit Question to another tab 
+
+    Student Functionalities:
+        - [New] Can take practice exams and submit it
+
+    General Features:
+        - [New] Change Password through email
+        - [New] Change Name
+
 [V1.5] 05-28-25
 
     Dean Functionalities:
