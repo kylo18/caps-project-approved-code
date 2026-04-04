@@ -49,12 +49,22 @@ export async function getLearningInsights() {
 // Get performance trend.
 export async function getPerformanceTrend() {
   const response = await apiRequest("/api/student/analytics/trends");
+  const trendData = response?.data || [];
+  const mapped = trendData.map((item, index) => ({
+    label: item?.subjectName || `Exam ${index + 1}`,
+    score_percentage: item?.percentage ?? 0,
+    taken_at: item?.created_at || null,
+    subject_id: item?.subjectID || null,
+    result_id: item?.resultID || null,
+  }));
   return {
     ...response,
-    data: (response.data || []).map((item, index) => ({
-      label: item.subjectName || `Exam ${index + 1}`,
-      score_percentage: item.percentage,
-      taken_at: item.created_at,
-    })),
+    data: mapped,
   };
+}
+
+// Get detailed exam result by ID
+export async function getExamResultDetail(resultId) {
+  const response = await apiRequest(`/api/practice-exam/result/${resultId}`);
+  return response;
 }

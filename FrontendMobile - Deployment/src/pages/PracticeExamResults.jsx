@@ -1,10 +1,15 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getExamResultDetail } from "../services/studentAnalyticsService";
 
 // Displays the submitted practice exam summary and lets users review correct and incorrect items.
 const PracticeTestResult = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
+  const [resultData, setResultData] = useState(null);
+  
   const {
     score,
     results,
@@ -14,13 +19,48 @@ const PracticeTestResult = () => {
     endTime,
     subjectID,
     subjectName,
+    resultId,
   } = location.state || {};
-  const [activeTab, setActiveTab] = useState("all"); // 'all', 'correct', 'incorrect'
-  const [isQuestionImageModalOpen, setIsQuestionImageModalOpen] =
-    useState(false);
+  
+  const [activeTab, setActiveTab] = useState("all");
+  const [isQuestionImageModalOpen, setIsQuestionImageModalOpen] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState(null);
-  const safeScore = score || { earnedPoints: 0, totalPoints: 0, percentage: 0 };
-  const safeResults = Array.isArray(results) ? results : [];
+
+  // Fetch historical result if resultId is provided
+  useEffect(() => {
+    const fetchHistoricalResult = async () => {
+      if (resultId && !results) {
+        setLoading(true);
+        try {
+          const response = await getExamResultDetail(resultId);
+          if (response.data) {
+            setResultData(response.data);
+          } else {
+            setFetchError("Failed to load exam result.");
+          }
+        } catch (err) {
+          console.error("Error fetching result:", err);
+          setFetchError("Failed to load exam result. Please try again.");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchHistoricalResult();
+  }, [resultId, results]);
+
+  // Use either immediate exam data or fetched historical data
+  const examData = resultData || {
+    score,
+    results,
+    subjectName,
+    subjectID,
+    created_at: endTime,
+  };
+
+  const safeScore = examData?.score || { earnedPoints: 0, totalPoints: 0, percentage: 0 };
+  const safeResults = Array.isArray(examData?.results) ? examData.results : [];
   const correctCount = safeResults.filter((q) => q.isCorrect).length;
   const incorrectCount = safeResults.filter((q) => !q.isCorrect).length;
 
@@ -36,6 +76,32 @@ const PracticeTestResult = () => {
           className="rounded bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
         >
           Go Back
+        </button>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white dark:bg-black p-6">
+        <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-orange-500 border-t-transparent"></div>
+        <p className="text-gray-600 dark:text-gray-300">Loading exam result...</p>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white dark:bg-black p-6">
+        <h2 className="mb-4 text-2xl font-bold text-red-600">
+          Error Loading Result
+        </h2>
+        <p className="mb-6 text-black dark:text-white">{fetchError}</p>
+        <button
+          onClick={() => navigate("/student-insights")}
+          className="rounded bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
+        >
+          Back to Insights
         </button>
       </div>
     );
@@ -88,32 +154,40 @@ const PracticeTestResult = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Subject:</span>
                     <span className="font-medium text-gray-800 dark:text-white">
-                      {subjectName || `Subject ${subjectID}`}
+                      {examData?.subjectName || `Subject ${examData?.subjectID}`}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Duration:</span>
                     <span className="font-medium text-gray-800 dark:text-white">{examDuration || "N/A"}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Started:</span>
-                    <span className="font-medium text-right text-gray-800 dark:text-white">{formatDate(startTime)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Finished:</span>
-                    <span className="font-medium text-right text-gray-800 dark:text-white">{formatDate(endTime)}</span>
-                  </div>
+                  {(startTime || examData?.startTime) && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Started:</span>
+                      <span className="font-medium text-right text-gray-800 dark:text-white">{formatDate(startTime || examData?.startTime)}</span>
+                    </div>
+                  )}
+                  {(endTime || examData?.created_at) && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">{startTime ? 'Finished:' : 'Taken:'}</span>
+                      <span className="font-medium text-right text-gray-800 dark:text-white">
+                        {formatDate(endTime || examData?.created_at)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="mt-4 flex justify-center">
               <button
-                onClick={() => navigate("/student-dashboard")}
+                onClick={() => navigate(resultId ? "/student-insights" : "/student-dashboard")}
                 className="font-inter flex items-center gap-2 rounded-xl px-8 py-3 text-[14px] text-gray-700 transition hover:bg-gray-100 dark:text-white dark:hover:bg-[var(--color-bg-secondary)]"
               >
                 <i className="bx bx-chevron-left text-[18px]"></i>
-                <span className="hover:underline">Back to Dashboard </span>
+                <span className="hover:underline">
+                  {resultId ? "Back to Insights" : "Back to Dashboard"}
+                </span>
               </button>
             </div>
           </div>
@@ -163,7 +237,12 @@ const PracticeTestResult = () => {
 
               {/* Questions List */}
               <div className="space-y-4">
-                {filteredResults.map((q, index) => (
+                {filteredResults.length === 0 ? (
+                  <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                    No questions to display.
+                  </div>
+                ) : (
+                  filteredResults.map((q, index) => (
                   <div
                     key={q.questionID}
                     className={`rounded-lg border px-4 py-2 ${
@@ -235,7 +314,7 @@ const PracticeTestResult = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
 
               {/* Image Modal */}

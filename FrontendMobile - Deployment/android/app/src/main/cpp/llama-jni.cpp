@@ -4,6 +4,7 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <cstdio>
 #include <android/log.h>
 
 #include "llama.h"
@@ -114,40 +115,77 @@ Java_com_caps_mobile_LlamaCppPlugin_loadModelNative(
 
     std::lock_guard<std::mutex> lock(g_mutex);
 
+    LOGI("loadModelNative called with n_ctx=%d, n_threads=%d", n_ctx, n_threads);
+
     if (g_model || g_ctx) {
-        LOGE("Model already loaded, unload first");
+        LOGE("ERROR: Model already loaded, unload first");
         return -1;
     }
 
     const char * model_path = env->GetStringUTFChars(path, nullptr);
-    if (!model_path) return -1;
+    if (!model_path) {
+        LOGE("ERROR: Failed to get model path from Java string");
+        return -1;
+    }
 
-    LOGI("Loading model: %s", model_path);
+    LOGI("Loading model from path: %s", model_path);
+
+    // Check if file exists and is readable
+    FILE* test_file = fopen(model_path, "rb");
+    if (!test_file) {
+        LOGE("ERROR: Cannot open model file for reading: %s", model_path);
+        env->ReleaseStringUTFChars(path, model_path);
+        return -1;
+    }
+    
+    // Get file size
+    fseek(test_file, 0, SEEK_END);
+    long file_size = ftell(test_file);
+    fclose(test_file);
+    
+    LOGI("Model file size: %ld bytes", file_size);
+    
+    if (file_size == 0) {
+        LOGE("ERROR: Model file is empty");
+        env->ReleaseStringUTFChars(path, model_path);
+        return -1;
+    }
 
     llama_model_params model_params = llama_model_default_params();
     model_params.n_gpu_layers = 0; // Android usually CPU-bound for llama.cpp core
     model_params.use_mmap = true;
     model_params.use_mlock = false;
 
+    LOGI("Calling llama_model_load_from_file...");
     g_model = llama_model_load_from_file(model_path, model_params);
     env->ReleaseStringUTFChars(path, model_path);
 
-    if (!g_model) return -1;
+    if (!g_model) {
+        LOGE("ERROR: llama_model_load_from_file returned null - model failed to load");
+        return -1;
+    }
+    LOGI("Model loaded successfully from file");
 
     llama_context_params ctx_params = llama_context_default_params();
     ctx_params.n_ctx = n_ctx > 0 ? n_ctx : 2048;
     ctx_params.n_threads = n_threads > 0 ? n_threads : 4;
     ctx_params.n_threads_batch = ctx_params.n_threads;
 
+    LOGI("Creating llama context...");
     g_ctx = llama_init_from_model(g_model, ctx_params);
     if (!g_ctx) {
+        LOGE("ERROR: llama_init_from_model returned null - failed to create context");
         llama_model_free(g_model);
         g_model = nullptr;
         return -1;
     }
+    LOGI("Context created successfully");
 
+    LOGI("Initializing llama batch...");
     g_batch = llama_batch_init(ctx_params.n_ctx, 0, 1);
+    LOGI("Batch initialized");
 
+    LOGI("Setting up sampling parameters...");
     g_sampling_params = common_params_sampling();
     g_sampling_params.top_k = 40;
     g_sampling_params.top_p = 0.95f;
@@ -156,9 +194,18 @@ Java_com_caps_mobile_LlamaCppPlugin_loadModelNative(
     g_sampling_params.seed = LLAMA_DEFAULT_SEED;
     g_sampling_params.generation_prompt.clear();
 
+    LOGI("Initializing sampler...");
     g_sampler = common_sampler_init(g_model, g_sampling_params);
+    if (!g_sampler) {
+        LOGE("ERROR: common_sampler_init returned null");
+        llama_free(g_ctx);
+        g_ctx = nullptr;
+        llama_model_free(g_model);
+        g_model = nullptr;
+        return -1;
+    }
     
-    LOGI("Model loaded successfully");
+    LOGI("Model fully loaded and ready for inference");
     return 0;
 }
 

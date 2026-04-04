@@ -52,13 +52,18 @@ class StudentAnalyticsController extends Controller
                 ->first();
             
             // Get weakest topic (lowest average score) using actual answers
-            $weakestTopic = DB::table('practice_exam_answers')
-                ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
-                ->where('practice_exam_answers.user_id', $user->userID)
-                ->select('questions.topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
-                ->groupBy('questions.topic')
-                ->orderBy('avg_score', 'asc')
-                ->first();
+            try {
+                $weakestTopic = DB::table('practice_exam_answers')
+                    ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
+                    ->where('practice_exam_answers.user_id', $user->userID)
+                    ->select('questions.topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
+                    ->groupBy('questions.topic')
+                    ->orderBy('avg_score', 'asc')
+                    ->first();
+            } catch (\Exception $e) {
+                // Table doesn't exist or no data
+                $weakestTopic = null;
+            }
             
             // Calculate achievement progress
             $totalExamsCount = $examStats->total_exams ?? 0;
@@ -135,41 +140,55 @@ class StudentAnalyticsController extends Controller
             }
             
             // Strong topics (score >= 80%)
-            $strongTopics = DB::table('practice_exam_answers')
-                ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
-                ->where('practice_exam_answers.user_id', $user->userID)
-                ->select('questions.topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
-                ->groupBy('questions.topic')
-                ->having('avg_score', '>=', 80)
-                ->orderByDesc('avg_score')
-                ->limit(5)
-                ->get();
+            try {
+                $strongTopics = DB::table('practice_exam_answers')
+                    ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
+                    ->where('practice_exam_answers.user_id', $user->userID)
+                    ->select('questions.topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
+                    ->groupBy('questions.topic')
+                    ->having('avg_score', '>=', 80)
+                    ->orderByDesc('avg_score')
+                    ->limit(5)
+                    ->get();
+            } catch (\Exception $e) {
+                $strongTopics = collect([]);
+            }
             
             // Weak topics (score < 60%)
-            $weakTopics = DB::table('practice_exam_answers')
-                ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
-                ->where('practice_exam_answers.user_id', $user->userID)
-                ->select('questions.topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
-                ->groupBy('questions.topic')
-                ->having('avg_score', '<', 60)
-                ->orderBy('avg_score', 'asc')
-                ->limit(5)
-                ->get();
+            try {
+                $weakTopics = DB::table('practice_exam_answers')
+                    ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
+                    ->where('practice_exam_answers.user_id', $user->userID)
+                    ->select('questions.topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
+                    ->groupBy('questions.topic')
+                    ->having('avg_score', '<', 60)
+                    ->orderBy('avg_score', 'asc')
+                    ->limit(5)
+                    ->get();
+            } catch (\Exception $e) {
+                $weakTopics = collect([]);
+            }
             
             // Average time spent (Mapped to topic shape)
-            $timeSpent = DB::table('content_analytics')
-                ->join('subjects', 'content_analytics.subject_id', '=', 'subjects.subjectID')
-                ->where('content_analytics.user_id', $user->userID)
-                ->whereIn('content_analytics.interaction_type', ['lesson_view', 'quiz_attempt'])
-                ->select(
-                    'subjects.subjectName as topic',
-                    DB::raw('AVG(content_analytics.time_spent_seconds) as avg_time'),
-                    DB::raw('SUM(content_analytics.time_spent_seconds) as total_time'),
-                    DB::raw('COUNT(*) as interaction_count')
-                )
-                ->groupBy('subjects.subjectID', 'subjects.subjectName')
-                ->orderByDesc('total_time')
-                ->get();
+            // Check if content_analytics table exists
+            try {
+                $timeSpent = DB::table('content_analytics')
+                    ->join('subjects', 'content_analytics.subject_id', '=', 'subjects.subjectID')
+                    ->where('content_analytics.user_id', $user->userID)
+                    ->whereIn('content_analytics.interaction_type', ['lesson_view', 'quiz_attempt'])
+                    ->select(
+                        'subjects.subjectName as topic',
+                        DB::raw('AVG(content_analytics.time_spent_seconds) as avg_time'),
+                        DB::raw('SUM(content_analytics.time_spent_seconds) as total_time'),
+                        DB::raw('COUNT(*) as interaction_count')
+                    )
+                    ->groupBy('subjects.subjectID', 'subjects.subjectName')
+                    ->orderByDesc('total_time')
+                    ->get();
+            } catch (\Exception $e) {
+                // Table doesn't exist, return empty collection
+                $timeSpent = collect([]);
+            }
             
             return response()->json([
                 'message' => 'Student insights retrieved',
@@ -209,12 +228,13 @@ class StudentAnalyticsController extends Controller
             
             $limit = $request->input('limit', 20);
             
-            // Get exam history with subject names
+            // Get exam history with subject names - most recent first
             $trends = DB::table('practice_exam_results')
                 ->join('subjects', 'practice_exam_results.subjectID', '=', 'subjects.subjectID')
                 ->where('practice_exam_results.userID', $user->userID)
                 ->select(
                     'practice_exam_results.resultID',
+                    'practice_exam_results.subjectID',
                     'practice_exam_results.percentage',
                     'practice_exam_results.totalPoints',
                     'practice_exam_results.earnedPoints',
@@ -223,9 +243,7 @@ class StudentAnalyticsController extends Controller
                 )
                 ->orderBy('practice_exam_results.created_at', 'desc')
                 ->limit($limit)
-                ->get()
-                ->reverse()
-                ->values();
+                ->get();
             
             // Calculate moving average (last 5 exams)
             $movingAvg = [];

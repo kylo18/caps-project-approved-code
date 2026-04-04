@@ -21,10 +21,27 @@ class LeaderboardController extends Controller
     /**
      * GET /api/leaderboard
      * Returns top N students for a given scope.
+     * Supports both 'scope' param (for web) and 'program'/'subject' params (for mobile).
      */
     public function index(Request $request)
     {
+        // Check if mobile-style filters are being used
+        $programFilter = $request->query('program');
+        $subjectFilter = $request->query('subject');
         $scope = $request->query('scope', 'global');
+        
+        // If program or subject filter is provided (and not empty), use mobile-style filtering
+        if (!empty($programFilter) || !empty($subjectFilter)) {
+            return $this->getMobileLeaderboard($request, $programFilter, $subjectFilter);
+        }
+        
+        // For 'global' scope without filters, use mobile leaderboard format (for mobile app)
+        // For other scopes ('exam', 'class'), use original Redis-based logic
+        if ($scope === 'global') {
+            return $this->getMobileLeaderboard($request, null, null);
+        }
+        
+        // Otherwise, use original scope-based logic for exam/class scopes
         $id = $request->query($scope === 'exam' ? 'exam_id' : 'class_id');
         $limit = (int) $request->query('limit', 10);
 
@@ -33,8 +50,9 @@ class LeaderboardController extends Controller
         try {
             $topRedis = $this->leaderboard->top($key, $limit);
         } catch (\Exception $e) {
+            // Redis not available - fallback to database
             \Illuminate\Support\Facades\Log::warning("Redis unavailable for leaderboard: " . $e->getMessage());
-            $topRedis = [];
+            return $this->fallbackToDB($scope, $id, $limit);
         }
 
         if (!empty($topRedis)) {
@@ -49,8 +67,8 @@ class LeaderboardController extends Controller
                     'users.lastName', 
                     'users.userCode', 
                     'programs.programName as program',
-                    'programs.programName as course', // Added course alias
-                    'students.yearLevel as year', // Added year alias
+                    'programs.programName as course',
+                    'students.yearLevel as year',
                     'students.yearLevel as yearLevel'
                 )
                 ->get()
@@ -93,8 +111,190 @@ class LeaderboardController extends Controller
             ]);
         }
 
-        // Fallback to DB
+        // Fallback to DB if Redis returns empty
         return $this->fallbackToDB($scope, $id, $limit);
+    }
+    
+    /**
+     * Get leaderboard for mobile app with program/subject filtering.
+     * Returns programs and subjects lists along with leaderboard data.
+     */
+    protected function getMobileLeaderboard(Request $request, $programFilter, $subjectFilter)
+    {
+        try {
+            $limit = (int) $request->query('limit', 50);
+            
+            // Get all programs and subjects for dropdown filters
+            $programs = DB::table('programs')
+                ->select('programID', 'programName')
+                ->orderBy('programName')
+                ->get();
+                
+            $subjects = DB::table('subjects')
+                ->select('subjectID', 'subjectName', 'subjectCode')
+                ->orderBy('subjectName')
+                ->get();
+            
+            // Build query for practice exam results with filters
+            $resultsQuery = DB::table('practice_exam_results')
+                ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                ->where('users.roleID', 1); // Only students
+                
+            // Apply program filter
+            if ($programFilter) {
+                $resultsQuery->where('users.programID', $programFilter);
+            }
+            
+            // Apply subject filter
+            if ($subjectFilter) {
+                $resultsQuery->where('practice_exam_results.subjectID', $subjectFilter);
+            }
+            
+            // Get all matching results
+            $results = $resultsQuery
+                ->select(
+                    'practice_exam_results.userID',
+                    'practice_exam_results.subjectID',
+                    'practice_exam_results.percentage',
+                    'practice_exam_results.earnedPoints',
+                    'practice_exam_results.resultID'
+                )
+                ->get();
+            
+            // Get user details for all users in results
+            $userIds = $results->pluck('userID')->unique()->toArray();
+            
+            $users = DB::table('users')
+                ->leftJoin('programs', 'users.programID', '=', 'programs.programID')
+                ->leftJoin('students', 'users.userCode', '=', 'students.userCode')
+                ->whereIn('users.userID', $userIds)
+                ->select(
+                    'users.userID',
+                    'users.firstName',
+                    'users.lastName',
+                    'users.userCode',
+                    'programs.programName as program',
+                    'programs.programID',
+                    'students.yearLevel as year',
+                    'students.yearLevel as yearLevel'
+                )
+                ->get()
+                ->keyBy('userID');
+            
+            // Get subject details if needed
+            $subjectIds = $results->pluck('subjectID')->unique()->toArray();
+            $subjectsData = DB::table('subjects')
+                ->whereIn('subjectID', $subjectIds)
+                ->select('subjectID', 'subjectName', 'subjectCode')
+                ->get()
+                ->keyBy('subjectID');
+            
+            // Group by user and calculate stats
+            $userStats = [];
+            foreach ($results as $result) {
+                $userId = $result->userID;
+                
+                if (!isset($userStats[$userId])) {
+                    $userStats[$userId] = [
+                        'userID' => $userId,
+                        'highestPercentage' => 0,
+                        'highestScore' => 0,
+                        'attempts' => 0,
+                        'subjectIDs' => [],
+                    ];
+                }
+                
+                $userStats[$userId]['attempts']++;
+                $userStats[$userId]['subjectIDs'][] = $result->subjectID;
+                
+                if ($result->percentage > $userStats[$userId]['highestPercentage']) {
+                    $userStats[$userId]['highestPercentage'] = $result->percentage;
+                    $userStats[$userId]['highestScore'] = $result->earnedPoints;
+                }
+            }
+            
+            // Sort by highest percentage descending
+            uasort($userStats, function($a, $b) {
+                return $b['highestPercentage'] <=> $a['highestPercentage'];
+            });
+            
+            // Format the leaderboard data
+            $leaderboard = [];
+            $rank = 1;
+            foreach (array_slice($userStats, 0, $limit, true) as $userId => $stats) {
+                $user = $users[$userId] ?? null;
+                
+                if (!$user) {
+                    continue;
+                }
+                
+                // Get the subject with highest score for display
+                $subjectId = $subjectFilter ?: ($stats['subjectIDs'][0] ?? null);
+                $subject = $subjectId ? ($subjectsData[$subjectId] ?? null) : null;
+                
+                $leaderboard[] = [
+                    'rank' => $rank++,
+                    'userID' => $userId,
+                    'student_id' => $userId,
+                    'firstName' => $user->firstName,
+                    'lastName' => $user->lastName,
+                    'name' => trim(($user->firstName ?? '') . ' ' . ($user->lastName ?? '')),
+                    'userCode' => $user->userCode,
+                    'program' => $user->program,
+                    'programID' => $user->programID,
+                    'course' => $user->program,
+                    'year' => $user->year,
+                    'yearLevel' => $user->yearLevel,
+                    'subject' => $subject ? $subject->subjectName : null,
+                    'subjectCode' => $subject ? $subject->subjectCode : null,
+                    'subjectID' => $subjectId,
+                    'score' => (int) $stats['highestScore'],
+                    'highestScore' => (int) $stats['highestScore'],
+                    'highestPercentage' => round($stats['highestPercentage'], 2),
+                    'attempts' => $stats['attempts'],
+                    'points' => (int) $stats['highestScore'],
+                ];
+            }
+            
+            // Transform programs for mobile dropdown
+            $programsList = $programs->map(function($program) {
+                return [
+                    'programID' => $program->programID,
+                    'programName' => $program->programName,
+                ];
+            });
+            
+            // Transform subjects for mobile dropdown
+            $subjectsList = $subjects->map(function($subject) {
+                return [
+                    'subjectID' => $subject->subjectID,
+                    'subjectName' => $subject->subjectName,
+                    'subjectCode' => $subject->subjectCode,
+                ];
+            });
+            
+            return response()->json([
+                'leaderboard' => $leaderboard,
+                'programs' => $programsList,
+                'subjects' => $subjectsList,
+                'meta' => [
+                    'total' => count($leaderboard),
+                    'programFilter' => $programFilter,
+                    'subjectFilter' => $subjectFilter,
+                    'generated_from' => 'database'
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Leaderboard mobile fetch error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error' => 'Server error: ' . $e->getMessage(),
+                'leaderboard' => [],
+                'programs' => [],
+                'subjects' => []
+            ], 500);
+        }
     }
 
     /**
@@ -119,8 +319,6 @@ class LeaderboardController extends Controller
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning("Redis unavailable for student leaderboard status: " . $e->getMessage());
             
-            // For now, we return null fields so the UI can show "No score" or a generic message.
-            // Alternatively, we could perform a DB fallback here too, but /me is often less critical.
             return response()->json([
                 'rank' => null,
                 'score' => null,
@@ -140,7 +338,6 @@ class LeaderboardController extends Controller
             ]);
         }
 
-        // Potential fallback or "no score"
         return response()->json([
             'rank' => null,
             'score' => null,
@@ -208,4 +405,3 @@ class LeaderboardController extends Controller
         ]);
     }
 }
-

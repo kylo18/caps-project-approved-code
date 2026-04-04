@@ -68,6 +68,12 @@ const AdminHeader = ({ title }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isTutorialPage = location.pathname.includes("/help");
+  // Apply orange theme to all student pages for consistency
+  const isStudentPage = location.pathname.startsWith("/student") || 
+    location.pathname === "/" ||
+    location.pathname === "/leaderboard" ||
+    location.pathname === "/ai-chat" ||
+    location.pathname.includes("/exam");
   const collegeLogo = new URL("../assets/college-logo.png", import.meta.url)
     .href;
   const apiUrl = getApiUrl();
@@ -495,7 +501,11 @@ const AdminHeader = ({ title }) => {
   return (
     <div>
       <div
-        className="open-sans fixed top-0 left-0 z-49 flex w-full items-center justify-between border-b border-gray-300 bg-white px-0 dark:border-gray-700 dark:bg-black"
+        className={`open-sans fixed top-0 left-0 z-49 flex w-full items-center justify-between px-0 ${
+          isStudentPage
+            ? "border-b border-white/20 bg-[#ff7a00] text-white dark:bg-[#ff7a00]"
+            : "border-b border-gray-300 bg-white dark:border-gray-700 dark:bg-black"
+        }`}
         style={{
           minHeight: "52px",
           paddingTop: "max(12px, env(safe-area-inset-top, 12px))",
@@ -516,7 +526,11 @@ const AdminHeader = ({ title }) => {
         <div
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
-          <span className="text-[14px] leading-tight font-semibold text-gray-800 capitalize sm:text-[16px] dark:text-gray-200">
+          <span className={`text-[14px] leading-tight font-semibold capitalize sm:text-[16px] ${
+            isStudentPage
+              ? "text-white"
+              : "text-gray-800 dark:text-gray-200"
+          }`}>
             {title}
           </span>
         </div>
@@ -528,7 +542,11 @@ const AdminHeader = ({ title }) => {
             type="button"
             onClick={() => setShowNotificationPanel(true)}
             title={userInfo?.roleID === 1 ? "Notifications" : "Student Messages"}
-            className="relative border-color flex cursor-pointer items-center gap-1 rounded-lg border bg-white px-2 py-1.5 text-gray-800 shadow-sm transition hover:bg-gray-100 dark:border-white/10 dark:bg-[var(--color-bg-secondary)] dark:text-white dark:hover:bg-[var(--color-bg-tertiary)]"
+            className={`relative border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 shadow-sm transition ${
+              isStudentPage
+                ? "border-white/30 bg-white/20 text-white hover:bg-white/30"
+                : "bg-white text-gray-800 hover:bg-gray-100 dark:border-white/10 dark:bg-[var(--color-bg-secondary)] dark:text-white dark:hover:bg-[var(--color-bg-tertiary)]"
+            }`}
           >
             <i className="bx bx-bell text-[20px]"></i>
             {notificationUnreadCount > 0 && (
@@ -541,7 +559,11 @@ const AdminHeader = ({ title }) => {
             type="button"
             onClick={() => setShowHelpModal(true)}
             title={userInfo?.roleID === 1 ? "Help Center" : "Create Announcement"}
-            className="border-color flex cursor-pointer items-center gap-1 rounded-lg border bg-white px-2 py-1.5 text-gray-800 shadow-sm transition hover:bg-gray-100 dark:border-white/10 dark:bg-[var(--color-bg-secondary)] dark:text-white dark:hover:bg-[var(--color-bg-tertiary)]"
+            className={`border-color flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 shadow-sm transition ${
+              isStudentPage
+                ? "border-white/30 bg-white/20 text-white hover:bg-white/30"
+                : "bg-white text-gray-800 hover:bg-gray-100 dark:border-white/10 dark:bg-[var(--color-bg-secondary)] dark:text-white dark:hover:bg-[var(--color-bg-tertiary)]"
+            }`}
           >
             <i className="bx bx-message-question-mark text-md ml-1"></i>
             <span className="hidden sm:inline pr-1.5 text-[14px]">
@@ -552,7 +574,11 @@ const AdminHeader = ({ title }) => {
           {/* Three-dot Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
-              className="-mr-3 flex cursor-pointer items-center rounded-full border-2 border-gray-300 bg-white transition hover:border-gray-400 dark:border-gray-600 dark:bg-black dark:hover:bg-gray-800"
+              className={`-mr-3 flex cursor-pointer items-center rounded-full border-2 transition ${
+                isStudentPage
+                  ? "border-white/40 bg-white/20 hover:bg-white/30"
+                  : "border-gray-300 bg-white hover:border-gray-400 dark:border-gray-600 dark:bg-black dark:hover:bg-gray-800"
+              }`}
               onClick={() => setDropdownOpen(!dropdownOpen)}
             >
               {/* Circle with initial */}
@@ -563,7 +589,11 @@ const AdminHeader = ({ title }) => {
               </div>
 
               {/* Chevron */}
-              <i className="bx bx-chevron-down mr-[3px] text-2xl text-gray-700 dark:text-gray-300"></i>
+              <i className={`bx bx-chevron-down mr-[3px] text-2xl ${
+                isStudentPage
+                  ? "text-white"
+                  : "text-gray-700 dark:text-gray-300"
+              }`}></i>
             </button>
 
             {/* Dropdown Buttons */}

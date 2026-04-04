@@ -1,11 +1,32 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getApiUrl } from '../utils/config';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { getApiUrl } from "../utils/config";
+import { useTheme } from "../contexts/ThemeContext";
 
-// Renders the student leaderboard and keeps program/subject filters in sync with the backend data.
+const avatarPalette = [
+  "bg-[#ffe17b]",
+  "bg-[#ffd4ea]",
+  "bg-[#d9dcff]",
+  "bg-[#d6f4d2]",
+  "bg-[#ffd0b1]",
+];
+
+const getDisplayName = (student) => student?.name || "Unknown Student";
+
+const getDisplayAvatar = (student) =>
+  student?.avatar ||
+  getDisplayName(student)
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() ||
+  "?";
+
 const Leaderboard = () => {
   const navigate = useNavigate();
-  const [activeFilter, setActiveFilter] = useState('All');
+  const { isDark } = useTheme();
+  const [activeFilter, setActiveFilter] = useState("All");
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [showProgramDropdown, setShowProgramDropdown] = useState(false);
@@ -20,56 +41,65 @@ const Leaderboard = () => {
   const subjectDropdownRef = useRef(null);
 
   useEffect(() => {
-    // Closes either dropdown when the user taps outside of its container.
-    const handleClickOutside = (e) => {
-      if (programDropdownRef.current && !programDropdownRef.current.contains(e.target)) {
+    const handleClickOutside = (event) => {
+      if (
+        programDropdownRef.current &&
+        !programDropdownRef.current.contains(event.target)
+      ) {
         setShowProgramDropdown(false);
       }
-      if (subjectDropdownRef.current && !subjectDropdownRef.current.contains(e.target)) {
+
+      if (
+        subjectDropdownRef.current &&
+        !subjectDropdownRef.current.contains(event.target)
+      ) {
         setShowSubjectDropdown(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Loads ranked students plus the dropdown options for the active filter set.
   const fetchLeaderboard = async (program = null, subject = null) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const apiUrl = getApiUrl();
       let url = `${apiUrl}/api/leaderboard`;
-      
       const params = new URLSearchParams();
-      if (program) params.append('program', program);
-      if (subject) params.append('subject', subject);
-      
+
+      if (program) {
+        params.append("program", program);
+      }
+
+      if (subject) {
+        params.append("subject", subject);
+      }
+
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
-      
+
       const response = await fetch(url, {
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch leaderboard: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
-      setLeaderboardData(data.leaderboard || []);
+      setLeaderboardData(data.leaderboard || data.data || []);
       setPrograms(data.programs || []);
       setSubjects(data.subjects || []);
-      
-    } catch (err) {
-      console.error('Error fetching leaderboard:', err);
-      setError(err.message || 'Failed to load leaderboard');
+    } catch (fetchError) {
+      console.error("Error fetching leaderboard:", fetchError);
+      setError(fetchError.message || "Failed to load leaderboard");
     } finally {
       setIsLoading(false);
     }
@@ -79,27 +109,24 @@ const Leaderboard = () => {
     fetchLeaderboard();
   }, []);
 
-  // Applies a program filter and resets the subject filter so the request stays unambiguous.
   const handleProgramFilter = (program) => {
-    setActiveFilter('Program');
+    setActiveFilter("Program");
     setSelectedProgram(program);
     setSelectedSubject(null);
     setShowProgramDropdown(false);
     fetchLeaderboard(program.programID, null);
   };
 
-  // Applies a subject filter and resets the program filter so the request stays unambiguous.
   const handleSubjectFilter = (subject) => {
-    setActiveFilter('Subject');
+    setActiveFilter("Subject");
     setSelectedSubject(subject);
     setSelectedProgram(null);
     setShowSubjectDropdown(false);
     fetchLeaderboard(null, subject.subjectID);
   };
 
-  // Clears all filter state and reloads the global leaderboard.
   const handleAllFilter = () => {
-    setActiveFilter('All');
+    setActiveFilter("All");
     setSelectedProgram(null);
     setSelectedSubject(null);
     setShowProgramDropdown(false);
@@ -108,256 +135,271 @@ const Leaderboard = () => {
   };
 
   const filteredStudents = useMemo(
-    () => [...leaderboardData].sort((a, b) => b.points - a.points),
+    () =>
+      [...leaderboardData].sort(
+        (a, b) => (b.points ?? b.score ?? 0) - (a.points ?? a.score ?? 0),
+      ),
     [leaderboardData],
   );
 
   const topThree = filteredStudents.slice(0, 3);
 
   const programTabLabel =
-    activeFilter === 'Program' && selectedProgram
+    activeFilter === "Program" && selectedProgram
       ? selectedProgram.programName
-      : 'Program';
+      : "Program";
+
   const subjectTabLabel =
-    activeFilter === 'Subject' && selectedSubject
-      ? (selectedSubject.subjectCode || selectedSubject.subjectName)
-      : 'Subject';
+    activeFilter === "Subject" && selectedSubject
+      ? selectedSubject.subjectCode || selectedSubject.subjectName
+      : "Subject";
 
-  // Prefers the backend-computed full name but still guards against missing data.
-  const getDisplayName = (student) => student?.name || 'Unknown Student';
-
-  // Builds a stable two-letter avatar fallback when no profile image exists.
-  const getDisplayAvatar = (student) =>
-    student?.avatar ||
-    getDisplayName(student)
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() ||
-    '?';
-
-  // Shows program and subject context under each entry when that metadata is available.
   const getSecondaryLabel = (student) => {
     const subjectLabel =
       student?.subject ||
-      (activeFilter === 'Subject'
+      (activeFilter === "Subject"
         ? selectedSubject?.subjectCode || selectedSubject?.subjectName
         : null);
 
-    return [student?.program, subjectLabel].filter(Boolean).join(' • ');
+    return [student?.program, subjectLabel].filter(Boolean).join(" • ");
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black px-3 sm:px-4 pt-14 pb-32">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-full bg-white dark:bg-gray-900 shadow-sm text-gray-600 dark:text-gray-400"
-        >
-          <i className='bx bx-left-arrow-alt text-2xl'></i>
-        </button>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Leaderboard</h1>
-      </div>
+    <div className={`min-h-screen pb-32 text-slate-900 dark:text-white ${isDark ? 'dark bg-[var(--color-bg-primary)]' : 'bg-[#fff7f1]'}`}>
+      <section className={`relative z-30 overflow-visible rounded-b-[36px] px-5 pb-8 pt-6 text-white ${isDark ? 'bg-[var(--color-bg-secondary)]' : 'bg-[linear-gradient(180deg,#ff7a00_0%,#ff8c1a_100%)]'}`}>
+        <div className="absolute -right-8 top-10 h-40 w-40 rounded-full border border-white/10 dark:border-white/5" />
+        <div className="absolute -left-10 bottom-4 h-24 w-24 rounded-full bg-white/10 dark:bg-white/5" />
 
-      {/* Filter Tabs */}
-      <div className="relative flex gap-2 mb-8 bg-gray-100 dark:bg-gray-900/50 p-1 rounded-2xl">
-        {/* All Tab */}
-        <button
-          onClick={handleAllFilter}
-          className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-200 ${activeFilter === 'All'
-              ? 'bg-white dark:bg-black text-[var(--color-primary)] shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+        <div className="relative flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/16 backdrop-blur"
+          >
+            <i className="bx bx-left-arrow-alt text-[24px]" />
+          </button>
+          <div>
+            <h1 className="text-[28px] font-bold">Leaderboard</h1>
+          </div>
+        </div>
+
+        <div className={`relative z-40 mt-6 flex gap-2 rounded-[24px] p-1 ${isDark ? 'bg-[var(--color-bg-tertiary)]' : 'bg-[#eb6b00]'}`}>
+          <button
+            type="button"
+            onClick={handleAllFilter}
+            className={`flex-1 rounded-[20px] px-3 py-2 text-sm font-semibold transition ${
+              activeFilter === "All"
+                ? isDark 
+                  ? "bg-[var(--color-accent)] text-white" 
+                  : "bg-[#ffbf8e] text-[#8a3b00]"
+                : isDark
+                  ? "text-gray-300 hover:text-white"
+                  : "text-orange-100"
             }`}
-        >
-          All
-        </button>
-
-        {/* Program Tab */}
-        <div ref={programDropdownRef} className="flex-1 relative">
-          <button
-            onClick={() => {
-              setActiveFilter('Program');
-              setShowSubjectDropdown(false);
-              setShowProgramDropdown(prev => !prev);
-            }}
-            className={`w-full py-2.5 text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-1 ${activeFilter === 'Program'
-                ? 'bg-white dark:bg-black text-[var(--color-primary)] shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
           >
-            <span className="truncate max-w-[90px]">{programTabLabel}</span>
-            <i className={`bx bx-chevron-down text-base transition-transform duration-200 ${showProgramDropdown ? 'rotate-180' : ''}`}></i>
+            All
           </button>
 
-          {showProgramDropdown && programs.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-black rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden">
-              {programs.map((prog) => (
-                <button
-                  key={prog.programID}
-                  onClick={() => { handleProgramFilter(prog); }}
-                  className={`w-full px-4 py-2.5 text-sm font-bold text-left transition-colors hover:bg-orange-50 dark:hover:bg-orange-900/20 ${selectedProgram?.programID === prog.programID
-                      ? 'text-[var(--color-primary)] bg-orange-50 dark:bg-orange-900/20'
-                      : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                >
-                  {prog.programName}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Subject Tab */}
-        <div ref={subjectDropdownRef} className="flex-1 relative">
-          <button
-            onClick={() => {
-              setActiveFilter('Subject');
-              setShowProgramDropdown(false);
-              setShowSubjectDropdown(prev => !prev);
-            }}
-            className={`w-full py-2.5 text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-1 ${activeFilter === 'Subject'
-                ? 'bg-white dark:bg-black text-[var(--color-primary)] shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+          <div ref={programDropdownRef} className="relative z-50 flex-1">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveFilter("Program");
+                setShowSubjectDropdown(false);
+                setShowProgramDropdown((value) => !value);
+              }}
+              className={`flex w-full items-center justify-center gap-1 rounded-[20px] px-3 py-2 text-sm font-semibold transition ${
+                activeFilter === "Program"
+                  ? isDark 
+                    ? "bg-[var(--color-accent)] text-white" 
+                    : "bg-[#ffbf8e] text-[#8a3b00]"
+                  : isDark
+                    ? "text-gray-300 hover:text-white"
+                    : "text-orange-100"
               }`}
-          >
-            <span className="truncate max-w-[90px]">{subjectTabLabel}</span>
-            <i className={`bx bx-chevron-down text-base transition-transform duration-200 ${showSubjectDropdown ? 'rotate-180' : ''}`}></i>
-          </button>
+            >
+              <span className="truncate max-w-[90px]">{programTabLabel}</span>
+              <i
+                className={`bx bx-chevron-down text-lg transition-transform ${
+                  showProgramDropdown ? "rotate-180" : ""
+                }`}
+              />
+            </button>
 
-          {showSubjectDropdown && subjects.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-black rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden">
-              {subjects.map((subj) => (
-                <button
-                  key={subj.subjectID}
-                  onClick={() => { handleSubjectFilter(subj); }}
-                  className={`w-full px-4 py-2.5 text-sm font-bold text-left transition-colors hover:bg-orange-50 dark:hover:bg-orange-900/20 ${selectedSubject?.subjectID === subj.subjectID
-                      ? 'text-[var(--color-primary)] bg-orange-50 dark:bg-orange-900/20'
-                      : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                >
-                  {subj.subjectName}
-                </button>
-              ))}
-            </div>
-          )}
+            {showProgramDropdown && programs.length > 0 && (
+              <div className={`absolute left-0 right-0 top-full z-50 mt-2 max-h-[300px] overflow-y-auto rounded-[22px] shadow-[0_16px_28px_rgba(254,105,2,0.25)] ${isDark ? 'bg-[var(--color-bg-secondary)] text-white' : 'bg-white text-slate-700'}`}>
+                {programs.map((program) => (
+                  <button
+                    key={program.programID}
+                    type="button"
+                    onClick={() => handleProgramFilter(program)}
+                    className={`block w-full px-4 py-3 text-left text-sm ${isDark ? 'hover:bg-[var(--color-bg-tertiary)]' : 'hover:bg-[#fff3e8]'}`}
+                  >
+                    {program.programName}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div ref={subjectDropdownRef} className="relative z-50 flex-1">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveFilter("Subject");
+                setShowProgramDropdown(false);
+                setShowSubjectDropdown((value) => !value);
+              }}
+              className={`flex w-full items-center justify-center gap-1 rounded-[20px] px-3 py-2 text-sm font-semibold transition ${
+                activeFilter === "Subject"
+                  ? isDark 
+                    ? "bg-[var(--color-accent)] text-white" 
+                    : "bg-[#ffbf8e] text-[#8a3b00]"
+                  : isDark
+                    ? "text-gray-300 hover:text-white"
+                    : "text-orange-100"
+              }`}
+            >
+              <span className="truncate max-w-[90px]">{subjectTabLabel}</span>
+              <i
+                className={`bx bx-chevron-down text-lg transition-transform ${
+                  showSubjectDropdown ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {showSubjectDropdown && subjects.length > 0 && (
+              <div className={`absolute left-0 right-0 top-full z-50 mt-2 max-h-[300px] overflow-y-auto rounded-[22px] shadow-[0_16px_28px_rgba(254,105,2,0.25)] ${isDark ? 'bg-[var(--color-bg-secondary)] text-white' : 'bg-white text-slate-700'}`}>
+                {subjects.map((subject) => (
+                  <button
+                    key={subject.subjectID}
+                    type="button"
+                    onClick={() => handleSubjectFilter(subject)}
+                    className={`block w-full px-4 py-3 text-left text-sm ${isDark ? 'hover:bg-[var(--color-bg-tertiary)]' : 'hover:bg-[#fff3e8]'}`}
+                  >
+                    {subject.subjectName}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Loading leaderboard...</p>
-        </div>
-      )}
+      <section className="relative z-10 px-5 pt-5">
+        {isLoading && (
+          <div className={`rounded-[28px] px-4 py-8 text-center shadow-[0_16px_28px_rgba(254,105,2,0.08)] ${isDark ? 'bg-[var(--color-bg-secondary)]' : 'bg-white'}`}>
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#ff7a00] border-t-transparent" />
+            <p className={`mt-3 text-sm ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Loading leaderboard...</p>
+          </div>
+        )}
 
-      {/* Error State */}
-      {error && !isLoading && (
-        <div className="flex flex-col items-center justify-center py-20 px-4">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center max-w-sm">
-              <i className='bx bx-error-circle text-4xl text-red-500 mb-3'></i>
-              <p className="text-red-600 dark:text-red-400 text-sm mb-4">{error}</p>
-              <button
+        {error && !isLoading && (
+          <div className={`rounded-[28px] px-4 py-8 text-center shadow-[0_16px_28px_rgba(254,105,2,0.08)] ${isDark ? 'bg-[var(--color-bg-secondary)]' : 'bg-white'}`}>
+            <p className="text-sm text-red-500">{error}</p>
+            <button
+              type="button"
               onClick={() =>
                 fetchLeaderboard(
                   selectedProgram?.programID ?? null,
                   selectedSubject?.subjectID ?? null,
                 )
               }
-              className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+              className="mt-4 rounded-full bg-[#ff7a00] px-4 py-2 text-sm font-semibold text-white"
             >
               Retry
             </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Podium (Top 3) */}
-      {!isLoading && !error && topThree.length >= 3 && (
-        <div className="flex justify-center items-end gap-1 sm:gap-2 mb-10 mt-4 px-1 sm:px-2">
-          {/* 2nd Place */}
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gray-200 dark:bg-black border-2 border-gray-300 dark:border-gray-700 flex items-center justify-center text-lg sm:text-xl font-bold text-gray-600 dark:text-gray-400 mb-2">
-              {getDisplayAvatar(topThree[1])}
-            </div>
-            <div className="h-16 sm:h-24 w-14 sm:w-20 bg-gray-100 dark:bg-gray-900 rounded-t-lg flex flex-col items-center justify-center border-x border-t border-gray-200 dark:border-gray-800">
-              <span className="text-xl sm:text-2xl font-bold text-gray-400">2</span>
-            </div>
-            <span className="text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 dark:text-gray-300 uppercase truncate w-14 sm:w-16 text-center">{getDisplayName(topThree[1]).split(' ')[0]}</span>
-          </div>
-          {/* 1st Place */}
-          <div className="flex flex-col items-center">
-            <div className="relative mb-2">
-              <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-400 flex items-center justify-center text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {getDisplayAvatar(topThree[0])}
-              </div>
-              <div className="absolute -top-2 sm:-top-3 left-1/2 -translate-x-1/2 text-yellow-500 text-xl sm:text-2xl">
-                <i className='bx bxs-crown'></i>
-              </div>
-            </div>
-            <div className="h-24 sm:h-32 w-16 sm:w-24 bg-gradient-to-b from-orange-400 to-orange-600 rounded-t-lg flex flex-col items-center justify-center shadow-lg shadow-orange-500/20">
-              <span className="text-2xl sm:text-3xl font-bold text-white">1</span>
-            </div>
-            <span className="text-xs sm:text-sm font-bold mt-1 sm:mt-2 dark:text-white truncate w-16 sm:w-24 text-center">{getDisplayName(topThree[0]).split(' ')[0]}</span>
-          </div>
-          {/* 3rd Place */}
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-orange-50 dark:bg-orange-900/10 border-2 border-orange-200 dark:border-orange-900/50 flex items-center justify-center text-lg sm:text-xl font-bold text-orange-400 dark:text-orange-300 mb-2">
-              {getDisplayAvatar(topThree[2])}
-            </div>
-            <div className="h-12 sm:h-16 w-14 sm:w-20 bg-gray-50 dark:bg-gray-900 rounded-t-lg flex flex-col items-center justify-center border-x border-t border-gray-200 dark:border-gray-800">
-              <span className="text-xl sm:text-2xl font-bold text-gray-300 dark:text-gray-600">3</span>
-            </div>
-            <span className="text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 dark:text-gray-300 uppercase truncate w-14 sm:w-16 text-center">{getDisplayName(topThree[2]).split(' ')[0]}</span>
-          </div>
-        </div>
-      )}
+        {!isLoading && !error && topThree.length >= 3 && (
+          <div className={`rounded-[32px] px-4 pb-6 pt-5 text-white shadow-[0_18px_38px_rgba(254,105,2,0.22)] ${isDark ? 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)]' : 'bg-[linear-gradient(180deg,#ffa348_0%,#ff7a00_100%)]'}`}>
+            <div className="mb-5 flex items-end justify-center gap-3">
+              {[1, 0, 2].map((studentIndex, order) => {
+                const student = topThree[studentIndex];
+                const heights = ["h-24", "h-32", "h-20"];
+                const widths = ["w-[4.5rem]", "w-20", "w-[4.5rem]"];
+                const labels = ["2", "1", "3"];
+                const avatarColor = avatarPalette[studentIndex % avatarPalette.length];
 
-      {/* List */}
-      {!isLoading && !error && (
-        filteredStudents.length > 0 ? (
-          <div className="space-y-3">
+                return (
+                  <div key={labels[order]} className="flex flex-col items-center">
+                    <div
+                      className={`mb-2 flex ${order === 1 ? "h-[4.5rem] w-[4.5rem]" : "h-14 w-14"} items-center justify-center rounded-full border-4 border-white/30 ${avatarColor} text-sm font-bold text-slate-800`}
+                    >
+                      {getDisplayAvatar(student)}
+                    </div>
+                    <div
+                      className={`flex ${heights[order]} ${widths[order]} items-center justify-center rounded-t-[24px] ${isDark ? 'bg-[var(--color-accent)]/20' : 'bg-white/22'} text-5xl font-bold`}
+                    >
+                      {labels[order]}
+                    </div>
+                    <p className="mt-2 max-w-[5rem] truncate text-center text-xs font-semibold">
+                      {getDisplayName(student).split(" ")[0]}
+                    </p>
+                    <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-orange-100'}`}>
+                      {student?.points ?? student?.score ?? 0} pts
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {!isLoading && !error && filteredStudents.length === 0 && (
+          <div className={`rounded-[28px] px-4 py-8 text-center shadow-[0_16px_28px_rgba(254,105,2,0.08)] ${isDark ? 'bg-[var(--color-bg-secondary)]' : 'bg-white'}`}>
+            <div className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full ${isDark ? 'bg-[var(--color-bg-tertiary)] text-[var(--color-accent)]' : 'bg-[#fff1e5] text-[#ff7a00]'}`}>
+              <i className="bx bx-trophy text-[28px]" />
+            </div>
+            <p className={`mt-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-slate-600'}`}>
+              No leaderboard data available yet.
+            </p>
+          </div>
+        )}
+
+        {!isLoading && !error && filteredStudents.length > 0 && (
+          <div className="mt-5 space-y-3">
             {filteredStudents.map((student, index) => (
               <div
-                key={student.userID || student.id}
-                className={`flex items-center gap-3 p-3 sm:p-4 rounded-xl border ${index === 0
-                    ? 'bg-orange-50/50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30'
-                    : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'
-                  } transition-all duration-300 hover:scale-[1.01]`}
+                key={student.userID || student.id || index}
+                className={`flex items-center gap-3 rounded-[24px] px-4 py-3 shadow-[0_16px_28px_rgba(254,105,2,0.08)] ${
+                  index === 0 
+                    ? isDark ? "bg-[var(--color-bg-secondary)] border border-[var(--color-accent)]/30" : "bg-[#fff3e7]"
+                    : isDark ? "bg-[var(--color-bg-secondary)]" : "bg-white"
+                }`}
               >
-                <span className={`w-5 sm:w-6 text-center font-bold ${index < 3 ? 'text-[var(--color-primary)]' : 'text-gray-400'}`}>
+                <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${isDark ? 'bg-[var(--color-bg-tertiary)] text-[var(--color-accent)]' : 'bg-[#fff1e5] text-[#ff7a00]'}`}>
                   {index + 1}
-                </span>
-                <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-gray-100 dark:bg-black flex items-center justify-center font-semibold text-gray-600 dark:text-gray-300">
+                </div>
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-full ${avatarPalette[index % avatarPalette.length]} text-sm font-bold text-slate-800`}
+                >
                   {getDisplayAvatar(student)}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white leading-tight truncate">{getDisplayName(student)}</h3>
+                <div className="min-w-0 flex-1">
+                  <h2 className={`truncate text-[15px] font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {getDisplayName(student)}
+                  </h2>
                   {getSecondaryLabel(student) && (
-                    <p className="text-[10px] sm:text-xs uppercase font-bold text-[var(--color-primary)] mt-0.5">
+                    <p className={`truncate text-xs ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
                       {getSecondaryLabel(student)}
                     </p>
                   )}
                 </div>
                 <div className="text-right">
-                  <span className="block font-extrabold text-sm sm:text-base text-gray-900 dark:text-white leading-none">{student.points}</span>
-                  <span className="text-[8px] sm:text-[9px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold">PTS</span>
+                  <div className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {student?.points ?? student?.score ?? 0}
+                  </div>
+                  <div className={`text-xs uppercase tracking-[0.18em] ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>
+                    PTS
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
-              <i className='bx bx-trophy text-5xl text-gray-300 dark:text-gray-600 mb-4'></i>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">No leaderboard data available yet.</p>
-              <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Complete practice exams to appear on the leaderboard!</p>
-            </div>
-          </div>
-        )
-      )}
+        )}
+      </section>
     </div>
   );
 };
