@@ -61,5 +61,6 @@ class PersonalQuizSetting extends Model
     {
         return $this->belongsTo(ClassPersonalQuiz::class, 'classPersonalQuizID', 'classPersonalQuizID');
     }
+
 }
 

@@ -2,12 +2,15 @@
 
 namespace Modules\PersonalExams\Controllers;
 
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Modules\PersonalClasses\Models\ClassPersonalQuiz;
 use Modules\PersonalClasses\Models\ClassEnrollment;
@@ -20,6 +23,65 @@ use Modules\PersonalExams\Models\StudentQuizAttemptAnswer;
 
 class StudentQuizController extends Controller
 {
+    /**
+     * Align POST body with validation: accept camelCase from clients that mirror /start JSON,
+     * coerce numeric strings, and normalize started_at (ISO string or unix ms/seconds).
+     */
+    private function normalizeQuizSubmitRequest(Request $request): void
+    {
+        $data = $request->all();
+
+        $attemptNo = $data['attempt_number'] ?? $data['attemptNumber'] ?? null;
+        if ($attemptNo !== null && $attemptNo !== '') {
+            $request->merge(['attempt_number' => (int) $attemptNo]);
+        }
+
+        $rawStarted = $data['started_at'] ?? $data['startedAt'] ?? null;
+        if ($rawStarted === '' || $rawStarted === null) {
+            $request->merge(['started_at' => null]);
+        } elseif (is_numeric($rawStarted)) {
+            $n = (int) $rawStarted;
+            if ($n > 1_000_000_000_000) {
+                $request->merge(['started_at' => Carbon::createFromTimestampMs($n)->toIso8601String()]);
+            } elseif ($n > 1_000_000_000) {
+                $request->merge(['started_at' => Carbon::createFromTimestamp($n)->toIso8601String()]);
+            }
+        } elseif (is_string($rawStarted)) {
+            $request->merge(['started_at' => $rawStarted]);
+        }
+
+        $tts = $data['time_taken_seconds'] ?? $data['timeTakenSeconds'] ?? null;
+        if ($tts !== null && $tts !== '') {
+            $request->merge(['time_taken_seconds' => max(0, (int) $tts)]);
+        }
+
+        if (isset($data['answers']) && is_array($data['answers'])) {
+            $normalized = [];
+            foreach ($data['answers'] as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $qid = $row['personalQuizQuestionID'] ?? $row['personalQuizQuestionId'] ?? null;
+                if ($qid === null || $qid === '') {
+                    continue;
+                }
+                $sid = $row['selectedChoiceID'] ?? $row['selectedChoiceId'] ?? null;
+                if ($sid === '' || $sid === false) {
+                    $sid = null;
+                } elseif (is_numeric($sid)) {
+                    $sid = (int) $sid;
+                } else {
+                    $sid = null;
+                }
+                $normalized[] = [
+                    'personalQuizQuestionID' => (int) $qid,
+                    'selectedChoiceID' => $sid,
+                ];
+            }
+            $request->merge(['answers' => $normalized]);
+        }
+    }
+
     /**
      * Get quiz information before starting.
      * Displays quiz details, settings, and availability for student review.
@@ -570,6 +632,9 @@ class StudentQuizController extends Controller
                 'questions' => $formattedQuestions,
                 'attemptNumber' => $nextAttemptNumber,
                 'startedAt' => $attempt->startedAt,
+                // Aliases for submit payload (same values as attemptNumber / startedAt)
+                'attempt_number' => $nextAttemptNumber,
+                'started_at' => $attempt->startedAt,
             ], 200);
         } catch (\Throwable $e) {
             Log::error('Error starting quiz', [
@@ -604,10 +669,12 @@ class StudentQuizController extends Controller
                 return response()->json(['success' => false, 'message' => 'Only students can submit quizzes.'], 403);
             }
 
+            $this->normalizeQuizSubmitRequest($request);
+
             try {
                 $validated = $request->validate([
                     'attempt_number' => 'required|integer|min:1',
-                    'answers' => 'required|array',
+                    'answers' => 'required|array|min:1',
                     'answers.*.personalQuizQuestionID' => 'required|integer|exists:personal_quiz_questions,personalQuizQuestionID',
                     'answers.*.selectedChoiceID' => 'nullable|integer|exists:personal_quiz_choices,personalQuizChoiceID',
                     'started_at' => 'nullable|date',
@@ -639,6 +706,13 @@ class StudentQuizController extends Controller
             }
 
             $quiz = $classQuizAssignment->personalQuiz;
+            if (! $quiz) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This class quiz is not linked to a valid personal quiz.',
+                ], 422);
+            }
+
             $settings = $classQuizAssignment->setting;
 
             // Check if result already exists for this attempt
@@ -760,34 +834,14 @@ class StudentQuizController extends Controller
                 // Create result
                 $result = StudentQuizResult::create($resultData);
 
-                // Persist per-question performance for analytics (weak subjects / questions)
-                foreach ($correctAnswers as $row) {
-                    $pq = $questions->get($row['personalQuizQuestionID']);
-                    if (!$pq) {
-                        continue;
-                    }
-                    $subjectID = $pq->personalQuizSubjectID ?? $quiz->subjectID;
-
-                    StudentQuizAttemptAnswer::create([
-                        'student_quiz_result_id' => $result->id,
-                        'studentID' => $user->userID,
-                        'class_quiz_assignment_id' => $classPersonalQuizID,
-                        'personal_quiz_question_id' => $pq->personalQuizQuestionID,
-                        'selected_personal_quiz_choice_id' => $row['selectedChoiceID'] ?? null,
-                        'subject_id' => $subjectID,
-                        'bank_question_id' => $pq->questionID,
-                        'is_correct' => $row['isCorrect'],
-                        'points_possible' => $row['score'],
-                        'points_earned' => $row['earnedScore'],
-                        'question_snapshot' => [
-                            'questionText' => $row['questionText'],
-                            'selectedChoiceText' => $row['selectedChoiceText'],
-                            'correctChoiceText' => $row['correctChoiceText'],
-                            'selectedChoiceID' => $row['selectedChoiceID'] ?? null,
-                            'correctChoiceID' => $row['correctChoiceID'] ?? null,
-                        ],
-                    ]);
-                }
+                $this->persistQuizAttemptAnswers(
+                    $correctAnswers,
+                    $questions,
+                    $result,
+                    (int) $user->userID,
+                    (int) $classPersonalQuizID,
+                    $quiz
+                );
 
                 // Update student quiz attempt
                 $attempt = StudentQuizAttempt::where('personalQuizID', $quiz->personalQuizID)
@@ -994,6 +1048,23 @@ class StudentQuizController extends Controller
                 ];
 
                 return response()->json($response, 200);
+            } catch (QueryException $e) {
+                DB::rollBack();
+
+                Log::error('Quiz submit failed (database)', [
+                    'user_id' => optional(Auth::user())->userID,
+                    'class_quiz_assignment_id' => $classPersonalQuizID,
+                    'sql_state' => $e->errorInfo[0] ?? null,
+                    'driver_code' => $e->errorInfo[1] ?? null,
+                    'message' => $e->getMessage(),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Could not save your quiz submission. Please try again or contact support if this continues.',
+                    'error' => config('app.debug') ? $e->getMessage() : null,
+                    'error_code' => 'QUIZ_SUBMIT_DATABASE',
+                ], 500);
             } catch (\Exception $e) {
                 DB::rollBack();
                 throw $e;
@@ -1002,7 +1073,8 @@ class StudentQuizController extends Controller
             Log::error('Error submitting quiz', [
                 'user_id' => optional(Auth::user())->userID,
                 'class_quiz_assignment_id' => $classPersonalQuizID,
-                'payload' => $request->all(),
+                'payload' => $request->except(['password', 'password_confirmation']),
+                'exception' => $e::class,
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -1011,9 +1083,59 @@ class StudentQuizController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while submitting the quiz.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
+                'message' => 'An unexpected error occurred while submitting the quiz.',
+                'error' => config('app.debug') ? $e->getMessage() : null,
+                'error_code' => 'QUIZ_SUBMIT_FAILED',
             ], 500);
+        }
+    }
+
+    /**
+     * Store per-question rows for analytics. Skips silently if the migration has not been run yet.
+     */
+    private function persistQuizAttemptAnswers(
+        array $correctAnswers,
+        $questions,
+        StudentQuizResult $result,
+        int $studentId,
+        int $classPersonalQuizId,
+        PersonalQuiz $quiz
+    ): void {
+        if (! Schema::hasTable('student_quiz_attempt_answers')) {
+            Log::warning('student_quiz_attempt_answers table missing; per-question analytics skipped. Run: php artisan migrate', [
+                'student_quiz_result_id' => $result->id,
+            ]);
+
+            return;
+        }
+
+        foreach ($correctAnswers as $row) {
+            $pq = $questions->get($row['personalQuizQuestionID']);
+            if (! $pq) {
+                continue;
+            }
+
+            $subjectId = $pq->personalQuizSubjectID ?? $quiz->subjectID;
+
+            StudentQuizAttemptAnswer::create([
+                'student_quiz_result_id' => $result->id,
+                'studentID' => $studentId,
+                'class_quiz_assignment_id' => $classPersonalQuizId,
+                'personal_quiz_question_id' => $pq->personalQuizQuestionID,
+                'selected_personal_quiz_choice_id' => $row['selectedChoiceID'] ?? null,
+                'subject_id' => $subjectId,
+                'bank_question_id' => $pq->questionID,
+                'is_correct' => $row['isCorrect'],
+                'points_possible' => $row['score'],
+                'points_earned' => $row['earnedScore'],
+                'question_snapshot' => [
+                    'questionText' => $row['questionText'],
+                    'selectedChoiceText' => $row['selectedChoiceText'],
+                    'correctChoiceText' => $row['correctChoiceText'],
+                    'selectedChoiceID' => $row['selectedChoiceID'] ?? null,
+                    'correctChoiceID' => $row['correctChoiceID'] ?? null,
+                ],
+            ]);
         }
     }
 }

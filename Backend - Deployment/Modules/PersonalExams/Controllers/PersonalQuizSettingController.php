@@ -4,6 +4,7 @@ namespace Modules\PersonalExams\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -12,6 +13,32 @@ use Modules\PersonalExams\Models\PersonalQuizSetting;
 
 class PersonalQuizSettingController extends Controller
 {
+    /**
+     * Empty strings from JSON forms break nullable|date; normalize before validation.
+     */
+    private function mergeEmptyDateFields(Request $request): void
+    {
+        foreach (['startTime', 'endTime'] as $field) {
+            if ($request->has($field) && $request->input($field) === '') {
+                $request->merge([$field => null]);
+            }
+        }
+    }
+
+    /**
+     * API payload: include personalQuiz for frontends that expect setting.personalQuiz.
+     * (Settings are keyed by class assignment; quiz metadata comes via class_personal_quizzes.)
+     */
+    private function settingResponse(PersonalQuizSetting $setting): array
+    {
+        $setting->loadMissing(['classPersonalQuiz.personalQuiz']);
+
+        $data = $setting->toArray();
+        $data['personalQuiz'] = $setting->classPersonalQuiz?->personalQuiz;
+
+        return $data;
+    }
+
     /**
      * Get configuration for a specific quiz assignment inside a class.
      * Settings are now stored per class quiz (classPersonalQuizID).
@@ -115,6 +142,8 @@ class PersonalQuizSettingController extends Controller
                 ], 404);
             }
 
+            $this->mergeEmptyDateFields($request);
+
             try {
                 $validated = $request->validate([
                     'startTime' => 'nullable|date',
@@ -168,12 +197,10 @@ class PersonalQuizSettingController extends Controller
                 $validated
             );
 
-            $setting->load('personalQuiz');
-
             return response()->json([
                 'success' => true,
                 'message' => 'Quiz settings saved successfully.',
-                'setting' => $setting,
+                'setting' => $this->settingResponse($setting),
             ], 200);
         } catch (\Throwable $e) {
             Log::error('Error saving quiz settings', [
@@ -220,6 +247,8 @@ class PersonalQuizSettingController extends Controller
                     'message' => 'Quiz assignment not found or you do not have permission.',
                 ], 404);
             }
+
+            $this->mergeEmptyDateFields($request);
 
             // Get existing settings or create if doesn't exist (per class quiz)
             $setting = PersonalQuizSetting::firstOrCreate(
@@ -293,8 +322,10 @@ class PersonalQuizSettingController extends Controller
 
             // Validate endTime against startTime (either new or existing)
             if (isset($validated['endTime'])) {
-                $startTime = $validated['startTime'] ?? $setting->startTime;
-                if ($startTime && $validated['endTime'] < $startTime) {
+                $startTime = isset($validated['startTime'])
+                    ? Carbon::parse($validated['startTime'])
+                    : $setting->startTime;
+                if ($startTime && Carbon::parse($validated['endTime'])->lt($startTime)) {
                     return response()->json([
                         'success' => false,
                         'message' => 'End time must be after or equal to start time.',
@@ -303,12 +334,11 @@ class PersonalQuizSettingController extends Controller
             }
 
             $setting->update($validated);
-            $setting->load('personalQuiz');
 
             return response()->json([
                 'success' => true,
                 'message' => 'Quiz settings updated successfully.',
-                'setting' => $setting,
+                'setting' => $this->settingResponse($setting->fresh()),
             ], 200);
         } catch (\Throwable $e) {
             Log::error('Error updating quiz settings', [

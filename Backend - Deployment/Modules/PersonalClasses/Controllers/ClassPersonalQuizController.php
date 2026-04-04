@@ -985,6 +985,8 @@ class ClassPersonalQuizController extends Controller
                     : 'No classes were assigned.',
                 'assigned' => $assigned,
                 'assignedCount' => count($assigned),
+                /** Flat list for clients that expect assignData.classPersonalQuizIDs[0] */
+                'classPersonalQuizIDs' => array_values(array_filter(array_column($assigned, 'classPersonalQuizID'))),
             ];
 
             if (count($skipped) > 0) {
