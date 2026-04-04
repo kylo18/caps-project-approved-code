@@ -62,6 +62,36 @@ Route::get('/auth/facebook/callback', [SocialAuthController::class, 'handleFaceb
 */
 Route::get('/leaderboard', [LeaderboardController::class, 'index']);
 
+// Temporary route to clear cache
+Route::get('/clear-cache', function() {
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    \Illuminate\Support\Facades\Artisan::call('view:clear');
+    if (function_exists('opcache_reset')) {
+        opcache_reset();
+    }
+    return response()->json(['message' => 'Cache cleared successfully']);
+});
+
+// Test route to verify Redis is working
+Route::get('/test-redis', function() {
+    try {
+        \Illuminate\Support\Facades\Redis::set('test', 'Hello Redis from Docker!');
+        $value = \Illuminate\Support\Facades\Redis::get('test');
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Redis is working correctly!',
+            'value' => $value,
+            'driver' => config('cache.default')
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
 /*
 |--------------------------------------------------------------------------
 | Support Routes (Public - FAQs)
@@ -319,6 +349,7 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
     Route::get('/practice-exam/generate/{subjectID}', [PracticeExamController::class, 'generate']);
     Route::post('/practice-exam/submit', [PracticeExamController::class, 'submit']);
     Route::get('/practice-exam/history', [PracticeExamController::class, 'history']);
+    Route::get('/practice-exam/result/{resultID}', [PracticeExamController::class, 'getResultDetail']);
 
     // Enroll under a teacher
     Route::post('/enroll-teacher', [StudentTeacherEnrollmentController::class, 'enroll']);

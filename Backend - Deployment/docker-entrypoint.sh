@@ -23,9 +23,15 @@ if [ ! -f .env ]; then
   cp .env.example .env
 fi
 
-# Sync runtime secrets from Docker env into Laravel's .env file.
+# Sync runtime secrets and config from Docker env into Laravel's .env file.
 upsert_env_var "APP_KEY" "${APP_KEY:-}"
 upsert_env_var "JWT_SECRET" "${JWT_SECRET:-}"
+upsert_env_var "CACHE_DRIVER" "${CACHE_DRIVER:-file}"
+upsert_env_var "SESSION_DRIVER" "${SESSION_DRIVER:-file}"
+upsert_env_var "QUEUE_CONNECTION" "${QUEUE_CONNECTION:-sync}"
+upsert_env_var "REDIS_CLIENT" "${REDIS_CLIENT:-predis}"
+upsert_env_var "REDIS_HOST" "${REDIS_HOST:-127.0.0.1}"
+upsert_env_var "REDIS_PORT" "${REDIS_PORT:-6379}"
 
 if ! grep -q "^APP_KEY=base64:" .env 2>/dev/null; then
   echo "ERROR: APP_KEY is missing." >&2

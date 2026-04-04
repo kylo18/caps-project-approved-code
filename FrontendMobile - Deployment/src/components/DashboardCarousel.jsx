@@ -27,7 +27,7 @@ const DashboardCarousel = () => {
       metric: "to review",
       icon: "bx-file-find",
       iconClass:
-        "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+        "bg-white/20 text-white",
       cta: "View Insights",
     },
     {
@@ -37,7 +37,7 @@ const DashboardCarousel = () => {
       metric: "accuracy",
       icon: "bx-target-lock",
       iconClass:
-        "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+        "bg-white/20 text-white",
       cta: "Open Insights",
     },
     {
@@ -49,7 +49,7 @@ const DashboardCarousel = () => {
         : "keep practicing",
       icon: "bx-trending-down",
       iconClass:
-        "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
+        "bg-white/20 text-white",
       cta: "See Breakdown",
     },
   ];
@@ -94,8 +94,8 @@ const DashboardCarousel = () => {
   };
 
   return (
-    <section className="relative mt-2 overflow-hidden rounded-2xl border border-slate-200/75 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.12),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_24px_44px_rgba(148,163,184,0.16)] dark:border-white/10 dark:bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.08),transparent_32%),linear-gradient(180deg,rgba(15,23,42,0.96)_0%,rgba(2,6,23,0.98)_100%)] dark:shadow-[0_24px_44px_rgba(2,6,23,0.34)]" style={{ marginTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }}>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/60 dark:bg-white/10"></div>
+    <section className="relative mt-5 overflow-hidden rounded-[30px] border border-white/20 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),rgba(255,255,255,0.08))] px-5 py-5 shadow-[0_16px_28px_rgba(254,105,2,0.18)]">
+
       <div
         ref={scrollRef}
         onScroll={handleScroll}
@@ -106,10 +106,10 @@ const DashboardCarousel = () => {
           <article key={slide.id} className="min-w-full shrink-0 snap-start">
             <div className="flex items-start justify-between gap-2 sm:gap-4">
               <div className="min-w-0 text-left">
-                <p className="text-[clamp(0.7rem,2.2vw,0.98rem)] font-semibold tracking-tight text-slate-500 dark:text-slate-400">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-orange-100">
                   {slide.eyebrow}
                 </p>
-                <h3 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:mt-2 sm:text-3xl dark:text-white">
+                <h3 className="mt-1 text-2xl font-bold tracking-tight text-white sm:mt-2 sm:text-3xl">
                   {slide.headline}
                 </h3>
               </div>
@@ -123,7 +123,7 @@ const DashboardCarousel = () => {
             </div>
 
             <div className="mt-3 flex items-end gap-2 text-left sm:mt-6">
-              <span className="text-[clamp(0.72rem,2.3vw,1rem)] font-medium text-slate-500 dark:text-slate-400">
+              <span className="text-sm font-medium text-white/80">
                 {slide.metric}
               </span>
             </div>
@@ -131,7 +131,7 @@ const DashboardCarousel = () => {
             <button
               type="button"
               onClick={() => navigate("/student-insights")}
-              className="mt-4 rounded-full bg-orange-500 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-orange-600"
+              className="mt-4 rounded-full bg-white px-4 py-2 text-[12px] font-semibold text-[#ff7a00] transition hover:bg-orange-50"
             >
               {slide.cta}
             </button>

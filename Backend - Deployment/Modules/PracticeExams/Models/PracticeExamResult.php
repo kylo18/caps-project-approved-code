@@ -30,4 +30,9 @@ class PracticeExamResult extends Model
     {
         return $this->belongsTo(User::class, 'userID', 'userID');
     }
+
+    public function answers()
+    {
+        return $this->hasMany(PracticeExamAnswer::class, 'result_id', 'resultID');
+    }
 }

@@ -16,9 +16,9 @@ const BottomNav = ({ role, onPrintClick, onSubjectClick }) => {
     if (roleId === 1) {
       return [
         { name: "Home", path: "/student-dashboard", icon: "bx-home" },
-        { name: "Insights", path: "/student-insights", icon: "bx-pie-chart-alt" },
+        { name: "Search", path: "/student-search", icon: "bx-search-alt" },
         { name: "Leaderboard", path: "/leaderboard", icon: "bx-trophy" },
-        { name: "AI Chat", path: "/ai-chat", icon: "bx-robot" },
+        { name: "Profile", path: "/student-insights", icon: "bx-user" },
       ];
     }
 
@@ -51,14 +51,14 @@ const BottomNav = ({ role, onPrintClick, onSubjectClick }) => {
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.85rem)",
       }}
     >
-      <div className="pointer-events-auto mx-auto flex max-w-[480px] w-[92%] items-center justify-between rounded-[28px] border border-slate-200/80 bg-white/88 px-3 py-3 shadow-[0_18px_32px_rgba(148,163,184,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-black/88 dark:shadow-[0_20px_34px_rgba(2,6,23,0.4)]">
+      <div className="pointer-events-auto mx-auto flex max-w-[480px] w-[92%] items-center justify-between rounded-[26px] border border-orange-100/80 bg-white px-3 py-3 shadow-[0_18px_32px_rgba(254,105,2,0.16)] backdrop-blur-xl dark:border-white/10 dark:bg-black/88 dark:shadow-[0_20px_34px_rgba(2,6,23,0.4)]">
         {navItems.map((item) => (
           // Conditional Rendering: Check if the item is a Button or a NavLink
           item.isButton ? (
             <button
               key={item.name}
               onClick={item.onClick}
-              className="flex min-w-[3.5rem] flex-1 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl py-1.5 transition-all duration-200 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="flex min-w-[3.5rem] flex-1 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl py-1.5 transition-all duration-200 text-gray-400 hover:text-[var(--color-primary)] dark:text-gray-400 dark:hover:text-gray-200"
             >
               <i className={`bx ${item.icon} text-[1.6rem]`}></i>
               <span className="text-[clamp(0.65rem,2vw,0.74rem)] leading-none font-medium opacity-75">
@@ -71,8 +71,8 @@ const BottomNav = ({ role, onPrintClick, onSubjectClick }) => {
               to={item.path}
               className={({ isActive }) =>
                 `flex min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-1.5 transition-all duration-200 ${isActive
-                  ? "text-[var(--color-primary)]"
-                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  ? "bg-orange-50 text-[var(--color-primary)]"
+                  : "text-gray-400 hover:text-[var(--color-primary)] dark:text-gray-400 dark:hover:text-gray-200"
                 }`
               }
             >
@@ -86,7 +86,7 @@ const BottomNav = ({ role, onPrintClick, onSubjectClick }) => {
                   </span>
                   {/* Small dot below the icon for the active page */}
                   {isActive && (
-                    <span className="mt-1 h-1 w-1 rounded-full bg-[var(--color-primary)]" />
+                    <span className="mt-1 h-1 w-4 rounded-full bg-[var(--color-primary)]" />
                   )}
                 </>
               )}

@@ -13,10 +13,10 @@
  * @returns {boolean} True if running in Capacitor native app
  */
 const isCapacitor = () => {
-  return typeof window !== 'undefined' && 
-         (window.Capacitor !== undefined || 
-          (window.navigator && window.navigator.userAgent && 
-           window.navigator.userAgent.includes('Capacitor')));
+  return typeof window !== 'undefined' &&
+    (window.Capacitor !== undefined ||
+      (window.navigator && window.navigator.userAgent &&
+        window.navigator.userAgent.includes('Capacitor')));
 };
 
 /**
@@ -29,7 +29,7 @@ const isDev = () => {
 };
 
 // Single source of truth for server address
-const DEFAULT_SERVER_IP = '100.112.226.110';
+const DEFAULT_SERVER_IP = 'localhost';
 const SERVER_IP = import.meta.env.VITE_SERVER_IP || DEFAULT_SERVER_IP;
 const API_PORT = import.meta.env.VITE_API_PORT || '8000';
 const AI_PORT = import.meta.env.VITE_AI_PORT || '8001';
@@ -44,7 +44,6 @@ const TAILSCALE_AI_SERVER = `http://${SERVER_IP}:${AI_PORT}`;
  * @returns {string} The default server URL
  */
 const getDefaultServer = () => {
-  // Always use Tailscale server for all builds
   return TAILSCALE_SERVER;
 };
 
@@ -74,7 +73,7 @@ export const getApiUrl = () => {
   const savedUrl = getSavedServer();
   const envUrl = import.meta.env.VITE_API_SERVER;
   const defaultUrl = getDefaultServer();
-  
+
   return savedUrl || envUrl || defaultUrl;
 };
 

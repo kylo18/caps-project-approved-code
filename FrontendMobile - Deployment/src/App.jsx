@@ -8,6 +8,7 @@ import TutorialLayout from "./components/TutorialLayout";
 import Credits from "./pages/Credits";
 
 import StudentDashboard from "./pages/StudentDashboard";
+import StudentSearch from "./pages/StudentSearch";
 import StudentInsights from "./pages/StudentInsights";
 import FacultyDashboard from "./pages/FacultyDashboard";
 import ProgramChairDashboard from "./pages/ProgramChairDashboard";
@@ -96,6 +97,13 @@ function App() {
         >
           <Route index element={<StudentDashboard />} />
           <Route path="dashboard" element={<StudentDashboard />} />
+        </Route>
+
+        <Route
+          path="/student-search"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<StudentSearch />} />
         </Route>
 
         <Route

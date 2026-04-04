@@ -875,4 +875,117 @@ class PracticeExamController extends Controller
             'history' => $history,
         ]);
     }
+
+    /**
+     * Get detailed result by ID with questions and answers
+     */
+    public function getResultDetail($resultID)
+    {
+        $user = Auth::user();
+
+        if ($user->roleID !== 1) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $result = PracticeExamResult::with(['subject', 'answers.question.choices', 'answers.selectedChoice'])
+            ->where('resultID', $resultID)
+            ->where('userID', $user->userID)
+            ->first();
+
+        if (!$result) {
+            return response()->json(['message' => 'Result not found.'], 404);
+        }
+
+        // Format the result data
+        $formattedResult = [
+            'resultID' => $result->resultID,
+            'subjectID' => $result->subjectID,
+            'subjectName' => $result->subject->subjectName ?? 'Unknown Subject',
+            'totalPoints' => $result->totalPoints,
+            'earnedPoints' => $result->earnedPoints,
+            'percentage' => $result->percentage,
+            'created_at' => $result->created_at,
+            'score' => [
+                'earnedPoints' => $result->earnedPoints,
+                'totalPoints' => $result->totalPoints,
+                'percentage' => $result->percentage,
+            ],
+            'results' => $result->answers->map(function ($answer) {
+                // Decrypt question text
+                $questionText = $answer->question->questionText;
+                try {
+                    $questionText = Crypt::decryptString($answer->question->questionText);
+                } catch (\Exception $e) {
+                    // If decryption fails, use as-is (might be plain text)
+                }
+
+                // Decrypt question image if exists
+                $questionImage = null;
+                if ($answer->question->image) {
+                    if (filter_var($answer->question->image, FILTER_VALIDATE_URL)) {
+                        $questionImage = $answer->question->image;
+                    } elseif (Storage::disk('public')->exists($answer->question->image)) {
+                        $questionImage = Storage::disk('public')->url($answer->question->image);
+                    }
+                }
+
+                return [
+                    'questionID' => $answer->question->questionID,
+                    'questionText' => $questionText,
+                    'questionImage' => $questionImage,
+                    'isCorrect' => $answer->is_correct,
+                    'points' => $answer->question->points,
+                    'choices' => $answer->question->choices->map(function ($choice) {
+                        // Decrypt choice text
+                        $choiceText = $choice->choiceText;
+                        if ($choice->choiceText) {
+                            try {
+                                $choiceText = Crypt::decryptString($choice->choiceText);
+                            } catch (\Exception $e) {
+                                // If decryption fails, use as-is
+                            }
+                        }
+
+                        // Handle choice image
+                        $choiceImage = null;
+                        if ($choice->image) {
+                            if (filter_var($choice->image, FILTER_VALIDATE_URL)) {
+                                $choiceImage = $choice->image;
+                            } elseif (Storage::disk('public')->exists($choice->image)) {
+                                $choiceImage = Storage::disk('public')->url($choice->image);
+                            }
+                        }
+
+                        return [
+                            'choiceID' => $choice->choiceID,
+                            'choiceText' => $choiceText,
+                            'choiceImage' => $choiceImage,
+                            'isCorrect' => $choice->isCorrect,
+                        ];
+                    }),
+                    'selectedChoiceID' => $answer->selected_choice_id,
+                    'selectedChoice' => $answer->selectedChoice ? (function($selectedChoice) {
+                        $selectedChoiceText = $selectedChoice->choiceText;
+                        if ($selectedChoice->choiceText) {
+                            try {
+                                $selectedChoiceText = Crypt::decryptString($selectedChoice->choiceText);
+                            } catch (\Exception $e) {
+                                // If decryption fails, use as-is
+                            }
+                        }
+                        return [
+                            'choiceID' => $selectedChoice->choiceID,
+                            'choiceText' => $selectedChoiceText,
+                            'isCorrect' => $selectedChoice->isCorrect,
+                        ];
+                    })($answer->selectedChoice) : null,
+                ];
+            }),
+        ];
+
+        return response()->json([
+            'message' => 'Result retrieved successfully.',
+            'data' => $formattedResult,
+        ]);
+    }
 }
