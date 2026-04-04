@@ -856,36 +856,53 @@ const StudentQuiz = () => {
   const handleSubmitAnswers = async () => {
     setIsSubmitting(true);
     try {
-      const allAnswers = quizData.questions.map((q) => ({
-        personalQuizQuestionID: q.personalQuizQuestionID,
-        selectedChoiceID: answers[q.personalQuizQuestionID]
-          ? parseInt(answers[q.personalQuizQuestionID])
-          : null,
-      }));
+      // Build the answers array – ensure selectedChoiceID is always an integer
+      // or null (never NaN or undefined which would fail backend validation).
+      const allAnswers = quizData.questions.map((q) => {
+        const raw = answers[q.personalQuizQuestionID];
+        const parsed =
+          raw !== undefined && raw !== null ? parseInt(raw, 10) : null;
+        return {
+          personalQuizQuestionID: q.personalQuizQuestionID,
+          selectedChoiceID: parsed !== null && !isNaN(parsed) ? parsed : null,
+        };
+      });
 
+      // Compute time taken; fall back to 0 if startTime is invalid.
       const startTime = quizData.startedAt
         ? new Date(quizData.startedAt)
         : new Date(quizStartTime);
-      const timeTakenSeconds = Math.floor((new Date() - startTime) / 1000);
+      const timeTakenSeconds = isNaN(startTime.getTime())
+        ? 0
+        : Math.max(0, Math.floor((new Date() - startTime) / 1000));
+
+      // Convert started_at to an ISO string so Laravel's date validation passes.
+      const startedAtIso =
+        startTime && !isNaN(startTime.getTime())
+          ? startTime.toISOString()
+          : null;
+
+      // attempt_number must be a positive integer (backend validation: min:1).
+      const attemptNumber = parseInt(quizData.attemptNumber, 10);
+      const safeAttemptNumber =
+        !isNaN(attemptNumber) && attemptNumber >= 1 ? attemptNumber : 1;
+
       const token = sessionStorage.getItem("token");
 
-      const response = await fetch(
-        `${apiUrl}/quizzes/${quizID}/submit`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            attempt_number: quizData.attemptNumber,
-            answers: allAnswers,
-            started_at: quizData.startedAt || quizStartTime,
-            time_taken_seconds: timeTakenSeconds,
-          }),
+      const response = await fetch(`${apiUrl}/quizzes/${quizID}/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        credentials: "include",
+        body: JSON.stringify({
+          attempt_number: safeAttemptNumber,
+          answers: allAnswers,
+          started_at: startedAtIso,
+          time_taken_seconds: timeTakenSeconds,
+        }),
+      });
 
       const data = await response.json();
 
@@ -915,13 +932,13 @@ const StudentQuiz = () => {
       // handle those gracefully.
       navigate(`/quiz-result/${quizID}`, {
         state: {
-          result: data.result,       // { id, attempt_number, score, total_score, percentage, isPassed,
-                                     //   time_taken_seconds, time_taken_minutes, time_taken_formatted,
-                                     //   started_at, submitted_at, showScoreAfterQuiz }
+          result: data.result, // { id, attempt_number, score, total_score, percentage, isPassed,
+          //   time_taken_seconds, time_taken_minutes, time_taken_formatted,
+          //   started_at, submitted_at, showScoreAfterQuiz }
           questions: data.questions, // per-question breakdown (respects showCorrectQuestion /
-                                     //   showCorrectAnswers settings)
-          quiz: data.quiz,           // { personalQuizID, title, description }
-          settings: data.settings,   // { showScoreAfterQuiz, showCorrectQuestion, showCorrectAnswers }
+          //   showCorrectAnswers settings)
+          quiz: data.quiz, // { personalQuizID, title, description }
+          settings: data.settings, // { showScoreAfterQuiz, showCorrectQuestion, showCorrectAnswers }
           classID,
           classPersonalQuizID: quizID,
         },

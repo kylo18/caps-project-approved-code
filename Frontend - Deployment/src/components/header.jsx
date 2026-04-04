@@ -508,8 +508,7 @@ const AdminHeader = ({ title, className = "" }) => {
 
                 <button
                   onClick={() => {
-                    toggleDarkMode();
-                    setDropdownOpen(false);
+                    alert("Dark Mode is coming soon");
                   }}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >

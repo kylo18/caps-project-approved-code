@@ -170,7 +170,7 @@ const QuizCard = ({
               className="border-color mb-3 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-[12px] text-gray-700 transition hover:bg-gray-100"
             >
               <i className="bx bx-cog text-[15px]"></i>
-              <span>Settings</span>
+              <span>Assign</span>
             </button>
           </div>
           <div className="flex flex-row flex-wrap items-center gap-2">
@@ -482,7 +482,7 @@ const QuizCard = ({
               className="flex cursor-pointer items-center gap-2 rounded-xl border border-b-4 border-orange-300 bg-orange-100 px-4 py-2 text-orange-600 transition-all duration-100 hover:bg-orange-200 hover:text-orange-500 active:translate-y-[2px] active:border-b-2"
             >
               <i className="bx bxs-cog text-xl"></i>
-              <span className="outfit-500 text-[14px]">Settings</span>
+              <span className="outfit-500 text-[14px]">Assign</span>
             </button>
             <button
               onClick={() =>

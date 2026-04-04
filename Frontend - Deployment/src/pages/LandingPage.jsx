@@ -12,6 +12,8 @@ import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import ResetPasswordModal from "../components/ResetPasswordModal";
+import AppVersion from "../components/appVersion";
+
 import {
   clearDeferredInstallPrompt,
   getDeferredInstallPrompt,
@@ -121,7 +123,7 @@ function LandingPage() {
         <ul className="outfit-500 absolute top-4 right-4 z-50 hidden items-center gap-4 text-[14px] text-gray-700 md:top-5 md:right-8 md:flex md:gap-6 md:text-[16px] 2xl:right-16">
           <li>
             <a
-              onClick={handleInstallApp}
+              onClick={() => alert("Application is coming soon")}
               className="cursor-pointer hover:text-gray-900"
             >
               Download
@@ -188,7 +190,7 @@ function LandingPage() {
             <nav className="flex flex-col gap-6">
               <a
                 onClick={() => {
-                  handleInstallApp();
+                  alert("Application is coming soon");
                   setIsSidebarOpen(false);
                 }}
                 className="cusror-pointer text-[14px] font-medium text-gray-700 hover:text-gray-900"
@@ -570,6 +572,9 @@ function LandingPage() {
               <div className="flex items-center gap-2">
                 <img src={collegeLogo} alt="CAPS logo" className="h-6 w-6" />
                 <span className="outfit-700 text-base text-gray-900">CAPS</span>
+                <span className="text-[12px] text-gray-500">
+                  <AppVersion />{" "}
+                </span>
               </div>
               <p className="outfit-400 max-w-sm text-xs md:text-sm">
                 Comprehensive Assessment and Preparation System designed to help
