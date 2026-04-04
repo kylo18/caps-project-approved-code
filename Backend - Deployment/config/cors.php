@@ -6,17 +6,15 @@ return [
 
 
     'allowed_origins' => [
+        'http://' . env('VITE_SERVER_IP', 'localhost') . ':8000',
+        'http://' . env('VITE_SERVER_IP', 'localhost') . ':8005',
+        'http://' . env('VITE_SERVER_IP', 'localhost') . ':5173',
         'http://localhost:5173',
         'http://127.0.0.1:5173',
         'http://localhost:80',
         'http://localhost',
         'http://127.0.0.1:80',
         'http://127.0.0.1',
-        'http://192.168.254.164.nip.io:8000',
-        'http://192.168.254.164.nip.io:5173',
-        'http://192.168.254.164:8000',
-        'http://192.168.254.164:5173',
-        'http://192.168.254.166:5173',
         env('FRONTEND_URL'),
     ],
 
