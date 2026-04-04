@@ -283,6 +283,20 @@ class LocalAiService {
         directory: Directory.Data,
       });
 
+      const finalStat = await Filesystem.stat({
+        path: model.filename,
+        directory: Directory.Data,
+      });
+      const finalSize = finalStat.size || 0;
+      const minExpected = model.sizeBytes * 0.9;
+      if (model.sizeBytes > 0 && finalSize < minExpected) {
+        throw new Error(
+          `Downloaded file is too small (${finalSize} bytes vs expected ${model.sizeBytes} bytes). ` +
+          `Download may be corrupted.`
+        );
+      }
+      console.log(`Model downloaded and verified: ${finalSize} bytes`);
+
       this.abortControllers.delete(abortKey);
       return true;
     } catch (error) {
@@ -314,8 +328,19 @@ class LocalAiService {
         directory: Directory.Data,
       });
 
-      // Pass the absolute file path to the JNI bridge
-      const modelPath = uri.replace("file://", "");
+      console.log(`Filesystem URI for ${model.filename}: ${uri}`);
+
+      let modelPath;
+      if (uri.startsWith("content://")) {
+        modelPath = uri;
+        console.log("Content URI detected, passing to native resolver");
+      } else if (uri.startsWith("file://")) {
+        modelPath = uri.replace("file://", "");
+      } else {
+        modelPath = uri;
+      }
+
+      console.log(`Loading model from path: ${modelPath}`);
 
       const result = await LlamaCpp.loadModel({
         modelPath,
