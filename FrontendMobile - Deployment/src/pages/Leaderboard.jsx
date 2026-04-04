@@ -180,9 +180,6 @@ const Leaderboard = () => {
           </button>
           <div>
             <h1 className="text-[28px] font-bold">Leaderboard</h1>
-            <p className="text-sm text-orange-100">
-              Rankings stay connected to your live backend data.
-            </p>
           </div>
         </div>
 
