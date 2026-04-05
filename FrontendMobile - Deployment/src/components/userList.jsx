@@ -323,12 +323,7 @@ const UserList = () => {
 
       setUsers(
         users.map((user) =>
-          user.userID === userID ? { ...user, status: "registered" } : user,
-        ),
-      );
-      setUsers(
-        users.map((user) =>
-          user.userID === userID ? { ...user, isActve: true } : user,
+          user.userID === userID ? { ...user, status: "registered", isActive: true } : user,
         ),
       );
       fetchUsers();

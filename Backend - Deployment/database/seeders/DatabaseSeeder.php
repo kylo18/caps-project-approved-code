@@ -24,6 +24,12 @@ require_once base_path('Modules/Users/Database/Seeders/CurriculumSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/RemarksSeeder.php');
 require_once base_path('Modules/PracticeExams/Database/Seeders/LeaderboardDummyDataSeeder.php');
 require_once base_path('database/seeders/FeatureTablesSeeder.php');
+require_once base_path('Modules/PersonalExams/Database/Seeders/QuizTypeSeeder.php');
+require_once base_path('Modules/Semester/Database/Seeders/SemesterSeeder.php');
+require_once base_path('Modules/Achievements/Database/Seeders/AchievementSeeder.php');
+require_once base_path('Modules/Analytics/Database/Seeders/AnalyticsSeeder.php');
+require_once base_path('Modules/Support/Database/Seeders/SupportSeeder.php');
+require_once base_path('Modules/Notifications/Database/Seeders/NotificationSeeder.php');
 
 
 class DatabaseSeeder extends Seeder
@@ -61,7 +67,19 @@ class DatabaseSeeder extends Seeder
             // 6. Practice exams (needs users and subjects)
             \Modules\PracticeExams\Database\Seeders\LeaderboardDummyDataSeeder::class,
             
-            // 7. Feature tables from database/migrations
+            // 7. Personal Exams (Quiz Types)
+            \Modules\PersonalExams\Database\Seeders\QuizTypeSeeder::class,
+            
+            // 8. Semester
+            \Modules\Semester\Database\Seeders\SemesterSeeder::class,
+            
+            // 9. New modules
+            \Modules\Achievements\Database\Seeders\AchievementSeeder::class,
+            \Modules\Analytics\Database\Seeders\AnalyticsSeeder::class,
+            \Modules\Support\Database\Seeders\SupportSeeder::class,
+            \Modules\Notifications\Database\Seeders\NotificationSeeder::class,
+            
+            // 10. Feature tables from database/migrations
             \Database\Seeders\FeatureTablesSeeder::class,
         ];
 

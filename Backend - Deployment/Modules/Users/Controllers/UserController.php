@@ -685,6 +685,7 @@ class UserController extends Controller
             }
 
             $user->update([
+                'status_id' => $statusIds['registered'],
                 'isActive' => true
             ]);
 

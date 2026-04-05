@@ -34,6 +34,10 @@ class AppServiceProvider extends ServiceProvider
             base_path('Modules/PersonalExams/Database/Migrations'),
             base_path('Modules/PersonalClasses/Database/Migrations'),
             base_path('Modules/Leaderboard/Database/Migrations'),
+            base_path('Modules/Analytics/Database/Migrations'),
+            base_path('Modules/Achievements/Database/Migrations'),
+            base_path('Modules/Support/Database/Migrations'),
+            base_path('Modules/Notifications/Database/Migrations'),
         ]); 
 
 
