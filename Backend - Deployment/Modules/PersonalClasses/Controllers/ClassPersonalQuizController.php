@@ -80,6 +80,11 @@ class ClassPersonalQuizController extends Controller
                     $durationMinutes = (int) $setting->quizTimer;
                 }
 
+                $maxAttempts = null;
+                if ($setting && $setting->quizAttempts) {
+                    $maxAttempts = (int) $setting->quizAttempts;
+                }
+
                 $remainingAttempts = null;
                 if ($user && $user->roleID == 1 && $setting && $setting->quizAttempts) {
                     $attemptsUsed = StudentQuizResult::where('class_quiz_assignment_id', $classPersonalQuiz->classPersonalQuizID)
@@ -129,6 +134,7 @@ class ClassPersonalQuizController extends Controller
                     'description' => $quiz->description,
                     'studentsAnswered' => $studentsAnswered,
                     'durationMinutes' => $durationMinutes,
+                    'maxAttempts' => $maxAttempts,
                     'remainingAttempts' => $remainingAttempts,
                     'startDate' => $classPersonalQuiz->startDate ? $classPersonalQuiz->startDate->toDateTimeString() : null,
                     'deadlineDate' => $classPersonalQuiz->deadlineDate ? $classPersonalQuiz->deadlineDate->toDateTimeString() : null,
@@ -491,25 +497,28 @@ class ClassPersonalQuizController extends Controller
                     ->first();
 
                 // Determine quiz availability based on settings and class assignment dates
+                // Class assignment dates are the source of truth when present.
                 $now = now();
                 $isAvailable = true;
                 $availabilityMessage = null;
+                $effectiveStartDate = $classPersonalQuiz->startDate ?: ($setting ? $setting->startTime : null);
+                $effectiveEndDate = $classPersonalQuiz->deadlineDate ?: ($setting ? $setting->endTime : null);
 
-                // Check class-level dates (startDate and deadlineDate from ClassPersonalQuiz)
-                if ($classPersonalQuiz->startDate && $now < $classPersonalQuiz->startDate) {
+                // Check effective dates
+                if ($effectiveStartDate && $now < $effectiveStartDate) {
                     $isAvailable = false;
-                    $availabilityMessage = 'Quiz is not yet available. It will be available on ' . $classPersonalQuiz->startDate->format('M d, Y H:i');
-                } elseif ($classPersonalQuiz->deadlineDate && $now > $classPersonalQuiz->deadlineDate) {
+                    $availabilityMessage = 'Quiz is not yet available. It will be available on ' . $effectiveStartDate->format('M d, Y H:i');
+                } elseif ($effectiveEndDate && $now > $effectiveEndDate) {
                     $isAvailable = false;
                     $availabilityMessage = 'Quiz deadline has passed.';
                 }
 
-                // Check quiz-level settings (startTime and endTime from PersonalQuizSetting)
+                // Fallback to setting dates only when class dates are not set
                 if ($setting) {
-                    if ($setting->startTime && $now < $setting->startTime) {
+                    if (!$classPersonalQuiz->startDate && $setting->startTime && $now < $setting->startTime) {
                         $isAvailable = false;
                         $availabilityMessage = 'Quiz is not yet available. It will be available on ' . $setting->startTime->format('M d, Y H:i');
-                    } elseif ($setting->endTime && $now > $setting->endTime) {
+                    } elseif (!$classPersonalQuiz->deadlineDate && $setting->endTime && $now > $setting->endTime) {
                         if (!$setting->allowLateSubmission) {
                             $isAvailable = false;
                             $availabilityMessage = 'Quiz deadline has passed.';
@@ -519,17 +528,19 @@ class ClassPersonalQuizController extends Controller
 
                 // Check attempt limit
                 $canAttempt = true;
+                $maxAttempts = $setting && $setting->quizAttempts ? (int) $setting->quizAttempts : null;
+                $remainingAttempts = null;
                 if ($setting && $setting->quizAttempts) {
                     $attemptCount = ClassQuizAttempt::where('classID', $classID)
                         ->where('personalQuizID', $quiz->personalQuizID)
                         ->where('studentID', $user->userID)
                         ->count();
 
+                    $remainingAttempts = max(0, (int) $setting->quizAttempts - (int) $attemptCount);
+
                     if ($attemptCount >= $setting->quizAttempts) {
                         $canAttempt = false;
-                        if (!$isAvailable) {
-                            $availabilityMessage = 'You have reached the maximum number of attempts for this quiz.';
-                        }
+                        $availabilityMessage = 'You have reached the maximum number of attempts for this quiz.';
                     }
                 }
 
@@ -564,6 +575,8 @@ class ClassPersonalQuizController extends Controller
                         'startedAt' => $studentAttempt->startedAt,
                         'completedAt' => $studentAttempt->completedAt,
                     ] : null,
+                    'maxAttempts' => $maxAttempts,
+                    'remainingAttempts' => $remainingAttempts,
                     'isAvailable' => $isAvailable && $canAttempt,
                     'canAttempt' => $canAttempt,
                     'availabilityMessage' => $availabilityMessage,
