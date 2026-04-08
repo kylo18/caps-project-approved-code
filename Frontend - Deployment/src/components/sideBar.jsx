@@ -569,8 +569,8 @@ const Sidebar = ({
   let menuItems = [];
 
   if (parsedRoleId === 1) {
-    // Student menu items: Home, Sessions, Classes only
-    menuItems = [...baseMenuItems, sessionsItem, classItem];
+    // Student menu items: Home, Classes, Sessions
+    menuItems = [...baseMenuItems, classItem, sessionsItem];
   } else {
     // if NOT student
     menuItems = [...baseMenuItems];
@@ -639,29 +639,31 @@ const Sidebar = ({
             >
               {parsedRoleId === 1 ? (
                 <>
-                  {/* Classes (student) */}
+                  {/* Sessions (student) — left */}
                   <div className="flex h-16 flex-col items-center justify-center">
                     <Link
-                      to="/class"
+                      to="/sessions"
                       onClick={handleMenuClick}
                       className={`flex flex-col items-center transition-colors ${
-                        isActive("/class")
+                        isActive("/sessions")
                           ? "text-orange-600"
                           : "text-gray-700 hover:text-gray-800"
                       }`}
                     >
                       <span className="mb-1 flex h-6 w-6 items-center justify-center">
                         <img
-                          src={isActive("/class") ? ClassIconH : ClassIcon}
-                          alt="Classes"
+                          src={
+                            isActive("/sessions") ? SessionsIconH : SessionsIcon
+                          }
+                          alt="Sessions"
                           className="h-6 w-6 object-contain"
                         />
                       </span>
-                      <span className="outfit-500 text-xs">Classes</span>
+                      <span className="outfit-500 text-xs">Sessions</span>
                     </Link>
                   </div>
 
-                  {/* Home (student, orange circle) */}
+                  {/* Home (student, orange circle) — center */}
                   {homeItem && (
                     <div className="flex h-16 flex-col items-center justify-center">
                       <Link
@@ -690,27 +692,26 @@ const Sidebar = ({
                       </Link>
                     </div>
                   )}
-                  {/* Sessions (student) */}
+
+                  {/* Classes (student) — right */}
                   <div className="flex h-16 flex-col items-center justify-center">
                     <Link
-                      to="/sessions"
+                      to="/class"
                       onClick={handleMenuClick}
                       className={`flex flex-col items-center transition-colors ${
-                        isActive("/sessions")
+                        isActive("/class")
                           ? "text-orange-600"
                           : "text-gray-700 hover:text-gray-800"
                       }`}
                     >
                       <span className="mb-1 flex h-6 w-6 items-center justify-center">
                         <img
-                          src={
-                            isActive("/sessions") ? SessionsIconH : SessionsIcon
-                          }
-                          alt="Sessions"
+                          src={isActive("/class") ? ClassIconH : ClassIcon}
+                          alt="Classes"
                           className="h-6 w-6 object-contain"
                         />
                       </span>
-                      <span className="outfit-500 text-xs">Sessions</span>
+                      <span className="outfit-500 text-xs">Classes</span>
                     </Link>
                   </div>
                 </>
@@ -1010,8 +1011,7 @@ const Sidebar = ({
 
               <button
                 onClick={() => {
-                  setUserDropdownOpen(false);
-                  setIsDarkMode((prev) => !prev);
+                  alert("Dark Mode is coming soon");
                 }}
                 className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
               >
@@ -1022,9 +1022,7 @@ const Sidebar = ({
               </button>
 
               <button
-                onClick={() => {
-                  alert("Dark Mode is coming soon");
-                }}
+                onClick={() => setShowLogoutModal(true)}
                 className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
               >
                 <i className="bx bx-arrow-out-right-square-half mr-2 text-[16px]"></i>{" "}

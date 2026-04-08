@@ -235,6 +235,7 @@ const StudentClasses = () => {
             Authorization: `Bearer ${token}`,
           },
           credentials: "include",
+          cache: "no-store",
         },
       );
 
@@ -274,6 +275,7 @@ const StudentClasses = () => {
       const quizzesWithState = await Promise.all(
         data.quizzes.map(async (quiz) => {
           let buttonState = "loading";
+          // Start with remainingAttempts from the list fetch (correctly computed by backend)
           let computedRemainingAttempts = quiz.remainingAttempts;
           try {
             const res = await fetch(
@@ -296,24 +298,26 @@ const StudentClasses = () => {
                   (d) => d.type === "remaining_attempts" && d.value != null,
                 );
 
+                // Prefer /info details for max; fall back to maxAttempts from the list fetch
+                // 0 means unlimited (no cap)
                 const max =
-                  limitDetail && typeof limitDetail.value === "number"
-                    ? limitDetail.value
-                    : 0;
+                  limitDetail && limitDetail.value != null
+                    ? Number(limitDetail.value)
+                    : quiz.maxAttempts != null
+                      ? quiz.maxAttempts
+                      : 0;
+
                 const used = a?.attemptCount || 0;
 
-                if (
-                  remainingDetail &&
-                  typeof remainingDetail.value === "number"
-                ) {
-                  computedRemainingAttempts = remainingDetail.value;
+                if (remainingDetail && remainingDetail.value != null) {
+                  // /info explicitly told us remaining attempts
+                  computedRemainingAttempts = Number(remainingDetail.value);
                 } else if (max > 0) {
-                  // If we know the max but no remaining detail, derive remaining from used
+                  // Derive from max and used
                   computedRemainingAttempts = Math.max(0, max - used);
-                } else {
-                  // Unlimited attempts
-                  computedRemainingAttempts = null;
                 }
+                // else: no limit info from /info — keep the value from the list fetch
+                // (quiz.remainingAttempts is already correctly 0 when exhausted)
 
                 const inProgress =
                   quiz.studentAttempt && !quiz.studentAttempt.isCompleted;
@@ -325,7 +329,14 @@ const StudentClasses = () => {
                   if (inProgress) {
                     buttonState = "continue";
                   } else if (used > 0) {
-                    buttonState = max === 0 || used < max ? "retake" : "done";
+                    // Primary check: remaining === 0 means all attempts exhausted
+                    if (computedRemainingAttempts === 0) {
+                      buttonState = "done";
+                    } else if (max === 0 || used < max) {
+                      buttonState = "retake";
+                    } else {
+                      buttonState = "done";
+                    }
                   } else {
                     buttonState =
                       max === 0 || used < max ? "start" : "unavailable";
@@ -425,7 +436,36 @@ const StudentClasses = () => {
         setClassInfo(data.class);
       }
 
-      setQuizHistory(data.history);
+      // Enrich each history item with all attempts from the /info endpoint
+      const token2 = sessionStorage.getItem("token");
+      const enriched = await Promise.all(
+        data.history.map(async (item) => {
+          try {
+            const res = await fetch(
+              `${apiUrl}/quizzes/${item.classPersonalQuizID}/info`,
+              { headers: { Authorization: `Bearer ${token2}` } },
+            );
+            if (res.ok) {
+              const infoData = await res.json();
+              if (
+                infoData.success &&
+                infoData.quizInfo?.attempts?.previousAttempts
+              ) {
+                // Sort desc: latest attempt number first
+                const sorted = [
+                  ...infoData.quizInfo.attempts.previousAttempts,
+                ].sort((a, b) => b.attempt_number - a.attempt_number);
+                return { ...item, allAttempts: sorted };
+              }
+            }
+          } catch {
+            // ignore per-quiz fetch errors
+          }
+          return { ...item, allAttempts: [] };
+        }),
+      );
+
+      setQuizHistory(enriched);
     } catch (err) {
       setError(err.message || "Failed to load quiz history. Please try again.");
       console.error("Error loading quiz history for student:", err);
@@ -442,6 +482,21 @@ const StudentClasses = () => {
     fetchAssignedQuizzes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classID, apiUrl]);
+
+  // Re-fetch assigned quizzes when the student returns to the tab so that
+  // any teacher edits (e.g. updated dates) are reflected immediately.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && activeTab === "assigned") {
+        fetchAssignedQuizzes();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   useEffect(() => {
     if (activeTab === "history") {
@@ -596,12 +651,15 @@ const StudentClasses = () => {
                 {/* Cards */}
                 <div className="flex flex-col gap-4">
                   {assignedQuizzes.map((quiz) => {
-                    const start = formatDate(quiz.startDate);
+                    // Prefer class-level dates (set by teacher), fall back to quiz settings dates
+                    const displayStart = quiz.startDate ?? quiz.settings?.startTime;
+                    const displayEnd = quiz.deadlineDate ?? quiz.settings?.endTime;
+                    const start = formatDate(displayStart);
                     let isDeadlineNear = false;
 
                     const deadline = (() => {
-                      if (!quiz.deadlineDate) return "Not set";
-                      const d = new Date(quiz.deadlineDate);
+                      if (!displayEnd) return "Not set";
+                      const d = new Date(displayEnd);
                       const msRemaining = d - new Date();
                       // Check if deadline is within next 12 hours
                       if (
@@ -675,10 +733,10 @@ const StudentClasses = () => {
                                   <i className="bx bx-calendar text-[14px] text-[#1a1f36]/60" />
                                   <span>
                                     {(() => {
-                                      if (!quiz.startDate || !quiz.deadlineDate)
+                                      if (!displayStart || !displayEnd)
                                         return "No dates set";
-                                      const sDate = new Date(quiz.startDate);
-                                      const dDate = new Date(quiz.deadlineDate);
+                                      const sDate = new Date(displayStart);
+                                      const dDate = new Date(displayEnd);
                                       const sameMonthAndYear =
                                         sDate.getMonth() === dDate.getMonth() &&
                                         sDate.getFullYear() ===
@@ -757,95 +815,90 @@ const StudentClasses = () => {
                   </div>
                 ) : (
                   <>
-                    {/* Unified Card View for History */}
-                    <div className="flex flex-col gap-4 px-4 md:px-0">
-                      {quizHistory.map((item) => {
-                        const highest = item.highestAttempt;
-                        const pct =
-                          typeof highest?.percentage === "number"
-                            ? highest.percentage.toFixed(1)
-                            : parseFloat(highest?.percentage || 0).toFixed(1);
+                    {/* Flat attempt cards — latest on top */}
+                    <div className="flex flex-col gap-3 px-4 md:px-0">
+                      {quizHistory
+                        .flatMap((item) =>
+                          (item.allAttempts || []).map((attempt) => ({
+                            ...attempt,
+                            quizTitle: item.quiz?.title || "Untitled Quiz",
+                            classPersonalQuizID: item.classPersonalQuizID,
+                          })),
+                        )
+                        .sort((a, b) => {
+                          // Sort by submitted_at descending (latest first)
+                          const aTime = a.submitted_at
+                            ? new Date(a.submitted_at)
+                            : 0;
+                          const bTime = b.submitted_at
+                            ? new Date(b.submitted_at)
+                            : 0;
+                          return bTime - aTime;
+                        })
+                        .map((attempt, idx) => {
+                          const pct = parseFloat(attempt.percentage || 0);
+                          const badgeClass =
+                            pct >= 90
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : pct >= 75
+                                ? "bg-sky-50 text-sky-700 border-sky-200"
+                                : pct >= 60
+                                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                                  : "bg-gray-50 text-gray-700 border-gray-200";
 
-                        const rawPercentage =
-                          typeof highest?.percentage === "number"
-                            ? highest.percentage
-                            : parseFloat(highest?.percentage || 0);
-
-                        const percentageBadgeClasses =
-                          rawPercentage >= 90
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : rawPercentage >= 75
-                              ? "bg-sky-50 text-sky-700 border-sky-200"
-                              : rawPercentage >= 60
-                                ? "bg-amber-50 text-amber-700 border-amber-200"
-                                : "bg-gray-50 text-gray-700 border-gray-200";
-
-                        return (
-                          <div
-                            key={item.classPersonalQuizID}
-                            className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white px-4 py-4 transition-all md:flex-row md:items-center md:justify-between md:py-3"
-                          >
-                            <div className="flex items-start gap-3 md:items-center md:gap-4">
-                              {/* Icon */}
-                              <div className="relative mt-0.5 flex h-[40px] w-[40px] flex-shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500 md:mt-0 md:h-[45px] md:w-[45px]">
-                                <i className="bx bx-history text-[20px] md:text-[24px]" />
-                              </div>
-
-                              {/* Info */}
-                              <div className="flex flex-col">
-                                <h3 className="outfit-700 text-[14px] font-bold text-[#1a1f36]">
-                                  {item.quiz?.title || "Untitled Quiz"}
-                                </h3>
-                                <div className="outfit-500 mt-1.5 flex flex-col gap-1.5 text-[12px] md:mt-1 md:flex-row md:flex-wrap md:items-center md:gap-x-4 md:gap-y-1">
-                                  {/* Attempts */}
-                                  <div className="flex items-center gap-1.5 text-gray-500">
-                                    <i className="bx bx-undo text-[14px] text-[#1a1f36]/60" />
+                          return (
+                            <div
+                              key={`${attempt.classPersonalQuizID}-${attempt.attempt_number}`}
+                              className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 md:flex-row md:items-center md:justify-between md:gap-4"
+                            >
+                              {/* Left: quiz name + attempt info */}
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+                                  <i className="bx bx-history text-[20px]" />
+                                </div>
+                                <div className="flex flex-col">
+                                  <h3 className="outfit-700 text-[14px] leading-tight font-bold text-[#1a1f36]">
+                                    {attempt.quizTitle}
+                                  </h3>
+                                  <div className="outfit-500 mt-0.5 flex items-center gap-2 text-[11px] text-gray-400">
                                     <span>
-                                      Attempts: {item.totalAttempts ?? "—"}
+                                      Attempt {attempt.attempt_number}
                                     </span>
-                                  </div>
-                                  {/* Submitted */}
-                                  <div className="flex items-center gap-1.5 text-gray-500">
-                                    <i className="bx bx-time text-[14px] text-[#1a1f36]/60" />
-                                    <span>
-                                      Submitted:{" "}
-                                      {highest?.submitted_at
-                                        ? formatDateTime(highest.submitted_at)
-                                        : "—"}
-                                    </span>
+                                    {attempt.submitted_at && (
+                                      <>
+                                        <span>·</span>
+                                        <span>
+                                          {formatDateTime(attempt.submitted_at)}
+                                        </span>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Right side: Score & Button */}
-                            <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-4 md:mt-0 md:justify-end md:gap-8 md:border-0 md:pt-0">
-                              {/* Score Details */}
-                              <div className="flex w-full items-center justify-between md:w-auto md:flex-col md:items-end">
-                                {/* Label */}
-                                <span className="outfit-700 text-[10px] tracking-widest text-[#1a1f36]/40 uppercase">
-                                  Best Score
+                              {/* Right: score + badges */}
+                              <div className="flex items-center gap-2 pl-[52px] md:pl-0">
+                                <span className="outfit-700 text-[13px] text-[#1a1f36]">
+                                  {attempt.score}/{attempt.total_score}
                                 </span>
-
-                                {/* Score */}
-                                <div className="flex items-center gap-2 md:mt-0.5">
-                                  <span className="outfit-700 text-[13px] text-[#1a1f36]">
-                                    {highest
-                                      ? `${highest.score}/${highest.total_score}`
-                                      : "—"}
+                                <span
+                                  className={`outfit-400 inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] ${badgeClass}`}
+                                >
+                                  {pct.toFixed(1)}%
+                                </span>
+                                {attempt.isPassed ? (
+                                  <span className="outfit-500 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600">
+                                    Passed
                                   </span>
-
-                                  <span
-                                    className={`outfit-400 inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] ${percentageBadgeClasses}`}
-                                  >
-                                    {highest ? `${pct}%` : "—"}
+                                ) : (
+                                  <span className="outfit-500 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[9px] font-semibold text-red-500">
+                                    Failed
                                   </span>
-                                </div>
+                                )}
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     </div>
                   </>
                 )}
