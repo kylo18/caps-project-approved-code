@@ -3,11 +3,13 @@
 
 namespace Modules\Leaderboard\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 use App\Services\LeaderboardService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class LeaderboardController extends Controller
 {
@@ -122,48 +124,56 @@ class LeaderboardController extends Controller
     protected function getMobileLeaderboard(Request $request, $programFilter, $subjectFilter)
     {
         try {
+            $period = $this->normalizePeriod($request->query('period', 'all_time'));
+            [$periodStart, $periodEnd] = $this->getPeriodBounds($period);
             $limit = (int) $request->query('limit', 50);
-            
+            $viewer = $this->resolveViewer($request);
+
             // Get all programs and subjects for dropdown filters
             $programs = DB::table('programs')
                 ->select('programID', 'programName')
                 ->orderBy('programName')
                 ->get();
-                
+
             $subjects = DB::table('subjects')
                 ->select('subjectID', 'subjectName', 'subjectCode')
                 ->orderBy('subjectName')
                 ->get();
-            
+
             // Build query for practice exam results with filters
             $resultsQuery = DB::table('practice_exam_results')
                 ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
                 ->where('users.roleID', 1); // Only students
-                
+
             // Apply program filter
             if ($programFilter) {
                 $resultsQuery->where('users.programID', $programFilter);
             }
-            
+
             // Apply subject filter
             if ($subjectFilter) {
                 $resultsQuery->where('practice_exam_results.subjectID', $subjectFilter);
             }
-            
+
+            if ($periodStart && $periodEnd) {
+                $resultsQuery->whereBetween('practice_exam_results.created_at', [$periodStart, $periodEnd]);
+            }
+
             // Get all matching results
             $results = $resultsQuery
                 ->select(
+                    'practice_exam_results.resultID',
                     'practice_exam_results.userID',
                     'practice_exam_results.subjectID',
                     'practice_exam_results.percentage',
                     'practice_exam_results.earnedPoints',
-                    'practice_exam_results.resultID'
+                    'practice_exam_results.created_at'
                 )
                 ->get();
-            
+
             // Get user details for all users in results
             $userIds = $results->pluck('userID')->unique()->toArray();
-            
+
             $users = DB::table('users')
                 ->leftJoin('programs', 'users.programID', '=', 'programs.programID')
                 ->leftJoin('students', 'users.userCode', '=', 'students.userCode')
@@ -180,7 +190,7 @@ class LeaderboardController extends Controller
                 )
                 ->get()
                 ->keyBy('userID');
-            
+
             // Get subject details if needed
             $subjectIds = $results->pluck('subjectID')->unique()->toArray();
             $subjectsData = DB::table('subjects')
@@ -188,12 +198,12 @@ class LeaderboardController extends Controller
                 ->select('subjectID', 'subjectName', 'subjectCode')
                 ->get()
                 ->keyBy('subjectID');
-            
+
             // Group by user and calculate stats
             $userStats = [];
             foreach ($results as $result) {
                 $userId = $result->userID;
-                
+
                 if (!isset($userStats[$userId])) {
                     $userStats[$userId] = [
                         'userID' => $userId,
@@ -201,38 +211,65 @@ class LeaderboardController extends Controller
                         'highestScore' => 0,
                         'attempts' => 0,
                         'subjectIDs' => [],
+                        'bestSubjectID' => null,
+                        'bestResultID' => null,
+                        'bestCreatedAt' => null,
                     ];
                 }
-                
+
                 $userStats[$userId]['attempts']++;
                 $userStats[$userId]['subjectIDs'][] = $result->subjectID;
-                
-                if ($result->percentage > $userStats[$userId]['highestPercentage']) {
+
+                $replaceBestResult =
+                    $result->percentage > $userStats[$userId]['highestPercentage'] ||
+                    (
+                        (float) $result->percentage === (float) $userStats[$userId]['highestPercentage'] &&
+                        (int) $result->earnedPoints > (int) $userStats[$userId]['highestScore']
+                    ) ||
+                    (
+                        (float) $result->percentage === (float) $userStats[$userId]['highestPercentage'] &&
+                        (int) $result->earnedPoints === (int) $userStats[$userId]['highestScore'] &&
+                        $userStats[$userId]['bestCreatedAt'] !== null &&
+                        Carbon::parse($result->created_at)->lt(Carbon::parse($userStats[$userId]['bestCreatedAt']))
+                    );
+
+                if ($replaceBestResult || $userStats[$userId]['bestCreatedAt'] === null) {
                     $userStats[$userId]['highestPercentage'] = $result->percentage;
                     $userStats[$userId]['highestScore'] = $result->earnedPoints;
+                    $userStats[$userId]['bestSubjectID'] = $result->subjectID;
+                    $userStats[$userId]['bestResultID'] = $result->resultID;
+                    $userStats[$userId]['bestCreatedAt'] = $result->created_at;
                 }
             }
-            
-            // Sort by highest percentage descending
+
+            // Sort by highest percentage, then score, then earliest winning attempt
             uasort($userStats, function($a, $b) {
-                return $b['highestPercentage'] <=> $a['highestPercentage'];
+                $percentageComparison = $b['highestPercentage'] <=> $a['highestPercentage'];
+                if ($percentageComparison !== 0) {
+                    return $percentageComparison;
+                }
+
+                $scoreComparison = $b['highestScore'] <=> $a['highestScore'];
+                if ($scoreComparison !== 0) {
+                    return $scoreComparison;
+                }
+
+                return strtotime((string) $a['bestCreatedAt']) <=> strtotime((string) $b['bestCreatedAt']);
             });
-            
-            // Format the leaderboard data
-            $leaderboard = [];
+
+            $rankedUsers = [];
             $rank = 1;
-            foreach (array_slice($userStats, 0, $limit, true) as $userId => $stats) {
+            foreach ($userStats as $userId => $stats) {
                 $user = $users[$userId] ?? null;
-                
+
                 if (!$user) {
                     continue;
                 }
-                
-                // Get the subject with highest score for display
-                $subjectId = $subjectFilter ?: ($stats['subjectIDs'][0] ?? null);
+
+                $subjectId = $subjectFilter ?: $stats['bestSubjectID'] ?: ($stats['subjectIDs'][0] ?? null);
                 $subject = $subjectId ? ($subjectsData[$subjectId] ?? null) : null;
-                
-                $leaderboard[] = [
+
+                $rankedUsers[] = [
                     'rank' => $rank++,
                     'userID' => $userId,
                     'student_id' => $userId,
@@ -253,9 +290,14 @@ class LeaderboardController extends Controller
                     'highestPercentage' => round($stats['highestPercentage'], 2),
                     'attempts' => $stats['attempts'],
                     'points' => (int) $stats['highestScore'],
+                    'resultID' => $stats['bestResultID'],
+                    'createdAt' => $stats['bestCreatedAt'],
                 ];
             }
-            
+
+            $leaderboard = array_slice($rankedUsers, 0, $limit);
+            $viewerSummary = $this->buildViewerSummary($viewer, $rankedUsers, $period, $periodEnd);
+
             // Transform programs for mobile dropdown
             $programsList = $programs->map(function($program) {
                 return [
@@ -263,7 +305,7 @@ class LeaderboardController extends Controller
                     'programName' => $program->programName,
                 ];
             });
-            
+
             // Transform subjects for mobile dropdown
             $subjectsList = $subjects->map(function($subject) {
                 return [
@@ -272,15 +314,19 @@ class LeaderboardController extends Controller
                     'subjectCode' => $subject->subjectCode,
                 ];
             });
-            
+
             return response()->json([
                 'leaderboard' => $leaderboard,
                 'programs' => $programsList,
                 'subjects' => $subjectsList,
+                'viewer' => $viewerSummary,
                 'meta' => [
-                    'total' => count($leaderboard),
+                    'total' => count($rankedUsers),
                     'programFilter' => $programFilter,
                     'subjectFilter' => $subjectFilter,
+                    'period' => $period,
+                    'periodStartsAt' => $periodStart ? $periodStart->toIso8601String() : null,
+                    'periodEndsAt' => $periodEnd ? $periodEnd->toIso8601String() : null,
                     'generated_from' => 'database'
                 ]
             ]);
@@ -292,9 +338,93 @@ class LeaderboardController extends Controller
                 'error' => 'Server error: ' . $e->getMessage(),
                 'leaderboard' => [],
                 'programs' => [],
-                'subjects' => []
+                'subjects' => [],
+                'viewer' => null,
+                'meta' => [
+                    'period' => $this->normalizePeriod($request->query('period', 'all_time')),
+                ]
             ], 500);
         }
+    }
+
+    protected function normalizePeriod(?string $period): string
+    {
+        return $period === 'weekly' ? 'weekly' : 'all_time';
+    }
+
+    protected function getPeriodBounds(string $period): array
+    {
+        if ($period !== 'weekly') {
+            return [null, null];
+        }
+
+        $now = Carbon::now();
+        return [
+            $now->copy()->startOfWeek(),
+            $now->copy()->endOfWeek(),
+        ];
+    }
+
+    protected function resolveViewer(Request $request): ?object
+    {
+        $authUser = Auth::user();
+        if ($authUser) {
+            return $authUser;
+        }
+
+        $token = $request->bearerToken();
+        if (!$token) {
+            return null;
+        }
+
+        try {
+            $accessToken = PersonalAccessToken::findToken($token);
+            return $accessToken?->tokenable;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    protected function buildViewerSummary(?object $viewer, array $rankedUsers, string $period, ?Carbon $periodEnd): ?array
+    {
+        if (!$viewer || (int) ($viewer->roleID ?? 0) !== 1) {
+            return null;
+        }
+
+        $totalCandidates = count($rankedUsers);
+        $viewerEntry = collect($rankedUsers)->firstWhere('userID', (int) $viewer->userID);
+        if (!$viewerEntry) {
+            return [
+                'userID' => (int) $viewer->userID,
+                'rank' => null,
+                'totalCandidates' => $totalCandidates,
+                'betterThanPercentage' => 0,
+                'percentile' => 0,
+                'period' => $period,
+                'periodEndsAt' => $periodEnd ? $periodEnd->toIso8601String() : null,
+            ];
+        }
+
+        $rank = (int) $viewerEntry['rank'];
+        $betterThanPercentage = $totalCandidates > 0
+            ? round((($totalCandidates - $rank) / $totalCandidates) * 100)
+            : 0;
+
+        return [
+            'userID' => (int) $viewer->userID,
+            'rank' => $rank,
+            'name' => $viewerEntry['name'],
+            'score' => $viewerEntry['score'],
+            'highestPercentage' => $viewerEntry['highestPercentage'],
+            'attempts' => $viewerEntry['attempts'],
+            'program' => $viewerEntry['program'],
+            'subject' => $viewerEntry['subject'],
+            'totalCandidates' => $totalCandidates,
+            'betterThanPercentage' => $betterThanPercentage,
+            'percentile' => $betterThanPercentage,
+            'period' => $period,
+            'periodEndsAt' => $periodEnd ? $periodEnd->toIso8601String() : null,
+        ];
     }
 
     /**

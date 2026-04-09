@@ -12,6 +12,11 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Modules\PracticeExams\Models\PracticeExamResult;
+use Modules\PracticeExams\Models\PracticeExamAnswer;
+use Modules\PracticeExams\Models\Exam;
+use Modules\Analytics\Models\ExamAttempt;
+use Modules\Analytics\Models\ExamResult;
+use Modules\Analytics\Controllers\AnalyticsController;
 use Modules\Questions\Models\Status;
 use Modules\Questions\Models\Difficulty;
 use Modules\PracticeExams\Models\PersonalExamSetting;
@@ -225,8 +230,33 @@ class PracticeExamController extends Controller
                 }
             }
 
+            // ── Create ExamAttempt record to link Practice Exam with Analytics ──
+            // Find or create an exam for practice exams of this subject
+            $exam = Exam::firstOrCreate(
+                ['subject_id' => $subjectID, 'title' => "Practice Exam — {$subject->subjectName}"],
+                [
+                    'description' => "Auto-generated practice exam for {$subject->subjectName}",
+                    'total_items' => $targetItems,
+                    'status' => 'active',
+                ]
+            );
+
+            // Determine attempt_number for this user + exam
+            $attemptNumber = ExamAttempt::where('user_id', $user->userID)
+                ->where('exam_id', $exam->id)
+                ->count() + 1;
+
+            $examAttempt = ExamAttempt::create([
+                'user_id' => $user->userID,
+                'exam_id' => $exam->id,
+                'attempt_number' => $attemptNumber,
+                'started_at' => now(),
+                'status' => 'in_progress',
+            ]);
+
             return response()->json([
                 'message' => 'Practice exam generated successfully.',
+                'attempt_id' => $examAttempt->id,
                 'questions' => $selectedQuestions,
                 'totalItems' => $totalItems,
                 'totalPoints' => $totalPoints,
@@ -692,19 +722,22 @@ class PracticeExamController extends Controller
         }
 
         $validated = $request->validate([
+            'attempt_id' => 'nullable|exists:exam_attempts,id',
             'subjectID' => 'required|exists:subjects,subjectID',
             'answers' => 'required|array',
             'answers.*.questionID' => 'required|exists:questions,questionID',
             'answers.*.selectedChoiceID' => 'nullable|exists:choices,choiceID',
         ]);
 
+        $attemptId = $validated['attempt_id'] ?? null;
         $answers = collect($validated['answers']);
         $totalPoints = 0;
         $earnedPoints = 0;
         $results = [];
+        $examResultsData = [];
 
         foreach ($answers as $answer) {
-            $question = Question::with('choices')->find($answer['questionID']);
+            $question = Question::with(['choices', 'coverage', 'difficulty'])->find($answer['questionID']);
             $questionScore = $question->score ?? 1;
             $totalPoints += $questionScore;
 
@@ -713,6 +746,22 @@ class PracticeExamController extends Controller
 
             if ($isCorrect) {
                 $earnedPoints += $questionScore;
+            }
+
+            // Map question data for exam_results table (analytics pipeline)
+            if ($attemptId && $question->coverage) {
+                $difficultyName = $question->difficulty ? $question->difficulty->name : 'moderate';
+                $examResultsData[] = [
+                    'attempt_id' => $attemptId,
+                    'question_id' => $question->questionID,
+                    'topic_id' => $question->coverage->id,
+                    'subject_id' => $question->subjectID,
+                    'difficulty' => $difficultyName,
+                    'is_correct' => $isCorrect,
+                    'is_skipped' => is_null($answer['selectedChoiceID'] ?? null),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
 
             $results[] = [
@@ -726,6 +775,7 @@ class PracticeExamController extends Controller
 
         $percentage = ($earnedPoints / max(1, $totalPoints)) * 100;
 
+        // ── Save to practice_exam_results (existing behavior) ──
         $examResult = PracticeExamResult::create([
             'userID' => $user->userID,
             'subjectID' => $validated['subjectID'],
@@ -734,7 +784,7 @@ class PracticeExamController extends Controller
             'percentage' => round($percentage, 2),
         ]);
 
-        // Save individual question answers for Analytics tracking
+        // Save individual question answers for practice exam tracking
         $answersData = [];
         foreach ($results as $res) {
             $answersData[] = [
@@ -751,11 +801,30 @@ class PracticeExamController extends Controller
             \Illuminate\Support\Facades\DB::table('practice_exam_answers')->insert($answersData);
         }
 
-        // Update leaderboard with exam result (uses atomic transaction to prevent race conditions)
+        // ── Save to exam_results (analytics pipeline) ──
+        if ($attemptId && !empty($examResultsData)) {
+            \Illuminate\Support\Facades\DB::table('exam_results')->insert($examResultsData);
+
+            // Update exam_attempt to completed
+            $examAttempt = ExamAttempt::find($attemptId);
+            if ($examAttempt) {
+                $examAttempt->update([
+                    'finished_at' => now(),
+                    'status' => 'completed',
+                ]);
+
+                // Trigger analytics computation (computeScore populates exam_analytics, exam_topic_analytics, exam_difficulty_analytics)
+                (new AnalyticsController())->computeScore($attemptId);
+            }
+        }
+
+        // Update leaderboard with exam result
         Leaderboard::updateOrCreateRecord($user->userID, $validated['subjectID'], round($percentage, 2));
 
         return response()->json([
             'message' => 'Exam submitted successfully.',
+            'resultId' => $examResult->resultID,
+            'attempt_id' => $attemptId,
             'score' => [
                 'totalPoints' => $totalPoints,
                 'earnedPoints' => $earnedPoints,

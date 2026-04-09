@@ -180,3 +180,8 @@ FrontendMobile - Deployment/android/app/.settings/
 
 # Local Android native dependency (kept out of repo)
 FrontendMobile - Deployment/android/app/src/main/cpp/llama/
+backend-fixes.patch
+.gitignore
+DOCUMENTATIONS(mobile)/OAUTH-FIX-IMPLEMENTATION.md
+DOCUMENTATIONS(mobile)/OAUTH-DIAGNOSTIC-REPORT.md
+backend-full-final.patch
