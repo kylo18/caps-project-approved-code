@@ -418,14 +418,16 @@ class AnalyticsController extends Controller
             $avgErrorRate = QuestionStatsDaily::selectRaw('CASE WHEN SUM(total_attempts) = 0 THEN 0 ELSE SUM(total_incorrect) / SUM(total_attempts) END as rate')
                 ->value('rate');
 
-            $mostViewed = LessonView::select('lesson_id', DB::raw('COUNT(*) as views'))
-                ->groupBy('lesson_id')
+            $mostViewed = DB::table('lesson_views')
+                ->join('lessons', 'lesson_views.lesson_id', '=', 'lessons.id')
+                ->select('lessons.id as lessonId', 'lessons.title as lessonName', DB::raw('COUNT(*) as views'))
+                ->groupBy('lessons.id', 'lessons.title')
                 ->orderByDesc('views')
                 ->limit(10)
                 ->get()
                 ->map(fn($item) => [
-                    'lessonId' => $item->lesson_id,
-                    'lessonName' => "Lesson #{$item->lesson_id}",
+                    'lessonId' => $item->lessonId,
+                    'lessonName' => $item->lessonName,
                     'views' => (int) $item->views,
                 ]);
 
@@ -525,9 +527,11 @@ class AnalyticsController extends Controller
                     . 'SUM(CASE WHEN difficulty = "hard" THEN 1 ELSE 0 END) as hard_total, '
                     . 'SUM(CASE WHEN difficulty = "hard" AND is_correct = 1 THEN 1 ELSE 0 END) as hard_correct, '
                     . 'COUNT(*) as total_questions, '
-                    . 'SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as total_correct'
+                    . 'SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as total_correct, '
+                    . 'COALESCE(AVG(exam_attempts.attempt_number), 0) as avg_attempts'
                 )
                 ->join('coverages', 'exam_results.topic_id', '=', 'coverages.id')
+                ->leftJoin('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
                 ->groupBy('exam_results.topic_id', 'coverages.name')
                 ->orderByDesc('total_questions')
                 ->limit(10)
@@ -539,7 +543,7 @@ class AnalyticsController extends Controller
                     'moderateScore' => $item->moderate_total > 0 ? round(($item->moderate_correct / $item->moderate_total) * 100, 2) : 0,
                     'hardScore' => $item->hard_total > 0 ? round(($item->hard_correct / $item->hard_total) * 100, 2) : 0,
                     'overallScore' => $item->total_questions > 0 ? round(($item->total_correct / $item->total_questions) * 100, 2) : 0,
-                    'avgAttempts' => 0,
+                    'avgAttempts' => round((float) $item->avg_attempts, 2),
                 ]);
 
             return response()->json([
@@ -579,20 +583,22 @@ class AnalyticsController extends Controller
                 default                  => 'hard',
             };
 
-            // Average attempts before passing
-            $passingUsers = ExamTopicAnalytics::where('topic_id', $topicId)
-                ->select('user_id', DB::raw('MIN(attempt_id) as first_pass_attempt'))
-                ->where('score_pct', '>=', 60)
-                ->groupBy('user_id')
+            // Average attempts before passing — uses the new attempt_number column
+            // For each user who passed (score_pct >= 60) on this topic, find their
+            // minimum attempt_number that resulted in a pass, then report that number.
+            $passingUsers = ExamTopicAnalytics::where('exam_topic_analytics.topic_id', $topicId)
+                ->join('exam_attempts', 'exam_topic_analytics.attempt_id', '=', 'exam_attempts.id')
+                ->select(
+                    'exam_topic_analytics.user_id',
+                    DB::raw('MIN(exam_attempts.attempt_number) as first_pass_attempt')
+                )
+                ->where('exam_topic_analytics.score_pct', '>=', 60)
+                ->groupBy('exam_topic_analytics.user_id')
                 ->get();
 
             $attemptsBeforePassList = [];
             foreach ($passingUsers as $row) {
-                $count = ExamTopicAnalytics::where('user_id', $row->user_id)
-                    ->where('topic_id', $topicId)
-                    ->where('attempt_id', '<=', $row->first_pass_attempt)
-                    ->count();
-                $attemptsBeforePassList[] = $count;
+                $attemptsBeforePassList[] = (int) $row->first_pass_attempt;
             }
 
             $avgBeforePass = count($attemptsBeforePassList) > 0

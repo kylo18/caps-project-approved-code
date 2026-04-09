@@ -103,9 +103,15 @@ class DemoLeaderboardSeeder extends Seeder
             $uid = $user->userID;
 
             // 2. Create a Mock Attempt
+            $attemptNumber = DB::table('exam_attempts')
+                ->where('user_id', $uid)
+                ->where('exam_id', $examId)
+                ->count() + 1;
+
             $attemptId = DB::table('exam_attempts')->insertGetId([
                 'user_id' => $uid,
                 'exam_id' => $examId,
+                'attempt_number' => $attemptNumber,
                 'started_at' => now()->subMinutes(30),
                 'finished_at' => now(),
                 'status' => 'completed',

@@ -30,6 +30,9 @@ require_once base_path('Modules/Achievements/Database/Seeders/AchievementSeeder.
 require_once base_path('Modules/Analytics/Database/Seeders/AnalyticsSeeder.php');
 require_once base_path('Modules/Support/Database/Seeders/SupportSeeder.php');
 require_once base_path('Modules/Notifications/Database/Seeders/NotificationSeeder.php');
+require_once base_path('database/seeders/LessonSeeder.php');
+require_once base_path('database/seeders/AnalyticsTestSeeder.php');
+require_once base_path('database/seeders/PopulateEmptyTablesSeeder.php');
 
 
 class DatabaseSeeder extends Seeder
@@ -81,6 +84,15 @@ class DatabaseSeeder extends Seeder
             
             // 10. Feature tables from database/migrations
             \Database\Seeders\FeatureTablesSeeder::class,
+
+            // 8. Lessons (needs subjects first)
+            \Database\Seeders\LessonSeeder::class,
+
+            // 9. Analytics test data (provides sample exam analytics)
+            \Database\Seeders\AnalyticsTestSeeder::class,
+
+            // 10. Populate empty tables (classes, quizzes, student records, etc.)
+            \Database\Seeders\PopulateEmptyTablesSeeder::class,
         ];
 
         foreach ($seeders as $seeder) {

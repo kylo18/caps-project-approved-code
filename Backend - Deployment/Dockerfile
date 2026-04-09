@@ -29,8 +29,8 @@ COPY . .
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install Laravel PHP dependencies
-RUN composer update --no-dev --optimize-autoloader --ignore-platform-reqs
+# Fix: Remove invalid lock file and regenerate dependencies for Laravel 12
+RUN rm -f composer.lock && composer update --no-dev --optimize-autoloader --ignore-platform-reqs
 
 # Set correct permissions for storage and cache
 RUN chown -R www-data:www-data /var/www/html \

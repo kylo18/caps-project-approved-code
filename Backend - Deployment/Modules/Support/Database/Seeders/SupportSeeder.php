@@ -15,10 +15,10 @@ class SupportSeeder extends Seeder
         } else {
             // Seed FAQ categories matching migration schema
             $categories = [
-                ['subject' => 'Account', 'display_order' => 1, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
-                ['subject' => 'Exams', 'display_order' => 2, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
-                ['subject' => 'Technical', 'display_order' => 3, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
-                ['subject' => 'Billing', 'display_order' => 4, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+                ['subject' => 'Account', 'display_order' => 1, 'created_at' => now(), 'updated_at' => now()],
+                ['subject' => 'Exams', 'display_order' => 2, 'created_at' => now(), 'updated_at' => now()],
+                ['subject' => 'Technical', 'display_order' => 3, 'created_at' => now(), 'updated_at' => now()],
+                ['subject' => 'Billing', 'display_order' => 4, 'created_at' => now(), 'updated_at' => now()],
             ];
             DB::table('faq_categories')->insert($categories);
             echo "FAQ categories seeded.\n";

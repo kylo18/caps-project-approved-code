@@ -51,20 +51,73 @@ class StudentAnalyticsController extends Controller
                 )
                 ->first();
             
-            // Get weakest topic (lowest average score) using actual answers
+            // Get weakest subject (lowest average score) using actual answers
             try {
                 $weakestTopic = DB::table('practice_exam_answers')
                     ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
+                    ->join('subjects', 'questions.subjectID', '=', 'subjects.subjectID')
                     ->where('practice_exam_answers.user_id', $user->userID)
-                    ->select('questions.topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
-                    ->groupBy('questions.topic')
+                    ->select('subjects.subjectName as topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
+                    ->groupBy('subjects.subjectName')
                     ->orderBy('avg_score', 'asc')
                     ->first();
             } catch (\Exception $e) {
                 // Table doesn't exist or no data
                 $weakestTopic = null;
             }
-            
+
+            // Count frequently mistaken questions (answered incorrectly 2+ times)
+            try {
+                $frequentlyMistaken = DB::table('practice_exam_answers')
+                    ->where('user_id', $user->userID)
+                    ->where('is_correct', 0)
+                    ->select('question_id', DB::raw('COUNT(*) as wrong_count'))
+                    ->groupBy('question_id')
+                    ->having('wrong_count', '>=', 2)
+                    ->get();
+                $frequentlyMistakenCount = $frequentlyMistaken->count();
+            } catch (\Exception $e) {
+                $frequentlyMistakenCount = 0;
+            }
+
+            // Calculate average attempts before passing (per subject)
+            try {
+                $subjectAttempts = DB::table('practice_exam_results')
+                    ->where('userID', $user->userID)
+                    ->select('subjectID', DB::raw('COUNT(*) as attempts'), DB::raw('MAX(CASE WHEN percentage >= 75 THEN 1 ELSE 0 END) as passed'))
+                    ->groupBy('subjectID')
+                    ->get();
+
+                $totalAttemptsForPassing = 0;
+                $passedSubjectsCount = 0;
+                foreach ($subjectAttempts as $sa) {
+                    if ($sa->passed) {
+                        // Count how many attempts it took to reach 75%
+                        $attemptsUntilPass = DB::table('practice_exam_results')
+                            ->where('userID', $user->userID)
+                            ->where('subjectID', $sa->subjectID)
+                            ->orderBy('created_at', 'asc')
+                            ->select('percentage')
+                            ->get();
+
+                        $attemptsNeeded = 0;
+                        foreach ($attemptsUntilPass as $attempt) {
+                            $attemptsNeeded++;
+                            if ($attempt->percentage >= 75) {
+                                break;
+                            }
+                        }
+                        $totalAttemptsForPassing += $attemptsNeeded;
+                        $passedSubjectsCount++;
+                    }
+                }
+                $avgAttemptsBeforePassing = $passedSubjectsCount > 0
+                    ? round($totalAttemptsForPassing / $passedSubjectsCount, 2)
+                    : 0;
+            } catch (\Exception $e) {
+                $avgAttemptsBeforePassing = 0;
+            }
+
             // Calculate achievement progress
             $totalExamsCount = $examStats->total_exams ?? 0;
             $thresholds = [1, 5, 10, 20, 50, 100];
@@ -112,8 +165,13 @@ class StudentAnalyticsController extends Controller
                     'average_score' => round($examStats->avg_score ?? 0, 2),
                     'best_score' => round($examStats->best_score ?? 0, 2),
                     'lowest_score' => round($examStats->lowest_score ?? 0, 2),
-                    'weakest_topic' => $weakestTopic->topic ?? 'N/A',
-                    'weakest_topic_score' => round($weakestTopic->avg_score ?? 0, 2),
+                    'frequently_mistaken_questions_count' => $frequentlyMistakenCount,
+                    'average_attempts_before_passing' => $avgAttemptsBeforePassing,
+                    'weakest_topic' => [
+                        'name' => $weakestTopic->topic ?? 'N/A',
+                        'error_rate' => 1 - ($weakestTopic->avg_score ?? 0) / 100,
+                    ],
+                    'strongest_subject' => null, // Fetched via getInsights endpoint
                     'achievement_progress' => $achievementProgress,
                     'trend' => $trend
                 ]
@@ -139,13 +197,14 @@ class StudentAnalyticsController extends Controller
                 return response()->json(['message' => 'Unauthorized. Student access only.'], 403);
             }
             
-            // Strong topics (score >= 80%)
+            // Strong subjects (score >= 80%)
             try {
                 $strongTopics = DB::table('practice_exam_answers')
                     ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
+                    ->join('subjects', 'questions.subjectID', '=', 'subjects.subjectID')
                     ->where('practice_exam_answers.user_id', $user->userID)
-                    ->select('questions.topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
-                    ->groupBy('questions.topic')
+                    ->select('subjects.subjectName as topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
+                    ->groupBy('subjects.subjectName')
                     ->having('avg_score', '>=', 80)
                     ->orderByDesc('avg_score')
                     ->limit(5)
@@ -154,13 +213,14 @@ class StudentAnalyticsController extends Controller
                 $strongTopics = collect([]);
             }
             
-            // Weak topics (score < 60%)
+            // Weak subjects (score < 60%)
             try {
                 $weakTopics = DB::table('practice_exam_answers')
                     ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
+                    ->join('subjects', 'questions.subjectID', '=', 'subjects.subjectID')
                     ->where('practice_exam_answers.user_id', $user->userID)
-                    ->select('questions.topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
-                    ->groupBy('questions.topic')
+                    ->select('subjects.subjectName as topic', DB::raw('(SUM(CASE WHEN practice_exam_answers.is_correct = 1 THEN 100 ELSE 0 END) / COUNT(*)) as avg_score'))
+                    ->groupBy('subjects.subjectName')
                     ->having('avg_score', '<', 60)
                     ->orderBy('avg_score', 'asc')
                     ->limit(5)
@@ -190,9 +250,16 @@ class StudentAnalyticsController extends Controller
                 $timeSpent = collect([]);
             }
             
+            // Get strongest subject (highest score, reused for summary + insights)
+            $strongestSubject = null;
+            if ($strongTopics->count() > 0) {
+                $strongestSubject = $strongTopics->first()->topic;
+            }
+
             return response()->json([
                 'message' => 'Student insights retrieved',
                 'data' => [
+                    'strongest_subject' => $strongestSubject,
                     'strong_topics' => $strongTopics,
                     'weak_topics' => $weakTopics,
                     'time_spent_per_topic' => $timeSpent->map(function($item) {

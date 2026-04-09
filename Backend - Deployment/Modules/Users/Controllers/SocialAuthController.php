@@ -14,6 +14,13 @@ class SocialAuthController extends Controller
     // Starts the Google OAuth flow and remembers which frontend should receive the callback result.
     public function redirectToGoogle(Request $request)
     {
+        Log::info('Google OAuth redirect initiated', [
+            'frontend_url' => $request->query('frontend_url'),
+            'request_url' => $request->fullUrl(),
+            'user_agent' => $request->userAgent(),
+            'ip' => $request->ip(),
+        ]);
+
         $response = Socialite::driver('google')->stateless()->redirect();
         $frontendUrlCookie = $this->makeFrontendUrlCookie($request);
 
@@ -28,10 +35,29 @@ class SocialAuthController extends Controller
     public function handleGoogleCallback()
     {
         try {
+            // Debug logging for OAuth callback
+            Log::info('Google OAuth callback received', [
+                'url' => request()->fullUrl(),
+                'query_params' => request()->query(),
+                'cookies' => request()->cookie('oauth_frontend_url'),
+                'user_agent' => request()->userAgent(),
+                'ip' => request()->ip(),
+            ]);
+
             $googleUser = Socialite::driver('google')->stateless()->user();
+            
+            Log::info('Google OAuth user retrieved', [
+                'email' => $googleUser->getEmail(),
+                'name' => $googleUser->getName(),
+                'id' => $googleUser->getId(),
+            ]);
+
             return $this->handleOAuthUser($googleUser, 'google');
         } catch (\Exception $e) {
-            Log::error('Google OAuth error: ' . $e->getMessage());
+            Log::error('Google OAuth error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'exception_class' => get_class($e),
+            ]);
             return $this->redirectToFrontendError(
                 'provider_failed',
                 'Failed to authenticate with Google.',

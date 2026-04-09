@@ -23,6 +23,7 @@ class Question extends Model
         'score',
         'difficulty_id',
         'coverage_id',
+        'topic',
         'status_id',
         'purpose_id',
         'editedBy',

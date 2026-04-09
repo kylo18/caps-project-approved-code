@@ -113,6 +113,9 @@ class QuestionsTableSeeder extends Seeder
         $batchSize = 100; // Insert questions in batches for better performance
 
         foreach ($subjects as $subject) {
+            // Get coverage names for topic population
+            $coverageNames = DB::table('coverages')->pluck('name', 'id')->toArray();
+
             // Generate questions for each purpose ID (1 and 2)
             for ($purposeId = 1; $purposeId <= 2; $purposeId++) {
                 $questions = [];
@@ -121,10 +124,14 @@ class QuestionsTableSeeder extends Seeder
                 for ($i = 1; $i <= $questionsPerType; $i++) {
                     // Randomly select a user from allowed users
                     $userId = $allowedUserIds[array_rand($allowedUserIds)];
-                    
+
                     // For approved questions (status_id = 2), set approvedBy to a random admin (1-3)
                     $approvedBy = $allowedUserIds[array_rand($allowedUserIds)];
-                    
+
+                    // Pick a random coverage and get its name for the topic
+                    $coverageId = $coverages[array_rand($coverages)];
+                    $topicName = $coverageNames[$coverageId] ?? null;
+
                     // Insert question
                     $questionId = DB::table('questions')->insertGetId([
                         'subjectID' => $subject->subjectID,
@@ -135,7 +142,8 @@ class QuestionsTableSeeder extends Seeder
                         'purpose_id' => $purposeId,
                         'difficulty_id' => $difficulties[array_rand($difficulties)],
                         'status_id' => 2, // Always approved status
-                        'coverage_id' => $coverages[array_rand($coverages)],
+                        'coverage_id' => $coverageId,
+                        'topic' => $topicName,
                         'editedBy' => null,
                         'approvedBy' => $approvedBy,
                         'created_at' => now(),

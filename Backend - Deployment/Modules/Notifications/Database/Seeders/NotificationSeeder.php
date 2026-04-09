@@ -42,6 +42,7 @@ class NotificationSeeder extends Seeder
             [
                 'user_id' => $users->first()->userID,
                 'type' => 'milestone',
+                'name' => 'High Achiever',
                 'title' => 'High Achiever',
                 'message' => 'You have scored 90% or above 5 times! Keep up the great work.',
                 'data' => json_encode(['score' => 90, 'count' => 5]),
@@ -53,6 +54,7 @@ class NotificationSeeder extends Seeder
             [
                 'user_id' => $users->first()->userID,
                 'type' => 'lesson_available',
+                'name' => 'New Lesson',
                 'title' => 'New Lesson Available',
                 'message' => 'Chapter 5: Differential Equations is now available in Calculus 1.',
                 'data' => json_encode(['subject_id' => 1, 'lesson_id' => 5]),
@@ -64,6 +66,7 @@ class NotificationSeeder extends Seeder
             [
                 'user_id' => $users->first()->userID,
                 'type' => 'quiz_result',
+                'name' => 'Exam Alert',
                 'title' => 'Exam Results Ready',
                 'message' => 'Your practice exam for Calculus 1 has been graded. You scored 85%!',
                 'data' => json_encode(['subject_id' => 1, 'percentage' => 85]),
@@ -75,6 +78,7 @@ class NotificationSeeder extends Seeder
             [
                 'user_id' => $users->first()->userID,
                 'type' => 'system_announcement',
+                'name' => 'System Update',
                 'title' => 'System Announcement',
                 'message' => 'The system will undergo maintenance on Sunday from 2 AM to 6 AM.',
                 'data' => json_encode(['announcement_id' => 1]),

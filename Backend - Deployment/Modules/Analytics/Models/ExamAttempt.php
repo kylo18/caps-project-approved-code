@@ -12,14 +12,16 @@ class ExamAttempt extends Model
     protected $fillable = [
         'user_id',
         'exam_id',
+        'attempt_number',
         'started_at',
         'finished_at',
         'status',
     ];
 
     protected $casts = [
-        'started_at'  => 'datetime',
-        'finished_at' => 'datetime',
+        'started_at'     => 'datetime',
+        'finished_at'    => 'datetime',
+        'attempt_number' => 'integer',
     ];
 
     public function results(): HasMany

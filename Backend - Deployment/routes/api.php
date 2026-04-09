@@ -11,6 +11,7 @@ use Modules\Choices\Controllers\ChoiceController;
 use Modules\Users\Controllers\UserController;
 use Modules\PracticeExams\Controllers\PracticeExamSettingController;
 use Modules\PracticeExams\Controllers\PracticeExamController;
+use Modules\PracticeExams\Controllers\PracticeExamLeaderboardController;
 use Modules\Users\Controllers\ProgramController;
 use Modules\Users\Controllers\RoleController;
 use Modules\Users\Controllers\PasswordResetController;
@@ -27,6 +28,17 @@ use Modules\Analytics\Controllers\StudentAnalyticsController;
 use Modules\Support\Controllers\AIController;
 use Modules\Support\Controllers\SupportController;
 use Modules\Notifications\Controllers\NotificationController;
+use Modules\PersonalExams\Controllers\PersonalQuizController;
+use Modules\PersonalExams\Controllers\PersonalQuizLeaderboardController;
+use Modules\PersonalExams\Controllers\PersonalQuizQuestionController;
+use Modules\PersonalExams\Controllers\PersonalQuizChoiceController;
+use Modules\PersonalExams\Controllers\PersonalQuizSettingController;
+use Modules\PersonalExams\Controllers\QuizSessionController;
+use Modules\PersonalExams\Controllers\StudentQuizController;
+use Modules\PersonalExams\Controllers\StudentQuizResultController;
+use Modules\PersonalClasses\Controllers\ClassController;
+use Modules\PersonalClasses\Controllers\ClassPersonalQuizController;
+use Modules\PersonalClasses\Controllers\ClassEnrollmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -102,6 +114,13 @@ Route::get('/support/categories', [SupportController::class, 'getCategories']);
 
 /*
 |--------------------------------------------------------------------------
+| Class Enrollment (Public - join by invite link, requires auth)
+|--------------------------------------------------------------------------
+*/
+Route::get('/classes/join/{token}', [ClassEnrollmentController::class, 'joinByLink']);
+
+/*
+|--------------------------------------------------------------------------
 | Authenticated Routes (All roles)
 |--------------------------------------------------------------------------
 */
@@ -148,6 +167,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Classes & Quizzes
     Route::get('/classes/{classID}/quizzes', [ClassPersonalQuizController::class, 'index']);
     Route::get('/classes/index', [ClassController::class, 'index']);
+
+    // Class Enrollment (Faculty - view enrolled students)
+    Route::get('/classes/{classID}/enrollments', [ClassEnrollmentController::class, 'index']);
 
     // Customer Support (Keeping the Jdev version)
     Route::post('/support-tickets', [\Modules\Support\Controllers\SupportTicketController::class, 'store']);
@@ -257,10 +279,8 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     // Image upload for subjects (admin/faculty only)
     Route::post('/subjects/{id}/upload-image', [SubjectController::class, 'uploadSubjectImage']);
 
-    // Practice Exam Leaderboard & Recent Takers (Faculty enhanced version)
-    Route::get('/practice-exam/leaderboard/{subjectID}', [PracticeExamLeaderboardController::class, 'leaderboard']);
-    Route::get('/practice-exam/recent-takers/{subjectID}', [PracticeExamLeaderboardController::class, 'recentTakers']);
-
+    // Class Enrollment (Faculty - remove student from class)
+    Route::post('/classes/{classID}/enrollments/remove', [ClassEnrollmentController::class, 'removeStudent']);
 
     // System notification for bulk updates (Dean and Associate Dean only)
     Route::post('/admin/system/notify-update', [SystemNotificationController::class, 'sendSystemUpdate']);
@@ -354,6 +374,11 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
     // Enroll under a teacher
     Route::post('/enroll-teacher', [StudentTeacherEnrollmentController::class, 'enroll']);
     Route::get('/my-teachers', [StudentTeacherEnrollmentController::class, 'myTeachers']);
+
+    // Class Enrollment (Student)
+    Route::post('/classes/join', [ClassEnrollmentController::class, 'joinByCode']);
+    Route::get('/my-classes', [ClassEnrollmentController::class, 'myClasses']);
+    Route::delete('/classes/{classID}/unenroll', [ClassEnrollmentController::class, 'unenroll']);
 
     // Generate personal exam for a subject and teacher
     Route::post('/personal-exam/generate/{subjectID}/{teacherID}', [PracticeExamController::class, 'generatePersonalExam']);
@@ -476,13 +501,11 @@ Route::get('storage/question_images/{filename}', function ($filename) {
 
 /*
 |--------------------------------------------------------------------------
-| Leaderboard Routes
+| Leaderboard Authenticated Routes
 |--------------------------------------------------------------------------
 */
-Route::get('/leaderboard', [Modules\Leaderboard\Controllers\LeaderboardController::class, 'index'])->name('leaderboard.index');
-
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/leaderboard/me', [Modules\Leaderboard\Controllers\LeaderboardController::class, 'me'])->name('leaderboard.me');
+    Route::get('/leaderboard/me', [LeaderboardController::class, 'me'])->name('leaderboard.me');
 });
 
 Route::get('storage/choices/{filename}', function ($filename) {

@@ -175,8 +175,8 @@ class UsersTableSeeder extends Seeder
                 ],
             ];
 
-            // Insert initial users
-            DB::table('users')->insert($users);
+            // Insert initial users (ignore duplicates for idempotency)
+            DB::table('users')->insertOrIgnore($users);
 
             // Add 5000 more users
             $roles = [2, 3, 4]; // Faculty, Program Chair, Dean
@@ -217,7 +217,7 @@ class UsersTableSeeder extends Seeder
                 if (count($bulkUsers) >= $chunkSize) {
                     DB::beginTransaction();
                     try {
-                        DB::table('users')->insert($bulkUsers);
+                        DB::table('users')->insertOrIgnore($bulkUsers);
                         DB::commit();
                     } catch (\Exception $e) {
                         DB::rollBack();
@@ -232,7 +232,7 @@ class UsersTableSeeder extends Seeder
             if (!empty($bulkUsers)) {
                 DB::beginTransaction();
                 try {
-                    DB::table('users')->insert($bulkUsers);
+                    DB::table('users')->insertOrIgnore($bulkUsers);
                     DB::commit();
                 } catch (\Exception $e) {
                     DB::rollBack();

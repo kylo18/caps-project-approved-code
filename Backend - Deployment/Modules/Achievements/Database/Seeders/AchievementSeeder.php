@@ -101,9 +101,9 @@ class AchievementSeeder extends Seeder
             foreach ($users as $user) {
                 // Give each user 1-3 random achievements
                 $numAchievements = rand(1, min(3, count($achievementIds)));
-                $userAchievements = array_rand(array_flip($achievementIds), $numAchievements);
-                
-                foreach ($userAchievements as $achievementId) {
+                $selectedIds = (array) array_rand(array_flip($achievementIds), $numAchievements);
+
+                foreach ($selectedIds as $achievementId) {
                     DB::table('user_achievements')->insert([
                         'user_id' => $user->userID,
                         'achievement_id' => $achievementId,
