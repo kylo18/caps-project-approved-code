@@ -7,6 +7,9 @@ COPY package.json ./
 # Install dependencies (including devDependencies for build)
 RUN rm -f package-lock.json && npm install --legacy-peer-deps
 
+# Force compatible versions of vite + vite-plugin-pwa
+RUN npm install vite@latest vite-plugin-pwa@latest --force
+
 # Copy the rest of the application code
 # .dockerignore excludes node_modules, package-lock.json, etc.
 COPY . .

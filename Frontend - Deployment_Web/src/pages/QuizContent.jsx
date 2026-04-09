@@ -1343,24 +1343,6 @@ const QuizContent = () => {
                       placeholder="Short description of this quiz (optional)"
                     />
                   </div>
-
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Instruction
-                    </label>
-                    <textarea
-                      name="instruction"
-                      value={editQuizForm.instruction}
-                      onChange={(e) =>
-                        setEditQuizForm((prev) => ({
-                          ...prev,
-                          instruction: e.target.value,
-                        }))
-                      }
-                      className="min-h-[100px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
-                      placeholder="Instructions for students (optional)"
-                    />
-                  </div>
                 </div>
 
                 <div className="mt-8 flex items-center justify-end gap-3 border-t border-gray-200 pt-6">

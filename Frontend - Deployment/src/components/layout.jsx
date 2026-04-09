@@ -90,8 +90,12 @@ const Layout = () => {
                   : "ml-[55.5px]"
           }`}
         >
-          <Header title={roleTitle} />
-          <main className={isTutorialPage ? "pt-14" : "pt-14 px-0 pb-30"}>
+          {!isStudentQuizPage && (
+            <Header title={roleTitle} className="lg:hidden" />
+          )}
+          <main
+            className={`${isTutorialPage || isQuizPage || isPracticeExamPage || isStudentDashboardPage ? "" : "lg:px-4"} h-full bg-white`}
+          >
             <Outlet context={{ selectedSubject, setSelectedSubject }} />
           </main>
         </div>

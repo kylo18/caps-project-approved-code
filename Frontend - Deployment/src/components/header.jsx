@@ -109,6 +109,28 @@ const AdminHeader = ({ title }) => {
   // Store a persistent color for the avatar per user
   const [avatarColor, setAvatarColor] = useState("bg-gray-300");
 
+  // Dark mode toggle
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => localStorage.getItem("theme") === "dark",
+  );
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDarkMode);
+    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+    // Let other components (like sidebar) stay in sync.
+    window.dispatchEvent(new Event("themechange"));
+  }, [isDarkMode]);
+
+  // Keep state in sync if another component (e.g. sidebar) toggles the theme.
+  useEffect(() => {
+    const handler = () =>
+      setIsDarkMode(document.documentElement.classList.contains("dark"));
+    window.addEventListener("themechange", handler);
+    return () => window.removeEventListener("themechange", handler);
+  }, []);
+
+  const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
+
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Refs for modal content
@@ -521,34 +543,6 @@ const AdminHeader = ({ title }) => {
           </span>
         </div>
 
-        {/* Actions Button for notifications */}
-        <div className="z-10 flex w-1/4 items-center justify-end gap-1 text-right sm:gap-2">
-          {/* Opens the notification drawer; the badge is shown when unreadCount > 0. */}
-          <button
-            type="button"
-            onClick={() => setShowNotificationPanel(true)}
-            title={userInfo?.roleID === 1 ? "Notifications" : "Student Messages"}
-            className="relative border-color flex cursor-pointer items-center gap-1 rounded-lg border bg-white px-2 py-1.5 text-gray-800 shadow-sm transition hover:bg-gray-100 dark:border-white/10 dark:bg-[var(--color-bg-secondary)] dark:text-white dark:hover:bg-[var(--color-bg-tertiary)]"
-          >
-            <i className="bx bx-bell text-[20px]"></i>
-            {notificationUnreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-orange-500"></span>
-            )}
-          </button>
-
-          {/* Help Button */}
-          <button
-            type="button"
-            onClick={() => setShowHelpModal(true)}
-            title={userInfo?.roleID === 1 ? "Help Center" : "Create Announcement"}
-            className="border-color flex cursor-pointer items-center gap-1 rounded-lg border bg-white px-2 py-1.5 text-gray-800 shadow-sm transition hover:bg-gray-100 dark:border-white/10 dark:bg-[var(--color-bg-secondary)] dark:text-white dark:hover:bg-[var(--color-bg-tertiary)]"
-          >
-            <i className="bx bx-message-question-mark text-md ml-1"></i>
-            <span className="hidden sm:inline pr-1.5 text-[14px]">
-              {userInfo?.roleID === 1 ? "Help" : "Announce"}
-            </span>
-          </button>
-
           {/* Three-dot Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
@@ -568,8 +562,8 @@ const AdminHeader = ({ title }) => {
 
             {/* Dropdown Buttons */}
             {dropdownOpen && (
-              <div className="fade-in absolute top-[44px] right-[-10px] z-51 w-60 rounded-md border border-gray-300 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-[var(--color-bg-secondary)]">
-                <div className="flex items-center gap-3 border-gray-200 px-2 py-3 dark:border-white/10">
+              <div className="fade-in 4] absolute top-[44px] right-[-10px] z-51 w-60 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
+                <div className="flex items-center gap-3 border-gray-200 px-2 py-3">
                   <div
                     className={`flex h-8 w-10 items-center justify-center rounded-full ${userInfo ? avatarColor : "bg-gray-300"} text-sm font-bold text-white`}
                   >
@@ -614,13 +608,35 @@ const AdminHeader = ({ title }) => {
                 </button>
 
                 <button
-                  onClick={toggleTheme}
-                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-gray-800 transition duration-200 ease-in-out hover:bg-gray-100 dark:text-white dark:hover:bg-gray-800"
+                  onClick={() => {
+                    alert("Dark Mode is coming soon");
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
                   <i
-                    className={`bx ${isDark ? "bx-sun" : "bx-moon"} mr-2 text-[16px]`}
+                    className={`bx ${isDarkMode ? "bx-sun" : "bx-moon"} mr-2 text-[16px]`}
                   ></i>{" "}
-                  {isDark ? "Light Mode" : "Dark Mode"}
+                  Dark Mode
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (title !== "Student") {
+                      window.open(
+                        "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
+                        "_blank",
+                      );
+                    } else {
+                      window.open(
+                        "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&gid=1756766640#gid=1756766640",
+                        "_blank",
+                      );
+                    }
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                >
+                  <i className="bx bx-message-question-mark mr-2 text-[16px]"></i>{" "}
+                  Support
                 </button>
 
                 <button

@@ -21,6 +21,55 @@ const Sidebar = ({
   const [isSubjectFocused, setIsSubjectFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [activeMenu, setActiveMenu] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [isChangePasswordSubmitting, setIsChangePasswordSubmitting] =
+    useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [formData, setFormData] = useState({
+    password: "",
+    new_password: "",
+    new_password_confirmation: "",
+  });
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [profileFormData, setProfileFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    userCode: "",
+  });
+  const [isProfileSubmitting, setIsProfileSubmitting] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState("");
+  const [wasProfileModalOpen, setWasProfileModalOpen] = useState(false);
+  const [avatarColor, setAvatarColor] = useState("bg-gray-300");
+
+  // Dark mode toggle (shared via `theme` in localStorage + `html.dark`)
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => localStorage.getItem("theme") === "dark",
+  );
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDarkMode);
+    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+    window.dispatchEvent(new Event("themechange"));
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    const handler = () =>
+      setIsDarkMode(document.documentElement.classList.contains("dark"));
+    window.addEventListener("themechange", handler);
+    return () => window.removeEventListener("themechange", handler);
+  }, []);
+
   const sidebarRef = useRef();
 
   const location = useLocation();
@@ -94,7 +143,10 @@ const Sidebar = ({
 
   let menuItems = [];
 
-  if (parsedRoleId !== 1) {
+  if (parsedRoleId === 1) {
+    // Student menu items: Home, Classes, Sessions
+    menuItems = [...baseMenuItems, classItem, sessionsItem];
+  } else {
     // if NOT student
     menuItems = [...baseMenuItems];
 
@@ -120,29 +172,146 @@ const Sidebar = ({
   if (isMobile) {
     return (
       <>
-        <div className="fixed right-0 bottom-0 left-0 z-50 border-t border-gray-300 bg-white/95 px-6 py-2 backdrop-blur-md min-[500px]:px-9 dark:border-white/10 dark:bg-black/95">
-          <div className="flex items-center justify-between">
-            {/* Left side - Users and Print }
-            <div className="flex items-center gap-5 min-[345px]:gap-8 min-[500px]:gap-18">
-              {menuItems
-                .filter(
-                  (item) =>
-                    item.label === "Users" ||
-                    item.label === "Print" ||
-                    item.label === "Support" ||
-                    item.label === "Analytics",
-                )
-                .map((item, index) => (
-                  <div key={index} className="flex flex-col items-center">
-                    {item.isButton ? (
-                      <button
-                        onClick={item.onClick}
-                        className="flex flex-col items-center p-2 text-gray-700 transition-colors hover:text-gray-800 dark:text-gray-200 dark:hover:text-white"
+        <div className="fixed right-0 bottom-0 left-0 z-50 flex justify-center pb-4">
+          <div className="border-color mx-4 w-full max-w-md rounded-2xl border border-gray-200 bg-white px-4 py-2 shadow-lg min-[500px]:px-6">
+            <div
+              className={
+                parsedRoleId === 1
+                  ? "flex items-center justify-evenly"
+                  : "flex items-center justify-between gap-8"
+              }
+            >
+              {parsedRoleId === 1 ? (
+                <>
+                  {/* Sessions (student) — left */}
+                  <div className="flex h-16 flex-col items-center justify-center">
+                    <Link
+                      to="/sessions"
+                      onClick={handleMenuClick}
+                      className={`flex flex-col items-center transition-colors ${
+                        isActive("/sessions")
+                          ? "text-orange-600"
+                          : "text-gray-700 hover:text-gray-800"
+                      }`}
+                    >
+                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                        <img
+                          src={
+                            isActive("/sessions") ? SessionsIconH : SessionsIcon
+                          }
+                          alt="Sessions"
+                          className="h-6 w-6 object-contain"
+                        />
+                      </span>
+                      <span className="outfit-500 text-xs">Sessions</span>
+                    </Link>
+                  </div>
+
+                  {/* Home (student, orange circle) — center */}
+                  {homeItem && (
+                    <div className="flex h-16 flex-col items-center justify-center">
+                      <Link
+                        to={homeItem.path}
+                        onClick={handleMenuClick}
+                        className="flex flex-col items-center"
                       >
-                        <i className={`bx ${item.icon} mb-[5px] text-2xl`}></i>
-                        <span className="text-xs">{item.label}</span>
-                      </button>
-                    ) : (
+                        <span className="mb-1 flex items-center justify-center">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 shadow-lg">
+                            <img
+                              src={DashboardIconW}
+                              alt="Dashboard"
+                              className="h-5 w-5 object-contain"
+                            />
+                          </span>
+                        </span>
+                        <span
+                          className={`outfit-500 text-xs ${
+                            isActive(homeItem.path)
+                              ? "text-orange-600"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          Home
+                        </span>
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Classes (student) — right */}
+                  <div className="flex h-16 flex-col items-center justify-center">
+                    <Link
+                      to="/class"
+                      onClick={handleMenuClick}
+                      className={`flex flex-col items-center transition-colors ${
+                        isActive("/class")
+                          ? "text-orange-600"
+                          : "text-gray-700 hover:text-gray-800"
+                      }`}
+                    >
+                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                        <img
+                          src={isActive("/class") ? ClassIconH : ClassIcon}
+                          alt="Classes"
+                          className="h-6 w-6 object-contain"
+                        />
+                      </span>
+                      <span className="outfit-500 text-xs">Classes</span>
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* My Library */}
+                  <div className="flex h-16 flex-1 flex-col items-center justify-center">
+                    <Link
+                      to="/libraries"
+                      onClick={handleMenuClick}
+                      className={`flex flex-col items-center transition-colors ${
+                        isActive("/libraries")
+                          ? "text-orange-600"
+                          : "text-gray-700 hover:text-gray-800"
+                      }`}
+                    >
+                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                        <img
+                          src={
+                            isActive("/libraries")
+                              ? LibrariesIconH
+                              : LibrariesIcon
+                          }
+                          alt="Quizzes"
+                          className="h-6 w-6 object-contain"
+                        />
+                      </span>
+                      <span className="outfit-500 text-xs">Quizzes</span>
+                    </Link>
+                  </div>
+
+                  {/* Classes */}
+                  <div className="flex h-16 flex-1 flex-col items-center justify-center">
+                    <Link
+                      to="/class"
+                      onClick={handleMenuClick}
+                      className={`flex flex-col items-center transition-colors ${
+                        isActive("/class")
+                          ? "text-orange-600"
+                          : "text-gray-700 hover:text-gray-800"
+                      }`}
+                    >
+                      <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                        <img
+                          src={isActive("/class") ? ClassIconH : ClassIcon}
+                          alt="Classes"
+                          className="h-6 w-6 object-contain"
+                        />
+                      </span>
+                      <span className="outfit-500 text-xs">Classes</span>
+                    </Link>
+                  </div>
+
+                  {/* Home (orange circle) */}
+                  {homeItem && (
+                    <div className="flex h-16 flex-1 flex-col items-center justify-center">
                       <Link
                         to={item.path}
                         onClick={handleMenuClick}
@@ -363,14 +532,137 @@ const Sidebar = ({
         className={`fixed top-0 left-0 z-55 h-[100vh] border-r border-gray-300 bg-white px-2 py-3 text-gray-700 transition-all duration-300 ease-in-out dark:border-white/10 dark:bg-black dark:text-gray-200 ${isExpanded ? "w-[55.5px]" : "w-[55.5px]"
           }`}
       >
-        {/* Logo & CAPS text */}
-        <div className="flex cursor-pointer gap-4 rounded-md px-1 py-[4px] hover:bg-gray-100 dark:hover:bg-white/5">
-          <img
-            key={role_id}
-            src={collegeLogo}
-            alt="College Logo"
-            className="size-[32px]"
-          />
+        {/* User Profile Menu Item */}
+        <div className="relative px-3 pt-3" ref={userDropdownRef}>
+          <div
+            onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+            className={`outfit-500 group flex w-full cursor-pointer items-center rounded-[8px] transition-colors ${
+              isUsersPage
+                ? "justify-center px-2 py-1"
+                : "gap-3 bg-[rgb(245,247,246)] px-2 py-2.5 hover:bg-gray-100"
+            }`}
+          >
+            {/* Circle with initial */}
+            <div className="relative">
+              <div
+                className={`flex size-9 items-center justify-center rounded-full ${userInfo ? avatarColor : "bg-gray-300"} font-bold text-white`}
+              >
+                {userInfo?.fullName ? (
+                  (() => {
+                    const parts = userInfo.fullName.trim().split(" ");
+                    const firstInitial = parts[0]?.[0] || "";
+                    const lastInitial =
+                      parts.length > 1 ? parts[parts.length - 1][0] : "";
+                    return (firstInitial + lastInitial).toUpperCase();
+                  })()
+                ) : (
+                  <span className="inline-block size-8 animate-pulse rounded-full bg-gray-300"></span>
+                )}
+              </div>
+            </div>
+
+            {/* Text content */}
+            {!isUsersPage && (
+              <div className="flex flex-1 flex-col">
+                <span className="text-sm font-bold text-gray-700">
+                  {getDisplayName()}
+                </span>
+                <span className="text-xs font-normal text-gray-500">
+                  {getRoleName(role_id)}
+                </span>
+              </div>
+            )}
+
+            {/* Chevron icon */}
+            {!isUsersPage && (
+              <i
+                className={`bx shadow-s flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-[23px] leading-none text-gray-500 ${userDropdownOpen ? "bx-chevron-left" : "bx-chevron-right"} `}
+              ></i>
+            )}
+          </div>
+          {/* Dropdown Menu */}
+          {userDropdownOpen && (
+            <div className="outfit-400 fade-in absolute top-2 left-full z-50 ml-2 w-60 rounded-md border border-gray-300 bg-white p-1 shadow-lg">
+              <div className="flex items-center gap-3 border-gray-200 px-2 py-3">
+                <div
+                  className={`flex h-8 w-10 items-center justify-center rounded-full ${userInfo ? avatarColor : "bg-gray-300"} text-sm font-bold text-white`}
+                >
+                  {userInfo?.fullName ? (
+                    (() => {
+                      const parts = userInfo.fullName.trim().split(" ");
+                      const firstInitial = parts[0]?.[0] || "";
+                      const lastInitial =
+                        parts.length > 1 ? parts[parts.length - 1][0] : "";
+                      return (firstInitial + lastInitial).toUpperCase();
+                    })()
+                  ) : (
+                    <span className="inline-block size-8 animate-pulse rounded-full bg-gray-300"></span>
+                  )}
+                </div>
+
+                <div className="flex w-full flex-col overflow-hidden text-sm">
+                  <span className="overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-gray-800">
+                    {userInfo?.fullName ? (
+                      userInfo.fullName
+                    ) : (
+                      <span className="inline-block h-4 w-24 animate-pulse rounded bg-gray-200"></span>
+                    )}
+                  </span>
+                  <span className="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-gray-500">
+                    {userInfo?.email ? (
+                      userInfo.email
+                    ) : (
+                      <span className="inline-block h-3 w-32 animate-pulse rounded bg-gray-200"></span>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mx-1 h-[1px] bg-[rgb(200,200,200)]" />
+              <button
+                onClick={() => {
+                  setUserDropdownOpen(false);
+                  setShowProfileModal(true);
+                }}
+                className="mt-1 flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+              >
+                <i className="bx bx-cog mr-2 text-[16px]"></i> Settings
+              </button>
+
+              <button
+                onClick={() => {
+                  alert("Dark Mode is coming soon");
+                }}
+                className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+              >
+                <i
+                  className={`bx ${isDarkMode ? "bx-sun" : "bx-moon"} mr-2 text-[16px]`}
+                ></i>{" "}
+                Dark Mode
+              </button>
+
+              <button
+                onClick={() => setShowLogoutModal(true)}
+                className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+              >
+                <i className="bx bx-arrow-out-right-square-half mr-2 text-[16px]"></i>{" "}
+                {isLoggingOut ? (
+                  <div className="flex items-center justify-center">
+                    <span className="">Logging out...</span>
+                  </div>
+                ) : (
+                  "Log out"
+                )}
+              </button>
+            </div>
+          )}
+          {/* Separator */}
+          <div className="mt-2 mb-4 h-[1.5px] w-full bg-gray-200"></div>{" "}
+          {!isUsersPage && (
+            <div className="outfit-500 px-2 text-[12px] font-semibold text-gray-500">
+              MAIN{" "}
+            </div>
+          )}
         </div>
 
         {/* Sidebar menu items */}

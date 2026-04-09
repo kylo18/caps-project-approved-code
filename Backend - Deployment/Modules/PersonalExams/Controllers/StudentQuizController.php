@@ -135,31 +135,33 @@ class StudentQuizController extends Controller
             $attemptCount = $previousAttempts->count();
             $nextAttemptNumber = $attemptCount + 1;
 
-            // Check availability
+            // Check availability (class assignment dates take priority over setting dates)
             $now = now();
             $isAvailable = true;
             $availabilityMessage = null;
             $availabilityDetails = [];
+            $effectiveStartDate = $classQuizAssignment->startDate ?: ($settings ? $settings->startTime : null);
+            $effectiveEndDate = $classQuizAssignment->deadlineDate ?: ($settings ? $settings->endTime : null);
 
-            // Check class-level dates
-            if ($classQuizAssignment->startDate && $now < $classQuizAssignment->startDate) {
+            // Check effective start date
+            if ($effectiveStartDate && $now < $effectiveStartDate) {
                 $isAvailable = false;
                 $availabilityMessage = 'Quiz is not yet available.';
                 $availabilityDetails[] = [
                     'type' => 'start_date',
-                    'message' => 'Available from: ' . $classQuizAssignment->startDate->format('M d, Y H:i'),
-                    'date' => $classQuizAssignment->startDate,
+                    'message' => 'Available from: ' . $effectiveStartDate->format('M d, Y H:i'),
+                    'date' => $effectiveStartDate,
                 ];
             }
 
-            if ($classQuizAssignment->deadlineDate) {
+            if ($effectiveEndDate) {
                 $availabilityDetails[] = [
                     'type' => 'deadline_date',
-                    'message' => 'Deadline: ' . $classQuizAssignment->deadlineDate->format('M d, Y H:i'),
-                    'date' => $classQuizAssignment->deadlineDate,
+                    'message' => 'Deadline: ' . $effectiveEndDate->format('M d, Y H:i'),
+                    'date' => $effectiveEndDate,
                 ];
 
-                if ($now > $classQuizAssignment->deadlineDate) {
+                if ($now > $effectiveEndDate) {
                     if (!$settings || !$settings->allowLateSubmission) {
                         $isAvailable = false;
                         $availabilityMessage = 'Quiz deadline has passed.';
@@ -174,7 +176,7 @@ class StudentQuizController extends Controller
 
             // Check quiz-level settings
             if ($settings) {
-                if ($settings->startTime && $now < $settings->startTime) {
+                if (!$classQuizAssignment->startDate && $settings->startTime && $now < $settings->startTime) {
                     $isAvailable = false;
                     $availabilityMessage = 'Quiz is not yet available.';
                     $availabilityDetails[] = [
@@ -184,7 +186,7 @@ class StudentQuizController extends Controller
                     ];
                 }
 
-                if ($settings->endTime) {
+                if (!$classQuizAssignment->deadlineDate && $settings->endTime) {
                     $availabilityDetails[] = [
                         'type' => 'quiz_end_time',
                         'message' => 'Quiz ends at: ' . $settings->endTime->format('M d, Y H:i'),
@@ -436,20 +438,20 @@ class StudentQuizController extends Controller
             $quiz = $classQuizAssignment->personalQuiz;
             $settings = $classQuizAssignment->setting;
 
-            // Check availability
+            // Check availability (class assignment dates take priority over setting dates)
             $now = now();
-            $isAvailable = true;
-            $availabilityMessage = null;
+            $effectiveStartDate = $classQuizAssignment->startDate ?: ($settings ? $settings->startTime : null);
+            $effectiveEndDate = $classQuizAssignment->deadlineDate ?: ($settings ? $settings->endTime : null);
 
-            // Check class-level dates
-            if ($classQuizAssignment->startDate && $now < $classQuizAssignment->startDate) {
+            // Check effective start date
+            if ($effectiveStartDate && $now < $effectiveStartDate) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Quiz is not yet available. It will be available on ' . $classQuizAssignment->startDate->format('M d, Y H:i'),
+                    'message' => 'Quiz is not yet available. It will be available on ' . $effectiveStartDate->format('M d, Y H:i'),
                 ], 403);
             }
 
-            if ($classQuizAssignment->deadlineDate && $now > $classQuizAssignment->deadlineDate) {
+            if ($effectiveEndDate && $now > $effectiveEndDate) {
                 if (!$settings || !$settings->allowLateSubmission) {
                     return response()->json([
                         'success' => false,
@@ -460,14 +462,14 @@ class StudentQuizController extends Controller
 
             // Check quiz-level settings
             if ($settings) {
-                if ($settings->startTime && $now < $settings->startTime) {
+                if (!$classQuizAssignment->startDate && $settings->startTime && $now < $settings->startTime) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Quiz is not yet available. It will be available on ' . $settings->startTime->format('M d, Y H:i'),
                     ], 403);
                 }
 
-                if ($settings->endTime && $now > $settings->endTime) {
+                if (!$classQuizAssignment->deadlineDate && $settings->endTime && $now > $settings->endTime) {
                     if (!$settings->allowLateSubmission) {
                         return response()->json([
                             'success' => false,

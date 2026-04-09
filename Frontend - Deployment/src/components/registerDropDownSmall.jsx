@@ -35,7 +35,7 @@ const RegisterDropDown = ({ name, value, onChange, options, placeholder }) => {
   };
 
   return (
-    <div className="flex w-full items-center gap-2 text-[14px]">
+    <div className="outfit-400 flex w-full items-center gap-2 text-[14px]">
       <div
         className="relative w-full max-w-full sm:min-w-[180px]"
         ref={dropdownRef}

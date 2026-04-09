@@ -618,8 +618,10 @@ const ClassContent = () => {
         "success",
       );
 
-      // After assigning, refresh available quizzes so the assigned one disappears
+      // Refresh both available quizzes (remove the just-assigned one) and
+      // the assigned quizzes list (so the new entry appears immediately).
       fetchQuizzes();
+      fetchAssignedQuizzes();
       setSelectedQuizId(null);
       setQuizStartDate("");
       setQuizDeadlineDate("");
