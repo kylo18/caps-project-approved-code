@@ -105,7 +105,8 @@ export default function LoginPage() {
 
   //  new added: for google login
   const handleGoogleLogin = () => {
-    window.location.href = `${apiUrl}/auth/google`;
+    const frontendUrl = window.location.origin; // e.g. http://192.168.1.17:5173
+    window.location.href = `${apiUrl}/auth/google/redirect?frontend_url=${encodeURIComponent(frontendUrl)}`;
   };
 
   return (

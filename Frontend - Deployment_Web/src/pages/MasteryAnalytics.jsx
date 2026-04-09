@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";    //this is for mastery analytics page
 import { useNavigate } from "react-router-dom";
 
 const tierLabel = (pct) => {

@@ -20,22 +20,23 @@ const ScoreHistory = () => {
       setLoading(true);
       try {
         const token = sessionStorage.getItem("token");
-        // Try dedicated endpoint first
-        const res  = await fetch(`${apiUrl}/practice-exam/score-history`, {
+        const res = await fetch(`${apiUrl}/practice-exam/history`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
-          setHistory(data.history || data || []);
-        } else {
-          // Fallback: derive from sessions/results endpoint
-          const r2   = await fetch(`${apiUrl}/practice-exam/results`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (r2.ok) {
-            const d2 = await r2.json();
-            setHistory(d2.results || d2 || []);
-          }
+          // Backend returns { history: [...] }
+          // Normalize fields: percentage -> score, created_at -> completedAt
+          // passed = percentage >= 75
+          const raw = data.history || [];
+          const normalized = raw.map((item, i) => ({
+            ...item,
+            score:         Math.round(item.percentage ?? 0),
+            passed:        (item.percentage ?? 0) >= 75,
+            completedAt:   item.created_at,
+            attemptNumber: i + 1, // backend has no attempt number, derive from order
+          }));
+          setHistory(normalized);
         }
       } catch (e) {
         console.error(e);
@@ -47,7 +48,6 @@ const ScoreHistory = () => {
   }, [apiUrl]);
 
   // ── derive chart data ────────────────────────────────────────
-  // history items expected: { subjectName, score, passed, completedAt, attemptNumber }
   const sorted   = [...history].sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt));
   const filtered = filter === "all" ? sorted : sorted.filter(h => filter === "pass" ? h.passed : !h.passed);
 
@@ -66,18 +66,18 @@ const ScoreHistory = () => {
   const monthAvgs   = monthLabels.map(k => Math.round(monthMap[k].total / monthMap[k].count));
 
   // improvement
-  const withScores = sorted.filter(h => h.score != null);
-  const baseline   = withScores.length >= 2 ? Math.round(withScores.slice(0, Math.ceil(withScores.length / 2)).reduce((s, h) => s + h.score, 0) / Math.ceil(withScores.length / 2)) : null;
-  const current    = withScores.length >= 2 ? Math.round(withScores.slice(-Math.ceil(withScores.length / 2)).reduce((s, h) => s + h.score, 0) / Math.ceil(withScores.length / 2)) : null;
-  const improvement= baseline && current && baseline > 0 ? Math.round(((current - baseline) / baseline) * 100) : null;
-  const avgScore   = withScores.length ? Math.round(withScores.reduce((s, h) => s + h.score, 0) / withScores.length) : null;
-  const passCount  = sorted.filter(h => h.passed).length;
-  const failCount  = sorted.filter(h => !h.passed).length;
+  const withScores  = sorted.filter(h => h.score != null);
+  const half        = Math.ceil(withScores.length / 2);
+  const baseline    = withScores.length >= 2 ? Math.round(withScores.slice(0, half).reduce((s, h) => s + h.score, 0) / half) : null;
+  const current     = withScores.length >= 2 ? Math.round(withScores.slice(-half).reduce((s, h) => s + h.score, 0) / half) : null;
+  const improvement = baseline && current && baseline > 0 ? Math.round(((current - baseline) / baseline) * 100) : null;
+  const avgScore    = withScores.length ? Math.round(withScores.reduce((s, h) => s + h.score, 0) / withScores.length) : null;
+  const passCount   = sorted.filter(h => h.passed).length;
 
   // ── score color ──────────────────────────────────────────────
   const sc = (pct) => pct >= 75 ? "#22A56D" : pct >= 60 ? "#FF6014" : "#E55012";
 
-  const EMPTY = history.length === 0 && !loading;
+  const EMPTY    = history.length === 0 && !loading;
   const tableGrid = isMobile ? "1fr" : "1fr 120px 100px 100px 110px";
 
   return (
@@ -100,10 +100,10 @@ const ScoreHistory = () => {
         {/* ── STAT CARDS ── */}
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
           {[
-            { label: "Total Exams",   value: loading ? "—" : history.length,                         accent: "#FF6014" },
-            { label: "Avg. Score",    value: loading ? "—" : avgScore != null ? `${avgScore}%` : "—", accent: "#22A56D" },
-            { label: "Pass Rate",     value: loading ? "—" : history.length ? `${Math.round((passCount/history.length)*100)}%` : "—", accent: "#3B8BD4" },
-            { label: "Improvement",   value: loading ? "—" : improvement != null ? `${improvement > 0 ? "+" : ""}${improvement}%` : "—", accent: "#7F77DD" },
+            { label: "Total Exams",  value: loading ? "—" : history.length,                                                                accent: "#FF6014" },
+            { label: "Avg. Score",   value: loading ? "—" : avgScore != null ? `${avgScore}%` : "—",                                       accent: "#22A56D" },
+            { label: "Pass Rate",    value: loading ? "—" : history.length ? `${Math.round((passCount / history.length) * 100)}%` : "—",   accent: "#3B8BD4" },
+            { label: "Improvement",  value: loading ? "—" : improvement != null ? `${improvement > 0 ? "+" : ""}${improvement}%` : "—",    accent: "#7F77DD" },
           ].map(c => (
             <div key={c.label} style={{ background: "#fff", borderRadius: 14, padding: 18, border: "1px solid #EAE8E2", position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: c.accent, borderRadius: "14px 14px 0 0" }}/>
@@ -121,9 +121,9 @@ const ScoreHistory = () => {
               {[{ id: "all", label: "All" }, { id: "pass", label: "Passed" }, { id: "fail", label: "Failed" }].map(f => (
                 <button key={f.id} onClick={() => setFilter(f.id)}
                   style={{ fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 20, border: "1px solid", cursor: "pointer", transition: "all 0.15s",
-                    background: filter === f.id ? "#FF6014" : "#fff",
-                    color:      filter === f.id ? "#fff"    : "#9B9790",
-                    borderColor:filter === f.id ? "#FF6014" : "#EAE8E2" }}>
+                    background:  filter === f.id ? "#FF6014" : "#fff",
+                    color:       filter === f.id ? "#fff"    : "#9B9790",
+                    borderColor: filter === f.id ? "#FF6014" : "#EAE8E2" }}>
                   {f.label}
                 </button>
               ))}
@@ -138,7 +138,6 @@ const ScoreHistory = () => {
               <EmptyState message="No data for selected filter." height={chartH}/>
             ) : (
               <div>
-                {/* Simple bar chart */}
                 <div style={{ height: chartH, display: "flex", alignItems: "flex-end", gap: 10, padding: "0 4px" }}>
                   {monthLabels.map((m, i) => {
                     const h = Math.round((monthAvgs[i] / maxScore) * (chartH - 30));
@@ -151,7 +150,6 @@ const ScoreHistory = () => {
                     );
                   })}
                 </div>
-                {/* Pass threshold line label */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
                   <div style={{ width: 20, height: 2, background: "#22A56D", borderRadius: 2 }}/>
                   <span style={{ fontSize: 11, color: "#9B9790" }}>Pass threshold: 75%</span>
@@ -173,7 +171,7 @@ const ScoreHistory = () => {
             <span style={{ fontSize: 12, color: "#9B9790" }}>{filtered.length} records</span>
           </div>
 
-          {/* Header */}
+          {/* Header row (desktop only) */}
           {!isMobile && (
             <div style={{ display: "grid", gridTemplateColumns: tableGrid, gap: 12, padding: "10px 20px", background: "#F8F6F3" }}>
               {["Subject", "Date", "Score", "Status", "Attempt"].map((h, i) => (
@@ -191,17 +189,17 @@ const ScoreHistory = () => {
           ) : EMPTY || filtered.length === 0 ? (
             <EmptyState message={EMPTY ? "No exams taken yet. Start your first practice exam!" : "No results match this filter."} height={160}/>
           ) : (
-            <div style={{ display: "grid", gap: 12, padding: isMobile ? "12px" : "0" }}>
+            <div style={{ display: "grid", gap: isMobile ? 12 : 0, padding: isMobile ? "12px" : "0" }}>
               {filtered.map((h, i) => {
                 const date  = h.completedAt ? new Date(h.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
                 const color = sc(h.score ?? 0);
+
                 return isMobile ? (
-                  <div key={i} style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                  <div key={h.resultID ?? i} style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1814" }}>{h.subjectName || "Practice Exam"}</div>
                       <div style={{ fontSize: 12, color: "#9B9790" }}>{date}</div>
                     </div>
-                    {h.subjectCode && <div style={{ fontSize: 11, color: "#9B9790", marginBottom: 12 }}>{h.subjectCode}</div>}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                       <div style={{ background: "#F8F6F3", borderRadius: 12, padding: 12 }}>
                         <div style={{ fontSize: 10, color: "#9B9790", marginBottom: 4 }}>Score</div>
@@ -213,19 +211,24 @@ const ScoreHistory = () => {
                           {h.passed ? "Passed" : "Failed"}
                         </span>
                       </div>
-                      <div style={{ background: "#F8F6F3", borderRadius: 12, padding: 12, gridColumn: "span 2" }}>
+                      <div style={{ background: "#F8F6F3", borderRadius: 12, padding: 12 }}>
+                        <div style={{ fontSize: 10, color: "#9B9790", marginBottom: 4 }}>Points</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#1A1814" }}>{h.earnedPoints ?? "—"} / {h.totalPoints ?? "—"}</div>
+                      </div>
+                      <div style={{ background: "#F8F6F3", borderRadius: 12, padding: 12 }}>
                         <div style={{ fontSize: 10, color: "#9B9790", marginBottom: 4 }}>Attempt</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1814" }}>#{h.attemptNumber ?? i + 1}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1814" }}>#{h.attemptNumber}</div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: tableGrid, gap: 12, padding: "13px 20px", borderBottom: "1px solid #F8F6F3", alignItems: "center", transition: "background 0.1s" }}
+                  <div key={h.resultID ?? i}
+                    style={{ display: "grid", gridTemplateColumns: tableGrid, gap: 12, padding: "13px 20px", borderBottom: "1px solid #F8F6F3", alignItems: "center", transition: "background 0.1s" }}
                     onMouseEnter={e => e.currentTarget.style.background = "#FFFAF7"}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 500, color: "#1A1814" }}>{h.subjectName || "Practice Exam"}</div>
-                      {h.subjectCode && <div style={{ fontSize: 11, color: "#9B9790", marginTop: 1 }}>{h.subjectCode}</div>}
+                      <div style={{ fontSize: 11, color: "#9B9790", marginTop: 1 }}>{h.earnedPoints ?? "—"} / {h.totalPoints ?? "—"} pts</div>
                     </div>
                     <div style={{ textAlign: "center", fontSize: 12, color: "#5C5955" }}>{date}</div>
                     <div style={{ textAlign: "center" }}>
@@ -236,7 +239,7 @@ const ScoreHistory = () => {
                         {h.passed ? "Passed" : "Failed"}
                       </span>
                     </div>
-                    <div style={{ textAlign: "center", fontSize: 12, color: "#9B9790" }}>#{h.attemptNumber ?? i + 1}</div>
+                    <div style={{ textAlign: "center", fontSize: 12, color: "#9B9790" }}>#{h.attemptNumber}</div>
                   </div>
                 );
               })}

@@ -101,6 +101,7 @@ const Sidebar = ({
   isSubjectExpanded,
   setIsSubjectExpanded,
 }) => {
+  const [showMoreDrawer, setShowMoreDrawer] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1025);
   const collegeLogo = new URL("/college-logo.png", import.meta.url).href;
   const [isSubjectFocused, setIsSubjectFocused] = useState(false);
@@ -136,6 +137,9 @@ const Sidebar = ({
   const [profileSuccess, setProfileSuccess] = useState("");
   const [wasProfileModalOpen, setWasProfileModalOpen] = useState(false);
   const [avatarColor, setAvatarColor] = useState("bg-gray-300");
+  // new added: Analytics popup state and ref
+  const [showAnalyticsPopup, setShowAnalyticsPopup] = useState(false);
+  const analyticsRef = useRef(null);
   const sidebarRef = useRef();
   const userDropdownRef = useRef(null);
   const profileModalRef = useRef(null);
@@ -236,6 +240,30 @@ const Sidebar = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  // Close More drawer when clicking outside
+  useEffect(() => {
+    if (!showMoreDrawer) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest("[data-more-popup]")) {
+        setShowMoreDrawer(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showMoreDrawer]);
+
+  //new added: Close Analytics popup when clicking outside
+  useEffect(() => {
+    if (!showAnalyticsPopup) return;
+    const handleClickOutside = (e) => {
+      if (analyticsRef.current && !analyticsRef.current.contains(e.target)) {
+        setShowAnalyticsPopup(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showAnalyticsPopup]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -529,25 +557,27 @@ const Sidebar = ({
     { icon: "bx-home-alt-3", label: "Home", path: homePath },
   ];
   const librariesItem = {
-    label: "Quizzes",
+    label: "Quizzes", //this is for quizzes in sidebar
     path: "/libraries",
   };
   const sessionsItem = {
-    label: "Sessions",
+    label: "Sessions",  //this is for Sessions in sidebar
     path: "/sessions",
   };
   const classItem = {
-    label: "Classes",
+    label: "Classes",   //this is for Classes in sidebar
     path: "/class",
   };
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
   const classes = [{ icon: "bx-book-bookmark", label: "Subjects" }];
-  const analyticsMenuItems = [
+  const analyticsMenuItems = [  //this is for achievements, leaderboards, content analytics, difficult analytics in sidebar
     { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
     { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart"},
     { label: "Content Analytics", path: "/analytics/content-analytics", icon: "bx bx-file" },
     { label: "Difficult Analytics", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
   ];
+  
+
   const studentSubjectsItem = {
     label: "Subjects",
     path: "/student/subjects",
@@ -613,14 +643,13 @@ const Sidebar = ({
   if (isMobile) {
     const homeItem = menuItems.find((item) => item.label === "Home");
     const mobileNavItems = parsedRoleId === 1
-    ? [
-      { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
+    ? [ //this is for buttom menus in mobile view, this is for student only
+      
       { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart" },
       { label: "Classes", path: "/class", image: ClassIcon, activeImage: ClassIconH },
       { label: "Home", path: homeItem?.path || "/", icon: "bx-home-alt-3", home: true },
       { label: "Sessions", path: "/sessions", image: SessionsIcon, activeImage: SessionsIconH },
-      { label: "Content", path: "/analytics/content-analytics", icon: "bx bx-file" },
-      { label: "Difficult", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
+      { label: "More", path: null, icon: "bx bx-dots-horizontal-rounded", more: true },
     ]
     : [
       { label: "Classes",  path: "/class",     image: ClassIcon,    activeImage: ClassIconH    },
@@ -632,46 +661,96 @@ const Sidebar = ({
       <>
         <div className="fixed right-0 bottom-0 left-0 z-50 flex justify-center pb-4">
           <div className="border-color mx-4 w-full max-w-md rounded-2xl border border-gray-200 bg-white px-2 py-2 shadow-lg min-[500px]:px-4">
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-5 gap-1">
               {mobileNavItems.map((item) => (
                 <div
                   key={item.label}
                   className="flex h-14 flex-col items-center justify-center"
                 >
-                  <Link
-                    to={item.path}
-                    onClick={handleMenuClick}
-                    className={`flex flex-col items-center transition-colors ${
-                      isActive(item.path)
-                        ? "text-orange-600"
-                        : "text-gray-700 hover:text-gray-800"
-                    }`}
-                  >
-                    <span
-                      className={`mb-1 flex items-center justify-center ${
-                        item.home
-                          ? "h-10 w-10 rounded-full bg-orange-500 shadow-lg"
-                          : "h-6 w-6"
+                  {item.more ? (
+                    <div className="relative flex flex-col items-center" data-more-popup>
+                      <button
+                        onClick={() => setShowMoreDrawer((prev) => !prev)}
+                        className={`flex flex-col items-center transition-colors ${
+                          showMoreDrawer ? "text-orange-500" : "text-gray-700 hover:text-gray-800"
+                        }`}
+                      >
+                        <span className="mb-1 flex h-6 w-6 items-center justify-center">
+                          <i className="bx bx-dots-horizontal-rounded text-[20px]"></i>
+                        </span>
+                        <span className="outfit-500 text-[9px] leading-4 text-center">More</span>
+                      </button>
+
+                      {/* Popup box above More button */}
+                      {showMoreDrawer && (
+                        <div className="absolute bottom-[52px] right-[-60px] z-[70] w-[200px] rounded-2xl border border-gray-200 bg-white shadow-xl p-3">
+                          {/* Arrow pointer */}
+                          <div className="absolute bottom-[-7px] right-[72px] h-3 w-3 rotate-45 border-b border-r border-gray-200 bg-white"></div>
+
+                          <p className="outfit-500 mb-2 px-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                            More options
+                          </p>
+                          <div className="flex flex-col gap-1">
+                            {[
+                              { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
+                              { label: "Content", path: "/analytics/content-analytics", icon: "bx bx-file" },
+                              { label: "Difficult", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
+                              { label: "Enhancement", path: "/analytics/enhancement", icon: "bx bx-bar-chart-square" },
+                            ].map((moreItem) => (
+                              <Link
+                                key={moreItem.label}
+                                to={moreItem.path}
+                                onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                                className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${
+                                  isActive(moreItem.path)
+                                    ? "bg-orange-50 text-orange-600"
+                                    : "text-gray-600"
+                                }`}
+                              >
+                                <i className={`${moreItem.icon} text-[18px]`}></i>
+                                <span className="outfit-500 text-[13px]">{moreItem.label}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      to={item.path}
+                      onClick={handleMenuClick}
+                      className={`flex flex-col items-center transition-colors ${
+                        isActive(item.path)
+                          ? "text-orange-600"
+                          : "text-gray-700 hover:text-gray-800"
                       }`}
                     >
-                      {item.image ? (
-                        <img
-                          src={isActive(item.path) ? item.activeImage : item.image}
-                          alt={item.label}
-                          className={`object-contain ${item.home ? "h-5 w-5" : "h-5 w-5"}`}
-                        />
-                      ) : (
-                        <i
-                          className={`${item.icon} text-[18px] ${
-                            item.home ? "text-white" : ""
-                          }`}
-                        ></i>
-                      )}
-                    </span>
-                    <span className="outfit-500 text-[9px] leading-4 text-center">
-                      {item.label}
-                    </span>
-                  </Link>
+                      <span
+                        className={`mb-1 flex items-center justify-center ${
+                          item.home
+                            ? "h-10 w-10 rounded-full bg-orange-500 shadow-lg"
+                            : "h-6 w-6"
+                        }`}
+                      >
+                        {item.image ? (
+                          <img
+                            src={isActive(item.path) ? item.activeImage : item.image}
+                            alt={item.label}
+                            className="h-5 w-5 object-contain"
+                          />
+                        ) : (
+                          <i
+                            className={`${item.icon} text-[20px] ${
+                              item.home ? "text-white" : ""
+                            }`}
+                          ></i>
+                        )}
+                      </span>
+                      <span className="outfit-500 text-[9px] leading-4 text-center">
+                        {item.label}
+                      </span>
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>
@@ -687,18 +766,7 @@ const Sidebar = ({
 
   // Desktop sidebar
   const handleSupportClick = () => {
-    const roleName = getRoleName(role_id);
-    if (roleName === "Student") {
-      window.open(
-        "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&gid=1756766640#gid=1756766640",
-        "_blank",
-      );
-    } else {
-      window.open(
-        "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
-        "_blank",
-      );
-    }
+    navigate("/support");
   };
 
   return (
@@ -839,10 +907,11 @@ const Sidebar = ({
           <div className="mt-2 mb-4 h-[1.5px] w-full bg-gray-200"></div>{" "}
           {!isUsersPage && (
             <div className="outfit-500 px-2 text-[12px] font-semibold text-gray-500">
-              MAIN{" "}
-            </div>
+              MAIN{" "} 
+            </div>//this is for main
           )}
         </div>
+        
         {/* Sidebar menu items */}
         <ul className="mt-2 mb-3 space-y-[5px] px-0">
           {menuItems.map((item, index) => {
@@ -979,53 +1048,89 @@ const Sidebar = ({
                 ANALYTICS
               </div>
               <ul className="mt-2 space-y-[5px] px-0">
-                {analyticsMenuItems.map((item, idx) => (
-                  <li key={idx} className="group relative">
-                    <span
-                      className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                        isActive(item.path) ? "bg-orange-500" : "bg-transparent"
-                      }`}
-                    ></span>
-                    <div className="px-3">
-                      <Link
-                        to={item.path}
-                        onClick={handleMenuClick}
-                        className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                          isUsersPage
-                            ? "justify-center py-[10px]"
-                            : "justify-start py-[6px]"
-                        } ${
-                          isActive(item.path)
-                            ? "bg-gray-100 text-orange-600"
-                            : "hover:text-gray-800"
-                        }`}
-                      >
-                        <div
-                          className={`flex items-center ${
-                            isUsersPage ? "justify-center" : "ml-3 gap-3"
-                          }`}
-                        >
-                          <i
-                            className={`bx ${item.icon} flex-shrink-0 ${
-                              isUsersPage ? "text-[20px]" : "text-[18px]"
-                            }`}
-                          ></i>
-                          {!isUsersPage && (
-                            <span
-                              className={`outfit-500 text-[15px] whitespace-nowrap ${
-                                isActive(item.path)
-                                  ? "font-[18px] text-black"
-                                  : "text-gray-600"
+
+                {/* Analytics popup trigger */}
+                <li className="group relative" ref={analyticsRef}>
+                  <span
+                    className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
+                      showAnalyticsPopup ? "bg-orange-500" : "bg-transparent"
+                    }`}
+                  ></span>
+                  <div className="px-3">
+                    <button
+                      onClick={() => setShowAnalyticsPopup((prev) => !prev)}
+                      className={`flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 ${
+                        isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                      } ${showAnalyticsPopup ? "bg-gray-100" : ""}`}
+                    >
+                      <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-3"}`}>
+                        <i className={`bx bx-bar-chart-alt-2 flex-shrink-0 ${isUsersPage ? "text-[20px]" : "text-[18px]"} ${showAnalyticsPopup ? "text-orange-500" : "text-gray-600"}`}></i>
+                        {!isUsersPage && (
+                          <span className={`outfit-500 text-[15px] whitespace-nowrap ${showAnalyticsPopup ? "text-black" : "text-gray-600"}`}>
+                            Analytics
+                          </span>
+                        )}
+                        {!isUsersPage && (
+                          <i className={`bx ${showAnalyticsPopup ? "bx-chevron-up" : "bx-chevron-down"} ml-auto text-[16px] text-gray-400`}></i>
+                        )}
+                      </div>
+                    </button>
+
+                    {/* new added: Popup box */}
+                    {showAnalyticsPopup && (
+                      <div className="absolute left-full top-0 z-[70] ml-2 w-[210px] rounded-2xl border border-gray-200 bg-white shadow-xl p-3">
+                        {/* Arrow pointer */}
+                        <div className="absolute left-[-7px] top-4 h-3 w-3 rotate-45 border-b border-l border-gray-200 bg-white"></div>
+                        <p className="outfit-500 mb-2 px-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                          Analytics
+                        </p>
+                        <div className="flex flex-col gap-1">
+                          {analyticsMenuItems.map((item) => (
+                            <Link
+                              key={item.label}
+                              to={item.path}
+                              onClick={() => { setShowAnalyticsPopup(false); handleMenuClick(); }}
+                              className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${
+                                isActive(item.path) ? "bg-orange-50 text-orange-600" : "text-gray-600"
                               }`}
                             >
-                              {item.label}
-                            </span>
-                          )}
+                              <i className={`${item.icon} text-[18px]`}></i>
+                              <span className="outfit-500 text-[13px]">{item.label}</span>
+                            </Link>
+                          ))}
                         </div>
-                      </Link>
-                    </div>
-                  </li>
-                ))}
+                      </div>
+                    )}
+                  </div>
+                </li>
+
+                {/* new added: Enhancement link */}
+                <li className="group relative">
+                  <span
+                    className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
+                      isActive("/analytics/enhancement") ? "bg-orange-500" : "bg-transparent"
+                    }`}
+                  ></span>
+                  <div className="px-3">
+                    <Link
+                      to="/analytics/enhancement"
+                      onClick={handleMenuClick}
+                      className={`flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 ${
+                        isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                      } ${isActive("/analytics/enhancement") ? "bg-gray-100 text-orange-600" : ""}`}
+                    >
+                      <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-3"}`}>
+                        <i className={`bx bx-bar-chart-square flex-shrink-0 ${isUsersPage ? "text-[20px]" : "text-[18px]"} ${isActive("/analytics/enhancement") ? "text-orange-500" : "text-gray-600"}`}></i>
+                        {!isUsersPage && (
+                          <span className={`outfit-500 text-[15px] whitespace-nowrap ${isActive("/analytics/enhancement") ? "text-black" : "text-gray-600"}`}>
+                            Enhancement
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  </div>
+                </li>
+
               </ul>
             </li>
           )}
@@ -1643,9 +1748,9 @@ const Sidebar = ({
                   alt="Support"
                   className="size-[20px] flex-shrink-0"
                 />
-                {!isUsersPage && (
+                {!isUsersPage && ( //this is for help and support
                   <span className="outfit-500 text-[15px] whitespace-nowrap text-gray-600">
-                    Support
+                    Help & Support
                   </span>
                 )}
               </div>

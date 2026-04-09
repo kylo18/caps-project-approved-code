@@ -38,9 +38,9 @@ import PrintQualifyingExam from "./pages/PrintQualifyingExam";
 import PrintPersonalQuiz from "./pages/PrintPersonalQuiz";
 import SubjectOverview from "./pages/SubjectOverview";
 
-import Libraries from "./pages/Libraries";
-import Sessions from "./pages/Sessions";
-import Reports from "./pages/Reports";
+import Libraries from "./pages/Libraries";  //this is for quizzes in sidebar
+import Sessions from "./pages/Sessions";    //this is for Sessions in sidebar
+import Reports from "./pages/Reports";     
 import Class from "./pages/Class";
 import ClassContent from "./pages/ClassContent";
 import StudentClasses from "./pages/StudentClasses";
@@ -59,6 +59,12 @@ import QuizInfo from "./pages/QuizInfo";
 import StudentQuiz from "./pages/StudentQuiz";
 import StudentQuizResults from "./pages/StudentQuizResults";
 
+//new added: this is for support page
+import SupportPage from "./pages/SupportPage";
+
+//new added: this is for student enhancement page
+import StudentEnhancement from "./pages/StudentEnhancement"; // adjust path if needed
+
 function App() {
   return (
     <Router>
@@ -70,7 +76,9 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
         <Route path="/team-caps" element={<Credits />} />
+        {/*<Route path="/google-auth-callback" element={<GoogleAuthCallback />} />*/}
         <Route path="/google-auth-callback" element={<GoogleAuthCallback />} />
+        <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
 
         {/* Public Landing Page */}
         <Route path="/landing" element={<LandingPage />} />
@@ -321,11 +329,28 @@ function App() {
           <Route index element={<StudentQuizResults />} />
         </Route>
 
+        
+        <Route  //new added: for support page
+          path="/support"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<SupportPage />} />
+        </Route>
+
         {/* Users Route */}
         <Route path="/users" element={<ProtectedRoute element={<Layout />} />}>
           <Route index element={<Users />} />
           <Route path="users" element={<Users />} />
         </Route>
+
+        {/*new added: for student enhancement page */}
+        <Route
+          path="/analytics/enhancement"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<StudentEnhancement />} />
+        </Route>
+
       </Routes>
     </Router>
   );

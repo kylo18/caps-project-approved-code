@@ -1,79 +1,148 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useToast from "../hooks/useToast";
-import Toast from "../components/Toast";
-
-function parseJwt(token) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => `%${(`00${c.charCodeAt(0).toString(16)}`).slice(-2)}`)
-        .join(""),
-    );
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    return null;
-  }
-}
+import univLogo from "../assets/univLogo.png";
+import collegeLogo from "/src/assets/college-logo.png";
 
 export default function GoogleAuthCallback() {
   const navigate = useNavigate();
-  const { toast, showToast } = useToast();
-  const [message, setMessage] = useState("Signing you in with Google...");
+  const [status, setStatus] = useState("loading"); // "loading" | "error"
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    const hash = window.location.hash.startsWith("#")
-      ? window.location.hash.substring(1)
-      : window.location.search.substring(1);
-    const params = new URLSearchParams(hash);
-    const error = params.get("error");
-    const idToken = params.get("id_token");
+    const params = new URLSearchParams(window.location.search);
 
-    if (error) {
-      setMessage("Google login failed.");
-      showToast(error || "Google login failed.", "error");
+    // SocialAuthController params
+    const socialToken = params.get("social_token");
+    const socialError = params.get("social_error");
+    const message = params.get("message");
+
+    // GoogleAuthController params (legacy fallback)
+    const legacyToken = params.get("token");
+    const legacyUserRaw = params.get("user");
+    const legacyError = params.get("error");
+
+    // ── Handle errors ─────────────────────────────────
+    if (socialError || legacyError) {
+      const errorMsg = message
+        || (legacyError ? decodeURIComponent(legacyError) : null)
+        || "Authentication failed. Please try again.";
+      setErrorMessage(decodeURIComponent(errorMsg));
+      setStatus("error");
       return;
     }
 
-    if (!idToken) {
-      setMessage("No Google token returned.");
-      showToast("No id_token was returned from Google.", "error");
+    // ── Handle SocialAuthController token ─────────────
+    if (socialToken) {
+      sessionStorage.setItem("token", socialToken);
+
+      // Fetch user profile since SocialAuthController doesn't send user data
+      const fetchUser = async () => {
+        try {
+          const apiUrl = import.meta.env.VITE_API_BASE_URL;
+          const res = await fetch(`${apiUrl}/user/profile`, {
+            headers: { Authorization: `Bearer ${socialToken}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            sessionStorage.setItem("user", JSON.stringify(data));
+            const roleId = Number(data.roleID);
+            const routes = {
+              1: "/student-dashboard",
+              2: "/faculty-dashboard",
+              3: "/program-chair-dashboard",
+              4: "/dean-dashboard",
+              5: "/asso-dean-dashboard",
+            };
+            navigate(routes[roleId] ?? "/student-dashboard", { replace: true });
+          } else {
+            setErrorMessage("Failed to load user profile. Please try again.");
+            setStatus("error");
+          }
+        } catch {
+          setErrorMessage("Something went wrong. Please try again.");
+          setStatus("error");
+        }
+      };
+      fetchUser();
       return;
     }
 
-    const payload = parseJwt(idToken);
-    if (!payload) {
-      setMessage("Unable to decode Google token.");
-      showToast("Could not decode the Google token.", "error");
+    // ── Handle GoogleAuthController token (legacy) ─────
+    if (legacyToken) {
+      sessionStorage.setItem("token", legacyToken);
+      let user = null;
+      try {
+        user = legacyUserRaw
+          ? JSON.parse(decodeURIComponent(legacyUserRaw))
+          : null;
+      } catch {
+        setErrorMessage("Failed to read user data. Please try again.");
+        setStatus("error");
+        return;
+      }
+      if (user) sessionStorage.setItem("user", JSON.stringify(user));
+      const roleId = Number(user?.roleID);
+      const routes = {
+        1: "/student-dashboard",
+        2: "/faculty-dashboard",
+        3: "/program-chair-dashboard",
+        4: "/dean-dashboard",
+        5: "/asso-dean-dashboard",
+      };
+      navigate(routes[roleId] ?? "/student-dashboard", { replace: true });
       return;
     }
 
-    const user = {
-      id: payload.sub || payload.email,
-      email: payload.email,
-      name: payload.name,
-      picture: payload.picture,
-      roleID: 1,
-    };
+    // ── No token at all ────────────────────────────────
+    setErrorMessage("No authentication token received. Please try again.");
+    setStatus("error");
+  }, [navigate]);
 
-    sessionStorage.setItem("token", idToken);
-    sessionStorage.setItem("user", JSON.stringify(user));
-    sessionStorage.setItem("google_user", "true");
+  // ── Loading UI ───────────────────────────────────────────
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-white">
+        <div className="flex items-center gap-3">
+          <img src={univLogo} alt="University Logo" className="size-9 object-contain" />
+          <img src={collegeLogo} alt="College Logo" className="size-9 object-contain" />
+        </div>
 
-    showToast(`Welcome, ${user.name || user.email}`, "success");
-    navigate("/student-dashboard", { replace: true });
-  }, [navigate, showToast]);
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
 
-  return (
-    <div className="page-center">
-      <div className="card">
-        <h2>Google Login</h2>
-        <p>{message}</p>
+        <div className="text-center">
+          <p className="outfit-700 text-[16px] font-semibold text-gray-800">
+            Signing you in with Google
+          </p>
+          <p className="outfit-400 mt-1 text-[13px] text-gray-400">
+            Please wait, verifying your account…
+          </p>
+        </div>
       </div>
-      <Toast message={toast.message} type={toast.type} show={toast.show} />
+    );
+  }
+
+  // ── Error UI ─────────────────────────────────────────────
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6">
+      <div className="w-full max-w-sm rounded-2xl border border-red-100 bg-red-50 px-6 py-8 text-center shadow-sm">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+          <i className="bx bx-error-circle text-[32px] text-red-500" />
+        </div>
+
+        <h2 className="outfit-700 text-[18px] font-bold text-gray-900">
+          Login Failed
+        </h2>
+        <p className="outfit-400 mt-2 text-[13px] leading-relaxed text-gray-500">
+          {errorMessage}
+        </p>
+
+        <button
+          onClick={() => navigate("/", { replace: true })}
+          className="outfit-400 mt-6 w-full rounded-xl bg-gradient-to-r from-[#ed3700] to-[#FE6902] py-[10px] text-[14px] font-semibold text-white shadow-md transition hover:brightness-110 active:scale-[0.98]"
+        >
+          Back to Login
+        </button>
+      </div>
     </div>
   );
 }

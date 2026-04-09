@@ -496,6 +496,14 @@ const AdminHeader = ({ title, className = "" }) => {
                 </button>
 
                 <button
+                  onClick={() => { setDropdownOpen(false); navigate("/support"); }}
+                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                >
+                  <i className="bx bx-message-question-mark mr-2 text-[16px]"></i> Help & Support
+                </button>
+
+                {/*
+                <button
                   onClick={() => {
                     if (title !== "Student") {
                       window.open(
@@ -511,8 +519,8 @@ const AdminHeader = ({ title, className = "" }) => {
                   }}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i className="bx bx-message-question-mark mr-2 text-[16px]"></i> Support
-                </button>
+                  <i className="bx bx-message-question-mark mr-2 text-[16px]"></i> Help & Support
+                </button>*/}
 
                 <button
                   onClick={() => setShowLogoutModal(true)}
