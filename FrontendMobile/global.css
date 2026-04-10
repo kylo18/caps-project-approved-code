@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Primary Brand Color - CAPS Orange */
+  --color-primary: #FE6902;
+  --color-primary-hover: #ed3700;
+
+  /* Light Mode Colors */
+  --color-text: #111827;
+  --color-text-secondary: #6b7280;
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f4f6;
+  --color-border: #d1d5db;
+}
+
+/* Dark Mode */
+.dark {
+  --color-text: #f9fafb;
+  --color-text-secondary: #9ca3af;
+  --color-bg: #0a0a0a;
+  --color-bg-secondary: #111111;
+  --color-bg-tertiary: #1a1a1a;
+  --color-border: #3d3d3d;
+}
