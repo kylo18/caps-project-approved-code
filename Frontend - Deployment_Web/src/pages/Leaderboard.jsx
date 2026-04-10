@@ -25,6 +25,7 @@ const getScoreColor = (score) => {
   return "#9ca3af";
 };
 
+//new yes
 const PROGRAM_TABS = ["All", "BSCpE", "CE", "ECE", "EE"];
 
 const normalizeProgram = (program) => {

@@ -287,5 +287,6 @@ const EmptyState = ({ message }) => (
     <div style={{ fontSize: 13, color: "#9B9790", textAlign: "center", maxWidth: 300, lineHeight: 1.5 }}>{message}</div>
   </div>
 );
+//yes
 
 export default DifficultyAnalytics;

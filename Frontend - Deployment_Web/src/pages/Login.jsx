@@ -104,9 +104,11 @@ export default function LoginPage() {
   };
 
   //  new added: for google login
-  const handleGoogleLogin = () => {
-    const frontendUrl = window.location.origin; // e.g. http://192.168.1.17:5173
-    window.location.href = `${apiUrl}/auth/google/redirect?frontend_url=${encodeURIComponent(frontendUrl)}`;
+  const handleGoogleLogin = async () => {
+    const frontendUrl = window.location.origin;
+    const res = await fetch(`http://localhost:8000/api/auth/google/redirect?frontend_url=${encodeURIComponent(frontendUrl)}`);
+    const data = await res.json();
+    window.location.href = data.url;
   };
 
   return (
