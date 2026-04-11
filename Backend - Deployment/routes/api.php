@@ -3,7 +3,7 @@ use Modules\Analytics\Controllers\AnalyticsController;
 use App\Http\Middleware\TokenExpirationMiddleware;
 use Illuminate\Support\Facades\Route;
 use Modules\Users\Controllers\AuthController;
-use Modules\Users\Controllers\GoogleAuthController;
+
 use Modules\Subjects\Controllers\SubjectController;
 use Modules\FacultySubjects\Controllers\FacultySubjectController;
 use Modules\Questions\Controllers\QuestionController;
@@ -52,9 +52,6 @@ Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkE
 Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 Route::get('/app-version', [AppController::class, 'getVersion']);
 
-// Google OAuth Routes
-Route::get('/auth/google', [GoogleAuthController::class, 'redirectToGoogle']);
-Route::get('/auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 
 /*
 |--------------------------------------------------------------------------
@@ -66,6 +63,10 @@ Route::get('/auth/google/callback', [SocialAuthController::class, 'handleGoogleC
 Route::post('/auth/social/verify-link', [SocialAuthController::class, 'verifyLink']);
 Route::get('/auth/facebook/redirect', [SocialAuthController::class, 'redirectToFacebook']);
 Route::get('/auth/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback']);
+
+// Backward compatibility routes for older frontends
+Route::get('/auth/google', [SocialAuthController::class, 'redirectToGoogle']);
+Route::get('/auth/facebook', [SocialAuthController::class, 'redirectToFacebook']);
 
 /*
 |--------------------------------------------------------------------------

@@ -14,21 +14,38 @@ class SocialAuthController extends Controller
     // Starts the Google OAuth flow and remembers which frontend should receive the callback result.
     public function redirectToGoogle(Request $request)
     {
-        Log::info('Google OAuth redirect initiated', [
-            'frontend_url' => $request->query('frontend_url'),
-            'request_url' => $request->fullUrl(),
-            'user_agent' => $request->userAgent(),
-            'ip' => $request->ip(),
-        ]);
+        try {
+            Log::info('Google OAuth redirect initiated', [
+                'frontend_url' => $request->query('frontend_url'),
+                'ip'           => $request->ip(),
+            ]);
 
-        $response = Socialite::driver('google')->stateless()->redirect();
-        $frontendUrlCookie = $this->makeFrontendUrlCookie($request);
+            $redirectUrl = config('services.google.redirect');
+            $driver = Socialite::driver('google')->stateless();
 
-        if ($frontendUrlCookie) {
-            $response->withCookie($frontendUrlCookie);
+            if ($redirectUrl) {
+                $driver->redirectUrl($redirectUrl);
+            }
+
+            $response = $driver->redirect();
+            $frontendUrlCookie = $this->makeFrontendUrlCookie($request);
+
+            if ($frontendUrlCookie) {
+                $response->withCookie($frontendUrlCookie);
+            }
+
+            return $response;
+        } catch (\Exception $e) {
+            Log::error('Google OAuth redirect failed: ' . $e->getMessage(), [
+                'exception_class' => get_class($e),
+            ]);
+
+            return $this->redirectToFrontendError(
+                'provider_failed',
+                'Failed to initiate Google login. Please try again.',
+                'google'
+            );
         }
-
-        return $response;
     }
 
     // Handles the Google provider callback and always sends the browser back to the frontend.
@@ -44,7 +61,9 @@ class SocialAuthController extends Controller
                 'ip' => request()->ip(),
             ]);
 
-            $googleUser = Socialite::driver('google')->stateless()->user();
+            $googleUser = Socialite::driver('google')->stateless()
+                ->setHttpClient(new \GuzzleHttp\Client(['verify' => config('app.env') === 'local' ? false : true]))
+                ->user();
             
             Log::info('Google OAuth user retrieved', [
                 'email' => $googleUser->getEmail(),
@@ -83,7 +102,9 @@ class SocialAuthController extends Controller
     public function handleFacebookCallback()
     {
         try {
-            $facebookUser = Socialite::driver('facebook')->stateless()->user();
+            $facebookUser = Socialite::driver('facebook')->stateless()
+                ->setHttpClient(new \GuzzleHttp\Client(['verify' => config('app.env') === 'local' ? false : true]))
+                ->user();
             return $this->handleOAuthUser($facebookUser, 'facebook');
         } catch (\Exception $e) {
             Log::error('Facebook OAuth error: ' . $e->getMessage());
@@ -95,34 +116,53 @@ class SocialAuthController extends Controller
         }
     }
 
-    // Reuses an existing CAPS account by provider ID first, then links by email when safe.
     private function handleOAuthUser($oauthUser, $provider)
     {
         $providerId = $provider . '_id';
+
+        // STRICT CHECK: Only allow login if the social ID is already explicitly linked in our database.
         $user = User::where($providerId, $oauthUser->getId())->first();
 
-        if (!$user && $oauthUser->getEmail()) {
-            $existingUser = User::where('email', $oauthUser->getEmail())->first();
-
-            if ($existingUser) {
-                if ($existingUser->$providerId && $existingUser->$providerId !== $oauthUser->getId()) {
-                    return $this->redirectToFrontendError(
-                        'account_mismatch',
-                        ucfirst($provider) . ' is already linked to a different account.',
-                        $provider
-                    );
-                }
-
-                $existingUser->$providerId = $oauthUser->getId();
-                $existingUser->save();
-                $user = $existingUser;
-            }
-        }
-
         if (!$user) {
+            Log::warning('Social login attempt failed: Account not linked.', [
+                'provider'  => $provider,
+                'email'     => $oauthUser->getEmail(),
+                'social_id' => $oauthUser->getId(),
+            ]);
+
             return $this->redirectToFrontendError(
                 'no_account',
-                'No existing CAPS account matches this ' . ucfirst($provider) . ' account. Log in with your CAPS account first.',
+                'This ' . ucfirst($provider) . ' account is not linked to a CAPS account. Please log in normally and link it in your settings.',
+                $provider
+            );
+        }
+
+        // STATUS CHECK: Mirror the same checks used in AuthController@login.
+        $pendingStatusId = \DB::table('statuses')->where('name', 'pending')->first()->id ?? null;
+
+        if ($pendingStatusId && $user->status_id === $pendingStatusId) {
+            Log::warning('Social login blocked: Account is pending.', [
+                'provider' => $provider,
+                'userID'   => $user->userID,
+            ]);
+
+            return $this->redirectToFrontendError(
+                'account_pending',
+                'Your account is pending approval. Please wait for administrator verification.',
+                $provider
+            );
+        }
+
+        // ACTIVE CHECK: Block inactive accounts just like AuthController@login.
+        if (!$user->isActive) {
+            Log::warning('Social login blocked: Account is inactive.', [
+                'provider' => $provider,
+                'userID'   => $user->userID,
+            ]);
+
+            return $this->redirectToFrontendError(
+                'account_inactive',
+                'Your account is inactive. Please contact an administrator to reactivate your account.',
                 $provider
             );
         }
@@ -225,6 +265,7 @@ class SocialAuthController extends Controller
             $configuredHost,
             'localhost',
             '127.0.0.1',
+            'localhost:5173',
         ]), true);
     }
 
@@ -235,7 +276,7 @@ class SocialAuthController extends Controller
         $scheme = $request->getScheme() ?: parse_url(config('app.url'), PHP_URL_SCHEME) ?: 'http';
         $host = $request->getHost() ?: parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
 
-        return "{$scheme}://{$host}:8085";
+        return "{$scheme}://{$host}:5173";
     }
 
     // Links an OAuth provider to an already authenticated CAPS account after token verification.
@@ -264,7 +305,9 @@ class SocialAuthController extends Controller
             }
 
             // Verify OAuth token and link account
-            $oauthUser = Socialite::driver($provider)->userFromToken($request->oauth_token);
+            $oauthUser = Socialite::driver($provider)
+                ->setHttpClient(new \GuzzleHttp\Client(['verify' => config('app.env') === 'local' ? false : true]))
+                ->userFromToken($request->oauth_token);
             
             $user->$providerId = $oauthUser->getId();
             $user->save();
