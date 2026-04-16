@@ -20,6 +20,7 @@ import {
   type StudentLeaderboardEntry,
   type StudentLeaderboardResponse,
 } from '../../../src/services/studentLeaderboardService';
+import { shareLeaderboardAchievement } from '../../../src/services/shareService';
 import {
   StudentFilterSheet,
   StudentHeroDecoration,
@@ -101,7 +102,7 @@ export default function LeaderboardScreen() {
 
   // ── "Your Rank" card: merges viewer stats into the entries list ───────────
   const viewerEntry = useMemo(() => {
-    if (!viewer || !viewer.rank) {
+    if (!viewer || viewer.rank == null) {
       return null;
     }
 
@@ -118,11 +119,11 @@ export default function LeaderboardScreen() {
       program: viewer.program || null,
       subject: viewer.subject || null,
       subjectCode: null,
-      score: viewer.score || 0,
-      points: viewer.score || 0,
-      highestScore: viewer.score || 0,
-      highestPercentage: viewer.highestPercentage || 0,
-      attempts: viewer.attempts || 0,
+      score: viewer.score ?? 0,
+      points: viewer.score ?? 0,
+      highestScore: viewer.score ?? 0,
+      highestPercentage: viewer.highestPercentage ?? 0,
+      attempts: viewer.attempts ?? 0,
     } satisfies StudentLeaderboardEntry;
   }, [entries, viewer]);
 
@@ -247,9 +248,24 @@ export default function LeaderboardScreen() {
                 {/* "Your Rank" card — displays viewer's current weekly rank */}
                 <View style={styles.comparisonCard}>
                   <View style={styles.rankPill}>
-                    <Text style={styles.rankPillText}>{viewer?.rank ? `#${viewer.rank}` : '--'}</Text>
+                    <Text style={styles.rankPillText}>{viewer?.rank != null ? `#${viewer.rank}` : '--'}</Text>
                   </View>
                   <Text style={styles.comparisonText}>{weeklyComparisonCopy}</Text>
+                  {viewer?.rank != null && (
+                    <Pressable
+                      onPress={() =>
+                        shareLeaderboardAchievement({
+                          rank: viewer.rank,
+                          score: viewer.score ?? 0,
+                          subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || null,
+                        })
+                      }
+                      style={styles.shareIcon}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="share-outline" size={22} color={studentColors.orange} />
+                    </Pressable>
+                  )}
                 </View>
 
                 {/* Utility row: open filter sheet + weekly countdown chip */}
@@ -323,9 +339,24 @@ export default function LeaderboardScreen() {
                 {/* "Your Rank" card — displays viewer's current all-time rank */}
                 <View style={styles.comparisonCard}>
                   <View style={styles.rankPill}>
-                    <Text style={styles.rankPillText}>{viewer?.rank ? `#${viewer.rank}` : '--'}</Text>
+                    <Text style={styles.rankPillText}>{viewer?.rank != null ? `#${viewer.rank}` : '--'}</Text>
                   </View>
                   <Text style={styles.comparisonText}>{allTimeComparisonCopy}</Text>
+                  {viewer?.rank != null && (
+                    <Pressable
+                      onPress={() =>
+                        shareLeaderboardAchievement({
+                          rank: viewer.rank,
+                          score: viewer.score ?? 0,
+                          subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || null,
+                        })
+                      }
+                      style={styles.shareIcon}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="share-outline" size={22} color={studentColors.orange} />
+                    </Pressable>
+                  )}
                 </View>
 
                 <View style={styles.allTimeHeader}>
@@ -454,6 +485,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 20,
+  },
+  shareIcon: {
+    padding: 6,
+    borderRadius: 999,
+    backgroundColor: studentColors.white,
   },
   utilityRow: {
     flexDirection: 'row',

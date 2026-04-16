@@ -7,7 +7,6 @@ import {
   NativeSyntheticEvent,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -33,7 +32,6 @@ import {
   StudentSectionHeader,
   getSubjectVisualVariant,
   studentColors,
-  studentShadow,
 } from '../../../src/student/ui';
 
 const { width } = Dimensions.get('window');
@@ -208,10 +206,10 @@ export default function StudentDashboard() {
       setUnreadCount(
         Number(
           response?.unreadCount ??
-            response?.unread_count ??
-            response?.count ??
-            response?.data?.unreadCount ??
-            0
+          response?.unread_count ??
+          response?.count ??
+          response?.data?.unreadCount ??
+          0
         )
       );
     } catch (error) {
@@ -255,13 +253,10 @@ export default function StudentDashboard() {
   }
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1" style={{ backgroundColor: studentColors.surface }}>
       <StatusBar style="light" />
 
-      {/* ───────────────────────────────────────────────────────────────────
-          NOTIFICATIONS PANEL
-          Slide-up notification drawer triggered from the bell icon.
-          ─────────────────────────────────────────────────────────────────── */}
+      {/* NOTIFICATIONS PANEL */}
       <NotificationPanel
         visible={notificationsVisible}
         onClose={() => {
@@ -270,65 +265,82 @@ export default function StudentDashboard() {
         }}
       />
 
-      {/* ───────────────────────────────────────────────────────────────────
-          SCROLLABLE CONTENT
-          Orange hero header + white sheet with live exam cards.
-          ─────────────────────────────────────────────────────────────────── */}
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-
-        {/* ─────────────────────────────────────────────────────────────────
-            ORANGE HERO HEADER
-            Displays greeting, student name, and three action buttons:
-              1. Help Center (opens FAQ & support modal)
-              2. Notifications (opens notification panel with unread badge)
-              3. Profile Avatar (opens orange-themed profile menu)
-            ───────────────────────────────────────────────────────────────── */}
-        <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
+      {/* SCROLLABLE CONTENT - Orange hero header + white sheet with live exam cards */}
+      <ScrollView
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        {/* ORANGE HERO HEADER */}
+        <View
+          className="px-6 pb-20"
+          style={{ backgroundColor: studentColors.orange, paddingTop: insets.top + 14 }}
+        >
           <StudentHeroDecoration />
 
-          {/* ───────────────────────────────────────────────────────────────
-              HERO TOP ROW
-              Time-based greeting + student name on the left.
-              Three action icons on the right: help, notifications, avatar.
-              ─────────────────────────────────────────────────────────────── */}
-          <View style={styles.heroTopRow}>
+          {/* HERO TOP ROW - Greeting + action buttons */}
+          <View className="flex-row items-start justify-between mb-5">
             <View>
-              <View style={styles.greetingRow}>
+              <View className="flex-row items-center gap-2 mb-1">
                 <Ionicons name="sunny-outline" size={15} color="#FFD7BC" />
-                <Text style={styles.greetingText}>{getGreeting()}</Text>
+                <Text className="text-[11px] font-medium text-[#FFD7BC] tracking-[1.76px]">
+                  {getGreeting()}
+                </Text>
               </View>
-              <Text style={styles.heroName}>{firstName}</Text>
+              <Text className="text-[30px] font-medium text-white">{firstName}</Text>
             </View>
 
             {/* Action buttons: help center, notifications, profile menu */}
-            <View style={styles.heroActions}>
+            <View className="flex-row items-center gap-3">
               {/* Help Center */}
-              <Pressable style={styles.iconButton} onPress={() => setShowHelp(true)}>
+              <Pressable
+                className="w-11 h-11 rounded-full items-center justify-center"
+                style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
+                onPress={() => setShowHelp(true)}
+              >
                 <Ionicons name="help-circle-outline" size={20} color={studentColors.white} />
               </Pressable>
 
               {/* Notifications with unread badge */}
-              <Pressable style={styles.iconButton} onPress={() => setNotificationsVisible(true)}>
+              <Pressable
+                className="w-11 h-11 rounded-full items-center justify-center"
+                style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
+                onPress={() => setNotificationsVisible(true)}
+              >
                 <Ionicons name="notifications-outline" size={20} color={studentColors.white} />
                 {unreadCount > 0 ? (
-                  <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>{Math.min(unreadCount, 99)}</Text>
+                  <View
+                    className="absolute items-center justify-center rounded-full"
+                    style={{
+                      top: -4,
+                      right: -3,
+                      minWidth: 18,
+                      height: 18,
+                      paddingHorizontal: 4,
+                      backgroundColor: '#EA4335'
+                    }}
+                  >
+                    <Text className="text-[10px] font-bold text-white">
+                      {Math.min(unreadCount, 99)}
+                    </Text>
                   </View>
                 ) : null}
               </Pressable>
 
-              {/* Profile Avatar - taps open the orange profile menu */}
+              {/* Profile Avatar */}
               <Pressable onPress={() => setShowProfileMenu(true)}>
-                <StudentAvatar label={displayName} size={52} index={1} style={styles.profileAvatar} />
+                <StudentAvatar
+                  label={displayName}
+                  size={52}
+                  index={1}
+                  style={{ borderWidth: 3, borderColor: 'rgba(255,255,255,0.65)' }}
+                />
               </Pressable>
             </View>
           </View>
 
-          {/* ───────────────────────────────────────────────────────────────
-              RECENT EXAM CARD
-              Tapping navigates to the most recent exam result page,
-              or falls back to the Insights screen if no exams exist yet.
-              ─────────────────────────────────────────────────────────────── */}
+          {/* RECENT EXAM CARD */}
           <Pressable
             onPress={() => {
               if (recentExam?.result_id) {
@@ -340,108 +352,185 @@ export default function StudentDashboard() {
                 router.push('/(auth)/(student)/insights');
               }
             }}
-            style={({ pressed }) => [styles.recentCard, pressed ? { opacity: 0.96 } : null]}
+            className="flex-row items-center justify-between rounded-3xl px-5 py-[18px] mb-[18px]"
+            style={{ backgroundColor: studentColors.pink }}
           >
-            <View style={styles.recentCopy}>
-              <Text style={styles.recentLabel}>RECENT EXAM</Text>
-              <Text numberOfLines={2} style={styles.recentTitle}>
+            <View className="flex-1 pr-4">
+              <Text className="text-xs font-medium text-[#C36969] tracking-[1.44px] mb-[6px]">
+                RECENT EXAM
+              </Text>
+              <Text numberOfLines={2} className="text-[17px] font-medium text-[#611212] mb-1">
                 {recentExam?.label || 'No exams taken yet'}
               </Text>
-              <Text style={styles.recentDate}>{formatShortDate(recentExam?.taken_at)}</Text>
+              <Text className="text-xs text-[#8A4F4F]">
+                {formatShortDate(recentExam?.taken_at)}
+              </Text>
             </View>
 
-            <View style={styles.scoreRing}>
-              <Text style={styles.scoreRingText}>{recentExamScore}</Text>
+            <View
+              className="w-[58px] h-[58px] rounded-full items-center justify-center"
+              style={{
+                borderWidth: 3,
+                borderColor: 'rgba(255,255,255,0.6)',
+                backgroundColor: '#FF8F9D'
+              }}
+            >
+              <Text className="text-[13px] font-bold text-white">{recentExamScore}</Text>
             </View>
           </Pressable>
 
-          {/* ───────────────────────────────────────────────────────────────
-              FEATURED INSIGHTS CAROUSEL
-              Auto-scrolling cards (every 4.2s) showing 3 analytics slides:
-                1. Frequently mistaken questions count
-                2. Average score across all practice exams
-                3. Weakest topic with error rate
-              Each card links to the Insights screen.
-              ─────────────────────────────────────────────────────────────── */}
-          <View style={styles.featuredCard}>
+          {/* FEATURED INSIGHTS CAROUSEL */}
+          <View
+            className="rounded-[28px] pt-[18px] pb-3 overflow-hidden"
+            style={{ backgroundColor: '#F29A34' }}
+          >
             <ScrollView
               ref={carouselRef}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={handleCarouselScroll}
-              contentContainerStyle={styles.carouselTrack}
+              contentContainerStyle={{ alignItems: 'stretch' }}
             >
               {slides.map((slide) => (
-                <View key={slide.key} style={styles.carouselSlide}>
-                  <View style={styles.slideArt}>
-                    <View style={styles.slideOrbLarge} />
-                    <View style={styles.slideOrbSmall} />
-                    <View style={styles.slideAvatar}>
+                <View key={slide.key} style={{ width: CAROUSEL_WIDTH }} className="px-[26px] items-center">
+                  <View className="w-[120px] h-[76px] mb-2 items-center justify-center">
+                    <View
+                      className="absolute rounded-full"
+                      style={{ width: 74, height: 74, backgroundColor: 'rgba(255,255,255,0.14)', left: 16 }}
+                    />
+                    <View
+                      className="absolute rounded-full"
+                      style={{ width: 46, height: 46, backgroundColor: 'rgba(255,255,255,0.16)', right: 18, bottom: 2 }}
+                    />
+                    <View
+                      className="w-12 h-12 rounded-full items-center justify-center"
+                      style={{ backgroundColor: studentColors.white }}
+                    >
                       <Ionicons name={slide.icon as any} size={20} color={studentColors.orange} />
                     </View>
                   </View>
 
-                  <Text style={styles.slideEyebrow}>{slide.eyebrow}</Text>
-                  <Text style={styles.slideTitle}>{slide.title}</Text>
-                  <Text style={styles.slideDetail}>{slide.detail}</Text>
+                  <Text className="text-xs font-medium text-white/84 tracking-[1.68px] mb-[6px] text-center">
+                    {slide.eyebrow}
+                  </Text>
+                  <Text className="text-xl font-medium text-white text-center mb-[6px]">
+                    {slide.title}
+                  </Text>
+                  <Text className="text-[13px] text-white/92 text-center mb-4">
+                    {slide.detail}
+                  </Text>
 
-                  <Pressable style={styles.slideButton} onPress={() => router.push('/(auth)/(student)/insights')}>
+                  <Pressable
+                    className="flex-row items-center gap-2 rounded-full px-4 py-[11px]"
+                    style={{ backgroundColor: studentColors.white }}
+                    onPress={() => router.push('/(auth)/(student)/insights')}
+                  >
                     <Ionicons name="arrow-forward-circle-outline" size={18} color={studentColors.orange} />
-                    <Text style={styles.slideButtonText}>{slide.actionLabel}</Text>
+                    <Text className="text-sm font-bold" style={{ color: studentColors.orange }}>
+                      {slide.actionLabel}
+                    </Text>
                   </Pressable>
                 </View>
               ))}
             </ScrollView>
 
-            <View style={styles.carouselDots}>
+            <View className="flex-row justify-center items-center gap-2 mt-3">
               {slides.map((slide, index) => (
-                <View key={slide.key} style={[styles.carouselDot, index === activeSlide ? styles.carouselDotActive : null]} />
+                <View
+                  key={slide.key}
+                  className="rounded-full"
+                  style={{
+                    width: index === activeSlide ? 20 : 7,
+                    height: 7,
+                    backgroundColor: index === activeSlide ? studentColors.white : 'rgba(255,255,255,0.42)',
+                  }}
+                />
               ))}
             </View>
           </View>
         </View>
 
-        {/* ─────────────────────────────────────────────────────────────────
-            WHITE CONTENT SHEET
-            Rounded-top card containing the "Live Exams" section header
-            and a scrollable list of subject exam cards (up to 8).
-            Tapping a card triggers exam generation via the backend API.
-            ───────────────────────────────────────────────────────────────── */}
-        <View style={styles.sheetWrap}>
-          <View style={styles.sheet}>
-            {/* Section header with "Search" action linking to the Search tab */}
+        {/* WHITE CONTENT SHEET */}
+        <View style={{ backgroundColor: studentColors.orange }}>
+          <View
+            className="px-6 pt-6 pb-6"
+            style={{
+              backgroundColor: studentColors.white,
+              borderTopLeftRadius: 34,
+              borderTopRightRadius: 34,
+              marginTop: -32,
+              minHeight: 360,
+            }}
+          >
             <StudentSectionHeader
               title="Live Exams"
               actionLabel="Search"
               onActionPress={() => router.push('/(auth)/(student)/search')}
             />
-            <Text style={styles.sheetSubtitle}>Continue practicing from your available subjects.</Text>
+            <Text
+              className="text-sm mt-1"
+              style={{ color: studentColors.textSoft }}
+            >
+              Continue practicing from your available subjects.
+            </Text>
 
-            {/* ── Live Exam Cards: shows loading, error, empty, or up to 8 subjects ── */}
-            <View style={styles.listWrap}>
+            {/* Live Exam Cards */}
+            <View className="mt-[18px] gap-[14px]">
               {loading ? (
-                <View style={styles.feedbackCard}>
+                <View
+                  className="items-center justify-center rounded-3xl py-7 px-5 gap-3"
+                  style={{
+                    borderWidth: 2,
+                    borderColor: studentColors.border,
+                    backgroundColor: studentColors.white,
+                  }}
+                >
                   <ActivityIndicator size="large" color={studentColors.orange} />
-                  <Text style={styles.feedbackText}>Loading live exams...</Text>
+                  <Text style={{ color: studentColors.textSoft }}>Loading live exams...</Text>
                 </View>
               ) : loadingExam ? (
-                <View style={styles.feedbackCard}>
+                <View
+                  className="items-center justify-center rounded-3xl py-7 px-5 gap-3"
+                  style={{
+                    borderWidth: 2,
+                    borderColor: studentColors.border,
+                    backgroundColor: studentColors.white,
+                  }}
+                >
                   <ActivityIndicator size="large" color={studentColors.orange} />
-                  <Text style={styles.feedbackText}>Preparing your practice exam...</Text>
+                  <Text style={{ color: studentColors.textSoft }}>Preparing your practice exam...</Text>
                 </View>
               ) : fetchError ? (
-                <View style={styles.feedbackCard}>
+                <View
+                  className="items-center justify-center rounded-3xl py-7 px-5 gap-3"
+                  style={{
+                    borderWidth: 2,
+                    borderColor: studentColors.border,
+                    backgroundColor: studentColors.white,
+                  }}
+                >
                   <Ionicons name="cloud-offline-outline" size={32} color={studentColors.orange} />
-                  <Text style={styles.feedbackText}>{fetchError}</Text>
-                  <Pressable style={styles.retryButton} onPress={loadDashboard}>
-                    <Text style={styles.retryButtonText}>Retry</Text>
+                  <Text style={{ color: studentColors.textSoft }}>{fetchError}</Text>
+                  <Pressable
+                    className="rounded-full px-4 py-2"
+                    style={{ backgroundColor: studentColors.orange }}
+                    onPress={loadDashboard}
+                  >
+                    <Text className="text-sm font-bold text-white">Retry</Text>
                   </Pressable>
                 </View>
               ) : subjects.length === 0 ? (
-                <View style={styles.feedbackCard}>
+                <View
+                  className="items-center justify-center rounded-3xl py-7 px-5 gap-3"
+                  style={{
+                    borderWidth: 2,
+                    borderColor: studentColors.border,
+                    backgroundColor: studentColors.white,
+                  }}
+                >
                   <Ionicons name="library-outline" size={32} color={studentColors.orange} />
-                  <Text style={styles.feedbackText}>No practice subjects are available yet.</Text>
+                  <Text style={{ color: studentColors.textSoft }}>No practice subjects are available yet.</Text>
                 </View>
               ) : (
                 subjects.slice(0, 8).map((subject) => (
@@ -459,52 +548,66 @@ export default function StudentDashboard() {
         </View>
       </ScrollView>
 
-      {/* ───────────────────────────────────────────────────────────────────
-          PROFILE MENU MODAL
-          Orange-themed overlay with user info, edit profile, theme toggle,
-          and logout. Triggered by tapping the avatar in the hero header.
-          ─────────────────────────────────────────────────────────────────── */}
+      {/* PROFILE MENU MODAL */}
       <Modal visible={showProfileMenu} transparent animationType="fade">
-        <Pressable style={styles.profileMenuOverlay} onPress={() => setShowProfileMenu(false)}>
+        <Pressable
+          className="flex-1 justify-start pt-[60px]"
+          style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
+          onPress={() => setShowProfileMenu(false)}
+        >
           <Pressable activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.profileMenuCard}>
-              <View style={styles.profileMenuHeader}>
-                <View style={[styles.profileMenuAvatar, { backgroundColor: avatarColor }]}>
-                  <Text style={styles.profileMenuAvatarText}>{initials}</Text>
+            <View
+              className="mx-4 rounded-2xl p-4"
+              style={{ backgroundColor: studentColors.orange }}
+            >
+              <View className="flex-row items-center gap-3 mb-4 pb-4 border-b border-white/25">
+                <View
+                  className="w-12 h-12 rounded-full justify-center items-center"
+                  style={{ backgroundColor: avatarColor, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }}
+                >
+                  <Text className="text-lg font-extrabold text-white">{initials}</Text>
                 </View>
                 <View>
-                  <Text style={styles.profileMenuName}>{firstName} {user?.lastName || ''}</Text>
-                  <Text style={styles.profileMenuEmail} numberOfLines={1}>{email}</Text>
+                  <Text className="text-base font-bold text-white">
+                    {firstName} {user?.lastName || ''}
+                  </Text>
+                  <Text className="text-[13px] text-white/80" numberOfLines={1}>
+                    {email}
+                  </Text>
                 </View>
               </View>
 
-              <Pressable style={styles.profileMenuItem} onPress={() => { setShowProfileMenu(false); setShowEditProfile(true); }}>
+              <Pressable
+                className="flex-row items-center gap-3 py-3"
+                onPress={() => { setShowProfileMenu(false); setShowEditProfile(true); }}
+              >
                 <Ionicons name="person" size={20} color="#fff" />
-                <Text style={styles.profileMenuItemText}>Edit Profile</Text>
+                <Text className="text-[15px] font-medium text-white">Edit Profile</Text>
               </Pressable>
 
-              <Pressable style={styles.profileMenuItem} onPress={() => { setShowProfileMenu(false); toggleTheme(); }}>
+              <Pressable
+                className="flex-row items-center gap-3 py-3"
+                onPress={() => { setShowProfileMenu(false); toggleTheme(); }}
+              >
                 <Ionicons name={theme === 'dark' ? 'sunny' : 'moon'} size={20} color="#fff" />
-                <Text style={styles.profileMenuItemText}>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</Text>
+                <Text className="text-[15px] font-medium text-white">
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </Text>
               </Pressable>
 
-              <Pressable style={[styles.profileMenuItem, styles.profileMenuLogout]} onPress={() => { setShowProfileMenu(false); setShowLogoutConfirm(true); }}>
+              <Pressable
+                className="flex-row items-center gap-3 py-3 mt-2 pt-4 border-t border-white/25"
+                onPress={() => { setShowProfileMenu(false); setShowLogoutConfirm(true); }}
+              >
                 <Ionicons name="log-out" size={20} color="#FFD7BC" />
-                <Text style={styles.profileMenuLogoutText}>Log Out</Text>
+                <Text className="text-[15px] font-medium text-[#FFD7BC]">Log Out</Text>
               </Pressable>
             </View>
           </Pressable>
         </Pressable>
       </Modal>
 
-      {/* ───────────────────────────────────────────────────────────────────
-          SECONDARY MODALS
-          Rendered at root level so they overlay all content:
-            - NotificationPanel: fetches from /api/notifications
-            - EditProfileModal: user profile editing
-            - HelpCenterModal: FAQs + support ticket form
-            - ConfirmModal: logout confirmation
-          ─────────────────────────────────────────────────────────────────── */}
+      {/* SECONDARY MODALS */}
       <NotificationPanel
         visible={notificationsVisible}
         onClose={() => {
@@ -525,373 +628,3 @@ export default function StudentDashboard() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: studentColors.surface,
-  },
-  content: {
-    paddingBottom: 120,
-  },
-  hero: {
-    paddingHorizontal: 24,
-    paddingBottom: 80,
-    backgroundColor: studentColors.orange,
-  },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  greetingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  greetingText: {
-    color: '#FFD7BC',
-    fontFamily: 'Rubik',
-    fontSize: 11,
-    fontWeight: '500',
-    lineHeight: 18,
-    letterSpacing: 1.76,
-  },
-  heroName: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 30,
-    fontWeight: '500',
-    lineHeight: 36,
-  },
-  heroActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileAvatar: {
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.65)',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -3,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#EA4335',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  notificationBadgeText: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  recentCard: {
-    backgroundColor: studentColors.pink,
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-  },
-  recentCopy: {
-    flex: 1,
-    paddingRight: 16,
-  },
-  recentLabel: {
-    color: '#C36969',
-    fontFamily: 'Rubik',
-    fontSize: 12,
-    fontWeight: '500',
-    lineHeight: 18,
-    letterSpacing: 1.44,
-    marginBottom: 6,
-  },
-  recentTitle: {
-    color: '#611212',
-    fontFamily: 'Rubik',
-    fontSize: 17,
-    fontWeight: '500',
-    lineHeight: 24,
-    marginBottom: 4,
-  },
-  recentDate: {
-    color: '#8A4F4F',
-    fontFamily: 'Rubik',
-    fontSize: 12,
-    fontWeight: '400',
-    lineHeight: 18,
-  },
-  scoreRing: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.6)',
-    backgroundColor: '#FF8F9D',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scoreRingText: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  featuredCard: {
-    backgroundColor: '#F29A34',
-    borderRadius: 28,
-    paddingTop: 18,
-    paddingBottom: 14,
-    overflow: 'hidden',
-  },
-  carouselTrack: {
-    alignItems: 'stretch',
-  },
-  carouselSlide: {
-    width: CAROUSEL_WIDTH,
-    paddingHorizontal: 26,
-    alignItems: 'center',
-  },
-  slideArt: {
-    width: 120,
-    height: 76,
-    marginBottom: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  slideOrbLarge: {
-    position: 'absolute',
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    left: 16,
-  },
-  slideOrbSmall: {
-    position: 'absolute',
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    right: 18,
-    bottom: 2,
-  },
-  slideAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: studentColors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  slideEyebrow: {
-    color: 'rgba(255,255,255,0.84)',
-    fontFamily: 'Rubik',
-    fontSize: 12,
-    fontWeight: '500',
-    lineHeight: 18,
-    letterSpacing: 1.68,
-    marginBottom: 6,
-  },
-  slideTitle: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 20,
-    fontWeight: '500',
-    lineHeight: 28,
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  slideDetail: {
-    color: 'rgba(255,255,255,0.92)',
-    fontFamily: 'Rubik',
-    fontSize: 13,
-    fontWeight: '400',
-    lineHeight: 20,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  slideButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: studentColors.white,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-  },
-  slideButtonText: {
-    color: studentColors.orange,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  carouselDots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 14,
-  },
-  carouselDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.42)',
-  },
-  carouselDotActive: {
-    width: 20,
-    backgroundColor: studentColors.white,
-  },
-  sheetWrap: {
-    backgroundColor: studentColors.orange,
-  },
-  sheet: {
-    backgroundColor: studentColors.white,
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
-    marginTop: -32,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 24,
-    minHeight: 360,
-  },
-  sheetSubtitle: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '400',
-    lineHeight: 20,
-    marginTop: 4,
-  },
-  listWrap: {
-    gap: 14,
-    marginTop: 18,
-  },
-  feedbackCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: studentColors.border,
-    backgroundColor: studentColors.white,
-    paddingVertical: 28,
-    paddingHorizontal: 20,
-    ...studentShadow,
-  },
-  feedbackText: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '400',
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  retryButton: {
-    borderRadius: 999,
-    backgroundColor: studentColors.orange,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  // Profile Menu - matches orange hero theme
-  profileMenuOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'flex-start',
-    paddingTop: 60,
-  },
-  profileMenuCard: {
-    marginHorizontal: 16,
-    borderRadius: 20,
-    padding: 16,
-    backgroundColor: studentColors.orange,
-  },
-  profileMenuHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.25)',
-  },
-  profileMenuAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  profileMenuAvatarText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#fff',
-    fontFamily: 'Rubik',
-  },
-  profileMenuName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-    fontFamily: 'Rubik',
-  },
-  profileMenuEmail: {
-    fontSize: 13,
-    marginTop: 2,
-    color: 'rgba(255,255,255,0.8)',
-    fontFamily: 'Rubik',
-  },
-  profileMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-  },
-  profileMenuItemText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#fff',
-    fontFamily: 'Rubik',
-  },
-  profileMenuLogout: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.25)',
-    marginTop: 8,
-    paddingTop: 16,
-  },
-  profileMenuLogoutText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#FFD7BC',
-    fontFamily: 'Rubik',
-  },
-});

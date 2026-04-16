@@ -16,18 +16,21 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator
+  ActivityIndicator, useWindowDimensions
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import RenderHtml from 'react-native-render-html';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
+import { shareExamResult } from '../../../src/services/shareService';
 
 export default function PracticeExamResults() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { width: windowWidth } = useWindowDimensions();
 
   const resultId = params.resultId as string;
   const [loading, setLoading] = useState(!!resultId);
@@ -64,7 +67,7 @@ export default function PracticeExamResults() {
       setExamDuration(data?.examDuration ?? data?.duration ?? null);
       setStartTime(data?.startTime ?? null);
       setEndTime(data?.created_at ?? data?.endTime ?? null);
-      
+
       const results = data?.results || [];
       setExamResults(results);
       setTotalItems(results.length);
@@ -165,7 +168,7 @@ export default function PracticeExamResults() {
         {/* Score Details Card */}
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>Score Summary</Text>
-          
+
           <View style={[styles.scoreBox, { backgroundColor: isDark ? '#111827' : '#f9fafb' }]}>
             <Text style={[styles.scoreBoxValue, { color: colors.orange }]}>{earnedPoints}/{totalPoints}</Text>
             <Text style={[styles.scoreBoxLabel, { color: colors.textSecondary }]}>Total Score</Text>
@@ -276,15 +279,25 @@ export default function PracticeExamResults() {
                     </View>
 
                     {/* Question Text */}
-                    <Text style={[styles.questionText, { color: colors.text }]}>
-                      {q.questionText?.replace(/<[^>]*>/g, '') || 'No question text'}
-                    </Text>
+                    <View style={{ marginBottom: 12 }}>
+                      <RenderHtml
+                        contentWidth={windowWidth - 64}
+                        source={{ html: q.questionText || '<p>No question text</p>' }}
+                        tagsStyles={{
+                          p: { color: colors.text, fontSize: 15, lineHeight: 22, marginBottom: 8 },
+                          li: { color: colors.text, fontSize: 14, lineHeight: 20 },
+                          strong: { color: colors.text, fontWeight: '700' },
+                          u: { textDecorationLine: 'underline' },
+                          a: { color: '#FE6902' },
+                        }}
+                      />
+                    </View>
 
                     {/* Choices */}
                     {q.choices?.map((choice: any, cIdx: number) => {
                       const isUserChoice = choice.choiceID === q.selectedChoiceID;
                       const isCorrectChoice = choice.isCorrect;
-                      
+
                       let choiceBg = isDark ? '#1f2937' : '#fff';
                       let choiceBorder = colors.border;
                       let choiceIcon = null;
@@ -345,6 +358,24 @@ export default function PracticeExamResults() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[styles.secondaryBtn, { borderColor: colors.border }]}
+            onPress={() =>
+              shareExamResult({
+                subjectName: subjectName || undefined,
+                percentage,
+                earnedPoints,
+                totalPoints,
+                correctCount,
+                incorrectCount,
+              })
+            }
+            activeOpacity={0.7}
+          >
+            <Ionicons name="share-outline" size={20} color={colors.text} style={{ marginRight: 8 }} />
+            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Share Result</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.primaryBtn}
             onPress={() => router.replace({
               pathname: '/(auth)/practice-exam/info',
@@ -387,13 +418,13 @@ const styles = StyleSheet.create({
   performanceFill: { height: '100%', borderRadius: 6 },
   performanceLabels: { flexDirection: 'row', justifyContent: 'space-between' },
   performanceLabel: { fontSize: 14, fontWeight: '600' },
-  
+
   // Tabs
   tabRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   tab: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
   tabText: { fontSize: 13, fontWeight: '500', textAlign: 'center' },
   emptyQuestions: { fontSize: 14, textAlign: 'center', paddingVertical: 20 },
-  
+
   // Question Cards
   questionCard: { borderRadius: 12, padding: 12, marginBottom: 12 },
   questionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
@@ -406,7 +437,7 @@ const styles = StyleSheet.create({
   choiceText: { fontSize: 14, lineHeight: 20 },
   pointsRow: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.1)' },
   pointsText: { fontSize: 12 },
-  
+
   // Buttons
   buttonContainer: { marginTop: 8, gap: 12 },
   secondaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1 },

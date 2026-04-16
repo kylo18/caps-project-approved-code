@@ -84,21 +84,21 @@ export default function RegisterScreen() {
 
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {};
-    if (!firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!lastName.trim()) newErrors.lastName = 'Last name is required';
-    setErrors(newErrors);
+    if (!firstName || !firstName.trim()) newErrors.firstName = 'First name is required';
+    if (!lastName || !lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (Object.keys(newErrors).length > 0) setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const validateStep2 = () => {
     const newErrors: Record<string, string> = {};
-    if (!userCode.trim()) newErrors.userCode = 'User code is required';
-    if (!email.trim()) {
+    if (!userCode || !userCode.trim()) newErrors.userCode = 'User code is required';
+    if (!email || !email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!email.includes('@')) {
       newErrors.email = 'Email must contain @ symbol';
     }
-    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -107,7 +107,7 @@ export default function RegisterScreen() {
     if (!roleID) newErrors.roleID = 'Position is required';
     if (!campusID) newErrors.campusID = 'Campus is required';
     if (!programID) newErrors.programID = 'Program is required';
-    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -121,7 +121,7 @@ export default function RegisterScreen() {
     if (password !== confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -426,7 +426,7 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[styles.container, isDark && styles.darkContainer]}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Theme toggle */}
         <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
           <Ionicons
@@ -467,6 +467,7 @@ export default function RegisterScreen() {
             <TouchableOpacity
               style={[styles.secondaryButton, isDark && styles.darkSecondaryButton]}
               onPress={() => setCurrentStep((prev) => prev - 1)}
+              activeOpacity={0.7}
             >
               <Text style={[styles.secondaryButtonText, isDark && styles.darkText]}>
                 Previous
@@ -475,7 +476,7 @@ export default function RegisterScreen() {
           )}
 
           {currentStep < 4 ? (
-            <TouchableOpacity style={styles.primaryButton} onPress={handleNextStep}>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleNextStep} activeOpacity={0.8}>
               <Text style={styles.primaryButtonText}>Next</Text>
             </TouchableOpacity>
           ) : (
@@ -483,6 +484,7 @@ export default function RegisterScreen() {
               style={[styles.primaryButton, isRegistering && styles.disabledButton]}
               onPress={handleSubmit}
               disabled={isRegistering}
+              activeOpacity={isRegistering ? 1 : 0.8}
             >
               <Text style={styles.primaryButtonText}>
                 {isRegistering ? 'Registering...' : 'Register'}
@@ -666,6 +668,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 24,
+    alignItems: 'center',
   },
   primaryButton: {
     flex: 1,
@@ -673,6 +676,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
   },
   disabledButton: {
     backgroundColor: '#ccc',

@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import * as SecureStore from 'expo-secure-store';
 
 interface User {
   id?: number;
@@ -36,11 +37,17 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.token = action.payload.token;
       state.isAuthenticated = true;
+      SecureStore.setItemAsync('token', action.payload.token).catch(() => { });
+      SecureStore.setItemAsync('user', JSON.stringify(action.payload.user)).catch(() => { });
     },
     logout: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      SecureStore.deleteItemAsync('token').catch(() => { });
+      SecureStore.deleteItemAsync('user').catch(() => { });
+      SecureStore.deleteItemAsync('rememberMe').catch(() => { });
+      SecureStore.deleteItemAsync('biometricEnabled').catch(() => { });
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;

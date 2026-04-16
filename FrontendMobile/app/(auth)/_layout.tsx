@@ -7,6 +7,7 @@
 import { Redirect, Slot } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { useTheme } from '../../src/contexts/ThemeContext';
+import { OfflineBanner } from '../../src/components/OfflineBanner';
 
 export default function AuthLayout() {
   const { theme } = useTheme();
@@ -14,6 +15,7 @@ export default function AuthLayout() {
 
   return (
     <View style={[styles.container, isDark && styles.darkContainer]}>
+      <OfflineBanner />
       <Slot />
     </View>
   );

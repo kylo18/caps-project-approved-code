@@ -2,30 +2,40 @@
 // Purpose: Faculty "My Subjects" screen — fetches the logged-in faculty member's
 //          assigned subjects, lets them pick one, and lists its questions with
 //          status badges (Approved/Pending). Provides navigation to add/edit questions.
+//          Now supports self-assigning to available subjects and deleting own questions.
 // Key sections: Header with back button, horizontal subject tabs, questions list
-//               (with empty state), loading/refresh handling.
+//               (with empty state), loading skeleton, pull-to-refresh.
+// Uses NativeWind for mobile-native styling.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl
+  View, Text, ScrollView, TouchableOpacity,
+  RefreshControl, useWindowDimensions, Modal, Alert, ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import RenderHtml from 'react-native-render-html';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
+import { Skeleton, SkeletonList } from '../../../src/components/Skeleton';
 
 export default function FacultySubjectsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const [subjects, setSubjects] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState(null);
-  const [questions, setQuestions] = useState([]);
+  const { width: windowWidth } = useWindowDimensions();
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<any>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [availableSubjects, setAvailableSubjects] = useState<any[]>([]);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   useEffect(() => {
     fetchSubjects();
@@ -62,149 +72,303 @@ export default function FacultySubjectsScreen() {
     }
   };
 
+  const fetchAvailableSubjects = async () => {
+    try {
+      const data = await apiRequest('/api/faculty/availableSubjects');
+      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data?.subjects) ? data.subjects : Array.isArray(data) ? data : [];
+      setAvailableSubjects(list);
+    } catch (error) {
+      console.error('Error fetching available subjects:', error);
+      showToast('Unable to load available subjects', 'error');
+    }
+  };
+
+  const handleAssignSubject = async (subjectID: number) => {
+    setIsAssigning(true);
+    try {
+      await apiRequest('/api/faculty/assign-subject', {
+        method: 'POST',
+        body: { subjectID: String(subjectID) },
+      });
+      showToast('Subject assigned successfully', 'success');
+      setShowAssignModal(false);
+      await fetchSubjects();
+    } catch (error) {
+      showToast('Failed to assign subject', 'error');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const handleRemoveSubject = (subject: any) => {
+    Alert.alert(
+      'Remove Subject',
+      `Are you sure you want to remove "${subject.subjectName || subject.name}" from your assigned subjects?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiRequest(`/api/remove-assigned-subject/${subject.subjectID}`, { method: 'DELETE' });
+              showToast('Subject removed', 'success');
+              if (selectedSubject?.subjectID === subject.subjectID) {
+                setSelectedSubject(null);
+                setQuestions([]);
+              }
+              await fetchSubjects();
+            } catch (error) {
+              showToast('Failed to remove subject', 'error');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteQuestion = (questionID: number) => {
+    Alert.alert(
+      'Delete Question',
+      'Are you sure you want to delete this question?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiRequest(`/api/questions/delete/${questionID}`, { method: 'DELETE' });
+              setQuestions(prev => prev.filter(q => q.questionID !== questionID));
+              showToast('Question deleted', 'success');
+            } catch (error) {
+              showToast('Failed to delete question', 'error');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const onRefresh = async () => {
     setIsRefreshing(true);
     await fetchSubjects();
     setIsRefreshing(false);
   };
 
-  const colors = {
-    bg: isDark ? '#000' : '#f3f4f6',
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    orange: '#FE6902',
-    green: '#10B981',
-    yellow: '#F59E0B',
+  const openAssignModal = async () => {
+    await fetchAvailableSubjects();
+    setShowAssignModal(true);
   };
 
+  // Render loading skeleton
+  if (isLoading) {
+    return (
+      <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+        <View className={`px-4 py-3 ${isDark ? 'bg-gray-900' : 'bg-white'} border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`} style={{ paddingTop: insets.top + 12 }}>
+          <View className="flex-row items-center">
+            <Skeleton variant="text" className="w-32 h-6" />
+          </View>
+        </View>
+        <View className="px-4 py-4">
+          <View className="flex-row mb-4">
+            {[1, 2, 3].map(i => (
+              <Skeleton key={i} variant="button" className="mr-2" />
+            ))}
+          </View>
+          <SkeletonList count={4} />
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>My Subjects</Text>
+      <View className={`px-4 pb-3 pt-3 ${isDark ? 'bg-gray-900' : 'bg-white'} border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`} style={{ paddingTop: insets.top + 12 }}>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center">
+            <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/(faculty)/dashboard' as any); }} className="p-2 -ml-2 mr-2">
+              <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#111827'} />
+            </TouchableOpacity>
+            <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>My Subjects</Text>
+          </View>
+          <TouchableOpacity
+            onPress={openAssignModal}
+            className="flex-row items-center bg-primary px-3 py-2 rounded-xl"
+            activeOpacity={0.7}
+          >
+            <Ionicons name="add" size={18} color="white" />
+            <Text className="text-white font-semibold ml-1">Assign</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.orange} />
-        </View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[colors.orange]} />}
-        >
-          {/* Subject Selector */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.subjectTabs}>
-            {subjects.map(subject => (
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 96 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#FE6902" />}
+      >
+        {/* Subject Tabs */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 py-3 max-h-14">
+          {subjects.map(subject => (
+            <TouchableOpacity
+              key={subject.subjectID}
+              onPress={() => setSelectedSubject(subject)}
+              className={`
+                px-4 py-2 rounded-full mr-2 border flex-row items-center
+                ${selectedSubject?.subjectID === subject.subjectID
+                  ? 'bg-primary border-primary'
+                  : `${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`
+                }
+              `}
+              activeOpacity={0.7}
+            >
+              <Text className={`text-sm font-semibold max-w-36 ${selectedSubject?.subjectID === subject.subjectID ? 'text-white' : isDark ? 'text-white' : 'text-gray-900'}`} numberOfLines={1}>
+                {subject.subjectName}
+              </Text>
               <TouchableOpacity
-                key={subject.subjectID}
-                style={[
-                  styles.subjectTab,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                  selectedSubject?.subjectID === subject.subjectID && { backgroundColor: colors.orange, borderColor: colors.orange }
-                ]}
-                onPress={() => setSelectedSubject(subject)}
+                onPress={() => handleRemoveSubject(subject)}
+                className="ml-2"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close-circle" size={16} color={selectedSubject?.subjectID === subject.subjectID ? '#fff' : '#EF4444'} />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Questions List */}
+        {selectedSubject && (
+          <View className="px-4">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Questions ({questions.length})
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: '/(auth)/practice-exam/add-question', params: { subjectID: selectedSubject.subjectID } })}
+                className="flex-row items-center bg-primary px-3 py-2 rounded-xl"
                 activeOpacity={0.7}
               >
-                <Text style={[
-                  styles.subjectTabText,
-                  { color: selectedSubject?.subjectID === subject.subjectID ? '#fff' : colors.text }
-                ]} numberOfLines={1}>
-                  {subject.subjectName}
-                </Text>
+                <Ionicons name="add" size={18} color="white" />
+                <Text className="text-white font-semibold ml-1">Add</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Questions List */}
-          {selectedSubject && (
-            <View style={styles.questionsSection}>
-              <View style={styles.questionsHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  Questions ({questions.length})
-                </Text>
-                <TouchableOpacity
-                  style={styles.addBtn}
-                  onPress={() => router.push({ pathname: '/(auth)/practice-exam/add-question', params: { subjectID: selectedSubject.subjectID } })}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={styles.addBtnText}>Add</Text>
-                </TouchableOpacity>
-              </View>
-
-              {questions.length === 0 ? (
-                <View style={[styles.emptyState, { backgroundColor: colors.card }]}>
-                  <Ionicons name="help-circle" size={48} color={colors.orange} />
-                  <Text style={[styles.emptyTitle, { color: colors.text }]}>No Questions Yet</Text>
-                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                    Start adding questions for this subject.
-                  </Text>
-                </View>
-              ) : (
-                questions.map((q, idx) => (
-                  <TouchableOpacity
-                    key={q.questionID || idx}
-                    style={[styles.questionCard, { backgroundColor: colors.card }]}
-                    activeOpacity={0.7}
-                    onPress={() => router.push({ pathname: '/(auth)/practice-exam/edit-question', params: { questionID: q.questionID } })}
-                  >
-                    <View style={styles.questionHeader}>
-                      <Text style={[styles.questionNumber, { color: colors.textSecondary }]}>Q{idx + 1}</Text>
-                      <View style={[styles.statusBadge, { backgroundColor: q.status === 'approved' ? colors.green : colors.yellow }]}>
-                        <Text style={styles.statusText}>{q.status === 'approved' ? 'Approved' : 'Pending'}</Text>
-                      </View>
-                    </View>
-                    <Text style={[styles.questionText, { color: colors.text }]} numberOfLines={2}>
-                      {q.questionText?.replace(/<[^>]*>/g, '') || 'No question text'}
-                    </Text>
-                    <View style={styles.questionFooter}>
-                      <Text style={[styles.questionMeta, { color: colors.textSecondary }]}>
-                        {q.choices?.length || 4} choices
-                      </Text>
-                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-                    </View>
-                  </TouchableOpacity>
-                ))
-              )}
             </View>
-          )}
-        </ScrollView>
-      )}
+
+            {questions.length === 0 ? (
+              <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                <Ionicons name="help-circle-outline" size={64} color="#FE6902" />
+                <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Questions Yet</Text>
+                <Text className={`text-sm mt-2 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Start adding questions for this subject.
+                </Text>
+              </View>
+            ) : (
+              questions.map((q, idx) => (
+                <View
+                  key={q.questionID || idx}
+                  className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                >
+                  <View className="flex-row justify-between items-center mb-2">
+                    <Text className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Q{idx + 1}</Text>
+                    <View className="flex-row items-center gap-2">
+                      <View className={`px-2 py-1 rounded-lg ${q.status === 'approved' ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                        <Text className="text-white text-xs font-semibold">{q.status === 'approved' ? 'Approved' : 'Pending'}</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => router.push({ pathname: '/(auth)/practice-exam/edit-question', params: { questionID: q.questionID } })}
+                        className="p-1"
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="create-outline" size={18} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteQuestion(q.questionID)}
+                        className="p-1"
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <View style={{ marginBottom: 12, maxHeight: 56, overflow: 'hidden' }}>
+                    <RenderHtml
+                      contentWidth={windowWidth - 64}
+                      source={{ html: q.questionText || '<p>No question text</p>' }}
+                      tagsStyles={{
+                        p: { color: isDark ? '#fff' : '#111827', fontSize: 15, lineHeight: 20, marginBottom: 4 },
+                        li: { color: isDark ? '#fff' : '#111827', fontSize: 14, lineHeight: 18 },
+                        strong: { color: isDark ? '#fff' : '#111827', fontWeight: '700' },
+                        u: { textDecorationLine: 'underline' },
+                        a: { color: '#FE6902' },
+                      }}
+                    />
+                  </View>
+                  <View className="flex-row justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{q.choices?.length || 4} choices</Text>
+                    <Ionicons name="chevron-forward" size={18} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Assign Subject Modal */}
+      <Modal visible={showAssignModal} transparent animationType="fade" onRequestClose={() => setShowAssignModal(false)}>
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View className={`rounded-t-3xl p-5 max-h-[80%] ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Assign a Subject</Text>
+              <TouchableOpacity onPress={() => setShowAssignModal(false)}>
+                <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+              </TouchableOpacity>
+            </View>
+
+            {availableSubjects.length === 0 ? (
+              <View className="py-8 items-center">
+                <Ionicons name="book-outline" size={48} color={isDark ? '#6B7280' : '#9CA3AF'} />
+                <Text className={`mt-3 font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  No available subjects to assign
+                </Text>
+              </View>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {availableSubjects.map((subject) => (
+                  <TouchableOpacity
+                    key={subject.subjectID}
+                    onPress={() => handleAssignSubject(subject.subjectID)}
+                    disabled={isAssigning}
+                    className={`flex-row items-center p-4 rounded-2xl mb-3 ${isDark ? 'bg-gray-800' : 'bg-gray-50'}`}
+                    activeOpacity={0.7}
+                  >
+                    <View className="w-10 h-10 rounded-xl items-center justify-center bg-orange-100">
+                      <Ionicons name="book" size={20} color="#FE6902" />
+                    </View>
+                    <View className="flex-1 ml-3">
+                      <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        {subject.subjectName || subject.name}
+                      </Text>
+                      {subject.subjectCode && (
+                        <Text className={`text-xs mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {subject.subjectCode}
+                        </Text>
+                      )}
+                    </View>
+                    {isAssigning ? (
+                      <ActivityIndicator color="#FE6902" />
+                    ) : (
+                      <Ionicons name="add-circle" size={24} color="#FE6902" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  backButton: { padding: 8, marginRight: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { flexGrow: 1, paddingBottom: 100 },
-  subjectTabs: { paddingHorizontal: 16, paddingVertical: 12, maxHeight: 50 },
-  subjectTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginRight: 8 },
-  subjectTabText: { fontSize: 13, fontWeight: '600', maxWidth: 150 },
-  questionsSection: { paddingHorizontal: 16, gap: 12 },
-  questionsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '700' },
-  addBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FE6902', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  addBtnText: { color: '#fff', fontSize: 14, fontWeight: '600', marginLeft: 4 },
-  emptyState: { borderRadius: 24, padding: 32, alignItems: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '700', marginTop: 16 },
-  emptyText: { fontSize: 14, marginTop: 8, textAlign: 'center' },
-  questionCard: { borderRadius: 16, padding: 16, elevation: 2, marginBottom: 12 },
-  questionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  questionNumber: { fontSize: 14, fontWeight: '600' },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusText: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  questionText: { fontSize: 15, lineHeight: 22, marginBottom: 12 },
-  questionFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  questionMeta: { fontSize: 12 },
-});

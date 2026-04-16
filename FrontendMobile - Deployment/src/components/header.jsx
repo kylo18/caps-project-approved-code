@@ -446,9 +446,11 @@ const AdminHeader = ({ title }) => {
   // Reset profile form.
   const resetProfileForm = () => {
     if (userInfo) {
-      const [firstName = "", lastName = ""] = (userInfo.fullName || "").split(
-        " ",
-      );
+      const nameParts = (userInfo.fullName || "").trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.length > 1
+        ? nameParts.slice(1).join(" ")
+        : "";
       setProfileFormData({
         firstName: firstName || "",
         lastName: lastName || "",

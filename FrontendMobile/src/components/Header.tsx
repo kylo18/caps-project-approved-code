@@ -24,7 +24,6 @@ export default function Header({ title, isStudentPage = false }) {
   const user = auth.user;
   const isStudent = user?.roleID === 1;
 
-  // Get safe area insets for notched devices
   const insets = useSafeAreaInsets();
   const safeTop = Platform.OS === 'android' ? Math.max(insets.top, 20) : insets.top;
 

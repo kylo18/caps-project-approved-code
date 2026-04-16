@@ -5,9 +5,121 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3f50fb9f-2155-4446-aa0b-29684d47217d" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/Analytics/Models/Lesson.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend - Deployment/database/migrations/2026_04_09_000001_add_topic_to_questions_table.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend - Deployment/database/migrations/2026_04_09_000002_add_attempt_number_to_exam_attempts_table.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend - Deployment/database/migrations/2026_04_09_000003_create_lessons_table_and_fix_lesson_views.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend - Deployment/database/migrations/2026_04_10_000000_fix_practice_exam_settings.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend - Deployment/database/seeders/LessonSeeder.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend - Deployment/database/seeders/PopulateEmptyTablesSeeder.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(associate-dean)/dashboard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(associate-dean)/subjects.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(dean)/analytics.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(dean)/dashboard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(dean)/subjects.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(dean)/support.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(dean)/users.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(faculty)/dashboard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(faculty)/subjects.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(program-chair)/dashboard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(program-chair)/subjects.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(student)/_layout.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(student)/dashboard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(student)/insights.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(student)/leaderboard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/(student)/search.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/_layout.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/help.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/practice-exam/add-exam-question.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/practice-exam/add-practice-question.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/practice-exam/add-question.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/practice-exam/duplicate-question.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/practice-exam/edit-question.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/practice-exam/info.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/practice-exam/results.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/practice-exam/subject-settings.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/(auth)/practice-exam/take.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/_layout.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/forgot-password.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/index.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/register.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/app/reset-password.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/assets/adaptive-icon.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/assets/college-logo.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/assets/favicon.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/assets/fonts/Rubik-Variable.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/assets/icon.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/assets/login-bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/assets/splash-icon.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/assets/univLogo.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/babel.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/global.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/package-lock.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/AppVersion.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/ConfirmModal.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/CustomDropdown.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/EditProfileModal.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/Header.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/HelpCenterModal.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/LoadingOverlay.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/NotificationPanel.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/PrintExamModal.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/QuestionListModal.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/Questionnaire.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/SortUsers.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/SubjectCard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/SubjectCardFaculty.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/SubjectCardProgramChair.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/components/auth/FirebaseLoginForm.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/config/firebase.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/contexts/AuthContext.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/contexts/ThemeContext.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/hooks/useToast.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/i18n.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/services/apiClient.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/services/firebaseAuthService.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/services/studentAnalyticsService.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/services/studentLeaderboardService.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/store/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/store/slices/authSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/store/slices/examSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/store/slices/uiSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/student/ui.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/utils/config.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/utils/connectionTest.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/src/utils/logoutUser.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/tailwind.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontendMobile/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/Modules/Achievements/Database/Seeders/AchievementSeeder.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/Achievements/Database/Seeders/AchievementSeeder.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/Modules/Analytics/Controllers/AnalyticsController.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/Analytics/Controllers/AnalyticsController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/Modules/Analytics/Controllers/StudentAnalyticsController.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/Analytics/Controllers/StudentAnalyticsController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/Modules/Analytics/Models/ExamAttempt.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/Analytics/Models/ExamAttempt.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/Modules/Leaderboard/Controllers/LeaderboardController.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/Leaderboard/Controllers/LeaderboardController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/Modules/Notifications/Database/Seeders/NotificationSeeder.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/Notifications/Database/Seeders/NotificationSeeder.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/Modules/PracticeExams/Controllers/PracticeExamController.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/PracticeExams/Controllers/PracticeExamController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/Modules/Questions/Database/Seeders/QuestionsTableSeeder.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/Questions/Database/Seeders/QuestionsTableSeeder.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/Modules/Questions/Models/Question.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/Questions/Models/Question.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/Modules/Support/Database/Seeders/SupportSeeder.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/Support/Database/Seeders/SupportSeeder.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/Modules/Users/Database/Seeders/UsersTableSeeder.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/Modules/Users/Database/Seeders/UsersTableSeeder.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/bootstrap/cache/packages.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/bootstrap/cache/packages.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/bootstrap/cache/services.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/bootstrap/cache/services.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/composer.json" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/composer.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/database/seeders/AnalyticsTestSeeder.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/database/seeders/AnalyticsTestSeeder.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/database/seeders/DatabaseSeeder.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/database/seeders/DatabaseSeeder.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend - Deployment/database/seeders/DemoLeaderboardSeeder.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/database/seeders/DemoLeaderboardSeeder.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend - Deployment/routes/api.php" beforeDir="false" afterPath="$PROJECT_DIR$/Backend - Deployment/routes/api.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend - Deployment/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend - Deployment/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend - Deployment/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend - Deployment/src/App.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend - Deployment/src/pages/StudentInsights.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend - Deployment/src/pages/StudentInsights.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontendMobile - Deployment/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FrontendMobile - Deployment/src/App.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontendMobile - Deployment/src/components/header.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FrontendMobile - Deployment/src/components/header.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontendMobile - Deployment/src/pages/StudentInsights.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FrontendMobile - Deployment/src/pages/StudentInsights.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontendMobile - Deployment/src/services/studentAnalyticsService.js" beforeDir="false" afterPath="$PROJECT_DIR$/FrontendMobile - Deployment/src/services/studentAnalyticsService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontendMobile - Deployment/vite.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/FrontendMobile - Deployment/vite.config.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -17,30 +129,56 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="17128" />
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 6
-}]]></component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 6
+}</component>
   <component name="ProjectId" id="3B9yrXcqazVskbbJItByhx0Xhkt" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "MobileApp/Jdev/TestEnvi"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;MobileWeb/Jdev/TestEnvi&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/rober/OneDrive/Documents/Code/softwaredesign/CAPS-mobile&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.31033.145" />
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-IU-253.31033.145" />
+      </set>
+    </attachedChunks>
+  </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="3f50fb9f-2155-4446-aa0b-29684d47217d" name="Changes" comment="" />
@@ -48,7 +186,12 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1773915782594</updated>
+      <workItem from="1775727429573" duration="162000" />
+      <workItem from="1775730662730" duration="10328000" />
     </task>
     <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
   </component>
 </project>

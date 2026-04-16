@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -34,9 +35,9 @@ import ResetPasswordPage from "./components/resetPassForm";
 import ForgotPasswordForm from "./components/forgotPassForm";
 import PracticeExamInfo from "./pages/PracticeExamInfo";
 // AI Chat Page - Full-page chat interface for students with typing animation and markdown support
-import AIChatPage from "./pages/AIChatPage";
-
 import TestLogin from "./tests/testLogin";
+
+const AIChatPage = lazy(() => import("./pages/AIChatPage"));
 
 // Render the app component.
 function App() {
@@ -120,7 +121,14 @@ function App() {
           path="/ai-chat"
           element={<ProtectedRoute element={<Layout />} />}
         >
-          <Route index element={<AIChatPage />} />
+          <Route
+            index
+            element={
+              <Suspense fallback={<div className="p-8 text-center">Loading chat...</div>}>
+                <AIChatPage />
+              </Suspense>
+            }
+          />
         </Route>
 
         {/* Leaderboard Route */}

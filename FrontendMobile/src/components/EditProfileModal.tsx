@@ -4,6 +4,7 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { showToast } from '../../src/hooks/useToast';
 import { useDispatch } from 'react-redux';
 import { updateUser } from '../../src/store/slices/authSlice';
+import apiClient from '../services/apiClient';
 
 interface EditProfileModalProps {
   visible: boolean;
@@ -28,13 +29,17 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
     }
     setIsSubmitting(true);
     try {
-      // TODO: Call API to update profile
-      // await apiRequest('/api/user/update-profile', { method: 'POST', body: { firstName, lastName, email } });
+      const response = await apiClient.post('/api/user/update-profile', {
+        firstName,
+        lastName,
+        email,
+      });
       dispatch(updateUser({ firstName, lastName, email }));
       showToast('Profile updated', 'success');
       onClose();
-    } catch (error) {
-      showToast('Failed to update profile', 'error');
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || 'Failed to update profile';
+      showToast(errorMsg, 'error');
     } finally {
       setIsSubmitting(false);
     }

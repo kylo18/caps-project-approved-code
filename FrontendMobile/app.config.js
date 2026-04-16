@@ -6,6 +6,8 @@ export default {
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
+    scheme: "caps",
+    newArchEnabled: false,
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
@@ -14,7 +16,10 @@ export default {
     assetBundlePatterns: ["**/*"],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.caps.mobile"
+      bundleIdentifier: "com.caps.mobile",
+      infoPlist: {
+        NSFaceIDUsageDescription: "Use Face ID to quickly and securely sign in to CAPS."
+      }
     },
     android: {
       adaptiveIcon: {
@@ -22,6 +27,8 @@ export default {
         backgroundColor: "#FE6902"
       },
       package: "com.caps.mobile",
+      edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false,
       permissions: [
         "INTERNET",
         "ACCESS_NETWORK_STATE"
@@ -35,6 +42,9 @@ export default {
       "expo-font",
       "expo-secure-store",
       "expo-localization",
+      "expo-web-browser",
+      "expo-local-authentication",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
@@ -45,8 +55,8 @@ export default {
       ]
     ],
     extra: {
-      API_URL: process.env.API_URL || 'http://100.91.44.24:8000',
-      AI_SERVICE_URL: process.env.AI_SERVICE_URL || 'http://100.91.44.24:8001',
+      API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://100.91.44.24:8000',
+      AI_SERVICE_URL: process.env.EXPO_PUBLIC_AI_SERVICE_URL || 'http://100.91.44.24:8001',
       router: {
         origin: false
       }

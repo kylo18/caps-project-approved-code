@@ -172,7 +172,7 @@ const StudentInsights = () => {
                 </div>
                 <div className="rounded-[18px] bg-white/10 px-3 py-3">
                   <div className="text-[10px] uppercase tracking-[0.24em] text-orange-100">
-                    Strongest Topic
+                    Strongest Subject
                   </div>
                   <div className="mt-2 text-lg font-bold">
                     {insights?.strong_topics?.[0]?.topic ??
@@ -218,7 +218,7 @@ const StudentInsights = () => {
               </div>
 
               <div className="mb-3 mt-7 flex items-center justify-between">
-                <h2 className="text-xl font-bold">Time per Topic</h2>
+                <h2 className="text-xl font-bold">Time per Subject</h2>
               </div>
 
               <div className="space-y-3">

@@ -19,11 +19,12 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Modal, Dimensions, Alert, ActivityIndicator
+  Modal, Dimensions, Alert, ActivityIndicator, useWindowDimensions
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import RenderHtml from 'react-native-render-html';
 import apiClient from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
@@ -36,6 +37,7 @@ export default function PracticeExamScreen() {
   const params = useLocalSearchParams();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { width: windowWidth } = useWindowDimensions();
 
   const subjectID = params.subjectID as string;
   const subjectName = params.subjectName as string;
@@ -316,202 +318,214 @@ export default function PracticeExamScreen() {
         </View>
       ) : (
         <>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <View style={styles.headerLeft}>
-          <Text style={[styles.headerSubject, { color: colors.text }]} numberOfLines={1}>{subjectName}</Text>
-          <View style={styles.headerBadges}>
-            <View style={styles.progressBadge}>
-              <Text style={styles.progressBadgeText}>{answeredCount}/{questionCount}</Text>
-            </View>
-            {enableTimer && (
-              <View style={[styles.timerBadge, secondsLeft !== null && secondsLeft <= 300 && styles.timerBadgeWarning]}>
-                {secondsLeft !== null ? (
-                  <>
-                    <Ionicons name="time" size={14} color={secondsLeft <= 300 ? '#EF4444' : '#FE6902'} />
-                    <Text style={[styles.timerText, secondsLeft <= 300 && styles.timerTextWarning]}>
-                      {(() => {
-                        const t = formatTime(secondsLeft);
-                        return `${t.hours}:${t.minutes}:${t.seconds}`;
-                      })()}
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={styles.timerText}>00:00:00</Text>
+          {/* Header */}
+          <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+            <View style={styles.headerLeft}>
+              <Text style={[styles.headerSubject, { color: colors.text }]} numberOfLines={1}>{subjectName}</Text>
+              <View style={styles.headerBadges}>
+                <View style={styles.progressBadge}>
+                  <Text style={styles.progressBadgeText}>{answeredCount}/{questionCount}</Text>
+                </View>
+                {enableTimer && (
+                  <View style={[styles.timerBadge, secondsLeft !== null && secondsLeft <= 300 && styles.timerBadgeWarning]}>
+                    {secondsLeft !== null ? (
+                      <>
+                        <Ionicons name="time" size={14} color={secondsLeft <= 300 ? '#EF4444' : '#FE6902'} />
+                        <Text style={[styles.timerText, secondsLeft <= 300 && styles.timerTextWarning]}>
+                          {(() => {
+                            const t = formatTime(secondsLeft);
+                            return `${t.hours}:${t.minutes}:${t.seconds}`;
+                          })()}
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={styles.timerText}>00:00:00</Text>
+                    )}
+                  </View>
+                )}
+                {!enableTimer && (
+                  <View style={styles.unlimitedBadge}>
+                    <Ionicons name="infinity" size={14} color="#10B981" />
+                    <Text style={styles.unlimitedText}>Unlimited</Text>
+                  </View>
                 )}
               </View>
-            )}
-            {!enableTimer && (
-              <View style={styles.unlimitedBadge}>
-                <Ionicons name="infinity" size={14} color="#10B981" />
-                <Text style={styles.unlimitedText}>Unlimited</Text>
-              </View>
-            )}
-          </View>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIconBtn} onPress={() => setIsQuestionListOpen(true)}>
-            <Ionicons name="list" size={22} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Progress Bar */}
-      <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
-        <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-      </View>
-      <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>{Math.round(progressPercent)}% Answered</Text>
-
-      {/* Question Content */}
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.questionCard, { backgroundColor: colors.card }]}>
-          {/* Question Header */}
-          <View style={styles.questionHeader}>
-            <View style={styles.questionNumberBadge}>
-              <Text style={styles.questionNumberText}>{currentQuestionIndex + 1}</Text>
             </View>
-            <Text style={[styles.questionLabel, { color: colors.text }]}>Question {currentQuestionIndex + 1} of {totalItems}</Text>
-            <TouchableOpacity
-              style={styles.bookmarkBtn}
-              onPress={() => handleToggleBookmark(currentQuestion.questionID)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={bookmarkedQuestions.includes(currentQuestion.questionID) ? 'bookmark' : 'bookmark-outline'}
-                size={24}
-                color={bookmarkedQuestions.includes(currentQuestion.questionID) ? '#F59E0B' : colors.textSecondary}
-              />
-            </TouchableOpacity>
+            <View style={styles.headerRight}>
+              <TouchableOpacity style={styles.headerIconBtn} onPress={() => setIsQuestionListOpen(true)}>
+                <Ionicons name="list" size={22} color={colors.text} />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Question Text */}
-          <Text style={[styles.questionText, { color: colors.text }]}>{currentQuestion.questionText}</Text>
+          {/* Progress Bar */}
+          <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
+            <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+          </View>
+          <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>{Math.round(progressPercent)}% Answered</Text>
 
-          {/* Question Image */}
-          {currentQuestion.questionImage && (
-            <TouchableOpacity onPress={() => setImageModalUrl(currentQuestion.questionImage)} activeOpacity={0.8} style={{ marginBottom: 16 }}>
-              <Text style={[styles.questionImageHint, { color: '#FE6902' }]}>📷 Tap to view question image</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Choices */}
-          <View style={styles.choicesContainer}>
-            {currentQuestion.choices.map((choice: any, idx: number) => {
-              const isSelected = answers[currentQuestion.questionID] === String(choice.choiceID);
-              return (
+          {/* Question Content */}
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <View style={[styles.questionCard, { backgroundColor: colors.card }]}>
+              {/* Question Header */}
+              <View style={styles.questionHeader}>
+                <View style={styles.questionNumberBadge}>
+                  <Text style={styles.questionNumberText}>{currentQuestionIndex + 1}</Text>
+                </View>
+                <Text style={[styles.questionLabel, { color: colors.text }]}>Question {currentQuestionIndex + 1} of {totalItems}</Text>
                 <TouchableOpacity
-                  key={choice.choiceID}
-                  style={[
-                    styles.choiceItem,
-                    { backgroundColor: isSelected ? colors.selectedBg : colors.optionBg },
-                    { borderColor: isSelected ? colors.selectedBorder : colors.border },
-                    { borderLeftWidth: isSelected ? 4 : 1, borderLeftColor: isSelected ? colors.selectedBorder : 'transparent' },
-                  ]}
-                  onPress={() => handleSelectAnswer(String(choice.choiceID))}
+                  style={styles.bookmarkBtn}
+                  onPress={() => handleToggleBookmark(currentQuestion.questionID)}
                   activeOpacity={0.7}
                 >
-                  <View style={[
-                    styles.choiceRadio,
-                    { borderColor: isSelected ? colors.selectedBorder : colors.textSecondary },
-                    isSelected && { backgroundColor: colors.selectedBorder, borderColor: colors.selectedBorder },
-                  ]}>
-                    {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
-                  </View>
-                  <Text style={[styles.choiceText, { color: colors.text }, isSelected && { fontWeight: '600' }]}>
-                    {String.fromCharCode(65 + idx)}. {choice.choiceText}
-                  </Text>
-                  {choice.choiceImage && (
-                    <TouchableOpacity onPress={() => setImageModalUrl(choice.choiceImage)} activeOpacity={0.8}>
-                      <Text style={[styles.questionImageHint, { color: '#FE6902', fontSize: 12 }]}>📷 View image</Text>
-                    </TouchableOpacity>
-                  )}
+                  <Ionicons
+                    name={bookmarkedQuestions.includes(currentQuestion.questionID) ? 'bookmark' : 'bookmark-outline'}
+                    size={24}
+                    color={bookmarkedQuestions.includes(currentQuestion.questionID) ? '#F59E0B' : colors.textSecondary}
+                  />
                 </TouchableOpacity>
-              );
-            })}
+              </View>
+
+              {/* Question Text */}
+              <View style={{ marginBottom: 20 }}>
+                <RenderHtml
+                  contentWidth={windowWidth - 48}
+                  source={{ html: currentQuestion.questionText || '<p></p>' }}
+                  tagsStyles={{
+                    p: { color: colors.text, fontSize: 16, lineHeight: 24, marginBottom: 8 },
+                    li: { color: colors.text, fontSize: 15, lineHeight: 22 },
+                    strong: { color: colors.text, fontWeight: '700' },
+                    u: { textDecorationLine: 'underline' },
+                    a: { color: '#FE6902' },
+                  }}
+                />
+              </View>
+
+              {/* Question Image */}
+              {currentQuestion.questionImage && (
+                <TouchableOpacity onPress={() => setImageModalUrl(currentQuestion.questionImage)} activeOpacity={0.8} style={{ marginBottom: 16 }}>
+                  <Text style={[styles.questionImageHint, { color: '#FE6902' }]}>📷 Tap to view question image</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Choices */}
+              <View style={styles.choicesContainer}>
+                {currentQuestion.choices.map((choice: any, idx: number) => {
+                  const isSelected = answers[currentQuestion.questionID] === String(choice.choiceID);
+                  return (
+                    <TouchableOpacity
+                      key={choice.choiceID}
+                      style={[
+                        styles.choiceItem,
+                        { backgroundColor: isSelected ? colors.selectedBg : colors.optionBg },
+                        { borderColor: isSelected ? colors.selectedBorder : colors.border },
+                        { borderLeftWidth: isSelected ? 4 : 1, borderLeftColor: isSelected ? colors.selectedBorder : 'transparent' },
+                      ]}
+                      onPress={() => handleSelectAnswer(String(choice.choiceID))}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[
+                        styles.choiceRadio,
+                        { borderColor: isSelected ? colors.selectedBorder : colors.textSecondary },
+                        isSelected && { backgroundColor: colors.selectedBorder, borderColor: colors.selectedBorder },
+                      ]}>
+                        {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                      </View>
+                      <Text style={[styles.choiceText, { color: colors.text }, isSelected && { fontWeight: '600' }]}>
+                        {String.fromCharCode(65 + idx)}. {choice.choiceText}
+                      </Text>
+                      {choice.choiceImage && (
+                        <TouchableOpacity onPress={() => setImageModalUrl(choice.choiceImage)} activeOpacity={0.8}>
+                          <Text style={[styles.questionImageHint, { color: '#FE6902', fontSize: 12 }]}>📷 View image</Text>
+                        </TouchableOpacity>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Clear Answer */}
+              {answers[currentQuestion.questionID] && (
+                <TouchableOpacity style={styles.clearAnswerBtn} onPress={handleClearAnswer} activeOpacity={0.7}>
+                  <Ionicons name="close-circle" size={18} color="#EF4444" style={{ marginRight: 6 }} />
+                  <Text style={styles.clearAnswerText}>Clear Answer</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </ScrollView>
+
+          {/* Navigation Footer */}
+          <View style={[styles.footer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+            <TouchableOpacity
+              style={[styles.navBtn, { borderColor: colors.border }, currentQuestionIndex === 0 && styles.navBtnDisabled]}
+              onPress={() => handleNavigate('prev')}
+              disabled={currentQuestionIndex === 0}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-back" size={20} color={colors.text} />
+              <Text style={[styles.navBtnText, { color: colors.text }]}>Previous</Text>
+            </TouchableOpacity>
+
+            {!isLastQuestion ? (
+              <TouchableOpacity
+                style={[styles.navBtn, styles.nextBtn]}
+                onPress={() => handleNavigate('next')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.nextBtnText}>Next</Text>
+                <Ionicons name="chevron-forward" size={20} color="#fff" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.navBtn, styles.submitBtn, { opacity: isSubmitting || (!allAnswered && !answers[currentQuestion.questionID]) ? 0.5 : 1 }]}
+                onPress={() => {
+                  if (!answers[currentQuestion.questionID]) {
+                    setError('Please answer this question before submitting.');
+                    return;
+                  }
+                  setShowTimerModal(true);
+                }}
+                disabled={isSubmitting}
+                activeOpacity={0.8}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.submitBtnText}>Submit</Text>
+                    <Ionicons name="checkmark-done" size={20} color="#fff" />
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
 
-          {/* Clear Answer */}
-          {answers[currentQuestion.questionID] && (
-            <TouchableOpacity style={styles.clearAnswerBtn} onPress={handleClearAnswer} activeOpacity={0.7}>
-              <Ionicons name="close-circle" size={18} color="#EF4444" style={{ marginRight: 6 }} />
-              <Text style={styles.clearAnswerText}>Clear Answer</Text>
-            </TouchableOpacity>
+          {/* Error Message */}
+          {error && (
+            <View style={styles.errorBanner}>
+              <Ionicons name="warning" size={18} color="#fff" />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
           )}
-        </View>
-      </ScrollView>
 
-      {/* Navigation Footer */}
-      <View style={[styles.footer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-        <TouchableOpacity
-          style={[styles.navBtn, { borderColor: colors.border }, currentQuestionIndex === 0 && styles.navBtnDisabled]}
-          onPress={() => handleNavigate('prev')}
-          disabled={currentQuestionIndex === 0}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={20} color={colors.text} />
-          <Text style={[styles.navBtnText, { color: colors.text }]}>Previous</Text>
-        </TouchableOpacity>
-
-        {!isLastQuestion ? (
-          <TouchableOpacity
-            style={[styles.navBtn, styles.nextBtn]}
-            onPress={() => handleNavigate('next')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.nextBtnText}>Next</Text>
-            <Ionicons name="chevron-forward" size={20} color="#fff" />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.navBtn, styles.submitBtn, { opacity: isSubmitting || (!allAnswered && !answers[currentQuestion.questionID]) ? 0.5 : 1 }]}
-            onPress={() => {
-              if (!answers[currentQuestion.questionID]) {
-                setError('Please answer this question before submitting.');
-                return;
-              }
-              setShowTimerModal(true);
+          {/* Modals */}
+          <TimerModal />
+          <ImageModal />
+          <QuestionListModal
+            visible={isQuestionListOpen}
+            onClose={() => setIsQuestionListOpen(false)}
+            questions={questions}
+            currentQuestionIndex={currentQuestionIndex}
+            answers={answers}
+            bookmarkedQuestions={bookmarkedQuestions}
+            onQuestionClick={(index) => {
+              setCurrentQuestionIndex(index);
+              setIsQuestionListOpen(false);
             }}
-            disabled={isSubmitting}
-            activeOpacity={0.8}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Text style={styles.submitBtnText}>Submit</Text>
-                <Ionicons name="checkmark-done" size={20} color="#fff" />
-              </>
-            )}
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Error Message */}
-      {error && (
-        <View style={styles.errorBanner}>
-          <Ionicons name="warning" size={18} color="#fff" />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      {/* Modals */}
-      <TimerModal />
-      <ImageModal />
-      <QuestionListModal
-        visible={isQuestionListOpen}
-        onClose={() => setIsQuestionListOpen(false)}
-        questions={questions}
-        currentQuestionIndex={currentQuestionIndex}
-        answers={answers}
-        bookmarkedQuestions={bookmarkedQuestions}
-        onQuestionClick={(index) => {
-          setCurrentQuestionIndex(index);
-          setIsQuestionListOpen(false);
-        }}
-        onToggleBookmark={handleToggleBookmark}
-        isDark={isDark}
-      />
-      </>
+            onToggleBookmark={handleToggleBookmark}
+            isDark={isDark}
+          />
+        </>
       )}
     </View>
   );

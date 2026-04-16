@@ -54,11 +54,11 @@ export default function SubjectSettingsDean() {
     }
   };
 
-  const handleToggleExam = async (value) => {
+  const handleToggleExam = async (value: boolean) => {
     setExamEnabled(value);
     try {
       const endpoint = value ? `/api/subjects/${subjectID}/enable-exam-questions` : `/api/subjects/${subjectID}/disable-exam-questions`;
-      await apiRequest(endpoint, { method: 'POST' });
+      await apiRequest(endpoint, { method: 'PATCH' });
       showToast(value ? 'Exam questions enabled' : 'Exam questions disabled', 'success');
     } catch (error) {
       showToast('Failed to update exam settings', 'error');

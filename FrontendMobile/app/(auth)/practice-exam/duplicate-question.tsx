@@ -1,21 +1,34 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Purpose: Confirmation screen for duplicating an existing question. Shows a
-//          preview of the question and its choices, then creates a copy via
-//          the API when the user confirms.
+//          preview of the question and its choices read from navigation params
+//          (workaround for missing GET /api/questions/{id}), then creates a
+//          copy via the API when the user confirms.
 // Key sections:
 //   - State: question object, choices array, isLoading, isSubmitting
-//   - fetchQuestion: loads the question and choices from the API on mount
 //   - handleSubmit: POSTs a duplicate request to the API
 //   - UI: header, preview card showing question text and all choices with
 //         visual indicators for the correct answer, duplicate button
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import RenderHtml from 'react-native-render-html';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
+
+interface Choice {
+  choiceID?: number;
+  choiceText: string;
+  isCorrect: number;
+}
+
+interface Question {
+  questionID?: number;
+  questionText: string;
+  choices?: Choice[];
+}
 
 export default function DuplicateQuestionForm() {
   const router = useRouter();
@@ -23,37 +36,40 @@ export default function DuplicateQuestionForm() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const questionID = params.questionID;
+  const { width } = useWindowDimensions();
 
-  const [question, setQuestion] = useState(null);
-  const [choices, setChoices] = useState([]);
+  const [question, setQuestion] = useState<Question | null>(null);
+  const [choices, setChoices] = useState<Choice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchQuestion();
-  }, []);
-
-  const fetchQuestion = async () => {
-    setIsLoading(true);
+    // Workaround: read full question data from navigation params since
+    // GET /api/questions/{id} is not available on the backend.
     try {
-      const data = await apiRequest(`/api/questions/${questionID}`);
-      setQuestion(data);
-      setChoices(data?.choices || []);
-    } catch (error) {
-      showToast('Failed to load question', 'error');
-    } finally {
-      setIsLoading(false);
+      const raw = typeof params.question === 'string' ? params.question : Array.isArray(params.question) ? params.question[0] : '';
+      const parsedQuestion: Question | null = raw ? JSON.parse(raw) : null;
+      if (parsedQuestion) {
+        setQuestion(parsedQuestion);
+        setChoices(Array.isArray(parsedQuestion.choices) ? parsedQuestion.choices : []);
+        setIsLoading(false);
+        return;
+      }
+    } catch (e) {
+      // fall through to error state
     }
-  };
+    showToast('Failed to load question data', 'error');
+    setIsLoading(false);
+  }, []);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
       await apiRequest(`/api/questions/${questionID}/duplicate`, { method: 'POST' });
       showToast('Question duplicated successfully', 'success');
-      router.back();
-    } catch (error) {
-      showToast(error.message || 'Failed to duplicate question', 'error');
+      if (router.canGoBack()) router.back();
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to duplicate question', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -75,7 +91,7 @@ export default function DuplicateQuestionForm() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/(dean)/dashboard' as any)} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Duplicate Question</Text>
@@ -85,7 +101,19 @@ export default function DuplicateQuestionForm() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Text style={[styles.previewLabel, { color: colors.textSecondary }]}>Preview of Question to Duplicate</Text>
-          <Text style={[styles.questionText, { color: colors.text }]}>{question?.questionText || 'No question text'}</Text>
+          <View style={{ marginBottom: 16 }}>
+            <RenderHtml
+              contentWidth={width - 64}
+              source={{ html: question?.questionText || '<p>No question text</p>' }}
+              tagsStyles={{
+                p: { color: colors.text, fontSize: 16, lineHeight: 24, marginBottom: 8 },
+                li: { color: colors.text, fontSize: 15, lineHeight: 22 },
+                strong: { color: colors.text, fontWeight: '700' },
+                u: { textDecorationLine: 'underline' },
+                a: { color: colors.orange },
+              }}
+            />
+          </View>
 
           <Text style={[styles.choicesLabel, { color: colors.text }]}>Choices:</Text>
           {choices.map((choice, idx) => (

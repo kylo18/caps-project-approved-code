@@ -34,7 +34,7 @@ const StudentInsights = () => {
         </article>
         <article className={metricCardClasses}>
           <div className="text-[12px] tracking-wide text-gray-400 uppercase">
-            Strongest Topic
+            Strongest Subject
           </div>
           <div className="mt-2 text-[18px] font-semibold text-gray-900 dark:text-white">
             {insights?.strong_topics?.[0]?.topic ?? "--"}
@@ -44,7 +44,7 @@ const StudentInsights = () => {
 
       <section className={metricCardClasses}>
         <h2 className="text-[16px] font-semibold text-gray-900 dark:text-white">
-          Topics You Need More Practice In
+          Subjects You Need More Practice In
         </h2>
         <div className="mt-4 space-y-3">
           {/* Weak topics highlight where the student has the highest error rate. */}
@@ -68,7 +68,7 @@ const StudentInsights = () => {
 
       <section className={metricCardClasses}>
         <h2 className="text-[16px] font-semibold text-gray-900 dark:text-white">
-          Study Time by Topic
+          Study Time by Subject
         </h2>
         <div className="mt-4 space-y-4">
           {insights?.time_spent_per_topic?.map((item) => {

@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
+import UserDetailModal from '../../../src/components/UserDetailModal';
 
 const avatarPalette = ['#FFE17B', '#FFD4EA', '#D9DCFF', '#D6F4D2', '#FFD0B1'];
 const ADMIN_ROLES = [2, 3, 4, 5];
@@ -28,7 +29,7 @@ export default function AdminUsersScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  
+
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [stats, setStats] = useState({ admins: 0, students: 0 });
@@ -41,6 +42,11 @@ export default function AdminUsersScreen() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedUserIDs, setSelectedUserIDs] = useState<Set<number>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [detailUser, setDetailUser] = useState<any | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [isBulkActing, setIsBulkActing] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -106,10 +112,114 @@ export default function AdminUsersScreen() {
     ]);
   };
 
+  const handleApproveAll = async () => {
+    const pendingUsers = users.filter(u => u.status === 'pending' || u.status === 'approved');
+    if (pendingUsers.length === 0) {
+      showToast('No pending users to approve', 'info');
+      return;
+    }
+
+    Alert.alert(
+      `Approve ${pendingUsers.length} Users`,
+      `Are you sure you want to approve all ${pendingUsers.length} pending user(s)?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Approve All',
+          style: 'default',
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              const userIDs = pendingUsers.map(u => u.userID);
+              await apiRequest('/api/users/approve-multiple', { method: 'POST', body: { userIDs } });
+              setUsers(prev => prev.map(u =>
+                ['pending', 'approved'].includes(u.status) ? { ...u, status: 'activated' } : u
+              ));
+              showToast(`${pendingUsers.length} user(s) approved`, 'success');
+            } catch (error: any) {
+              showToast(error.response?.data?.message || 'Failed to approve users', 'error');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const onRefresh = async () => {
     setIsRefreshing(true);
     await fetchUsers();
     setIsRefreshing(false);
+  };
+
+  const toggleSelection = (userID: number) => {
+    const next = new Set(selectedUserIDs);
+    if (next.has(userID)) {
+      next.delete(userID);
+    } else {
+      next.add(userID);
+    }
+    setSelectedUserIDs(next);
+    if (next.size === 0) {
+      setSelectionMode(false);
+    }
+  };
+
+  const selectAllVisible = () => {
+    const ids = filteredUsers.map(u => u.userID);
+    setSelectedUserIDs(new Set(ids));
+  };
+
+  const deselectAll = () => {
+    setSelectedUserIDs(new Set());
+    setSelectionMode(false);
+  };
+
+  const handleBulkAction = async (action: 'approve' | 'activate' | 'deactivate' | 'delete') => {
+    const ids = Array.from(selectedUserIDs);
+    if (ids.length === 0) return;
+    const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
+    Alert.alert(
+      `${actionLabel} ${ids.length} User(s)`,
+      `Are you sure you want to ${action} ${ids.length} selected user(s)?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: actionLabel,
+          style: action === 'delete' || action === 'deactivate' ? 'destructive' : 'default',
+          onPress: async () => {
+            setIsBulkActing(true);
+            try {
+              if (action === 'delete') {
+                await apiRequest('/api/users/delete-multiple', { method: 'POST', body: { userIDs: ids } });
+                setUsers(prev => prev.filter(u => !selectedUserIDs.has(u.userID)));
+              } else {
+                await apiRequest(`/api/users/${action}-multiple`, { method: 'POST', body: { userIDs: ids } });
+                setUsers(prev => prev.map(u => {
+                  if (!selectedUserIDs.has(u.userID)) return u;
+                  if (action === 'approve') return { ...u, status: 'activated' };
+                  if (action === 'activate') return { ...u, status: 'activated' };
+                  if (action === 'deactivate') return { ...u, status: 'deactivated' };
+                  return u;
+                }));
+              }
+              showToast(`${ids.length} user(s) ${action === 'approve' ? 'approved' : action + 'd'}`, 'success');
+              deselectAll();
+            } catch (error: any) {
+              showToast(error?.data?.message || `Failed to ${action} users`, 'error');
+            } finally {
+              setIsBulkActing(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const openDetail = (user: any) => {
+    setDetailUser(user);
+    setShowDetailModal(true);
   };
 
   const getInitials = (user) => `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || '?';
@@ -134,40 +244,65 @@ export default function AdminUsersScreen() {
   const years = [...new Set(users.filter(u => u.yearLevel).map(u => u.yearLevel))].sort();
   const campuses = [...new Map(users.filter(u => u.campusName).map(u => ({ id: String(u.campusID), label: u.campusName }))).values()];
 
-  const renderUser = useCallback(({ item }) => (
-    <View style={[styles.userCard, { backgroundColor: colors.card }]}>
-      <View style={[styles.avatar, { backgroundColor: avatarPalette[item.userID % avatarPalette.length] }]}>
-        <Text style={styles.avatarText}>{getInitials(item)}</Text>
-      </View>
-      <View style={styles.userInfo}>
-        <View style={styles.userNameRow}>
-          <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>{item.firstName} {item.lastName}</Text>
-          <View style={[styles.roleBadge, { backgroundColor: isAdmin(item) ? colors.blue : colors.green }]}>
-            <Text style={styles.roleBadgeText}>{isAdmin(item) ? (item.roleName || 'Admin') : 'Student'}</Text>
+  const renderUser = useCallback(({ item }) => {
+    const isSelected = selectedUserIDs.has(item.userID);
+    return (
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => {
+          if (selectionMode) {
+            toggleSelection(item.userID);
+          } else {
+            openDetail(item);
+          }
+        }}
+        onLongPress={() => {
+          if (!selectionMode) setSelectionMode(true);
+          toggleSelection(item.userID);
+        }}
+        style={[styles.userCard, { backgroundColor: colors.card }, isSelected && { borderWidth: 2, borderColor: colors.orange }]}
+      >
+        {selectionMode ? (
+          <View style={[styles.checkbox, { borderColor: colors.orange, backgroundColor: isSelected ? colors.orange : 'transparent' }]}>
+            {isSelected && <Ionicons name="checkmark" size={18} color="#fff" />}
+          </View>
+        ) : (
+          <View style={[styles.avatar, { backgroundColor: avatarPalette[item.userID % avatarPalette.length] }]}>
+            <Text style={styles.avatarText}>{getInitials(item)}</Text>
+          </View>
+        )}
+        <View style={styles.userInfo}>
+          <View style={styles.userNameRow}>
+            <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>{item.firstName} {item.lastName}</Text>
+            <View style={[styles.roleBadge, { backgroundColor: isAdmin(item) ? colors.blue : colors.green }]}>
+              <Text style={styles.roleBadgeText}>{isAdmin(item) ? (item.roleName || 'Admin') : 'Student'}</Text>
+            </View>
+          </View>
+          <Text style={[styles.userMeta, { color: colors.textSecondary }]} numberOfLines={1}>{item.email}</Text>
+          <View style={styles.userMetaRow}>
+            <View style={[styles.statusBadge, { backgroundColor: item.status === 'activated' ? colors.green : item.status === 'pending' ? colors.blue : item.status === 'approved' ? colors.orange : colors.red }]}>
+              <Text style={styles.statusText}>{item.status || 'pending'}</Text>
+            </View>
+            {item.programName && <Text style={[styles.metaTag, { color: colors.textSecondary }]}>{item.programName}</Text>}
+            {item.yearLevel && <Text style={[styles.metaTag, { color: colors.textSecondary }]}>Year {item.yearLevel}</Text>}
           </View>
         </View>
-        <Text style={[styles.userMeta, { color: colors.textSecondary }]} numberOfLines={1}>{item.email}</Text>
-        <View style={styles.userMetaRow}>
-          <View style={[styles.statusBadge, { backgroundColor: item.status === 'activated' ? colors.green : item.status === 'pending' ? colors.blue : item.status === 'approved' ? colors.orange : colors.red }]}>
-            <Text style={styles.statusText}>{item.status || 'pending'}</Text>
+        {!selectionMode && (
+          <View style={styles.userActions}>
+            {(item.status === 'pending' || item.status === 'approved') && (
+              <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: colors.green }]} onPress={() => confirmAction(item, 'approve')}><Ionicons name="checkmark" size={18} color="#fff" /></TouchableOpacity>
+            )}
+            {item.status === 'activated' && (
+              <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: colors.red }]} onPress={() => confirmAction(item, 'deactivate')}><Ionicons name="close" size={18} color="#fff" /></TouchableOpacity>
+            )}
+            {item.status === 'deactivated' && (
+              <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: colors.blue }]} onPress={() => confirmAction(item, 'activate')}><Ionicons name="play" size={18} color="#fff" /></TouchableOpacity>
+            )}
           </View>
-          {item.programName && <Text style={[styles.metaTag, { color: colors.textSecondary }]}>{item.programName}</Text>}
-          {item.yearLevel && <Text style={[styles.metaTag, { color: colors.textSecondary }]}>Year {item.yearLevel}</Text>}
-        </View>
-      </View>
-      <View style={styles.userActions}>
-        {(item.status === 'pending' || item.status === 'approved') && (
-          <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: colors.green }]} onPress={() => confirmAction(item, 'approve')}><Ionicons name="checkmark" size={18} color="#fff" /></TouchableOpacity>
         )}
-        {item.status === 'activated' && (
-          <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: colors.red }]} onPress={() => confirmAction(item, 'deactivate')}><Ionicons name="close" size={18} color="#fff" /></TouchableOpacity>
-        )}
-        {['deactivated', 'deactivated'].includes(item.status) && (
-          <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: colors.blue }]} onPress={() => confirmAction(item, 'activate')}><Ionicons name="play" size={18} color="#fff" /></TouchableOpacity>
-        )}
-      </View>
-    </View>
-  ), [colors.text, colors.textSecondary, colors.card, colors.blue, colors.green, colors.red, colors.orange]);
+      </TouchableOpacity>
+    );
+  }, [colors.text, colors.textSecondary, colors.card, colors.blue, colors.green, colors.red, colors.orange, selectedUserIDs, selectionMode]);
 
   const renderSkeleton = () => (
     <View style={[styles.userCard, { backgroundColor: colors.card }]}>
@@ -179,11 +314,19 @@ export default function AdminUsersScreen() {
     </View>
   );
 
+  const pendingCount = users.filter(u => u.status === 'pending' || u.status === 'approved').length;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}><Ionicons name="arrow-back" size={24} color={colors.text} /></TouchableOpacity>
+        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/(dean)/dashboard' as any); }} style={styles.backButton}><Ionicons name="arrow-back" size={24} color={colors.text} /></TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>User Management</Text>
+        {pendingCount > 0 && (
+          <TouchableOpacity style={[styles.approveAllBtn, { backgroundColor: colors.green }]} onPress={handleApproveAll} activeOpacity={0.7}>
+            <Ionicons name="checkmark-done" size={18} color="#fff" />
+            <Text style={styles.approveAllText}>{pendingCount}</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {isLoading ? (
@@ -264,6 +407,47 @@ export default function AdminUsersScreen() {
               </View>
             }
           />
+
+          {/* Bulk Action Bar */}
+          {selectionMode && (
+            <View style={[styles.bulkBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+              <View style={styles.bulkBarTop}>
+                <Text style={[styles.bulkBarText, { color: colors.text }]}>{selectedUserIDs.size} selected</Text>
+                <TouchableOpacity onPress={selectAllVisible} activeOpacity={0.7}>
+                  <Text style={[styles.bulkBarLink, { color: colors.orange }]}>Select all visible</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={deselectAll} activeOpacity={0.7}>
+                  <Text style={[styles.bulkBarLink, { color: colors.red }]}>Clear</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.bulkActionsRow}>
+                <TouchableOpacity style={[styles.bulkBtn, { backgroundColor: colors.green }]} onPress={() => handleBulkAction('approve')} disabled={isBulkActing} activeOpacity={0.8}>
+                  <Ionicons name="checkmark-done" size={18} color="#fff" />
+                  <Text style={styles.bulkBtnText}>Approve</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.bulkBtn, { backgroundColor: colors.blue }]} onPress={() => handleBulkAction('activate')} disabled={isBulkActing} activeOpacity={0.8}>
+                  <Ionicons name="play" size={18} color="#fff" />
+                  <Text style={styles.bulkBtnText}>Activate</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.bulkBtn, { backgroundColor: colors.red }]} onPress={() => handleBulkAction('deactivate')} disabled={isBulkActing} activeOpacity={0.8}>
+                  <Ionicons name="pause" size={18} color="#fff" />
+                  <Text style={styles.bulkBtnText}>Deactivate</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.bulkBtn, { backgroundColor: colors.red }]} onPress={() => handleBulkAction('delete')} disabled={isBulkActing} activeOpacity={0.8}>
+                  <Ionicons name="trash" size={18} color="#fff" />
+                  <Text style={styles.bulkBtnText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+              {isBulkActing && <ActivityIndicator style={{ marginTop: 8 }} size="small" color={colors.orange} />}
+            </View>
+          )}
+
+          <UserDetailModal
+            visible={showDetailModal}
+            user={detailUser}
+            onClose={() => setShowDetailModal(false)}
+            onUserUpdated={fetchUsers}
+          />
         </>
       )}
     </View>
@@ -306,7 +490,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   backButton: { padding: 8, marginRight: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
+  headerTitle: { fontSize: 20, fontWeight: '700', flex: 1 },
+  approveAllBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, gap: 4 },
+  approveAllText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { padding: 16, paddingBottom: 100 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
@@ -352,4 +538,12 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, marginTop: 8, textAlign: 'center' },
   skeletonAvatar: { width: 48, height: 48, borderRadius: 24 },
   skeletonLine: { height: 12, borderRadius: 6 },
+  checkbox: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
+  bulkBar: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopWidth: 1, padding: 12, paddingBottom: 24 },
+  bulkBarTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  bulkBarText: { fontSize: 14, fontWeight: '700' },
+  bulkBarLink: { fontSize: 13, fontWeight: '600' },
+  bulkActionsRow: { flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
+  bulkBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 8, borderRadius: 10 },
+  bulkBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
 });

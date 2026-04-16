@@ -4,15 +4,21 @@ import { apiRequest } from "./apiClient";
 // dashboard summary for home, insights for detail cards, and trend for charts.
 export async function getDashboardSummary() {
   const response = await apiRequest("/api/student/analytics/summary");
+  const rawTopic = response.data?.weakest_topic;
+  const topicName = typeof rawTopic === "string" ? rawTopic : rawTopic?.name;
+  const topicErrorRate = typeof rawTopic === "object"
+    ? rawTopic?.error_rate
+    : 1 - Number(response.data?.weakest_topic_score ?? 0) / 100;
+
   return {
     ...response,
     data: {
-      frequently_mistaken_questions_count: 0,
+      frequently_mistaken_questions_count: response.data?.frequently_mistaken_questions_count ?? 0,
       average_score: response.data?.average_score ?? 0,
       achievement_progress: response.data?.achievement_progress ?? null,
       weakest_topic: {
-        name: response.data?.weakest_topic ?? "N/A",
-        error_rate: 1 - Number(response.data?.weakest_topic_score ?? 0) / 100,
+        name: topicName ?? "N/A",
+        error_rate: topicErrorRate ?? 0,
       },
     },
   };
@@ -38,9 +44,10 @@ export async function getLearningInsights() {
     ...response,
     data: {
       ...response.data,
+      strongest_subject: response.data?.strongest_subject ?? null,
       strong_topics: strongTopics,
       weak_topics: weakTopics,
-      average_attempts_before_passing: null,
+      average_attempts_before_passing: response.data?.average_attempts_before_passing ?? null,
       time_spent_per_topic: timeSpent,
     },
   };

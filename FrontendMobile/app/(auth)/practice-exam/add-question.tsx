@@ -10,10 +10,11 @@
 //   - UI: header, question text input (multiline), choices section with radio
 //         buttons and text inputs, hint text, submit button
 // ─────────────────────────────────────────────────────────────────────────────
-import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
@@ -32,6 +33,7 @@ export default function AddQuestionForm() {
     { choiceText: '', isCorrect: false },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const richText = useRef<RichEditor>(null);
 
   const subjectID = params.subjectID;
 
@@ -119,18 +121,37 @@ export default function AddQuestionForm() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <View style={[styles.card, { backgroundColor: colors.card, flex: 1, minHeight: 280 }]}>
           <Text style={[styles.label, { color: colors.text }]}>Question Text</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
-            value={questionText}
-            onChangeText={setQuestionText}
-            placeholder="Enter question..."
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
+          <View style={[styles.editorWrapper, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+            <RichToolbar
+              editor={richText}
+              actions={[
+                actions.setBold,
+                actions.setItalic,
+                actions.setUnderline,
+                actions.heading1,
+                actions.heading2,
+                actions.insertBulletsList,
+                actions.insertOrderedList,
+                actions.insertLink,
+                actions.keyboard,
+              ]}
+              style={[styles.toolbar, { backgroundColor: isDark ? '#1f2937' : '#f3f4f6' }]}
+              iconTint={colors.text}
+              selectedIconTint="#FE6902"
+              disabledIconTint="#9ca3af"
+            />
+            <RichEditor
+              ref={richText}
+              initialContentHTML={questionText}
+              onChange={setQuestionText}
+              placeholder="Enter question..."
+              style={[styles.editor, { backgroundColor: colors.inputBg, color: colors.text }]}
+              initialHeight={180}
+              useContainer
+            />
+          </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.card }]}>
@@ -185,6 +206,9 @@ const styles = StyleSheet.create({
   card: { borderRadius: 16, padding: 16, elevation: 2 },
   label: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
   input: { borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 15, minHeight: 80 },
+  editorWrapper: { borderWidth: 1, borderRadius: 12, overflow: 'hidden', flex: 1 },
+  toolbar: { borderTopLeftRadius: 12, borderTopRightRadius: 12 },
+  editor: { borderBottomLeftRadius: 12, borderBottomRightRadius: 12, flex: 1 },
   choiceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
   radio: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
   choiceInput: { flex: 1, borderWidth: 1, borderRadius: 12, padding: 10, fontSize: 15 },

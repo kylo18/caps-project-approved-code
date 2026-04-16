@@ -6,7 +6,6 @@ import { apiRequest } from '../../src/services/apiClient';
 
 export default function NotificationPanel({ visible, onClose }) {
   const router = useRouter();
-  // Force light colors regardless of theme (matches orange hero header)
   const isDark = false;
 
   const [notifications, setNotifications] = useState([]);
@@ -25,7 +24,6 @@ export default function NotificationPanel({ visible, onClose }) {
         setNotifications(data);
       } else {
         setNotifications([]);
-        console.log('Unexpected notification format:', JSON.stringify(response).slice(0, 200));
       }
     } catch (error) {
       console.error('Failed to load notifications:', error);
@@ -65,15 +63,12 @@ export default function NotificationPanel({ visible, onClose }) {
   };
 
   const colors = {
-    bg: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(0,0,0,0.5)',
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
+    bg: 'rgba(0,0,0,0.5)',
+    card: '#fff',
+    text: '#111827',
+    textSecondary: '#6b7280',
+    border: '#e5e7eb',
     orange: '#FE6902',
-    green: '#10B981',
-    blue: '#3B82F6',
-    purple: '#8B5CF6',
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -95,7 +90,9 @@ export default function NotificationPanel({ visible, onClose }) {
                   <Text style={[styles.markAllText, { color: colors.orange }]}>Mark all read</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={colors.textSecondary} /></TouchableOpacity>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
             </View>
           </View>
 

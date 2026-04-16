@@ -1,4 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo } from 'react';
 import {
   Modal,
@@ -238,18 +239,23 @@ export function StudentExamCard({
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.examCard,
-        highlight ? { backgroundColor: studentColors.surfaceSoft } : null,
-        pressed ? { opacity: 0.92 } : null,
+      className="flex-row items-center rounded-[20px] px-2 py-2"
+      style={[
+        {
+          gap: 16,
+          backgroundColor: highlight ? studentColors.surfaceSoft : studentColors.white,
+          borderWidth: 2,
+          borderColor: studentColors.border,
+        },
+        studentShadow,
       ]}
     >
       <SubjectTile iconVariant={iconVariant} />
-      <View style={styles.examCardContent}>
-        <Text numberOfLines={1} style={styles.examCardTitle}>
+      <View className="flex-1" style={{ gap: 6 }}>
+        <Text numberOfLines={1} className="text-base font-medium" style={{ color: studentColors.text }}>
           {title}
         </Text>
-        <Text numberOfLines={1} style={styles.examCardSubtitle}>
+        <Text numberOfLines={1} className="text-xs" style={{ color: studentColors.textSoft }}>
           {subtitle}
         </Text>
       </View>
@@ -402,34 +408,71 @@ export function StudentLeaderboardRow({
 
 export function StudentLeaderboardPodium({ topThree }: StudentLeaderboardPodiumProps) {
   // Ordered left-to-right on screen: 2nd place, 1st place (center, tallest), 3rd place.
-  // Bar heights are proportional — 1st place is tallest so the podium visually
-  // resembles a real awards stand.
   const ordered = useMemo(
     () => [
-      { place: 2, entry: topThree[1], color: studentColors.silver, height: 94 },
-      { place: 1, entry: topThree[0], color: studentColors.gold, height: 122 },
-      { place: 3, entry: topThree[2], color: studentColors.bronze, height: 76 },
+      {
+        place: 2,
+        entry: topThree[1],
+        height: 100,
+        colors: ['#FF9A3D', '#FFC164'] as const,
+      },
+      {
+        place: 1,
+        entry: topThree[0],
+        height: 130,
+        colors: ['#FF7A00', '#FFB84D'] as const,
+      },
+      {
+        place: 3,
+        entry: topThree[2],
+        height: 82,
+        colors: ['#FF9A3D', '#FFC164'] as const,
+      },
     ],
     [topThree]
   );
 
   return (
     <View style={styles.podiumWrap}>
-      {ordered.map(({ place, entry, color, height }) => (
+      {ordered.map(({ place, entry, height, colors }) => (
         <View key={place} style={styles.podiumColumn}>
-          <StudentAvatar
-            label={entry?.name ?? `${place}`}
-            size={place === 1 ? 62 : 52}
-            index={place}
-            style={styles.podiumAvatar}
-          />
-          <View style={[styles.podiumBar, { backgroundColor: color, height }]}>
+          {place === 1 ? (
+            <View style={styles.podiumAvatarWrap}>
+              <FontAwesome5
+                name="crown"
+                size={34}
+                color="#FFD45C"
+                style={styles.podiumCrown}
+              />
+              <StudentAvatar
+                label={entry?.name ?? `${place}`}
+                size={62}
+                index={place}
+                style={styles.podiumAvatar}
+              />
+            </View>
+          ) : (
+            <StudentAvatar
+              label={entry?.name ?? `${place}`}
+              size={52}
+              index={place}
+              style={styles.podiumAvatar}
+            />
+          )}
+          <LinearGradient
+            colors={colors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.podiumBar, { height }]}
+          >
             <Text style={styles.podiumBarText}>{place}</Text>
-          </View>
+          </LinearGradient>
           <Text numberOfLines={1} style={styles.podiumName}>
             {entry?.firstName ?? entry?.name ?? `#${place}`}
           </Text>
-          <Text style={styles.podiumPoints}>{entry ? `${Math.round(entry.highestPercentage ?? 0)}%` : '--'}</Text>
+          <Text style={styles.podiumPoints}>
+            {entry ? `${Math.round(entry.highestPercentage ?? 0)}%` : '--'}
+          </Text>
         </View>
       ))}
     </View>
@@ -542,36 +585,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 20,
   },
-  examCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    backgroundColor: studentColors.white,
-    borderWidth: 2,
-    borderColor: studentColors.border,
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    ...studentShadow,
-  },
-  examCardContent: {
-    flex: 1,
-    gap: 6,
-  },
-  examCardTitle: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 16,
-    fontWeight: '500',
-    lineHeight: 24,
-  },
-  examCardSubtitle: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 12,
-    fontWeight: '400',
-    lineHeight: 18,
-  },
+
   subjectTile: {
     width: 64,
     height: 64,
@@ -837,10 +851,20 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
+  podiumAvatarWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  podiumCrown: {
+    position: 'absolute',
+    top: -18,
+    zIndex: -1,
+    opacity: 0.95,
+  },
   podiumAvatar: {
     borderWidth: 3,
     borderColor: studentColors.white,
-    marginBottom: 10,
   },
   podiumBar: {
     width: '100%',
@@ -852,7 +876,7 @@ const styles = StyleSheet.create({
   podiumBarText: {
     color: studentColors.white,
     fontFamily: 'Rubik',
-    fontSize: 22,
+    fontSize: 48,
     fontWeight: '700',
   },
   podiumName: {

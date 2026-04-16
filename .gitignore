@@ -180,8 +180,39 @@ FrontendMobile - Deployment/android/app/.settings/
 
 # Local Android native dependency (kept out of repo)
 FrontendMobile - Deployment/android/app/src/main/cpp/llama/
+AnalyticsReport.docx
+BACKEND_CHANGES_REPORT_7DAYS.md
+REACT_NATIVE_MIGRATION_PLAN.md
+.opencode/package-lock.json
+.qwen/settings.json
+.qwen/settings.json.orig
+Backend - Deployment/.qwen/settings.json
+Backend - Deployment/.qwen/settings.json.orig
+FrontendMobile - Deployment/DEV-REPORT-LAST-7-DAYS.md
+FrontendMobile/README.md
+FrontendMobile/MIGRATION_STATUS.md
+
+# CDP Temp Dirs
+.edge-cdp-temp
+.edge-cdp-temp2
+Backend - Deployment/API_RESPONSE_FORMATS.md
+edge-home-after.png
+edge-home.png
+docker-compose.dev.yml
 backend-fixes.patch
-.gitignore
-DOCUMENTATIONS(mobile)/OAUTH-FIX-IMPLEMENTATION.md
-DOCUMENTATIONS(mobile)/OAUTH-DIAGNOSTIC-REPORT.md
+FrontendMobile/App.tsx.bak
+FRONTEND_CHANGES_LEARNING_GUIDE.md
 backend-full-final.patch
+FRONTEND_CHANGES_OUTLINE.md
+FRONTEND_CHANGES_REPORT.md
+.ai/mcp/mcp.json
+FrontendMobile/FIREBASE_AUTH_SETUP.md
+FrontendMobile/GOOGLE_SIGNIN_SETUP.md
+backup.sql
+FrontendMobile/QWEN.md
+FrontendMobile/CODE_REVIEW_IMPROVEMENT_PLAN.md
+FrontendMobile/findings-summary.md
+.qoder/rules/StrictRule.md
+.qoder/specs/phase-3-feature-parity.md
+FrontendMobile/implementationplan.md
+PLANNING PHASE/implementationplan.md
