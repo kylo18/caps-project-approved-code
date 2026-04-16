@@ -65,6 +65,9 @@ import SupportPage from "./pages/SupportPage";
 //new added: this is for student enhancement page
 import StudentEnhancement from "./pages/StudentEnhancement"; // adjust path if needed
 
+//new added: this is for admin student enhancement page
+import AdminStudentEnhancement from "./pages/AdminStudentEnhancement";
+
 function App() {
   return (
     <Router>
@@ -349,6 +352,14 @@ function App() {
           element={<ProtectedRoute element={<Layout />} />}
         >
           <Route index element={<StudentEnhancement />} />
+        </Route>
+
+        {/*new added: for admin student page*/}
+        <Route
+          path="/admin/enhancement"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AdminStudentEnhancement />} />
         </Route>
 
       </Routes>

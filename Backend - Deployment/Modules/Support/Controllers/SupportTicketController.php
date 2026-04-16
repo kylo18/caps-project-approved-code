@@ -43,16 +43,21 @@ class SupportTicketController extends Controller
 
             // Create the ticket
             $ticket = SupportTicket::create([
-                'user_id' => $user->userID,
-                'issue_type' => $request->issue_type,
-                'subject' => $request->subject,
-                'message' => $request->message,
-                'status' => 'Open',
+                'user_id'     => $user->userID,
+                'category'    => $this->mapIssueType($request->issue_type),
+                'subject'     => $request->subject,
+                'description' => $request->message,
+                'status'      => 'open',
+                'priority'    => 'medium',
             ]);
 
-            // Dispatch admin email notification to queue
-            $emailService = app(\Modules\Users\Services\EmailNotificationService::class);
-            $emailService->sendSupportTicketNotification($ticket, $user);
+            // Send email notification — don't let a failure here break the response
+            try {
+                $emailService = app(\Modules\Users\Services\EmailNotificationService::class);
+                $emailService->sendSupportTicketNotification($ticket, $user);
+            } catch (Exception $e) {
+                \Log::warning('Support ticket email failed: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
@@ -67,6 +72,16 @@ class SupportTicketController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    private function mapIssueType(string $type): string
+    {
+        return match(true) {
+            str_contains(strtolower($type), 'account') || str_contains(strtolower($type), 'login') => 'account',
+            str_contains(strtolower($type), 'exam')    || str_contains(strtolower($type), 'quiz')  => 'academic',
+            str_contains(strtolower($type), 'technical') || str_contains(strtolower($type), 'performance') || str_contains(strtolower($type), 'notification') => 'technical',
+            default => 'other',
+        };
     }
 
     /**
@@ -106,7 +121,7 @@ class SupportTicketController extends Controller
         try {
             // Include basic user details
             $tickets = SupportTicket::with(['user' => function($query) {
-                $query->select('userID', 'firstName', 'lastName', 'email');
+                $query->select('userID', 'firstName', 'lastName', 'email', 'roleID');
             }])->orderBy('created_at', 'desc')->get();
 
             return response()->json([

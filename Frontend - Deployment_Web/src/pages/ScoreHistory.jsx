@@ -90,7 +90,7 @@ const ScoreHistory = () => {
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5C5955" strokeWidth="1.8"><polyline points="10,3 5,8 10,13"/></svg>
         </button>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: "#1A1814", letterSpacing: -0.4 }}>Score History</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "#1A1814", letterSpacing: -0.4 }}>My Achievements</div>
           <div style={{ fontSize: 12, color: "#9B9790" }}>All your past exam scores over time</div>
         </div>
       </div>

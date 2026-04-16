@@ -574,7 +574,7 @@ const Sidebar = ({
     { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
     { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart"},
     { label: "Content Analytics", path: "/analytics/content-analytics", icon: "bx bx-file" },
-    { label: "Difficult Analytics", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
+    { label: "Difficulty", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
   ];
   
 
@@ -1043,10 +1043,6 @@ const Sidebar = ({
           })}
           {/* ANALYTICS — students only */}
           {parsedRoleId === 1 && (
-            <li className="px-3 pt-3">
-              <div className="outfit-500 px-2 text-[13px] font-semibold text-gray-500">
-                ANALYTICS
-              </div>
               <ul className="mt-2 space-y-[5px] px-0">
 
                 {/* Analytics popup trigger */}
@@ -1078,12 +1074,10 @@ const Sidebar = ({
 
                     {/* new added: Popup box */}
                     {showAnalyticsPopup && (
-                      <div className="absolute left-full top-0 z-[70] ml-2 w-[210px] rounded-2xl border border-gray-200 bg-white shadow-xl p-3">
-                        {/* Arrow pointer */}
-                        <div className="absolute left-[-7px] top-4 h-3 w-3 rotate-45 border-b border-l border-gray-200 bg-white"></div>
-                        <p className="outfit-500 mb-2 px-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                          Analytics
-                        </p>
+                      <div className="absolute left-0 top-full z-[70] mt-1 w-[210px] rounded-2xl border border-gray-200 bg-white shadow-xl p-3">
+                        {/* Arrow pointer — now points UP */}
+                        <div className="absolute top-[-7px] left-4 h-3 w-3 rotate-45 border-t border-l border-gray-200 bg-white"></div>
+
                         <div className="flex flex-col gap-1">
                           {analyticsMenuItems.map((item) => (
                             <Link
@@ -1103,36 +1097,7 @@ const Sidebar = ({
                     )}
                   </div>
                 </li>
-
-                {/* new added: Enhancement link */}
-                <li className="group relative">
-                  <span
-                    className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                      isActive("/analytics/enhancement") ? "bg-orange-500" : "bg-transparent"
-                    }`}
-                  ></span>
-                  <div className="px-3">
-                    <Link
-                      to="/analytics/enhancement"
-                      onClick={handleMenuClick}
-                      className={`flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 ${
-                        isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
-                      } ${isActive("/analytics/enhancement") ? "bg-gray-100 text-orange-600" : ""}`}
-                    >
-                      <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-3"}`}>
-                        <i className={`bx bx-bar-chart-square flex-shrink-0 ${isUsersPage ? "text-[20px]" : "text-[18px]"} ${isActive("/analytics/enhancement") ? "text-orange-500" : "text-gray-600"}`}></i>
-                        {!isUsersPage && (
-                          <span className={`outfit-500 text-[15px] whitespace-nowrap ${isActive("/analytics/enhancement") ? "text-black" : "text-gray-600"}`}>
-                            Enhancement
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  </div>
-                </li>
-
               </ul>
-            </li>
           )}
         </ul>
 
@@ -1216,6 +1181,32 @@ const Sidebar = ({
                   </li>
                 );
               })}
+
+              {/* Enhancement link - admin only */}
+              <li className="group relative">
+                <span className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${isActive("/admin/enhancement") ? "bg-orange-500" : "bg-transparent"}`}></span>
+                <div className="px-3">
+                  <button
+                    onClick={() => { setActiveMenu("Enhancement"); navigate("/admin/enhancement"); }}
+                    className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"} ${activeMenu === "Enhancement" ? "bg-gray-100 text-orange-600" : ""}`}
+                  >
+                    <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-[10px]"}`}>
+                      <i className={`bx bx-bar-chart-square ${isUsersPage ? "text-[20px]" : "text-[20px]"} flex-shrink-0 ${activeMenu === "Enhancement" ? "text-orange-500" : "text-gray-600"}`}></i>
+                      {!isUsersPage && (
+                        <span className={`outfit-500 text-[15px] whitespace-nowrap ${activeMenu === "Enhancement" ? "text-black" : "text-gray-600"}`}>
+                          Enhancement
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                  {isUsersPage && (
+                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                      Enhancement
+                    </span>
+                  )}
+                </div>
+              </li>
+
               {/* Export button below Subjects */}
               {parsedRoleId >= 3 && (
                 <li className="group relative">
@@ -1275,6 +1266,9 @@ const Sidebar = ({
                   </div>
                 </li>
               )}
+
+
+
               {/* Reports button below Print */}
               <li className="group relative">
                 <span

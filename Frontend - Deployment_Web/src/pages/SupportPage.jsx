@@ -1,44 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// ── Mock data ──────────────────────────────────────────────────────────────
-const FAQ_ITEMS = [
-  {
-    id: 1,
-    question: "How do I start a new exam / quiz session?",
-    answer:
-      "Navigate to Sessions from the sidebar, then click \"Join Session\" and enter the session code provided by your instructor. Once inside, read the instructions and press \"Start Exam\" when you're ready. Make sure you have a stable internet connection before beginning.",
-  },
-  {
-    id: 2,
-    question: "How is my rank calculated?",
-    answer:
-      "Rankings are computed based on your cumulative score across all completed sessions in the current term. Scores are normalised per subject and a weighted average is used when multiple subjects are involved. Leaderboards refresh automatically after every session ends.",
-  },
-  {
-    id: 3,
-    question: "Why are my notifications not showing?",
-    answer:
-      "First, check that notifications are not blocked in your browser or device settings. On mobile, confirm CAPS has permission to send push alerts. If the issue persists, log out, clear your browser cache, and log back in. Contact support if notifications remain missing.",
-  },
-  {
-    id: 4,
-    question: "How do I use Google Login?",
-    answer:
-      "On the login screen tap \"Continue with Google\" and select your institutional Google account (the one ending in your school domain). If you encounter an \"access denied\" error, your account may not yet be registered — reach out to your Program Chair or Dean.",
-  },
-  {
-    id: 5,
-    question: "How do I view my quiz results and history?",
-    answer:
-      "Go to Sessions in the sidebar and select any completed session to see your detailed score breakdown, time spent per question, and how your performance compares to the class average. You can also visit Analytics > Achievements for a summary view.",
-  },
-  {
-    id: 6,
-    question: "How do I change my password?",
-    answer:
-      "Click your avatar in the top-left corner of the sidebar, choose Settings, then select \"Change Password.\" Enter your current password followed by your new password (minimum 8 characters). Hit Apply and you will see a confirmation toast when the change is saved.",
-  },
-];
+const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
 const ISSUE_TYPES = [
   "Technical Issue",
@@ -50,15 +12,61 @@ const ISSUE_TYPES = [
   "Other",
 ];
 
-// ── Ticket Status Badge ────────────────────────────────────────────────────
+const SUBJECT_OPTIONS = {
+  "Technical Issue": [
+    "App not loading",
+    "Page freezes or crashes",
+    "Features not working properly",
+    "Error messages appearing",
+    "Other technical problem",
+  ],
+  "Account & Login": [
+    "Cannot log in to my account",
+    "Forgot password",
+    "Account locked or suspended",
+    "Wrong account information",
+    "Other account issue",
+  ],
+  "Exam / Quiz Problem": [
+    "Cannot submit exam answers",
+    "Exam timer not working",
+    "Wrong questions displayed",
+    "Score not recorded",
+    "Other exam issue",
+  ],
+  "Notification Problem": [
+    "Not receiving notifications",
+    "Receiving duplicate notifications",
+    "Notification content is wrong",
+    "Other notification issue",
+  ],
+  "Performance & Ranking": [
+    "My score is incorrect",
+    "Leaderboard not updating",
+    "Ranking seems wrong",
+    "Other performance issue",
+  ],
+  "Feature Request": [
+    "Suggest a new feature",
+    "Improve existing feature",
+    "Other suggestion",
+  ],
+  "Other": [
+    "General inquiry",
+    "Feedback",
+    "Other concern",
+  ],
+};
+
 const StatusBadge = ({ status }) => {
   const map = {
-    open: { label: "Open", bg: "bg-blue-50", text: "text-blue-600", dot: "bg-blue-500" },
-    in_progress: { label: "In Progress", bg: "bg-amber-50", text: "text-amber-600", dot: "bg-amber-500" },
-    resolved: { label: "Resolved", bg: "bg-green-50", text: "text-green-600", dot: "bg-green-500" },
-    closed: { label: "Closed", bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" },
+    open:        { label: "Open",        bg: "bg-blue-50",   text: "text-blue-600",  dot: "bg-blue-500"  },
+    in_progress: { label: "In Progress", bg: "bg-amber-50",  text: "text-amber-600", dot: "bg-amber-500" },
+    resolved:    { label: "Resolved",    bg: "bg-green-50",  text: "text-green-600", dot: "bg-green-500" },
+    closed:      { label: "Closed",      bg: "bg-gray-100",  text: "text-gray-500",  dot: "bg-gray-400"  },
   };
   const s = map[status] || map.open;
+  
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${s.bg} ${s.text}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`}></span>
@@ -67,54 +75,70 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// ── Mock tickets for "My Tickets" tab ─────────────────────────────────────
-const MOCK_TICKETS = [
-  {
-    id: "TKT-0042",
-    issue_type: "Technical Issue",
-    subject: "Exam timer stopped mid-session",
-    message: "During my qualifying exam the countdown froze at 14:32 and I had to refresh the page.",
-    status: "in_progress",
-    created_at: "2025-07-10",
-  },
-  {
-    id: "TKT-0031",
-    issue_type: "Notification Problem",
-    subject: "Not receiving email alerts for new sessions",
-    message: "I enrolled in two subjects but never got any session notification emails.",
-    status: "resolved",
-    created_at: "2025-06-28",
-  },
-  {
-    id: "TKT-0018",
-    issue_type: "Account & Login",
-    subject: "Google login returns 'access denied'",
-    message: "Tried to log in with my school Google account but keep getting an access denied error.",
-    status: "closed",
-    created_at: "2025-06-05",
-  },
-];
+const formatDate = (dateString) => {
+  if (!dateString) return "—";
+  try {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric", month: "short", day: "numeric",
+    });
+  } catch { return "—"; }
+};
 
-// ── Main Component ─────────────────────────────────────────────────────────
 export default function SupportPage() {
-  // tabs: "help" | "tickets"
   const [activeTab, setActiveTab] = useState("help");
+
+  // FAQ state
+  const [faqs, setFaqs] = useState([]);
+  const [faqLoading, setFaqLoading] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
   const [faqSearch, setFaqSearch] = useState("");
 
-  // form state
-  const [form, setForm] = useState({
-    issue_type: "",
-    subject: "",
-    message: "",
-  });
+  // Form state
+  const [form, setForm] = useState({ issue_type: "", subject: "", message: "" });
   const [charSubject, setCharSubject] = useState(0);
   const [charMessage, setCharMessage] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitState, setSubmitState] = useState(null); // null | "success" | "error"
+  const [submitState, setSubmitState] = useState(null);
+  const [submitError, setSubmitError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
 
-  const filteredFaqs = FAQ_ITEMS.filter(
+  // Tickets state
+  const [tickets, setTickets] = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketsError, setTicketsError] = useState(null);
+
+  // Fetch FAQs on mount
+  useEffect(() => {
+    setFaqLoading(true);
+    fetch(`${apiUrl}/support/faqs`)
+      .then((r) => r.json())
+      .then((data) => setFaqs(data.data || []))
+      .catch(() => setFaqs([]))
+      .finally(() => setFaqLoading(false));
+  }, []);
+
+  // Fetch tickets when tab switches to "tickets"
+  useEffect(() => {
+    if (activeTab !== "tickets") return;
+    setTicketsLoading(true);
+    setTicketsError(null);
+    const token = sessionStorage.getItem("token");
+    fetch(`${apiUrl}/support-tickets/me`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.success) throw new Error(data.message || "Failed to load tickets.");
+        setTickets(data.data || []);
+      })
+      .catch((err) => setTicketsError(err.message || "An error occurred."))
+      .finally(() => setTicketsLoading(false));
+  }, [activeTab]);
+
+  const filteredFaqs = faqs.filter(
     (f) =>
       f.question.toLowerCase().includes(faqSearch.toLowerCase()) ||
       f.answer.toLowerCase().includes(faqSearch.toLowerCase())
@@ -145,21 +169,38 @@ export default function SupportPage() {
 
     setIsSubmitting(true);
     setSubmitState(null);
+    setSubmitError("");
+
     try {
-      // ── Replace with real fetch ──────────────────────────────────────
-      // const token = sessionStorage.getItem("token");
-      // const res = await fetch(`${apiUrl}/support-tickets`, {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      //   body: JSON.stringify(form),
-      // });
-      // if (!res.ok) throw new Error();
-      await new Promise((r) => setTimeout(r, 1400)); // simulate network
+      const token = sessionStorage.getItem("token");
+      if (!token) throw new Error("Authentication required. Please log in again.");
+
+      const res = await fetch(`${apiUrl}/support-tickets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json().catch(() => null);
+      console.log("Response status:", res.status);
+      console.log("Response data:", data); // <-- check this in DevTools
+      if (!res.ok) {
+        throw new Error(data?.message || `Submission failed (${res.status}).`);
+      }
+      if (data && data.success === false) {
+        throw new Error(data.message || "Submission failed.");
+      }
+
       setSubmitState("success");
       setForm({ issue_type: "", subject: "", message: "" });
       setCharSubject(0);
       setCharMessage(0);
-    } catch {
+    } catch (err) {
+      console.error("Submit error:", err);
+      setSubmitError(err?.message || "Please check your connection and try again.");
       setSubmitState("error");
     } finally {
       setIsSubmitting(false);
@@ -168,7 +209,7 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f7f6] font-sans pb-24 lg:pb-6">
-      {/* ── Page Header ───────────────────────────────────────────────── */}
+      {/* Header */}
       <div className="border-b border-gray-200 bg-white px-6 py-5 pt-[60px]">
         <div className="mx-auto max-w-5xl">
           <div className="flex items-center gap-3">
@@ -188,8 +229,8 @@ export default function SupportPage() {
           {/* Tabs */}
           <div className="mt-4 flex gap-1 border-b border-gray-200">
             {[
-              { key: "help", label: "Help & FAQs", icon: "bx-help-circle" },
-              { key: "tickets", label: "My Tickets", icon: "bx-receipt" },
+              { key: "help",    label: "Help & FAQs",  icon: "bx-help-circle" },
+              { key: "tickets", label: "My Tickets",   icon: "bx-receipt"     },
             ].map((t) => (
               <button
                 key={t.key}
@@ -208,14 +249,14 @@ export default function SupportPage() {
         </div>
       </div>
 
-      {/* ── Body ──────────────────────────────────────────────────────── */}
+      {/* Body */}
       <div className="mx-auto max-w-5xl px-4 py-6">
 
-        {/* ════════════════ HELP TAB ════════════════ */}
+        {/* ── HELP TAB ── */}
         {activeTab === "help" && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-            {/* LEFT — FAQ ─────────────────────────────────────────────── */}
+            {/* LEFT — FAQ */}
             <div className="flex flex-col gap-4">
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div className="mb-4 flex items-center gap-2">
@@ -225,7 +266,6 @@ export default function SupportPage() {
                   <h2 className="text-[15px] font-bold text-gray-800">Frequently Asked Questions</h2>
                 </div>
 
-                {/* Search FAQs */}
                 <div className="relative mb-4">
                   <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-[16px] text-gray-400"></i>
                   <input
@@ -237,9 +277,11 @@ export default function SupportPage() {
                   />
                 </div>
 
-                {/* Accordion */}
                 <div className="space-y-2">
-                  {filteredFaqs.length === 0 && (
+                  {faqLoading && (
+                    <p className="py-4 text-center text-[13px] text-gray-400">Loading FAQs...</p>
+                  )}
+                  {!faqLoading && filteredFaqs.length === 0 && (
                     <p className="py-4 text-center text-[13px] text-gray-400">No results found.</p>
                   )}
                   {filteredFaqs.map((item) => (
@@ -255,20 +297,10 @@ export default function SupportPage() {
                         onClick={() => setOpenFaq(openFaq === item.id ? null : item.id)}
                         className="flex w-full items-center justify-between px-4 py-3 text-left"
                       >
-                        <span
-                          className={`text-[13.5px] font-semibold leading-snug ${
-                            openFaq === item.id ? "text-orange-700" : "text-gray-700"
-                          }`}
-                        >
+                        <span className={`text-[13.5px] font-semibold leading-snug ${openFaq === item.id ? "text-orange-700" : "text-gray-700"}`}>
                           {item.question}
                         </span>
-                        <i
-                          className={`bx flex-shrink-0 text-[18px] transition-transform ${
-                            openFaq === item.id
-                              ? "bx-chevron-up text-orange-500"
-                              : "bx-chevron-down text-gray-400"
-                          }`}
-                        ></i>
+                        <i className={`bx flex-shrink-0 text-[18px] transition-transform ${openFaq === item.id ? "bx-chevron-up text-orange-500" : "bx-chevron-down text-gray-400"}`}></i>
                       </button>
                       {openFaq === item.id && (
                         <div className="border-t border-orange-100 px-4 pb-4 pt-3">
@@ -280,7 +312,7 @@ export default function SupportPage() {
                 </div>
               </div>
 
-              {/* Quick Tips Card */}
+              {/* Quick Tips */}
               <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100">
@@ -299,7 +331,7 @@ export default function SupportPage() {
               </div>
             </div>
 
-            {/* RIGHT — Support Request Form ────────────────────────────── */}
+            {/* RIGHT — Submit Form */}
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50">
@@ -308,20 +340,18 @@ export default function SupportPage() {
                 <h2 className="text-[15px] font-bold text-gray-800">Report a Problem</h2>
               </div>
 
-              {/* Success Banner */}
               {submitState === "success" && (
                 <div className="mb-4 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100">
                     <i className="bx bx-check text-[18px] text-green-600"></i>
                   </div>
                   <div>
-                    <p className="text-[13px] font-semibold text-green-800">Ticket submitted successfully!</p>
-                    <p className="text-[12px] text-green-700">We'll review your request and get back to you as soon as possible. You can track it under <strong>My Tickets</strong>.</p>
+                    <p className="text-[13px] font-semibold text-green-800">Your report was submitted successfully.</p>
+                    <p className="text-[12px] text-green-700">Your message has been suggested to the admin. Track it under <strong>My Tickets</strong>.</p>
                   </div>
                 </div>
               )}
 
-              {/* Error Banner */}
               {submitState === "error" && (
                 <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
@@ -329,7 +359,7 @@ export default function SupportPage() {
                   </div>
                   <div>
                     <p className="text-[13px] font-semibold text-red-800">Something went wrong.</p>
-                    <p className="text-[12px] text-red-700">Please check your connection and try again. If the issue persists, contact your administrator.</p>
+                    <p className="text-[12px] text-red-700">{submitError || "Please check your connection and try again."}</p>
                   </div>
                 </div>
               )}
@@ -345,20 +375,14 @@ export default function SupportPage() {
                       name="issue_type"
                       value={form.issue_type}
                       onChange={handleFormChange}
-                      className={`w-full appearance-none rounded-lg border bg-gray-50 px-4 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none ${
-                        fieldErrors.issue_type ? "border-red-400 bg-red-50" : "border-gray-200"
-                      }`}
+                      className={`w-full appearance-none rounded-lg border bg-gray-50 px-4 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none ${fieldErrors.issue_type ? "border-red-400 bg-red-50" : "border-gray-200"}`}
                     >
                       <option value="">Select an issue type…</option>
-                      {ISSUE_TYPES.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
+                      {ISSUE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>
                     <i className="bx bx-chevron-down pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-gray-400"></i>
                   </div>
-                  {fieldErrors.issue_type && (
-                    <p className="mt-1 text-[11px] text-red-500">{fieldErrors.issue_type}</p>
-                  )}
+                  {fieldErrors.issue_type && <p className="mt-1 text-[11px] text-red-500">{fieldErrors.issue_type}</p>}
                 </div>
 
                 {/* Subject */}
@@ -366,23 +390,24 @@ export default function SupportPage() {
                   <label className="mb-1 block text-[12px] font-semibold text-gray-700">
                     SUBJECT <span className="text-orange-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="subject"
-                    maxLength={100}
-                    placeholder="Briefly describe the issue"
-                    value={form.subject}
-                    onChange={handleFormChange}
-                    className={`w-full rounded-lg border bg-gray-50 px-4 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none ${
-                      fieldErrors.subject ? "border-red-400 bg-red-50" : "border-gray-200"
-                    }`}
-                  />
-                  <div className="mt-1 flex justify-between">
-                    {fieldErrors.subject
-                      ? <p className="text-[11px] text-red-500">{fieldErrors.subject}</p>
-                      : <span />}
-                    <span className="text-[11px] text-gray-400">{charSubject}/100</span>
+                  <div className="relative">
+                    <select
+                      name="subject"
+                      value={form.subject}
+                      onChange={handleFormChange}
+                      disabled={!form.issue_type}
+                      className={`w-full appearance-none rounded-lg border bg-gray-50 px-4 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${fieldErrors.subject ? "border-red-400 bg-red-50" : "border-gray-200"}`}
+                    >
+                      <option value="">
+                        {form.issue_type ? "Select a subject…" : "Select an issue type first…"}
+                      </option>
+                      {SUBJECT_OPTIONS[form.issue_type]?.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <i className="bx bx-chevron-down pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-gray-400"></i>
                   </div>
+                  {fieldErrors.subject && <p className="mt-1 text-[11px] text-red-500">{fieldErrors.subject}</p>}
                 </div>
 
                 {/* Message */}
@@ -397,9 +422,7 @@ export default function SupportPage() {
                     placeholder="Tell us what happened and where you got stuck."
                     value={form.message}
                     onChange={handleFormChange}
-                    className={`w-full resize-none rounded-lg border bg-gray-50 px-4 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none ${
-                      fieldErrors.message ? "border-red-400 bg-red-50" : "border-gray-200"
-                    }`}
+                    className={`w-full resize-none rounded-lg border bg-gray-50 px-4 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none ${fieldErrors.message ? "border-red-400 bg-red-50" : "border-gray-200"}`}
                   />
                   <div className="mt-1 flex justify-between">
                     {fieldErrors.message
@@ -409,15 +432,10 @@ export default function SupportPage() {
                   </div>
                 </div>
 
-                {/* Submit */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`mt-2 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-lg text-[14px] font-semibold text-white transition-all ${
-                    isSubmitting
-                      ? "cursor-not-allowed bg-gray-400"
-                      : "bg-orange-500 hover:bg-orange-600 active:scale-[0.98]"
-                  }`}
+                  className={`mt-2 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-lg text-[14px] font-semibold text-white transition-all ${isSubmitting ? "cursor-not-allowed bg-gray-400" : "bg-orange-500 hover:bg-orange-600 active:scale-[0.98]"}`}
                 >
                   {isSubmitting ? (
                     <>
@@ -428,15 +446,11 @@ export default function SupportPage() {
                       Submitting…
                     </>
                   ) : (
-                    <>
-                      <i className="bx bx-send text-[16px]"></i>
-                      Submit Request
-                    </>
+                    <><i className="bx bx-send text-[16px]"></i> Submit Request</>
                   )}
                 </button>
               </form>
 
-              {/* Info note */}
               <p className="mt-4 text-center text-[11px] text-gray-400">
                 Tickets are typically reviewed within 1–2 business days. For urgent issues, contact your Program Chair directly.
               </p>
@@ -444,7 +458,7 @@ export default function SupportPage() {
           </div>
         )}
 
-        {/* ════════════════ MY TICKETS TAB ════════════════ */}
+        {/* ── MY TICKETS TAB ── */}
         {activeTab === "tickets" && (
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
@@ -463,30 +477,33 @@ export default function SupportPage() {
               </button>
             </div>
 
-            {/* Ticket list */}
-            {MOCK_TICKETS.length === 0 ? (
+            {ticketsLoading ? (
+              <div className="py-12 text-center text-[13px] text-gray-400">Loading tickets...</div>
+            ) : ticketsError ? (
+              <div className="py-12 text-center text-[13px] text-red-500">{ticketsError}</div>
+            ) : tickets.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
                 <i className="bx bx-inbox text-[48px]"></i>
                 <p className="text-[14px]">You haven't submitted any tickets yet.</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {MOCK_TICKETS.map((ticket) => (
+                {tickets.map((ticket) => (
                   <div key={ticket.id} className="px-5 py-4 transition hover:bg-gray-50">
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <span className="text-[11px] font-bold text-gray-400">{ticket.id}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] font-bold text-gray-400">#{ticket.id}</span>
                           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
-                            {ticket.issue_type}
+                            {ticket.category}
                           </span>
                         </div>
-                        <p className="text-[14px] font-semibold text-gray-800 truncate">{ticket.subject}</p>
-                        <p className="mt-0.5 text-[12px] text-gray-500 line-clamp-2">{ticket.message}</p>
+                        <p className="truncate text-[14px] font-semibold text-gray-800">{ticket.subject}</p>
+                        <p className="mt-0.5 line-clamp-2 text-[17px] text-gray-500">{ticket.description}</p>
                       </div>
-                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
                         <StatusBadge status={ticket.status} />
-                        <span className="text-[11px] text-gray-400">{ticket.created_at}</span>
+                        <span className="text-[11px] text-gray-400">{formatDate(ticket.created_at)}</span>
                       </div>
                     </div>
                   </div>
@@ -495,7 +512,9 @@ export default function SupportPage() {
             )}
 
             <div className="border-t border-gray-100 px-5 py-3 text-center">
-              <p className="text-[12px] text-gray-400">Showing {MOCK_TICKETS.length} ticket(s). Older tickets may be archived.</p>
+              <p className="text-[12px] text-gray-400">
+                Showing {tickets.length} ticket(s). Older tickets may be archived.
+              </p>
             </div>
           </div>
         )}
