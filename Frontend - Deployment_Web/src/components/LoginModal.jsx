@@ -101,168 +101,171 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwit
     }
   };
 
-  if (!isOpen) return null;
+    const handleGoogleLogin = () => {
+      const frontendUrl = window.location.origin;
+      window.location.href = `${apiUrl}/auth/google/redirect?frontend_url=${encodeURIComponent(frontendUrl)}`;
+    };
 
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm"
-        onClick={onClose}
-      >
-        {/* Modal card */}
+    return (
+      <>
+        {/* Backdrop */}
         <div
-          className="relative w-full max-w-[420px] rounded-2xl bg-white p-8 shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm"
+          onClick={onClose}
         >
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-            aria-label="Close"
+          {/* Modal card */}
+          <div
+            className="relative w-full max-w-[420px] rounded-2xl bg-white p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M18 6 6 18" />
-              <path d="m6 6 12 12" />
-            </svg>
-          </button>
-
-          {/* Logo */}
-          <div className="mb-5 flex flex-col items-center">
-            <div className="flex h-14 w-14 items-center justify-center">
-              <img
-                src={collegeLogo}
-                alt="CAPS logo"
-                className="size-12 object-contain"
-              />
-            </div>
-          </div>
-
-          {/* Heading */}
-          <div className="mb-6 text-center">
-            <h2 className="outfit-700 text-[22px] text-gray-900">
-              Welcome back
-            </h2>
-            <p className="outfit-400 mt-1 text-sm text-gray-500">
-              Please enter your details to login.
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            {/* ID Code field */}
-            <div>
-              <label className="outfit-500 mb-1.5 block text-sm text-gray-700">
-                ID Code
-              </label>
-              <input
-                type="text"
-                id="modal-userCode"
-                placeholder="e.g. 23-A-12345"
-                value={idCode}
-                onChange={(e) => setIdCode(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 transition outline-none placeholder:text-gray-400 hover:border-gray-300 focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
-              />
-            </div>
-
-            {/* Password field */}
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <label className="outfit-500 text-sm text-gray-700">
-                  Password
-                </label>
-                <button
-                  type="button"
-                  onClick={() => { onClose(); onSwitchToForgotPassword?.(); }}
-                  className="outfit-400 text-sm text-orange-500 hover:underline"
-                >
-                  Forgot password?
-                </button>
-              </div>
-              <div className="relative">
-                <input
-                  type={passwordVisible ? "text" : "password"}
-                  placeholder="••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 pr-10 text-sm text-gray-900 transition outline-none placeholder:text-gray-400 hover:border-gray-300 focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
-                />
-                <button
-                  type="button"
-                  onClick={() => setPasswordVisible((v) => !v)}
-                  tabIndex={-1}
-                  className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
-                >
-                  <i
-                    className={`bx ${passwordVisible ? "bx-eye-alt text-orange-500" : "bx-eye-slash"} text-[20px]`}
-                  ></i>
-                </button>
-              </div>
-            </div>
-
-            {/* Remember me */}
-            <label className="outfit-400 flex cursor-pointer items-center gap-2 text-sm text-gray-600">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 accent-blue-500"
-              />
-              Remember me
-            </label>
-
-            {error && (
-              <p className="text-center text-xs text-red-500">{error}</p>
-            )}
-
-            {/* Login button */}
+            {/* Close button */}
             <button
-              type="submit"
-              disabled={isLogIn}
-              className="outfit-400 mt-1 w-full cursor-pointer rounded-lg bg-orange-500 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60"
-            >
-              {isLogIn ? (
-                <div className="flex items-center justify-center">
-                  <span className="loader-white"></span>
-                </div>
-              ) : (
-                "Login"
-              )}
-            </button>
-
-            {/* OR divider */}
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-gray-200" />
-              <span className="outfit-400 text-xs text-gray-400">OR</span>
-              <div className="h-px flex-1 bg-gray-200" />
-            </div>
-
-            <button
-              onClick={() => alert("Google Sign-In is coming soon.")}
-              type="button"
-              className="outfit-400 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 py-2.5 text-sm text-gray-700 transition hover:bg-gray-100"
+              onClick={onClose}
+              className="absolute top-4 right-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+              aria-label="Close"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="18"
                 height="18"
-                viewBox="0 0 488 512"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path
-                  fill="#4285F4"
-                  d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C326.6 103.1 289.1 87 248 87c-93.5 0-170.5 73.4-170.5 169S154.5 425 248 425c85.9 0 148.7-56.5 155.8-132H248v-85.8h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
-                />
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
               </svg>
-              Continue with Google
             </button>
+  
+            {/* Logo */}
+            <div className="mb-5 flex flex-col items-center">
+              <div className="flex h-14 w-14 items-center justify-center">
+                <img
+                  src={collegeLogo}
+                  alt="CAPS logo"
+                  className="size-12 object-contain"
+                />
+              </div>
+            </div>
+  
+            {/* Heading */}
+            <div className="mb-6 text-center">
+              <h2 className="outfit-700 text-[22px] text-gray-900">
+                Welcome back
+              </h2>
+              <p className="outfit-400 mt-1 text-sm text-gray-500">
+                Please enter your details to login.
+              </p>
+            </div>
+  
+            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+              {/* ID Code field */}
+              <div>
+                <label className="outfit-500 mb-1.5 block text-sm text-gray-700">
+                  ID Code
+                </label>
+                <input
+                  type="text"
+                  id="modal-userCode"
+                  placeholder="e.g. 23-A-12345"
+                  value={idCode}
+                  onChange={(e) => setIdCode(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 transition outline-none placeholder:text-gray-400 hover:border-gray-300 focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
+                />
+              </div>
+  
+              {/* Password field */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="outfit-500 text-sm text-gray-700">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => { onClose(); onSwitchToForgotPassword?.(); }}
+                    className="outfit-400 text-sm text-orange-500 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={passwordVisible ? "text" : "password"}
+                    placeholder="••••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 pr-10 text-sm text-gray-900 transition outline-none placeholder:text-gray-400 hover:border-gray-300 focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPasswordVisible((v) => !v)}
+                    tabIndex={-1}
+                    className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
+                  >
+                    <i
+                      className={`bx ${passwordVisible ? "bx-eye-alt text-orange-500" : "bx-eye-slash"} text-[20px]`}
+                    ></i>
+                  </button>
+                </div>
+              </div>
+  
+              {/* Remember me */}
+              <label className="outfit-400 flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 accent-blue-500"
+                />
+                Remember me
+              </label>
+  
+              {error && (
+                <p className="text-center text-xs text-red-500">{error}</p>
+              )}
+  
+              {/* Login button */}
+              <button
+                type="submit"
+                disabled={isLogIn}
+                className="outfit-400 mt-1 w-full cursor-pointer rounded-lg bg-orange-500 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60"
+              >
+                {isLogIn ? (
+                  <div className="flex items-center justify-center">
+                    <span className="loader-white"></span>
+                  </div>
+                ) : (
+                  "Login"
+                )}
+              </button>
+  
+              {/* OR divider */}
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-gray-200" />
+                <span className="outfit-400 text-xs text-gray-400">OR</span>
+                <div className="h-px flex-1 bg-gray-200" />
+              </div>
+  
+              <button
+                onClick={handleGoogleLogin}
+                type="button"
+                className="outfit-400 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 py-2.5 text-sm text-gray-700 transition hover:bg-gray-100"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 488 512"
+                >
+                  <path
+                    fill="#4285F4"
+                    d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C326.6 103.1 289.1 87 248 87c-93.5 0-170.5 73.4-170.5 169S154.5 425 248 425c85.9 0 148.7-56.5 155.8-132H248v-85.8h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
+                  />
+                </svg>
+                Continue with Google
+              </button>
 
             {/* Register link */}
             <p className="outfit-400 text-center text-sm text-gray-500">

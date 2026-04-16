@@ -15,9 +15,13 @@ class SocialAuthController extends Controller
     public function redirectToGoogle(Request $request)
     {
         try {
+            if (!config('services.google.client_id')) {
+                throw new \Exception('Google Client ID is missing. Check your .env file and configuration cache.');
+            }
+
             Log::info('Google OAuth redirect initiated', [
                 'frontend_url' => $request->query('frontend_url'),
-                'ip'           => $request->ip(),
+                'ip' => $request->ip(),
             ]);
 
             $redirectUrl = config('services.google.redirect');
@@ -42,7 +46,7 @@ class SocialAuthController extends Controller
 
             return $this->redirectToFrontendError(
                 'provider_failed',
-                'Failed to initiate Google login. Please try again.',
+                'Failed to initiate Google login: ' . $e->getMessage(),
                 'google'
             );
         }
@@ -64,7 +68,7 @@ class SocialAuthController extends Controller
             $googleUser = Socialite::driver('google')->stateless()
                 ->setHttpClient(new \GuzzleHttp\Client(['verify' => config('app.env') === 'local' ? false : true]))
                 ->user();
-            
+
             Log::info('Google OAuth user retrieved', [
                 'email' => $googleUser->getEmail(),
                 'name' => $googleUser->getName(),
@@ -88,6 +92,10 @@ class SocialAuthController extends Controller
     // Starts the Facebook OAuth flow and remembers which frontend should receive the callback result.
     public function redirectToFacebook(Request $request)
     {
+        if (!config('services.facebook.client_id')) {
+            throw new \Exception('Facebook Client ID is missing. Check your .env file and configuration cache.');
+        }
+
         $response = Socialite::driver('facebook')->stateless()->redirect();
         $frontendUrlCookie = $this->makeFrontendUrlCookie($request);
 
@@ -120,13 +128,40 @@ class SocialAuthController extends Controller
     {
         $providerId = $provider . '_id';
 
-        // STRICT CHECK: Only allow login if the social ID is already explicitly linked in our database.
+        // 1. Try finding the user by their social ID first (already linked).
         $user = User::where($providerId, $oauthUser->getId())->first();
 
+        // 2. FALLBACK: If not found by social ID, try finding by email (auto-linking).
+        if (!$user && $oauthUser->getEmail()) {
+            $user = User::where('email', $oauthUser->getEmail())->first();
+
+            if ($user) {
+                try {
+                    // Auto-link the social ID to this account
+                    $user->{$providerId} = $oauthUser->getId();
+                    $user->save();
+
+                    Log::info('Social account auto-linked via email matching.', [
+                        'provider' => $provider,
+                        'userID' => $user->userID,
+                        'email' => $user->email,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to auto-link social account: ' . $e->getMessage(), [
+                        'provider' => $provider,
+                        'userID' => $user->userID,
+                        'email' => $user->email,
+                    ]);
+                    // Continue as $user is found but linking failed. 
+                    // The next check will handle account status.
+                }
+            }
+        }
+
         if (!$user) {
-            Log::warning('Social login attempt failed: Account not linked.', [
-                'provider'  => $provider,
-                'email'     => $oauthUser->getEmail(),
+            Log::warning('Social login attempt failed: Account not found or linked.', [
+                'provider' => $provider,
+                'email' => $oauthUser->getEmail(),
                 'social_id' => $oauthUser->getId(),
             ]);
 
@@ -143,7 +178,7 @@ class SocialAuthController extends Controller
         if ($pendingStatusId && $user->status_id === $pendingStatusId) {
             Log::warning('Social login blocked: Account is pending.', [
                 'provider' => $provider,
-                'userID'   => $user->userID,
+                'userID' => $user->userID,
             ]);
 
             return $this->redirectToFrontendError(
@@ -157,7 +192,7 @@ class SocialAuthController extends Controller
         if (!$user->isActive) {
             Log::warning('Social login blocked: Account is inactive.', [
                 'provider' => $provider,
-                'userID'   => $user->userID,
+                'userID' => $user->userID,
             ]);
 
             return $this->redirectToFrontendError(
@@ -173,7 +208,6 @@ class SocialAuthController extends Controller
     // Creates a Sanctum token and returns the user to the frontend callback route with success params.
     private function redirectToFrontendSuccess(User $user, string $provider)
     {
-        Auth::login($user);
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return redirect()->away($this->buildFrontendUrl("/auth/{$provider}/callback", [
@@ -308,7 +342,7 @@ class SocialAuthController extends Controller
             $oauthUser = Socialite::driver($provider)
                 ->setHttpClient(new \GuzzleHttp\Client(['verify' => config('app.env') === 'local' ? false : true]))
                 ->userFromToken($request->oauth_token);
-            
+
             $user->$providerId = $oauthUser->getId();
             $user->save();
 
