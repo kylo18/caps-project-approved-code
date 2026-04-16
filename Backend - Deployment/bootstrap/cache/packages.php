@@ -1,101 +1,129 @@
 <?php return array (
-  'barryvdh/laravel-dompdf' =>
+  'barryvdh/laravel-dompdf' => 
   array (
-    'aliases' =>
+    'aliases' => 
     array (
       'PDF' => 'Barryvdh\\DomPDF\\Facade\\Pdf',
       'Pdf' => 'Barryvdh\\DomPDF\\Facade\\Pdf',
     ),
-    'providers' =>
+    'providers' => 
     array (
       0 => 'Barryvdh\\DomPDF\\ServiceProvider',
     ),
   ),
-  'inertiajs/inertia-laravel' =>
+  'inertiajs/inertia-laravel' => 
   array (
-    'providers' =>
+    'providers' => 
     array (
       0 => 'Inertia\\ServiceProvider',
     ),
   ),
-  'laravel/sanctum' =>
+  'laravel/pail' => 
   array (
-    'providers' =>
+    'providers' => 
+    array (
+      0 => 'Laravel\\Pail\\PailServiceProvider',
+    ),
+  ),
+  'laravel/sail' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Sail\\SailServiceProvider',
+    ),
+  ),
+  'laravel/sanctum' => 
+  array (
+    'providers' => 
     array (
       0 => 'Laravel\\Sanctum\\SanctumServiceProvider',
     ),
   ),
-  'laravel/scout' =>
+  'laravel/scout' => 
   array (
-    'providers' =>
+    'providers' => 
     array (
       0 => 'Laravel\\Scout\\ScoutServiceProvider',
     ),
   ),
-  'laravel/socialite' =>
+  'laravel/socialite' => 
   array (
-    'aliases' =>
+    'aliases' => 
     array (
       'Socialite' => 'Laravel\\Socialite\\Facades\\Socialite',
     ),
-    'providers' =>
+    'providers' => 
     array (
       0 => 'Laravel\\Socialite\\SocialiteServiceProvider',
     ),
   ),
-  'laravel/tinker' =>
+  'laravel/tinker' => 
   array (
-    'providers' =>
+    'providers' => 
     array (
       0 => 'Laravel\\Tinker\\TinkerServiceProvider',
     ),
   ),
-  'maatwebsite/excel' =>
+  'maatwebsite/excel' => 
   array (
-    'aliases' =>
+    'aliases' => 
     array (
       'Excel' => 'Maatwebsite\\Excel\\Facades\\Excel',
     ),
-    'providers' =>
+    'providers' => 
     array (
       0 => 'Maatwebsite\\Excel\\ExcelServiceProvider',
     ),
   ),
-  'nesbot/carbon' =>
+  'nesbot/carbon' => 
   array (
-    'providers' =>
+    'providers' => 
     array (
       0 => 'Carbon\\Laravel\\ServiceProvider',
     ),
   ),
-  'nunomaduro/termwind' =>
+  'nunomaduro/collision' => 
   array (
-    'providers' =>
+    'providers' => 
+    array (
+      0 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
+    ),
+  ),
+  'nunomaduro/termwind' => 
+  array (
+    'providers' => 
     array (
       0 => 'Termwind\\Laravel\\TermwindServiceProvider',
     ),
   ),
-  'nwidart/laravel-modules' =>
+  'nwidart/laravel-modules' => 
   array (
-    'aliases' =>
+    'aliases' => 
     array (
       'Module' => 'Nwidart\\Modules\\Facades\\Module',
     ),
-    'providers' =>
+    'providers' => 
     array (
       0 => 'Nwidart\\Modules\\LaravelModulesServiceProvider',
     ),
   ),
-  'spatie/laravel-permission' =>
+  'pestphp/pest-plugin-laravel' => 
   array (
-    'providers' =>
+    'providers' => 
+    array (
+      0 => 'Pest\\Laravel\\PestServiceProvider',
+    ),
+  ),
+  'spatie/laravel-permission' => 
+  array (
+    'providers' => 
     array (
       0 => 'Spatie\\Permission\\PermissionServiceProvider',
     ),
   ),
-  'tightenco/ziggy' =>
+  'tightenco/ziggy' => 
   array (
-    'providers' =>
+    'providers' => 
     array (
       0 => 'Tighten\\Ziggy\\ZiggyServiceProvider',
     ),
