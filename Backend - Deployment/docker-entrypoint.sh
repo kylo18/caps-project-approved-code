@@ -32,6 +32,13 @@ upsert_env_var "QUEUE_CONNECTION" "${QUEUE_CONNECTION:-sync}"
 upsert_env_var "REDIS_CLIENT" "${REDIS_CLIENT:-predis}"
 upsert_env_var "REDIS_HOST" "${REDIS_HOST:-127.0.0.1}"
 upsert_env_var "REDIS_PORT" "${REDIS_PORT:-6379}"
+upsert_env_var "FRONTEND_URL" "${FRONTEND_URL:-}"
+upsert_env_var "GOOGLE_CLIENT_ID" "${GOOGLE_CLIENT_ID:-}"
+upsert_env_var "GOOGLE_CLIENT_SECRET" "${GOOGLE_CLIENT_SECRET:-}"
+upsert_env_var "GOOGLE_REDIRECT_URI" "${GOOGLE_REDIRECT_URI:-}"
+upsert_env_var "FACEBOOK_CLIENT_ID" "${FACEBOOK_CLIENT_ID:-}"
+upsert_env_var "FACEBOOK_CLIENT_SECRET" "${FACEBOOK_CLIENT_SECRET:-}"
+upsert_env_var "FACEBOOK_REDIRECT_URI" "${FACEBOOK_REDIRECT_URI:-}"
 
 if ! grep -q "^APP_KEY=base64:" .env 2>/dev/null; then
   echo "ERROR: APP_KEY is missing." >&2
