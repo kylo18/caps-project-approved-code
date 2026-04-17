@@ -94,7 +94,7 @@
                         <tr>
                             <td style="padding: 20px 28px;">
                                 <p style="margin:0; font-size:14px; color:#444444; line-height:1.7;">
-                                    We are pleased to inform you that your account in the <strong>CAPS System</strong> has
+                                    We are pleased to inform you that your account in the <strong>CAPS</strong> has
                                     been
                                     <span style="color:green; font-weight:bold;">approved by the Dean</span>.
                                     You can now log in and access all features of the system.
@@ -215,7 +215,7 @@
                     <tr>
                         <td align="center" style="padding: 20px 28px 28px;">
                             <p style="margin:0; font-size:12px; color:#aaaaaa;">
-                                This is an automated message from the CAPS System. Please do not reply.
+                                This is an automated message from the CAPS. Please do not reply.
                             </p>
                             <p style="margin:6px 0 0; font-size:12px; color:#aaaaaa;">
                                 &copy; {{ date('Y') }} CAPS Administration. All rights reserved.
