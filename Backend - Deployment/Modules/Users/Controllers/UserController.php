@@ -212,13 +212,12 @@ class UserController extends Controller
 
             $this->updateUserStatus($user, 'registered', true);
 
-
+            // Send unified email notification and log result with a safe try-catch
             try {
-                Mail::to($user->email)->send(new UserApprovedMail($user));
+                $this->emailService->sendStatusNotification($user, 'approved');
             } catch (\Exception $e) {
-                Log::warning('Failed to send approval email: ' . $e->getMessage());
+                Log::warning('Failed to send approval email via service: ' . $e->getMessage());
             }
-
 
             return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
 
@@ -272,13 +271,12 @@ class UserController extends Controller
 
         $this->updateUserStatus($user, 'disapproved', false);
 
-
+        // Send unified email notification and log result with a safe try-catch
         try {
-            Mail::to($user->email)->send(new UserDisapprovedMail($user));
+            $this->emailService->sendStatusNotification($user, 'disapproved');
         } catch (\Exception $e) {
-            Log::warning('Failed to send disapproval email: ' . $e->getMessage());
+            Log::warning('Failed to send disapproval email via service: ' . $e->getMessage());
         }
-
 
         return response()->json(['message' => 'User has been disapproved.', 'user' => $user], 200);
     }
