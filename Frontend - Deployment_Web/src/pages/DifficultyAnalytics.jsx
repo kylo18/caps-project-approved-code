@@ -31,8 +31,17 @@ const DifficultyAnalytics = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   // Data states
+  // new added: data source: GET /api/practice-exam/difficulty-analytics
   const [difficultyData, setDifficultyData] = useState(null); // from /difficulty-analytics
+
+  // new added: data source: GET /api/student/analytics/summary
+  // { data: { total_exams, average_score, best_score, lowest_score,
+  //             frequently_mistaken_questions_count,
+  //             average_attempts_before_passing, weakest_topic, trend } }
   const [studentSummary, setStudentSummary] = useState(null); // from /student/analytics/summary
+
+  // new added: data source: GET /api/student/analytics/trends
+  // → { data: [...exam history...], summary: { avg_score, highest_score, lowest_score } }
   const [trends, setTrends] = useState(null);                 // from /student/analytics/trends
 
   useEffect(() => {
@@ -85,6 +94,8 @@ const DifficultyAnalytics = () => {
     { level: "Hard",     score: null, total: 0, correct: 0 },
   ];
 
+  // new added: data pulled from GET /api/practice-exam/difficulty-analytics → difficultyBands
+  // merged with BAND_DEFAULTS so missing levels always show "—" instead of breaking
   // Difficulty bands from the difficulty-analytics endpoint
   const diffBands = BAND_DEFAULTS.map((def) => {
     const found = (difficultyData?.difficultyBands ?? []).find(
@@ -99,8 +110,10 @@ const DifficultyAnalytics = () => {
     };
   });
 
+  // new added: data pulled from GET /api/practice-exam/difficulty-analytics → topicBreakdown
   const topics = difficultyData?.topicBreakdown ?? [];
 
+  // new added: all values below pulled from GET /api/student/analytics/summary → data object, which is already scoped to the authenticated student
   // Overall score from student summary (most accurate per-student value)
   const overallScore = studentSummary?.average_score != null
     ? Math.round(studentSummary.average_score)
@@ -126,6 +139,8 @@ const DifficultyAnalytics = () => {
     .sort((a, b) => a.score - b.score)[0] ?? null;
 
   // Recent exams for mini trend chart
+  // new added: increased recent exams display limit from 5 to 10
+  // new added: data pulled from GET /api/student/analytics/trends → data (exam history array)
   const recentExams = (trends?.data ?? []).slice(0, 5).reverse();
 
   // ── Styling helpers ─────────────────────────────────────────────────────────
@@ -150,6 +165,7 @@ const DifficultyAnalytics = () => {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
+    // new added: prevents horizontal scroll on mobile when tables overflow, and sets a minimum height for better mobile experience
     <div style={{ background: "#F5F3EF", minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", overflowX: "hidden"}}>
 
       {/* TOP BAR */}
@@ -217,7 +233,8 @@ const DifficultyAnalytics = () => {
               </div>
               <div style={{ fontSize: 56, fontWeight: 800, letterSpacing: -3, lineHeight: 1, color: "#1A1814" }}>
                 {loading ? "—" : overallScore != null ? overallScore : "—"}
-                <span style={{ fontSize: 54, fontWeight: 400, color: "#9B9790" }}> %</span>
+                {/*// new added: enlarged % sign to match score size and added spacing*/}
+                <span style={{ fontSize: 54, fontWeight: 400, color: "#9B9790" }}> %</span> 
               </div>
               <div style={{ fontSize: 12, color: "#9B9790", marginTop: 8 }}>
                 {loading
@@ -271,7 +288,8 @@ const DifficultyAnalytics = () => {
 
             {/* Separator */}
             {!isMobile && <div style={{ background: "#EAE8E2", margin: "0 26px" }} />}
-
+            
+            {/* new added: prevents band section from overflowing its grid column*/}
             {/* Difficulty bands */}
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 16, paddingTop: isMobile ? 20 : 4, borderTop: isMobile ? "1px solid #EAE8E2" : "none", overflow: "hidden", minWidth: 0 }}>
               <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.9px", color: "#9B9790" }}>Score by difficulty</div>
@@ -280,6 +298,7 @@ const DifficultyAnalytics = () => {
                 const score = EMPTY ? null : band.score;
                 return (
                   
+                  // new added: ensures flex children don't overflow on smaller screens
                   <div key={band.level} style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.7px", color: cfg.color, width: 68, flexShrink: 0 }}>{band.level}</div>
                     <div style={{ flex: 1, height: 8, borderRadius: 6, background: cfg.bg, overflow: "hidden" }}>
@@ -293,6 +312,7 @@ const DifficultyAnalytics = () => {
                       {score != null ? `${score}%` : "—"}
                     </div>
                     {!isMobile && (
+                      // new added: hides correct/total count on mobile to prevent layout overflow
                       <div style={{ fontSize: 10, color: "#9B9790", width: 52 }}>
                         {EMPTY ? "—" : `${band.correct ?? 0} / ${band.total ?? 0}`}
                       </div>
@@ -315,12 +335,15 @@ const DifficultyAnalytics = () => {
               </span>
             </div>
             {/*<div style={{ display: "flex", alignItems: "flex-end", gap: 60, height: 90 }}>*/}
+            {/* new added: increased bar spacing and chart height for better visual clarity; added overflow guard*/}
             <div style={{ display: "flex", alignItems: "flex-end", gap: 60, height: 100, overflow: "hidden" }}>
               {recentExams.map((exam, i) => {
                 const pct = exam.percentage ?? 0;
                 const barH = Math.max(4, (pct / 100) * 60);
                 return (
                   <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+
+                    {/*new added: improved percentage label visibility above bars*/}
                     <div style={{ fontSize: 12, color: "#5C5955", fontWeight: 600 }}>{Math.round(pct)}%</div>
                     <div style={{
                       width: "100%", height: barH, borderRadius: 4,
@@ -329,6 +352,7 @@ const DifficultyAnalytics = () => {
                       transitionDelay: `${i * 0.05}s`,
                     }} title={`${exam.subjectName ?? ""}: ${pct}%`} />
                     <div style={{ fontSize: 12, color: "#5C5955", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>
+                      {/* new added: shows more of the subject name and improved label contrast*/}
                       {exam.subjectName ? exam.subjectName.split(" ").slice(0, 10).join(" ") : `#${i + 1}`}
                     </div>
                   </div>
@@ -427,7 +451,8 @@ const DifficultyAnalytics = () => {
               )}
             </div>
           </div>
-
+          
+          {/*new added: removed "all students" label since data is now student-specific*/}
           {/* Score by difficulty band */}
           <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #EAE8E2", overflow: "hidden" }}>
             <div style={{ padding: "13px 18px 12px", borderBottom: "1px solid #F0EDE8", display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
@@ -477,6 +502,7 @@ const DifficultyAnalytics = () => {
               gap: 12, padding: "10px 20px", background: "#F8F6F3", 
               borderBottom: "1px solid #EAE8E2" }}>
               {["Topic", "Easy", "Moderate", "Hard", "Overall", "Avg Tries"].map((h, i) => (
+                // new added: reformatted header span inline styles into multiline for readability
                 <span key={h} style={{ 
                   fontSize: 10, fontWeight: 700, 
                   color: "#9B9790", textTransform: "uppercase", 

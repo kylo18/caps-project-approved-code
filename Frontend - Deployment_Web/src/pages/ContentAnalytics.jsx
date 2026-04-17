@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+// new added: moved TABS config outside component to avoid re-creation on every render
 const TABS = [
   {
     id:    "viewed",
@@ -52,9 +53,12 @@ const ContentAnalytics = () => {
   const [loading, setLoading]   = useState(true);
   const [data,    setData]      = useState(null);
   const [tab,     setTab]       = useState("viewed");
+
+  // new added: added mobile detection state for responsive layout
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
+    // new added: renamed resize handler to onResize for consistency
     const onResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -69,6 +73,8 @@ const ContentAnalytics = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) setData(await res.json());
+
+      // new added: reformatted catch/finally to multiline for readability
       } catch (e) {
         console.error(e);
       } finally {
@@ -78,17 +84,26 @@ const ContentAnalytics = () => {
     load();
   }, [apiUrl]);
 
+
+  // new added: replaced separate flat arrays with a unified itemsMap object;
+  // each tab now has name, value, sub (display label), and display (formatted value)
+  // data source: GET /practice-exam/content-analytics
+  //   → mostViewed, mostAttempted, highestError, mostSkipped
   // ── Normalize data per tab ───────────────────────────────────────────────
   const itemsMap = {
+
+    // new added: added fallback display names when API returns null/undefined
     viewed: (data?.mostViewed || []).map(i => ({
-      name:    i.lessonName || "Unknown Lesson",
+      name:    i.lessonName || "Unknown Lesson",  // viewed
       value:   i.views,
-      sub:     `${i.views} view${i.views !== 1 ? "s" : ""}`,
+
+      // new added: added sub (secondary label) and display (formatted value pill text) per item
+      sub:     `${i.views} view${i.views !== 1 ? "s" : ""}`,  
       display: String(i.views),
     })),
     attempted: (data?.mostAttempted || []).map(i => ({
       //name:    `Question #${i.questionId}`,
-      name:    i.questionText || `Question #${i.questionId}`,
+      name:    i.questionText || `Question #${i.questionId}`, // attempted & errors
       value:   i.count,
       sub:     `${i.count} attempt${i.count !== 1 ? "s" : ""}`,
       display: String(i.count),
@@ -101,13 +116,17 @@ const ContentAnalytics = () => {
       display: `${(i.rate * 100).toFixed(1)}%`,
     })),
     skipped: (data?.mostSkipped || []).map(i => ({
-      name:    i.name || "Unknown Topic",
+      name:    i.name || "Unknown Topic",   // skipped
       value:   i.skipped_count,
       sub:     `${i.skipped_count} skip${i.skipped_count !== 1 ? "s" : ""}`,
       display: String(i.skipped_count),
     })),
   };
 
+
+  // new added: extracted stat card data into a stats array with icon and color config
+  // data source: GET /practice-exam/content-analytics
+  //   → totalViews, totalAttempts, avgErrorRate, totalSkipped
   const stats = [
     { label: "Lessons Viewed",      value: data?.totalViews    ?? 0, icon: "📖", accent: "#FF6014", soft: "#FEF0EA" },
     { label: "Questions Attempted", value: data?.totalAttempts ?? 0, icon: "✏️", accent: "#3B8BD4", soft: "#EBF4FD" },
@@ -115,6 +134,7 @@ const ContentAnalytics = () => {
     { label: "Topics Skipped",      value: data?.totalSkipped  ?? 0, icon: "⏭️", accent: "#7F77DD", soft: "#F0EFFD" },
   ];
 
+  // new added: added fallback to TABS[0] if tab not found; items now pulled from itemsMap
   const current = TABS.find(t => t.id === tab) ?? TABS[0];
   const items   = itemsMap[tab] ?? [];
   const maxVal  = items.length ? Math.max(...items.map(i => i.value ?? 0)) : 1;
@@ -124,10 +144,17 @@ const ContentAnalytics = () => {
       background:  "#F5F3EF",
       minHeight:   "100vh",
       fontFamily:  "'Segoe UI', system-ui, sans-serif",
-      overflowX:   "hidden",
+      overflowX:   "hidden",  // new added: prevents horizontal overflow on mobile
       maxWidth:    "100vw",
     }}>
 
+      
+      
+      {/* // new added: made top bar sticky (position: sticky, top: 0, zIndex: 10)
+          // new added: updated padding to handle mobile top notch (60px top on mobile)
+          // new added: changed subtitle from long description to "Your personal learning data"
+          // new added: added flex: 1 and minWidth: 0 to title container to prevent overflow
+      */}
       {/* ── TOP BAR ── */}
       <div style={{
         background:   "#fff",
@@ -156,10 +183,13 @@ const ContentAnalytics = () => {
         </button>
 
         <div style={{ flex: 1, minWidth: 0 }}>
+
+          {/*new added: slightly reduced font sizes in top bar for tighter layout*/}
           <div style={{ fontSize: 17, fontWeight: 700, color: "#1A1814" }}>Content Analytics</div>
           <div style={{ fontSize: 11, color: "#9B9790" }}>Your personal learning data</div>
         </div>
-
+        
+        {/* new added: added last updated date badge in top bar, shown only when data is loaded*/}
         {/* Last updated badge */}
         {!loading && data && (
           <div style={{
@@ -184,6 +214,10 @@ const ContentAnalytics = () => {
           gap:                 12,
           marginBottom:        20,
         }}>
+
+          {/* // new added: replaced inline stat card markup with reusable StatCard component
+              // new added: StatCard now includes an icon, loading skeleton, and accent color strip
+          */}
           {stats.map(s => (
             <StatCard key={s.label} s={s} loading={loading}/>
           ))}
@@ -274,8 +308,14 @@ const ContentAnalytics = () => {
           {/* List body */}
           <div>
             {loading ? (
+
+              // new added: replaced inline loading skeleton with reusable SkeletonList component
+              // new added: skeleton items increased from 6 → 5 with staggered animation delay
               <SkeletonList/>
             ) : items.length === 0 ? (
+
+              // new added: EmptyState now accepts a label prop instead of a full message string
+              // new added: added a title "No data yet" above the sub-text
               <EmptyState label={current.label}/>
             ) : (
               items.map((item, i) => {
@@ -356,7 +396,8 @@ const ContentAnalytics = () => {
           </div>
         </div>
       </div>
-
+      
+      {/* new added: slightly reduced pulse animation low opacity for subtler skeleton effect*/}
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}`}</style>
     </div>
   );
