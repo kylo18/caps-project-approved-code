@@ -1,140 +1,132 @@
 import { useEffect, useRef, useState } from "react";
 
+const ORANGE = "#f57c20";
 const GRID_COLOR = "rgba(0,0,0,0.06)";
 const TICK_COLOR = "#9ca3af";
-const ORANGE = "#f57c20";
 
-const scoreColor = (v) =>
-  v >= 90 ? "#c45e10" : v >= 75 ? "#555555" : "#c03030";
+const PROGRAMS = ["All", "BSCpE", "CE", "ECE", "EE"];
 
-const pillStyle = (v) =>
-  v >= 90
-    ? { background: "#fff0e0", color: "#c45e10" }
-    : v >= 75
-    ? { background: "#f0f0f0", color: "#444444" }
-    : v >= 60
-    ? { background: "#fffae0", color: "#906000" }
-    : { background: "#fde8e8", color: "#b02020" };
-
-const StatusBadge = ({ status }) => {
-  if (status === "excellent")
-    return <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700">Excellent</span>;
-  if (status === "good")
-    return <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-teal-100 text-teal-700">Good</span>;
-  if (status === "average")
-    return <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-500">Average</span>;
-  return <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-100 text-red-600">Needs support</span>;
+const PROGRAM_COLORS = {
+  BSCpE: { bg: "#fff0e0", fg: "#c45e10" },
+  CE:    { bg: "#e0f5ee", fg: "#0f6e56" },
+  ECE:   { bg: "#e6f1fb", fg: "#185fa5" },
+  EE:    { bg: "#faeeda", fg: "#854f0b" },
 };
-
-const getStatus = (score) => {
-  if (score >= 90) return "excellent";
-  if (score >= 80) return "good";
-  if (score >= 75) return "average";
-  return "needs support";
-};
-
-const initials = (name) =>
-  (name || "?")
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
 const AVATAR_PALETTE = [
-  { bg: "#fff0e0", fg: "#c45e10" },
-  { bg: "#f0f0f0", fg: "#555555" },
-  { bg: "#fff4ec", fg: "#e07020" },
-  { bg: "#fff8e0", fg: "#a07000" },
-  { bg: "#f5f5f5", fg: "#777777" },
-  { bg: "#fff2e8", fg: "#c05010" },
-  { bg: "#f0f0f0", fg: "#333333" },
-  { bg: "#f8f8f8", fg: "#666666" },
+  { bg: "#fff0e0", fg: "#c45e10" }, { bg: "#e0f5ee", fg: "#0f6e56" },
+  { bg: "#e6f1fb", fg: "#185fa5" }, { bg: "#faeeda", fg: "#854f0b" },
+  { bg: "#f0f0f0", fg: "#5f5e5a" }, { bg: "#fcebeb", fg: "#a32d2d" },
+  { bg: "#eeedfe", fg: "#534ab7" }, { bg: "#fbeaf0", fg: "#993556" },
 ];
 
-// ── Mock data for broken endpoints ────────────────────────────
-// TODO: Replace with real API data once backend SQL is fixed
-const MOCK_SUMMARY = {
-  total_students: 120,
-  average_score: 74.5,
-  top_performers: 32,
-  need_support: 28,
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const getStatus = (score) =>
+  score >= 90 ? "excellent" : score >= 80 ? "good" : score >= 75 ? "average" : "needs support";
+
+const scoreColor = (v) =>
+  v >= 90 ? "#c45e10" : v >= 80 ? "#0f6e56" : v >= 75 ? "#854f0b" : "#a32d2d";
+
+const pillStyle = (v) =>
+  v >= 90 ? { background: "#fff0e0", color: "#c45e10" }
+  : v >= 80 ? { background: "#e0f5ee", color: "#0f6e56" }
+  : v >= 75 ? { background: "#faeeda", color: "#854f0b" }
+  : { background: "#fcebeb", color: "#a32d2d" };
+
+const initials = (name) =>
+  (name || "?").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+
+const normalizeProgram = (program) => {
+  if (!program) return "";
+  const key = program.toString().trim().replace(/\s+/g, "").replace(/[-_]/g, "").toUpperCase();
+  if (["BSCPE", "BSCOE"].includes(key)) return "BSCpE";
+  if (["BSCE", "CE"].includes(key)) return "CE";
+  if (["BSECE", "ECE"].includes(key)) return "ECE";
+  if (["BSEE", "EE"].includes(key)) return "EE";
+  if (["BSABE", "ABE"].includes(key)) return "ABE";
+  if (key === "GE") return "GE";
+  return program.toString().trim();
 };
 
-const MOCK_STUDENT_PROGRESS = [
-  { id: 1, name: "Juan Dela Cruz",     score: 88, attempts: 5, passRate: 80, trend: [60, 68, 75, 82, 88], subjects: [] },
-  { id: 2, name: "Maria Santos",       score: 72, attempts: 4, passRate: 50, trend: [55, 60, 68, 72],     subjects: [] },
-  { id: 3, name: "Carlo Reyes",        score: 91, attempts: 6, passRate: 83, trend: [70, 78, 83, 88, 90, 91], subjects: [] },
-  { id: 4, name: "Ana Gonzales",       score: 65, attempts: 3, passRate: 33, trend: [50, 58, 65],         subjects: [] },
-  { id: 5, name: "Paolo Mendoza",      score: 79, attempts: 4, passRate: 75, trend: [60, 70, 74, 79],     subjects: [] },
-  { id: 6, name: "Liza Ramos",         score: 95, attempts: 7, passRate: 86, trend: [72, 80, 85, 88, 91, 93, 95], subjects: [] },
-  { id: 7, name: "Jose Villanueva",    score: 58, attempts: 3, passRate: 0,  trend: [48, 53, 58],         subjects: [] },
-  { id: 8, name: "Kristine Bautista",  score: 83, attempts: 5, passRate: 80, trend: [65, 72, 76, 80, 83], subjects: [] },
-];
+const getProgramLabel = (program) => {
+  const normalized = normalizeProgram(program);
+  return PROGRAMS.includes(normalized) ? normalized : normalized;
+};
 
-const AdminStudentEnhancement = () => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
-  const [activeTab, setActiveTab] = useState("overview");
-  const [loading, setLoading] = useState(true);
-  const [studentsLoading, setStudentsLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [statusFilter, setStatusFilter] = useState("all");
+// ── Sub-components ────────────────────────────────────────────────────────────
+const StatusBadge = ({ status }) => {
+  const map = {
+    excellent:      { bg: "#fff0e0", fg: "#c45e10", label: "Excellent" },
+    good:           { bg: "#e0f5ee", fg: "#0f6e56", label: "Good" },
+    average:        { bg: "#f0f0f0", fg: "#5f5e5a", label: "Average" },
+    "needs support":{ bg: "#fcebeb", fg: "#a32d2d", label: "Needs support" },
+  };
+  const c = map[status] || map["needs support"];
+  return (
+    <span style={{ background: c.bg, color: c.fg }}
+      className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium">
+      {c.label}
+    </span>
+  );
+};
 
-  // Real API data
-  const [passFailData, setPassFailData]     = useState(null); // /pass-fail-rate
-  const [improvementData, setImprovementData] = useState(null); // /improvement-percentage
+const ProgramTag = ({ program }) => {
+  const label = getProgramLabel(program);
+  const c = PROGRAM_COLORS[label] || { bg: "#f0f0f0", fg: "#555" };
+  return (
+    <span style={{ background: c.bg, color: c.fg }}
+      className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium">
+      {label}
+    </span>
+  );
+};
 
-  // Mock data (used until backend SQL is fixed)
-  const [summary] = useState(MOCK_SUMMARY);
-  const [studentProgress] = useState(MOCK_STUDENT_PROGRESS);
+const PassRateBar = ({ value }) => (
+  <div className="flex items-center gap-1.5">
+    <div className="w-14 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+      <div className="h-full rounded-full"
+        style={{ width: `${value}%`, background: value >= 75 ? "#0f6e56" : ORANGE }} />
+    </div>
+    <span className="text-[12px] text-gray-500">{value}%</span>
+  </div>
+);
 
-  // Chart refs
-  const passFailChartRef  = useRef(null);
-  const progressChartRef  = useRef(null);
-  const studentTrendRef   = useRef(null);
-  const passFailInst      = useRef(null);
-  const progressInst      = useRef(null);
-  const studentTrendInst  = useRef(null);
+// ── Overview Tab ──────────────────────────────────────────────────────────────
+const OverviewTab = ({ students, summaryData, passFailData, improvementData, studentProgressData, onProgramClick }) => {
+  const passFailChartRef = useRef(null);
+  const progressChartRef = useRef(null);
+  const passFailInst = useRef(null);
+  const progressInst = useRef(null);
 
-  const token   = sessionStorage.getItem("token");
-  const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+  const totalStudents = summaryData?.total_students ?? students.length;
+  const totalResults = passFailData?.total ?? 0;
+  const passed = passFailData?.passed ?? 0;
+  const failed = passFailData?.failed ?? 0;
+  const exc  = passFailData?.breakdown?.excellent ?? 0;
+  const good = passFailData?.breakdown?.good ?? 0;
+  const ni   = passFailData?.breakdown?.needs_improvement ?? 0;
+  const poor = passFailData?.breakdown?.poor ?? 0;
 
-  // ── Fetch real API data ───────────────────────────────────────
-  useEffect(() => {
-    const fetchAll = async () => {
-      setLoading(true);
-      try {
-        const [passFailRes, improvementRes] = await Promise.all([
-          fetch(`${apiUrl}/admin/analytics/pass-fail-rate`,        { headers }),
-          fetch(`${apiUrl}/admin/analytics/improvement-percentage`, { headers }),
-        ]);
+  const progStats = PROGRAMS.filter((p) => p !== "All").map((p) => {
+    const list = students.filter((s) => normalizeProgram(s.program || s.programName) === p);
+    const scoreValues = list.map((s) => Number(s.score ?? s.average_score ?? 0));
+    const avg = list.length
+      ? parseFloat((scoreValues.reduce((a, v) => a + v, 0) / list.length).toFixed(1))
+      : null;
+    const pr = list.length
+      ? Math.round((scoreValues.filter((v) => v >= 75).length / list.length) * 100)
+      : null;
+    return { p, count: list.length, avg, pr };
+  });
 
-        // /pass-fail-rate → { message, data: { total, passed, failed, pass_rate, breakdown } }
-        if (passFailRes.ok) {
-          const json = await passFailRes.json();
-          setPassFailData(json.data ?? null);
-        } else {
-          console.error("pass-fail-rate error:", passFailRes.status);
-        }
+  const scoreRows = [
+    { label: "Excellent (≥ 80%)",            val: exc,  color: "#c45e10" },
+    { label: "Good (60–79%)",                 val: good, color: "#0f6e56" },
+    { label: "Needs improvement (40–59%)",   val: ni,   color: "#854f0b" },
+    { label: "Poor (< 40%)",                 val: poor, color: "#a32d2d" },
+  ];
 
-        // /improvement-percentage → { message, data: { current_month_avg, previous_month_avg, improvement_percentage, trend } }
-        if (improvementRes.ok) {
-          const json = await improvementRes.json();
-          setImprovementData(json.data ?? null);
-        } else {
-          console.error("improvement-percentage error:", improvementRes.status);
-        }
-      } catch (e) {
-        console.error("Fetch error:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, [apiUrl]);
-
-  // ── Chart loader ──────────────────────────────────────────────
   const ensureChart = (cb) => {
     if (window.Chart) { cb(); return; }
     const s = document.createElement("script");
@@ -143,90 +135,66 @@ const AdminStudentEnhancement = () => {
     document.head.appendChild(s);
   };
 
-  // Overview charts
   useEffect(() => {
-    if (activeTab !== "overview" || loading) return;
     ensureChart(() => {
       setTimeout(() => {
-
-        // ── Pass/Fail doughnut chart (real data) ──────────────
-        if (passFailChartRef.current && passFailData) {
+        // Pass/Fail donut — prefer real API data, fallback to mock
+        const pf = passFailData || { passed, failed, total: totalResults, pass_rate: Math.round(passed / totalResults * 100) };
+        if (passFailChartRef.current) {
           passFailInst.current?.destroy();
-          const { passed, failed, total, pass_rate, breakdown } = passFailData;
           passFailInst.current = new window.Chart(passFailChartRef.current, {
             type: "doughnut",
             data: {
               labels: ["Passed", "Failed"],
               datasets: [{
-                data: [Number(passed), Number(failed)],
-                backgroundColor: ["#16a34acc", "#dc2626cc"],
+                data: [Number(pf.passed), Number(pf.failed)],
+                backgroundColor: ["#0f6e56cc", "#a32d2dcc"],
                 borderWidth: 0,
                 hoverOffset: 6,
               }],
             },
             options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              cutout: "68%",
+              responsive: true, maintainAspectRatio: false, cutout: "68%",
               plugins: {
-                legend: {
-                  position: "bottom",
-                  labels: { font: { size: 11 }, color: TICK_COLOR, padding: 16 },
-                },
-                tooltip: {
-                  callbacks: {
-                    label: (ctx) => ` ${ctx.label}: ${ctx.raw} students`,
-                  },
-                },
+                legend: { position: "bottom", labels: { font: { size: 11 }, color: TICK_COLOR, padding: 16 } },
+                tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw}` } },
               },
             },
           });
         }
 
-        // ── Improvement trend line chart (real data) ──────────
-        if (progressChartRef.current && improvementData) {
+        // Improvement trend — prefer real API progress data, fallback to aggregated improvement metrics.
+        const progData = studentProgressData?.length >= 2
+          ? {
+              labels: studentProgressData.map((row) => row.period),
+              data: studentProgressData.map((row) => parseFloat(row.avg_score)),
+            }
+          : improvementData
+            ? {
+                labels: ["Previous month", "Current month"],
+                data: [parseFloat(improvementData.previous_month_avg).toFixed(1), parseFloat(improvementData.current_month_avg).toFixed(1)],
+              }
+            : null;
+
+        if (progressChartRef.current && progData) {
           progressInst.current?.destroy();
-          const { current_month_avg, previous_month_avg, improvement_percentage, trend } = improvementData;
-          // Build a simple 2-point trend from the real data we have
-          const labels = ["Previous Month", "Current Month"];
-          const values = [
-            parseFloat(previous_month_avg ?? 0).toFixed(1),
-            parseFloat(current_month_avg ?? 0).toFixed(1),
-          ];
           progressInst.current = new window.Chart(progressChartRef.current, {
             type: "line",
             data: {
-              labels,
+              labels: progData.labels,
               datasets: [{
-                label: "Avg Score",
-                data: values,
-                borderColor: ORANGE,
-                backgroundColor: ORANGE + "18",
-                tension: 0.4,
-                pointRadius: 6,
-                pointBackgroundColor: ORANGE,
-                fill: true,
+                label: "Avg score",
+                data: progData.data,
+                borderColor: ORANGE, backgroundColor: ORANGE + "18",
+                tension: 0.4, pointRadius: 6, pointBackgroundColor: ORANGE, fill: true,
               }],
             },
             options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  callbacks: {
-                    label: (ctx) => ` Avg Score: ${ctx.raw}%`,
-                  },
-                },
-              },
+              responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
               scales: {
                 x: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 11 } } },
-                y: {
-                  min: Math.max(0, Math.min(...values) - 10),
-                  max: Math.min(100, Math.max(...values) + 10),
-                  grid: { color: GRID_COLOR },
-                  ticks: { color: TICK_COLOR, font: { size: 11 }, callback: (v) => `${v}%` },
-                },
+                y: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 11 }, callback: (v) => `${v}%` } },
               },
             },
           });
@@ -237,35 +205,155 @@ const AdminStudentEnhancement = () => {
       passFailInst.current?.destroy(); passFailInst.current = null;
       progressInst.current?.destroy(); progressInst.current = null;
     };
-  }, [activeTab, loading, passFailData, improvementData]);
+  }, [passFailData, improvementData, studentProgressData]);
 
-  // Student detail trend chart
+  return (
+    <div>
+
+      {/* Pass/Fail summary + Score breakdown */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="text-[11px] font-medium text-orange-500 uppercase tracking-widest mb-3">Pass vs fail</div>
+          <div className="flex gap-5 mb-3">
+            {[
+              { label: "Passed",    val: passed, color: "#0f6e56" },
+              { label: "Failed",    val: failed, color: "#a32d2d" },
+              { label: "Pass rate", val: passFailData ? `${Math.round((passFailData.pass_rate ?? (passed / totalResults * 100)))}%` : `${Math.round(passed / totalResults * 100)}%`, color: ORANGE },
+            ].map((m) => (
+              <div key={m.label}>
+                <div className="text-[11px] text-gray-400">{m.label}</div>
+                <div className="text-[24px] font-semibold" style={{ color: m.color }}>{m.val}</div>
+              </div>
+            ))}
+          </div>
+          <div className="h-2 rounded-full bg-gray-100 overflow-hidden mb-1">
+            <div className="h-full rounded-full" style={{ width: `${Math.round(passed / totalResults * 100)}%`, background: "#0f6e56" }} />
+          </div>
+          <div className="text-[11px] text-gray-400">{passed} passed · {failed} failed of {totalResults} exam results</div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="text-[11px] font-medium text-orange-500 uppercase tracking-widest mb-3">Score breakdown</div>
+          <div className="space-y-2">
+            {scoreRows.map((r) => {
+              const pct = Math.round((r.val / totalStudents) * 100);
+              return (
+                <div key={r.label} className="flex items-center gap-2">
+                  <div className="w-40 text-[11px] text-gray-500 flex-shrink-0">{r.label}</div>
+                  <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: r.color }} />
+                  </div>
+                  <div className="text-[11px] font-medium w-14 text-right" style={{ color: r.color }}>
+                    {r.val} <span className="text-gray-400 font-normal">({pct}%)</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="text-[14px] font-medium text-gray-700 mb-3">Pass vs fail distribution</div>
+          <div style={{ height: 220 }}><canvas ref={passFailChartRef} /></div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="text-[14px] font-medium text-gray-700 mb-1">Score progression</div>
+          <div className="text-[12px] text-gray-400 mb-3">Month-over-month average</div>
+          {(studentProgressData?.length >= 2 || improvementData)
+            ? <div style={{ height: 200 }}><canvas ref={progressChartRef} /></div>
+            : <div className="flex items-center justify-center h-[200px] text-[13px] text-gray-400">No live data yet.</div>}
+        </div>
+      </div>
+
+      {/* Performance by program table */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <div className="text-[11px] font-medium text-orange-500 uppercase tracking-widest mb-3">
+          Performance by program
+          <span className="ml-2 text-gray-400 normal-case font-normal">(click a row to view students)</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[13px] border-collapse">
+            <thead>
+              <tr>
+                {["Program", "Students", "Avg score", "Pass rate", "Status"].map((h, i) => (
+                  <th key={h} className={`text-[11px] font-medium text-gray-400 pb-2 px-2 border-b border-gray-100 whitespace-nowrap ${i === 0 ? "text-left" : "text-center"}`}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {students.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-gray-400">
+                  No student analytics available yet.
+                </td>
+              </tr>
+            ) : (
+              progStats.map((row) => (
+                <tr key={row.p} onClick={() => onProgramClick(row.p)}
+                  className="cursor-pointer hover:bg-gray-50 transition-colors">
+                  <td className="py-2.5 px-2"><ProgramTag program={row.p} /></td>
+                  <td className="py-2.5 px-2 text-center text-gray-500">{row.count}</td>
+                  <td className="py-2.5 px-2 text-center">
+                    {row.avg != null ? (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold" style={pillStyle(row.avg)}>
+                        {row.avg}%
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-gray-400">N/A</span>
+                    )}
+                  </td>
+                  <td className="py-2.5 px-2 text-center">
+                    {row.pr != null ? <PassRateBar value={row.pr} /> : <span className="text-[11px] text-gray-400">N/A</span>}
+                  </td>
+                  <td className="py-2.5 px-2 text-center"><StatusBadge status={row.avg != null ? getStatus(row.avg) : "unknown"} /></td>
+                </tr>
+              ))
+            )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Student Detail ─────────────────────────────────────────────────────────────
+const StudentDetail = ({ student, studentIndex, onBack }) => {
+  const trendRef = useRef(null);
+  const trendInst = useRef(null);
+  const av = AVATAR_PALETTE[studentIndex % AVATAR_PALETTE.length];
+
   useEffect(() => {
-    if (!selectedStudent) return;
+    const ensureChart = (cb) => {
+      if (window.Chart) { cb(); return; }
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js";
+      s.onload = cb;
+      document.head.appendChild(s);
+    };
     ensureChart(() => {
       setTimeout(() => {
-        if (studentTrendRef.current) {
-          studentTrendInst.current?.destroy();
-          const trend  = selectedStudent.trend ?? [];
-          const labels = trend.map((_, i) => `Attempt ${i + 1}`);
-          studentTrendInst.current = new window.Chart(studentTrendRef.current, {
+        if (trendRef.current) {
+          trendInst.current?.destroy();
+          const trend = student.trend ?? [];
+          trendInst.current = new window.Chart(trendRef.current, {
             type: "line",
             data: {
-              labels,
+              labels: trend.map((_, i) => `Attempt ${i + 1}`),
               datasets: [{
                 label: "Score",
                 data: trend,
-                borderColor: ORANGE,
-                backgroundColor: ORANGE + "18",
-                tension: 0.4,
-                pointRadius: 5,
-                pointBackgroundColor: ORANGE,
-                fill: true,
+                borderColor: ORANGE, backgroundColor: ORANGE + "18",
+                tension: 0.4, pointRadius: 5, pointBackgroundColor: ORANGE, fill: true,
               }],
             },
             options: {
-              responsive: true,
-              maintainAspectRatio: false,
+              responsive: true, maintainAspectRatio: false,
               plugins: { legend: { display: false } },
               scales: {
                 x: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 11 } } },
@@ -276,47 +364,300 @@ const AdminStudentEnhancement = () => {
         }
       }, 50);
     });
-    return () => { studentTrendInst.current?.destroy(); studentTrendInst.current = null; };
-  }, [selectedStudent]);
+    return () => { trendInst.current?.destroy(); trendInst.current = null; };
+  }, [student]);
 
-  // ── Derived values (real + mock) ──────────────────────────────
-  const totalStudents  = summary?.total_students ?? 0;
-  const avgScore       = passFailData
-    ? ((Number(passFailData.passed) / Number(passFailData.total)) * 100).toFixed(1)
-    : summary?.average_score ?? null;
-  const passRate       = passFailData?.pass_rate ?? null;
-  const topPerformers  = summary?.top_performers ?? null;
-  const needSupport    = summary?.need_support ?? null;
-  const improvement    = improvementData?.improvement_percentage ?? null;
-  const trendLabel     = improvementData?.trend ?? null;
+  const metrics = [
+    { label: "Program",       val: student.program || "N/A", color: "#555" },
+    { label: "Status",        val: student.status || (student.isActive ? "Active" : "Inactive") || "Unknown", color: student.isActive ? "#0f6e56" : "#a32d2d" },
+    { label: "Email",         val: student.email || "N/A", color: "#555" },
+    { label: "Remarks",       val: student.remarks || "None", color: "#555" },
+  ];
 
-  // Breakdown from real pass-fail data
-  const breakdown = passFailData?.breakdown ?? null;
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
+        <div className="w-11 h-11 rounded-full flex items-center justify-center font-semibold text-[14px]"
+          style={{ background: av.bg, color: av.fg, border: `1.5px solid ${av.fg}66` }}>
+          {initials(`${student.firstName || ""} ${student.lastName || ""}`)}
+        </div>
+        <div>
+          <div className="text-[16px] font-semibold text-gray-800">{`${student.firstName || ""} ${student.lastName || ""}`}</div>
+          <div className="flex items-center gap-2 mt-0.5">
+            <ProgramTag program={student.program || "Unknown"} />
+            <span className="text-[12px] text-gray-400">{student.email || "No email"}</span>
+          </div>
+        </div>
+        <button onClick={onBack}
+          className="ml-auto text-[12px] px-4 py-1.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-600 hover:border-orange-400 hover:text-orange-500 transition-colors">
+          ← Back to list
+        </button>
+      </div>
 
-  // Students list (mock for now)
-  const normalizedStudents = studentProgress.map((s, i) => ({
-    ...s,
-    id:       s.id ?? i,
-    name:     s.name ?? `Student ${i + 1}`,
-    score:    Math.round(s.score ?? 0),
-    attempts: s.attempts ?? 0,
-    passRate: Math.round(s.passRate ?? 0),
-    status:   getStatus(Math.round(s.score ?? 0)),
-    trend:    s.trend ?? [],
-    subjects: s.subjects ?? [],
-  }));
+      {/* Metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        {metrics.map((m) => (
+          <div key={m.label} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div className="text-[11px] text-gray-400 mb-1">{m.label}</div>
+            <div className="text-[18px] font-semibold" style={{ color: m.color }}>{m.val}</div>
+          </div>
+        ))}
+      </div>
 
-  const filteredStudents = normalizedStudents.filter((s) => {
-    const matchSearch = search.trim()
-      ? s.name.toLowerCase().includes(search.toLowerCase())
-      : true;
-    const matchFilter =
-      statusFilter === "all" ? true : s.status === statusFilter;
-    return matchSearch && matchFilter;
+      {/* Trend chart */}
+      {student.trend && student.trend.length > 0 ? (
+        <>
+          <div className="text-[11px] font-medium text-orange-500 uppercase tracking-widest mb-3">Score trend</div>
+          <div style={{ height: 200 }}><canvas ref={trendRef} /></div>
+        </>
+      ) : (
+        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-[13px] text-gray-500">
+          Trend data is not available for this student.
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Student List Tab ───────────────────────────────────────────────────────────
+const StudentsTab = ({ students, activeProgram, onProgramChange }) => {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedStudent, setSelectedStudent] = useState(null);
+
+  const filtered = students.filter((s) => {
+    const name = `${s.firstName || ""} ${s.lastName || ""}`.trim();
+    const studentProgram = normalizeProgram(s.program || s.programName);
+    const mp = activeProgram === "All" || studentProgram === activeProgram;
+    const ms = !search.trim() || name.toLowerCase().includes(search.toLowerCase()) || (s.email || "").toLowerCase().includes(search.toLowerCase());
+    const mf = statusFilter === "all" || (s.status || (s.isActive ? "Active" : "Inactive" )|| "").toLowerCase() === statusFilter;
+    return mp && ms && mf;
   });
 
-  const passingCount = normalizedStudents.filter((s) => s.score >= 75).length;
-  const failingCount = normalizedStudents.filter((s) => s.score < 75).length;
+  if (selectedStudent) {
+    return (
+      <StudentDetail
+        student={selectedStudent}
+        studentIndex={students.indexOf(selectedStudent)}
+        onBack={() => setSelectedStudent(null)}
+      />
+    );
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4">
+      {/*<div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-[12px] text-amber-700 mb-4">
+        <i className="bx bx-info-circle text-[15px] flex-shrink-0 mt-0.5"></i>
+        <span>Student list uses <strong>mock data</strong> while <code className="bg-amber-100 px-1 rounded">/student-progress</code> is pending.</span>
+      </div>*/}
+
+      {/* Program filters */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {PROGRAMS.map((p) => (
+          <button key={p} onClick={() => onProgramChange(p)}
+            className={`text-[12px] font-medium px-3 py-1 rounded-full border transition-colors ${
+              activeProgram === p
+                ? "bg-orange-500 text-white border-orange-500"
+                : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+            }`}>
+            {p}
+          </button>
+        ))}
+      </div>
+
+      {/* Search + Status filter */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <input
+          type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search student..."
+          className="text-[13px] px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 focus:outline-none focus:border-orange-400 w-full sm:w-[200px]"
+        />
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+          className="text-[12px] px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 focus:outline-none">
+          <option value="all">All statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="unknown">Unknown</option>
+        </select>
+        <span className="text-[12px] text-gray-400 ml-auto">{filtered.length} student{filtered.length !== 1 ? "s" : ""}</span>
+      </div>
+
+      {/* Table (desktop) */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 text-[13px] text-gray-400">No students found.</div>
+      ) : (
+        <>
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-[13px] border-collapse">
+              <thead>
+                <tr>
+                  {["Student", "Email", "Program", "Status", "Remarks"].map((h, i) => (
+                    <th key={h} className={`text-[11px] font-medium text-gray-400 pb-2 px-2 border-b border-gray-100 whitespace-nowrap ${i <= 2 ? "text-left" : "text-center"}`}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((s) => {
+                  const av = AVATAR_PALETTE[students.indexOf(s) % AVATAR_PALETTE.length];
+                  const name = `${s.firstName || ""} ${s.lastName || ""}`.trim();
+                  return (
+                    <tr key={s.userID || s.id} onClick={() => setSelectedStudent(s)}
+                      className="cursor-pointer hover:bg-gray-50 transition-colors">
+                      <td className="py-2.5 px-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
+                            style={{ background: av.bg, color: av.fg, border: `1px solid ${av.fg}44` }}>
+                            {initials(name)}
+                          </div>
+                          <span className="font-medium text-gray-700">{name || 'Unnamed student'}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-2 text-gray-500">{s.email || '—'}</td>
+                      <td className="py-2.5 px-2"><ProgramTag program={s.program || 'Unknown'} /></td>
+                      <td className="py-2.5 px-2 text-center text-gray-500">{s.status || (s.isActive ? 'Active' : 'Inactive') || 'Unknown'}</td>
+                      <td className="py-2.5 px-2 text-center text-gray-500">{s.remarks || 'None'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="flex flex-col gap-3 sm:hidden">
+            {filtered.map((s) => {
+              const av = AVATAR_PALETTE[students.indexOf(s) % AVATAR_PALETTE.length];
+              const name = `${s.firstName || ""} ${s.lastName || ""}`.trim();
+              return (
+                <div key={s.userID || s.id} onClick={() => setSelectedStudent(s)}
+                  className="border border-gray-200 rounded-xl p-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
+                      style={{ background: av.bg, color: av.fg, border: `1px solid ${av.fg}44` }}>
+                      {initials(name)}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[13px] font-semibold text-gray-800">{name || 'Unnamed student'}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <ProgramTag program={s.program || 'Unknown'} />
+                        <span className="text-[11px] text-gray-400">{s.status || (s.isActive ? 'Active' : 'Inactive') || 'Unknown'}</span>
+                      </div>
+                    </div>
+                    <StatusBadge status={(s.status || (s.isActive ? 'Active' : 'Inactive') || 'Unknown').toLowerCase()} />
+                  </div>
+                  <div className="text-[12px] text-gray-500">
+                    <div>{s.email || 'No email provided'}</div>
+                    <div>{s.remarks ? `Remarks: ${s.remarks}` : 'No remarks'}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+const AdminStudentEnhancement = () => {
+  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const [activeTab, setActiveTab] = useState("overview");
+  const [loading, setLoading] = useState(true);
+  const [activeProgram, setActiveProgram] = useState("All");
+
+  // Real API data
+  const [summaryData, setSummaryData]             = useState(null);
+  const [passFailData, setPassFailData]           = useState(null);
+  const [improvementData, setImprovementData]     = useState(null);
+  const [studentProgressData, setStudentProgressData] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [studentCount, setStudentCount] = useState(0);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      setLoading(true);
+      try {
+        const token = sessionStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+        const baseUrl = apiUrl?.replace(/\/$/, "") ?? "";
+
+        const [summaryRes, pfRes, impRes, progressRes] = await Promise.all([
+          fetch(`${baseUrl}/admin/analytics/summary`, { headers }),
+          fetch(`${baseUrl}/admin/analytics/pass-fail-rate`, { headers }),
+          fetch(`${baseUrl}/admin/analytics/improvement-percentage`, { headers }),
+          fetch(`${baseUrl}/admin/analytics/student-progress`, { headers }),
+        ]);
+
+        if (summaryRes.ok) {
+          const j = await summaryRes.json();
+          setSummaryData(j.data ?? null);
+        }
+        if (pfRes.ok) {
+          const j = await pfRes.json();
+          setPassFailData(j.data ?? null);
+        }
+        if (impRes.ok) {
+          const j = await impRes.json();
+          setImprovementData(j.data ?? null);
+        }
+        if (progressRes.ok) {
+          const j = await progressRes.json();
+          setStudentProgressData(Array.isArray(j.data) ? j.data : []);
+        }
+
+        const usersRes = await fetch(`${baseUrl}/users?role=Student&limit=200&page=1`, { headers });
+        if (usersRes.ok) {
+          const usersJson = await usersRes.json();
+          setStudents(Array.isArray(usersJson.users) ? usersJson.users : []);
+          const backendTotal = Number(usersJson.total);
+          setStudentCount(Number.isFinite(backendTotal) ? backendTotal : (Array.isArray(usersJson.users) ? usersJson.users.length : 0));
+        }
+      } catch (e) {
+        console.error("Fetch error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
+  }, [apiUrl]);
+
+  // KPI values — prefer real API data, fallback to computed mock values.
+  const total      = studentCount || students.length;
+  const passRate   = passFailData
+    ? Math.round(passFailData.pass_rate)
+    : summaryData?.pass_rate != null
+      ? Math.round(summaryData.pass_rate * 100)
+      : 0;
+  const avgScore   = summaryData?.average_score != null
+    ? Number(summaryData.average_score).toFixed(1)
+    : passFailData
+      ? ((Number(passFailData.passed) / Number(passFailData.total)) * 100).toFixed(1)
+      : "0.0";
+  const improvement = improvementData?.improvement_percentage ?? summaryData?.improvement_percentage ?? 0;
+  const trendLabel  = improvementData?.trend ?? (summaryData
+    ? improvement > 0 ? "improving" : improvement < 0 ? "declining" : "stable"
+    : "stable");
+
+  const topPerformers = passFailData?.breakdown?.excellent ?? 0;
+  const needSupport = (passFailData?.breakdown?.needs_improvement ?? 0) + (passFailData?.breakdown?.poor ?? 0);
+
+  const kpis = [
+    { label: "Total students",  val: total,                                                    color: ORANGE,     icon: "bx-group" },
+    { label: "Avg. score",      val: `${avgScore}%`,                                           color: "#555",     icon: "bx-bar-chart-alt-2" },
+    { label: "Pass rate",       val: `${passRate}%`,                                           color: "#0f6e56",  icon: "bx-check-circle" },
+    { label: "Top performers",  val: `${topPerformers}`,                                       color: ORANGE,     icon: "bx-trophy" },
+    { label: "Need support",    val: `${needSupport}`,                                        color: "#a32d2d",  icon: "bx-error-circle" },
+    { label: "Improvement",     val: `${Number(improvement) > 0 ? "+" : ""}${improvement}%`,  color: "#534ab7",  icon: "bx-trending-up" },
+  ];
+
+  const handleProgramClick = (prog) => {
+    setActiveProgram(prog);
+    setActiveTab("students");
+  };
 
   return (
     <div className="outfit-400 p-3 sm:p-6 min-h-screen pt-16 sm:pt-6 pb-28 sm:pb-6">
@@ -325,390 +666,81 @@ const AdminStudentEnhancement = () => {
       <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
         <div>
           <h1 className="text-[16px] sm:text-[20px] font-semibold text-gray-800">
-            Student Enhancement Analytics
+            Student enhancement analytics
           </h1>
-          <p className="text-[12px] text-gray-400 mt-0.5">
-            Overall student performance and insights
-          </p>
+          <p className="text-[12px] text-gray-400 mt-0.5">Overall student performance and insights</p>
         </div>
+        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium border ${
+          trendLabel === "improving"
+            ? "bg-green-50 text-green-600 border-green-200"
+            : trendLabel === "declining"
+            ? "bg-red-50 text-red-500 border-red-200"
+            : "bg-gray-50 text-gray-500 border-gray-200"
+        }`}>
+          <i className={`bx ${trendLabel === "improving" ? "bx-trending-up" : "bx-trending-down"} text-[14px]`}></i>
+          {trendLabel.charAt(0).toUpperCase() + trendLabel.slice(1)}
+        </div>
+      </div>
 
-        {/* Trend pill */}
-        {trendLabel && (
-          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium border ${
-            trendLabel === "improving"
-              ? "bg-green-50 text-green-600 border-green-200"
-              : trendLabel === "declining"
-              ? "bg-red-50 text-red-500 border-red-200"
-              : "bg-gray-50 text-gray-500 border-gray-200"
-          }`}>
-            <i className={`bx ${trendLabel === "improving" ? "bx-trending-up" : trendLabel === "declining" ? "bx-trending-down" : "bx-minus"} text-[14px]`}></i>
-            {trendLabel.charAt(0).toUpperCase() + trendLabel.slice(1)}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-6">
+        {kpis.map((m) => (
+          <div key={m.label} className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl" style={{ background: m.color }} />
+            <div className="flex items-center justify-between mb-1 mt-1">
+              <div className="text-[11px] sm:text-[12px] text-gray-400">{m.label}</div>
+              {m.mock && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200">mock</span>
+              )}
+            </div>
+            <div className="flex items-end justify-between">
+              <div className="text-[18px] sm:text-[22px] font-semibold" style={{ color: m.color }}>{m.val}</div>
+              <i className={`bx ${m.icon} text-[18px] opacity-20`} style={{ color: m.color }}></i>
+            </div>
           </div>
-        )}
+        ))}
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 mb-6">
         {["overview", "students"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => { setActiveTab(tab); setSelectedStudent(null); }}
+          <button key={tab} onClick={() => setActiveTab(tab)}
             className={`px-5 py-2.5 text-[13px] font-medium border-b-2 transition-colors capitalize ${
               activeTab === tab
                 ? "border-orange-500 text-orange-500"
                 : "border-transparent text-gray-400 hover:text-gray-700"
-            }`}
-          >
+            }`}>
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
       </div>
 
-      {/* ── LOADING ── */}
+      {/* Loading */}
       {loading && activeTab === "overview" && (
         <div className="flex items-center justify-center py-24">
           <span className="loader" />
         </div>
       )}
 
-      {/* ── OVERVIEW TAB ── */}
+      {/* Overview */}
       {!loading && activeTab === "overview" && (
-        <>
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-6">
-            {[
-              { label: "Total students",  value: totalStudents,                                                                    color: ORANGE,     icon: "bx-group",         note: "mock data" },
-              { label: "Avg. score",      value: avgScore != null ? `${avgScore}%` : "—",                                         color: "#555",     icon: "bx-bar-chart-alt-2" },
-              { label: "Pass rate",       value: passRate != null ? `${Math.round(passRate)}%` : "—",                             color: "#16a34a",  icon: "bx-check-circle" },
-              { label: "Top performers",  value: topPerformers ?? "—",                                                             color: ORANGE,     icon: "bx-trophy",        note: "mock data" },
-              { label: "Need support",    value: needSupport ?? "—",                                                               color: "#dc2626",  icon: "bx-error-circle",  note: "mock data" },
-              { label: "Improvement",     value: improvement != null ? `${improvement > 0 ? "+" : ""}${improvement}%` : "—",     color: "#7c3aed",  icon: "bx-trending-up" },
-            ].map((m) => (
-              <div key={m.label} className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 relative overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl" style={{ background: m.color }} />
-                <div className="flex items-center justify-between mb-1 mt-1">
-                  <div className="text-[11px] sm:text-[12px] text-gray-400">{m.label}</div>
-                  {m.note && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200">mock</span>
-                  )}
-                </div>
-                <div className="flex items-end justify-between">
-                  <div className="text-[18px] sm:text-[22px] font-semibold" style={{ color: m.color }}>{m.value}</div>
-                  <i className={`bx ${m.icon} text-[18px] opacity-20`} style={{ color: m.color }}></i>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Pass/Fail summary cards — REAL DATA */}
-          {passFailData && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-              {[
-                { label: "Total exams taken", value: passFailData.total,                color: "#555",    sub: "all attempts" },
-                { label: "Passed",            value: passFailData.passed,              color: "#16a34a", sub: `${Math.round(passFailData.pass_rate)}% pass rate` },
-                { label: "Failed",            value: passFailData.failed,              color: "#dc2626", sub: `${Math.round(100 - passFailData.pass_rate)}% fail rate` },
-                { label: "Excellent scores",  value: breakdown?.excellent ?? "—",     color: ORANGE,    sub: "score ≥ 90%" },
-              ].map((m) => (
-                <div key={m.label} className="bg-white border border-gray-200 rounded-xl p-4">
-                  <div className="text-[12px] text-gray-400 mb-1">{m.label}</div>
-                  <div className="text-[26px] font-semibold" style={{ color: m.color }}>{m.value}</div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">{m.sub}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Score breakdown bar — REAL DATA */}
-          {breakdown && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
-              <div className="text-[14px] font-medium text-gray-700 mb-3">Score breakdown</div>
-              <div className="space-y-2">
-                {[
-                  { label: "Excellent (≥ 90%)",      value: breakdown.excellent,         color: "#c45e10", bg: "#fff0e0" },
-                  { label: "Good (80–89%)",           value: breakdown.good,              color: "#16a34a", bg: "#dcfce7" },
-                  { label: "Needs improvement (75–79%)", value: breakdown.needs_improvement, color: "#906000", bg: "#fffae0" },
-                  { label: "Poor (< 75%)",            value: breakdown.poor,              color: "#dc2626", bg: "#fde8e8" },
-                ].map((row) => {
-                  const pct = passFailData?.total
-                    ? Math.round((Number(row.value) / Number(passFailData.total)) * 100)
-                    : 0;
-                  return (
-                    <div key={row.label} className="flex items-center gap-3">
-                      <div className="w-36 text-[12px] text-gray-500 flex-shrink-0">{row.label}</div>
-                      <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: row.color }} />
-                      </div>
-                      <div className="text-[12px] font-medium w-14 text-right" style={{ color: row.color }}>
-                        {row.value} <span className="text-gray-400 font-normal">({pct}%)</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Charts */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
-            {/* Pass / Fail doughnut */}
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <div className="text-[14px] font-medium text-gray-700 mb-1">Pass vs Fail distribution</div>
-              <div className="text-[12px] text-gray-400 mb-1">
-                Total exam attempts: <span className="font-semibold text-gray-600">{passFailData?.total ?? "—"}</span>
-              </div>
-              {!passFailData ? (
-                <div className="flex items-center justify-center h-[200px] text-[13px] text-gray-400">No data available.</div>
-              ) : (
-                <div style={{ height: 220 }}><canvas ref={passFailChartRef} /></div>
-              )}
-            </div>
-
-            {/* Score trend */}
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <div className="text-[14px] font-medium text-gray-700 mb-1">Score progression</div>
-              <div className="text-[12px] text-gray-400 mb-3">
-                Month-over-month average score
-                {improvementData && (
-                  <span className={`ml-2 font-semibold ${improvementData.improvement_percentage >= 0 ? "text-green-600" : "text-red-500"}`}>
-                    {improvementData.improvement_percentage >= 0 ? "▲" : "▼"} {Math.abs(improvementData.improvement_percentage)}%
-                  </span>
-                )}
-              </div>
-              {!improvementData ? (
-                <div className="flex items-center justify-center h-[200px] text-[13px] text-gray-400">No data available.</div>
-              ) : (
-                <div style={{ height: 200 }}><canvas ref={progressChartRef} /></div>
-              )}
-            </div>
-          </div>
-
-          {/* Mock data notice */}
-          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-[12px] text-amber-700">
-            <i className="bx bx-info-circle text-[16px] flex-shrink-0 mt-0.5"></i>
-            <span>
-              <strong>Note:</strong> Cards marked <span className="font-semibold">mock</span> use placeholder data while the backend SQL fix for <code className="bg-amber-100 px-1 rounded">/summary</code> is pending. All other data is live.
-            </span>
-          </div>
-        </>
+        <OverviewTab
+          students={students}
+          summaryData={summaryData}
+          passFailData={passFailData}
+          improvementData={improvementData}
+          studentProgressData={studentProgressData}
+          onProgramClick={handleProgramClick}
+        />
       )}
 
-      {/* ── STUDENTS TAB ── */}
-      {activeTab === "students" && !selectedStudent && (
-        <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4">
-
-          {/* Mock data notice */}
-          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-[12px] text-amber-700 mb-4">
-            <i className="bx bx-info-circle text-[16px] flex-shrink-0 mt-0.5"></i>
-            <span>
-              Student list is using <strong>mock/placeholder data</strong> while the backend SQL fix for <code className="bg-amber-100 px-1 rounded">/student-progress</code> is pending.
-            </span>
-          </div>
-
-          {/* Header + filters */}
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-            <div className="text-[14px] font-medium text-gray-700">
-              All students
-              <span className="ml-2 text-[12px] text-gray-400">
-                ({filteredStudents.length} students)
-              </span>
-            </div>
-            <div className="flex gap-2 flex-wrap items-center">
-              {["all", "excellent", "good", "average", "needs support"].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setStatusFilter(f)}
-                  className={`text-[11px] font-medium px-3 py-1 rounded-full border transition-colors capitalize ${
-                    statusFilter === f
-                      ? "bg-orange-500 text-white border-orange-500"
-                      : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search student..."
-            className="w-full sm:w-[220px] text-[13px] px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 focus:outline-none focus:border-orange-400 mb-4"
-          />
-
-          {filteredStudents.length === 0 ? (
-            <div className="text-center py-12 text-[13px] text-gray-400">No students found.</div>
-          ) : (
-            <>
-              {/* Desktop table */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full text-[13px] border-collapse">
-                  <thead>
-                    <tr>
-                      {["Student", "Attempts", "Avg Score", "Pass Rate", "Status"].map((h, i) => (
-                        <th key={h} className={`text-[11px] font-medium text-gray-400 pb-2 px-2 border-b border-gray-100 whitespace-nowrap ${i === 0 ? "text-left" : "text-center"}`}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudents.map((s, i) => {
-                      const av = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
-                      return (
-                        <tr
-                          key={s.id}
-                          onClick={() => setSelectedStudent(s)}
-                          className="cursor-pointer hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="py-2.5 px-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0" style={{ background: av.bg, color: av.fg, border: `1px solid ${av.fg}44` }}>
-                                {initials(s.name)}
-                              </div>
-                              <span className="font-medium text-gray-700 whitespace-nowrap">{s.name}</span>
-                            </div>
-                          </td>
-                          <td className="py-2.5 px-2 text-center text-gray-500">{s.attempts}</td>
-                          <td className="py-2.5 px-2 text-center">
-                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold" style={pillStyle(s.score)}>
-                              {s.score}%
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-2 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <div className="w-16 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                                <div className="h-full rounded-full" style={{ width: `${s.passRate}%`, background: s.passRate >= 75 ? "#16a34a" : "#f57c20" }} />
-                              </div>
-                              <span className="text-[12px] text-gray-500">{s.passRate}%</span>
-                            </div>
-                          </td>
-                          <td className="py-2.5 px-2 text-center"><StatusBadge status={s.status} /></td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile cards */}
-              <div className="flex flex-col gap-3 sm:hidden">
-                {filteredStudents.map((s, i) => {
-                  const av = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
-                  return (
-                    <div key={s.id} onClick={() => setSelectedStudent(s)} className="border border-gray-200 rounded-xl p-3 cursor-pointer hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0" style={{ background: av.bg, color: av.fg, border: `1px solid ${av.fg}44` }}>
-                          {initials(s.name)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-[13px] font-semibold text-gray-800">{s.name}</div>
-                          <div className="text-[11px] text-gray-400">{s.attempts} attempts</div>
-                        </div>
-                        <StatusBadge status={s.status} />
-                      </div>
-                      <div className="flex gap-4 pt-2 border-t border-gray-100">
-                        <div>
-                          <div className="text-[10px] text-gray-400">Avg Score</div>
-                          <div className="text-[13px] font-semibold" style={{ color: scoreColor(s.score) }}>{s.score}%</div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] text-gray-400">Pass Rate</div>
-                          <div className="text-[12px] font-medium" style={{ color: s.passRate >= 75 ? "#16a34a" : "#f57c20" }}>{s.passRate}%</div>
-                        </div>
-                        <div className="ml-auto flex items-center">
-                          <i className="bx bx-chevron-right text-[20px] text-gray-300"></i>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ── STUDENT DETAIL ── */}
-      {activeTab === "students" && selectedStudent && (
-        <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-5 flex-wrap">
-            {(() => {
-              const av = AVATAR_PALETTE[normalizedStudents.indexOf(selectedStudent) % AVATAR_PALETTE.length];
-              return (
-                <div className="w-11 h-11 rounded-full flex items-center justify-center font-semibold text-[15px]" style={{ background: av.bg, color: av.fg, border: `1.5px solid ${av.fg}66` }}>
-                  {initials(selectedStudent.name)}
-                </div>
-              );
-            })()}
-            <div>
-              <div className="text-[16px] font-semibold text-gray-800">{selectedStudent.name}</div>
-              <div className="text-[13px] text-gray-400">
-                {selectedStudent.attempts} attempts · {selectedStudent.passRate}% pass rate
-              </div>
-            </div>
-            <button
-              onClick={() => setSelectedStudent(null)}
-              className="ml-auto text-[12px] px-4 py-1.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-600 hover:border-orange-400 hover:text-orange-500 transition-colors"
-            >
-              ← Back to list
-            </button>
-          </div>
-
-          {/* Detail metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-            {[
-              { label: "Avg. score",     value: `${selectedStudent.score}%`,    color: scoreColor(selectedStudent.score) },
-              { label: "Pass rate",      value: `${selectedStudent.passRate}%`, color: selectedStudent.passRate >= 75 ? "#16a34a" : ORANGE },
-              { label: "Total attempts", value: selectedStudent.attempts,        color: ORANGE },
-              { label: "Status",         value: selectedStudent.status.charAt(0).toUpperCase() + selectedStudent.status.slice(1), color: "#555" },
-            ].map((m) => (
-              <div key={m.label} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <div className="text-[11px] text-gray-400 mb-1">{m.label}</div>
-                <div className="text-[18px] font-semibold" style={{ color: m.color }}>{m.value}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Subject scores if available */}
-          {selectedStudent.subjects && selectedStudent.subjects.length > 0 && (
-            <>
-              <div className="text-[11px] font-semibold text-orange-500 uppercase tracking-widest mb-3">Subject breakdown</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
-                {selectedStudent.subjects.map((sub) => (
-                  <div key={sub.subjectName ?? sub.subject ?? sub.name} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[13px] font-medium text-gray-700 truncate">{sub.subjectName ?? sub.subject ?? sub.name}</span>
-                      <span className="text-[13px] font-semibold ml-2" style={{ color: scoreColor(sub.average_score ?? sub.score ?? 0) }}>
-                        {Math.round(sub.average_score ?? sub.score ?? 0)}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${sub.average_score ?? sub.score ?? 0}%`, background: scoreColor(sub.average_score ?? sub.score ?? 0) }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Trend chart */}
-          {selectedStudent.trend && selectedStudent.trend.length > 0 && (
-            <>
-              <div className="text-[14px] font-medium text-gray-700 mb-3">Score trend</div>
-              <div style={{ height: 200 }}><canvas ref={studentTrendRef} /></div>
-            </>
-          )}
-
-          {(!selectedStudent.subjects || selectedStudent.subjects.length === 0) &&
-           (!selectedStudent.trend || selectedStudent.trend.length === 0) && (
-            <div className="text-center py-8 text-[13px] text-gray-400">
-              No detailed breakdown available for this student.
-            </div>
-          )}
-        </div>
+      {/* Students */}
+      {activeTab === "students" && (
+        <StudentsTab
+          students={students}
+          activeProgram={activeProgram}
+          onProgramChange={setActiveProgram}
+        />
       )}
     </div>
   );

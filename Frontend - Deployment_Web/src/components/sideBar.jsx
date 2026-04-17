@@ -908,7 +908,7 @@ const Sidebar = ({
           {!isUsersPage && (
             <div className="outfit-500 px-2 text-[12px] font-semibold text-gray-500">
               MAIN{" "} 
-            </div>//this is for main
+            </div>
           )}
         </div>
         
