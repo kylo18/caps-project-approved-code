@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -13,7 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useSelector } from 'react-redux';
 import { apiRequest } from '../../../src/services/apiClient';
-import { getDashboardSummary, getLearningInsights, getPerformanceTrend } from '../../../src/services/studentAnalyticsService';
+import { getDashboardSummary, getFrequentlyMistakenQuestions, getLearningInsights, getPerformanceTrend } from '../../../src/services/studentAnalyticsService';
 import {
   StudentAvatar,
   StudentHeroDecoration,
@@ -34,6 +33,12 @@ const buildDisplayName = (profile: any, fallbackUser: any) =>
   fallbackUser?.name ||
   'Student';
 
+const stripHtml = (input: string) =>
+  input
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 export default function StudentInsightsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -46,6 +51,8 @@ export default function StudentInsightsScreen() {
   const [insights, setInsights] = useState<any>(null);
   const [recentPerformance, setRecentPerformance] = useState<any[]>([]);
   const [showAllRecent, setShowAllRecent] = useState(false);
+  const [frequentlyMistaken, setFrequentlyMistaken] = useState<any[]>([]);
+  const [showAllFrequentlyMistaken, setShowAllFrequentlyMistaken] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // ── Fetch all analytics data in parallel on mount ───────────────────────
@@ -58,17 +65,28 @@ export default function StudentInsightsScreen() {
     setLoading(true);
 
     try {
-      const [profileResponse, summaryResponse, insightResponse, trendResponse] = await Promise.all([
+      const [profileResponse, summaryResponse, insightResponse, trendResponse, frequentlyMistakenResponse] = await Promise.all([
         apiRequest('/api/user/profile').catch(() => ({ data: user })),
         getDashboardSummary(),
         getLearningInsights(),
         getPerformanceTrend(),
+        getFrequentlyMistakenQuestions(),
       ]);
 
       setProfile(profileResponse?.data || profileResponse || user);
       setSummary(summaryResponse?.data || summaryResponse || {});
       setInsights(insightResponse?.data || insightResponse || {});
       setRecentPerformance(trendResponse?.data || []);
+      const mistakenItems = Array.isArray(frequentlyMistakenResponse?.data) ? frequentlyMistakenResponse.data : [];
+      setFrequentlyMistaken(
+        mistakenItems
+          .filter((item: any) => Number(item?.consecutive_wrong_count ?? item?.wrong_count ?? 0) >= 3)
+          .sort(
+            (a: any, b: any) =>
+              Number(b?.consecutive_wrong_count ?? b?.wrong_count ?? 0) -
+              Number(a?.consecutive_wrong_count ?? a?.wrong_count ?? 0)
+          )
+      );
     } catch (error) {
       console.error('Error fetching insights:', error);
     } finally {
@@ -103,7 +121,7 @@ export default function StudentInsightsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingState}>
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: studentColors.surface }}>
         <StatusBar style="light" />
         <ActivityIndicator size="large" color={studentColors.orange} />
       </View>
@@ -111,7 +129,7 @@ export default function StudentInsightsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-white">
       <StatusBar style="light" />
 
       {/* ─────────────────────────────────────────────────────────────────
@@ -119,24 +137,42 @@ export default function StudentInsightsScreen() {
           Orange hero header with student avatar + white sheet with
           stats, recent performance, weak areas, and time-per-topic.
           ───────────────────────────────────────────────────────────────── */}
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
 
         {/* ───────────────────────────────────────────────────────────────
             ORANGE HERO HEADER
             Student avatar (centered) with stats chart icon badge.
             ─────────────────────────────────────────────────────────────── */}
-        <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+        <View className="px-6 pb-[42px]" style={{ paddingTop: insets.top + 12, backgroundColor: studentColors.orange }}>
           <StudentHeroDecoration />
 
-          <View style={styles.heroTopRow}>
-            <Text style={styles.heroTitle}>Insights</Text>
-            <View style={styles.heroBadge}>
+          <View className="flex-row items-center justify-between mb-[30px]">
+            <Text
+              className="text-white"
+              style={{
+                fontFamily: 'Rubik',
+                fontSize: 28,
+                fontWeight: '500',
+                lineHeight: 36,
+              }}
+            >
+              Insights
+            </Text>
+            <View
+              className="w-[42px] h-[42px] rounded-[21px] items-center justify-center"
+              style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
+            >
               <Ionicons name="stats-chart-outline" size={18} color={studentColors.white} />
             </View>
           </View>
 
-          <View style={styles.avatarWrap}>
-            <StudentAvatar label={fullName} size={84} index={2} style={styles.profileAvatar} />
+          <View className="items-center">
+            <StudentAvatar
+              label={fullName}
+              size={84}
+              index={2}
+              style={{ borderWidth: 4, borderColor: 'rgba(255,255,255,0.72)' }}
+            />
           </View>
         </View>
 
@@ -148,33 +184,116 @@ export default function StudentInsightsScreen() {
               3. Weak Areas list (topics with highest error rates)
               4. Time per Topic (bar chart showing minutes per topic)
             ─────────────────────────────────────────────────────────────── */}
-        <View style={styles.sheet}>
-          <Text style={styles.profileName}>{fullName}</Text>
+        <View
+          className="bg-white rounded-t-[34px] -mt-7 px-6 pt-6 pb-7 min-h-[620px]"
+        >
+          <Text
+            className="text-center"
+            style={{
+              color: studentColors.text,
+              fontFamily: 'Rubik',
+              fontSize: 30,
+              fontWeight: '500',
+              lineHeight: 38,
+            }}
+          >
+            {fullName}
+          </Text>
 
           {/* ── Stats card: orange card with average attempts + strongest subject ── */}
-          <View style={styles.statsCard}>
-            <View style={styles.statPane}>
-              <Text style={styles.statLabel}>AVERAGE ATTEMPTS</Text>
-              <Text style={styles.statValue}>{avgAttempts}</Text>
+          <View
+            className="rounded-3xl p-[14px] gap-2.5 mt-[18px]"
+            style={{ backgroundColor: studentColors.orange, ...studentShadow }}
+          >
+            <View className="rounded-[18px] px-[14px] py-3" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}>
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.84)',
+                  fontFamily: 'Rubik',
+                  fontSize: 10,
+                  fontWeight: '500',
+                  lineHeight: 16,
+                  letterSpacing: 1.6,
+                }}
+              >
+                AVERAGE ATTEMPTS
+              </Text>
+              <Text
+                className="mt-1.5"
+                style={{
+                  color: studentColors.white,
+                  fontFamily: 'Rubik',
+                  fontSize: 26,
+                  fontWeight: '500',
+                  lineHeight: 34,
+                }}
+              >
+                {avgAttempts}
+              </Text>
             </View>
 
-            <View style={styles.statPane}>
-              <Text style={styles.statLabel}>STRONGEST SUBJECT</Text>
-              <Text numberOfLines={2} style={styles.statValueSmall}>
+            <View className="rounded-[18px] px-[14px] py-3" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}>
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.84)',
+                  fontFamily: 'Rubik',
+                  fontSize: 10,
+                  fontWeight: '500',
+                  lineHeight: 16,
+                  letterSpacing: 1.6,
+                }}
+              >
+                STRONGEST SUBJECT
+              </Text>
+              <Text
+                numberOfLines={2}
+                className="mt-1.5"
+                style={{
+                  color: studentColors.white,
+                  fontFamily: 'Rubik',
+                  fontSize: 19,
+                  fontWeight: '500',
+                  lineHeight: 26,
+                }}
+              >
                 {strongestSubject}
               </Text>
             </View>
           </View>
 
           {/* ── Recent Performance: tap to view full exam result details ── */}
-          <View style={styles.recentPerformanceBox}>
-            <View style={styles.recentPerformanceHeader}>
+          <View
+            className="rounded-[20px] border-2 p-4 mt-1 mb-2 bg-white"
+            style={{ borderColor: studentColors.border, ...studentShadow }}
+          >
+            <View className="flex-row items-center gap-2 mb-3">
               <Ionicons name="trending-up-outline" size={20} color={studentColors.orange} />
-              <Text style={styles.recentPerformanceTitle}>Recent</Text>
+              <Text
+                style={{
+                  color: studentColors.text,
+                  fontFamily: 'Rubik',
+                  fontSize: 16,
+                  fontWeight: '600',
+                  lineHeight: 22,
+                }}
+              >
+                Recent
+              </Text>
             </View>
-            <View style={styles.recentPerformanceList}>
+            <View className="gap-2.5">
               {recentPerformance.length === 0 ? (
-                <Text style={styles.recentPerformanceEmpty}>No recent exams</Text>
+                <Text
+                  className="text-center py-3"
+                  style={{
+                    color: studentColors.textSoft,
+                    fontFamily: 'Rubik',
+                    fontSize: 14,
+                    fontWeight: '400',
+                    lineHeight: 20,
+                  }}
+                >
+                  No recent exams
+                </Text>
               ) : (
                 <>
                   {(showAllRecent ? recentPerformance : recentPerformance.slice(0, 5)).map((entry: any, index: number) => {
@@ -182,7 +301,8 @@ export default function StudentInsightsScreen() {
                     return (
                       <Pressable
                         key={`${entry.result_id}-${index}`}
-                        style={styles.recentPerformanceItem}
+                        className="flex-row items-center justify-between py-2 px-3 rounded-xl"
+                        style={{ backgroundColor: studentColors.surfaceSoft }}
                         onPress={() => {
                           if (entry?.result_id) {
                             router.push({
@@ -192,10 +312,28 @@ export default function StudentInsightsScreen() {
                           }
                         }}
                       >
-                        <Text numberOfLines={1} style={styles.recentPerformanceSubject}>
+                        <Text
+                          numberOfLines={1}
+                          className="flex-1"
+                          style={{
+                            color: studentColors.text,
+                            fontFamily: 'Rubik',
+                            fontSize: 14,
+                            fontWeight: '500',
+                            lineHeight: 20,
+                          }}
+                        >
                           {entry?.label || 'Unknown'}
                         </Text>
-                        <Text style={[styles.recentPerformanceScore, { color: score >= 70 ? studentColors.success : score >= 50 ? '#856404' : '#D32F2F' }]}>
+                        <Text
+                          style={{
+                            color: score >= 70 ? studentColors.success : score >= 50 ? '#856404' : '#D32F2F',
+                            fontFamily: 'Rubik',
+                            fontSize: 14,
+                            fontWeight: '700',
+                            lineHeight: 20,
+                          }}
+                        >
                           {Math.round(score)}%
                         </Text>
                       </Pressable>
@@ -203,10 +341,19 @@ export default function StudentInsightsScreen() {
                   })}
                   {recentPerformance.length > 5 ? (
                     <Pressable
-                      style={styles.viewAllButton}
+                      className="flex-row items-center justify-center gap-1.5 py-3 mt-2"
+                      style={{ borderTopWidth: 1, borderTopColor: studentColors.border }}
                       onPress={() => setShowAllRecent(!showAllRecent)}
                     >
-                      <Text style={styles.viewAllButtonText}>
+                      <Text
+                        style={{
+                          color: studentColors.orange,
+                          fontFamily: 'Rubik',
+                          fontSize: 14,
+                          fontWeight: '600',
+                          lineHeight: 20,
+                        }}
+                      >
                         {showAllRecent ? 'Show Less' : 'View All'}
                       </Text>
                       <Ionicons
@@ -221,25 +368,197 @@ export default function StudentInsightsScreen() {
             </View>
           </View>
 
+          {/* ── Frequently Mistaken: top 5 review questions with View All toggle ── */}
+          <View
+            className="rounded-[20px] border-2 p-4 mt-1 mb-2 bg-white"
+            style={{ borderColor: studentColors.border, ...studentShadow }}
+          >
+            <View className="flex-row items-center gap-2 mb-3">
+              <Ionicons name="alert-circle-outline" size={20} color={studentColors.orange} />
+              <Text
+                style={{
+                  color: studentColors.text,
+                  fontFamily: 'Rubik',
+                  fontSize: 16,
+                  fontWeight: '600',
+                  lineHeight: 22,
+                }}
+              >
+                Frequently Mistaken
+              </Text>
+            </View>
+            <View className="gap-2.5">
+              {frequentlyMistaken.length === 0 ? (
+                <View className="items-center gap-2 py-4">
+                  <Ionicons name="checkmark-circle-outline" size={28} color={studentColors.success} />
+                  <Text
+                    className="text-center"
+                    style={{
+                      color: studentColors.textSoft,
+                      fontFamily: 'Rubik',
+                      fontSize: 14,
+                      fontWeight: '400',
+                      lineHeight: 20,
+                    }}
+                  >
+                    No frequently mistaken questions to review right now.
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  {(showAllFrequentlyMistaken ? frequentlyMistaken : frequentlyMistaken.slice(0, 5)).map((item: any, index: number) => (
+                    <View
+                      key={`${item.questionID}-${index}`}
+                      className="flex-row items-center justify-between py-2 px-3 rounded-xl"
+                      style={{ backgroundColor: studentColors.surfaceSoft }}
+                    >
+                      <View className="flex-1 mr-3">
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            color: studentColors.text,
+                            fontFamily: 'Rubik',
+                            fontSize: 14,
+                            fontWeight: '600',
+                            lineHeight: 20,
+                          }}
+                        >
+                          {item.subjectName || 'Unknown Subject'}
+                        </Text>
+                        <Text
+                          numberOfLines={2}
+                          className="mt-0.5"
+                          style={{
+                            color: studentColors.textSoft,
+                            fontFamily: 'Rubik',
+                            fontSize: 11,
+                            fontWeight: '400',
+                            lineHeight: 18,
+                          }}
+                        >
+                          {stripHtml(item.questionText || 'Question unavailable')}
+                        </Text>
+                        <View className="flex-row items-center gap-1.5 mt-1">
+                          <View
+                            className="min-w-[28px] h-[18px] rounded-full items-center justify-center px-1.5"
+                            style={{ backgroundColor: '#FEE2E2' }}
+                          >
+                            <Text
+                              style={{
+                                color: '#EF4444',
+                                fontFamily: 'Rubik',
+                                fontSize: 10,
+                                fontWeight: '700',
+                              }}
+                            >
+                              {item.consecutive_wrong_count > 0 ? item.consecutive_wrong_count : item.wrong_count}x
+                            </Text>
+                          </View>
+                          <Text
+                            style={{
+                              color: studentColors.textSoft,
+                              fontFamily: 'Rubik',
+                              fontSize: 10,
+                              fontWeight: '400',
+                              lineHeight: 18,
+                            }}
+                          >
+                            mistakes
+                          </Text>
+                        </View>
+                      </View>
+                      <Ionicons name="bookmark" size={16} color="#F59E0B" />
+                    </View>
+                  ))}
+                  {frequentlyMistaken.length > 5 ? (
+                    <Pressable
+                      className="flex-row items-center justify-center gap-1.5 py-3 mt-2"
+                      style={{ borderTopWidth: 1, borderTopColor: studentColors.border }}
+                      onPress={() => setShowAllFrequentlyMistaken(!showAllFrequentlyMistaken)}
+                    >
+                      <Text
+                        style={{
+                          color: studentColors.orange,
+                          fontFamily: 'Rubik',
+                          fontSize: 14,
+                          fontWeight: '600',
+                          lineHeight: 20,
+                        }}
+                      >
+                        {showAllFrequentlyMistaken ? 'Show Less' : 'View All'}
+                      </Text>
+                      <Ionicons
+                        name={showAllFrequentlyMistaken ? 'chevron-up-outline' : 'chevron-down-outline'}
+                        size={16}
+                        color={studentColors.orange}
+                      />
+                    </Pressable>
+                  ) : null}
+                </>
+              )}
+            </View>
+          </View>
+
           {/* ── Weak Areas: topics with highest error rates from analytics ── */}
           <StudentSectionHeader title="Weak Areas" actionLabel="List Form" actionColor={studentColors.textSoft} />
-          <View style={styles.sectionList}>
+          <View className="gap-3 mt-[14px]">
             {weakTopics.length === 0 ? (
-              <View style={styles.feedbackCard}>
+              <View
+                className="items-center justify-center gap-2.5 rounded-3xl border-2 py-7 px-5 bg-white"
+                style={{ borderColor: studentColors.border, ...studentShadow }}
+              >
                 <Ionicons name="checkmark-circle-outline" size={30} color={studentColors.orange} />
-                <Text style={styles.feedbackText}>No weak areas detected yet.</Text>
+                <Text
+                  className="text-center"
+                  style={{
+                    color: studentColors.textSoft,
+                    fontFamily: 'Rubik',
+                    fontSize: 14,
+                    fontWeight: '400',
+                    lineHeight: 20,
+                  }}
+                >
+                  No weak areas detected yet.
+                </Text>
               </View>
             ) : (
               weakTopics.map((topic: any, index: number) => (
-                <View key={`${topic.topic}-${index}`} style={styles.detailCard}>
-                  <View style={styles.detailIconWrap}>
+                <View
+                  key={`${topic.topic}-${index}`}
+                  className="flex-row items-center gap-3.5 rounded-[22px] border-2 px-3 py-2.5 bg-white"
+                  style={{ borderColor: studentColors.border, ...studentShadow }}
+                >
+                  <View
+                    className="w-14 h-14 rounded-[18px] items-center justify-center"
+                    style={{ backgroundColor: studentColors.surfaceSoft }}
+                  >
                     <Ionicons name={index % 2 === 0 ? 'calculator-outline' : 'book-outline'} size={22} color={studentColors.orange} />
                   </View>
-                  <View style={styles.detailCopy}>
-                    <Text numberOfLines={2} style={styles.detailTitle}>
+                  <View className="flex-1">
+                    <Text
+                      numberOfLines={2}
+                      style={{
+                        color: studentColors.text,
+                        fontFamily: 'Rubik',
+                        fontSize: 16,
+                        fontWeight: '500',
+                        lineHeight: 22,
+                      }}
+                    >
                       {topic.topic}
                     </Text>
-                    <Text style={styles.detailMeta}>{Math.round((topic.error_rate ?? 0) * 100)}% Error rate</Text>
+                    <Text
+                      className="mt-1"
+                      style={{
+                        color: studentColors.textSoft,
+                        fontFamily: 'Rubik',
+                        fontSize: 12,
+                        fontWeight: '400',
+                        lineHeight: 18,
+                      }}
+                    >
+                      {Math.round((topic.error_rate ?? 0) * 100)}% Error rate
+                    </Text>
                   </View>
                 </View>
               ))
@@ -251,45 +570,86 @@ export default function StudentInsightsScreen() {
             title="Time per Topic"
             actionLabel="List Form"
             actionColor={studentColors.textSoft}
-            style={styles.timeHeader}
+            style={{ marginTop: 22 }}
           />
 
-          <View style={styles.sectionList}>
+          <View className="gap-3 mt-[14px]">
             {timeSpent.length === 0 ? (
-              <View style={styles.feedbackCard}>
+              <View
+                className="items-center justify-center gap-2.5 rounded-3xl border-2 py-7 px-5 bg-white"
+                style={{ borderColor: studentColors.border, ...studentShadow }}
+              >
                 <Ionicons name="time-outline" size={30} color={studentColors.orange} />
-                <Text style={styles.feedbackText}>No time data available yet.</Text>
+                <Text
+                  className="text-center"
+                  style={{
+                    color: studentColors.textSoft,
+                    fontFamily: 'Rubik',
+                    fontSize: 14,
+                    fontWeight: '400',
+                    lineHeight: 20,
+                  }}
+                >
+                  No time data available yet.
+                </Text>
               </View>
             ) : (
               <>
-              {timeSpent.map((entry: any, index: number) => {
-                const width = Math.min(100, Math.max(12, ((entry?.minutes ?? 0) / 60) * 100));
+                {timeSpent.map((entry: any, index: number) => {
+                  const width = Math.min(100, Math.max(12, ((entry?.minutes ?? 0) / 60) * 100));
 
-                return (
-                  <View key={`${entry.topic}-${index}`} style={styles.timeCard}>
-                    <View style={styles.timeCardTop}>
-                      <View style={styles.detailIconWrap}>
-                        <Ionicons
-                          name={index % 2 === 0 ? 'bar-chart-outline' : 'timer-outline'}
-                          size={22}
-                          color={studentColors.orange}
-                        />
+                  return (
+                    <View
+                      key={`${entry.topic}-${index}`}
+                      className="rounded-[22px] border-2 px-3 py-3 bg-white"
+                      style={{ borderColor: studentColors.border, ...studentShadow }}
+                    >
+                      <View className="flex-row items-center gap-3.5 mb-3">
+                        <View
+                          className="w-14 h-14 rounded-[18px] items-center justify-center"
+                          style={{ backgroundColor: studentColors.surfaceSoft }}
+                        >
+                          <Ionicons
+                            name={index % 2 === 0 ? 'bar-chart-outline' : 'timer-outline'}
+                            size={22}
+                            color={studentColors.orange}
+                          />
+                        </View>
+
+                        <View className="flex-1">
+                          <Text
+                            numberOfLines={2}
+                            style={{
+                              color: studentColors.text,
+                              fontFamily: 'Rubik',
+                              fontSize: 16,
+                              fontWeight: '500',
+                              lineHeight: 22,
+                            }}
+                          >
+                            {entry?.topic || 'Unknown Topic'}
+                          </Text>
+                          <Text
+                            className="mt-1"
+                            style={{
+                              color: studentColors.textSoft,
+                              fontFamily: 'Rubik',
+                              fontSize: 12,
+                              fontWeight: '400',
+                              lineHeight: 18,
+                            }}
+                          >
+                            {entry?.minutes ?? 0} minutes
+                          </Text>
+                        </View>
                       </View>
 
-                      <View style={styles.detailCopy}>
-                        <Text numberOfLines={2} style={styles.detailTitle}>
-                          {entry?.topic || 'Unknown Topic'}
-                        </Text>
-                        <Text style={styles.detailMeta}>{entry?.minutes ?? 0} minutes</Text>
+                      <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: studentColors.surfaceSoft }}>
+                        <View className="h-full rounded-full" style={{ width: `${width}%`, backgroundColor: studentColors.orange }} />
                       </View>
                     </View>
-
-                    <View style={styles.progressTrack}>
-                      <View style={[styles.progressFill, { width: `${width}%` }]} />
-                    </View>
-                  </View>
-                );
-              })}
+                  );
+                })}
               </>
             )}
           </View>
@@ -298,327 +658,3 @@ export default function StudentInsightsScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: studentColors.white,
-  },
-  content: {
-    paddingBottom: 120,
-  },
-  loadingState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: studentColors.surface,
-  },
-  hero: {
-    paddingHorizontal: 24,
-    paddingBottom: 42,
-    backgroundColor: studentColors.orange,
-  },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 30,
-  },
-  heroTitle: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 28,
-    fontWeight: '500',
-    lineHeight: 36,
-  },
-  heroBadge: {
-    // Stats chart icon badge in top-right of hero header
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarWrap: {
-    alignItems: 'center',
-  },
-  profileAvatar: {
-    borderWidth: 4,
-    borderColor: 'rgba(255,255,255,0.72)',
-  },
-  sheet: {
-    backgroundColor: studentColors.white,
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
-    marginTop: -28,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 28,
-    minHeight: 620,
-  },
-  profileName: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 30,
-    fontWeight: '500',
-    lineHeight: 38,
-    textAlign: 'center',
-  },
-  statsCard: {
-    borderRadius: 24,
-    backgroundColor: studentColors.orange,
-    padding: 14,
-    gap: 10,
-    marginTop: 18,
-    ...studentShadow,
-  },
-  statPane: {
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  statLabel: {
-    color: 'rgba(255,255,255,0.84)',
-    fontFamily: 'Rubik',
-    fontSize: 10,
-    fontWeight: '500',
-    lineHeight: 16,
-    letterSpacing: 1.6,
-  },
-  statValue: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 26,
-    fontWeight: '500',
-    lineHeight: 34,
-    marginTop: 6,
-  },
-  statValueSmall: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 19,
-    fontWeight: '500',
-    lineHeight: 26,
-    marginTop: 6,
-  },
-  sectionList: {
-    gap: 12,
-    marginTop: 14,
-  },
-  detailCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: studentColors.border,
-    backgroundColor: studentColors.white,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    ...studentShadow,
-  },
-  detailIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: studentColors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  detailCopy: {
-    flex: 1,
-  },
-  detailTitle: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 16,
-    fontWeight: '500',
-    lineHeight: 22,
-  },
-  detailMeta: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 12,
-    fontWeight: '400',
-    lineHeight: 18,
-    marginTop: 4,
-  },
-  timeHeader: {
-    marginTop: 22,
-  },
-  timeCard: {
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: studentColors.border,
-    backgroundColor: studentColors.white,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    ...studentShadow,
-  },
-  timeCardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginBottom: 12,
-  },
-  progressTrack: {
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: studentColors.surfaceSoft,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: studentColors.orange,
-  },
-  feedbackCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    borderRadius: 24,
-    backgroundColor: studentColors.white,
-    borderWidth: 2,
-    borderColor: studentColors.border,
-    paddingVertical: 28,
-    paddingHorizontal: 20,
-    ...studentShadow,
-  },
-  feedbackText: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '400',
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  performanceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: studentColors.border,
-    backgroundColor: studentColors.white,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    ...studentShadow,
-  },
-  performanceLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    flex: 1,
-  },
-  performanceIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  performanceCopy: {
-    flex: 1,
-  },
-  performanceTitle: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 15,
-    fontWeight: '500',
-    lineHeight: 22,
-  },
-  performanceDate: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 12,
-    fontWeight: '400',
-    lineHeight: 18,
-    marginTop: 2,
-  },
-  performanceRight: {
-    alignItems: 'flex-end',
-  },
-  performanceScore: {
-    fontFamily: 'Rubik',
-    fontSize: 18,
-    fontWeight: '700',
-    lineHeight: 24,
-  },
-  recentPerformanceBox: {
-    borderRadius: 20,
-    backgroundColor: studentColors.white,
-    borderWidth: 2,
-    borderColor: studentColors.border,
-    padding: 16,
-    marginTop: 4,
-    marginBottom: 8,
-    ...studentShadow,
-  },
-  recentPerformanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  recentPerformanceTitle: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 16,
-    fontWeight: '600',
-    lineHeight: 22,
-  },
-  recentPerformanceList: {
-    gap: 10,
-  },
-  recentPerformanceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: studentColors.surfaceSoft,
-    borderRadius: 12,
-  },
-  recentPerformanceSubject: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 20,
-    flex: 1,
-  },
-  recentPerformanceScore: {
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  recentPerformanceEmpty: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '400',
-    lineHeight: 20,
-    textAlign: 'center',
-    paddingVertical: 12,
-  },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: studentColors.border,
-  },
-  viewAllButtonText: {
-    color: studentColors.orange,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 20,
-  },
-});

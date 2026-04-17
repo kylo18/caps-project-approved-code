@@ -359,9 +359,12 @@ class LeaderboardController extends Controller
         }
 
         $now = Carbon::now('Asia/Manila');
+        $start = $now->copy()->startOfWeek(Carbon::SUNDAY);
+        $end = $now->copy()->endOfWeek(Carbon::SATURDAY);
+
         return [
-            $now->copy()->startOfWeek(Carbon::SUNDAY),
-            $now->copy()->endOfWeek(Carbon::SATURDAY),
+            $start->copy()->setTimezone('UTC'),
+            $end->copy()->setTimezone('UTC'),
         ];
     }
 

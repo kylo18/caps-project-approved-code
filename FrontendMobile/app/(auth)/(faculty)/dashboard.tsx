@@ -21,6 +21,7 @@ import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import MobileHeader from '../../../src/components/MobileHeader';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function FacultyDashboard() {
   const router = useRouter();
@@ -28,6 +29,8 @@ export default function FacultyDashboard() {
   const isDark = theme === 'dark';
   const auth = useSelector((state: any) => state.auth);
   const user = auth?.user;
+
+  const insets = useSafeAreaInsets();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -104,8 +107,8 @@ export default function FacultyDashboard() {
 
   if (isLoading) {
     return (
-      <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
-        <MobileHeader title="Faculty Dashboard" />
+      <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`} style={{ paddingBottom: insets.bottom + 12 }}>
+        <MobileHeader title="Faculty Dashboard" style={{ paddingTop: insets.top + 8 }} />
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#FE6902" />
           <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -117,8 +120,8 @@ export default function FacultyDashboard() {
   }
 
   return (
-    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
-      <MobileHeader title="Faculty Dashboard" />
+    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`} style={{ paddingBottom: insets.bottom + 12 }}>
+      <MobileHeader title="Faculty Dashboard" style={{ paddingTop: insets.top + 8 }} />
 
       <ScrollView
         className="flex-1 px-4 pt-4"

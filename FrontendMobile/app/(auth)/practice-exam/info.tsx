@@ -8,16 +8,18 @@
 //   - UI: header with back button, exam details card, instructions card,
 //         "Back to Subjects" and "Start Exam" action buttons
 // ─────────────────────────────────────────────────────────────────────────────
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../src/contexts/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PracticeExamInfo() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const subjectID = params.subjectID as string;
   const subjectName = params.subjectName as string;
@@ -29,7 +31,7 @@ export default function PracticeExamInfo() {
   const handleStartExam = () => {
     router.push({
       pathname: '/(auth)/practice-exam/take',
-      params: { subjectID, subjectName, totalItems, totalPoints, enableTimer, durationMinutes }
+      params: { subjectID, subjectName, totalItems, totalPoints, enableTimer: String(enableTimer), durationMinutes: String(durationMinutes) }
     });
   };
 
@@ -60,131 +62,99 @@ export default function PracticeExamInfo() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <View className="flex-1" style={{ backgroundColor: colors.bg, paddingBottom: insets.bottom + 12 }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <View className="flex-row items-center mb-6" style={{ paddingTop: insets.top + 8 }}>
+          <TouchableOpacity onPress={() => router.back()} className="p-2 mr-3">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]}>Exam Information</Text>
+          <Text className="text-2xl font-bold" style={{ color: colors.text }}>Exam Information</Text>
         </View>
 
         {/* Exam Details Card */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <View style={styles.subjectIconContainer}>
-            <View style={styles.subjectIcon}>
+        <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <View className="items-center mb-4">
+            <View className="w-16 h-16 rounded-full justify-center items-center" style={{ backgroundColor: '#FEF3C7' }}>
               <Ionicons name="book" size={32} color="#FE6902" />
             </View>
           </View>
-          
-          <Text style={[styles.subjectName, { color: colors.text }]}>{subjectName || 'Practice Exam'}</Text>
+
+          <Text className="text-xl font-bold text-center mb-4" style={{ color: colors.text }}>{subjectName || 'Practice Exam'}</Text>
 
           {/* Exam Details Grid */}
-          <View style={[styles.detailsSection, { backgroundColor: colors.sectionBg }]}>
-            <View style={styles.detailRow}>
+          <View className="rounded-xl p-4" style={{ backgroundColor: colors.sectionBg }}>
+            <View className="flex-row items-center py-2">
               <Ionicons name="help-circle" size={20} color="#FE6902" />
-              <View style={styles.detailTextContainer}>
-                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Total Items</Text>
-                <Text style={[styles.detailValue, { color: colors.text }]}>{totalItems}</Text>
+              <View className="ml-3 flex-1">
+                <Text className="text-xs mb-0.5" style={{ color: colors.textSecondary }}>Total Items</Text>
+                <Text className="text-lg font-bold" style={{ color: colors.text }}>{totalItems}</Text>
               </View>
             </View>
 
-            <View style={styles.detailDivider} />
+            <View className="h-px my-2" style={{ backgroundColor: '#e5e7eb' }} />
 
-            <View style={styles.detailRow}>
+            <View className="flex-row items-center py-2">
               <Ionicons name="star" size={20} color="#FE6902" />
-              <View style={styles.detailTextContainer}>
-                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Total Points</Text>
-                <Text style={[styles.detailValue, { color: colors.text }]}>{totalPoints}</Text>
+              <View className="ml-3 flex-1">
+                <Text className="text-xs mb-0.5" style={{ color: colors.textSecondary }}>Total Points</Text>
+                <Text className="text-lg font-bold" style={{ color: colors.text }}>{totalPoints}</Text>
               </View>
             </View>
 
-            <View style={styles.detailDivider} />
+            <View className="h-px my-2" style={{ backgroundColor: '#e5e7eb' }} />
 
-            <View style={styles.detailRow}>
+            <View className="flex-row items-center py-2">
               <Ionicons name="time" size={20} color="#FE6902" />
-              <View style={styles.detailTextContainer}>
-                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Duration</Text>
-                <Text style={[styles.detailValue, { color: colors.text }]}>{formatDuration()}</Text>
+              <View className="ml-3 flex-1">
+                <Text className="text-xs mb-0.5" style={{ color: colors.textSecondary }}>Duration</Text>
+                <Text className="text-lg font-bold" style={{ color: colors.text }}>{formatDuration()}</Text>
               </View>
             </View>
           </View>
         </View>
 
         {/* Instructions Card */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <View style={styles.instructionsHeader}>
+        <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <View className="flex-row items-center mb-4">
             <Ionicons name="information-circle" size={24} color="#FE6902" />
-            <Text style={[styles.instructionsTitle, { color: colors.text }]}>Instructions</Text>
+            <Text className="text-lg font-bold ml-2.5" style={{ color: colors.text }}>Instructions</Text>
           </View>
 
-          <View style={styles.instructionsList}>
+          <View className="gap-3">
             {instructions.map((instruction, index) => (
-              <View key={index} style={styles.instructionItem}>
-                <View style={styles.instructionBullet}>
-                  <Text style={styles.instructionBulletText}>{index + 1}</Text>
+              <View key={index} className="flex-row items-start">
+                <View className="w-6 h-6 rounded-full justify-center items-center mr-3 mt-0.5" style={{ backgroundColor: '#FE6902' }}>
+                  <Text className="text-white text-xs font-bold">{index + 1}</Text>
                 </View>
-                <Text style={[styles.instructionText, { color: colors.textSecondary }]}>{instruction}</Text>
+                <Text className="flex-1 text-sm leading-5" style={{ color: colors.textSecondary }}>{instruction}</Text>
               </View>
             ))}
           </View>
         </View>
 
         {/* Buttons */}
-        <View style={styles.buttonContainer}>
+        <View className="mt-2 gap-3">
           <TouchableOpacity
-            style={[styles.backToSubjectsBtn, { borderColor: colors.border }]}
+            className="py-3.5 rounded-xl items-center border"
+            style={{ borderColor: colors.border }}
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <Text style={[styles.backToSubjectsText, { color: colors.text }]}>Back to Subjects</Text>
+            <Text className="text-base font-semibold" style={{ color: colors.text }}>Back to Subjects</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.startBtn}
+            className="bg-[#FE6902] py-3.5 rounded-xl items-center flex-row justify-center"
+            style={{ elevation: 4 }}
             onPress={handleStartExam}
             activeOpacity={0.9}
           >
             <Ionicons name="play" size={20} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.startBtnText}>Start Exam</Text>
+            <Text className="text-white text-base font-bold">Start Exam</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContent: { flexGrow: 1, padding: 20, paddingBottom: 40 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  backButton: { padding: 8, marginRight: 12 },
-  title: { fontSize: 24, fontWeight: '700' },
-  
-  card: { borderRadius: 16, padding: 20, marginBottom: 16, elevation: 2 },
-  subjectIconContainer: { alignItems: 'center', marginBottom: 16 },
-  subjectIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#FEF3C7', justifyContent: 'center', alignItems: 'center' },
-  subjectName: { fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 16 },
-  
-  detailsSection: { borderRadius: 12, padding: 16 },
-  detailRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  detailTextContainer: { marginLeft: 12, flex: 1 },
-  detailLabel: { fontSize: 12, marginBottom: 2 },
-  detailValue: { fontSize: 18, fontWeight: '700' },
-  detailDivider: { height: 1, backgroundColor: '#e5e7eb', marginVertical: 8 },
-  
-  instructionsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  instructionsTitle: { fontSize: 18, fontWeight: '700', marginLeft: 10 },
-  instructionsList: { gap: 12 },
-  instructionItem: { flexDirection: 'row', alignItems: 'flex-start' },
-  instructionBullet: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#FE6902', justifyContent: 'center', alignItems: 'center', marginRight: 12, marginTop: 2 },
-  instructionBulletText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  instructionText: { flex: 1, fontSize: 14, lineHeight: 20 },
-  
-  buttonContainer: { marginTop: 8, gap: 12 },
-  backToSubjectsBtn: { paddingVertical: 14, borderRadius: 12, borderWidth: 1, alignItems: 'center' },
-  backToSubjectsText: { fontSize: 16, fontWeight: '600' },
-  startBtn: { backgroundColor: '#FE6902', paddingVertical: 14, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', elevation: 4 },
-  startBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-});

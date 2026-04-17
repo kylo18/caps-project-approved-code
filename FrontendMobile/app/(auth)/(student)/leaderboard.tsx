@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -156,7 +155,7 @@ export default function LeaderboardScreen() {
       : 'Take a practice exam to appear on the all-time leaderboard.';
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-white">
       <StatusBar style="light" />
 
       {/* ───────────────────────────────────────────────────────────────────
@@ -180,15 +179,15 @@ export default function LeaderboardScreen() {
         }}
       />
 
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerClassName="pb-[120px]">
 
         {/* ─────────────────────────────────────────────────────────────────
             ORANGE HERO HEADER
             Displays the screen title and the Weekly / All Time toggle.
             ───────────────────────────────────────────────────────────────── */}
-        <View style={[styles.hero, { paddingTop: insets.top + 16 }]}>
+        <View className="px-6 pb-[18px] gap-[18px]" style={{ backgroundColor: studentColors.orange, paddingTop: insets.top + 16 }}>
           <StudentHeroDecoration />
-          <Text style={styles.heroTitle}>Leaderboard</Text>
+          <Text className="text-white text-[28px] font-medium leading-[36px] text-center" style={{ fontFamily: 'Rubik' }}>Leaderboard</Text>
           <StudentSegmentedControl value={period} options={PERIOD_OPTIONS} onChange={setPeriod} />
         </View>
 
@@ -197,39 +196,40 @@ export default function LeaderboardScreen() {
             White card with rounded top corners that slides over the orange
             hero. Contains loading, error, empty state, and the two views.
             ───────────────────────────────────────────────────────────────── */}
-        <View style={styles.sheetWrap}>
-          <View style={styles.sheet}>
+        <View style={{ backgroundColor: studentColors.orange }}>
+          <View className="bg-white px-6 pt-[22px] pb-7 min-h-[620px] rounded-t-[34px] -mt-2.5">
             {loading ? (
-              <View style={styles.feedbackCard}>
+              <View className="items-center justify-center gap-2.5 rounded-3xl bg-white border-2 py-[30px] px-5" style={{ borderColor: studentColors.border, ...studentShadow }}>
                 <ActivityIndicator size="large" color={studentColors.orange} />
-                <Text style={styles.feedbackText}>Loading leaderboard...</Text>
+                <Text className="text-sm font-normal leading-5 text-center" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>Loading leaderboard...</Text>
               </View>
             ) : error ? (
-              <View style={styles.feedbackCard}>
+              <View className="items-center justify-center gap-2.5 rounded-3xl bg-white border-2 py-[30px] px-5" style={{ borderColor: studentColors.border, ...studentShadow }}>
                 <Ionicons name="cloud-offline-outline" size={32} color={studentColors.orange} />
-                <Text style={styles.feedbackText}>{error}</Text>
-                <Pressable style={styles.retryButton} onPress={loadLeaderboard}>
-                  <Text style={styles.retryButtonText}>Retry</Text>
+                <Text className="text-sm font-normal leading-5 text-center" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>{error}</Text>
+                <Pressable className="rounded-full px-4 py-2.5" style={{ backgroundColor: studentColors.orange }} onPress={loadLeaderboard}>
+                  <Text className="text-sm font-bold text-white" style={{ fontFamily: 'Rubik' }}>Retry</Text>
                 </Pressable>
               </View>
             ) : entries.length === 0 ? (
-              <View style={styles.feedbackCard}>
+              <View className="items-center justify-center gap-2.5 rounded-3xl bg-white border-2 py-[30px] px-5" style={{ borderColor: studentColors.border, ...studentShadow }}>
                 <Ionicons name="trophy-outline" size={32} color={studentColors.orange} />
-                <Text style={styles.feedbackTitle}>No rankings yet</Text>
-                <Text style={styles.feedbackText}>
+                <Text className="text-lg font-medium leading-6" style={{ color: studentColors.text, fontFamily: 'Rubik' }}>No rankings yet</Text>
+                <Text className="text-sm font-normal leading-5 text-center" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>
                   {selectedProgramID || selectedSubjectID
                     ? 'No entries match your selected filters.'
                     : 'Complete a practice exam to populate the leaderboard.'}
                 </Text>
                 {(selectedProgramID || selectedSubjectID) ? (
                   <Pressable
-                    style={styles.retryButton}
+                    className="rounded-full px-4 py-2.5"
+                    style={{ backgroundColor: studentColors.orange }}
                     onPress={() => {
                       setSelectedProgramID(null);
                       setSelectedSubjectID(null);
                     }}
                   >
-                    <Text style={styles.retryButtonText}>Clear Filters</Text>
+                    <Text className="text-sm font-bold text-white" style={{ fontFamily: 'Rubik' }}>Clear Filters</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -246,11 +246,11 @@ export default function LeaderboardScreen() {
               // ─────────────────────────────────────────────────────────────
               <>
                 {/* "Your Rank" card — displays viewer's current weekly rank */}
-                <View style={styles.comparisonCard}>
-                  <View style={styles.rankPill}>
-                    <Text style={styles.rankPillText}>{viewer?.rank != null ? `#${viewer.rank}` : '--'}</Text>
+                <View className="rounded-[22px] bg-[#FFD7C4] px-4 py-3.5 flex-row items-center gap-3 mb-4">
+                  <View className="min-w-[46px] h-[34px] rounded-[17px] bg-white items-center justify-center">
+                    <Text className="text-base font-bold leading-5" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{viewer?.rank != null ? `#${viewer.rank}` : '--'}</Text>
                   </View>
-                  <Text style={styles.comparisonText}>{weeklyComparisonCopy}</Text>
+                  <Text className="flex-1 text-sm font-medium leading-5" style={{ color: '#8A4A2F', fontFamily: 'Rubik' }}>{weeklyComparisonCopy}</Text>
                   {viewer?.rank != null && (
                     <Pressable
                       onPress={() =>
@@ -260,7 +260,7 @@ export default function LeaderboardScreen() {
                           subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || undefined,
                         })
                       }
-                      style={styles.shareIcon}
+                      className="p-1.5 rounded-full bg-white"
                       hitSlop={8}
                     >
                       <Ionicons name="share-outline" size={22} color={studentColors.orange} />
@@ -269,29 +269,29 @@ export default function LeaderboardScreen() {
                 </View>
 
                 {/* Utility row: open filter sheet + weekly countdown chip */}
-                <View style={styles.utilityRow}>
-                  <Pressable style={styles.utilityButton} onPress={() => setFilterVisible(true)}>
-                    <Text style={styles.utilityButtonText}>Filters</Text>
+                <View className="flex-row items-center justify-between gap-3 mb-3">
+                  <Pressable className="flex-row items-center gap-1 rounded-full border bg-white px-3.5 py-2.5" style={{ borderColor: studentColors.border }} onPress={() => setFilterVisible(true)}>
+                    <Text className="text-[13px] font-medium leading-[18px]" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>Filters</Text>
                     <Ionicons name="chevron-down" size={16} color={studentColors.orange} />
                   </Pressable>
 
-                  <View style={styles.countdownChip}>
+                  <View className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2.5" style={{ backgroundColor: studentColors.orange }}>
                     <Ionicons name="time-outline" size={14} color={studentColors.white} />
-                    <Text style={styles.countdownText}>{formatWeeklyCountdown(viewer?.periodEndsAt ?? response?.meta.periodEndsAt)}</Text>
+                    <Text className="text-xs font-medium leading-4 text-white" style={{ fontFamily: 'Rubik' }}>{formatWeeklyCountdown(viewer?.periodEndsAt ?? response?.meta.periodEndsAt)}</Text>
                   </View>
                 </View>
 
                 {/* Active filter pills: shows which Program / Subject is applied */}
                 {selectedProgram || selectedSubject ? (
-                  <View style={styles.filterSummaryRow}>
+                  <View className="flex-row flex-wrap gap-2 mb-4">
                     {selectedProgram ? (
-                      <View style={styles.summaryPill}>
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.summaryPillText}>{selectedProgram.programName}</Text>
+                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: studentColors.surfaceSoft }}>
+                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{selectedProgram.programName}</Text>
                       </View>
                     ) : null}
                     {selectedSubject ? (
-                      <View style={styles.summaryPill}>
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.summaryPillText}>{selectedSubject.subjectCode || selectedSubject.subjectName}</Text>
+                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: studentColors.surfaceSoft }}>
+                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{selectedSubject.subjectCode || selectedSubject.subjectName}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -299,13 +299,13 @@ export default function LeaderboardScreen() {
 
                 {/* Podium: displays ranks 1, 2, 3 with gold/silver/bronze bars */}
                 {topThree.length >= 3 ? (
-                  <View style={styles.podiumCard}>
+                  <View className="rounded-[30px] px-[18px] pt-[18px] pb-3.5 mb-[18px]" style={{ backgroundColor: studentColors.orange, ...studentShadow }}>
                     <StudentLeaderboardPodium topThree={topThree} />
                   </View>
                 ) : null}
 
                 {/* Rows below podium: ranks 4-10 + viewer at bottom if outside */}
-                <View style={styles.listWrap}>
+                <View className="gap-3">
                   {weeklyRows.map((entry) => (
                     <StudentLeaderboardRow
                       key={`${entry.userID}-${entry.rank}`}
@@ -337,11 +337,11 @@ export default function LeaderboardScreen() {
               // ─────────────────────────────────────────────────────────────
               <>
                 {/* "Your Rank" card — displays viewer's current all-time rank */}
-                <View style={styles.comparisonCard}>
-                  <View style={styles.rankPill}>
-                    <Text style={styles.rankPillText}>{viewer?.rank != null ? `#${viewer.rank}` : '--'}</Text>
+                <View className="rounded-[22px] bg-[#FFD7C4] px-4 py-3.5 flex-row items-center gap-3 mb-4">
+                  <View className="min-w-[46px] h-[34px] rounded-[17px] bg-white items-center justify-center">
+                    <Text className="text-base font-bold leading-5" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{viewer?.rank != null ? `#${viewer.rank}` : '--'}</Text>
                   </View>
-                  <Text style={styles.comparisonText}>{allTimeComparisonCopy}</Text>
+                  <Text className="flex-1 text-sm font-medium leading-5" style={{ color: '#8A4A2F', fontFamily: 'Rubik' }}>{allTimeComparisonCopy}</Text>
                   {viewer?.rank != null && (
                     <Pressable
                       onPress={() =>
@@ -351,7 +351,7 @@ export default function LeaderboardScreen() {
                           subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || undefined,
                         })
                       }
-                      style={styles.shareIcon}
+                      className="p-1.5 rounded-full bg-white"
                       hitSlop={8}
                     >
                       <Ionicons name="share-outline" size={22} color={studentColors.orange} />
@@ -359,38 +359,38 @@ export default function LeaderboardScreen() {
                   )}
                 </View>
 
-                <View style={styles.allTimeHeader}>
+                <View className="flex-row items-center justify-between gap-3 mb-3">
                   <View>
-                    <Text style={styles.allTimeTitle}>All-Time Rankings</Text>
-                    <Text style={styles.allTimeSubtitle}>
+                    <Text className="text-[22px] font-medium leading-[30px]" style={{ color: studentColors.text, fontFamily: 'Rubik' }}>All-Time Rankings</Text>
+                    <Text className="text-[13px] font-normal leading-[18px] mt-0.5" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>
                       {response?.meta.total ?? entries.length} students ranked across CAPS
                     </Text>
                   </View>
 
-                  <Pressable style={styles.utilityButton} onPress={() => setFilterVisible(true)}>
-                    <Text style={styles.utilityButtonText}>Filters</Text>
+                  <Pressable className="flex-row items-center gap-1 rounded-full border bg-white px-3.5 py-2.5" style={{ borderColor: studentColors.border }} onPress={() => setFilterVisible(true)}>
+                    <Text className="text-[13px] font-medium leading-[18px]" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>Filters</Text>
                     <Ionicons name="chevron-down" size={16} color={studentColors.orange} />
                   </Pressable>
                 </View>
 
                 {/* Active filter pills for all-time view */}
                 {selectedProgram || selectedSubject ? (
-                  <View style={styles.filterSummaryRow}>
+                  <View className="flex-row flex-wrap gap-2 mb-4">
                     {selectedProgram ? (
-                      <View style={styles.summaryPill}>
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.summaryPillText}>{selectedProgram.programName}</Text>
+                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: studentColors.surfaceSoft }}>
+                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{selectedProgram.programName}</Text>
                       </View>
                     ) : null}
                     {selectedSubject ? (
-                      <View style={styles.summaryPill}>
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.summaryPillText}>{selectedSubject.subjectCode || selectedSubject.subjectName}</Text>
+                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: studentColors.surfaceSoft }}>
+                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{selectedSubject.subjectCode || selectedSubject.subjectName}</Text>
                       </View>
                     ) : null}
                   </View>
                 ) : null}
 
                 {/* Ranked rows: top 10 with medals, plus viewer if outside */}
-                <View style={styles.listWrap}>
+                <View className="gap-3">
                   {allTimeRows.map((entry) => (
                     <StudentLeaderboardRow
                       key={`${entry.userID}-${entry.rank}`}
@@ -417,215 +417,3 @@ export default function LeaderboardScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: studentColors.white,
-  },
-  content: {
-    paddingBottom: 120,
-  },
-  hero: {
-    paddingHorizontal: 24,
-    paddingBottom: 18,
-    backgroundColor: studentColors.orange,
-    gap: 18,
-  },
-  heroTitle: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 28,
-    fontWeight: '500',
-    lineHeight: 36,
-    textAlign: 'center',
-  },
-  sheetWrap: {
-    backgroundColor: studentColors.orange,
-  },
-  sheet: {
-    backgroundColor: studentColors.white,
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
-    marginTop: -10,
-    paddingHorizontal: 24,
-    paddingTop: 22,
-    paddingBottom: 28,
-    minHeight: 620,
-  },
-  comparisonCard: {
-    borderRadius: 22,
-    backgroundColor: '#FFD7C4',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  rankPill: {
-    minWidth: 46,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: studentColors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rankPillText: {
-    color: studentColors.orange,
-    fontFamily: 'Rubik',
-    fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  comparisonText: {
-    flex: 1,
-    color: '#8A4A2F',
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-  shareIcon: {
-    padding: 6,
-    borderRadius: 999,
-    backgroundColor: studentColors.white,
-  },
-  utilityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 12,
-  },
-  utilityButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: studentColors.border,
-    backgroundColor: studentColors.white,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  utilityButtonText: {
-    color: studentColors.orange,
-    fontFamily: 'Rubik',
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 18,
-  },
-  countdownChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    backgroundColor: studentColors.orange,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  countdownText: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 12,
-    fontWeight: '500',
-    lineHeight: 16,
-  },
-  filterSummaryRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  summaryPill: {
-    borderRadius: 999,
-    backgroundColor: studentColors.surfaceSoft,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    height: 44,
-    maxWidth: 160,
-    flexShrink: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  summaryPillText: {
-    color: studentColors.orange,
-    fontFamily: 'Rubik',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  podiumCard: {
-    borderRadius: 30,
-    backgroundColor: studentColors.orange,
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 14,
-    marginBottom: 18,
-    ...studentShadow,
-  },
-  listWrap: {
-    gap: 12,
-  },
-  allTimeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 12,
-  },
-  allTimeTitle: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 22,
-    fontWeight: '500',
-    lineHeight: 30,
-  },
-  allTimeSubtitle: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 13,
-    fontWeight: '400',
-    lineHeight: 18,
-    marginTop: 2,
-  },
-  feedbackCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    borderRadius: 24,
-    backgroundColor: studentColors.white,
-    borderWidth: 2,
-    borderColor: studentColors.border,
-    paddingVertical: 30,
-    paddingHorizontal: 20,
-    ...studentShadow,
-  },
-  feedbackTitle: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 18,
-    fontWeight: '500',
-    lineHeight: 24,
-  },
-  feedbackText: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '400',
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  retryButton: {
-    borderRadius: 999,
-    backgroundColor: studentColors.orange,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-});

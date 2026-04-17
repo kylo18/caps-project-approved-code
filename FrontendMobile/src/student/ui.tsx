@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   StyleProp,
-  StyleSheet,
   Text,
   View,
   ViewStyle,
@@ -200,7 +199,7 @@ export function StudentAvatar({ label = 'ST', size = 56, index = 0, style }: Stu
 
 export function StudentHeroDecoration({ style }: { style?: StyleProp<ViewStyle> }) {
   return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFillObject, style]}>
+    <View pointerEvents="none" className="absolute inset-0" style={style}>
       <View style={[styles.heroCircle, { top: -82, left: -78 }]} />
       <View style={[styles.heroCircle, { top: -34, right: -88, width: 200, height: 200, borderRadius: 100 }]} />
       <View style={[styles.heroDot, { top: 92, left: 88 }]} />
@@ -520,12 +519,15 @@ export function formatWeeklyCountdown(periodEndsAt?: string | null) {
 
 export function StudentTabBar({ state, descriptors, navigation }: any) {
   const routes = state.routes;
+  const visibleTabNames = new Set(['dashboard', 'search', 'leaderboard', 'insights']);
+  const activeRouteName = state.routes[state.index]?.name;
+  const visibleRoutes = routes.filter((route: any) => visibleTabNames.has(route.name));
 
   return (
     <View style={styles.tabBarWrap}>
       <View style={styles.tabBar}>
-        {routes.map((route: any, index: number) => {
-          const focused = state.index === index;
+        {visibleRoutes.map((route: any) => {
+          const focused = activeRouteName === route.name;
           const options = descriptors[route.key]?.options ?? {};
           const iconName = getTabIcon(route.name, focused);
           const label = options.title ?? options.headerTitle ?? route.name;
@@ -561,7 +563,7 @@ function getTabIcon(name: string, focused: boolean) {
   return focused ? 'analytics' : 'analytics-outline';
 }
 
-const styles = StyleSheet.create({
+const styles = {
   heroCircle: {
     position: 'absolute',
     width: 200,
@@ -972,4 +974,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 14,
   },
-});
+};

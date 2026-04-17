@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -23,10 +22,6 @@ import {
   studentShadow,
 } from '../../../src/student/ui';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Search filter types — "Program" shows only subjects tied to a program,
-// "General" shows subjects available to all programs, "All" shows both.
-// ─────────────────────────────────────────────────────────────────────────────
 type SearchFilter = 'All' | 'Program' | 'General';
 
 const FILTERS: SearchFilter[] = ['All', 'Program', 'General'];
@@ -35,14 +30,11 @@ export default function StudentSearchScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  // ── Search state ───────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<SearchFilter>('All');
   const [subjects, setSubjects] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingExam, setLoadingExam] = useState(false);
-
-  // ── Fetch all practice subjects on mount ───────────────────────────────
 
   useEffect(() => {
     fetchSubjects();
@@ -50,7 +42,6 @@ export default function StudentSearchScreen() {
 
   async function fetchSubjects() {
     setIsLoading(true);
-
     try {
       const data = await apiRequest('/api/student/practice-subjects');
       setSubjects(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []);
@@ -64,14 +55,11 @@ export default function StudentSearchScreen() {
 
   async function handleSubjectPress(subject: any) {
     setLoadingExam(true);
-
     try {
       const data = await apiRequest(`/api/practice-exam/generate/${subject.subjectID}`);
-
       if (!data?.questions || data.questions.length === 0) {
         throw new Error('No questions available for this subject.');
       }
-
       router.push({
         pathname: '/(auth)/practice-exam/info',
         params: {
@@ -90,18 +78,13 @@ export default function StudentSearchScreen() {
     }
   }
 
-  // ── Filter + search logic: applies Program/General filter first,
-  // then narrows results by subject name or code match.
-  // ──────────────────────────────────────────────────────────────────────
   const filteredSubjects = useMemo(() => {
     let nextSubjects = [...subjects];
-
     if (activeFilter === 'Program') {
       nextSubjects = nextSubjects.filter((subject) => Boolean(subject.programID));
     } else if (activeFilter === 'General') {
       nextSubjects = nextSubjects.filter((subject) => !subject.programID);
     }
-
     if (searchQuery.trim()) {
       const query = searchQuery.trim().toLowerCase();
       nextSubjects = nextSubjects.filter(
@@ -110,38 +93,33 @@ export default function StudentSearchScreen() {
           subject.subjectCode?.toLowerCase().includes(query)
       );
     }
-
     return nextSubjects;
   }, [activeFilter, searchQuery, subjects]);
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-white">
       <StatusBar style="light" />
 
-      {/* ─────────────────────────────────────────────────────────────────
-          SCROLLABLE CONTENT
-          Orange hero header with search bar + white sheet with filter
-          chips and exam card results.
-          ───────────────────────────────────────────────────────────────── */}
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-
-        {/* ───────────────────────────────────────────────────────────────
-            ORANGE HERO HEADER
-            Screen title + translucent search input field.
-            ─────────────────────────────────────────────────────────────── */}
-        <View style={[styles.hero, { paddingTop: insets.top + 18 }]}>
+      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+        {/* Orange hero header */}
+        <View className="px-6 pb-[18px]" style={{ paddingTop: insets.top + 18, backgroundColor: studentColors.orange }}>
           <StudentHeroDecoration />
+          <Text className="mb-[18px] text-center text-[28px] font-medium leading-9 text-white" style={{ fontFamily: 'Rubik' }}>
+            Search
+          </Text>
 
-          <Text style={styles.heroTitle}>Search</Text>
-
-          <View style={styles.searchField}>
+          <View
+            className="flex-row items-center gap-2.5 rounded-2xl border px-3.5 py-3"
+            style={{ backgroundColor: 'rgba(255,255,255,0.22)', borderColor: 'rgba(255,255,255,0.18)' }}
+          >
             <Ionicons name="search" size={20} color="rgba(255,255,255,0.82)" />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Calculus I"
               placeholderTextColor="rgba(255,255,255,0.72)"
-              style={styles.searchInput}
+              className="flex-1 text-[15px] font-normal leading-[22px] text-white"
+              style={{ fontFamily: 'Rubik', paddingVertical: 0 }}
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -153,25 +131,38 @@ export default function StudentSearchScreen() {
           </View>
         </View>
 
-        {/* ───────────────────────────────────────────────────────────────
-            WHITE CONTENT SHEET
-            Filter chips (All / Program / General) + exam results list.
-            ─────────────────────────────────────────────────────────────── */}
-        <View style={styles.sheetWrap}>
-          <View style={styles.sheet}>
-
-            {/* ── Filter chips: toggle between Program, General, or All subjects ── */}
-            <View style={styles.filterRow}>
+        {/* White content sheet */}
+        <View style={{ backgroundColor: studentColors.orange }}>
+          <View
+            className="min-h-[560px] px-6 pb-6 pt-5"
+            style={{
+              backgroundColor: studentColors.white,
+              borderTopLeftRadius: 34,
+              borderTopRightRadius: 34,
+              marginTop: -10,
+            }}
+          >
+            {/* Filter chips */}
+            <View className="mb-5 flex-row items-center gap-2.5">
               {FILTERS.map((filter) => {
                 const active = filter === activeFilter;
-
                 return (
                   <Pressable
                     key={filter}
                     onPress={() => setActiveFilter(filter)}
-                    style={[styles.filterChip, active ? styles.filterChipActive : null]}
+                    className="rounded-full px-3.5 py-2"
+                    style={active ? { backgroundColor: studentColors.orange } : undefined}
                   >
-                    <Text style={[styles.filterChipText, active ? styles.filterChipTextActive : null]}>{filter}</Text>
+                    <Text
+                      className="text-[13px] font-medium leading-[18px]"
+                      style={{
+                        fontFamily: 'Rubik',
+                        color: active ? studentColors.white : studentColors.textSoft,
+                        fontWeight: active ? '700' : '500',
+                      }}
+                    >
+                      {filter}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -182,25 +173,44 @@ export default function StudentSearchScreen() {
               actionLabel={filteredSubjects.length ? `${filteredSubjects.length}` : undefined}
               actionColor={studentColors.textSoft}
             />
-            <Text style={styles.sheetSubtitle}>Search by subject name or subject code.</Text>
+            <Text className="mt-1 text-sm leading-5 text-gray-400" style={{ fontFamily: 'Rubik' }}>
+              Search by subject name or subject code.
+            </Text>
 
-            {/* ── Search results: loading, loading exam, empty, or filtered exam cards ── */}
-            <View style={styles.resultsWrap}>
+            {/* Results */}
+            <View className="mt-[18px] gap-3.5">
               {isLoading ? (
-                <View style={styles.feedbackCard}>
+                <View
+                  className="items-center justify-center gap-2.5 rounded-3xl border-2 border-caps-border bg-white py-8 px-5"
+                  style={studentShadow}
+                >
                   <ActivityIndicator size="large" color={studentColors.orange} />
-                  <Text style={styles.feedbackText}>Loading subjects...</Text>
+                  <Text className="text-center text-sm leading-5 text-gray-400" style={{ fontFamily: 'Rubik' }}>
+                    Loading subjects...
+                  </Text>
                 </View>
               ) : loadingExam ? (
-                <View style={styles.feedbackCard}>
+                <View
+                  className="items-center justify-center gap-2.5 rounded-3xl border-2 border-caps-border bg-white py-8 px-5"
+                  style={studentShadow}
+                >
                   <ActivityIndicator size="large" color={studentColors.orange} />
-                  <Text style={styles.feedbackText}>Loading exam...</Text>
+                  <Text className="text-center text-sm leading-5 text-gray-400" style={{ fontFamily: 'Rubik' }}>
+                    Loading exam...
+                  </Text>
                 </View>
               ) : filteredSubjects.length === 0 ? (
-                <View style={styles.feedbackCard}>
+                <View
+                  className="items-center justify-center gap-2.5 rounded-3xl border-2 border-caps-border bg-white py-8 px-5"
+                  style={studentShadow}
+                >
                   <Ionicons name="search-outline" size={32} color={studentColors.orange} />
-                  <Text style={styles.feedbackTitle}>No subjects found</Text>
-                  <Text style={styles.feedbackText}>Try a different search term or filter.</Text>
+                  <Text className="text-lg font-medium leading-6 text-gray-800" style={{ fontFamily: 'Rubik' }}>
+                    No subjects found
+                  </Text>
+                  <Text className="text-center text-sm leading-5 text-gray-400" style={{ fontFamily: 'Rubik' }}>
+                    Try a different search term or filter.
+                  </Text>
                 </View>
               ) : (
                 filteredSubjects.map((subject) => (
@@ -220,124 +230,3 @@ export default function StudentSearchScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: studentColors.white,
-  },
-  content: {
-    paddingBottom: 120,
-  },
-  hero: {
-    paddingHorizontal: 24,
-    paddingBottom: 18,
-    backgroundColor: studentColors.orange,
-  },
-  heroTitle: {
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 28,
-    fontWeight: '500',
-    lineHeight: 36,
-    textAlign: 'center',
-    marginBottom: 18,
-  },
-  searchField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-  },
-  searchInput: {
-    flex: 1,
-    color: studentColors.white,
-    fontFamily: 'Rubik',
-    fontSize: 15,
-    fontWeight: '400',
-    lineHeight: 22,
-    paddingVertical: 0,
-  },
-  sheetWrap: {
-    backgroundColor: studentColors.orange,
-  },
-  sheet: {
-    backgroundColor: studentColors.white,
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
-    marginTop: -10,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 24,
-    minHeight: 560,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 20,
-  },
-  filterChip: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  filterChipActive: {
-    backgroundColor: studentColors.orange,
-  },
-  filterChipText: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 18,
-  },
-  filterChipTextActive: {
-    color: studentColors.white,
-    fontWeight: '700',
-  },
-  sheetSubtitle: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '400',
-    lineHeight: 20,
-    marginTop: 4,
-  },
-  resultsWrap: {
-    gap: 14,
-    marginTop: 18,
-  },
-  feedbackCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    borderRadius: 24,
-    backgroundColor: studentColors.white,
-    borderWidth: 2,
-    borderColor: studentColors.border,
-    paddingVertical: 30,
-    paddingHorizontal: 20,
-    ...studentShadow,
-  },
-  feedbackTitle: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 18,
-    fontWeight: '500',
-    lineHeight: 24,
-  },
-  feedbackText: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '400',
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-});

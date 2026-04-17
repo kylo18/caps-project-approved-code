@@ -36,8 +36,12 @@ export async function setCachedResponse(
   data: any,
   ttlMs: number = 5 * 60 * 1000 // default 5 minutes
 ): Promise<void> {
-  const item: CachedItem = { data, expiresAt: Date.now() + ttlMs };
-  await AsyncStorage.setItem(key, JSON.stringify(item));
+  try {
+    const item: CachedItem = { data, expiresAt: Date.now() + ttlMs };
+    await AsyncStorage.setItem(key, JSON.stringify(item));
+  } catch {
+    // Silently ignore cache write failures (e.g. disk full)
+  }
 }
 
 export async function getCachedResponse(key: string): Promise<any | null> {
@@ -56,20 +60,28 @@ export async function getCachedResponse(key: string): Promise<any | null> {
 }
 
 export async function clearCache(): Promise<void> {
-  const keys = await AsyncStorage.getAllKeys();
-  const cacheKeys = keys.filter((k) => k.startsWith(CACHE_PREFIX));
-  await AsyncStorage.multiRemove(cacheKeys);
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const cacheKeys = keys.filter((k) => k.startsWith(CACHE_PREFIX));
+    await AsyncStorage.multiRemove(cacheKeys);
+  } catch {
+    // Ignore cleanup errors
+  }
 }
 
 export async function addToOfflineQueue(request: Omit<QueuedRequest, 'id' | 'timestamp'>): Promise<void> {
-  const queue = await getOfflineQueue();
-  const entry: QueuedRequest = {
-    ...request,
-    id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
-    timestamp: Date.now(),
-  };
-  queue.push(entry);
-  await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+  try {
+    const queue = await getOfflineQueue();
+    const entry: QueuedRequest = {
+      ...request,
+      id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      timestamp: Date.now(),
+    };
+    queue.push(entry);
+    await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+  } catch {
+    // Silently ignore queue write failures
+  }
 }
 
 export async function getOfflineQueue(): Promise<QueuedRequest[]> {
@@ -86,7 +98,11 @@ export async function clearOfflineQueue(): Promise<void> {
 }
 
 export async function removeFromOfflineQueue(id: string): Promise<void> {
-  const queue = await getOfflineQueue();
-  const filtered = queue.filter((item) => item.id !== id);
-  await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(filtered));
+  try {
+    const queue = await getOfflineQueue();
+    const filtered = queue.filter((item) => item.id !== id);
+    await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(filtered));
+  } catch {
+    // Ignore cleanup errors
+  }
 }

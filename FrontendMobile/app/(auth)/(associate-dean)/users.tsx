@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, FlatList, TouchableOpacity,
   ActivityIndicator, TextInput, RefreshControl, Alert, Animated, Modal, ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UserDetailModal from '../../../src/components/UserDetailModal';
 
 const avatarPalette = ['#FFE17B', '#FFD4EA', '#D9DCFF', '#D6F4D2', '#FFD0B1'];
@@ -24,6 +25,7 @@ export default function AssociateDeanUsersScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const [users, setUsers] = useState<any[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
@@ -59,8 +61,8 @@ export default function AssociateDeanUsersScreen() {
       const data = await apiRequest('/api/users?limit=10000');
       const userList = Array.isArray(data?.users) ? data.users : Array.isArray(data?.data) ? data.data : [];
       setUsers(userList);
-      const adminCount = userList.filter((u: any) => ADMIN_ROLES.includes(u.roleID)).length;
-      const studentCount = userList.filter((u: any) => u.roleID === STUDENT_ROLE).length;
+      const adminCount = userList.filter((u: any) => ADMIN_ROLES.includes(Number(u.roleID))).length;
+      const studentCount = userList.filter((u: any) => Number(u.roleID) === STUDENT_ROLE).length;
       setStats({ admins: adminCount, students: studentCount });
     } catch (error) {
       showToast('Unable to load users', 'error');
@@ -72,8 +74,8 @@ export default function AssociateDeanUsersScreen() {
   const applyFilters = useCallback(() => {
     Animated.timing(fadeAnim, { toValue: 0.6, duration: 100, useNativeDriver: true }).start(() => {
       let filtered = [...users];
-      if (activeRoleFilter === 'admin') filtered = filtered.filter((u: any) => ADMIN_ROLES.includes(u.roleID));
-      else if (activeRoleFilter === 'student') filtered = filtered.filter((u: any) => u.roleID === STUDENT_ROLE);
+      if (activeRoleFilter === 'admin') filtered = filtered.filter((u: any) => ADMIN_ROLES.includes(Number(u.roleID)));
+      else if (activeRoleFilter === 'student') filtered = filtered.filter((u: any) => Number(u.roleID) === STUDENT_ROLE);
       if (activeStatusFilter !== 'all') filtered = filtered.filter((u: any) => u.status === activeStatusFilter);
       if (programFilter !== 'all') filtered = filtered.filter((u: any) => String(u.programID) === programFilter);
       if (yearFilter !== 'all') filtered = filtered.filter((u: any) => String(u.yearLevel) === yearFilter);
@@ -217,7 +219,7 @@ export default function AssociateDeanUsersScreen() {
   };
 
   const getInitials = (user: any) => `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || '?';
-  const isAdmin = (user: any) => ADMIN_ROLES.includes(user.roleID);
+  const isAdmin = (user: any) => ADMIN_ROLES.includes(Number(user.roleID));
 
   const colors = {
     bg: isDark ? '#000' : '#f3f4f6',
@@ -253,43 +255,44 @@ export default function AssociateDeanUsersScreen() {
           if (!selectionMode) setSelectionMode(true);
           toggleSelection(item.userID);
         }}
-        style={[styles.userCard, { backgroundColor: colors.card }, isSelected && { borderWidth: 2, borderColor: colors.orange }]}
+        className="flex-row items-center rounded-2xl p-3 gap-3 mb-2.5"
+        style={[{ backgroundColor: colors.card, elevation: 2 }, isSelected && { borderWidth: 2, borderColor: colors.orange }]}
       >
         {selectionMode ? (
-          <View style={[styles.checkbox, { borderColor: colors.orange, backgroundColor: isSelected ? colors.orange : 'transparent' }]}>
+          <View className="w-7 h-7 rounded-full border-2 justify-center items-center" style={{ borderColor: colors.orange, backgroundColor: isSelected ? colors.orange : 'transparent' }}>
             {isSelected && <Ionicons name="checkmark" size={18} color="#fff" />}
           </View>
         ) : (
-          <View style={[styles.avatar, { backgroundColor: avatarPalette[item.userID % avatarPalette.length] }]}>
-            <Text style={styles.avatarText}>{getInitials(item)}</Text>
+          <View className="w-12 h-12 rounded-full justify-center items-center" style={{ backgroundColor: avatarPalette[item.userID % avatarPalette.length] }}>
+            <Text className="text-base font-extrabold text-slate-900">{getInitials(item)}</Text>
           </View>
         )}
-        <View style={styles.userInfo}>
-          <View style={styles.userNameRow}>
-            <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>{item.firstName} {item.lastName}</Text>
-            <View style={[styles.roleBadge, { backgroundColor: isAdmin(item) ? colors.blue : colors.green }]}>
-              <Text style={styles.roleBadgeText}>{isAdmin(item) ? (item.roleName || 'Admin') : 'Student'}</Text>
+        <View className="flex-1">
+          <View className="flex-row items-center gap-1.5">
+            <Text className="text-[15px] font-bold flex-1" style={{ color: colors.text }} numberOfLines={1}>{item.firstName} {item.lastName}</Text>
+            <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: isAdmin(item) ? colors.blue : colors.green }}>
+              <Text className="text-white text-[9px] font-bold">{isAdmin(item) ? (item.roleName || 'Admin') : 'Student'}</Text>
             </View>
           </View>
-          <Text style={[styles.userMeta, { color: colors.textSecondary }]} numberOfLines={1}>{item.email}</Text>
-          <View style={styles.userMetaRow}>
-            <View style={[styles.statusBadge, { backgroundColor: item.status === 'activated' ? colors.green : item.status === 'pending' ? colors.blue : item.status === 'approved' ? colors.orange : colors.red }]}>
-              <Text style={styles.statusText}>{item.status || 'pending'}</Text>
+          <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }} numberOfLines={1}>{item.email}</Text>
+          <View className="flex-row items-center gap-1.5 mt-1">
+            <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: item.status === 'activated' ? colors.green : item.status === 'pending' ? colors.blue : item.status === 'approved' ? colors.orange : colors.red }}>
+              <Text className="text-white text-[9px] font-semibold">{item.status || 'pending'}</Text>
             </View>
-            {item.programName && <Text style={[styles.metaTag, { color: colors.textSecondary }]}>{item.programName}</Text>}
-            {item.yearLevel && <Text style={[styles.metaTag, { color: colors.textSecondary }]}>Year {item.yearLevel}</Text>}
+            {item.programName && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>{item.programName}</Text>}
+            {item.yearLevel && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>Year {item.yearLevel}</Text>}
           </View>
         </View>
         {!selectionMode && (
-          <View style={styles.userActions}>
+          <View className="gap-1">
             {(item.status === 'pending' || item.status === 'approved') && (
-              <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: colors.green }]} onPress={() => confirmAction(item, 'approve')}><Ionicons name="checkmark" size={18} color="#fff" /></TouchableOpacity>
+              <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.green }} onPress={() => confirmAction(item, 'approve')}><Ionicons name="checkmark" size={18} color="#fff" /></TouchableOpacity>
             )}
             {item.status === 'activated' && (
-              <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: colors.red }]} onPress={() => confirmAction(item, 'deactivate')}><Ionicons name="close" size={18} color="#fff" /></TouchableOpacity>
+              <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.red }} onPress={() => confirmAction(item, 'deactivate')}><Ionicons name="close" size={18} color="#fff" /></TouchableOpacity>
             )}
             {item.status === 'deactivated' && (
-              <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: colors.blue }]} onPress={() => confirmAction(item, 'activate')}><Ionicons name="play" size={18} color="#fff" /></TouchableOpacity>
+              <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.blue }} onPress={() => confirmAction(item, 'activate')}><Ionicons name="play" size={18} color="#fff" /></TouchableOpacity>
             )}
           </View>
         )}
@@ -298,11 +301,11 @@ export default function AssociateDeanUsersScreen() {
   }, [colors.text, colors.textSecondary, colors.card, colors.blue, colors.green, colors.red, colors.orange, selectedUserIDs, selectionMode]);
 
   const renderSkeleton = () => (
-    <View style={[styles.userCard, { backgroundColor: colors.card }]}>
-      <View style={[styles.skeletonAvatar, { backgroundColor: isDark ? '#374151' : '#e5e7eb' }]} />
-      <View style={{ flex: 1 }}>
-        <View style={[styles.skeletonLine, { backgroundColor: isDark ? '#374151' : '#e5e7eb', width: '60%' }]} />
-        <View style={[styles.skeletonLine, { backgroundColor: isDark ? '#374151' : '#e5e7eb', width: '40%', marginTop: 6 }]} />
+    <View className="flex-row items-center rounded-2xl p-3 gap-3 mb-2.5" style={{ backgroundColor: colors.card, elevation: 2 }}>
+      <View className="w-12 h-12 rounded-full" style={{ backgroundColor: isDark ? '#374151' : '#e5e7eb' }} />
+      <View className="flex-1">
+        <View className="h-3 rounded-md" style={{ backgroundColor: isDark ? '#374151' : '#e5e7eb', width: '60%' }} />
+        <View className="h-3 rounded-md mt-1.5" style={{ backgroundColor: isDark ? '#374151' : '#e5e7eb', width: '40%' }} />
       </View>
     </View>
   );
@@ -310,27 +313,27 @@ export default function AssociateDeanUsersScreen() {
   const pendingCount = users.filter(u => u.status === 'pending' || u.status === 'approved').length;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/(associate-dean)/dashboard' as any); }} style={styles.backButton}><Ionicons name="arrow-back" size={24} color={colors.text} /></TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>User Management</Text>
+    <View className="flex-1" style={{ backgroundColor: colors.bg, paddingBottom: insets.bottom + 12 }}>
+      <View className="flex-row items-center px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border, paddingTop: insets.top + 8 }}>
+        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/(associate-dean)/dashboard' as any); }} className="p-2 mr-3"><Ionicons name="arrow-back" size={24} color={colors.text} /></TouchableOpacity>
+        <Text className="text-xl font-bold flex-1" style={{ color: colors.text }}>User Management</Text>
         {pendingCount > 0 && (
-          <TouchableOpacity style={[styles.approveAllBtn, { backgroundColor: colors.green }]} onPress={handleApproveAll} activeOpacity={0.7}>
+          <TouchableOpacity className="flex-row items-center px-2.5 py-1.5 rounded-2xl gap-1" style={{ backgroundColor: colors.green }} onPress={handleApproveAll} activeOpacity={0.7}>
             <Ionicons name="checkmark-done" size={18} color="#fff" />
-            <Text style={styles.approveAllText}>{pendingCount}</Text>
+            <Text className="text-white text-xs font-bold">{pendingCount}</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingContainer}><ActivityIndicator size="large" color={colors.orange} /></View>
+        <View className="flex-1 justify-center items-center"><ActivityIndicator size="large" color={colors.orange} /></View>
       ) : (
         <>
           <FlatList
             data={filteredUsers}
             keyExtractor={(item) => String(item.userID)}
             renderItem={renderUser}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
             refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[colors.orange]} tintColor={colors.orange} />}
             removeClippedSubviews={true}
             maxToRenderPerBatch={10}
@@ -338,48 +341,48 @@ export default function AssociateDeanUsersScreen() {
             initialNumToRender={15}
             ListHeaderComponent={
               <Animated.View style={{ opacity: fadeAnim }}>
-                <View style={styles.statsRow}>
-                  <TouchableOpacity style={[styles.statCard, { backgroundColor: colors.card, borderLeftColor: colors.blue, borderLeftWidth: 4 }]} onPress={() => setActiveRoleFilter(activeRoleFilter === 'admin' ? 'all' : 'admin')} activeOpacity={0.7}>
+                <View className="flex-row gap-3 mb-3">
+                  <TouchableOpacity className="flex-1 rounded-2xl p-4 items-center" style={{ backgroundColor: colors.card, elevation: 2, borderLeftColor: colors.blue, borderLeftWidth: 4 }} onPress={() => setActiveRoleFilter(activeRoleFilter === 'admin' ? 'all' : 'admin')} activeOpacity={0.7}>
                     <Ionicons name="shield-checkmark" size={28} color={colors.blue} />
-                    <Text style={[styles.statValue, { color: colors.text }]}>{stats.admins}</Text>
-                    <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Admins</Text>
+                    <Text className="text-[28px] font-extrabold mt-1" style={{ color: colors.text }}>{stats.admins}</Text>
+                    <Text className="text-[13px] mt-0.5" style={{ color: colors.textSecondary }}>Admins</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.statCard, { backgroundColor: colors.card, borderLeftColor: colors.green, borderLeftWidth: 4 }]} onPress={() => setActiveRoleFilter(activeRoleFilter === 'student' ? 'all' : 'student')} activeOpacity={0.7}>
+                  <TouchableOpacity className="flex-1 rounded-2xl p-4 items-center" style={{ backgroundColor: colors.card, elevation: 2, borderLeftColor: colors.green, borderLeftWidth: 4 }} onPress={() => setActiveRoleFilter(activeRoleFilter === 'student' ? 'all' : 'student')} activeOpacity={0.7}>
                     <Ionicons name="school" size={28} color={colors.green} />
-                    <Text style={[styles.statValue, { color: colors.text }]}>{stats.students}</Text>
-                    <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Students</Text>
+                    <Text className="text-[28px] font-extrabold mt-1" style={{ color: colors.text }}>{stats.students}</Text>
+                    <Text className="text-[13px] mt-0.5" style={{ color: colors.textSecondary }}>Students</Text>
                   </TouchableOpacity>
                 </View>
 
-                <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+                <View className="flex-row items-center border rounded-xl px-3 gap-2 mb-2.5" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}>
                   <Ionicons name="search" size={18} color={colors.textSecondary} />
-                  <TextInput style={[styles.searchInput, { color: colors.text }]} value={searchQuery} onChangeText={setSearchQuery} placeholder="Search users..." placeholderTextColor={colors.textSecondary} />
+                  <TextInput className="flex-1 text-[15px] py-2.5" style={{ color: colors.text }} value={searchQuery} onChangeText={setSearchQuery} placeholder="Search users..." placeholderTextColor={colors.textSecondary} />
                   {searchQuery ? <TouchableOpacity onPress={() => setSearchQuery('')}><Ionicons name="close-circle" size={18} color={colors.textSecondary} /></TouchableOpacity> : null}
                 </View>
 
-                <View style={styles.filterRow}>
+                <View className="flex-row gap-1.5 mb-2 items-center">
                   {[{ key: 'all', label: 'All', icon: 'people' as const }, { key: 'admin', label: 'Admins', icon: 'shield-checkmark' as const }, { key: 'student', label: 'Students', icon: 'school' as const }].map(f => (
-                    <TouchableOpacity key={f.key} style={[styles.filterTab, activeRoleFilter === f.key && { backgroundColor: colors.orange }]} onPress={() => setActiveRoleFilter(f.key)} activeOpacity={0.7}>
+                    <TouchableOpacity key={f.key} className="flex-row items-center px-3 py-[7px] rounded-[18px]" style={activeRoleFilter === f.key ? { backgroundColor: colors.orange } : undefined} onPress={() => setActiveRoleFilter(f.key)} activeOpacity={0.7}>
                       <Ionicons name={f.icon} size={16} color={activeRoleFilter === f.key ? '#fff' : colors.textSecondary} style={{ marginRight: 4 }} />
-                      <Text style={[styles.filterText, { color: activeRoleFilter === f.key ? '#fff' : colors.textSecondary }]}>{f.label}</Text>
+                      <Text className="text-xs font-semibold" style={{ color: activeRoleFilter === f.key ? '#fff' : colors.textSecondary }}>{f.label}</Text>
                     </TouchableOpacity>
                   ))}
-                  <TouchableOpacity style={[styles.advancedFilterBtn, showAdvancedFilters && { backgroundColor: colors.orange }]} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)} activeOpacity={0.7}>
+                  <TouchableOpacity className="w-[34px] h-[34px] rounded-[17px] justify-center items-center" style={{ backgroundColor: showAdvancedFilters ? colors.orange : 'rgba(0,0,0,0.05)' }} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)} activeOpacity={0.7}>
                     <Ionicons name="options" size={16} color={showAdvancedFilters ? '#fff' : colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.statusFilterRow}>
+                <View className="flex-row gap-1 mb-2 flex-wrap">
                   {['all', 'pending', 'approved', 'activated', 'deactivated'].map(f => (
-                    <TouchableOpacity key={f} style={[styles.statusFilterBtn, activeStatusFilter === f && { backgroundColor: f === 'pending' ? colors.blue : f === 'approved' ? colors.orange : f === 'activated' ? colors.green : colors.red }]} onPress={() => setActiveStatusFilter(f)} activeOpacity={0.7}>
-                      <Text style={[styles.statusFilterText, { color: activeStatusFilter === f ? '#fff' : colors.textSecondary }]}>{f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}</Text>
+                    <TouchableOpacity key={f} className="px-2.5 py-[5px] rounded-[14px]" style={activeStatusFilter === f ? { backgroundColor: f === 'pending' ? colors.blue : f === 'approved' ? colors.orange : f === 'activated' ? colors.green : colors.red } : undefined} onPress={() => setActiveStatusFilter(f)} activeOpacity={0.7}>
+                      <Text className="text-[11px] font-semibold" style={{ color: activeStatusFilter === f ? '#fff' : colors.textSecondary }}>{f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
 
                 {showAdvancedFilters && (
-                  <View style={styles.advancedFilters}>
-                    <View style={styles.advancedRow}>
+                  <View className="mb-3">
+                    <View className="flex-row gap-1">
                       <FilterDropdown label="Program" value={programFilter} onValueChange={setProgramFilter} options={[{ id: 'all', label: 'All Programs' }, ...programs]} colors={colors} />
                       <FilterDropdown label="Year" value={yearFilter} onValueChange={setYearFilter} options={[{ id: 'all', label: 'All Years' }, ...years.map(y => ({ id: String(y), label: `Year ${y}` }))]} colors={colors} />
                     </View>
@@ -389,44 +392,44 @@ export default function AssociateDeanUsersScreen() {
               </Animated.View>
             }
             ListEmptyComponent={
-              <View style={[styles.emptyState, { backgroundColor: colors.card }]}>
+              <View className="rounded-3xl p-8 items-center mt-5" style={{ backgroundColor: colors.card }}>
                 <Ionicons name="people" size={48} color={colors.orange} />
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>No Users Found</Text>
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Try adjusting your filters.</Text>
+                <Text className="text-lg font-bold mt-4" style={{ color: colors.text }}>No Users Found</Text>
+                <Text className="text-sm mt-2 text-center" style={{ color: colors.textSecondary }}>Try adjusting your filters.</Text>
               </View>
             }
           />
 
           {selectionMode && (
-            <View style={[styles.bulkBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-              <View style={styles.bulkBarTop}>
-                <Text style={[styles.bulkBarText, { color: colors.text }]}>{selectedUserIDs.size} selected</Text>
+            <View className="absolute left-0 right-0 bottom-0 border-t p-3 pb-6" style={{ backgroundColor: colors.card, borderTopColor: colors.border }}>
+              <View className="flex-row items-center justify-between mb-2.5">
+                <Text className="text-sm font-bold" style={{ color: colors.text }}>{selectedUserIDs.size} selected</Text>
                 <TouchableOpacity onPress={selectAllVisible} activeOpacity={0.7}>
-                  <Text style={[styles.bulkBarLink, { color: colors.orange }]}>Select all visible</Text>
+                  <Text className="text-[13px] font-semibold" style={{ color: colors.orange }}>Select all visible</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={deselectAll} activeOpacity={0.7}>
-                  <Text style={[styles.bulkBarLink, { color: colors.red }]}>Clear</Text>
+                  <Text className="text-[13px] font-semibold" style={{ color: colors.red }}>Clear</Text>
                 </TouchableOpacity>
               </View>
-              <View style={styles.bulkActionsRow}>
-                <TouchableOpacity style={[styles.bulkBtn, { backgroundColor: colors.green }]} onPress={() => handleBulkAction('approve')} disabled={isBulkActing} activeOpacity={0.8}>
+              <View className="flex-row gap-2 justify-between">
+                <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 py-2 rounded-[10px]" style={{ backgroundColor: colors.green }} onPress={() => handleBulkAction('approve')} disabled={isBulkActing} activeOpacity={0.8}>
                   <Ionicons name="checkmark-done" size={18} color="#fff" />
-                  <Text style={styles.bulkBtnText}>Approve</Text>
+                  <Text className="text-white text-xs font-semibold">Approve</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.bulkBtn, { backgroundColor: colors.blue }]} onPress={() => handleBulkAction('activate')} disabled={isBulkActing} activeOpacity={0.8}>
+                <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 py-2 rounded-[10px]" style={{ backgroundColor: colors.blue }} onPress={() => handleBulkAction('activate')} disabled={isBulkActing} activeOpacity={0.8}>
                   <Ionicons name="play" size={18} color="#fff" />
-                  <Text style={styles.bulkBtnText}>Activate</Text>
+                  <Text className="text-white text-xs font-semibold">Activate</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.bulkBtn, { backgroundColor: colors.red }]} onPress={() => handleBulkAction('deactivate')} disabled={isBulkActing} activeOpacity={0.8}>
+                <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 py-2 rounded-[10px]" style={{ backgroundColor: colors.red }} onPress={() => handleBulkAction('deactivate')} disabled={isBulkActing} activeOpacity={0.8}>
                   <Ionicons name="pause" size={18} color="#fff" />
-                  <Text style={styles.bulkBtnText}>Deactivate</Text>
+                  <Text className="text-white text-xs font-semibold">Deactivate</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.bulkBtn, { backgroundColor: colors.red }]} onPress={() => handleBulkAction('delete')} disabled={isBulkActing} activeOpacity={0.8}>
+                <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 py-2 rounded-[10px]" style={{ backgroundColor: colors.red }} onPress={() => handleBulkAction('delete')} disabled={isBulkActing} activeOpacity={0.8}>
                   <Ionicons name="trash" size={18} color="#fff" />
-                  <Text style={styles.bulkBtnText}>Delete</Text>
+                  <Text className="text-white text-xs font-semibold">Delete</Text>
                 </TouchableOpacity>
               </View>
-              {isBulkActing && <ActivityIndicator style={{ marginTop: 8 }} size="small" color={colors.orange} />}
+              {isBulkActing && <ActivityIndicator className="mt-2" size="small" color={colors.orange} />}
             </View>
           )}
 
@@ -447,21 +450,21 @@ function FilterDropdown({ label, value, onValueChange, options, colors }: { labe
   const selected = options.find((o: any) => o.id === value);
 
   return (
-    <View style={{ flex: 1, marginHorizontal: 4 }}>
-      <Text style={[styles.advLabel, { color: colors.text }]}>{label}</Text>
-      <TouchableOpacity style={[styles.advSelect, { backgroundColor: colors.inputBg, borderColor: colors.border }]} onPress={() => setOpen(true)} activeOpacity={0.7}>
-        <Text style={[styles.advSelectText, { color: selected?.id === 'all' ? colors.textSecondary : colors.text }]} numberOfLines={1}>{selected?.label || label}</Text>
+    <View className="flex-1 mx-1">
+      <Text className="text-xs font-semibold mb-1" style={{ color: colors.text }}>{label}</Text>
+      <TouchableOpacity className="flex-row items-center justify-between border rounded-[10px] p-2" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }} onPress={() => setOpen(true)} activeOpacity={0.7}>
+        <Text className="text-[13px] flex-1 mr-1" style={{ color: selected?.id === 'all' ? colors.textSecondary : colors.text }} numberOfLines={1}>{selected?.label || label}</Text>
         <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade">
-        <TouchableOpacity style={[styles.dropdownOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]} activeOpacity={1} onPress={() => setOpen(false)}>
-          <View style={[styles.dropdownCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.dropdownTitle, { color: colors.text }]}>{label}</Text>
+        <TouchableOpacity className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={() => setOpen(false)}>
+          <View className="mx-5 rounded-t-[20px] p-4" style={{ backgroundColor: colors.card }}>
+            <Text className="text-base font-bold mb-3" style={{ color: colors.text }}>{label}</Text>
             <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled>
               {options.map((opt: any) => (
-                <TouchableOpacity key={opt.id} style={[styles.dropdownOption, value === opt.id && { backgroundColor: `${colors.orange}15` }]} onPress={() => { onValueChange(opt.id); setOpen(false); }} activeOpacity={0.7}>
-                  <Text style={[styles.dropdownOptionText, { color: colors.text }, value === opt.id && { color: colors.orange, fontWeight: '700' }]}>{opt.label}</Text>
+                <TouchableOpacity key={opt.id} className="flex-row items-center justify-between py-3 border-b border-gray-200" style={value === opt.id ? { backgroundColor: `${colors.orange}15` } : undefined} onPress={() => { onValueChange(opt.id); setOpen(false); }} activeOpacity={0.7}>
+                  <Text className="text-sm flex-1" style={[{ color: colors.text }, value === opt.id ? { color: colors.orange, fontWeight: '700' } : undefined]}>{opt.label}</Text>
                   {value === opt.id && <Ionicons name="checkmark" size={18} color={colors.orange} />}
                 </TouchableOpacity>
               ))}
@@ -472,65 +475,3 @@ function FilterDropdown({ label, value, onValueChange, options, colors }: { labe
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  backButton: { padding: 8, marginRight: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '700', flex: 1 },
-  approveAllBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, gap: 4 },
-  approveAllText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContent: { padding: 16, paddingBottom: 100 },
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  statCard: { flex: 1, borderRadius: 16, padding: 16, alignItems: 'center', elevation: 2 },
-  statValue: { fontSize: 28, fontWeight: '800', marginTop: 4 },
-  statLabel: { fontSize: 13, marginTop: 2 },
-  searchBar: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, gap: 8, marginBottom: 10 },
-  searchInput: { flex: 1, fontSize: 15, paddingVertical: 10 },
-  filterRow: { flexDirection: 'row', gap: 6, marginBottom: 8, alignItems: 'center' },
-  filterTab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18 },
-  filterText: { fontSize: 12, fontWeight: '600' },
-  advancedFilterBtn: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
-  statusFilterRow: { flexDirection: 'row', gap: 4, marginBottom: 8, flexWrap: 'wrap' },
-  statusFilterBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
-  statusFilterText: { fontSize: 11, fontWeight: '600' },
-  advancedFilters: { marginBottom: 12 },
-  advancedRow: { flexDirection: 'row', gap: 4 },
-  advLabel: { fontSize: 12, fontWeight: '600', marginBottom: 4 },
-  advSelect: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 10, padding: 8 },
-  advSelectText: { fontSize: 13, flex: 1, marginRight: 4 },
-  dropdownOverlay: { flex: 1, justifyContent: 'flex-end' },
-  dropdownCard: { marginHorizontal: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16 },
-  dropdownTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12 },
-  dropdownOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  dropdownOptionText: { fontSize: 14, flex: 1 },
-  userCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 12, gap: 12, elevation: 2, marginBottom: 10 },
-  avatar: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
-  userInfo: { flex: 1 },
-  userNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  userName: { fontSize: 15, fontWeight: '700', flex: 1 },
-  roleBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  roleBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  userMeta: { fontSize: 12, marginTop: 2 },
-  userMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  statusText: { color: '#fff', fontSize: 9, fontWeight: '600' },
-  metaTag: { fontSize: 10 },
-  userActions: { gap: 4 },
-  actionIconBtn: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  emptyState: { borderRadius: 24, padding: 32, alignItems: 'center', marginTop: 20 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', marginTop: 16 },
-  emptyText: { fontSize: 14, marginTop: 8, textAlign: 'center' },
-  skeletonAvatar: { width: 48, height: 48, borderRadius: 24 },
-  skeletonLine: { height: 12, borderRadius: 6 },
-  checkbox: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
-  bulkBar: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopWidth: 1, padding: 12, paddingBottom: 24 },
-  bulkBarTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  bulkBarText: { fontSize: 14, fontWeight: '700' },
-  bulkBarLink: { fontSize: 13, fontWeight: '600' },
-  bulkActionsRow: { flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
-  bulkBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 8, borderRadius: 10 },
-  bulkBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-});

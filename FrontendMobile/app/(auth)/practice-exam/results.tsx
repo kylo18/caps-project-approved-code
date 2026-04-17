@@ -15,7 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity,
   ActivityIndicator, useWindowDimensions
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -131,76 +131,76 @@ export default function PracticeExamResults() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }]}>
+      <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.bg }}>
         <ActivityIndicator size="large" color={colors.orange} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading exam result...</Text>
+        <Text className="text-sm mt-3" style={{ color: colors.textSecondary }}>Loading exam result...</Text>
       </View>
     );
   }
 
   if (fetchError) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }]}>
+      <View className="flex-1 justify-center items-center px-5" style={{ backgroundColor: colors.bg }}>
         <Ionicons name="alert-circle" size={48} color={colors.red} />
-        <Text style={[styles.errorText, { color: colors.red }]}>{fetchError}</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.replace('/(auth)/(student)/dashboard')} activeOpacity={0.8}>
-          <Text style={styles.backBtnText}>Back to Dashboard</Text>
+        <Text className="text-base font-semibold mt-3 mb-5 text-center" style={{ color: colors.red }}>{fetchError}</Text>
+        <TouchableOpacity className="bg-[#FE6902] px-6 py-3.5 rounded-xl" onPress={() => router.replace('/(auth)/(student)/dashboard')} activeOpacity={0.8}>
+          <Text className="text-white text-base font-bold">Back to Dashboard</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <View className="flex-1" style={{ backgroundColor: colors.bg }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* Score Header */}
-        <View style={[styles.scoreHeader, { backgroundColor: colors.card }]}>
-          <View style={[styles.scoreCircle, { borderColor: scoreColor }]}>
-            <Text style={[styles.scorePercent, { color: scoreColor }]}>{percentage}%</Text>
+        <View className="items-center p-8 rounded-[20px] mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <View className="w-[120px] h-[120px] rounded-full border-[6px] justify-center items-center mb-4" style={{ borderColor: scoreColor }}>
+            <Text className="text-4xl font-black" style={{ color: scoreColor }}>{percentage}%</Text>
           </View>
-          <View style={styles.scoreIconContainer}>
+          <View className="mb-2">
             <Ionicons name={scoreInfo.icon} size={32} color={scoreInfo.color} />
           </View>
-          <Text style={[styles.scoreMessage, { color: scoreInfo.color }]}>{scoreInfo.message}</Text>
-          <Text style={[styles.subjectName, { color: colors.text }]}>{subjectName || 'Practice Exam'}</Text>
+          <Text className="text-[22px] font-bold mb-1" style={{ color: scoreInfo.color }}>{scoreInfo.message}</Text>
+          <Text className="text-base font-semibold" style={{ color: colors.text }}>{subjectName || 'Practice Exam'}</Text>
         </View>
 
         {/* Score Details Card */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Score Summary</Text>
+        <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <Text className="text-lg font-bold mb-4" style={{ color: colors.text }}>Score Summary</Text>
 
-          <View style={[styles.scoreBox, { backgroundColor: isDark ? '#111827' : '#f9fafb' }]}>
-            <Text style={[styles.scoreBoxValue, { color: colors.orange }]}>{earnedPoints}/{totalPoints}</Text>
-            <Text style={[styles.scoreBoxLabel, { color: colors.textSecondary }]}>Total Score</Text>
+          <View className="rounded-xl p-4 mb-2 items-center" style={{ backgroundColor: isDark ? '#111827' : '#f9fafb' }}>
+            <Text className="text-[32px] font-extrabold" style={{ color: colors.orange }}>{earnedPoints}/{totalPoints}</Text>
+            <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Total Score</Text>
           </View>
 
-          <View style={[styles.scoreBox, { backgroundColor: isDark ? '#111827' : '#f9fafb' }]}>
-            <Text style={[styles.scoreBoxValue, { color: colors.text }]}>{percentage}%</Text>
-            <Text style={[styles.scoreBoxLabel, { color: colors.textSecondary }]}>Percentage</Text>
+          <View className="rounded-xl p-4 mb-2 items-center" style={{ backgroundColor: isDark ? '#111827' : '#f9fafb' }}>
+            <Text className="text-[32px] font-extrabold" style={{ color: colors.text }}>{percentage}%</Text>
+            <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Percentage</Text>
           </View>
 
-          <View style={[styles.detailsList, { borderColor: colors.border }]}>
-            <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Subject:</Text>
-              <Text style={[styles.detailValue, { color: colors.text }]}>{subjectName || `Subject ${params.subjectID}`}</Text>
+          <View className="rounded-xl border p-3 mt-2" style={{ borderColor: colors.border }}>
+            <View className="flex-row justify-between py-1.5">
+              <Text className="text-xs font-medium" style={{ color: colors.textSecondary }}>Subject:</Text>
+              <Text className="text-xs font-semibold" style={{ color: colors.text }}>{subjectName || `Subject ${params.subjectID}`}</Text>
             </View>
             {examDuration && (
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Duration:</Text>
-                <Text style={[styles.detailValue, { color: colors.text }]}>{examDuration}</Text>
+              <View className="flex-row justify-between py-1.5">
+                <Text className="text-xs font-medium" style={{ color: colors.textSecondary }}>Duration:</Text>
+                <Text className="text-xs font-semibold" style={{ color: colors.text }}>{examDuration}</Text>
               </View>
             )}
             {(startTime || endTime) && (
               <>
                 {startTime && (
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Started:</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>{formatDate(startTime)}</Text>
+                  <View className="flex-row justify-between py-1.5">
+                    <Text className="text-xs font-medium" style={{ color: colors.textSecondary }}>Started:</Text>
+                    <Text className="text-xs font-semibold" style={{ color: colors.text }}>{formatDate(startTime)}</Text>
                   </View>
                 )}
-                <View style={styles.detailRow}>
-                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{startTime ? 'Finished:' : 'Taken:'}</Text>
-                  <Text style={[styles.detailValue, { color: colors.text }]}>{formatDate(endTime)}</Text>
+                <View className="flex-row justify-between py-1.5">
+                  <Text className="text-xs font-medium" style={{ color: colors.textSecondary }}>{startTime ? 'Finished:' : 'Taken:'}</Text>
+                  <Text className="text-xs font-semibold" style={{ color: colors.text }}>{formatDate(endTime)}</Text>
                 </View>
               </>
             )}
@@ -208,50 +208,53 @@ export default function PracticeExamResults() {
         </View>
 
         {/* Performance Breakdown */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Performance</Text>
-          <View style={styles.performanceBar}>
-            <View style={[styles.performanceFill, { width: `${percentage}%`, backgroundColor: scoreColor }]} />
+        <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <Text className="text-lg font-bold mb-4" style={{ color: colors.text }}>Performance</Text>
+          <View className="h-3 bg-gray-200 rounded-md mb-3">
+            <View className="h-full rounded-md" style={{ width: `${percentage}%`, backgroundColor: scoreColor }} />
           </View>
-          <View style={styles.performanceLabels}>
-            <Text style={[styles.performanceLabel, { color: colors.green }]}>✓ {correctCount} Correct</Text>
-            <Text style={[styles.performanceLabel, { color: colors.red }]}>✗ {incorrectCount} Incorrect</Text>
+          <View className="flex-row justify-between">
+            <Text className="text-sm font-semibold" style={{ color: colors.green }}>✓ {correctCount} Correct</Text>
+            <Text className="text-sm font-semibold" style={{ color: colors.red }}>✗ {incorrectCount} Incorrect</Text>
           </View>
         </View>
 
         {/* Question Review Section */}
         {examResults.length > 0 && (
-          <View style={[styles.card, { backgroundColor: colors.card }]}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Question Review</Text>
+          <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+            <Text className="text-lg font-bold mb-4" style={{ color: colors.text }}>Question Review</Text>
 
             {/* Tabs */}
-            <View style={styles.tabRow}>
+            <View className="flex-row gap-2 mb-4">
               <TouchableOpacity
-                style={[styles.tab, activeTab === 'all' && { backgroundColor: colors.orangeBg }]}
+                className="flex-1 py-2 rounded-lg items-center"
+                style={activeTab === 'all' ? { backgroundColor: colors.orangeBg } : undefined}
                 onPress={() => setActiveTab('all')}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.tabText, activeTab === 'all' && { color: colors.orange, fontWeight: '700' }]}>All Questions</Text>
+                <Text className="text-[13px] font-medium text-center" style={activeTab === 'all' ? { color: colors.orange, fontWeight: '700' } : undefined}>All Questions</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.tab, activeTab === 'correct' && { backgroundColor: colors.greenBg }]}
+                className="flex-1 py-2 rounded-lg items-center"
+                style={activeTab === 'correct' ? { backgroundColor: colors.greenBg } : undefined}
                 onPress={() => setActiveTab('correct')}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.tabText, activeTab === 'correct' && { color: colors.green, fontWeight: '700' }]}>Correct ({correctCount})</Text>
+                <Text className="text-[13px] font-medium text-center" style={activeTab === 'correct' ? { color: colors.green, fontWeight: '700' } : undefined}>Correct ({correctCount})</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.tab, activeTab === 'incorrect' && { backgroundColor: colors.redBg }]}
+                className="flex-1 py-2 rounded-lg items-center"
+                style={activeTab === 'incorrect' ? { backgroundColor: colors.redBg } : undefined}
                 onPress={() => setActiveTab('incorrect')}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.tabText, activeTab === 'incorrect' && { color: colors.red, fontWeight: '700' }]}>Incorrect ({incorrectCount})</Text>
+                <Text className="text-[13px] font-medium text-center" style={activeTab === 'incorrect' ? { color: colors.red, fontWeight: '700' } : undefined}>Incorrect ({incorrectCount})</Text>
               </TouchableOpacity>
             </View>
 
             {/* Questions List */}
             {filteredResults.length === 0 ? (
-              <Text style={[styles.emptyQuestions, { color: colors.textSecondary }]}>No questions to display.</Text>
+              <Text className="text-sm text-center py-5" style={{ color: colors.textSecondary }}>No questions to display.</Text>
             ) : (
               filteredResults.map((q, index) => {
                 const userChoice = q.choices?.find((c: any) => c.choiceID === q.selectedChoiceID);
@@ -260,8 +263,8 @@ export default function PracticeExamResults() {
                 return (
                   <View
                     key={q.questionID || index}
+                    className="rounded-xl p-3 mb-3"
                     style={[
-                      styles.questionCard,
                       {
                         backgroundColor: q.isCorrect ? colors.greenBg : colors.redBg,
                         borderColor: q.isCorrect ? colors.greenBorder : colors.redBorder,
@@ -270,16 +273,16 @@ export default function PracticeExamResults() {
                     ]}
                   >
                     {/* Question Header */}
-                    <View style={styles.questionHeader}>
-                      <Text style={[styles.questionNumber, { color: colors.text }]}>Q{index + 1}</Text>
-                      <View style={[styles.correctnessBadge, { backgroundColor: q.isCorrect ? colors.green : colors.red }]}>
+                    <View className="flex-row justify-between items-center mb-2">
+                      <Text className="text-sm font-bold" style={{ color: colors.text }}>Q{index + 1}</Text>
+                      <View className="flex-row items-center px-2 py-1 rounded-xl" style={{ backgroundColor: q.isCorrect ? colors.green : colors.red, gap: 4 }}>
                         <Ionicons name={q.isCorrect ? 'checkmark-circle' : 'close-circle'} size={16} color="#fff" />
-                        <Text style={styles.correctnessText}>{q.isCorrect ? 'Correct' : 'Incorrect'}</Text>
+                        <Text className="text-white text-xs font-semibold">{q.isCorrect ? 'Correct' : 'Incorrect'}</Text>
                       </View>
                     </View>
 
                     {/* Question Text */}
-                    <View style={{ marginBottom: 12 }}>
+                    <View className="mb-3">
                       <RenderHtml
                         contentWidth={windowWidth - 64}
                         source={{ html: q.questionText || '<p>No question text</p>' }}
@@ -315,15 +318,15 @@ export default function PracticeExamResults() {
                       return (
                         <View
                           key={choice.choiceID || cIdx}
+                          className="flex-row items-center p-2.5 rounded-lg mb-1.5"
                           style={[
-                            styles.choiceItem,
                             { backgroundColor: choiceBg, borderColor: choiceBorder, borderWidth: 1 }
                           ]}
                         >
-                          <Text style={[styles.choiceLetter, { color: colors.text }]}>
+                          <Text className="text-sm font-semibold mr-2" style={{ color: colors.text }}>
                             {String.fromCharCode(65 + cIdx)}.
                           </Text>
-                          <Text style={[styles.choiceText, { color: colors.text, flex: 1 }]}>
+                          <Text className="text-sm leading-5 flex-1" style={{ color: colors.text }}>
                             {choice.choiceText?.replace(/<[^>]*>/g, '') || ''}
                           </Text>
                           {choiceIcon}
@@ -332,8 +335,8 @@ export default function PracticeExamResults() {
                     })}
 
                     {/* Points */}
-                    <View style={styles.pointsRow}>
-                      <Text style={[styles.pointsText, { color: colors.textSecondary }]}>
+                    <View className="mt-2 pt-2 border-t" style={{ borderTopColor: 'rgba(0,0,0,0.1)' }}>
+                      <Text className="text-xs" style={{ color: colors.textSecondary }}>
                         Points: {q.pointsEarned ?? (q.isCorrect ? 1 : 0)}/{q.pointsPossible ?? 1}
                       </Text>
                     </View>
@@ -345,20 +348,22 @@ export default function PracticeExamResults() {
         )}
 
         {/* Buttons */}
-        <View style={styles.buttonContainer}>
+        <View className="mt-2 gap-3">
           <TouchableOpacity
-            style={[styles.secondaryBtn, { borderColor: colors.border }]}
+            className="flex-row items-center justify-center py-3.5 rounded-xl border"
+            style={{ borderColor: colors.border }}
             onPress={() => router.replace(resultId ? '/(auth)/(student)/insights' : '/(auth)/(student)/dashboard')}
             activeOpacity={0.7}
           >
             <Ionicons name="chevron-back" size={20} color={colors.text} style={{ marginRight: 8 }} />
-            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+            <Text className="text-base font-semibold" style={{ color: colors.text }}>
               {resultId ? 'Back to Insights' : 'Back to Dashboard'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.secondaryBtn, { borderColor: colors.border }]}
+            className="flex-row items-center justify-center py-3.5 rounded-xl border"
+            style={{ borderColor: colors.border }}
             onPress={() =>
               shareExamResult({
                 subjectName: subjectName || undefined,
@@ -372,11 +377,12 @@ export default function PracticeExamResults() {
             activeOpacity={0.7}
           >
             <Ionicons name="share-outline" size={20} color={colors.text} style={{ marginRight: 8 }} />
-            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Share Result</Text>
+            <Text className="text-base font-semibold" style={{ color: colors.text }}>Share Result</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.primaryBtn}
+            className="flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl"
+            style={{ elevation: 4 }}
             onPress={() => router.replace({
               pathname: '/(auth)/practice-exam/info',
               params: { subjectName, totalItems: String(totalItems), totalPoints: String(totalPoints), enableTimer: 'true', durationMinutes: '60' }
@@ -384,64 +390,10 @@ export default function PracticeExamResults() {
             activeOpacity={0.9}
           >
             <Ionicons name="refresh" size={20} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.primaryBtnText}>Retake Exam</Text>
+            <Text className="text-white text-base font-bold">Retake Exam</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  loadingText: { fontSize: 14, marginTop: 12 },
-  errorText: { fontSize: 16, fontWeight: '600', marginTop: 12, textAlign: 'center', marginBottom: 20 },
-  backBtn: { backgroundColor: '#FE6902', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12 },
-  backBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  scrollContent: { flexGrow: 1, padding: 20, paddingBottom: 40 },
-  scoreHeader: { alignItems: 'center', padding: 32, borderRadius: 20, marginBottom: 16, elevation: 2 },
-  scoreCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 6, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  scorePercent: { fontSize: 36, fontWeight: '900' },
-  scoreIconContainer: { marginBottom: 8 },
-  scoreMessage: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
-  subjectName: { fontSize: 16, fontWeight: '600' },
-  card: { borderRadius: 16, padding: 20, marginBottom: 16, elevation: 2 },
-  cardTitle: { fontSize: 18, fontWeight: '700', marginBottom: 16 },
-  scoreBox: { borderRadius: 12, padding: 16, marginBottom: 8, alignItems: 'center' },
-  scoreBoxValue: { fontSize: 32, fontWeight: '800' },
-  scoreBoxLabel: { fontSize: 12, marginTop: 4 },
-  detailsList: { borderRadius: 12, borderWidth: 1, padding: 12, marginTop: 8 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  detailLabel: { fontSize: 12, fontWeight: '500' },
-  detailValue: { fontSize: 12, fontWeight: '600' },
-  performanceBar: { height: 12, backgroundColor: '#e5e7eb', borderRadius: 6, marginBottom: 12 },
-  performanceFill: { height: '100%', borderRadius: 6 },
-  performanceLabels: { flexDirection: 'row', justifyContent: 'space-between' },
-  performanceLabel: { fontSize: 14, fontWeight: '600' },
-
-  // Tabs
-  tabRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  tab: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  tabText: { fontSize: 13, fontWeight: '500', textAlign: 'center' },
-  emptyQuestions: { fontSize: 14, textAlign: 'center', paddingVertical: 20 },
-
-  // Question Cards
-  questionCard: { borderRadius: 12, padding: 12, marginBottom: 12 },
-  questionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  questionNumber: { fontSize: 14, fontWeight: '700' },
-  correctnessBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
-  correctnessText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  questionText: { fontSize: 15, lineHeight: 22, marginBottom: 12 },
-  choiceItem: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, marginBottom: 6, gap: 8 },
-  choiceLetter: { fontSize: 14, fontWeight: '600' },
-  choiceText: { fontSize: 14, lineHeight: 20 },
-  pointsRow: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.1)' },
-  pointsText: { fontSize: 12 },
-
-  // Buttons
-  buttonContainer: { marginTop: 8, gap: 12 },
-  secondaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1 },
-  secondaryBtnText: { fontSize: 16, fontWeight: '600' },
-  primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FE6902', paddingVertical: 14, borderRadius: 12, elevation: 4 },
-  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-});

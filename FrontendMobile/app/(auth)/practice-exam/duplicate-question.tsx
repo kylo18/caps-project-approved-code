@@ -9,8 +9,8 @@
 //   - UI: header, preview card showing question text and all choices with
 //         visual indicators for the correct answer, duplicate button
 // ─────────────────────────────────────────────────────────────────────────────
-import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { useMemo, useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import RenderHtml from 'react-native-render-html';
@@ -84,67 +84,52 @@ export default function DuplicateQuestionForm() {
     orange: '#FE6902',
   };
 
+  const tagsStyles = useMemo(() => ({
+    p: { color: colors.text, fontSize: 16, lineHeight: 24, marginBottom: 8 },
+    li: { color: colors.text, fontSize: 15, lineHeight: 22 },
+    strong: { color: colors.text, fontWeight: '700' as const },
+    u: { textDecorationLine: 'underline' as const },
+    a: { color: colors.orange },
+  }), [colors.text, colors.orange]);
+
   if (isLoading) {
-    return <View style={[styles.container, { backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }]}><ActivityIndicator size="large" color={colors.orange} /></View>;
+    return <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.bg }}><ActivityIndicator size="large" color={colors.orange} /></View>;
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/(dean)/dashboard' as any)} style={styles.backButton}>
+    <View className="flex-1" style={{ backgroundColor: colors.bg }}>
+      <View className="flex-row items-center justify-between px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/(dean)/dashboard' as any)} className="p-2">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Duplicate Question</Text>
+        <Text className="text-xl font-bold" style={{ color: colors.text }}>Duplicate Question</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <Text style={[styles.previewLabel, { color: colors.textSecondary }]}>Preview of Question to Duplicate</Text>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>
+        <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <Text className="text-[13px] font-semibold mb-2" style={{ color: colors.textSecondary }}>Preview of Question to Duplicate</Text>
           <View style={{ marginBottom: 16 }}>
             <RenderHtml
               contentWidth={width - 64}
               source={{ html: question?.questionText || '<p>No question text</p>' }}
-              tagsStyles={{
-                p: { color: colors.text, fontSize: 16, lineHeight: 24, marginBottom: 8 },
-                li: { color: colors.text, fontSize: 15, lineHeight: 22 },
-                strong: { color: colors.text, fontWeight: '700' },
-                u: { textDecorationLine: 'underline' },
-                a: { color: colors.orange },
-              }}
+              tagsStyles={tagsStyles}
             />
           </View>
 
-          <Text style={[styles.choicesLabel, { color: colors.text }]}>Choices:</Text>
+          <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>Choices:</Text>
           {choices.map((choice, idx) => (
-            <View key={idx} style={styles.choiceItem}>
-              <View style={[styles.radioIndicator, { backgroundColor: choice.isCorrect ? '#10B981' : '#e5e7eb' }]} />
-              <Text style={[styles.choiceText, { color: colors.text }]}>{choice.choiceText}</Text>
+            <View key={idx} className="flex-row items-center gap-2.5 mb-1.5">
+              <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: choice.isCorrect ? '#10B981' : '#e5e7eb' }} />
+              <Text className="text-sm flex-1" style={{ color: colors.text }}>{choice.choiceText}</Text>
             </View>
           ))}
         </View>
 
-        <TouchableOpacity style={[styles.submitBtn, { opacity: isSubmitting ? 0.6 : 1 }]} onPress={handleSubmit} disabled={isSubmitting} activeOpacity={0.8}>
-          {isSubmitting ? <ActivityIndicator color="#fff" /> : <><Ionicons name="copy" size={20} color="#fff" /><Text style={styles.submitBtnText}>Duplicate Question</Text></>}
+        <TouchableOpacity className="flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl gap-2" style={{ opacity: isSubmitting ? 0.6 : 1 }} onPress={handleSubmit} disabled={isSubmitting} activeOpacity={0.8}>
+          {isSubmitting ? <ActivityIndicator color="#fff" /> : <><Ionicons name="copy" size={20} color="#fff" /><Text className="text-white text-base font-bold">Duplicate Question</Text></>}
         </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  backButton: { padding: 8 },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
-  content: { flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 },
-  card: { borderRadius: 16, padding: 16, elevation: 2 },
-  previewLabel: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  questionText: { fontSize: 16, lineHeight: 24, marginBottom: 16 },
-  choicesLabel: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
-  choiceItem: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
-  radioIndicator: { width: 10, height: 10, borderRadius: 5 },
-  choiceText: { fontSize: 14, flex: 1 },
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FE6902', paddingVertical: 14, borderRadius: 12, gap: 8 },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-});

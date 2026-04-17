@@ -6,7 +6,7 @@
 // Key sections: Header with back button, FAQ list, additional help guidance card.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/contexts/ThemeContext';
@@ -32,28 +32,28 @@ export default function TutorialLayout() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+    <View className="flex-1" style={{ backgroundColor: colors.bg }}>
+      <View className="flex-row items-center px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
+        <TouchableOpacity onPress={() => router.back()} className="p-2 mr-3">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Help Center</Text>
+        <Text className="text-xl font-bold" style={{ color: colors.text }}>Help Center</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Frequently Asked Questions</Text>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 16, gap: 16, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+        <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <Text className="text-lg font-bold mb-3" style={{ color: colors.text }}>Frequently Asked Questions</Text>
           {faqs.map((faq, idx) => (
-            <View key={idx} style={styles.faqItem}>
-              <Text style={[styles.faqQ, { color: colors.text }]}>{faq.q}</Text>
-              <Text style={[styles.faqA, { color: colors.textSecondary }]}>{faq.a}</Text>
+            <View key={idx} className="mb-3">
+              <Text className="text-[15px] font-semibold mb-1" style={{ color: colors.text }}>{faq.q}</Text>
+              <Text className="text-sm leading-5" style={{ color: colors.textSecondary }}>{faq.a}</Text>
             </View>
           ))}
         </View>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Need More Help?</Text>
-          <Text style={[styles.helpText, { color: colors.textSecondary }]}>
+        <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <Text className="text-lg font-bold mb-3" style={{ color: colors.text }}>Need More Help?</Text>
+          <Text className="text-sm leading-5" style={{ color: colors.textSecondary }}>
             If you need further assistance, please contact your instructor or submit a support request through the Admin Support section.
           </Text>
         </View>
@@ -61,17 +61,3 @@ export default function TutorialLayout() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  backButton: { padding: 8, marginRight: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
-  content: { flexGrow: 1, padding: 16, gap: 16, paddingBottom: 100 },
-  section: { borderRadius: 16, padding: 16, elevation: 2 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
-  faqItem: { marginBottom: 12 },
-  faqQ: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
-  faqA: { fontSize: 14, lineHeight: 20 },
-  helpText: { fontSize: 14, lineHeight: 20 },
-});

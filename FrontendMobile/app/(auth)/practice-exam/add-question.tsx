@@ -11,7 +11,7 @@
 //         buttons and text inputs, hint text, submit button
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
@@ -111,19 +111,19 @@ export default function AddQuestionForm() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+    <View className="flex-1" style={{ backgroundColor: colors.bg }}>
+      <View className="flex-row items-center justify-between px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
+        <TouchableOpacity onPress={() => router.back()} className="p-2">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Add Question</Text>
+        <Text className="text-xl font-bold" style={{ color: colors.text }}>Add Question</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.card, { backgroundColor: colors.card, flex: 1, minHeight: 280 }]}>
-          <Text style={[styles.label, { color: colors.text }]}>Question Text</Text>
-          <View style={[styles.editorWrapper, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>
+        <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, flex: 1, minHeight: 280, elevation: 2 }}>
+          <Text className="text-base font-bold mb-2" style={{ color: colors.text }}>Question Text</Text>
+          <View className="border rounded-xl overflow-hidden flex-1" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}>
             <RichToolbar
               editor={richText}
               actions={[
@@ -137,7 +137,7 @@ export default function AddQuestionForm() {
                 actions.insertLink,
                 actions.keyboard,
               ]}
-              style={[styles.toolbar, { backgroundColor: isDark ? '#1f2937' : '#f3f4f6' }]}
+              style={{ backgroundColor: isDark ? '#1f2937' : '#f3f4f6' }}
               iconTint={colors.text}
               selectedIconTint="#FE6902"
               disabledIconTint="#9ca3af"
@@ -147,26 +147,28 @@ export default function AddQuestionForm() {
               initialContentHTML={questionText}
               onChange={setQuestionText}
               placeholder="Enter question..."
-              style={[styles.editor, { backgroundColor: colors.inputBg, color: colors.text }]}
+              style={{ backgroundColor: colors.inputBg, color: colors.text, flex: 1 }}
               initialHeight={180}
               useContainer
             />
           </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <Text style={[styles.label, { color: colors.text }]}>Choices</Text>
+        <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <Text className="text-base font-bold mb-2" style={{ color: colors.text }}>Choices</Text>
           {choices.map((choice, idx) => (
-            <View key={idx} style={styles.choiceRow}>
+            <View key={idx} className="flex-row items-center gap-3 mb-2.5">
               <TouchableOpacity
-                style={[styles.radio, { borderColor: choice.isCorrect ? colors.green : colors.border }, choice.isCorrect && { backgroundColor: colors.green }]}
+                className="w-7 h-7 rounded-full border-2 justify-center items-center"
+                style={[{ borderColor: choice.isCorrect ? colors.green : colors.border }, choice.isCorrect && { backgroundColor: colors.green }]}
                 onPress={() => handleCorrectToggle(idx)}
                 activeOpacity={0.7}
               >
                 {choice.isCorrect && <Ionicons name="checkmark" size={16} color="#fff" />}
               </TouchableOpacity>
               <TextInput
-                style={[styles.choiceInput, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+                className="flex-1 border rounded-xl p-2.5 text-[15px]"
+                style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }}
                 value={choice.choiceText}
                 onChangeText={(val) => handleChoiceChange(idx, val)}
                 placeholder={`Choice ${String.fromCharCode(65 + idx)}`}
@@ -174,11 +176,12 @@ export default function AddQuestionForm() {
               />
             </View>
           ))}
-          <Text style={[styles.hint, { color: colors.textSecondary }]}>Tap the circle to mark correct answer</Text>
+          <Text className="text-xs mt-2" style={{ color: colors.textSecondary }}>Tap the circle to mark correct answer</Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.submitBtn, { opacity: isSubmitting ? 0.6 : 1 }]}
+          className="flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl gap-2"
+          style={{ opacity: isSubmitting ? 0.6 : 1 }}
           onPress={handleSubmit}
           disabled={isSubmitting}
           activeOpacity={0.8}
@@ -188,7 +191,7 @@ export default function AddQuestionForm() {
           ) : (
             <>
               <Ionicons name="checkmark-circle" size={20} color="#fff" />
-              <Text style={styles.submitBtnText}>Add Question</Text>
+              <Text className="text-white text-base font-bold">Add Question</Text>
             </>
           )}
         </TouchableOpacity>
@@ -196,23 +199,3 @@ export default function AddQuestionForm() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  backButton: { padding: 8 },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
-  content: { flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 },
-  card: { borderRadius: 16, padding: 16, elevation: 2 },
-  label: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
-  input: { borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 15, minHeight: 80 },
-  editorWrapper: { borderWidth: 1, borderRadius: 12, overflow: 'hidden', flex: 1 },
-  toolbar: { borderTopLeftRadius: 12, borderTopRightRadius: 12 },
-  editor: { borderBottomLeftRadius: 12, borderBottomRightRadius: 12, flex: 1 },
-  choiceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
-  radio: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
-  choiceInput: { flex: 1, borderWidth: 1, borderRadius: 12, padding: 10, fontSize: 15 },
-  hint: { fontSize: 12, marginTop: 8 },
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FE6902', paddingVertical: 14, borderRadius: 12, gap: 8 },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-});

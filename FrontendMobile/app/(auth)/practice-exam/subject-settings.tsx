@@ -11,7 +11,7 @@
 //         section (timer switch + duration input), save button
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
@@ -95,46 +95,47 @@ export default function SubjectSettingsDean() {
   };
 
   if (isLoading) {
-    return <View style={[styles.container, { backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }]}><ActivityIndicator size="large" color={colors.orange} /></View>;
+    return <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.bg }}><ActivityIndicator size="large" color={colors.orange} /></View>;
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+    <View className="flex-1" style={{ backgroundColor: colors.bg }}>
+      <View className="flex-row items-center justify-between px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
+        <TouchableOpacity onPress={() => router.back()} className="p-2">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Subject Settings</Text>
+        <Text className="text-xl font-bold" style={{ color: colors.text }}>Subject Settings</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <View style={styles.switchRow}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>
+        <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <View className="flex-row items-center py-3 gap-3">
             <View style={{ flex: 1 }}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Qualifying Exam</Text>
-              <Text style={[styles.sectionDesc, { color: colors.textSecondary }]}>Enable exam questions for this subject</Text>
+              <Text className="text-base font-bold mb-1" style={{ color: colors.text }}>Qualifying Exam</Text>
+              <Text className="text-[13px]" style={{ color: colors.textSecondary }}>Enable exam questions for this subject</Text>
             </View>
             <Switch value={examEnabled} onValueChange={handleToggleExam} trackColor={{ true: colors.orange }} />
           </View>
         </View>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Practice Exam Settings</Text>
+        <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <Text className="text-base font-bold mb-1" style={{ color: colors.text }}>Practice Exam Settings</Text>
 
-          <View style={styles.switchRow}>
+          <View className="flex-row items-center py-3 gap-3">
             <View style={{ flex: 1 }}>
-              <Text style={[styles.optionLabel, { color: colors.text }]}>Enable Timer</Text>
-              <Text style={[styles.optionDesc, { color: colors.textSecondary }]}>Set time limit for practice exams</Text>
+              <Text className="text-[15px] font-semibold" style={{ color: colors.text }}>Enable Timer</Text>
+              <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>Set time limit for practice exams</Text>
             </View>
             <Switch value={timerEnabled} onValueChange={setTimerEnabled} trackColor={{ true: colors.orange }} />
           </View>
 
           {timerEnabled && (
-            <View style={styles.durationRow}>
-              <Text style={[styles.durationLabel, { color: colors.text }]}>Duration (minutes)</Text>
+            <View className="flex-row items-center justify-between py-3">
+              <Text className="text-sm font-semibold" style={{ color: colors.text }}>Duration (minutes)</Text>
               <TextInput
-                style={[styles.durationInput, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+                className="w-20 border rounded-lg p-2 text-base text-center"
+                style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }}
                 value={durationMinutes}
                 onChangeText={setDurationMinutes}
                 keyboardType="number-pad"
@@ -144,30 +145,11 @@ export default function SubjectSettingsDean() {
             </View>
           )}
 
-          <TouchableOpacity style={[styles.saveBtn, { opacity: isSaving ? 0.6 : 1 }]} onPress={handleSavePractice} disabled={isSaving} activeOpacity={0.8}>
-            {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Settings</Text>}
+          <TouchableOpacity className="bg-[#FE6902] py-3 rounded-xl items-center mt-2" style={{ opacity: isSaving ? 0.6 : 1 }} onPress={handleSavePractice} disabled={isSaving} activeOpacity={0.8}>
+            {isSaving ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-[15px] font-bold">Save Settings</Text>}
           </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  backButton: { padding: 8 },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
-  content: { flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 },
-  section: { borderRadius: 16, padding: 16, elevation: 2 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  sectionDesc: { fontSize: 13 },
-  switchRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 12 },
-  optionLabel: { fontSize: 15, fontWeight: '600' },
-  optionDesc: { fontSize: 12, marginTop: 2 },
-  durationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
-  durationLabel: { fontSize: 14, fontWeight: '600' },
-  durationInput: { width: 80, borderWidth: 1, borderRadius: 8, padding: 8, fontSize: 16, textAlign: 'center' },
-  saveBtn: { backgroundColor: '#FE6902', paddingVertical: 12, borderRadius: 12, alignItems: 'center', marginTop: 8 },
-  saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-});

@@ -46,6 +46,18 @@ export default function StudentTabs() {
           title: 'Insights',
         }}
       />
+      <Tabs.Screen
+        name="bookmarks"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="frequently-mistaken"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
