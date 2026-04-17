@@ -261,7 +261,7 @@ const Reports = () => {
                 >
                   <span className="flex items-center gap-2">
                     <i className="bx bx-file text-[16px]"></i>
-                    Student Reports
+                    All Reports
                   </span>
                 </button>
               )}

@@ -573,7 +573,7 @@ const Sidebar = ({
   const analyticsMenuItems = [  //this is for achievements, leaderboards, content analytics, difficult analytics in sidebar
     { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
     { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart"},
-    { label: "Content Analytics", path: "/analytics/content-analytics", icon: "bx bx-file" },
+    { label: "My Content", path: "/analytics/content-analytics", icon: "bx bx-file" },
     { label: "Difficulty", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
   ];
   

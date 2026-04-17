@@ -29,6 +29,7 @@ return [
         'http://100.107.28.65',        
         'http://100.107.28.65:5173',  
         'http://100.107.28.65:8005',   
+        'http://192.168.1.2:5173',
         $frontendUrl,
     ]),
     'allowed_origins_patterns' => [],

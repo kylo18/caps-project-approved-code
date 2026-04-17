@@ -126,7 +126,7 @@ const DifficultyAnalytics = () => {
     .sort((a, b) => a.score - b.score)[0] ?? null;
 
   // Recent exams for mini trend chart
-  const recentExams = (trends?.data ?? []).slice(0, 10).reverse();
+  const recentExams = (trends?.data ?? []).slice(0, 5).reverse();
 
   // ── Styling helpers ─────────────────────────────────────────────────────────
 
@@ -150,7 +150,7 @@ const DifficultyAnalytics = () => {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ background: "#F5F3EF", minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ background: "#F5F3EF", minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", overflowX: "hidden"}}>
 
       {/* TOP BAR */}
       <div style={{
@@ -217,7 +217,7 @@ const DifficultyAnalytics = () => {
               </div>
               <div style={{ fontSize: 56, fontWeight: 800, letterSpacing: -3, lineHeight: 1, color: "#1A1814" }}>
                 {loading ? "—" : overallScore != null ? overallScore : "—"}
-                <span style={{ fontSize: 24, fontWeight: 400, color: "#9B9790" }}>%</span>
+                <span style={{ fontSize: 54, fontWeight: 400, color: "#9B9790" }}> %</span>
               </div>
               <div style={{ fontSize: 12, color: "#9B9790", marginTop: 8 }}>
                 {loading
@@ -273,13 +273,14 @@ const DifficultyAnalytics = () => {
             {!isMobile && <div style={{ background: "#EAE8E2", margin: "0 26px" }} />}
 
             {/* Difficulty bands */}
-            <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 16, paddingTop: isMobile ? 20 : 4, borderTop: isMobile ? "1px solid #EAE8E2" : "none" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.9px", color: "#9B9790" }}>Score by difficulty (all students)</div>
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 16, paddingTop: isMobile ? 20 : 4, borderTop: isMobile ? "1px solid #EAE8E2" : "none", overflow: "hidden", minWidth: 0 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.9px", color: "#9B9790" }}>Score by difficulty</div>
               {diffBands.map((band, idx) => {
                 const cfg = levelCfg[band.level] ?? levelCfg.Moderate;
                 const score = EMPTY ? null : band.score;
                 return (
-                  <div key={band.level} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  
+                  <div key={band.level} style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.7px", color: cfg.color, width: 68, flexShrink: 0 }}>{band.level}</div>
                     <div style={{ flex: 1, height: 8, borderRadius: 6, background: cfg.bg, overflow: "hidden" }}>
                       <div style={{
@@ -291,9 +292,11 @@ const DifficultyAnalytics = () => {
                     <div style={{ fontSize: 14, fontWeight: 800, color: cfg.color, width: 38, textAlign: "right" }}>
                       {score != null ? `${score}%` : "—"}
                     </div>
-                    <div style={{ fontSize: 10, color: "#9B9790", width: 52 }}>
-                      {EMPTY ? "—" : `${band.correct ?? 0} / ${band.total ?? 0}`}
-                    </div>
+                    {!isMobile && (
+                      <div style={{ fontSize: 10, color: "#9B9790", width: 52 }}>
+                        {EMPTY ? "—" : `${band.correct ?? 0} / ${band.total ?? 0}`}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -304,48 +307,35 @@ const DifficultyAnalytics = () => {
         {/* ── SECTION 2: Score trend mini chart ── */}
         {!loading && recentExams.length >= 2 && (
           <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #EAE8E2", marginBottom: 20, padding: "16px 20px" }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#1A1814", marginBottom: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#1A1814", marginBottom: 14 }}>
               Your Recent Exam Scores
               <span 
-                style={{ fontSize: 11, fontWeight: 400, color: "#9B9790", marginLeft: 8 }}>
+                style={{ fontSize: 12, fontWeight: 400, color: "#9B9790", marginLeft: 8 }}>
                   last {recentExams.length} exams
               </span>
             </div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 20, height: 80 }}>
+            {/*<div style={{ display: "flex", alignItems: "flex-end", gap: 60, height: 90 }}>*/}
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 60, height: 100, overflow: "hidden" }}>
               {recentExams.map((exam, i) => {
                 const pct = exam.percentage ?? 0;
                 const barH = Math.max(4, (pct / 100) * 60);
                 return (
                   <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-                    <div style={{ fontSize: 9, color: "#9B9790", fontWeight: 600 }}>{Math.round(pct)}%</div>
+                    <div style={{ fontSize: 12, color: "#5C5955", fontWeight: 600 }}>{Math.round(pct)}%</div>
                     <div style={{
                       width: "100%", height: barH, borderRadius: 4,
                       background: sc(pct),
                       transition: "height 0.6s ease",
                       transitionDelay: `${i * 0.05}s`,
                     }} title={`${exam.subjectName ?? ""}: ${pct}%`} />
-                    <div style={{ fontSize: 8, color: "#C4C0B8", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>
-                      {exam.subjectName ? exam.subjectName.split(" ")[0] : `#${i + 1}`}
+                    <div style={{ fontSize: 12, color: "#5C5955", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>
+                      {exam.subjectName ? exam.subjectName.split(" ").slice(0, 10).join(" ") : `#${i + 1}`}
                     </div>
                   </div>
                 );
               })}
             </div>
-            {/* Trend summary */}
-            {trends?.summary && (
-              <div style={{ marginTop: 12, display: "flex", gap: 16, flexWrap: "wrap" }}>
-                {[
-                  { label: "Avg", value: `${Math.round(trends.summary.avg_score)}%` },
-                  { label: "Best", value: `${Math.round(trends.summary.highest_score)}%`, color: "#22A56D" },
-                  { label: "Lowest", value: `${Math.round(trends.summary.lowest_score)}%`, color: "#E55012" },
-                ].map(s => (
-                  <div key={s.label} style={{ fontSize: 12 }}>
-                    <span style={{ color: "#9B9790" }}>{s.label}: </span>
-                    <span style={{ fontWeight: 700, color: s.color ?? "#1A1814" }}>{s.value}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            
           </div>
         )}
 
@@ -481,9 +471,17 @@ const DifficultyAnalytics = () => {
 
           {/* Column headers — desktop only */}
           {!isMobile && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 90px 90px 110px 110px", gap: 12, padding: "10px 20px", background: "#F8F6F3", borderBottom: "1px solid #EAE8E2" }}>
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "1fr 90px 90px 90px 110px 110px", 
+              gap: 12, padding: "10px 20px", background: "#F8F6F3", 
+              borderBottom: "1px solid #EAE8E2" }}>
               {["Topic", "Easy", "Moderate", "Hard", "Overall", "Avg Tries"].map((h, i) => (
-                <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "#9B9790", textTransform: "uppercase", letterSpacing: "1px", textAlign: i === 0 ? "left" : "center" }}>{h}</span>
+                <span key={h} style={{ 
+                  fontSize: 10, fontWeight: 700, 
+                  color: "#9B9790", textTransform: "uppercase", 
+                  letterSpacing: "1px", textAlign: i === 0 ? "left" : "center" 
+                }}>{h}</span>
               ))}
             </div>
           )}

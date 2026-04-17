@@ -412,87 +412,116 @@ class AnalyticsController extends Controller
     public function getPracticeContentAnalytics()
     {
         try {
-            $totalViews = LessonView::count();
-            $totalAttempts = QuestionStatsDaily::sum('total_attempts');
-            $totalSkipped = QuestionStatsDaily::sum('total_skipped');
-            $avgErrorRate = QuestionStatsDaily::selectRaw('CASE WHEN SUM(total_attempts) = 0 THEN 0 ELSE SUM(total_incorrect) / SUM(total_attempts) END as rate')
+            $userId = auth()->id();
+
+            // lesson_views has user_id — works fine
+            $totalViews = LessonView::where('user_id', $userId)->count();
+
+            // Use exam_results directly (per-user, not global stats table)
+            $totalAttempts = DB::table('exam_results')
+                ->join('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
+                ->where('exam_attempts.user_id', $userId)
+                ->count();
+
+            $totalSkipped = DB::table('exam_results')
+                ->join('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
+                ->where('exam_attempts.user_id', $userId)
+                ->where('exam_results.is_skipped', 1)
+                ->count();
+
+            $avgErrorRate = DB::table('exam_results')
+                ->join('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
+                ->where('exam_attempts.user_id', $userId)
+                ->selectRaw('ROUND(SUM(CASE WHEN exam_results.is_correct = 0 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 4) as rate')
                 ->value('rate');
 
             $mostViewed = DB::table('lesson_views')
                 ->join('lessons', 'lesson_views.lesson_id', '=', 'lessons.id')
+                ->where('lesson_views.user_id', $userId)
                 ->select('lessons.id as lessonId', 'lessons.title as lessonName', DB::raw('COUNT(*) as views'))
                 ->groupBy('lessons.id', 'lessons.title')
                 ->orderByDesc('views')
                 ->limit(10)
                 ->get()
                 ->map(fn($item) => [
-                    'lessonId' => $item->lessonId,
+                    'lessonId'   => $item->lessonId,
                     'lessonName' => $item->lessonName,
-                    'views' => (int) $item->views,
+                    'views'      => (int) $item->views,
                 ]);
 
-            $mostAttempted = QuestionStatsDaily::select(
-                    'question_stats_daily.question_id',
-                    DB::raw('SUM(total_attempts) as count'),
+            $mostAttempted = DB::table('exam_results')
+                ->join('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
+                ->join('questions', 'exam_results.question_id', '=', 'questions.questionID')
+                ->where('exam_attempts.user_id', $userId)
+                ->select(
+                    'exam_results.question_id',
+                    DB::raw('COUNT(*) as count'),
                     'questions.questionText'
                 )
-                ->join('questions', 'question_stats_daily.question_id', '=', 'questions.questionID')
-                ->groupBy('question_stats_daily.question_id', 'questions.questionText')
+                ->groupBy('exam_results.question_id', 'questions.questionText')
                 ->orderByDesc('count')
                 ->limit(10)
                 ->get()
                 ->map(fn($item) => [
-                    'questionId' => $item->question_id,
-                    'questionText' => $item->questionText,
-                    'count' => (int) $item->count,
+                    'questionId'   => $item->question_id,
+                    'questionText' => self::safeDecrypt($item->questionText),
+                    'count'        => (int) $item->count,
                 ]);
 
-            $highestError = QuestionStatsDaily::select(
-                    'question_stats_daily.question_id',
-                    DB::raw('SUM(total_incorrect) as total_wrong'),
-                    DB::raw('SUM(total_attempts) as total_tries'),
-                    DB::raw('ROUND(SUM(total_incorrect) / NULLIF(SUM(total_attempts), 0), 4) as rate'),
+            $highestError = DB::table('exam_results')
+                ->join('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
+                ->join('questions', 'exam_results.question_id', '=', 'questions.questionID')
+                ->where('exam_attempts.user_id', $userId)
+                ->select(
+                    'exam_results.question_id',
+                    DB::raw('COUNT(*) as total_tries'),
+                    DB::raw('SUM(CASE WHEN exam_results.is_correct = 0 THEN 1 ELSE 0 END) as total_wrong'),
+                    DB::raw('ROUND(SUM(CASE WHEN exam_results.is_correct = 0 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 4) as rate'),
                     'questions.questionText'
                 )
-                ->join('questions', 'question_stats_daily.question_id', '=', 'questions.questionID')
-                ->groupBy('question_stats_daily.question_id', 'questions.questionText')
+                ->groupBy('exam_results.question_id', 'questions.questionText')
                 ->orderByDesc('rate')
                 ->limit(10)
                 ->get()
                 ->map(fn($item) => [
-                    'questionId' => $item->question_id,
-                    'questionText' => $item->questionText,
-                    'rate' => (float) $item->rate,
-                    'totalWrong' => (int) $item->total_wrong,
-                    'totalTries' => (int) $item->total_tries,
+                    'questionId'   => $item->question_id,
+                    'questionText' => self::safeDecrypt($item->questionText),
+                    'rate'         => (float) $item->rate,
+                    'totalWrong'   => (int) $item->total_wrong,
+                    'totalTries'   => (int) $item->total_tries,
                 ]);
 
-            $mostSkipped = QuestionStatsDaily::select(
-                    'question_stats_daily.topic_id',
-                    DB::raw('SUM(total_skipped) as skipped_count'),
+            $mostSkipped = DB::table('exam_results')
+                ->join('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
+                ->join('coverages', 'exam_results.topic_id', '=', 'coverages.id')
+                ->where('exam_attempts.user_id', $userId)
+                ->where('exam_results.is_skipped', 1)
+                ->select(
+                    'exam_results.topic_id',
+                    DB::raw('COUNT(*) as skipped_count'),
                     'coverages.name as topicName'
                 )
-                ->join('coverages', 'question_stats_daily.topic_id', '=', 'coverages.id')
-                ->groupBy('question_stats_daily.topic_id', 'coverages.name')
+                ->groupBy('exam_results.topic_id', 'coverages.name')
                 ->orderByDesc('skipped_count')
                 ->limit(10)
                 ->get()
                 ->map(fn($item) => [
-                    'topicId' => $item->topic_id,
-                    'name' => $item->topicName,
+                    'topicId'       => $item->topic_id,
+                    'name'          => $item->topicName,
                     'skipped_count' => (int) $item->skipped_count,
                 ]);
 
             return response()->json([
-                'totalViews' => $totalViews,
+                'totalViews'    => $totalViews,
                 'totalAttempts' => $totalAttempts,
-                'avgErrorRate' => round($avgErrorRate * 100, 2),
-                'totalSkipped' => $totalSkipped,
-                'mostViewed' => $mostViewed,
+                'avgErrorRate'  => round(($avgErrorRate ?? 0) * 100, 2),
+                'totalSkipped'  => $totalSkipped,
+                'mostViewed'    => $mostViewed,
                 'mostAttempted' => $mostAttempted,
-                'highestError' => $highestError,
-                'mostSkipped' => $mostSkipped,
+                'highestError'  => $highestError,
+                'mostSkipped'   => $mostSkipped,
             ]);
+
         } catch (\Exception $e) {
             Log::error('getPracticeContentAnalytics failed: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
@@ -509,6 +538,8 @@ class AnalyticsController extends Controller
             $difficultyBands = ExamResult::selectRaw(
                     'difficulty, COUNT(*) as total, SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct'
                 )
+                ->join('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
+                ->where('exam_attempts.user_id', auth()->id())
                 ->groupBy('difficulty')
                 ->get()
                 ->map(fn($item) => [
@@ -532,6 +563,7 @@ class AnalyticsController extends Controller
                 )
                 ->join('coverages', 'exam_results.topic_id', '=', 'coverages.id')
                 ->leftJoin('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
+                ->where('exam_attempts.user_id', auth()->id())
                 ->groupBy('exam_results.topic_id', 'coverages.name')
                 ->orderByDesc('total_questions')
                 ->limit(10)
@@ -946,4 +978,16 @@ class AnalyticsController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    //new added: helper function to decrypt the encrypted questions*
+    private static function safeDecrypt(?string $value): string
+    {
+        if (!$value) return '';
+        try {
+            return \Illuminate\Support\Facades\Crypt::decryptString($value);
+        } catch (\Exception $e) {
+            return $value;
+        }
+    }
+
 }

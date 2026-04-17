@@ -2,6 +2,46 @@ import { useState, useEffect } from "react";
 
 const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
+
+const FAQ_ITEMS = [
+  {
+    id: 1,
+    question: "How do I start a new exam / quiz session?",
+    answer:
+      "Navigate to Sessions from the sidebar, then click \"Join Session\" and enter the session code provided by your instructor. Once inside, read the instructions and press \"Start Exam\" when you're ready. Make sure you have a stable internet connection before beginning.",
+  },
+  {
+    id: 2,
+    question: "How is my rank calculated?",
+    answer:
+      "Rankings are computed based on your cumulative score across all completed sessions in the current term. Scores are normalised per subject and a weighted average is used when multiple subjects are involved. Leaderboards refresh automatically after every session ends.",
+  },
+  {
+    id: 3,
+    question: "Why are my notifications not showing?",
+    answer:
+      "First, check that notifications are not blocked in your browser or device settings. On mobile, confirm CAPS has permission to send push alerts. If the issue persists, log out, clear your browser cache, and log back in. Contact support if notifications remain missing.",
+  },
+  {
+    id: 4,
+    question: "How do I use Google Login?",
+    answer:
+      "On the login screen tap \"Continue with Google\" and select your institutional Google account (the one ending in your school domain). If you encounter an \"access denied\" error, your account may not yet be registered — reach out to your Program Chair or Dean.",
+  },
+  {
+    id: 5,
+    question: "How do I view my quiz results and history?",
+    answer:
+      "Go to Sessions in the sidebar and select any completed session to see your detailed score breakdown, time spent per question, and how your performance compares to the class average. You can also visit Analytics > Achievements for a summary view.",
+  },
+  {
+    id: 6,
+    question: "How do I change my password?",
+    answer:
+      "Click your avatar in the top-left corner of the sidebar, choose Settings, then select \"Change Password.\" Enter your current password followed by your new password (minimum 8 characters). Hit Apply and you will see a confirmation toast when the change is saved.",
+  },
+];
+
 const ISSUE_TYPES = [
   "Technical Issue",
   "Account & Login",
@@ -138,11 +178,20 @@ export default function SupportPage() {
       .finally(() => setTicketsLoading(false));
   }, [activeTab]);
 
+  {/*
   const filteredFaqs = faqs.filter(
     (f) =>
       f.question.toLowerCase().includes(faqSearch.toLowerCase()) ||
       f.answer.toLowerCase().includes(faqSearch.toLowerCase())
+  );*/}
+  
+  const filteredFaqs = FAQ_ITEMS.filter(
+    (f) =>
+      f.question.toLowerCase().includes(faqSearch.toLowerCase()) ||
+      f.answer.toLowerCase().includes(faqSearch.toLowerCase())
   );
+
+  
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
