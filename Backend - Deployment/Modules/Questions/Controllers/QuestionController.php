@@ -156,6 +156,35 @@ class QuestionController extends Controller
         ]);
     }
 
+    // Show a single question with its choices
+    public function show($questionID)
+    {
+        $question = Question::with([
+            'subject',
+            'choices',
+            'user',
+            'status',
+            'difficulty',
+            'coverage',
+            'purpose',
+            'editor' => function($query) {
+                $query->select('userID', 'firstName', 'lastName');
+            },
+            'approver' => function($query) {
+                $query->select('userID', 'firstName', 'lastName');
+            }
+        ])->find($questionID);
+
+        if (!$question) {
+            return response()->json(['message' => 'Question not found.'], 404);
+        }
+
+        return response()->json([
+            'message' => 'Question retrieved successfully.',
+            'data' => $this->formatQuestion($question)
+        ]);
+    }
+
     // List all questions for a subject, remove those without choices
     public function indexQuestions($subjectID)
     {

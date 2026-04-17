@@ -219,6 +219,7 @@ class NotificationController extends Controller
                 DB::table('notifications')->insert([
                     'user_id' => $targetUserId,
                     'type' => $validated['type'],
+                    'name' => $this->buildNotificationName($validated['type']),
                     'title' => $validated['title'],
                     'message' => $validated['message'],
                     'data' => isset($validated['data']) ? json_encode($validated['data']) : null,
@@ -330,5 +331,10 @@ class NotificationController extends Controller
                     ->pluck('userID')
                     ->toArray();
         }
+    }
+
+    private function buildNotificationName(string $type): string
+    {
+        return ucwords(str_replace('_', ' ', $type));
     }
 }

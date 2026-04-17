@@ -47,7 +47,7 @@ class AdminAnalyticsController extends Controller
             $query = $this->applyRoleBasedScope($query, $user);
             
             // Calculate summary metrics
-            $totalStudents = (clone $query)->count(DB::raw('DISTINCT userID'));
+            $totalStudents = (clone $query)->count(DB::raw('DISTINCT practice_exam_results.userID'));
             $totalExams = (clone $query)->count();
             $avgScore = (clone $query)->avg('percentage') ?? 0;
             
@@ -148,8 +148,8 @@ class AdminAnalyticsController extends Controller
                 ->select(
                     DB::raw("DATE_FORMAT(practice_exam_results.created_at, '{$dateFormat}') as period"),
                     DB::raw('AVG(practice_exam_results.percentage) as avg_score'),
-                    DB::raw('COUNT(DISTINCT userID) as student_count'),
-                    DB::raw('COUNT(resultID) as exam_count')
+                    DB::raw('COUNT(DISTINCT practice_exam_results.userID) as student_count'),
+                    DB::raw('COUNT(practice_exam_results.resultID) as exam_count')
                 )
                 ->groupBy('period')
                 ->orderBy('period')
