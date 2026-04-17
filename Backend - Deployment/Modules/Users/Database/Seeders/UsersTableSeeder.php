@@ -11,6 +11,7 @@ class UsersTableSeeder extends Seeder
 {
     public function run()
     {
+        DB::beginTransaction();
         try {
             // Get status ID for registered users
             $status = DB::table('statuses')
@@ -227,7 +228,9 @@ class UsersTableSeeder extends Seeder
             );
 
             $this->command->info("Successfully seeded " . (count($users) + $totalUsers) . " users!");
+            DB::commit();
         } catch (\Exception $e) {
+            DB::rollBack();
             $this->command->error('Failed to seed users: ' . $e->getMessage());
             throw $e;
         }

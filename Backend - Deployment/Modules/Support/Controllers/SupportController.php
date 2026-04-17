@@ -50,19 +50,23 @@ class SupportController extends Controller
             
             $faqs = $query->get();
             
+            $categoryLabelColumn = Schema::hasColumn('faq_categories', 'name') ? 'name' : 'subject';
+            
             // Group by category if no specific category selected
             if (!$categoryId) {
                 $categories = DB::table('faq_categories')
                     ->orderBy('display_order')
                     ->get();
                 
+                $categoriesById = $categories->keyBy('id');
+                
                 $groupedFaqs = [];
                 foreach ($categories as $category) {
-                    $groupedFaqs[$category->name] = $faqs->where('category_id', $category->id)->values();
+                    $groupedFaqs[$category->{$categoryLabelColumn} ?? 'Unknown'] = $faqs->where('category_id', $category->id)->values();
                 }
                 
                 // Also include uncategorized FAQs
-                $groupedFaqs['Uncategorized'] = $faqs->whereNull('category_id')->values();
+                $groupedFaqs['Others'] = $faqs->whereNull('category_id')->values();
                 
                 return response()->json([
                     'message' => 'FAQs retrieved successfully',
