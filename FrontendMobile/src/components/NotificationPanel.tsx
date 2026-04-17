@@ -10,6 +10,8 @@ export default function NotificationPanel({ visible, onClose }) {
 
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<any>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   useEffect(() => {
     if (visible) fetchNotifications();
@@ -34,9 +36,15 @@ export default function NotificationPanel({ visible, onClose }) {
   };
 
   const markAsRead = async (notificationID) => {
+    if (!notificationID) return;
     try {
       await apiRequest(`/api/notifications/${notificationID}/read`, { method: 'PATCH' });
-      setNotifications(prev => prev.map(n => n.notificationID === notificationID ? { ...n, isRead: true } : n));
+      setNotifications(prev =>
+        prev.map(n => {
+          const id = n.notificationID ?? n.id ?? n.notification_id;
+          return id === notificationID ? { ...n, isRead: true } : n;
+        })
+      );
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
@@ -49,6 +57,89 @@ export default function NotificationPanel({ visible, onClose }) {
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
+  };
+
+  const extractNotificationData = (notification: any) => {
+    const raw = notification?.data;
+    if (!raw) return {};
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return {};
+      }
+    }
+    if (typeof raw === 'object') return raw;
+    return {};
+  };
+
+  const normalizeRoleLabel = (rawRole: any): string | null => {
+    if (rawRole == null) return null;
+    const value = String(rawRole).trim().toLowerCase();
+    if (!value) return null;
+
+    if (value === '4' || value.includes('dean')) return 'Dean';
+    if (value === '5' || value.includes('associate dean')) return 'Program Chair';
+    if (value === '3' || value.includes('program chair') || value.includes('chair')) return 'Program Chair';
+    if (value === '2' || value.includes('faculty') || value.includes('teacher')) return 'Faculty';
+    if (value === '1' || value.includes('student')) return 'Student';
+    return null;
+  };
+
+  const getSenderLabel = (notification: any): string => {
+    const data = extractNotificationData(notification);
+    const roleLabel = normalizeRoleLabel(
+      notification?.senderRole ||
+      notification?.sender_role ||
+      data?.senderRole ||
+      data?.sender_role ||
+      data?.roleID ||
+      data?.role_id ||
+      data?.role
+    );
+
+    const senderName =
+      notification?.senderName ||
+      notification?.sender_name ||
+      data?.senderName ||
+      data?.sender_name ||
+      data?.from ||
+      data?.created_by_name;
+
+    if (senderName && roleLabel) return `${senderName} (${roleLabel})`;
+    if (senderName) return senderName;
+    if (roleLabel) return roleLabel;
+
+    if (notification?.type === 'system_announcement') {
+      return 'Administration';
+    }
+
+    return 'System';
+  };
+
+  const openNotificationDetail = (notification: any) => {
+    setSelectedNotification({
+      ...notification,
+      senderLabel: getSenderLabel(notification),
+      subject: notification?.title || 'Notification',
+      body: notification?.message || 'No additional details available.',
+      dateLabel: notification?.created_at
+        ? new Date(notification.created_at).toLocaleString()
+        : '',
+    });
+    setShowDetailModal(true);
+  };
+
+  const handleNotificationPress = (notification, notificationID) => {
+    markAsRead(notificationID);
+
+    if (notification.actionUrl) {
+      onClose();
+      router.push(notification.actionUrl);
+      return;
+    }
+
+    openNotificationDetail(notification);
   };
 
   const getNotificationIcon = (type) => {
@@ -105,37 +196,81 @@ export default function NotificationPanel({ visible, onClose }) {
             </View>
           ) : (
             <ScrollView style={styles.notificationList}>
-              {notifications.map((notification, idx) => (
-                <TouchableOpacity
-                  key={notification.notificationID || idx}
-                  style={[styles.notificationItem, { borderColor: colors.border }, !notification.isRead && { borderLeftWidth: 4, borderLeftColor: colors.orange }]}
-                  onPress={() => {
-                    markAsRead(notification.notificationID);
-                    if (notification.actionUrl) {
-                      onClose();
-                      router.push(notification.actionUrl);
-                    }
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.iconContainer, { backgroundColor: `${colors.orange}20` }]}>
-                    <Ionicons name={getNotificationIcon(notification.type)} size={20} color={colors.orange} />
-                  </View>
-                  <View style={styles.notificationContent}>
-                    <Text style={[styles.notificationTitle, { color: colors.text }, !notification.isRead && { fontWeight: '700' }]} numberOfLines={2}>
-                      {notification.title || notification.message || 'Notification'}
-                    </Text>
-                    <Text style={[styles.notificationDate, { color: colors.textSecondary }]}>
-                      {notification.created_at ? new Date(notification.created_at).toLocaleDateString() : ''}
-                    </Text>
-                  </View>
-                  {!notification.isRead && <View style={styles.unreadDot} />}
-                </TouchableOpacity>
-              ))}
+              {notifications.map((notification, idx) => {
+                const resolvedNotificationId =
+                  notification.notificationID ?? notification.id ?? notification.notification_id;
+
+                return (
+                  <TouchableOpacity
+                    key={resolvedNotificationId || idx}
+                    style={[styles.notificationItem, { borderColor: colors.border }, !notification.isRead && { borderLeftWidth: 4, borderLeftColor: colors.orange }]}
+                    onPress={() => {
+                      handleNotificationPress(notification, resolvedNotificationId);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.iconContainer, { backgroundColor: `${colors.orange}20` }]}>
+                      <Ionicons name={getNotificationIcon(notification.type)} size={20} color={colors.orange} />
+                    </View>
+                    <View style={styles.notificationContent}>
+                      <Text style={[styles.notificationTitle, { color: colors.text }, !notification.isRead && { fontWeight: '700' }]} numberOfLines={2}>
+                        {notification.title || notification.message || 'Notification'}
+                      </Text>
+                      <Text style={[styles.notificationDate, { color: colors.textSecondary }]}>
+                        {notification.created_at ? new Date(notification.created_at).toLocaleDateString() : ''}
+                      </Text>
+                    </View>
+                    {!notification.isRead && <View style={styles.unreadDot} />}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           )}
         </View>
       </View>
+
+      <Modal visible={showDetailModal} transparent animationType="slide" onRequestClose={() => setShowDetailModal(false)}>
+        <View style={styles.detailOverlay}>
+          <View style={[styles.detailContainer, { backgroundColor: colors.card }]}>
+            <View style={[styles.detailHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.detailTitle, { color: colors.text }]}>Notification Details</Text>
+              <TouchableOpacity onPress={() => setShowDetailModal(false)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {selectedNotification ? (
+              <ScrollView style={styles.detailBody} showsVerticalScrollIndicator={false}>
+                <View style={styles.detailTopRow}>
+                  <View style={[styles.typeBadge, { backgroundColor: colors.orange }]}>
+                    <Text style={styles.typeBadgeText}>
+                      {selectedNotification.type === 'system_announcement' ? 'Announcement' : 'Notification'}
+                    </Text>
+                  </View>
+                  <Text style={[styles.detailDate, { color: colors.textSecondary }]}>
+                    {selectedNotification.dateLabel}
+                  </Text>
+                </View>
+
+                <View style={[styles.detailSection, { borderColor: colors.border }]}>
+                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Sender</Text>
+                  <Text style={[styles.sectionValue, { color: colors.text }]}>{selectedNotification.senderLabel}</Text>
+                </View>
+
+                <View style={[styles.detailSection, { borderColor: colors.border }]}>
+                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Subject</Text>
+                  <Text style={[styles.sectionValue, { color: colors.text }]}>{selectedNotification.subject}</Text>
+                </View>
+
+                <View style={[styles.detailSection, { borderColor: colors.border }]}>
+                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Message</Text>
+                  <Text style={[styles.sectionMessage, { color: colors.text }]}>{selectedNotification.body}</Text>
+                </View>
+              </ScrollView>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -156,4 +291,17 @@ const styles = StyleSheet.create({
   notificationTitle: { fontSize: 14, lineHeight: 20 },
   notificationDate: { fontSize: 11, marginTop: 4 },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FE6902' },
+  detailOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  detailContainer: { maxHeight: '82%', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
+  detailTitle: { fontSize: 18, fontWeight: '700' },
+  detailBody: { padding: 16 },
+  detailTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  typeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  typeBadgeText: { color: '#fff', fontSize: 11, fontWeight: '600' },
+  detailDate: { fontSize: 12 },
+  detailSection: { borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 10 },
+  sectionLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', marginBottom: 6 },
+  sectionValue: { fontSize: 15, fontWeight: '500' },
+  sectionMessage: { fontSize: 14, lineHeight: 22 },
 });

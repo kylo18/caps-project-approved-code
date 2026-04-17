@@ -134,7 +134,7 @@ export default function LeaderboardScreen() {
   );
 
   const viewerOutsideVisibleWeekly =
-    Boolean(viewer?.rank) && viewer!.rank > 3 && !weeklyRows.some((entry) => entry.userID === viewer?.userID);
+    viewer?.rank != null && viewer.rank > 3 && !weeklyRows.some((entry) => entry.userID === viewer.userID);
 
   // All-time view: show top 10 ranked students
   const allTimeRows = useMemo(() => entries.slice(0, 10), [entries]);
@@ -255,9 +255,9 @@ export default function LeaderboardScreen() {
                     <Pressable
                       onPress={() =>
                         shareLeaderboardAchievement({
-                          rank: viewer.rank,
+                          rank: viewer.rank ?? 0,
                           score: viewer.score ?? 0,
-                          subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || null,
+                          subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || undefined,
                         })
                       }
                       style={styles.shareIcon}
@@ -346,9 +346,9 @@ export default function LeaderboardScreen() {
                     <Pressable
                       onPress={() =>
                         shareLeaderboardAchievement({
-                          rank: viewer.rank,
+                          rank: viewer.rank ?? 0,
                           score: viewer.score ?? 0,
-                          subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || null,
+                          subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || undefined,
                         })
                       }
                       style={styles.shareIcon}

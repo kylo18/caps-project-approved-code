@@ -16,6 +16,7 @@ import {
   getSupportTicketById,
   updateSupportTicketStatus,
   addTicketResponse,
+  SUPPORT_TICKET_RESPONSES_SUPPORTED,
   getNextStatus,
   getStatusColor,
   getStatusLabel,
@@ -103,6 +104,11 @@ export default function AdminSupportScreen() {
 
   const handleSendResponse = async () => {
     if (!selectedTicket || !responseMessage.trim()) return;
+
+    if (!SUPPORT_TICKET_RESPONSES_SUPPORTED) {
+      showToast('Ticket responses are not supported by this server yet.', 'info');
+      return;
+    }
 
     setIsSendingResponse(true);
     try {
@@ -284,34 +290,42 @@ export default function AdminSupportScreen() {
                   <Text style={[styles.detailMessage, { color: colors.text }]}>{selectedTicket.message}</Text>
                 </View>
 
-                {/* Admin Response Input */}
-                <View style={[styles.detailSection, { backgroundColor: colors.card }]}>
-                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Your Response</Text>
-                  <TextInput
-                    style={[styles.responseInput, { backgroundColor: colors.bg, borderColor: colors.border, color: colors.text }]}
-                    value={responseMessage}
-                    onChangeText={setResponseMessage}
-                    placeholder="Type your response..."
-                    placeholderTextColor={colors.textSecondary}
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                  />
-                  <TouchableOpacity
-                    style={[styles.sendBtn, { opacity: isSendingResponse || !responseMessage.trim() ? 0.6 : 1 }]}
-                    onPress={handleSendResponse}
-                    disabled={isSendingResponse || !responseMessage.trim()}
-                  >
-                    {isSendingResponse ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <>
-                        <Ionicons name="send" size={18} color="#fff" />
-                        <Text style={styles.sendBtnText}>Send Response</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
+                {SUPPORT_TICKET_RESPONSES_SUPPORTED ? (
+                  <View style={[styles.detailSection, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Your Response</Text>
+                    <TextInput
+                      style={[styles.responseInput, { backgroundColor: colors.bg, borderColor: colors.border, color: colors.text }]}
+                      value={responseMessage}
+                      onChangeText={setResponseMessage}
+                      placeholder="Type your response..."
+                      placeholderTextColor={colors.textSecondary}
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+                    <TouchableOpacity
+                      style={[styles.sendBtn, { opacity: isSendingResponse || !responseMessage.trim() ? 0.6 : 1 }]}
+                      onPress={handleSendResponse}
+                      disabled={isSendingResponse || !responseMessage.trim()}
+                    >
+                      {isSendingResponse ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <>
+                          <Ionicons name="send" size={18} color="#fff" />
+                          <Text style={styles.sendBtnText}>Send Response</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={[styles.detailSection, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Responses</Text>
+                    <Text style={[styles.detailSubtext, { color: colors.textSecondary }]}>
+                      Ticket responses are not supported by this server yet.
+                    </Text>
+                  </View>
+                )}
 
                 {/* Status Actions */}
                 <View style={styles.statusActions}>

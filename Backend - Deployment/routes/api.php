@@ -28,6 +28,8 @@ use Modules\Analytics\Controllers\StudentAnalyticsController;
 use Modules\Support\Controllers\AIController;
 use Modules\Support\Controllers\SupportController;
 use Modules\Notifications\Controllers\NotificationController;
+// New imports: these controllers were referenced in routes below but had no use statements,
+// causing "Class does not exist" errors at runtime (artisan route:list crashed).
 use Modules\PersonalExams\Controllers\PersonalQuizController;
 use Modules\PersonalExams\Controllers\PersonalQuizLeaderboardController;
 use Modules\PersonalExams\Controllers\PersonalQuizQuestionController;
@@ -116,6 +118,8 @@ Route::get('/support/categories', [SupportController::class, 'getCategories']);
 /*
 |--------------------------------------------------------------------------
 | Class Enrollment (Public - join by invite link, requires auth)
+| NEW: wired up ClassEnrollmentController joinByLink so students can join
+| classes via an invite URL without needing a class code.
 |--------------------------------------------------------------------------
 */
 Route::get('/classes/join/{token}', [ClassEnrollmentController::class, 'joinByLink']);
@@ -138,6 +142,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/student/analytics/summary', [StudentAnalyticsController::class, 'getSummary']);
         Route::get('/student/analytics/insights', [StudentAnalyticsController::class, 'getInsights']);
         Route::get('/student/analytics/trends', [StudentAnalyticsController::class, 'getPerformanceTrends']);
+        Route::get('/student/analytics/frequently-mistaken', [StudentAnalyticsController::class, 'getFrequentlyMistaken']);
     });
 
     // Notification Routes (All authenticated users)
@@ -170,6 +175,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/classes/index', [ClassController::class, 'index']);
 
     // Class Enrollment (Faculty - view enrolled students)
+    // NEW: wired up ClassEnrollmentController index so faculty can see who's in their class.
     Route::get('/classes/{classID}/enrollments', [ClassEnrollmentController::class, 'index']);
 
     // Customer Support (Keeping the Jdev version)
@@ -204,13 +210,14 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
 
     // Questions
     Route::post('/questions/add', [QuestionController::class, 'store']);
+    Route::get('/questions/count', [QuestionController::class, 'questionCount']);
+    Route::get('/questions/{questionID}', [QuestionController::class, 'show'])->whereNumber('questionID');
     Route::get('/subjects/{subjectID}/questions', [QuestionController::class, 'indexQuestions']);
     Route::post('/questions/update/{questionID}', [QuestionController::class, 'update']);
     Route::delete('/questions/delete/{questionID}', [QuestionController::class, 'destroy']);
     Route::get('/faculty/my-questions/{subjectID}', [QuestionController::class, 'mySubjectQuestions']);
     Route::post('/choices/update', [ChoiceController::class, 'updateChoices']);
     Route::post('/questions/{questionID}/duplicate', [QuestionController::class, 'duplicate']);
-    Route::get('/questions/count', [QuestionController::class, 'questionCount']);
 
     // Printable exam (PDF preview/download)
     Route::post('/generate-printable-exam/{subjectID}', [PrintController::class, 'generatePrintableExam']);
@@ -280,7 +287,12 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     // Image upload for subjects (admin/faculty only)
     Route::post('/subjects/{id}/upload-image', [SubjectController::class, 'uploadSubjectImage']);
 
+    // REMOVED duplicate practice-exam leaderboard/recent-takers routes.
+    // These were already registered in the "all authenticated users" group above (lines ~140-141).
+    // The duplicates here were unreachable because Laravel matches the first registered route,
+    // so the TokenExpirationMiddleware on this faculty-only group never fired for these endpoints.
     // Class Enrollment (Faculty - remove student from class)
+    // NEW: wired up ClassEnrollmentController removeStudent.
     Route::post('/classes/{classID}/enrollments/remove', [ClassEnrollmentController::class, 'removeStudent']);
 
     // System notification for bulk updates (Dean and Associate Dean only)
@@ -298,6 +310,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
 
     // Admin Support Ticket Management Routes (Role 3-5)
     Route::get('/admin/support/tickets', [SupportController::class, 'getAdminTickets']);
+    Route::get('/admin/support/tickets/{id}', [SupportController::class, 'getAdminTicket']);
     Route::patch('/admin/support/tickets/{id}', [SupportController::class, 'updateTicket']);
 
     // Admin Notification Creation Routes (Role 4-5)
@@ -377,6 +390,7 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
     Route::get('/my-teachers', [StudentTeacherEnrollmentController::class, 'myTeachers']);
 
     // Class Enrollment (Student)
+    // NEW: wired up 3 routes so students can join classes by code, view their classes, and unenroll.
     Route::post('/classes/join', [ClassEnrollmentController::class, 'joinByCode']);
     Route::get('/my-classes', [ClassEnrollmentController::class, 'myClasses']);
     Route::delete('/classes/{classID}/unenroll', [ClassEnrollmentController::class, 'unenroll']);
@@ -503,6 +517,9 @@ Route::get('storage/question_images/{filename}', function ($filename) {
 /*
 |--------------------------------------------------------------------------
 | Leaderboard Authenticated Routes
+| CLEANUP: removed duplicate GET /leaderboard route. The public leaderboard
+| route already exists at line ~65. Only the authenticated /leaderboard/me
+| endpoint belongs here.
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum'])->group(function () {

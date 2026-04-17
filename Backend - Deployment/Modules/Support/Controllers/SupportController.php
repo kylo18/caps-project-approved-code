@@ -39,6 +39,7 @@ class SupportController extends Controller
     {
         try {
             $categoryId = $request->input('category_id');
+            $categoryLabelColumn = Schema::hasColumn('faq_categories', 'name') ? 'name' : 'subject';
             
             $query = DB::table('faqs')
                 ->where('is_active', true)
@@ -49,11 +50,22 @@ class SupportController extends Controller
             }
             
             $faqs = $query->get();
+            $categories = DB::table('faq_categories')
+                ->orderBy('display_order')
+                ->get();
+            $categoriesById = $categories->keyBy('id');
+
+            $normalizedFaqs = $faqs->map(function ($faq) use ($categoriesById, $categoryLabelColumn) {
+                $category = $categoriesById->get($faq->category_id);
+                $faq->category = $category ? ($category->{$categoryLabelColumn} ?? 'Uncategorized') : 'Uncategorized';
+                return $faq;
+            });
             
             $categoryLabelColumn = Schema::hasColumn('faq_categories', 'name') ? 'name' : 'subject';
             
             // Group by category if no specific category selected
             if (!$categoryId) {
+<<<<<<< HEAD
                 $categories = DB::table('faq_categories')
                     ->orderBy('display_order')
                     ->get();
@@ -67,6 +79,16 @@ class SupportController extends Controller
                 
                 // Also include uncategorized FAQs
                 $groupedFaqs['Others'] = $faqs->whereNull('category_id')->values();
+=======
+                $groupedFaqs = [];
+                foreach ($categories as $category) {
+                    $label = $category->{$categoryLabelColumn} ?? 'Uncategorized';
+                    $groupedFaqs[$label] = $normalizedFaqs->where('category_id', $category->id)->values();
+                }
+                
+                // Also include uncategorized FAQs
+                $groupedFaqs['Uncategorized'] = $normalizedFaqs->whereNull('category_id')->values();
+>>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
                 
                 return response()->json([
                     'message' => 'FAQs retrieved successfully',
@@ -77,7 +99,7 @@ class SupportController extends Controller
             
             return response()->json([
                 'message' => 'FAQs retrieved successfully',
-                'data' => $faqs
+                'data' => $normalizedFaqs->values()
             ], 200);
             
         } catch (\Exception $e) {
@@ -310,6 +332,65 @@ class SupportController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Admin ticket retrieval error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An internal server error occurred',
+                'type' => 'server_error'
+            ], 500);
+        }
+    }
+
+    /**
+     * Admin: Get a single support ticket with student details.
+     */
+    public function getAdminTicket($id)
+    {
+        try {
+            $user = Auth::user();
+
+            if (!in_array($user->roleID, [2, 3, 4, 5])) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            $query = DB::table('support_tickets')
+                ->join('users', 'support_tickets.user_id', '=', 'users.userID')
+                ->select(
+                    'support_tickets.*',
+                    'users.firstName',
+                    'users.lastName',
+                    'users.email',
+                    'users.userCode',
+                    'users.programID',
+                    'users.campusID'
+                )
+                ->where('support_tickets.id', $id);
+
+            if ($user->roleID === 2 || $user->roleID === 3) {
+                $query->where('users.campusID', $user->campusID)
+                      ->where('users.programID', $user->programID);
+            } elseif ($user->roleID === 5) {
+                $query->where('users.campusID', $user->campusID);
+            }
+
+            $ticket = $query->first();
+
+            if (!$ticket) {
+                return response()->json(['message' => 'Ticket not found'], 404);
+            }
+
+            $ticket->student = [
+                'firstName' => $ticket->firstName,
+                'lastName' => $ticket->lastName,
+                'email' => $ticket->email,
+                'userCode' => $ticket->userCode,
+            ];
+            unset($ticket->firstName, $ticket->lastName, $ticket->email);
+
+            return response()->json([
+                'message' => 'Admin ticket retrieved',
+                'data' => $ticket,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Admin ticket detail error: ' . $e->getMessage());
             return response()->json([
                 'message' => 'An internal server error occurred',
                 'type' => 'server_error'

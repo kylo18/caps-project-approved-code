@@ -130,7 +130,7 @@ export async function getAverageScorePerSubject(): Promise<{ data: SubjectScore[
  */
 export async function getStudentProgressOverTime(days: number = 30): Promise<{ data: ProgressPoint[] }> {
     try {
-        const response = await apiRequest(`/api/admin/analytics/student-progress-over-time?days=${days}`);
+        const response = await apiRequest(`/api/admin/analytics/student-progress?days=${days}`);
         const items = response?.data || response || [];
 
         const data = (Array.isArray(items) ? items : []).map((item: any) => ({
@@ -207,7 +207,7 @@ export async function getImprovementPercentage(): Promise<{ data: ImprovementDat
  */
 export async function getTopicMasteryLevel(): Promise<{ data: TopicMastery[] }> {
     try {
-        const response = await apiRequest('/api/admin/analytics/topic-mastery-level');
+        const response = await apiRequest('/api/admin/analytics/topic-mastery');
         const items = response?.data || response || [];
 
         const data = (Array.isArray(items) ? items : []).map((item: any) => ({
@@ -230,7 +230,7 @@ export async function getTopicMasteryLevel(): Promise<{ data: TopicMastery[] }> 
  */
 export async function getContentAnalytics(): Promise<{ data: ContentAnalytics }> {
     try {
-        const response = await apiRequest('/api/admin/analytics/content-analytics');
+        const response = await apiRequest('/api/admin/analytics/content');
         const d = response?.data || response || {};
 
         return {

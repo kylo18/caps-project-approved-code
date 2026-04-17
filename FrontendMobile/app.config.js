@@ -7,7 +7,6 @@ export default {
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
     scheme: "caps",
-    newArchEnabled: false,
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",

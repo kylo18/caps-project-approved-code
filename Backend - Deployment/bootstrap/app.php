@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Middleware\HandleInertiaRequests;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Middleware\HandleCors;
 
@@ -26,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withExceptions(function (Exceptions $exceptions) {
+<<<<<<< HEAD
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
@@ -43,4 +46,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 422);
             }
         });
+=======
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->expectsJson() || $request->is('api/*') || str_starts_with($request->path(), 'support')) {
+                return response()->json([
+                    'message' => 'Unauthenticated',
+                ], 401);
+            }
+        });
+>>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
     })->create();

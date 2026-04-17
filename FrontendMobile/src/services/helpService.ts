@@ -17,7 +17,7 @@ export interface FAQ {
 export interface SupportTicketPayload {
     subject: string;
     message: string;
-    priority?: 'low' | 'medium' | 'high';
+    category?: string;
 }
 
 export interface AdminAnnouncementPayload {
@@ -25,6 +25,51 @@ export interface AdminAnnouncementPayload {
     title: string;
     message: string;
     targetRoles?: number[];
+}
+
+function normalizeFaqItem(item: any, fallbackCategory = 'General'): FAQ {
+    return {
+        id: item.id || item.faqID || item.faq_id,
+        question: item.question || item.q || '',
+        answer: item.answer || item.a || '',
+        category: item.category || item.category_name || fallbackCategory,
+        order: item.order ?? item.displayOrder ?? item.display_order ?? 0,
+    };
+}
+
+function normalizeFaqList(payload: any): FAQ[] {
+    if (Array.isArray(payload)) {
+        return payload.map((item) => normalizeFaqItem(item));
+    }
+
+    if (payload && typeof payload === 'object') {
+        return Object.entries(payload).flatMap(([category, items]) => {
+            if (!Array.isArray(items)) {
+                return [];
+            }
+
+            return items.map((item) => normalizeFaqItem(item, category));
+        });
+    }
+
+    return [];
+}
+
+function getRequestErrorMessage(error: any, fallbackMessage: string): string {
+    const data = error?.data || error?.response?.data;
+    const validationErrors = data?.errors;
+
+    if (validationErrors && typeof validationErrors === 'object') {
+        const firstEntry = Object.values(validationErrors).find((value) => Array.isArray(value) ? value.length > 0 : value);
+        if (Array.isArray(firstEntry) && firstEntry[0]) {
+            return String(firstEntry[0]);
+        }
+        if (typeof firstEntry === 'string') {
+            return firstEntry;
+        }
+    }
+
+    return data?.message || error?.message || fallbackMessage;
 }
 
 /**
@@ -80,17 +125,11 @@ const DEFAULT_FAQS: FAQ[] = [
  */
 export async function getFAQs(): Promise<{ data: FAQ[] }> {
     try {
-        const response = await apiRequest('/api/faqs');
-        const items = response?.data || response || [];
+        const response = await apiRequest('/api/support/faqs');
+        const items = normalizeFaqList(response?.data || response || []);
 
-        if (Array.isArray(items) && items.length > 0) {
-            const data = items.map((item: any) => ({
-                id: item.id || item.faqID || item.faq_id,
-                question: item.question || item.q || '',
-                answer: item.answer || item.a || '',
-                category: item.category || 'General',
-                order: item.order ?? item.displayOrder ?? 0,
-            }));
+        if (items.length > 0) {
+            const data = [...items];
 
             // Sort by order
             data.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -121,18 +160,22 @@ export async function submitSupportRequest(
             return { success: false, message: 'Please fill in all fields' };
         }
 
+        if (payload.message.trim().length < 10) {
+            return { success: false, message: 'Please enter at least 10 characters in your message' };
+        }
+
         // Role 1 = student, sends to support tickets
         // Other roles = staff/admin, sends as announcement
         const isStudent = !userRole || userRole === 1;
 
         if (isStudent) {
             // Student submits support ticket
-            await apiRequest('/api/support/tickets', {
+            await apiRequest('/api/support-tickets', {
                 method: 'POST',
                 body: {
                     subject: payload.subject.trim(),
                     message: payload.message.trim(),
-                    priority: payload.priority || 'medium',
+                    issue_type: payload.category || 'general',
                 },
             });
 
@@ -145,7 +188,7 @@ export async function submitSupportRequest(
                     type: 'system_announcement',
                     title: payload.subject.trim(),
                     message: payload.message.trim(),
-                    targetRoles: [],
+                    target_type: 'all',
                 },
             });
 
@@ -155,7 +198,7 @@ export async function submitSupportRequest(
         console.error('Failed to submit support request:', error);
         return {
             success: false,
-            message: error?.response?.data?.message || 'Failed to submit request. Please try again.',
+            message: getRequestErrorMessage(error, 'Failed to submit request. Please try again.'),
         };
     }
 }
@@ -165,11 +208,11 @@ export async function submitSupportRequest(
  */
 export async function getHelpCategories(): Promise<{ data: string[] }> {
     try {
-        const response = await apiRequest('/api/help/categories');
+        const response = await apiRequest('/api/support/categories');
         const items = response?.data || response || [];
 
         if (Array.isArray(items) && items.length > 0) {
-            return { data: items.map((c: any) => c.name || c.category || c) };
+            return { data: items.map((c: any) => c.name || c.subject || c.category || c) };
         }
 
         // Default categories
@@ -188,43 +231,14 @@ export async function getHelpCategories(): Promise<{ data: string[] }> {
  * Search FAQs by query
  */
 export async function searchFAQs(query: string): Promise<{ data: FAQ[] }> {
-    try {
-        const response = await apiRequest(`/api/faqs/search?q=${encodeURIComponent(query)}`);
-        const items = response?.data || response || [];
-
-        if (Array.isArray(items) && items.length > 0) {
-            return {
-                data: items.map((item: any) => ({
-                    id: item.id || item.faqID,
-                    question: item.question || '',
-                    answer: item.answer || '',
-                    category: item.category || 'General',
-                })),
-            };
-        }
-
-        // Fallback: filter default FAQs
-        const lowerQuery = query.toLowerCase();
-        const filtered = DEFAULT_FAQS.filter(
-            faq =>
-                faq.question.toLowerCase().includes(lowerQuery) ||
-                faq.answer.toLowerCase().includes(lowerQuery)
-        );
-
-        return { data: filtered };
-    } catch (error) {
-        console.error('Failed to search FAQs:', error);
-
-        // Fallback: filter default FAQs
-        const lowerQuery = query.toLowerCase();
-        const filtered = DEFAULT_FAQS.filter(
-            faq =>
-                faq.question.toLowerCase().includes(lowerQuery) ||
-                faq.answer.toLowerCase().includes(lowerQuery)
-        );
-
-        return { data: filtered };
-    }
+    // Local filtering only — backend search endpoint not available
+    const lowerQuery = query.toLowerCase();
+    const filtered = DEFAULT_FAQS.filter(
+        faq =>
+            faq.question.toLowerCase().includes(lowerQuery) ||
+            faq.answer.toLowerCase().includes(lowerQuery)
+    );
+    return { data: filtered };
 }
 
 /**

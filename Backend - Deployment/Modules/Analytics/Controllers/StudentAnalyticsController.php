@@ -66,14 +66,14 @@ class StudentAnalyticsController extends Controller
                 $weakestTopic = null;
             }
 
-            // Count frequently mistaken questions (answered incorrectly 2+ times)
+            // Count frequently mistaken questions (answered incorrectly 3+ times)
             try {
                 $frequentlyMistaken = DB::table('practice_exam_answers')
                     ->where('user_id', $user->userID)
                     ->where('is_correct', 0)
                     ->select('question_id', DB::raw('COUNT(*) as wrong_count'))
                     ->groupBy('question_id')
-                    ->having('wrong_count', '>=', 2)
+                    ->having('wrong_count', '>=', 3)
                     ->get();
                 $frequentlyMistakenCount = $frequentlyMistaken->count();
             } catch (\Exception $e) {
@@ -348,11 +348,99 @@ class StudentAnalyticsController extends Controller
     }
 
     /**
-     * Helper: Format seconds into readable time string.
-     * 
-     * @param int $seconds Time in seconds
-     * @return string Formatted time (e.g., "5m 30s")
+     * Get frequently mistaken questions (answered incorrectly 3+ times).
+     *
+     * Returns full question data with wrong count for review.
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
+    public function getFrequentlyMistaken(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            if ($user->roleID !== 1) {
+                return response()->json(['message' => 'Unauthorized. Student access only.'], 403);
+            }
+
+            $mistaken = DB::table('practice_exam_answers')
+                ->where('practice_exam_answers.user_id', $user->userID)
+                ->where('practice_exam_answers.is_correct', 0)
+                ->select('practice_exam_answers.question_id', DB::raw('COUNT(*) as wrong_count'))
+                ->groupBy('practice_exam_answers.question_id')
+                ->having('wrong_count', '>=', 3)
+                ->orderByDesc('wrong_count')
+                ->get();
+
+            if ($mistaken->isEmpty()) {
+                return response()->json([
+                    'message' => 'No frequently mistaken questions found',
+                    'data' => [],
+                ], 200);
+            }
+
+            $questionIds = $mistaken->pluck('question_id')->toArray();
+
+            $questions = DB::table('questions')
+                ->whereIn('questions.questionID', $questionIds)
+                ->leftJoin('subjects', 'questions.subjectID', '=', 'subjects.subjectID')
+                ->select(
+                    'questions.questionID',
+                    'questions.questionText',
+                    'questions.image as questionImage',
+                    'questions.subjectID',
+                    'subjects.subjectName'
+                )
+                ->get()
+                ->keyBy('questionID');
+
+            $choices = DB::table('choices')
+                ->whereIn('questionID', $questionIds)
+                ->select('choiceID', 'questionID', 'choiceText', 'choiceImage', 'isCorrect')
+                ->orderBy('position', 'asc')
+                ->get()
+                ->groupBy('questionID');
+
+            $data = [];
+            foreach ($mistaken as $row) {
+                $question = $questions[$row->question_id] ?? null;
+                if (!$question) {
+                    continue;
+                }
+
+                $questionChoices = $choices[$row->question_id] ?? collect([]);
+
+                $data[] = [
+                    'questionID' => $question->questionID,
+                    'questionText' => $question->questionText,
+                    'questionImage' => $question->questionImage,
+                    'subjectID' => $question->subjectID,
+                    'subjectName' => $question->subjectName,
+                    'wrong_count' => (int) $row->wrong_count,
+                    'choices' => $questionChoices->map(function ($c) {
+                        return [
+                            'choiceID' => $c->choiceID,
+                            'choiceText' => $c->choiceText,
+                            'choiceImage' => $c->choiceImage,
+                            'isCorrect' => (bool) $c->isCorrect,
+                        ];
+                    })->values()->all(),
+                ];
+            }
+
+            return response()->json([
+                'message' => 'Frequently mistaken questions retrieved',
+                'data' => $data,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Frequently mistaken questions error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error retrieving frequently mistaken questions',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     private function formatTime($seconds)
     {
         if ($seconds < 60) {

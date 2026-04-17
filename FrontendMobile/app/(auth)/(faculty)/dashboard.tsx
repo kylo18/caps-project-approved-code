@@ -46,14 +46,33 @@ export default function FacultyDashboard() {
     try {
       // Fetch subjects assigned to this faculty member
       const subjectsRes = await apiRequest('/api/subjects');
-      const subjectList = subjectsRes?.data || subjectsRes || [];
+      const subjectList = subjectsRes?.subjects || subjectsRes?.data || subjectsRes || [];
       setSubjects(Array.isArray(subjectList) ? subjectList : []);
 
-      // Calculate stats from subjects
+      // Fetch real analytics data
+      let avgScore = 0;
+      let totalStudents = 0;
+      let totalQuizzes = 0;
+      try {
+        const [summaryRes, myStudentsRes] = await Promise.allSettled([
+          apiRequest('/api/admin/analytics/summary'),
+          apiRequest('/api/my-students'),
+        ]);
+        const summary = summaryRes.status === 'fulfilled' ? (summaryRes.value?.data || summaryRes.value || {}) : {};
+        avgScore = Math.round(Number(summary.average_score ?? 0));
+        totalQuizzes = Number(summary.total_exams ?? 0);
+
+        const myStudents = myStudentsRes.status === 'fulfilled' ? (myStudentsRes.value?.data || myStudentsRes.value || []) : [];
+        totalStudents = Array.isArray(myStudents) ? myStudents.length : Number(summary.active_students ?? 0);
+      } catch (analyticsError) {
+        console.error('Error fetching faculty analytics:', analyticsError);
+        totalQuizzes = subjectList.length * 2;
+      }
+
       setStats({
-        totalStudents: 45, // Placeholder - would come from API
-        totalQuizzes: subjectList.length * 2,
-        avgScore: 78,
+        totalStudents,
+        totalQuizzes,
+        avgScore,
       });
     } catch (error) {
       console.error('Error fetching faculty data:', error);
@@ -121,7 +140,11 @@ export default function FacultyDashboard() {
 
         {/* Stats Row */}
         <View className="flex-row gap-3">
-          <View className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push('/(auth)/(faculty)/users?filter=student')}
+            className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+          >
             <View className="w-12 h-12 rounded-2xl items-center justify-center bg-orange-100 mb-2">
               <Ionicons name="people" size={24} color="#FE6902" />
             </View>
@@ -131,8 +154,12 @@ export default function FacultyDashboard() {
             <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
               Students
             </Text>
-          </View>
-          <View className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push('/(auth)/(faculty)/subjects')}
+            className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+          >
             <View className="w-12 h-12 rounded-2xl items-center justify-center bg-blue-100 mb-2">
               <Ionicons name="book" size={24} color="#3B82F6" />
             </View>
@@ -142,8 +169,12 @@ export default function FacultyDashboard() {
             <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
               Subjects
             </Text>
-          </View>
-          <View className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push('/(auth)/(faculty)/subjects')}
+            className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+          >
             <View className="w-12 h-12 rounded-2xl items-center justify-center bg-green-100 mb-2">
               <Ionicons name="clipboard" size={24} color="#10B981" />
             </View>
@@ -153,7 +184,7 @@ export default function FacultyDashboard() {
             <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
               Quizzes
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Average Score Card */}

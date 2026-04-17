@@ -9,7 +9,7 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, TextInput, RefreshControl, Alert, Animated, Modal, ScrollView
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
@@ -22,6 +22,7 @@ const STUDENT_ROLE = 1;
 
 export default function ProgramChairUsersScreen() {
   const router = useRouter();
+  const { filter } = useLocalSearchParams<{ filter?: string }>();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -48,6 +49,11 @@ export default function ProgramChairUsersScreen() {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    if (filter === 'student') setActiveRoleFilter('student');
+    else if (filter === 'admin') setActiveRoleFilter('admin');
+  }, [filter]);
 
   useEffect(() => {
     applyFilters();

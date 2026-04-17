@@ -5,6 +5,8 @@
 
 import { apiRequest } from './apiClient';
 
+export const SUPPORT_TICKET_RESPONSES_SUPPORTED = false;
+
 // Types
 export interface SupportTicket {
     ticketID: number;
@@ -69,13 +71,14 @@ const API_TO_UI_STATUS = {
  * Normalize ticket data from API response
  */
 function normalizeTicket(item: any): SupportTicket {
+    const student = item.student || {};
     return {
         ticketID: item.ticketID || item.id || item.ticket_id,
-        studentID: item.studentID || item.student_id,
-        studentName: item.studentName || item.student_name || `${item.firstName || ''} ${item.lastName || ''}`.trim(),
-        studentEmail: item.studentEmail || item.email,
+        studentID: item.studentID || item.student_id || item.user_id,
+        studentName: item.studentName || item.student_name || `${student.firstName || item.firstName || ''} ${student.lastName || item.lastName || ''}`.trim(),
+        studentEmail: item.studentEmail || student.email || item.email,
         subject: item.subject || 'No Subject',
-        message: item.message || '',
+        message: item.message || item.description || '',
         status: API_TO_UI_STATUS[item.status as keyof typeof API_TO_UI_STATUS] || 'pending',
         priority: item.priority || 'medium',
         created_at: item.created_at || item.createdAt || '',
@@ -136,7 +139,8 @@ export async function getSupportTicketById(ticketID: number): Promise<{ data: Su
         return { data };
     } catch (error) {
         console.error('Failed to get support ticket:', error);
-        return { data: null };
+        const { data } = await getSupportTickets();
+        return { data: data.find((ticket) => ticket.ticketID === ticketID) || null };
     }
 }
 
@@ -212,29 +216,7 @@ export async function addTicketResponse(
     ticketID: number,
     message: string
 ): Promise<{ success: boolean; data?: TicketResponse }> {
-    try {
-        const response = await apiRequest(`/api/admin/support/tickets/${ticketID}/respond`, {
-            method: 'POST',
-            body: { message },
-        });
-
-        const item = response?.data || response;
-
-        return {
-            success: true,
-            data: {
-                responseID: item.responseID || item.id,
-                ticketID,
-                adminID: item.adminID || item.admin_id,
-                adminName: item.adminName || item.admin_name,
-                message: item.message || message,
-                created_at: item.created_at || new Date().toISOString(),
-            },
-        };
-    } catch (error) {
-        console.error('Failed to add ticket response:', error);
-        return { success: false };
-    }
+    return { success: false };
 }
 
 /**

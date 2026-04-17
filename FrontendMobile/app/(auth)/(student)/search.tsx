@@ -79,7 +79,7 @@ export default function StudentSearchScreen() {
           subjectName: data.subjectName || subject.subjectName,
           totalItems: data.questions.length,
           totalPoints: data.totalPoints || data.questions.length,
-          enableTimer: data.enableTimer?.toString() || 'false',
+          enableTimer: Boolean(data.enableTimer).toString(),
           durationMinutes: data.durationMinutes?.toString() || '60',
         },
       });

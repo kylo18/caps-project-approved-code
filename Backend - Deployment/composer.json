@@ -86,7 +86,11 @@
             "wikimedia/composer-merge-plugin": true
         },
         "platform": {
+<<<<<<< HEAD
             "php": "8.2.*"
+=======
+            "php": "8.2"
+>>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
         }
     },
     "minimum-stability": "stable",

@@ -69,6 +69,7 @@ class DatabaseSeeder extends Seeder
             
             // 6. Practice exams (needs users and subjects)
             \Modules\PracticeExams\Database\Seeders\LeaderboardDummyDataSeeder::class,
+            \Database\Seeders\DemoLeaderboardSeeder::class,
             
             // 7. Personal Exams (Quiz Types)
             \Modules\PersonalExams\Database\Seeders\QuizTypeSeeder::class,
@@ -81,17 +82,17 @@ class DatabaseSeeder extends Seeder
             \Modules\Analytics\Database\Seeders\AnalyticsSeeder::class,
             \Modules\Support\Database\Seeders\SupportSeeder::class,
             \Modules\Notifications\Database\Seeders\NotificationSeeder::class,
-            
-            // 10. Feature tables from database/migrations
-            \Database\Seeders\FeatureTablesSeeder::class,
 
-            // 8. Lessons (needs subjects first)
+            // 10. Lessons (needs subjects first)
             \Database\Seeders\LessonSeeder::class,
 
-            // 9. Analytics test data (provides sample exam analytics)
+            // 11. Feature tables from database/migrations
+            \Database\Seeders\FeatureTablesSeeder::class,
+
+            // 12. Analytics test data (provides sample exam analytics)
             \Database\Seeders\AnalyticsTestSeeder::class,
 
-            // 10. Populate empty tables (classes, quizzes, student records, etc.)
+            // 13. Populate empty tables (classes, quizzes, student records, etc.)
             \Database\Seeders\PopulateEmptyTablesSeeder::class,
         ];
 

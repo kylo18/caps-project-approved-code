@@ -102,3 +102,14 @@ export async function getLearningInsights() {
     };
   }
 }
+
+export async function getFrequentlyMistakenQuestions() {
+  try {
+    const response = await apiRequest('/api/student/analytics/frequently-mistaken');
+    const data = response?.data || [];
+    return { data: Array.isArray(data) ? data : [] };
+  } catch (error) {
+    console.error('Failed to get frequently mistaken questions:', error);
+    return { data: [] };
+  }
+}

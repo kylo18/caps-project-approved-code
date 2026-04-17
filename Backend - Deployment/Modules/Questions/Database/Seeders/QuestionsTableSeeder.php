@@ -15,7 +15,7 @@ class QuestionsTableSeeder extends Seeder
     private function addQuestion($subjectID, $question, $correct, $wrong1, $wrong2, $wrong3, $difficulty, $topic, $userId, $approvedBy, $coverageId, $statusId, $purposeId) {
         // Randomize coverage between midterm (1) and finals (2) if not specified
         $coverage = is_array($coverageId) ? $coverageId[array_rand($coverageId)] : $coverageId;
-
+        
         $qId = DB::table('questions')->insertGetId([
             'subjectID'     => $subjectID,
             'userID'        => $userId,
@@ -133,7 +133,7 @@ class QuestionsTableSeeder extends Seeder
                 ['Which data structure uses LIFO?', 'Stack', 'Queue', 'Linked List', 'Tree', $easy, 'Data Structures'],
                 ['What is the worst-case time complexity of QuickSort?', 'O(n²)', 'O(n log n)', 'O(n)', 'O(log n)', $hard, 'Sorting'],
                 ['What does BFS use for traversal?', 'Queue', 'Stack', 'Priority Queue', 'Hash Table', $medium, 'Graph Algorithms'],
-                ['What is a binary search tree?', 'A tree where left child < parent < right child', 'A tree with at most 3 children per node', 'An unsorted tree', 'A tree with no duplicates', $easy, 'Trees'],
+                ['What is a binary search tree?', 'A tree where left child < parent < right child', 'A tree with at most 3 children per node', 'An unsorted tree', 'A tree with no duplicates allowed', $medium, 'Trees'],
                 ['What is the space complexity of DFS?', 'O(h) where h is the height', 'O(n)', 'O(1)', 'O(log n)', $hard, 'Graph Algorithms'],
                 ['Which sorting algorithm is stable?', 'Merge Sort', 'Quick Sort', 'Selection Sort', 'Heap Sort', $hard, 'Sorting'],
                 ['What is a hash collision?', 'Two keys producing the same hash value', 'A hash table running out of memory', 'A deleted key', 'A null hash function', $medium, 'Hash Tables'],
@@ -228,7 +228,7 @@ class QuestionsTableSeeder extends Seeder
                 ['What is ETL?', 'Extract, Transform, Load', 'Encrypt, Transfer, Log', 'Execute, Test, Launch', 'Edit, Test, List', $medium, 'Fundamentals'],
                 ['What is a tuple?', 'A row in a table', 'A column', 'A table', 'A database', $easy, 'Relational Model'],
                 ['What does UNION do?', 'Combines results of two queries, removing duplicates', 'Joins two tables', 'Deletes rows', 'Creates a view', $medium, 'SQL Queries'],
-                ['What is a many-to-one relationship?', 'Multiple records in one table relate to one in another', 'One relates to one', 'Many relates to many', 'No relationship', $medium, 'ER Modeling'],
+                ['What is a many-to-one relationship?', 'Multiple records in one table relate to one in another', 'One relates to one', 'Many relate to many', 'No relationship', $medium, 'ER Modeling'],
                 ['What is a rollback?', 'Undoing changes made by a transaction', 'Committing changes', 'Creating a table', 'Deleting a view', $easy, 'Transactions'],
                 ['What is a relation in DBMS?', 'A table', 'A row', 'A column', 'An index', $easy, 'Relational Model'],
             ],

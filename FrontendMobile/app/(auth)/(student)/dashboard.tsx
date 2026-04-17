@@ -126,7 +126,7 @@ export default function StudentDashboard() {
             : 'Keep building your momentum',
         detail: 'Revisit the questions that still need attention and tighten your weak spots.',
         icon: 'sparkles',
-        actionLabel: 'View Insights',
+        actionLabel: 'Review Now',
       },
       {
         key: 'average',
@@ -234,7 +234,7 @@ export default function StudentDashboard() {
           subjectName: data.subjectName || subject.subjectName,
           totalItems: data.questions.length,
           totalPoints: data.totalPoints || data.questions.length,
-          enableTimer: data.enableTimer?.toString() || 'false',
+          enableTimer: Boolean(data.enableTimer).toString(),
           durationMinutes: data.durationMinutes?.toString() || '60',
         },
       });
@@ -424,7 +424,13 @@ export default function StudentDashboard() {
                   <Pressable
                     className="flex-row items-center gap-2 rounded-full px-4 py-[11px]"
                     style={{ backgroundColor: studentColors.white }}
-                    onPress={() => router.push('/(auth)/(student)/insights')}
+                    onPress={() => {
+                      if (slide.key === 'featured') {
+                        router.push('/(auth)/(student)/frequently-mistaken');
+                      } else {
+                        router.push('/(auth)/(student)/insights');
+                      }
+                    }}
                   >
                     <Ionicons name="arrow-forward-circle-outline" size={18} color={studentColors.orange} />
                     <Text className="text-sm font-bold" style={{ color: studentColors.orange }}>
@@ -555,7 +561,7 @@ export default function StudentDashboard() {
           style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
           onPress={() => setShowProfileMenu(false)}
         >
-          <Pressable activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
             <View
               className="mx-4 rounded-2xl p-4"
               style={{ backgroundColor: studentColors.orange }}
@@ -583,6 +589,14 @@ export default function StudentDashboard() {
               >
                 <Ionicons name="person" size={20} color="#fff" />
                 <Text className="text-[15px] font-medium text-white">Edit Profile</Text>
+              </Pressable>
+
+              <Pressable
+                className="flex-row items-center gap-3 py-3"
+                onPress={() => { setShowProfileMenu(false); router.push('/(auth)/(student)/bookmarks'); }}
+              >
+                <Ionicons name="bookmark" size={20} color="#fff" />
+                <Text className="text-[15px] font-medium text-white">My Bookmarks</Text>
               </Pressable>
 
               <Pressable

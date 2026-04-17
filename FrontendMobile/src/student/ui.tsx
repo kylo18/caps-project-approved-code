@@ -1,5 +1,4 @@
-import { FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import {
   Modal,
@@ -407,26 +406,37 @@ export function StudentLeaderboardRow({
 }
 
 export function StudentLeaderboardPodium({ topThree }: StudentLeaderboardPodiumProps) {
-  // Ordered left-to-right on screen: 2nd place, 1st place (center, tallest), 3rd place.
   const ordered = useMemo(
     () => [
       {
         place: 2,
         entry: topThree[1],
-        height: 100,
-        colors: ['#FF9A3D', '#FFC164'] as const,
+        height: 92,
+        width: 58,
+        avatarSize: 54,
+        avatarColor: '#F7D6F3',
+        barColor: '#BFC0C8',
+        topColor: '#D7D8DE',
       },
       {
         place: 1,
         entry: topThree[0],
-        height: 130,
-        colors: ['#FF7A00', '#FFB84D'] as const,
+        height: 122,
+        width: 74,
+        avatarSize: 68,
+        avatarColor: '#FFE47A',
+        barColor: '#FFD52F',
+        topColor: '#FFE985',
       },
       {
         place: 3,
         entry: topThree[2],
         height: 82,
-        colors: ['#FF9A3D', '#FFC164'] as const,
+        width: 58,
+        avatarSize: 54,
+        avatarColor: '#D9E0FF',
+        barColor: '#D89548',
+        topColor: '#E5AB66',
       },
     ],
     [topThree]
@@ -434,44 +444,53 @@ export function StudentLeaderboardPodium({ topThree }: StudentLeaderboardPodiumP
 
   return (
     <View style={styles.podiumWrap}>
-      {ordered.map(({ place, entry, height, colors }) => (
+      {ordered.map(({ place, entry, height, width, avatarSize, avatarColor, barColor, topColor }) => (
         <View key={place} style={styles.podiumColumn}>
-          {place === 1 ? (
-            <View style={styles.podiumAvatarWrap}>
-              <FontAwesome5
-                name="crown"
-                size={34}
-                color="#FFD45C"
-                style={styles.podiumCrown}
-              />
-              <StudentAvatar
-                label={entry?.name ?? `${place}`}
-                size={62}
-                index={place}
-                style={styles.podiumAvatar}
-              />
-            </View>
-          ) : (
+          <View style={[styles.podiumAvatarDock, place === 1 ? styles.podiumAvatarDockCenter : null]}>
             <StudentAvatar
               label={entry?.name ?? `${place}`}
-              size={52}
+              size={avatarSize}
               index={place}
-              style={styles.podiumAvatar}
+              style={[styles.podiumAvatar, { backgroundColor: avatarColor }]}
             />
-          )}
-          <LinearGradient
-            colors={colors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.podiumBar, { height }]}
-          >
-            <Text style={styles.podiumBarText}>{place}</Text>
-          </LinearGradient>
+          </View>
+          <View style={[styles.podiumPedestal, { width, height }]}>
+            <View
+              style={[
+                styles.podiumTopShadow,
+                {
+                  width: width + 6,
+                  top: 4,
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.podiumTopSurface,
+                {
+                  width,
+                  backgroundColor: topColor,
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.podiumBar,
+                {
+                  width,
+                  height: height - 10,
+                  backgroundColor: barColor,
+                },
+              ]}
+            >
+              <Text style={styles.podiumBarText}>{place}</Text>
+            </View>
+          </View>
           <Text numberOfLines={1} style={styles.podiumName}>
             {entry?.firstName ?? entry?.name ?? `#${place}`}
           </Text>
           <Text style={styles.podiumPoints}>
-            {entry ? `${Math.round(entry.highestPercentage ?? 0)}%` : '--'}
+            {entry ? `${Math.round(entry.points ?? entry.score ?? 0)} pts` : '--'}
           </Text>
         </View>
       ))}
@@ -851,32 +870,49 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  podiumAvatarWrap: {
+  podiumAvatarDock: {
+    height: 74,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
+    justifyContent: 'flex-end',
+    marginBottom: 8,
   },
-  podiumCrown: {
-    position: 'absolute',
-    top: -18,
-    zIndex: -1,
-    opacity: 0.95,
+  podiumAvatarDockCenter: {
+    height: 88,
   },
   podiumAvatar: {
     borderWidth: 3,
     borderColor: studentColors.white,
+    ...studentShadow,
+  },
+  podiumPedestal: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  podiumTopShadow: {
+    position: 'absolute',
+    top: 0,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(12,9,42,0.14)',
+  },
+  podiumTopSurface: {
+    position: 'absolute',
+    top: 0,
+    height: 12,
+    borderRadius: 999,
   },
   podiumBar: {
-    width: '100%',
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
   podiumBarText: {
     color: studentColors.white,
     fontFamily: 'Rubik',
-    fontSize: 48,
+    fontSize: 42,
     fontWeight: '700',
   },
   podiumName: {
@@ -885,15 +921,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 20,
-    marginTop: 10,
-    maxWidth: 84,
+    marginTop: 12,
+    maxWidth: 88,
     textAlign: 'center',
   },
   podiumPoints: {
     color: 'rgba(255,255,255,0.9)',
     fontFamily: 'Rubik',
     fontSize: 12,
-    fontWeight: '400',
+    fontWeight: '500',
     lineHeight: 18,
   },
   tabBarWrap: {

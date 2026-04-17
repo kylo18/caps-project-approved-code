@@ -56,7 +56,7 @@ export default function ProgramChairDashboard() {
     try {
       // Fetch subjects for this program
       const subjectsRes = await apiRequest('/api/subjects');
-      const subjectList = subjectsRes?.data || subjectsRes || [];
+      const subjectList = subjectsRes?.subjects || subjectsRes?.data || subjectsRes || [];
       setSubjects(Array.isArray(subjectList) ? subjectList : []);
 
       // Fetch users count (faculty and students)
@@ -66,13 +66,31 @@ export default function ProgramChairDashboard() {
       const facultyCount = Array.isArray(users) ? users.filter((u: any) => [2, 3, 4, 5].includes(u.roleID)).length : 0;
       const studentCount = Array.isArray(users) ? users.filter((u: any) => u.roleID === 1).length : 0;
 
+      // Fetch real analytics data
+      let avgScore = 0;
+      let passRate = 0;
+      let activeQuizzes = 0;
+      try {
+        const [summaryRes, passFailRes] = await Promise.all([
+          apiRequest('/api/admin/analytics/summary'),
+          apiRequest('/api/admin/analytics/pass-fail-rate'),
+        ]);
+        const summary = summaryRes?.data || summaryRes || {};
+        const passFail = passFailRes?.data || passFailRes || {};
+        avgScore = Math.round(Number(summary.average_score ?? 0));
+        passRate = Math.round(Number(passFail.pass_rate ?? 0));
+        activeQuizzes = Number(summary.total_exams ?? 0);
+      } catch (analyticsError) {
+        console.error('Error fetching analytics:', analyticsError);
+      }
+
       setStats({
         totalStudents: studentCount,
         totalFaculty: facultyCount,
         totalSubjects: subjectList.length,
-        avgScore: 76,
-        passRate: 82,
-        activeQuizzes: subjectList.length * 3,
+        avgScore,
+        passRate,
+        activeQuizzes,
       });
     } catch (error) {
       console.error('Error fetching program chair data:', error);
@@ -96,10 +114,10 @@ export default function ProgramChairDashboard() {
   };
 
   const statCards = [
-    { icon: 'people' as const, value: stats.totalStudents, label: 'Students', color: '#3B82F6' },
-    { icon: 'person' as const, value: stats.totalFaculty, label: 'Faculty', color: '#8B5CF6' },
-    { icon: 'book' as const, value: stats.totalSubjects, label: 'Subjects', color: '#FE6902' },
-    { icon: 'clipboard' as const, value: stats.activeQuizzes, label: 'Quizzes', color: '#10B981' },
+    { icon: 'people' as const, value: stats.totalStudents, label: 'Students', color: '#3B82F6', route: '/(auth)/(program-chair)/users?filter=student' },
+    { icon: 'person' as const, value: stats.totalFaculty, label: 'Faculty', color: '#8B5CF6', route: '/(auth)/(program-chair)/users?filter=admin' },
+    { icon: 'book' as const, value: stats.totalSubjects, label: 'Subjects', color: '#FE6902', route: '/(auth)/(program-chair)/subjects' },
+    { icon: 'clipboard' as const, value: stats.activeQuizzes, label: 'Quizzes', color: '#10B981', route: '/(auth)/(program-chair)/subjects' },
   ];
 
   if (isLoading) {
@@ -141,8 +159,10 @@ export default function ProgramChairDashboard() {
         {/* Stats Grid */}
         <View className="flex-row flex-wrap gap-3">
           {statCards.map((stat, idx) => (
-            <View
+            <TouchableOpacity
               key={idx}
+              activeOpacity={0.7}
+              onPress={() => stat.route && router.push(stat.route as any)}
               className={`rounded-2xl p-3 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
               style={{ width: CARD_WIDTH }}
             >
@@ -158,7 +178,7 @@ export default function ProgramChairDashboard() {
               <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 {stat.label}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -256,10 +276,23 @@ export default function ProgramChairDashboard() {
           </TouchableOpacity>
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            onPress={() => router.push('/(auth)/practice-exam/add-question')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="create" size={28} color="#10B981" />
+            <Text className={`font-semibold mt-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Create Quiz
+            </Text>
+            <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Add new questions
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
             onPress={() => router.push('/(auth)/(program-chair)/subjects')}
             activeOpacity={0.7}
           >
-            <Ionicons name="document-text" size={28} color="#10B981" />
+            <Ionicons name="document-text" size={28} color="#8B5CF6" />
             <Text className={`font-semibold mt-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               Generate Reports
             </Text>

@@ -24,12 +24,9 @@ class UsersTableSeeder extends Seeder
 
             $registeredStatusId = $status->id;
 
-            /*
-             * ============================
-             * DEFAULT USERS (UNCHANGED)
-             * ============================
-             */
+            // Insert initial users
             $users = [
+                // Original users
                 [
                     'userCode' => '23-A-02087',
                     'firstName' => 'Kent',
@@ -42,6 +39,7 @@ class UsersTableSeeder extends Seeder
                     'status_id' => $registeredStatusId,
                     'programID' => 4
                 ],
+                // Dean
                 [
                     'userCode' => '23-A-12345',
                     'firstName' => 'Gillert',
@@ -54,6 +52,7 @@ class UsersTableSeeder extends Seeder
                     'status_id' => 4,
                     'programID' => 4
                 ],
+                // Program Chairs
                 [
                     'userCode' => '23-A-12346',
                     'firstName' => 'Troy',
@@ -114,6 +113,7 @@ class UsersTableSeeder extends Seeder
                     'status_id' => $registeredStatusId,
                     'programID' => 5
                 ],
+                // Faculty
                 [
                     'userCode' => '23-A-12347',
                     'firstName' => 'Ryann',
@@ -179,53 +179,68 @@ class UsersTableSeeder extends Seeder
             // Insert initial users (ignore duplicates for idempotency)
             DB::table('users')->insertOrIgnore($users);
 
-            /**
-             * ============================
-             * ADDITIONAL USERS (50 ONLY)
-             * ============================
-             */
-            $roles = [2, 3, 4];
+            // Add 5000 more users
+            $roles = [2, 3, 4]; // Faculty, Program Chair, Dean
             $campuses = [1, 2];
             $programs = [1, 2, 3, 4, 5];
-            $firstNames = ['James', 'John', 'Robert', 'Michael', 'William'];
-            $lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones'];
+            $lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
+            $firstNames = ['James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Charles'];
 
-            $chunkSize = 25;
-            $totalUsers = 50;
+            // Generate and insert bulk users in smaller chunks
+            $chunkSize = 100; // Smaller chunk size for better memory management
+            $totalUsers = 5000;
             $bulkUsers = [];
 
             for ($i = 1; $i <= $totalUsers; $i++) {
-                $userCode = "23-A-" . str_pad($i + 20000, 5, '0', STR_PAD_LEFT);
-
+                $year = 23;
+                $campus = 'A';
+                $number = str_pad($i + 10000, 5, '0', STR_PAD_LEFT);
+                $userCode = "{$year}-{$campus}-{$number}";
+                
                 $firstName = $firstNames[array_rand($firstNames)];
                 $lastName = $lastNames[array_rand($lastNames)];
-
+                $email = strtolower($firstName . '.' . $lastName . $i . '@university.edu');
+                
                 $bulkUsers[] = [
                     'userCode' => $userCode,
                     'firstName' => $firstName,
                     'lastName' => $lastName,
-                    'email' => strtolower("{$firstName}.{$lastName}{$i}@university.edu"),
+                    'email' => $email,
                     'password' => Hash::make('12345678'),
                     'roleID' => $roles[array_rand($roles)],
                     'campusID' => $campuses[array_rand($campuses)],
                     'isActive' => true,
                     'status_id' => $registeredStatusId,
-                    'programID' => $programs[array_rand($programs)],
+                    'programID' => $programs[array_rand($programs)]
                 ];
 
+                // Insert in chunks with separate transactions
                 if (count($bulkUsers) >= $chunkSize) {
-                    DB::table('users')->insert($bulkUsers);
-                    $bulkUsers = [];
+                    DB::beginTransaction();
+                    try {
+                        DB::table('users')->insertOrIgnore($bulkUsers);
+                        DB::commit();
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        Log::error('Error inserting chunk: ' . $e->getMessage());
+                        throw $e;
+                    }
+                    $bulkUsers = []; // Clear the array
                 }
             }
 
+            // Insert any remaining users
             if (!empty($bulkUsers)) {
-                DB::table('users')->insert($bulkUsers);
+                DB::beginTransaction();
+                try {
+                    DB::table('users')->insertOrIgnore($bulkUsers);
+                    DB::commit();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    Log::error('Error inserting final chunk: ' . $e->getMessage());
+                    throw $e;
+                }
             }
-
-            $this->command->info(
-                'Successfully seeded ' . (count($users) + $totalUsers) . ' users!'
-            );
 
             $this->command->info("Successfully seeded " . (count($users) + $totalUsers) . " users!");
             DB::commit();

@@ -17,10 +17,19 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
   const [activeTab, setActiveTab] = useState(isStudent ? 'faq' : 'announcement');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [category, setCategory] = useState('general');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [isLoadingFaqs, setIsLoadingFaqs] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  const supportCategories = [
+    { key: 'general', label: 'General' },
+    { key: 'technical', label: 'Technical' },
+    { key: 'account', label: 'Account' },
+    { key: 'academic', label: 'Academic' },
+    { key: 'other', label: 'Other' },
+  ];
 
   useEffect(() => {
     if (visible && isStudent) {
@@ -33,6 +42,7 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
       setActiveTab(isStudent ? 'faq' : 'announcement');
       setSubject('');
       setMessage('');
+      setCategory('general');
       setExpandedFaq(null);
     }
   }, [visible, isStudent]);
@@ -54,10 +64,14 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
       showToast('Please fill in all fields', 'error');
       return;
     }
+    if (message.trim().length < 10) {
+      showToast('Please enter at least 10 characters in your message', 'error');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const result = await submitSupportRequest(
-        { subject: subject.trim(), message: message.trim(), priority: 'medium' },
+        { subject: subject.trim(), message: message.trim(), category },
         userRole
       );
       if (result.success) {
@@ -146,6 +160,30 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
                 </ScrollView>
               ) : (
                 <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 20 }}>
+                  <Text style={[styles.formLabel, { color: colors.text }]}>Category</Text>
+                  <View style={styles.categoryRow}>
+                    {supportCategories.map((cat) => (
+                      <TouchableOpacity
+                        key={cat.key}
+                        style={[
+                          styles.categoryChip,
+                          category === cat.key && { backgroundColor: colors.orange, borderColor: colors.orange },
+                        ]}
+                        onPress={() => setCategory(cat.key)}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[
+                            styles.categoryChipText,
+                            { color: category === cat.key ? '#fff' : colors.textSecondary },
+                          ]}
+                        >
+                          {cat.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
                   <Text style={[styles.formLabel, { color: colors.text }]}>Subject</Text>
                   <TextInput
                     style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
@@ -233,6 +271,9 @@ const styles = StyleSheet.create({
   formLabel: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 12 },
   input: { borderWidth: 1, borderRadius: 10, padding: 10, fontSize: 15 },
   messageInput: { borderWidth: 1, borderRadius: 10, padding: 10, fontSize: 15, minHeight: 100 },
+  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  categoryChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#fff' },
+  categoryChipText: { fontSize: 13, fontWeight: '600' },
   submitBtn: { backgroundColor: '#FE6902', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 16 },
   submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

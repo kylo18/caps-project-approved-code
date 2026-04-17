@@ -29,6 +29,7 @@ import apiClient from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import QuestionListModal from '../../../src/components/QuestionListModal';
+import { addBookmark, removeBookmark } from '../../../src/services/studentBookmarkService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -66,6 +67,13 @@ export default function PracticeExamScreen() {
   useEffect(() => {
     fetchExamQuestions();
   }, []);
+
+  // Sync global bookmarks after questions load
+  useEffect(() => {
+    if (questions.length > 0) {
+      syncGlobalBookmarks();
+    }
+  }, [questions.length]);
 
   const fetchExamQuestions = async () => {
     try {
@@ -131,6 +139,21 @@ export default function PracticeExamScreen() {
     }
   };
 
+  // Sync per-exam bookmarks with global bookmarks when questions load
+  const syncGlobalBookmarks = async () => {
+    try {
+      const { getBookmarks } = await import('../../../src/services/studentBookmarkService');
+      const globalBookmarks = await getBookmarks();
+      const globalIds = globalBookmarks.map((b) => String(b.questionID));
+      setBookmarkedQuestions((prev) => {
+        const merged = Array.from(new Set([...prev, ...globalIds]));
+        return merged;
+      });
+    } catch (error) {
+      console.error('Failed to sync global bookmarks:', error);
+    }
+  };
+
   const saveState = async () => {
     try {
       await AsyncStorage.setItem(`${examKey}_answers`, JSON.stringify(answers));
@@ -148,6 +171,8 @@ export default function PracticeExamScreen() {
       await AsyncStorage.removeItem(`${examKey}_answers`);
       await AsyncStorage.removeItem(`${examKey}_bookmarks`);
       await AsyncStorage.removeItem(`${examKey}_timer`);
+      // NOTE: global bookmarks (student_bookmarks) are intentionally NOT cleared
+      // so students can review them later.
     } catch (error) {
       console.error('Failed to clear exam data:', error);
     }
@@ -175,10 +200,31 @@ export default function PracticeExamScreen() {
     });
   };
 
-  const handleToggleBookmark = (questionID: string) => {
+  const handleToggleBookmark = async (questionID: string) => {
+    const isAdding = !bookmarkedQuestions.includes(questionID);
     setBookmarkedQuestions((prev) =>
       prev.includes(questionID) ? prev.filter((id) => id !== questionID) : [...prev, questionID]
     );
+
+    // Sync to global bookmarks
+    try {
+      if (isAdding) {
+        const question = questions.find((q) => String(q.questionID) === questionID);
+        if (question) {
+          await addBookmark({
+            questionID: String(question.questionID),
+            questionText: question.questionText || '',
+            questionImage: question.questionImage || null,
+            subjectID: question.subjectID ? Number(question.subjectID) : (subjectID ? Number(subjectID) : null),
+            subjectName: question.subjectName || subjectName || null,
+          });
+        }
+      } else {
+        await removeBookmark(questionID);
+      }
+    } catch (error) {
+      console.error('Failed to sync bookmark:', error);
+    }
   };
 
   const handleNavigate = (direction: 'prev' | 'next') => {

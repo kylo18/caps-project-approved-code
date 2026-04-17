@@ -20,6 +20,9 @@ import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import MobileHeader from '../../../src/components/MobileHeader';
 
+type IoniconName = keyof typeof Ionicons.glyphMap;
+type DashboardSubject = { subjectID: number; [key: string]: any };
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { theme } = useTheme();
@@ -37,21 +40,40 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const [qRes, uRes, sRes] = await Promise.all([
-        apiRequest('/api/questions/count'),
+      const [uRes, sRes] = await Promise.allSettled([
         apiRequest('/api/users?limit=10000'),
         apiRequest('/api/subjects'),
       ]);
 
-      const questions = Array.isArray(qRes?.data) ? qRes.data : [];
-      const approvedCount = questions.filter((q) => q.status_id === 2).length;
+      const userPayload = uRes.status === 'fulfilled' ? uRes.value : null;
+      const users = Array.isArray(userPayload?.users) ? userPayload.users :
+        Array.isArray(userPayload?.data) ? userPayload.data : [];
+      const activeUsers = users.filter((u: any) => u.status === 'registered' && u.isActive).length;
 
-      const users = Array.isArray(uRes?.users) ? uRes.users :
-        Array.isArray(uRes?.data) ? uRes.data : [];
-      const activeUsers = users.filter((u) => u.status === 'registered' && u.isActive).length;
+      const subjectPayload = sRes.status === 'fulfilled' ? sRes.value : null;
+      const subjects = Array.isArray(subjectPayload?.subjects) ? subjectPayload.subjects :
+        Array.isArray(subjectPayload?.data) ? subjectPayload.data :
+        Array.isArray(subjectPayload) ? subjectPayload : [];
 
-      const subjects = Array.isArray(sRes?.data) ? sRes.data :
-        Array.isArray(sRes) ? sRes : [];
+      const questionResponses = await Promise.allSettled(
+        subjects.map((subject: DashboardSubject) => apiRequest(`/api/subjects/${subject.subjectID}/questions`))
+      );
+
+      const approvedCount = questionResponses.reduce((count, response) => {
+        if (response.status !== 'fulfilled') {
+          return count;
+        }
+
+        const questions = Array.isArray(response.value?.data) ? response.value.data :
+          Array.isArray(response.value?.questions) ? response.value.questions :
+            Array.isArray(response.value) ? response.value : [];
+
+        return count + questions.filter((q: any) => {
+          const status = String(q?.status_name || q?.status || '').toLowerCase();
+          const statusId = Number(q?.status_id);
+          return statusId === 2 || status === 'approved';
+        }).length;
+      }, 0);
 
       setStats({ questions: approvedCount, users: activeUsers, subjects: subjects.length });
     } catch (error) {
@@ -69,7 +91,7 @@ export default function AdminDashboard() {
   }, []);
 
   // Quick action cards
-  const quickActions = [
+  const quickActions: { icon: IoniconName; label: string; color: string; route: any; description: string }[] = [
     {
       icon: 'analytics',
       label: 'Analytics',
@@ -86,7 +108,7 @@ export default function AdminDashboard() {
     },
   ];
 
-  const statCards = [
+  const statCards: { icon: IoniconName; label: string; value: number; color: string; route: any }[] = [
     { icon: 'help-circle', label: 'Questions', value: stats.questions, color: '#FE6902', route: '/(auth)/(dean)/subjects' },
     { icon: 'people', label: 'Users', value: stats.users, color: '#10B981', route: '/(auth)/(dean)/users' },
     { icon: 'book', label: 'Subjects', value: stats.subjects, color: '#3B82F6', route: '/(auth)/(dean)/subjects' },

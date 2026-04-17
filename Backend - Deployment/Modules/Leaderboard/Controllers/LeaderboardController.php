@@ -128,28 +128,28 @@ class LeaderboardController extends Controller
             [$periodStart, $periodEnd] = $this->getPeriodBounds($period);
             $limit = (int) $request->query('limit', 50);
             $viewer = $this->resolveViewer($request);
-
+            
             // Get all programs and subjects for dropdown filters
             $programs = DB::table('programs')
                 ->select('programID', 'programName')
                 ->orderBy('programName')
                 ->get();
-
+                
             $subjects = DB::table('subjects')
                 ->select('subjectID', 'subjectName', 'subjectCode')
                 ->orderBy('subjectName')
                 ->get();
-
+            
             // Build query for practice exam results with filters
             $resultsQuery = DB::table('practice_exam_results')
                 ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
                 ->where('users.roleID', 1); // Only students
-
+                
             // Apply program filter
             if ($programFilter) {
                 $resultsQuery->where('users.programID', $programFilter);
             }
-
+            
             // Apply subject filter
             if ($subjectFilter) {
                 $resultsQuery->where('practice_exam_results.subjectID', $subjectFilter);
@@ -158,7 +158,7 @@ class LeaderboardController extends Controller
             if ($periodStart && $periodEnd) {
                 $resultsQuery->whereBetween('practice_exam_results.created_at', [$periodStart, $periodEnd]);
             }
-
+            
             // Get all matching results
             $results = $resultsQuery
                 ->select(
@@ -170,10 +170,10 @@ class LeaderboardController extends Controller
                     'practice_exam_results.created_at'
                 )
                 ->get();
-
+            
             // Get user details for all users in results
             $userIds = $results->pluck('userID')->unique()->toArray();
-
+            
             $users = DB::table('users')
                 ->leftJoin('programs', 'users.programID', '=', 'programs.programID')
                 ->leftJoin('students', 'users.userCode', '=', 'students.userCode')
@@ -190,7 +190,7 @@ class LeaderboardController extends Controller
                 )
                 ->get()
                 ->keyBy('userID');
-
+            
             // Get subject details if needed
             $subjectIds = $results->pluck('subjectID')->unique()->toArray();
             $subjectsData = DB::table('subjects')
@@ -198,12 +198,12 @@ class LeaderboardController extends Controller
                 ->select('subjectID', 'subjectName', 'subjectCode')
                 ->get()
                 ->keyBy('subjectID');
-
+            
             // Group by user and calculate stats
             $userStats = [];
             foreach ($results as $result) {
                 $userId = $result->userID;
-
+                
                 if (!isset($userStats[$userId])) {
                     $userStats[$userId] = [
                         'userID' => $userId,
@@ -216,10 +216,10 @@ class LeaderboardController extends Controller
                         'bestCreatedAt' => null,
                     ];
                 }
-
+                
                 $userStats[$userId]['attempts']++;
                 $userStats[$userId]['subjectIDs'][] = $result->subjectID;
-
+                
                 $replaceBestResult =
                     $result->percentage > $userStats[$userId]['highestPercentage'] ||
                     (
@@ -241,7 +241,7 @@ class LeaderboardController extends Controller
                     $userStats[$userId]['bestCreatedAt'] = $result->created_at;
                 }
             }
-
+            
             // Sort by highest percentage, then score, then earliest winning attempt
             uasort($userStats, function($a, $b) {
                 $percentageComparison = $b['highestPercentage'] <=> $a['highestPercentage'];
@@ -256,19 +256,19 @@ class LeaderboardController extends Controller
 
                 return strtotime((string) $a['bestCreatedAt']) <=> strtotime((string) $b['bestCreatedAt']);
             });
-
+            
             $rankedUsers = [];
             $rank = 1;
             foreach ($userStats as $userId => $stats) {
                 $user = $users[$userId] ?? null;
-
+                
                 if (!$user) {
                     continue;
                 }
-
+                
                 $subjectId = $subjectFilter ?: $stats['bestSubjectID'] ?: ($stats['subjectIDs'][0] ?? null);
                 $subject = $subjectId ? ($subjectsData[$subjectId] ?? null) : null;
-
+                
                 $rankedUsers[] = [
                     'rank' => $rank++,
                     'userID' => $userId,
@@ -297,7 +297,7 @@ class LeaderboardController extends Controller
 
             $leaderboard = array_slice($rankedUsers, 0, $limit);
             $viewerSummary = $this->buildViewerSummary($viewer, $rankedUsers, $period, $periodEnd);
-
+            
             // Transform programs for mobile dropdown
             $programsList = $programs->map(function($program) {
                 return [
@@ -305,7 +305,7 @@ class LeaderboardController extends Controller
                     'programName' => $program->programName,
                 ];
             });
-
+            
             // Transform subjects for mobile dropdown
             $subjectsList = $subjects->map(function($subject) {
                 return [
@@ -314,7 +314,7 @@ class LeaderboardController extends Controller
                     'subjectCode' => $subject->subjectCode,
                 ];
             });
-
+            
             return response()->json([
                 'leaderboard' => $leaderboard,
                 'programs' => $programsList,
@@ -358,10 +358,10 @@ class LeaderboardController extends Controller
             return [null, null];
         }
 
-        $now = Carbon::now();
+        $now = Carbon::now('Asia/Manila');
         return [
-            $now->copy()->startOfWeek(),
-            $now->copy()->endOfWeek(),
+            $now->copy()->startOfWeek(Carbon::SUNDAY),
+            $now->copy()->endOfWeek(Carbon::SATURDAY),
         ];
     }
 

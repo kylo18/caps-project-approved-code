@@ -337,4 +337,8 @@ class NotificationController extends Controller
     {
         return ucwords(str_replace('_', ' ', $type));
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
