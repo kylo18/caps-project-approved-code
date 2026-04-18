@@ -5,6 +5,7 @@ namespace Modules\Analytics\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -66,16 +67,14 @@ class StudentAnalyticsController extends Controller
                 $weakestTopic = null;
             }
 
-            // Count frequently mistaken questions (answered incorrectly 3+ times)
+            // Count frequently mistaken questions (3+ current consecutive wrong answers)
             try {
-                $frequentlyMistaken = DB::table('practice_exam_answers')
-                    ->where('user_id', $user->userID)
-                    ->where('is_correct', 0)
-                    ->select('question_id', DB::raw('COUNT(*) as wrong_count'))
-                    ->groupBy('question_id')
-                    ->having('wrong_count', '>=', 3)
-                    ->get();
-                $frequentlyMistakenCount = $frequentlyMistaken->count();
+                $mistakeStats = $this->buildQuestionMistakeStats($user->userID);
+                $frequentlyMistakenCount = $mistakeStats
+                    ->filter(function ($item) {
+                        return (int) ($item['consecutive_wrong_count'] ?? 0) >= 3;
+                    })
+                    ->count();
             } catch (\Exception $e) {
                 $frequentlyMistakenCount = 0;
             }
@@ -348,7 +347,7 @@ class StudentAnalyticsController extends Controller
     }
 
     /**
-     * Get frequently mistaken questions (answered incorrectly 3+ times).
+     * Get frequently mistaken questions (3+ current consecutive wrong answers).
      *
      * Returns full question data with wrong count for review.
      *
@@ -359,18 +358,22 @@ class StudentAnalyticsController extends Controller
         try {
             $user = Auth::user();
 
-            if ($user->roleID !== 1) {
+            if (!$user || $user->roleID !== 1) {
                 return response()->json(['message' => 'Unauthorized. Student access only.'], 403);
             }
 
-            $mistaken = DB::table('practice_exam_answers')
-                ->where('practice_exam_answers.user_id', $user->userID)
-                ->where('practice_exam_answers.is_correct', 0)
-                ->select('practice_exam_answers.question_id', DB::raw('COUNT(*) as wrong_count'))
-                ->groupBy('practice_exam_answers.question_id')
-                ->having('wrong_count', '>=', 3)
-                ->orderByDesc('wrong_count')
-                ->get();
+            $mistaken = $this->buildQuestionMistakeStats($user->userID)
+                ->filter(function ($item) {
+                    return (int) ($item['consecutive_wrong_count'] ?? 0) >= 3;
+                })
+                ->sort(function ($a, $b) {
+                    $streakCompare = (int) ($b['consecutive_wrong_count'] ?? 0) <=> (int) ($a['consecutive_wrong_count'] ?? 0);
+                    if ($streakCompare !== 0) {
+                        return $streakCompare;
+                    }
+                    return (int) ($b['wrong_count'] ?? 0) <=> (int) ($a['wrong_count'] ?? 0);
+                })
+                ->values();
 
             if ($mistaken->isEmpty()) {
                 return response()->json([
@@ -396,31 +399,33 @@ class StudentAnalyticsController extends Controller
 
             $choices = DB::table('choices')
                 ->whereIn('questionID', $questionIds)
-                ->select('choiceID', 'questionID', 'choiceText', 'choiceImage', 'isCorrect')
+                ->select('choiceID', 'questionID', 'choiceText', 'image as choiceImage', 'isCorrect')
                 ->orderBy('position', 'asc')
                 ->get()
                 ->groupBy('questionID');
 
             $data = [];
             foreach ($mistaken as $row) {
-                $question = $questions[$row->question_id] ?? null;
+                $questionId = (int) ($row['question_id'] ?? 0);
+                $question = $questions[$questionId] ?? null;
                 if (!$question) {
                     continue;
                 }
 
-                $questionChoices = $choices[$row->question_id] ?? collect([]);
+                $questionChoices = $choices[$questionId] ?? collect([]);
 
                 $data[] = [
                     'questionID' => $question->questionID,
-                    'questionText' => $question->questionText,
+                    'questionText' => $this->safeDecrypt($question->questionText),
                     'questionImage' => $question->questionImage,
                     'subjectID' => $question->subjectID,
                     'subjectName' => $question->subjectName,
-                    'wrong_count' => (int) $row->wrong_count,
+                    'wrong_count' => (int) ($row['wrong_count'] ?? 0),
+                    'consecutive_wrong_count' => (int) ($row['consecutive_wrong_count'] ?? 0),
                     'choices' => $questionChoices->map(function ($c) {
                         return [
                             'choiceID' => $c->choiceID,
-                            'choiceText' => $c->choiceText,
+                            'choiceText' => $this->safeDecrypt($c->choiceText),
                             'choiceImage' => $c->choiceImage,
                             'isCorrect' => (bool) $c->isCorrect,
                         ];
@@ -440,6 +445,59 @@ class StudentAnalyticsController extends Controller
             ], 500);
         }
     }
+
+    private function buildQuestionMistakeStats($userId)
+    {
+        $answers = DB::table('practice_exam_answers')
+            ->where('user_id', $userId)
+            ->select('question_id', 'is_correct', 'created_at')
+            ->orderBy('question_id', 'asc')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        if ($answers->isEmpty()) {
+            return collect([]);
+        }
+
+        return $answers
+            ->groupBy('question_id')
+            ->map(function ($rows, $questionId) {
+                $totalWrong = 0;
+                $currentStreak = 0;
+
+                foreach ($rows as $row) {
+                    $isCorrect = (int) ($row->is_correct ?? 0) === 1;
+                    if ($isCorrect) {
+                        // Reset streak once answered correctly.
+                        $currentStreak = 0;
+                    } else {
+                        $totalWrong++;
+                        $currentStreak++;
+                    }
+                }
+
+                return [
+                    'question_id' => (int) $questionId,
+                    'wrong_count' => $totalWrong,
+                    'consecutive_wrong_count' => $currentStreak,
+                ];
+            })
+            ->values();
+    }
+
+    private function safeDecrypt(?string $value): string
+    {
+        if (!$value) {
+            return '';
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Throwable $e) {
+            return $value;
+        }
+    }
+
 
     private function formatTime($seconds)
     {
