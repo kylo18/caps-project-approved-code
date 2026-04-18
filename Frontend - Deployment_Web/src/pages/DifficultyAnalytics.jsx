@@ -74,7 +74,6 @@ const DifficultyAnalytics = () => {
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-<<<<<<< HEAD
   // Backend response storage.
   // difficultyData: response from /practice-exam/difficulty-analytics.
   // studentSummary: response.data from /student/analytics/summary.
@@ -82,21 +81,6 @@ const DifficultyAnalytics = () => {
   const [difficultyData, setDifficultyData] = useState(null);
   const [studentSummary, setStudentSummary] = useState(null);
   const [trends, setTrends] = useState(null);
-=======
-  // Data states
-  // new added: data source: GET /api/practice-exam/difficulty-analytics
-  const [difficultyData, setDifficultyData] = useState(null); // from /difficulty-analytics
-
-  // new added: data source: GET /api/student/analytics/summary
-  // { data: { total_exams, average_score, best_score, lowest_score,
-  //             frequently_mistaken_questions_count,
-  //             average_attempts_before_passing, weakest_topic, trend } }
-  const [studentSummary, setStudentSummary] = useState(null); // from /student/analytics/summary
-
-  // new added: data source: GET /api/student/analytics/trends
-  // → { data: [...exam history...], summary: { avg_score, highest_score, lowest_score } }
-  const [trends, setTrends] = useState(null);                 // from /student/analytics/trends
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
 
   // Track viewport size and set mobile layout state.
   useEffect(() => {
@@ -150,13 +134,7 @@ const DifficultyAnalytics = () => {
     { level: "Hard", score: null, total: 0, correct: 0 },
   ];
 
-<<<<<<< HEAD
   // Map backend band data into a stable array ordered by Easy / Moderate / Hard.
-=======
-  // new added: data pulled from GET /api/practice-exam/difficulty-analytics → difficultyBands
-  // merged with BAND_DEFAULTS so missing levels always show "—" instead of breaking
-  // Difficulty bands from the difficulty-analytics endpoint
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
   const diffBands = BAND_DEFAULTS.map((def) => {
     const found = (difficultyData?.difficultyBands ?? []).find(
       (b) => b.level?.toLowerCase() === def.level.toLowerCase()
@@ -170,18 +148,10 @@ const DifficultyAnalytics = () => {
     };
   });
 
-<<<<<<< HEAD
   // Topic breakdown is displayed in the topic table.
   const topics = difficultyData?.topicBreakdown ?? [];
 
   // Convert backend summary scores to rounded integers for display.
-=======
-  // new added: data pulled from GET /api/practice-exam/difficulty-analytics → topicBreakdown
-  const topics = difficultyData?.topicBreakdown ?? [];
-
-  // new added: all values below pulled from GET /api/student/analytics/summary → data object, which is already scoped to the authenticated student
-  // Overall score from student summary (most accurate per-student value)
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
   const overallScore = studentSummary?.average_score != null
     ? Math.round(studentSummary.average_score)
     : null;
@@ -204,17 +174,8 @@ const DifficultyAnalytics = () => {
     .filter((b) => b.score != null)
     .sort((a, b) => a.score - b.score)[0] ?? null;
 
-<<<<<<< HEAD
   // Recent exam trend chart data uses up to 5 most recent exams.
   const recentExams = (trends?.data ?? []).slice(0, 5).reverse();
-=======
-  // Recent exams for mini trend chart
-  // new added: increased recent exams display limit from 5 to 10
-  // new added: data pulled from GET /api/student/analytics/trends → data (exam history array)
-  const recentExams = (trends?.data ?? []).slice(0, 5).reverse();
-
-  // ── Styling helpers ─────────────────────────────────────────────────────────
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
 
   // UI color configuration for Easy / Moderate / Hard bands.
   const levelCfg = {
@@ -237,22 +198,9 @@ const DifficultyAnalytics = () => {
   };
 
   return (
-<<<<<<< HEAD
     <div className="bg-[#F5F3EF] min-h-screen overflow-x-hidden font-sans">
       {/* Page header: back button, title, and current trend badge */}
       <div className="bg-white border-b border-[#EAE8E2] p-4 pt-[60px] sm:p-4 sm:pt-4 sm:px-7 flex flex-wrap items-center gap-4">
-=======
-    // new added: prevents horizontal scroll on mobile when tables overflow, and sets a minimum height for better mobile experience
-    <div style={{ background: "#F5F3EF", minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", overflowX: "hidden"}}>
-
-      {/* TOP BAR */}
-      <div style={{
-        background: "#fff", borderBottom: "1px solid #EAE8E2",
-        padding: isMobile ? "16px 16px" : "16px 28px",
-        paddingTop: isMobile ? "60px" : "16px",
-        display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
-      }}>
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
         <button
           onClick={() => navigate("/student-dashboard")}
           className="w-9 h-9 rounded-xl border border-[#EAE8E2] bg-[#F5F3EF] flex items-center justify-center"
@@ -290,12 +238,7 @@ const DifficultyAnalytics = () => {
               <div className="text-[10px] font-bold uppercase tracking-[0.9px] text-[#9B9790] mb-2">Your average score</div>
               <div className="text-[56px] font-extrabold leading-none text-[#1A1814]">
                 {loading ? "—" : overallScore != null ? overallScore : "—"}
-<<<<<<< HEAD
                 <span className="text-[54px] font-normal text-[#9B9790]"> %</span>
-=======
-                {/*// new added: enlarged % sign to match score size and added spacing*/}
-                <span style={{ fontSize: 54, fontWeight: 400, color: "#9B9790" }}> %</span> 
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
               </div>
               <div className="mt-2 text-sm text-[#9B9790]">
                 {loading
@@ -336,40 +279,17 @@ const DifficultyAnalytics = () => {
               )}
             </div>
 
-<<<<<<< HEAD
             {!isMobile && <div className="mx-6 w-px bg-[#EAE8E2]" />}
 
             <div className={`flex flex-col justify-between gap-4 min-w-0 ${isMobile ? "pt-5 border-t border-[#EAE8E2]" : "pt-1"}`}>
               <div className="text-[10px] font-bold uppercase tracking-[0.9px] text-[#9B9790]">Score by difficulty</div>
-=======
-            {/* Separator */}
-            {!isMobile && <div style={{ background: "#EAE8E2", margin: "0 26px" }} />}
-            
-            {/* new added: prevents band section from overflowing its grid column*/}
-            {/* Difficulty bands */}
-            <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 16, paddingTop: isMobile ? 20 : 4, borderTop: isMobile ? "1px solid #EAE8E2" : "none", overflow: "hidden", minWidth: 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.9px", color: "#9B9790" }}>Score by difficulty</div>
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
               {diffBands.map((band, idx) => {
                 const cfg = levelCfg[band.level] ?? levelCfg.Moderate;
                 const score = EMPTY ? null : band.score;
                 return (
-<<<<<<< HEAD
                   <div key={band.level} className="flex items-center gap-3 min-w-0">
                     <div className="w-[68px] flex-shrink-0 text-[11px] font-bold uppercase tracking-[0.7px]" style={{ color: cfg.color }}>
                       {band.level}
-=======
-                  
-                  // new added: ensures flex children don't overflow on smaller screens
-                  <div key={band.level} style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.7px", color: cfg.color, width: 68, flexShrink: 0 }}>{band.level}</div>
-                    <div style={{ flex: 1, height: 8, borderRadius: 6, background: cfg.bg, overflow: "hidden" }}>
-                      <div style={{
-                        height: "100%", borderRadius: 6, background: cfg.color,
-                        width: `${score ?? 0}%`, transition: "width 0.9s cubic-bezier(.4,0,.2,1)",
-                        transitionDelay: `${idx * 0.1}s`,
-                      }} />
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
                     </div>
                     <div className="flex-1 overflow-hidden rounded-[6px] bg-[#F5F3EF] h-2">
                       <div className="h-full rounded-[6px]" style={{ background: cfg.color, width: `${score ?? 0}%`, transition: "width 0.9s cubic-bezier(.4,0,.2,1)", transitionDelay: `${idx * 0.1}s` }} />
@@ -378,12 +298,7 @@ const DifficultyAnalytics = () => {
                       {score != null ? `${score}%` : "—"}
                     </div>
                     {!isMobile && (
-<<<<<<< HEAD
                       <div className="w-[52px] text-[10px] text-[#9B9790]">
-=======
-                      // new added: hides correct/total count on mobile to prevent layout overflow
-                      <div style={{ fontSize: 10, color: "#9B9790", width: 52 }}>
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
                         {EMPTY ? "—" : `${band.correct ?? 0} / ${band.total ?? 0}`}
                       </div>
                     )}
@@ -396,59 +311,26 @@ const DifficultyAnalytics = () => {
 
         {/* Recent exam trend chart: only render when there are at least 2 exam records */}
         {!loading && recentExams.length >= 2 && (
-<<<<<<< HEAD
           <div className="mb-5 rounded-[14px] border border-[#EAE8E2] bg-white p-4">
             <div className="mb-3 text-sm font-semibold text-[#1A1814]">
               Your Recent Exam Scores
               <span className="ml-2 text-xs font-normal text-[#9B9790]">last {recentExams.length} exams</span>
             </div>
             <div className="flex h-[100px] items-end gap-12 overflow-hidden">
-=======
-          <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #EAE8E2", marginBottom: 20, padding: "16px 20px" }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#1A1814", marginBottom: 14 }}>
-              Your Recent Exam Scores
-              <span 
-                style={{ fontSize: 12, fontWeight: 400, color: "#9B9790", marginLeft: 8 }}>
-                  last {recentExams.length} exams
-              </span>
-            </div>
-            {/*<div style={{ display: "flex", alignItems: "flex-end", gap: 60, height: 90 }}>*/}
-            {/* new added: increased bar spacing and chart height for better visual clarity; added overflow guard*/}
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 60, height: 100, overflow: "hidden" }}>
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
               {recentExams.map((exam, i) => {
                 const pct = exam.percentage ?? 0;
                 const barH = Math.max(4, (pct / 100) * 60);
                 return (
-<<<<<<< HEAD
                   <div key={i} className="flex flex-1 flex-col items-center gap-1">
                     <div className="text-sm font-semibold text-[#5C5955]">{Math.round(pct)}%</div>
                     <div className="w-full rounded-[4px]" style={{ height: barH, background: sc(pct), transition: "height 0.6s ease", transitionDelay: `${i * 0.05}s` }} title={`${exam.subjectName ?? ""}: ${pct}%`} />
                     <div className="max-w-full overflow-hidden text-center text-sm text-[#5C5955] truncate">
-=======
-                  <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-
-                    {/*new added: improved percentage label visibility above bars*/}
-                    <div style={{ fontSize: 12, color: "#5C5955", fontWeight: 600 }}>{Math.round(pct)}%</div>
-                    <div style={{
-                      width: "100%", height: barH, borderRadius: 4,
-                      background: sc(pct),
-                      transition: "height 0.6s ease",
-                      transitionDelay: `${i * 0.05}s`,
-                    }} title={`${exam.subjectName ?? ""}: ${pct}%`} />
-                    <div style={{ fontSize: 12, color: "#5C5955", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>
-                      {/* new added: shows more of the subject name and improved label contrast*/}
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
                       {exam.subjectName ? exam.subjectName.split(" ").slice(0, 10).join(" ") : `#${i + 1}`}
                     </div>
                   </div>
                 );
               })}
             </div>
-<<<<<<< HEAD
-=======
-            
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
           </div>
         )}
 
@@ -524,21 +406,11 @@ const DifficultyAnalytics = () => {
               )}
             </div>
           </div>
-<<<<<<< HEAD
 
           <div className="overflow-hidden rounded-[14px] border border-[#EAE8E2] bg-white">
             <div className="flex items-baseline justify-between border-b border-[#F0EDE8] px-4 py-3">
               <span className="text-sm font-semibold text-[#1A1814]">Score by difficulty band</span>
               <span className="text-xs text-[#9B9790]">Correct ÷ total</span>
-=======
-          
-          {/*new added: removed "all students" label since data is now student-specific*/}
-          {/* Score by difficulty band */}
-          <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #EAE8E2", overflow: "hidden" }}>
-            <div style={{ padding: "13px 18px 12px", borderBottom: "1px solid #F0EDE8", display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#1A1814" }}>Score by difficulty band</span>
-              <span style={{ fontSize: 10, color: "#9B9790" }}>Correct ÷ total</span>
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
             </div>
             <div className="flex flex-col gap-2 px-4 py-4">
               {diffBands.map((band) => {
@@ -573,26 +445,11 @@ const DifficultyAnalytics = () => {
           </div>
 
           {!isMobile && (
-<<<<<<< HEAD
             <div className="grid grid-cols-[1fr_90px_90px_90px_110px_110px] gap-3 px-5 py-2 bg-[#F8F6F3] border-b border-[#EAE8E2]">
               {["Topic", "Easy", "Moderate", "Hard", "Overall", "Avg Tries"].map((h, i) => (
                 <span key={h} className={`text-[10px] font-bold uppercase tracking-[1px] text-[#9B9790] ${i === 0 ? "text-left" : "text-center"}`}>
                   {h}
                 </span>
-=======
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "1fr 90px 90px 90px 110px 110px", 
-              gap: 12, padding: "10px 20px", background: "#F8F6F3", 
-              borderBottom: "1px solid #EAE8E2" }}>
-              {["Topic", "Easy", "Moderate", "Hard", "Overall", "Avg Tries"].map((h, i) => (
-                // new added: reformatted header span inline styles into multiline for readability
-                <span key={h} style={{ 
-                  fontSize: 10, fontWeight: 700, 
-                  color: "#9B9790", textTransform: "uppercase", 
-                  letterSpacing: "1px", textAlign: i === 0 ? "left" : "center" 
-                }}>{h}</span>
->>>>>>> 6828ff72 (Fix mobile auth, API endpoints, and add backend question route)
               ))}
             </div>
           )}
