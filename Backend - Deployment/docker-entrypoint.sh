@@ -54,6 +54,7 @@ fi
 # fi
 
 # Clear all caches to ensure fresh settings are loaded
+php artisan migrate --force #added this line to ensure database migrations are run before clearing caches
 php artisan optimize:clear
 php artisan config:clear
 php artisan route:clear
