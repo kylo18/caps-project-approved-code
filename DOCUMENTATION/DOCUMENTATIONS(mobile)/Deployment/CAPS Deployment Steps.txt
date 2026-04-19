@@ -1,0 +1,183 @@
+CAPS Deployment Steps
+
+1. Install prerequisites
+
+Docker Desktop (with Docker Compose enabled)
+Git
+
+2. Clone the repo
+
+git clone <YOUR_GITHUB_REPO_URL>
+cd CAPS
+
+3. (Optional) Install VS Code extension: Mobile Preview
+
+Lets you preview the UI in phone size.
+
+4. Create docker-compose.yml in the repo root and paste this:
+
+version: '3.8'
+
+    networks:
+    caps_network:
+        driver: bridge
+
+    services:
+    backend:
+        build:
+        context: "./Backend - Deployment" 
+        dockerfile: Dockerfile
+        command: php artisan serve --host=0.0.0.0 --port=8000
+        container_name: backend
+        networks:
+        - caps_network
+        ports:
+        - "8000:8000"
+        volumes:
+        # - ./caps-backend:/var/www/html   # <-- still commented
+        - ./docker-data/backend_pictures:/var/www/html/storage/app/public
+        depends_on:
+        - mysql
+        environment:
+        DB_CONNECTION: mysql
+        DB_HOST: mysql
+        DB_PORT: 3306
+        DB_DATABASE: laravel
+        DB_USERNAME: caps_user
+        DB_PASSWORD: password 
+
+    frontend:
+        build:
+        context: "./Frontend - Deployment"
+        dockerfile: Dockerfile
+        container_name: frontend
+        networks:
+        - caps_network
+        ports:
+        - "80:80"
+        environment:
+        #this should be the same as the backend's .env file
+        - VITE_API_BASE_URL=http://localhost:8000/api
+        depends_on:
+        - backend
+
+    mysql:
+        image: mysql:8
+        container_name: mysql
+        restart: always
+        networks:
+        - caps_network
+        ports:
+        - "4406:3306"
+        environment:
+        MYSQL_ROOT_PASSWORD: root
+        MYSQL_DATABASE: laravel
+        MYSQL_USER: caps_user
+        MYSQL_PASSWORD: password 
+        volumes:
+        - ./docker-data/mysql_data:/var/lib/mysql
+
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: phpmyadmin
+        restart: always
+        environment:
+        PMA_HOST: mysql
+        PMA_USER: root
+        PMA_PASSWORD: root 
+        ports:
+        - "8080:80"
+        depends_on:
+        - mysql
+        networks:
+        - caps_network
+
+    #volumes:
+    # ./docker-data/mysql_data:/var/lib/mysql:
+
+5. Create Backend - Deployment/.env and paste this:
+
+ APP_NAME=CAPS 
+    APP_ENV=local
+    APP_FORCE_HTTPS=true # Force app to be served in https
+    APP_KEY=
+    APP_DEBUG=true
+    APP_URL=http://localhost:8000/api
+    FRONTEND_URL= # added this line to make reset password through email work. Change this with the actual production url
+    APP_VERSION=1.1.0
+
+    LOG_CHANNEL=stack
+    LOG_DEPRECATIONS_CHANNEL=null
+    LOG_LEVEL=debug
+
+    DB_CONNECTION=mysql
+    DB_HOST=mysql
+    DB_PORT=3306
+    DB_DATABASE=laravel
+    DB_USERNAME=caps_user
+    DB_PASSWORD=password
+
+    BROADCAST_DRIVER=log
+    CACHE_DRIVER=file
+    QUEUE_CONNECTION=sync
+    SESSION_DRIVER=database 
+    SESSION_LIFETIME=120
+
+    FILESYSTEM_DISK=local
+
+    # If you're using Laravel Sanctum, set this for CORS
+    SANCTUM_STATEFUL_DOMAINS=caps-test2.coeofjrmsu.com
+
+    # Optional: If sending emails
+    MAIL_MAILER=smtp
+    MAIL_HOST=smtp.gmail.com # modified this line to make reset password through email work
+    MAIL_PORT=587 # modified this line to make reset password through email work
+    MAIL_USERNAME= # modified this line to make reset password through email work. 
+    MAIL_PASSWORD=miafcfzompsbabam # modified this line to make reset password through email work
+    MAIL_ENCRYPTION=tls
+    MAIL_FROM_ADDRESS= # modified this line to make reset password through email work.
+    MAIL_FROM_NAME="${APP_NAME}"
+	
+    GOOGLE_CLIENT_ID=673383194750-ie7pluv4tbnikonna34mb1tp0a5pkgrf.apps.googleusercontent.com
+    GOOGLE_CLIENT_SECRET=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
+    GOOGLE_REDIRECT_URI=https://caps-test2.coeofjrmsu.com/
+
+    FACEBOOK_CLIENT_ID=1622011292330005
+    FACEBOOK_CLIENT_SECRET=03acdf01aa92b0a24503378743a08025
+    FACEBOOK_REDIRECT_URI=
+
+6. Create Frontend - Deployment/.env and paste this:
+
+# Frontend base config
+VITE_API_BASE_URL=http://localhost:8000/api
+
+7. Build and start the containers
+
+docker compose up -d --build
+
+8. Generate the Laravel app key
+
+docker compose exec backend php artisan key:generate
+
+9. Verify DB host matches service name
+
+Ensure both .env and docker-compose.yml use:
+DB_HOST=mysql
+
+10. Clear Laravel config cache
+
+docker compose exec backend php artisan config:clear
+
+11. Run migrations 
+
+docker compose exec backend php artisan migrate
+
+12. Seed base data
+docker compose exec backend php artisan db:seed
+
+13. Open the app
+
+Frontend: http://localhost
+Backend: http://localhost:8000
+phpMyAdmin: http://localhost:8080
