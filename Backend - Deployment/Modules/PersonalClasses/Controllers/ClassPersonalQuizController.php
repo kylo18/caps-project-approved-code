@@ -448,8 +448,20 @@ class ClassPersonalQuizController extends Controller
                 ], 403);
             }
 
-            // Verify the student is enrolled in the class
-            $enrollment = ClassEnrollment::where('classID', $classID)
+            // Resolve class by numeric ID or 6-character Code
+            $class = (is_numeric($classID))
+                ? ClassModel::where('classID', $classID)->where('isActive', true)->first()
+                : ClassModel::where('classCode', $classID)->where('isActive', true)->first();
+
+            if (!$class) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Class not found or is not active.',
+                ], 404);
+            }
+
+            // Verify the student is enrolled in the class using the numeric ID
+            $enrollment = ClassEnrollment::where('classID', $class->classID)
                 ->where('studentID', $user->userID)
                 ->first();
 
@@ -460,18 +472,8 @@ class ClassPersonalQuizController extends Controller
                 ], 403);
             }
 
-            // Get the class details
-            $class = ClassModel::where('classID', $classID)
-                ->where('isActive', true)
-                ->with(['subject', 'faculty'])
-                ->first();
-
-            if (!$class) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Class not found or is not active.',
-                ], 404);
-            }
+            // Load additional details for the class
+            $class->load(['subject', 'faculty']);
 
             // Get all quizzes assigned to this class
             $classPersonalQuizzes = ClassPersonalQuiz::with([

@@ -533,3 +533,4 @@ Route::get('storage/choices/{filename}', function ($filename) {
     }
     return response()->file($path);
 })->middleware('image.cors');
+ 

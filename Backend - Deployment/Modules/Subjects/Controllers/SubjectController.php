@@ -700,4 +700,43 @@ class SubjectController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get all subjects with program and year level details.
+     * Accessible by authenticated users.
+     */
+    public function allSubjects()
+    {
+        try {
+            $subjects = Subject::with(['program', 'yearLevel'])
+                ->orderBy('subjectName')
+                ->get();
+
+            $formattedSubjects = $subjects->map(function ($subject) {
+                return [
+                    'subjectID' => $subject->subjectID,
+                    'subjectCode' => $subject->subjectCode,
+                    'subjectName' => $subject->subjectName,
+                    'programID' => $subject->programID,
+                    'programName' => $subject->program ? $subject->program->programName : 'Other',
+                    'yearLevelID' => $subject->yearLevelID,
+                    'yearLevel' => $subject->yearLevel ? $subject->yearLevel->name : null,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'All subjects retrieved successfully',
+                'subjects' => $formattedSubjects
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error retrieving all subjects: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving subjects',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

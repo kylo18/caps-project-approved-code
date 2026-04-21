@@ -45,6 +45,7 @@ class ClassController extends Controller
         } catch (\Throwable $e) {
             Log::error('Error listing classes', [
                 'user_id' => optional(Auth::user())->userID,
+                'role_id' => optional(Auth::user())->roleID,
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -150,14 +151,48 @@ class ClassController extends Controller
                 ], 401);
             }
 
-            $class = ClassModel::with([
+            // Resolve class by numeric ID or 6-character Code
+            $classQuery = ClassModel::with([
                 'subject',
                 'faculty',
                 'enrollments.student.program',
-            ])
-                ->where('classID', $classID)
-                ->where('facultyID', $user->userID)
-                ->first();
+            ]);
+
+            if (is_numeric($classID)) {
+                $classQuery->where('classID', $classID);
+            } else {
+                $classQuery->where('classCode', $classID);
+            }
+
+            if ($user->roleID == 1) {
+                // For students, verify they are enrolled (we'll fetch the class first to get the actual numeric ID if needed)
+                $tempClass = (is_numeric($classID)) 
+                    ? ClassModel::find($classID) 
+                    : ClassModel::where('classCode', $classID)->first();
+                
+                if (!$tempClass) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Class not found.',
+                    ], 404);
+                }
+
+                $isEnrolled = \Modules\PersonalClasses\Models\ClassEnrollment::where('classID', $tempClass->classID)
+                    ->where('studentID', $user->userID)
+                    ->exists();
+                
+                if (!$isEnrolled) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You are not enrolled in this class.',
+                    ], 403);
+                }
+            } else {
+                // For faculty/deans, verify they own the class
+                $classQuery->where('facultyID', $user->userID);
+            }
+
+            $class = $classQuery->first();
 
             if (!$class) {
                 return response()->json([
