@@ -173,6 +173,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Classes & Quizzes
     Route::get('/classes/{classID}/quizzes', [ClassPersonalQuizController::class, 'index']);
     Route::get('/classes/index', [ClassController::class, 'index']);
+    // Register static class routes before dynamic /classes/{classID}
+    // to avoid "my-classes" being interpreted as {classID}.
+    Route::get('/classes/my-classes', [ClassEnrollmentController::class, 'myClasses']);
+    Route::get('/my-classes', [ClassEnrollmentController::class, 'myClasses']);
+    Route::post('/classes', [ClassController::class, 'store']);
+    Route::get('/classes/{classID}', [ClassController::class, 'show']);
+    Route::put('/classes/{classID}', [ClassController::class, 'update']);
+    Route::patch('/classes/{classID}/archive', [ClassController::class, 'archive']);
+    Route::patch('/classes/archive/{classID}', [ClassController::class, 'archive']); // Alias for Archive button
 
     // Class Enrollment (Faculty - view enrolled students)
     // NEW: wired up ClassEnrollmentController index so faculty can see who's in their class.
@@ -390,9 +399,11 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
     Route::get('/my-teachers', [StudentTeacherEnrollmentController::class, 'myTeachers']);
 
     // Class Enrollment (Student)
-    // NEW: wired up 3 routes so students can join classes by code, view their classes, and unenroll.
+    // NEW: wired up routes so students can join classes by code, view their classes, and unenroll.
     Route::post('/classes/join', [ClassEnrollmentController::class, 'joinByCode']);
+    Route::post('/classes/join-by-code', [ClassEnrollmentController::class, 'joinByCode']);
     Route::get('/my-classes', [ClassEnrollmentController::class, 'myClasses']);
+    Route::get('/classes/my-classes', [ClassEnrollmentController::class, 'myClasses']);
     Route::delete('/classes/{classID}/unenroll', [ClassEnrollmentController::class, 'unenroll']);
 
     // Generate personal exam for a subject and teacher
