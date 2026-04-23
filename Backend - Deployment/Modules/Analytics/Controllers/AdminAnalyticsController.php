@@ -391,6 +391,407 @@ class AdminAnalyticsController extends Controller
     }
 
     /**
+     * Get comprehensive analytics data for Dean/Associate Dean.
+     * 
+     * Returns all students, programs, feedback, and tickets for the campus.
+     * Only accessible by Dean (4) or Associate Dean (5).
+     * 
+     * @return \Illuminate\Http\JsonResponse JSON response with all campus data
+     */
+    public function getAllAnalytics(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Check role authorization
+            if (!in_array($user->roleID, [4, 5])) {
+                return response()->json([
+                    'message' => 'Unauthorized. This endpoint is only for Dean and Associate Dean.',
+                    'error' => 'Insufficient permissions'
+                ], 403);
+            }
+            
+            // Build base query for campus-wide data
+            $baseQuery = DB::table('users')
+                ->where('users.campusID', $user->campusID)
+                ->where('users.roleID', 1); // Students only
+            
+            // Get all students in campus
+            $students = (clone $baseQuery)
+                ->select('userID', 'name', 'email', 'programID', 'yearLevel')
+                ->orderBy('programID')
+                ->orderBy('yearLevel')
+                ->get();
+            
+            // Get all programs in campus
+            $programs = DB::table('programs')
+                ->where('campusID', $user->campusID)
+                ->select('programID', 'programName', 'programCode')
+                ->orderBy('programName')
+                ->get();
+            
+            // Get feedback data for campus
+            $feedbackStats = DB::table('user_feedback')
+                ->join('users', 'user_feedback.user_id', '=', 'users.userID')
+                ->where('users.campusID', $user->campusID)
+                ->select(
+                    DB::raw('COUNT(*) as total_feedback'),
+                    DB::raw('COUNT(DISTINCT user_feedback.user_id) as unique_users'),
+                    'issue_type',
+                    DB::raw('COUNT(CASE WHEN status = "New" THEN 1 END) as new_feedback'),
+                    DB::raw('COUNT(CASE WHEN status = "In Progress" THEN 1 END) as in_progress'),
+                    DB::raw('COUNT(CASE WHEN status = "Resolved" THEN 1 END) as resolved')
+                )
+                ->groupBy('issue_type')
+                ->get();
+            
+            // Get support tickets data for campus
+            $ticketStats = DB::table('support_tickets')
+                ->join('users', 'support_tickets.userID', '=', 'users.userID')
+                ->where('users.campusID', $user->campusID)
+                ->select(
+                    DB::raw('COUNT(*) as total_tickets'),
+                    DB::raw('COUNT(DISTINCT support_tickets.userID) as unique_users'),
+                    'status',
+                    'priority',
+                    DB::raw('COUNT(CASE WHEN status = "Open" THEN 1 END) as open_tickets'),
+                    DB::raw('COUNT(CASE WHEN status = "Closed" THEN 1 END) as closed_tickets')
+                )
+                ->groupBy('status', 'priority')
+                ->get();
+            
+            return response()->json([
+                'message' => 'Campus analytics retrieved successfully',
+                'data' => [
+                    'students' => [
+                        'total_count' => $students->count(),
+                        'by_program' => $students->groupBy('programID')->map(function($programStudents) {
+                            return [
+                                'program_id' => $programStudents->first()->programID,
+                                'student_count' => $programStudents->count(),
+                                'by_year_level' => $programStudents->groupBy('yearLevel')->map->count()
+                            ];
+                        })->values()
+                    ],
+                    'programs' => $programs,
+                    'feedback' => [
+                        'total_feedback' => $feedbackStats->sum('total_feedback'),
+                        'unique_users' => $feedbackStats->sum('unique_users'),
+                        'by_issue_type' => $feedbackStats,
+                        'by_status' => [
+                            'new' => $feedbackStats->sum('new_feedback'),
+                            'in_progress' => $feedbackStats->sum('in_progress'),
+                            'resolved' => $feedbackStats->sum('resolved')
+                        ]
+                    ],
+                    'support_tickets' => [
+                        'total_tickets' => $ticketStats->sum('total_tickets'),
+                        'unique_users' => $ticketStats->sum('unique_users'),
+                        'by_status' => [
+                            'open' => $ticketStats->sum('open_tickets'),
+                            'closed' => $ticketStats->sum('closed_tickets')
+                        ],
+                        'by_priority' => $ticketStats->groupBy('priority')->map(function($group) {
+                            return [
+                                'priority' => $group->first()->priority,
+                                'count' => $group->sum('total_tickets')
+                            ];
+                        })->values()
+                    ]
+                ]
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('Get all analytics error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error retrieving campus analytics',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get program-specific analytics for Program Chair.
+     * 
+     * Returns only students from the Program Chair's assigned program.
+     * Only accessible by Program Chair (3).
+     * 
+     * @param int $programId Program ID to check authorization
+     * @return \Illuminate\Http\JsonResponse JSON response with program data
+     */
+    public function getProgramAnalytics(Request $request, $programId)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Check role authorization and program assignment
+            if ($user->roleID !== 3 || $user->programID != $programId) {
+                return response()->json([
+                    'message' => 'Unauthorized. This endpoint is only for Program Chairs of their assigned program.',
+                    'error' => 'Insufficient permissions or wrong program'
+                ], 403);
+            }
+            
+            // Get program details
+            $program = DB::table('programs')
+                ->where('programID', $programId)
+                ->where('campusID', $user->campusID)
+                ->first();
+            
+            if (!$program) {
+                return response()->json([
+                    'message' => 'Program not found',
+                    'error' => 'Invalid program ID'
+                ], 404);
+            }
+            
+            // Get students in program (levels 1-4)
+            $students = DB::table('users')
+                ->where('programID', $programId)
+                ->where('campusID', $user->campusID)
+                ->where('roleID', 1) // Students only
+                ->where('yearLevel', '>=', 1)
+                ->where('yearLevel', '<=', 4)
+                ->select('userID', 'name', 'email', 'yearLevel')
+                ->orderBy('yearLevel')
+                ->orderBy('name')
+                ->get();
+            
+            // Get feedback data for program
+            $feedbackStats = DB::table('user_feedback')
+                ->join('users', 'user_feedback.user_id', '=', 'users.userID')
+                ->where('users.programID', $programId)
+                ->where('users.campusID', $user->campusID)
+                ->select(
+                    DB::raw('COUNT(*) as total_feedback'),
+                    DB::raw('COUNT(DISTINCT user_feedback.user_id) as unique_users'),
+                    'issue_type',
+                    DB::raw('COUNT(CASE WHEN status = "New" THEN 1 END) as new_feedback'),
+                    DB::raw('COUNT(CASE WHEN status = "In Progress" THEN 1 END) as in_progress'),
+                    DB::raw('COUNT(CASE WHEN status = "Resolved" THEN 1 END) as resolved')
+                )
+                ->groupBy('issue_type')
+                ->get();
+            
+            // Get academic performance for program
+            $academicStats = DB::table('practice_exam_results')
+                ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                ->where('users.programID', $programId)
+                ->where('users.campusID', $user->campusID)
+                ->select(
+                    DB::raw('COUNT(*) as total_exams'),
+                    DB::raw('COUNT(DISTINCT practice_exam_results.userID) as student_count'),
+                    DB::raw('AVG(practice_exam_results.percentage) as avg_score'),
+                    DB::raw('COUNT(CASE WHEN practice_exam_results.percentage >= 60 THEN 1 END) as passed'),
+                    DB::raw('COUNT(CASE WHEN practice_exam_results.percentage < 60 THEN 1 END) as failed')
+                )
+                ->first();
+            
+            return response()->json([
+                'message' => 'Program analytics retrieved successfully',
+                'data' => [
+                    'program' => $program,
+                    'students' => [
+                        'total_count' => $students->count(),
+                        'by_year_level' => $students->groupBy('yearLevel')->map(function($yearStudents, $yearLevel) {
+                            return [
+                                'year_level' => $yearLevel,
+                                'student_count' => $yearStudents->count(),
+                                'students' => $yearStudents->map(function($student) {
+                                    return [
+                                        'user_id' => $student->userID,
+                                        'name' => $student->name,
+                                        'email' => $student->email
+                                    ];
+                                })
+                            ];
+                        })
+                    ],
+                    'feedback' => [
+                        'total_feedback' => $feedbackStats->sum('total_feedback'),
+                        'unique_users' => $feedbackStats->sum('unique_users'),
+                        'by_issue_type' => $feedbackStats,
+                        'by_status' => [
+                            'new' => $feedbackStats->sum('new_feedback'),
+                            'in_progress' => $feedbackStats->sum('in_progress'),
+                            'resolved' => $feedbackStats->sum('resolved')
+                        ]
+                    ],
+                    'academic_performance' => [
+                        'total_exams' => $academicStats->total_exams ?? 0,
+                        'student_count' => $academicStats->student_count ?? 0,
+                        'average_score' => round($academicStats->avg_score ?? 0, 2),
+                        'pass_rate' => $academicStats->total_exams > 0 
+                            ? round(($academicStats->passed / $academicStats->total_exams) * 100, 2)
+                            : 0
+                    ]
+                ]
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('Get program analytics error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error retrieving program analytics',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get faculty-specific analytics for Faculty members.
+     * 
+     * Returns only subjects assigned to that faculty.
+     * Only accessible by Faculty (2).
+     * 
+     * @param int $facultyId Faculty ID to check authorization
+     * @return \Illuminate\Http\JsonResponse JSON response with faculty data
+     */
+    public function getFacultyAnalytics(Request $request, $facultyId)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Check role authorization and faculty ID match
+            if ($user->roleID !== 2 || $user->userID != $facultyId) {
+                return response()->json([
+                    'message' => 'Unauthorized. This endpoint is only for faculty members.',
+                    'error' => 'Insufficient permissions or wrong faculty ID'
+                ], 403);
+            }
+            
+            // Get faculty details
+            $faculty = DB::table('users')
+                ->where('userID', $facultyId)
+                ->where('roleID', 2)
+                ->first();
+            
+            if (!$faculty) {
+                return response()->json([
+                    'message' => 'Faculty not found',
+                    'error' => 'Invalid faculty ID'
+                ], 404);
+            }
+            
+            // Get subjects assigned to this faculty
+            $assignedSubjects = DB::table('faculty_subject_assignments')
+                ->join('subjects', 'faculty_subject_assignments.subjectID', '=', 'subjects.subjectID')
+                ->where('faculty_subject_assignments.facultyID', $facultyId)
+                ->select('subjects.subjectID', 'subjects.subjectName', 'subjects.subjectCode')
+                ->orderBy('subjects.subjectName')
+                ->get();
+            
+            $subjectIds = $assignedSubjects->pluck('subjectID')->toArray();
+            
+            // Get students in faculty's subjects
+            $students = DB::table('practice_exam_results')
+                ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                ->join('subjects', 'practice_exam_results.subjectID', '=', 'subjects.subjectID')
+                ->whereIn('practice_exam_results.subjectID', $subjectIds)
+                ->where('users.campusID', $user->campusID)
+                ->where('users.programID', $user->programID)
+                ->distinct('users.userID')
+                ->select('users.userID', 'users.name', 'users.email', 'users.yearLevel', 'users.programID')
+                ->orderBy('users.yearLevel')
+                ->orderBy('users.name')
+                ->get();
+            
+            // Get performance data for each subject
+            $subjectPerformance = DB::table('practice_exam_results')
+                ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                ->whereIn('practice_exam_results.subjectID', $subjectIds)
+                ->where('users.campusID', $user->campusID)
+                ->where('users.programID', $user->programID)
+                ->select(
+                    'practice_exam_results.subjectID',
+                    DB::raw('COUNT(*) as total_exams'),
+                    DB::raw('COUNT(DISTINCT practice_exam_results.userID) as student_count'),
+                    DB::raw('AVG(practice_exam_results.percentage) as avg_score'),
+                    DB::raw('COUNT(CASE WHEN practice_exam_results.percentage >= 60 THEN 1 END) as passed'),
+                    DB::raw('COUNT(CASE WHEN practice_exam_results.percentage < 60 THEN 1 END) as failed')
+                )
+                ->groupBy('practice_exam_results.subjectID')
+                ->get();
+            
+            // Get feedback from faculty's students
+            $feedbackStats = DB::table('user_feedback')
+                ->join('users', 'user_feedback.user_id', '=', 'users.userID')
+                ->whereIn('users.userID', $students->pluck('userID'))
+                ->select(
+                    DB::raw('COUNT(*) as total_feedback'),
+                    DB::raw('COUNT(DISTINCT user_feedback.user_id) as unique_users'),
+                    'issue_type',
+                    DB::raw('COUNT(CASE WHEN status = "New" THEN 1 END) as new_feedback'),
+                    DB::raw('COUNT(CASE WHEN status = "In Progress" THEN 1 END) as in_progress'),
+                    DB::raw('COUNT(CASE WHEN status = "Resolved" THEN 1 END) as resolved')
+                )
+                ->groupBy('issue_type')
+                ->get();
+            
+            return response()->json([
+                'message' => 'Faculty analytics retrieved successfully',
+                'data' => [
+                    'faculty' => [
+                        'user_id' => $faculty->userID,
+                        'name' => $faculty->name,
+                        'email' => $faculty->email,
+                        'campus_id' => $faculty->campusID,
+                        'program_id' => $faculty->programID
+                    ],
+                    'assigned_subjects' => $assignedSubjects,
+                    'students' => [
+                        'total_count' => $students->count(),
+                        'by_year_level' => $students->groupBy('yearLevel')->map(function($yearStudents, $yearLevel) {
+                            return [
+                                'year_level' => $yearLevel,
+                                'student_count' => $yearStudents->count(),
+                                'students' => $yearStudents->map(function($student) {
+                                    return [
+                                        'user_id' => $student->userID,
+                                        'name' => $student->name,
+                                        'email' => $student->email,
+                                        'program_id' => $student->programID
+                                    ];
+                                })
+                            ];
+                        })
+                    ],
+                    'subject_performance' => $subjectPerformance->map(function($performance) use ($assignedSubjects) {
+                        $subject = $assignedSubjects->where('subjectID', $performance->subjectID)->first();
+                        return [
+                            'subject_id' => $performance->subjectID,
+                            'subject_name' => $subject->subjectName ?? 'Unknown',
+                            'subject_code' => $subject->subjectCode ?? 'Unknown',
+                            'total_exams' => $performance->total_exams,
+                            'student_count' => $performance->student_count,
+                            'average_score' => round($performance->avg_score, 2),
+                            'pass_rate' => $performance->total_exams > 0 
+                                ? round(($performance->passed / $performance->total_exams) * 100, 2)
+                                : 0
+                        ];
+                    }),
+                    'feedback' => [
+                        'total_feedback' => $feedbackStats->sum('total_feedback'),
+                        'unique_users' => $feedbackStats->sum('unique_users'),
+                        'by_issue_type' => $feedbackStats,
+                        'by_status' => [
+                            'new' => $feedbackStats->sum('new_feedback'),
+                            'in_progress' => $feedbackStats->sum('in_progress'),
+                            'resolved' => $feedbackStats->sum('resolved')
+                        ]
+                    ]
+                ]
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('Get faculty analytics error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error retrieving faculty analytics',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Apply role-based data scoping to prevent data leakage.
      * 
      * Different roles see different data scopes:
