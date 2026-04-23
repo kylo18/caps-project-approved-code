@@ -96,8 +96,13 @@
                                 <p style="margin:0; font-size:14px; color:#444444; line-height:1.7;">
                                     We are pleased to inform you that your account in the <strong>CAPS</strong> has
                                     been
-                                    <span style="color:green; font-weight:bold;">approved by the Dean</span>.
-                                    You can now log in and access all features of the system.
+                                    <span style="color:green; font-weight:bold;">approved</span> by an authorized administrator.
+                                </p>
+                                <p style="margin:12px 0 0; font-size:14px; color:#444444; line-height:1.7;">
+                                    <strong>Approver:</strong> <span style="color:#1a1a1a;">{{ $approvedBy }}</span>
+                                </p>
+                                <p style="margin:8px 0 0; font-size:13px; color:#666666; line-height:1.6;">
+                                    Your account has been verified and approved in accordance with your assigned role and institutional responsibilities. You can now log in and access all features of the system.
                                 </p>
                             </td>
                         </tr>
@@ -109,13 +114,16 @@
                             </td>
                         </tr>
 
-                        <!-- Approved By -->
+                        <!-- Approved By - Role and Identity -->
                         <tr>
                             <td align="center" style="padding: 20px 28px; background-color:#fafafa;">
                                 <p
                                     style="margin:0 0 4px; font-size:11px; font-weight:bold; color:#aaaaaa; letter-spacing:1.5px; text-transform:uppercase;">
-                                    Approved By</p>
-                                <p style="margin:0; font-size:15px; font-weight:bold; color:#1a1a1a;">The Dean</p>
+                                    Approval Authority</p>
+                                <p style="margin:0 0 6px; font-size:15px; font-weight:bold; color:#1a1a1a;">{{ $approvedBy }}</p>
+                                <p style="margin:0; font-size:12px; color:#666666;">
+                                    <span style="font-size:11px; color:#888888;">✓ Authorized by institutional role</span>
+                                </p>
                             </td>
                         </tr>
 

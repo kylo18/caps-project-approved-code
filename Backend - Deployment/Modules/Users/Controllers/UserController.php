@@ -183,9 +183,9 @@ class UserController extends Controller
     /**
      * Approve single user with role-based hierarchy:
      * - Dean (4) can approve all roles
-     * - Associate Dean (5) can approve Program Chair (3), Instructor (2), and Student (1)
-     * - Program Chair (3) can approve Instructor (2) and Student (1)
-     * - Faculty (2) can approve Student (1)
+     * - Associate Dean (5) can approve Program Chair (3), Instructor (2), and Student (1) within their campus
+     * - Program Chair (3) can approve Instructor (2) and Student (1) ONLY within their assigned program
+     * - Faculty (2) can approve Student (1) ONLY for their own students
      */
     public function approveUser(Request $request, $userID)
     {
@@ -210,23 +210,46 @@ class UserController extends Controller
                 ], 403);
             }
 
+            // Validate scope-based restrictions
+            if (!$this->canApproveUserInScope($authUser, $user)) {
+                return response()->json([
+                    'message' => 'You cannot approve users outside your assigned scope. ' .
+                                $this->getScopeRestrictionMessage($authUser)
+                ], 403);
+            }
+
             $this->updateUserStatus($user, 'registered', true);
 
-            $emailSent = $this->emailService->sendStatusNotification($user, 'approved');
+            $approverInfo = $this->getApproverInfo($authUser);
+            $emailSent = $this->emailService->sendStatusNotification($user, 'approved', $approverInfo['display_name']);
             if (!$emailSent) {
                 Log::warning('Approval email failed to send', [
                     'user_id' => $user->userID,
                     'email' => $user->email,
+                    'approver_id' => $authUser->userID,
+                    'approver_role' => $approverInfo['role'],
                 ]);
 
                 return response()->json([
                     'message' => 'User approved, but approval email failed to send.',
                     'user' => $user,
                     'email' => $user->email,
+                    'approval_info' => $approverInfo,
                 ], 200);
             }
 
-            return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
+            Log::info('User approved successfully', [
+                'user_id' => $user->userID,
+                'approver_id' => $authUser->userID,
+                'approver_role' => $approverInfo['role'],
+                'approver_scope' => $approverInfo['scope'],
+            ]);
+
+            return response()->json([
+                'message' => 'User approved successfully.',
+                'user' => $user,
+                'approval_info' => $approverInfo
+            ], 200);
 
         } catch (\Exception $e) {
             Log::error('User approval error: ' . $e->getMessage());
@@ -269,48 +292,103 @@ class UserController extends Controller
     }
 
     /**
-     * Disapprove user (Only Dean).
+     * Disapprove user (Only Dean and Associate Dean).
+     * Scope restriction: Associate Deans can only disapprove within their campus,
+     * but Program Chairs and Faculty cannot disapprove (only Dean/Associate Dean can).
      */
     public function disapproveUser(Request $request, $userID)
     {
-        $this->authorizeDeanAccess();
+        $authUser = Auth::user();
+        
+        // Only Dean (4) and Associate Dean (5) can disapprove
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only Dean or Associate Dean can disapprove users.'], 403);
+        }
+
         $user = User::findOrFail($userID);
+
+        // Associate Dean scope check: can only disapprove users in their campus
+        if ($authUser->roleID === 5 && $user->campusID !== $authUser->campusID) {
+            return response()->json([
+                'message' => 'You can only disapprove users within your assigned campus.'
+            ], 403);
+        }
 
         $this->updateUserStatus($user, 'disapproved', false);
 
-        $emailSent = $this->emailService->sendStatusNotification($user, 'disapproved');
+        $approverInfo = $this->getApproverInfo($authUser);
+        $emailSent = $this->emailService->sendStatusNotification($user, 'disapproved', $approverInfo['display_name']);
         if (!$emailSent) {
             Log::warning('Disapproval email failed to send', [
                 'user_id' => $user->userID,
                 'email' => $user->email,
+                'approver_id' => $authUser->userID,
+                'approver_role' => $approverInfo['role'],
             ]);
 
             return response()->json([
                 'message' => 'User disapproved, but disapproval email failed to send.',
                 'user' => $user,
                 'email' => $user->email,
+                'approval_info' => $approverInfo,
             ], 200);
         }
 
-        return response()->json(['message' => 'User has been disapproved.', 'user' => $user], 200);
+        Log::info('User disapproved', [
+            'user_id' => $user->userID,
+            'approver_id' => $authUser->userID,
+            'approver_role' => $approverInfo['role'],
+        ]);
+
+        return response()->json([
+            'message' => 'User has been disapproved.',
+            'user' => $user,
+            'approval_info' => $approverInfo
+        ], 200);
     }
 
     /**
-     * Approve multiple users at once (Only Dean).
+     * Approve multiple users at once with role-based scope validation.
+     * Dean can approve all, Associate Dean within their campus,
+     * Program Chair within their program, Faculty for their students.
      */
     public function approveMultipleUsers(Request $request)
     {
-        $this->authorizeDeanAccess();
-        $validated = $this->validateUserIDs($request);
+        try {
+            $authUser = Auth::user();
+            
+            // Only Dean, Associate Dean, Program Chair, and Faculty can bulk approve
+            if (!in_array($authUser->roleID, [2, 3, 4, 5])) {
+                return response()->json([
+                    'message' => 'Unauthorized: You do not have permission to approve users.'
+                ], 403);
+            }
 
-        $statusIds = $this->getStatusIds();
-        $results = $this->processMultipleApprovals($validated['userIDs'], $statusIds);
+            $validated = $this->validateUserIDs($request);
+            $statusIds = $this->getStatusIds();
+            $approverInfo = $this->getApproverInfo($authUser);
+            
+            $results = $this->processMultipleApprovalsWithScope(
+                $validated['userIDs'],
+                $statusIds,
+                $authUser,
+                $approverInfo
+            );
 
-        return response()->json([
-            'message' => 'Bulk approval completed.',
-            'approved_users' => $results['approved'],
-            'skipped_users' => $results['skipped']
-        ], 200);
+            return response()->json([
+                'message' => 'Bulk approval completed.',
+                'approved_users' => $results['approved'],
+                'skipped_users' => $results['skipped'],
+                'scope_restricted_users' => $results['scope_restricted'],
+                'approval_info' => $approverInfo
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Bulk approval error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An error occurred during bulk approval.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -684,7 +762,7 @@ class UserController extends Controller
         ];
     }
 
-    private function processMultipleApprovals($userIDs, $statusIds)
+    private function processMultipleApprovals($userIDs, $statusIds, $approverName = 'The Dean')
     {
         $approved = [];
         $skipped = [];
@@ -702,12 +780,81 @@ class UserController extends Controller
             ]);
 
             // Send email notification
-            $this->emailService->sendStatusNotification($user, 'approved');
+            $this->emailService->sendStatusNotification($user, 'approved', $approverName);
 
             $approved[] = $user;
         }
 
         return ['approved' => $approved, 'skipped' => $skipped];
+    }
+
+    /**
+     * Process multiple user approvals with scope validation
+     * Filters users based on approver's authority and scope
+     */
+    private function processMultipleApprovalsWithScope($userIDs, $statusIds, $authUser, $approverInfo)
+    {
+        $approved = [];
+        $skipped = [];
+        $scopeRestricted = [];
+
+        foreach ($userIDs as $userID) {
+            $user = User::find($userID);
+            
+            // Check if user exists and is pending
+            if (!$user || $user->status_id !== $statusIds['pending']) {
+                $skipped[] = [
+                    'userID' => $userID,
+                    'reason' => 'User not found or not pending'
+                ];
+                continue;
+            }
+
+            // Check role hierarchy
+            if (!$this->canApproveUser($authUser, $user)) {
+                $skipped[] = [
+                    'userID' => $userID,
+                    'reason' => 'Insufficient role authority'
+                ];
+                continue;
+            }
+
+            // Check scope restrictions
+            if (!$this->canApproveUserInScope($authUser, $user)) {
+                $scopeRestricted[] = [
+                    'userID' => $userID,
+                    'reason' => $this->getScopeRestrictionMessage($authUser)
+                ];
+                continue;
+            }
+
+            // Approve the user
+            $user->update([
+                'status_id' => $statusIds['registered'],
+                'isActive' => true
+            ]);
+
+            // Send email notification with approver info
+            $this->emailService->sendStatusNotification(
+                $user,
+                'approved',
+                $approverInfo['display_name']
+            );
+
+            $approved[] = $user;
+
+            Log::info('User approved in bulk', [
+                'user_id' => $user->userID,
+                'approver_id' => $authUser->userID,
+                'approver_role' => $approverInfo['role'],
+            ]);
+        }
+
+        return [
+            'approved' => $approved,
+            'skipped' => $skipped,
+            'scope_restricted' => $scopeRestricted
+        ];
     }
 
     private function validateProfileUpdate(Request $request, $user)
@@ -773,5 +920,151 @@ class UserController extends Controller
             3 => [1, 2],         // Program Chair can change Instructor and Student
             default => []
         };
+    }
+
+    private function getApproverDisplayName($user)
+    {
+        $approverName = $user->firstName . ' ' . $user->lastName;
+        
+        // Add role and program information
+        $roleNames = [
+            1 => 'Student',
+            2 => 'Instructor',
+            3 => 'Program Chair',
+            4 => 'Dean',
+            5 => 'Associate Dean'
+        ];
+        
+        $roleName = $roleNames[$user->roleID] ?? 'Administrator';
+        
+        // For Program Chair and Instructor, include program name
+        if (in_array($user->roleID, [2, 3]) && $user->program) {
+            $programName = $user->program->programName ?? '';
+            return "{$approverName} - {$programName} {$roleName}";
+        }
+        
+        // For Dean and Associate Dean, just show role
+        if (in_array($user->roleID, [4, 5])) {
+            return $roleName;
+        }
+        
+        return $approverName;
+    }
+
+    /**
+     * Get comprehensive approver information including role, scope, and display name
+     * Provides transparency about who approved and their authority level
+     */
+    private function getApproverInfo($user)
+    {
+        $roleNames = [
+            1 => 'Student',
+            2 => 'Faculty/Instructor',
+            3 => 'Program Chair',
+            4 => 'Dean',
+            5 => 'Associate Dean'
+        ];
+        
+        $roleName = $roleNames[$user->roleID] ?? 'Administrator';
+        
+        $displayName = $user->firstName . ' ' . $user->lastName;
+        $campusName = $user->campus ? $user->campus->campusName : 'N/A';
+        $programName = $user->program ? $user->program->programName : 'N/A';
+        
+        $info = [
+            'approver_id' => $user->userID,
+            'approver_name' => $displayName,
+            'role' => $roleName,
+            'campus' => $campusName,
+            'program' => $programName,
+            'display_name' => $displayName . ' (' . $roleName . ')',
+            'scope' => $this->getApproverScope($user)
+        ];
+        
+        // Build detailed display name with scope information
+        if ($user->roleID === 4) {
+            $info['display_name'] = $displayName . ' - Dean (Full Authority)';
+        } elseif ($user->roleID === 5) {
+            $info['display_name'] = $displayName . ' - Associate Dean (' . $campusName . ' Campus)';
+        } elseif ($user->roleID === 3) {
+            $info['display_name'] = $displayName . ' - Program Chair (' . $programName . ')';
+        } elseif ($user->roleID === 2) {
+            $info['display_name'] = $displayName . ' - Faculty (' . $programName . ')';
+        }
+        
+        return $info;
+    }
+
+    /**
+     * Get the scope of authority for an approver
+     */
+    private function getApproverScope($user)
+    {
+        switch ($user->roleID) {
+            case 4:
+                return 'Institution-wide Authority';
+            case 5:
+                return 'Campus: ' . ($user->campus ? $user->campus->campusName : 'Unassigned');
+            case 3:
+                return 'Program: ' . ($user->program ? $user->program->programName : 'Unassigned');
+            case 2:
+                return 'Students in: ' . ($user->program ? $user->program->programName : 'Unassigned');
+            default:
+                return 'Limited Authority';
+        }
+    }
+
+    /**
+     * Check if approver can approve user within their assigned scope
+     * - Program Chairs can ONLY approve within their assigned program
+     * - Faculty can ONLY approve their own students
+     * - Deans have no scope restrictions
+     */
+    private function canApproveUserInScope($authUser, $targetUser)
+    {
+        // Dean has full authority, no scope restrictions
+        if ($authUser->roleID === 4) {
+            return true;
+        }
+
+        // Associate Dean can approve users in their campus
+        if ($authUser->roleID === 5) {
+            return $targetUser->campusID === $authUser->campusID;
+        }
+
+        // Program Chair can ONLY approve users within their assigned program
+        if ($authUser->roleID === 3) {
+            return $targetUser->programID === $authUser->programID &&
+                   $targetUser->campusID === $authUser->campusID;
+        }
+
+        // Faculty can ONLY approve students (roleID 1) in their program
+        if ($authUser->roleID === 2) {
+            return $targetUser->roleID === 1 && // Only students
+                   $targetUser->programID === $authUser->programID &&
+                   $targetUser->campusID === $authUser->campusID;
+        }
+
+        return false;
+    }
+
+    /**
+     * Get user-friendly scope restriction message for error responses
+     */
+    private function getScopeRestrictionMessage($authUser)
+    {
+        switch ($authUser->roleID) {
+            case 3: // Program Chair
+                $programName = $authUser->program ? $authUser->program->programName : 'your assigned program';
+                return "As a Program Chair, you can only approve users within {$programName}.";
+            case 2: // Faculty
+                $programName = $authUser->program ? $authUser->program->programName : 'your assigned program';
+                return "As Faculty, you can only approve students within {$programName}.";
+            case 5: // Associate Dean
+                $campusName = $authUser->campus ? $authUser->campus->campusName : 'your assigned campus';
+                return "As an Associate Dean, you can only approve users within {$campusName}.";
+            default:
+                return "You do not have authority to approve this user.";
+        }
     }
 }

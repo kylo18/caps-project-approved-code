@@ -14,11 +14,13 @@ class UserStatusMail extends Mailable
 
     public $user;
     public $status; // 'approved' or 'disapproved'
+    public $approvedBy; // Admin who approved/disapproved
 
-    public function __construct($user, $status)
+    public function __construct($user, $status, $approvedBy = 'System Administrator')
     {
         $this->user = $user;
         $this->status = $status;
+        $this->approvedBy = $approvedBy;
     }
 
     public function envelope(): Envelope

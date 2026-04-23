@@ -13,7 +13,7 @@ class EmailNotificationService
     /**
      * Send user status notification and log the result.
      */
-    public function sendStatusNotification($user, $status)
+    public function sendStatusNotification($user, $status, $approvedBy = 'System Administrator')
     {
         // Skip send when recipient is missing.
         if (empty($user->email)) {
@@ -26,7 +26,7 @@ class EmailNotificationService
         for ($attempt = 1; $attempt <= 2; $attempt++) {
             try {
                 // Send the status notification only to the affected user.
-                Mail::to($user->email)->send(new UserStatusMail($user, $status));
+                Mail::to($user->email)->send(new UserStatusMail($user, $status, $approvedBy));
 
                 // Logging to DB is best-effort; do not mark send as failed
                 // if EmailLog persistence fails.
