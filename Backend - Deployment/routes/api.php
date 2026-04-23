@@ -28,6 +28,7 @@ use Modules\Analytics\Controllers\StudentAnalyticsController;
 use Modules\Support\Controllers\AIController;
 use Modules\Support\Controllers\SupportController;
 use Modules\Notifications\Controllers\NotificationController;
+use Modules\Users\Controllers\FeedbackController;
 // New imports: these controllers were referenced in routes below but had no use statements,
 // causing "Class does not exist" errors at runtime (artisan route:list crashed).
 use Modules\PersonalExams\Controllers\PersonalQuizController;
@@ -192,7 +193,22 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Customer Support (Keeping the Jdev version)
     Route::post('/support-tickets', [\Modules\Support\Controllers\SupportTicketController::class, 'store']);
     Route::get('/support-tickets/me', [\Modules\Support\Controllers\SupportTicketController::class, 'myTickets']);
+
+    // Feedback System Routes (All authenticated users)
+    Route::post('/feedback', [FeedbackController::class, 'store']);
+    Route::get('/feedback/issue-types', [FeedbackController::class, 'getIssueTypesWithSubOptions']);
+    Route::get('/feedback/issue-type-details/{issue_type}', [FeedbackController::class, 'getIssueTypeDetails']);
 });
+/*
+|--------------------------------------------------------------------------
+| Routes for Faculty (roleID: 2)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:2'])->group(function () {
+    // Feedback System Routes (Faculty)
+    Route::get('/feedback/faculty/{id}', [FeedbackController::class, 'facultyIndex']);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Routes for Faculty (roleID: 2), Program Chair (roleID: 3), Dean (roleID: 4), and Associate Dean (roleID: 5)
@@ -319,6 +335,11 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/admin/analytics/improvement-percentage', [AdminAnalyticsController::class, 'getImprovementPercentage']);
     Route::get('/admin/analytics/topic-mastery', [AdminAnalyticsController::class, 'getTopicMastery']);
     Route::get('/admin/analytics/content', [AdminAnalyticsController::class, 'getContentAnalytics']);
+    
+    // Role-Based Analytics Endpoints
+    Route::get('/admin/analytics/all', [AdminAnalyticsController::class, 'getAllAnalytics']); // Dean/Associate Dean
+    Route::get('/admin/analytics/program/{programId}', [AdminAnalyticsController::class, 'getProgramAnalytics']); // Program Chair
+    Route::get('/admin/analytics/faculty/{facultyId}', [AdminAnalyticsController::class, 'getFacultyAnalytics']); // Faculty
 
 
     // Admin Support Ticket Management Routes (Role 3-5)
@@ -487,6 +508,9 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
 */
 Route::middleware(['auth:sanctum', 'role:3'])->group(function () {
     Route::get('/program/{subjectID}', [QuestionController::class, 'indexQuestionsByProgram']);
+    
+    // Feedback System Routes (Program Chair)
+    Route::get('/feedback/program/{id}', [FeedbackController::class, 'programIndex']);
 });
 
 /*
@@ -518,6 +542,11 @@ Route::middleware(['auth:sanctum', 'role:4,5'])->group(function () {
 
     // Admin Customer Support
     Route::get('/support-tickets', [\Modules\Support\Controllers\SupportTicketController::class, 'index']);
+
+    // Feedback System Admin Routes (Dean only)
+    Route::get('/feedback/admin', [FeedbackController::class, 'adminIndex']);
+    Route::get('/feedback/normalization-options', [FeedbackController::class, 'getNormalizationOptions']);
+    Route::post('/feedback/clear-cache', [FeedbackController::class, 'clearNormalizationCache']);
 });
 
 // Serve question_images and choices with CORS headers for frontend PDF rendering
