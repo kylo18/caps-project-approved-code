@@ -39,7 +39,15 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME'),
+            // MAIL_SCHEME accepts only "smtp" or "smtps" in Symfony Mailer.
+            // Map legacy MAIL_ENCRYPTION values for backward compatibility.
+            'scheme' => in_array(env('MAIL_SCHEME'), ['smtp', 'smtps'], true)
+                ? env('MAIL_SCHEME')
+                : match (env('MAIL_ENCRYPTION')) {
+                    'ssl' => 'smtps',
+                    'tls' => 'smtp',
+                    default => null,
+                },
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
@@ -95,11 +103,8 @@ return [
             ],
         ],
 
-        'mailers' => [
-            'mailgun' => [
-                'transport' => 'mailgun',
-            ],
-    // other mailers...
+        'mailgun' => [
+            'transport' => 'mailgun',
         ],
 
     ],

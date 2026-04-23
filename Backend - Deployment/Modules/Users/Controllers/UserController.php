@@ -212,11 +212,18 @@ class UserController extends Controller
 
             $this->updateUserStatus($user, 'registered', true);
 
-            // Send unified email notification and log result with a safe try-catch
-            try {
-                $this->emailService->sendStatusNotification($user, 'approved');
-            } catch (\Exception $e) {
-                Log::warning('Failed to send approval email via service: ' . $e->getMessage());
+            $emailSent = $this->emailService->sendStatusNotification($user, 'approved');
+            if (!$emailSent) {
+                Log::warning('Approval email failed to send', [
+                    'user_id' => $user->userID,
+                    'email' => $user->email,
+                ]);
+
+                return response()->json([
+                    'message' => 'User approved, but approval email failed to send.',
+                    'user' => $user,
+                    'email' => $user->email,
+                ], 200);
             }
 
             return response()->json(['message' => 'User approved successfully.', 'user' => $user], 200);
@@ -271,11 +278,18 @@ class UserController extends Controller
 
         $this->updateUserStatus($user, 'disapproved', false);
 
-        // Send unified email notification and log result with a safe try-catch
-        try {
-            $this->emailService->sendStatusNotification($user, 'disapproved');
-        } catch (\Exception $e) {
-            Log::warning('Failed to send disapproval email via service: ' . $e->getMessage());
+        $emailSent = $this->emailService->sendStatusNotification($user, 'disapproved');
+        if (!$emailSent) {
+            Log::warning('Disapproval email failed to send', [
+                'user_id' => $user->userID,
+                'email' => $user->email,
+            ]);
+
+            return response()->json([
+                'message' => 'User disapproved, but disapproval email failed to send.',
+                'user' => $user,
+                'email' => $user->email,
+            ], 200);
         }
 
         return response()->json(['message' => 'User has been disapproved.', 'user' => $user], 200);

@@ -23,10 +23,10 @@ class SubjectController extends Controller
         try {
             // Validate input fields
             $request->validate([
-                'programID'    => 'required|exists:programs,programID',
-                'subjectCode'  => 'required|string',
-                'subjectName'  => 'required|string',
-                'yearLevelID'  => 'required|exists:year_levels,yearLevelID',
+                'programID' => 'required|exists:programs,programID',
+                'subjectCode' => 'required|string',
+                'subjectName' => 'required|string',
+                'yearLevelID' => 'required|exists:year_levels,yearLevelID',
             ]);
 
             // Prevent duplicate subject entries (same code, name, program and year level)
@@ -44,7 +44,7 @@ class SubjectController extends Controller
             } else {
                 // Create new subject
                 $subject = Subject::create([
-                    'programID'   => $request->programID,
+                    'programID' => $request->programID,
                     'subjectCode' => $request->subjectCode,
                     'subjectName' => $request->subjectName,
                     'yearLevelID' => $request->yearLevelID,
@@ -59,7 +59,7 @@ class SubjectController extends Controller
             Log::error('Error creating subject: ' . $e->getMessage());
 
             return response()->json([
-                'error'   => 'Internal Server Error',
+                'error' => 'Internal Server Error',
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -106,7 +106,7 @@ class SubjectController extends Controller
             if ($user->roleID === 3) {
                 $query->where(function ($q) use ($user) {
                     $q->where('s.programID', $user->programID)
-                      ->orWhere('s.programID', 6); // General subjects
+                        ->orWhere('s.programID', 6); // General subjects
                 });
             }
 
@@ -146,7 +146,7 @@ class SubjectController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Error retrieving subjects: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving subjects',
@@ -204,7 +204,7 @@ class SubjectController extends Controller
 
             // Update the subject
             $updateResult = $this->performSubjectUpdate($subject, $validated['data']);
-            
+
             Log::info('Update completed successfully', ['response' => $updateResult]);
             return response()->json($updateResult, 200);
 
@@ -218,7 +218,7 @@ class SubjectController extends Controller
                 'subject_id' => $subjectID,
                 'exception_class' => get_class($e)
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update subject.',
@@ -274,7 +274,7 @@ class SubjectController extends Controller
             $validated = $request->validate([
                 'subjectCode' => 'required|string|max:50',
                 'subjectName' => 'required|string|max:255',
-                'programID'   => 'nullable|exists:programs,programID',
+                'programID' => 'nullable|exists:programs,programID',
                 'yearLevelID' => 'required|exists:year_levels,yearLevelID',
             ]);
 
@@ -283,7 +283,7 @@ class SubjectController extends Controller
                 'data' => [
                     'subjectCode' => trim($validated['subjectCode']),
                     'subjectName' => trim($validated['subjectName']),
-                    'programID'   => $validated['programID'] ?? null,
+                    'programID' => $validated['programID'] ?? null,
                     'yearLevelID' => $validated['yearLevelID']
                 ]
             ];
@@ -323,13 +323,13 @@ class SubjectController extends Controller
         $subject->fill([
             'subjectCode' => $data['subjectCode'],
             'subjectName' => $data['subjectName'],
-            'programID'   => $data['programID'],
+            'programID' => $data['programID'],
             'yearLevelID' => $data['yearLevelID'],
         ]);
 
         $changes = $subject->getDirty();
         Log::info('Changes to be applied', ['changes' => $changes]);
-        
+
         $subject->save();
         Log::info('Subject saved successfully');
 
@@ -338,7 +338,7 @@ class SubjectController extends Controller
         return [
             'success' => true,
             'message' => 'Subject updated successfully.',
-            'data'    => [
+            'data' => [
                 'subject' => $subject,
                 'changes' => $changes,
                 'relationships' => [
@@ -381,7 +381,7 @@ class SubjectController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to delete subject.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -500,7 +500,7 @@ class SubjectController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Error retrieving exam questions status: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving exam questions status.',
@@ -530,14 +530,14 @@ class SubjectController extends Controller
             // a student can actually take an exam on.
             $subjects = Subject::where(function ($query) use ($user) {
                 $query->where('programID', $user->programID)
-                      ->orWhere('programID', 6) // programID 6 = general subjects
-                      ->orWhereHas('program', function ($subQuery) {
-                          $subQuery->where('programName', 'LIKE', '%General Education%');
-                      });
+                    ->orWhere('programID', 6) // programID 6 = general subjects
+                    ->orWhereHas('program', function ($subQuery) {
+                        $subQuery->where('programName', 'LIKE', '%General Education%');
+                    });
             })
-            ->whereHas('practiceExamSetting') // only subjects with exam settings configured
-            ->with('practiceExamSetting')
-            ->get();
+                ->whereHas('practiceExamSetting') // only subjects with exam settings configured
+                ->with('practiceExamSetting')
+                ->get();
 
             // Group by base name — strip trailing numbers, e.g. "Calculus 1" → "Calculus"
             $grouped = [];
@@ -546,7 +546,7 @@ class SubjectController extends Controller
 
                 if (!isset($grouped[$baseName])) {
                     $grouped[$baseName] = [
-                        'baseName'     => $baseName,
+                        'baseName' => $baseName,
                         'subjectImage' => $subject->subjectImage
                             ? asset('storage/' . $subject->subjectImage)
                             : null,
@@ -555,9 +555,9 @@ class SubjectController extends Controller
                 }
 
                 $grouped[$baseName]['versions'][] = [
-                    'subjectID'      => $subject->subjectID,
-                    'subjectName'    => $subject->subjectName,
-                    'subjectCode'    => $subject->subjectCode,
+                    'subjectID' => $subject->subjectID,
+                    'subjectName' => $subject->subjectName,
+                    'subjectCode' => $subject->subjectCode,
                     'hasExamEnabled' => $subject->practiceExamSetting
                         && $subject->practiceExamSetting->isEnabled,
                 ];
@@ -573,7 +573,7 @@ class SubjectController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving dashboard subjects.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -595,30 +595,30 @@ class SubjectController extends Controller
                 return response()->json(['message' => 'Exam settings not found'], 404);
             }
 
-            $totalQuestions  = $settings->total_items;
-            $easyCount       = (int) round(($settings->easy_percentage / 100) * $totalQuestions);
-            $moderateCount   = (int) round(($settings->moderate_percentage / 100) * $totalQuestions);
-            $hardCount       = $totalQuestions - $easyCount - $moderateCount;
-            $totalPoints     = $totalQuestions * 2; // each question is worth 2 points
+            $totalQuestions = $settings->total_items;
+            $easyCount = (int) round(($settings->easy_percentage / 100) * $totalQuestions);
+            $moderateCount = (int) round(($settings->moderate_percentage / 100) * $totalQuestions);
+            $hardCount = $totalQuestions - $easyCount - $moderateCount;
+            $totalPoints = $totalQuestions * 2; // each question is worth 2 points
 
             return response()->json([
-                'subjectName'        => $subject->subjectName,
-                'subjectCode'        => $subject->subjectCode,
-                'totalQuestions'     => $totalQuestions,
-                'totalPoints'        => $totalPoints,
-                'enableTimer'        => $settings->enableTimer,
-                'durationMinutes'    => $settings->duration_minutes,
+                'subjectName' => $subject->subjectName,
+                'subjectCode' => $subject->subjectCode,
+                'totalQuestions' => $totalQuestions,
+                'totalPoints' => $totalPoints,
+                'enableTimer' => $settings->enableTimer,
+                'durationMinutes' => $settings->duration_minutes,
                 'difficultyBreakdown' => [
                     'easy' => [
-                        'count'      => $easyCount,
+                        'count' => $easyCount,
                         'percentage' => $settings->easy_percentage,
                     ],
                     'moderate' => [
-                        'count'      => $moderateCount,
+                        'count' => $moderateCount,
                         'percentage' => $settings->moderate_percentage,
                     ],
                     'hard' => [
-                        'count'      => $hardCount,
+                        'count' => $hardCount,
                         'percentage' => $settings->hard_percentage,
                     ],
                 ],
@@ -633,7 +633,7 @@ class SubjectController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving exam preview.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -677,14 +677,14 @@ class SubjectController extends Controller
             $subject->save();
 
             return response()->json([
-                'message'      => 'Image uploaded successfully',
+                'message' => 'Image uploaded successfully',
                 'subjectImage' => asset('storage/' . $path),
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors'  => $e->errors(),
+                'errors' => $e->errors(),
             ], 422);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -696,7 +696,7 @@ class SubjectController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while uploading the image.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

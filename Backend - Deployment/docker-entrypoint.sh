@@ -9,6 +9,13 @@ upsert_env_var() {
     return 0
   fi
 
+  # Dotenv requires quoted values when they contain spaces.
+  case "$value" in
+    *[[:space:]]*)
+      value="\"$value\""
+      ;;
+  esac
+
   escaped_value=$(printf '%s\n' "$value" | sed 's/[\/&]/\\&/g')
 
   if grep -q "^${key}=" .env 2>/dev/null; then
@@ -40,6 +47,15 @@ upsert_env_var "FACEBOOK_CLIENT_ID" "${FACEBOOK_CLIENT_ID:-}"
 upsert_env_var "FACEBOOK_CLIENT_SECRET" "${FACEBOOK_CLIENT_SECRET:-}"
 upsert_env_var "FACEBOOK_REDIRECT_URI" "${FACEBOOK_REDIRECT_URI:-}"
 
+upsert_env_var "MAIL_MAILER" "${MAIL_MAILER:-}"
+upsert_env_var "MAIL_HOST" "${MAIL_HOST:-}"
+upsert_env_var "MAIL_PORT" "${MAIL_PORT:-}"
+upsert_env_var "MAIL_USERNAME" "${MAIL_USERNAME:-}"
+upsert_env_var "MAIL_PASSWORD" "${MAIL_PASSWORD:-}"
+upsert_env_var "MAIL_SCHEME" "${MAIL_SCHEME:-}"
+upsert_env_var "MAIL_ENCRYPTION" "${MAIL_ENCRYPTION:-}"
+upsert_env_var "MAIL_FROM_ADDRESS" "${MAIL_FROM_ADDRESS:-}"
+upsert_env_var "MAIL_FROM_NAME" "${MAIL_FROM_NAME:-}"
 if ! grep -q "^APP_KEY=base64:" .env 2>/dev/null; then
   echo "ERROR: APP_KEY is missing." >&2
   echo "Refusing to generate a new encryption key against a persistent database." >&2

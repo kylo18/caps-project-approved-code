@@ -60,12 +60,12 @@ class ClassPersonalQuizController extends Controller
             }
 
             $classPersonalQuizzes = ClassPersonalQuiz::with([
-                    'personalQuiz.subject',
-                    'personalQuiz.quizType',
-                    'personalQuiz.coverage',
-                    'personalQuiz.creator',
-                    'setting',
-                ])
+                'personalQuiz.subject',
+                'personalQuiz.quizType',
+                'personalQuiz.coverage',
+                'personalQuiz.creator',
+                'setting',
+            ])
                 ->where('classID', $classID)
                 ->orderByDesc('created_at')
                 ->get();
@@ -92,7 +92,7 @@ class ClassPersonalQuizController extends Controller
                         ->count();
                     $remainingAttempts = max(0, (int) $setting->quizAttempts - (int) $attemptsUsed);
                 }
-                
+
                 // Faculty-only: student list from ClassQuizAttempt
                 $attempts = collect();
                 if ($user && $user->roleID != 1) {
@@ -477,12 +477,12 @@ class ClassPersonalQuizController extends Controller
 
             // Get all quizzes assigned to this class
             $classPersonalQuizzes = ClassPersonalQuiz::with([
-                    'personalQuiz.subject',
-                    'personalQuiz.quizType',
-                    'personalQuiz.coverage',
-                    'personalQuiz.creator',
-                    'setting',
-                ])
+                'personalQuiz.subject',
+                'personalQuiz.quizType',
+                'personalQuiz.coverage',
+                'personalQuiz.creator',
+                'setting',
+            ])
                 ->where('classID', $classID)
                 ->orderByDesc('created_at')
                 ->get();
@@ -827,7 +827,7 @@ class ClassPersonalQuizController extends Controller
             // Format classes with assignment status
             $formattedClasses = $classes->map(function ($class) use ($assignedClassIds, $personalQuizID) {
                 $isAssigned = in_array($class->classID, $assignedClassIds);
-                
+
                 // Get assignment details if already assigned
                 $assignment = null;
                 if ($isAssigned) {
@@ -995,8 +995,8 @@ class ClassPersonalQuizController extends Controller
 
             $response = [
                 'success' => true,
-                'message' => count($assigned) > 0 
-                    ? 'Quiz assignment completed successfully.' 
+                'message' => count($assigned) > 0
+                    ? 'Quiz assignment completed successfully.'
                     : 'No classes were assigned.',
                 'assigned' => $assigned,
                 'assignedCount' => count($assigned),

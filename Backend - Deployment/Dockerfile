@@ -3,6 +3,8 @@ FROM php:8.2-apache
 
 # Install required PHP extensions and dependencies
 RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    openssl \
     unzip \
     curl \
     git \
