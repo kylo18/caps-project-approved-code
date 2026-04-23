@@ -27,7 +27,6 @@ It will migrate the table named:
 classes:            //This is the name of the table  
     -classID        // This is the name of the fields, follow this format to read the table names and their fields 
     -facultyID
-    -subjectID
     -className
     -classCode
     -inviteToken
