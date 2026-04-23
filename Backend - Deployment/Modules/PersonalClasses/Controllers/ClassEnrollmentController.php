@@ -81,7 +81,7 @@ class ClassEnrollmentController extends Controller
                 'enrolledAt' => now(),
             ]);
 
-            $class->load(['subject', 'faculty']);
+            $class->load(['faculty']);
 
             return response()->json([
                 'success' => true,
@@ -152,7 +152,7 @@ class ClassEnrollmentController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'You are already enrolled in this class.',
-                    'class' => $class->load(['subject', 'faculty']),
+                    'class' => $class->load(['faculty']),
                     'enrollment' => $existingEnrollment,
                 ], 200);
             }
@@ -164,7 +164,7 @@ class ClassEnrollmentController extends Controller
                 'enrolledAt' => now(),
             ]);
 
-            $class->load(['subject', 'faculty']);
+            $class->load(['faculty']);
 
             return response()->json([
                 'success' => true,
@@ -319,7 +319,6 @@ class ClassEnrollmentController extends Controller
             // Get all enrollments for this student with class details
             $enrollments = ClassEnrollment::where('studentID', $user->userID)
                 ->with([
-                    'class.subject',
                     'class.faculty',
                     'class.faculty.program'
                 ])
@@ -342,11 +341,6 @@ class ClassEnrollmentController extends Controller
                     'description' => $class->description,
                     'schedule' => $class->schedule,
                     'isActive' => $class->isActive,
-                    'subject' => $class->subject ? [
-                        'subjectID' => $class->subject->subjectID,
-                        'subjectCode' => $class->subject->subjectCode,
-                        'subjectName' => $class->subject->subjectName,
-                    ] : null,
                     'faculty' => $class->faculty ? [
                         'userID' => $class->faculty->userID,
                         'userCode' => $class->faculty->userCode,
@@ -420,7 +414,6 @@ class ClassEnrollmentController extends Controller
 
             // Get class info before deletion for response
             $class = ClassModel::where('classID', $classID)
-                ->with(['subject'])
                 ->first();
 
             // Delete the enrollment

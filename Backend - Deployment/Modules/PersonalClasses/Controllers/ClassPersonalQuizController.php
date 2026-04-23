@@ -208,19 +208,9 @@ class ClassPersonalQuizController extends Controller
             // Fetch personal quizzes created by the user that:
             // - are not archived
             // - are not yet assigned to the class
-            // - either:
-            //      * subject-based and match the class subject, or
-            //      * custom (no subject)
             $quizzes = PersonalQuiz::with(['subject', 'quizType', 'coverage', 'creator'])
                 ->where('created_by', $user->userID)
                 ->where('isArchived', false)
-                ->where(function ($query) use ($class) {
-                    $query->whereNull('subjectID');
-
-                    if (!empty($class->subjectID)) {
-                        $query->orWhere('subjectID', $class->subjectID);
-                    }
-                })
                 ->when(!empty($assignedQuizIds), function ($query) use ($assignedQuizIds) {
                     $query->whereNotIn('personalQuizID', $assignedQuizIds);
                 })
@@ -463,7 +453,7 @@ class ClassPersonalQuizController extends Controller
             // Get the class details
             $class = ClassModel::where('classID', $classID)
                 ->where('isActive', true)
-                ->with(['subject', 'faculty'])
+                ->with(['faculty'])
                 ->first();
 
             if (!$class) {
@@ -590,11 +580,6 @@ class ClassPersonalQuizController extends Controller
                     'classID' => $class->classID,
                     'className' => $class->className,
                     'classCode' => $class->classCode,
-                    'subject' => $class->subject ? [
-                        'subjectID' => $class->subject->subjectID,
-                        'subjectCode' => $class->subject->subjectCode,
-                        'subjectName' => $class->subject->subjectName,
-                    ] : null,
                     'faculty' => $class->faculty ? [
                         'userID' => $class->faculty->userID,
                         'firstName' => $class->faculty->firstName,
@@ -811,7 +796,7 @@ class ClassPersonalQuizController extends Controller
             }
 
             // Get all classes created by the faculty
-            $classes = ClassModel::with(['subject', 'faculty'])
+            $classes = ClassModel::with(['faculty'])
                 ->where('facultyID', $user->userID)
                 ->where('isActive', true)
                 ->orderByDesc('created_at')
@@ -840,11 +825,6 @@ class ClassPersonalQuizController extends Controller
                     'classCode' => $class->classCode,
                     'description' => $class->description,
                     'schedule' => $class->schedule,
-                    'subject' => $class->subject ? [
-                        'subjectID' => $class->subject->subjectID,
-                        'subjectCode' => $class->subject->subjectCode,
-                        'subjectName' => $class->subject->subjectName,
-                    ] : null,
                     'isAssigned' => $isAssigned,
                     'assignment' => $assignment ? [
                         'classPersonalQuizID' => $assignment->classPersonalQuizID,

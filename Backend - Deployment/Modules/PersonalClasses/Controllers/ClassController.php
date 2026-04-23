@@ -30,7 +30,7 @@ class ClassController extends Controller
                 ], 401);
             }
 
-            $classes = ClassModel::with(['subject', 'faculty', 'enrollments.student'])
+            $classes = ClassModel::with(['faculty', 'enrollments.student'])
                 ->where('facultyID', $user->userID)
                 ->where('isActive', true) // Only return non-archived classes
                 ->orderByDesc('created_at')
@@ -77,7 +77,6 @@ class ClassController extends Controller
             try {
                 $validated = $request->validate([
                     'className' => 'required|string|max:255',
-                    'subjectID' => 'required|exists:subjects,subjectID',
                     'description' => 'nullable|string',
                     'schedule' => 'nullable|string',
                     'isActive' => 'sometimes|boolean',
@@ -99,7 +98,6 @@ class ClassController extends Controller
 
             $class = ClassModel::create([
                 'facultyID' => $user->userID,
-                'subjectID' => $validated['subjectID'],
                 'className' => $validated['className'],
                 'classCode' => $classCode,
                 'inviteToken' => $inviteToken,
@@ -110,7 +108,7 @@ class ClassController extends Controller
             ]);
 
             // Load relationships
-            $class->load(['subject', 'faculty']);
+            $class->load(['faculty']);
 
             return response()->json([
                 'success' => true,
@@ -151,7 +149,6 @@ class ClassController extends Controller
             }
 
             $class = ClassModel::with([
-                'subject',
                 'faculty',
                 'enrollments.student.program',
             ])
@@ -245,10 +242,6 @@ class ClassController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Class retrieved successfully.',
-                // Backward/forward compatibility: some frontends may read subject data from the top-level response
-                // instead of unwrapping the `class` key first.
-                'subjectID' => $class->subjectID,
-                'subject' => $class->subject,
                 'class' => [
                     'classID' => $class->classID,
                     'className' => $class->className,
@@ -257,8 +250,6 @@ class ClassController extends Controller
                     'description' => $class->description,
                     'schedule' => $class->schedule,
                     'isActive' => $class->isActive,
-                    'subjectID' => $class->subjectID,
-                    'subject' => $class->subject,
                     'faculty' => $class->faculty,
                     'students' => $students,
                     'quizzes' => $quizzes,
@@ -313,7 +304,6 @@ class ClassController extends Controller
             try {
                 $validated = $request->validate([
                     'className' => 'sometimes|required|string|max:255',
-                    'subjectID' => 'sometimes|required|exists:subjects,subjectID',
                     'description' => 'nullable|string',
                     'schedule' => 'nullable|string',
                     'isActive' => 'sometimes|boolean',
@@ -327,7 +317,7 @@ class ClassController extends Controller
             }
 
             $class->update($validated);
-            $class->load(['subject', 'faculty']);
+            $class->load(['faculty']);
 
             return response()->json([
                 'success' => true,
@@ -519,7 +509,7 @@ class ClassController extends Controller
 
             $class->isActive = true;
             $class->save();
-            $class->load(['subject', 'faculty']);
+            $class->load(['faculty']);
 
             return response()->json([
                 'success' => true,
@@ -559,7 +549,7 @@ class ClassController extends Controller
                 ], 401);
             }
 
-            $classes = ClassModel::with(['subject', 'faculty', 'enrollments.student'])
+            $classes = ClassModel::with(['faculty', 'enrollments.student'])
                 ->where('facultyID', $user->userID)
                 ->where('isActive', false) // Only return archived classes
                 ->orderByDesc('updated_at') // Order by when they were archived

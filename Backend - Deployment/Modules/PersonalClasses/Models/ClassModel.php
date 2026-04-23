@@ -5,7 +5,6 @@ namespace Modules\PersonalClasses\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Users\Models\User;
-use Modules\Subjects\Models\Subject;
 
 class ClassModel extends Model
 {
@@ -16,7 +15,6 @@ class ClassModel extends Model
 
     protected $fillable = [
         'facultyID',
-        'subjectID',
         'className',
         'classCode',
         'inviteToken',
@@ -36,14 +34,6 @@ class ClassModel extends Model
     public function faculty()
     {
         return $this->belongsTo(User::class, 'facultyID', 'userID');
-    }
-
-    /**
-     * Relationship: Class belongs to Subject
-     */
-    public function subject()
-    {
-        return $this->belongsTo(Subject::class, 'subjectID', 'subjectID');
     }
 
     /**
