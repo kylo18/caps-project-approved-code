@@ -16,9 +16,6 @@ return new class extends Migration
             $table->foreignId('facultyID')
                 ->constrained('users', 'userID')
                 ->onDelete('cascade');
-            $table->foreignId('subjectID')
-                ->constrained('subjects', 'subjectID')
-                ->onDelete('cascade');
             $table->string('className'); // e.g., "CE101 - Section A"
             $table->string('classCode')->unique(); // join code (e.g., "ABC123")
             $table->string('inviteToken')->unique()->nullable(); // Unique token for invite link

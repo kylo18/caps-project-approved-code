@@ -30,7 +30,7 @@ class QuizSessionController extends Controller
             }
 
             // Get all classes the student is enrolled in
-            $enrollments = ClassEnrollment::with(['class.subject', 'class.faculty'])
+            $enrollments = ClassEnrollment::with(['class.faculty'])
                 ->where('studentID', $user->userID)
                 ->get();
 
@@ -52,7 +52,6 @@ class QuizSessionController extends Controller
                 'setting',
                 'personalQuiz.subject',
                 'personalQuiz.quizType',
-                'class.subject',
                 'class.faculty'
             ])
                 ->whereIn('classID', $classIDs)
@@ -142,11 +141,6 @@ class QuizSessionController extends Controller
                         'classID' => $assignment->class->classID,
                         'className' => $assignment->class->className,
                         'classCode' => $assignment->class->classCode,
-                        'subject' => $assignment->class->subject ? [
-                            'subjectID' => $assignment->class->subject->subjectID,
-                            'subjectCode' => $assignment->class->subject->subjectCode,
-                            'subjectName' => $assignment->class->subject->subjectName,
-                        ] : null,
                         'faculty' => $assignment->class->faculty ? [
                             'userID' => $assignment->class->faculty->userID,
                             'firstName' => $assignment->class->faculty->firstName,
@@ -276,7 +270,7 @@ class QuizSessionController extends Controller
             $classID = $request->input('classID');
 
             // Get classes owned by this faculty user (user-specific sessions)
-            $classesQuery = ClassModel::with(['subject', 'enrollments.student'])
+            $classesQuery = ClassModel::with(['enrollments.student'])
                 ->where('facultyID', $user->userID);
 
             if ($classID) {
@@ -299,7 +293,6 @@ class QuizSessionController extends Controller
                 'setting',
                 'personalQuiz.subject',
                 'personalQuiz.quizType',
-                'class.subject',
                 'class.faculty',
                 'studentQuizResults.student'
             ])
@@ -375,11 +368,6 @@ class QuizSessionController extends Controller
                         'classID' => $class->classID,
                         'className' => $class->className,
                         'classCode' => $class->classCode,
-                        'subject' => $class->subject ? [
-                            'subjectID' => $class->subject->subjectID,
-                            'subjectCode' => $class->subject->subjectCode,
-                            'subjectName' => $class->subject->subjectName,
-                        ] : null,
                     ],
                     'assignment' => [
                         'startDate' => $assignment->startDate,

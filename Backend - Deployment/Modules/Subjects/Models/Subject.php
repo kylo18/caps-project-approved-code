@@ -67,11 +67,4 @@ class Subject extends Model
         return $this->hasMany(PersonalQuiz::class, 'subjectID', 'subjectID');
     }
 
-    /**
-     * Relationship: Subject has many Classes
-     */
-    public function classes()
-    {
-        return $this->hasMany(\Modules\PersonalClasses\Models\ClassModel::class, 'subjectID', 'subjectID');
-    }
 }
