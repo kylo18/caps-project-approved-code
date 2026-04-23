@@ -27,7 +27,7 @@ fi
 upsert_env_var "APP_KEY" "${APP_KEY:-}"
 upsert_env_var "JWT_SECRET" "${JWT_SECRET:-}"
 upsert_env_var "CACHE_DRIVER" "${CACHE_DRIVER:-file}"
-upsert_env_var "SESSION_DRIVER" "${SESSION_DRIVER:-file}"
+upsert_env_var "SESSION_DRIVER" "${SESSION_DRIVER:-file}" # Still questionable becasue we dont know what will be the behavior if this line is chagned in the live environment
 upsert_env_var "QUEUE_CONNECTION" "${QUEUE_CONNECTION:-sync}"
 upsert_env_var "REDIS_CLIENT" "${REDIS_CLIENT:-predis}"
 upsert_env_var "REDIS_HOST" "${REDIS_HOST:-127.0.0.1}"
