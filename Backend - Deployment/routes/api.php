@@ -186,6 +186,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Class Enrollment (Faculty - view enrolled students)
     // NEW: wired up ClassEnrollmentController index so faculty can see who's in their class.
     Route::get('/classes/{classID}/enrollments', [ClassEnrollmentController::class, 'index']);
+    // Alias for older / alternate frontends that call /students instead of /enrollments.
+    Route::get('/classes/{classID}/students', [ClassEnrollmentController::class, 'index']);
 
     // Customer Support (Keeping the Jdev version)
     Route::post('/support-tickets', [\Modules\Support\Controllers\SupportTicketController::class, 'store']);
@@ -303,6 +305,8 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     // Class Enrollment (Faculty - remove student from class)
     // NEW: wired up ClassEnrollmentController removeStudent.
     Route::post('/classes/{classID}/enrollments/remove', [ClassEnrollmentController::class, 'removeStudent']);
+    // Alias: DELETE + JSON body (some frontends use this instead of POST .../enrollments/remove).
+    Route::delete('/classes/{classID}/remove-student', [ClassEnrollmentController::class, 'removeStudent']);
 
     // System notification for bulk updates (Dean and Associate Dean only)
     Route::post('/admin/system/notify-update', [SystemNotificationController::class, 'sendSystemUpdate']);
