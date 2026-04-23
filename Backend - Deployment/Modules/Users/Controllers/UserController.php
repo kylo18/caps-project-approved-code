@@ -560,9 +560,7 @@ class UserController extends Controller
     private function authorizeDeanAccess()
     {
         $authUser = Auth::user();
-        if (!in_array($authUser->roleID, [3, 4, 5])) {
-            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can perform this action'], 403);
-        }
+        abort_unless($authUser && in_array($authUser->roleID, [4, 5]), 403, 'Unauthorized: Only the Dean or Associate Dean can perform this action');
     }
 
     private function buildUserQuery(Request $request)
@@ -601,8 +599,28 @@ class UserController extends Controller
         }
         // Dean (roleID 4) can view all users, so no additional filters needed
 
+        $this->applyDefaultStateVisibility($query, $request);
         $this->applySearchFilters($query, $request);
         return $query;
+    }
+
+    private function applyDefaultStateVisibility($query, Request $request)
+    {
+        $state = strtolower(trim((string) $request->input('state', '')));
+        $status = strtolower(trim((string) $request->input('status', '')));
+
+        if (in_array($state, ['active', 'inactive', 'all'], true) || $status === 'registered') {
+            return;
+        }
+
+        // By default, hide only registered users that have been deactivated.
+        // Pending and disapproved accounts remain visible for approval workflows.
+        $query->where(function ($q) {
+            $q->where('isActive', true)
+              ->orWhereHas('status', function ($statusQuery) {
+                  $statusQuery->where('name', '!=', 'registered');
+              });
+        });
     }
 
     private function applySearchFilters($query, Request $request)
@@ -644,7 +662,26 @@ class UserController extends Controller
                 });
             },
             'state' => function($q, $value) {
-                $q->where('isActive', $value === 'Active');
+                $normalizedValue = strtolower(trim((string) $value));
+
+                if ($normalizedValue === 'all' || $normalizedValue === '') {
+                    return;
+                }
+
+                if ($normalizedValue === 'active') {
+                    $q->where('isActive', true)
+                      ->whereHas('status', function ($statusQuery) {
+                          $statusQuery->where('name', 'registered');
+                      });
+                    return;
+                }
+
+                if ($normalizedValue === 'inactive') {
+                    $q->where('isActive', false)
+                      ->whereHas('status', function ($statusQuery) {
+                          $statusQuery->where('name', 'registered');
+                      });
+                }
             }
         ];
 

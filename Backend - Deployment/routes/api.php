@@ -29,6 +29,7 @@ use Modules\Support\Controllers\AIController;
 use Modules\Support\Controllers\SupportController;
 use Modules\Notifications\Controllers\NotificationController;
 use Modules\Users\Controllers\FeedbackController;
+use Modules\Notifications\Controllers\PushTokenController;
 // New imports: these controllers were referenced in routes below but had no use statements,
 // causing "Class does not exist" errors at runtime (artisan route:list crashed).
 use Modules\PersonalExams\Controllers\PersonalQuizController;
@@ -147,6 +148,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     // Notification Routes (All authenticated users)
+    Route::post('/push-token', [PushTokenController::class, 'store']);
+    Route::delete('/push-token', [PushTokenController::class, 'destroy']);
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'getUnreadCount']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
@@ -190,9 +193,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Alias for older / alternate frontends that call /students instead of /enrollments.
     Route::get('/classes/{classID}/students', [ClassEnrollmentController::class, 'index']);
 
-    // Customer Support (Keeping the Jdev version)
-    Route::post('/support-tickets', [\Modules\Support\Controllers\SupportTicketController::class, 'store']);
-    Route::get('/support-tickets/me', [\Modules\Support\Controllers\SupportTicketController::class, 'myTickets']);
+    // Customer Support
+    Route::post('/support-tickets', [SupportController::class, 'store']);
+    Route::get('/support-tickets/me', [SupportController::class, 'myTickets']);
 
     // Feedback System Routes (All authenticated users)
     Route::post('/feedback', [FeedbackController::class, 'store']);
@@ -541,7 +544,7 @@ Route::middleware(['auth:sanctum', 'role:4,5'])->group(function () {
     Route::patch('/subjects/{subjectID}/disable-exam-questions', [SubjectController::class, 'disableExamQuestions']);
 
     // Admin Customer Support
-    Route::get('/support-tickets', [\Modules\Support\Controllers\SupportTicketController::class, 'index']);
+    Route::get('/support-tickets', [SupportController::class, 'index']);
 
     // Feedback System Admin Routes (Dean only)
     Route::get('/feedback/admin', [FeedbackController::class, 'adminIndex']);

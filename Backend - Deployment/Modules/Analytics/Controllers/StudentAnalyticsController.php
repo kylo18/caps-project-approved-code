@@ -414,6 +414,9 @@ class StudentAnalyticsController extends Controller
 
                 $questionChoices = $choices[$questionId] ?? collect([]);
 
+                $selectedChoiceId = $row['selected_choice_id'] ?? null;
+                $selectedChoiceId = $selectedChoiceId !== null ? (int) $selectedChoiceId : null;
+
                 $data[] = [
                     'questionID' => $question->questionID,
                     'questionText' => $this->safeDecrypt($question->questionText),
@@ -422,6 +425,8 @@ class StudentAnalyticsController extends Controller
                     'subjectName' => $question->subjectName,
                     'wrong_count' => (int) ($row['wrong_count'] ?? 0),
                     'consecutive_wrong_count' => (int) ($row['consecutive_wrong_count'] ?? 0),
+                    'selectedChoiceID' => $selectedChoiceId,
+                    'selectedAnswerIsCorrect' => (bool) ($row['selected_answer_is_correct'] ?? false),
                     'choices' => $questionChoices->map(function ($c) {
                         return [
                             'choiceID' => $c->choiceID,
@@ -450,7 +455,7 @@ class StudentAnalyticsController extends Controller
     {
         $answers = DB::table('practice_exam_answers')
             ->where('user_id', $userId)
-            ->select('question_id', 'is_correct', 'created_at')
+            ->select('question_id', 'selected_choice_id', 'is_correct', 'created_at')
             ->orderBy('question_id', 'asc')
             ->orderBy('created_at', 'asc')
             ->get();
@@ -464,6 +469,7 @@ class StudentAnalyticsController extends Controller
             ->map(function ($rows, $questionId) {
                 $totalWrong = 0;
                 $currentStreak = 0;
+                $latestAnswer = $rows->last();
 
                 foreach ($rows as $row) {
                     $isCorrect = (int) ($row->is_correct ?? 0) === 1;
@@ -480,6 +486,8 @@ class StudentAnalyticsController extends Controller
                     'question_id' => (int) $questionId,
                     'wrong_count' => $totalWrong,
                     'consecutive_wrong_count' => $currentStreak,
+                    'selected_choice_id' => $latestAnswer?->selected_choice_id,
+                    'selected_answer_is_correct' => (int) ($latestAnswer?->is_correct ?? 0) === 1,
                 ];
             })
             ->values();

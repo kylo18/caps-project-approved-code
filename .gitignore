@@ -135,6 +135,29 @@ docker-data
 
 # docker compose
 docker-compose.yml
+Questions for Testing/Sample Questions.txt
+Questions for Testing/EE SAMPLE QUESTIONS.txt
+Questions for Testing/CPE SAMPLE QUESTIONS.txt
+Questions for Testing/CE SAMPLE QUESITONS.txt
+Questions for Testing/TEST ACCOUNTS.txt
+DATABASE_GUIDE.md
+frontend_enhancements_report.txt
+frontend_weekly_report.txt
+GEMINI.md
+layout_fix_explanation.txt
+status_id_bug_report.txt
+.agent/FRONTEND_RULES.md
+DocumentedLearning/CAPS_March_Interview_Master_Guide.md
+DocumentedLearning/CAPS_March_Interview_Master_Guide.pdf
+DocumentedLearning/CAPS_March_Interview_Master_Guide.txt
+DocumentedLearning/CAPS_March_Interview_Question.md
+DocumentedLearning/CHANGELOG.md
+DocumentedLearning/interview-questions-and-answers.txt
+DocumentedLearning/learn.md
+DocumentedLearning/March_11_26_Code_Details.md
+DocumentedLearning/March_11_26_Git_Verification.md
+BUGS & SOLUTION IN TESTING ENVIRONMENT/APK_CONNECTION_FIX.md
+FrontendMobile - Deployment/darkmode_fix_explanation.txt
 
 # AI model files (too large for GitHub)
 *.gguf
@@ -155,22 +178,45 @@ FrontendMobile - Deployment/android/app/.settings/
 
 # Local Android native dependency (kept out of repo)
 FrontendMobile - Deployment/android/app/src/main/cpp/llama/
+AnalyticsReport.docx
+BACKEND_CHANGES_REPORT_7DAYS.md
+REACT_NATIVE_MIGRATION_PLAN.md
 .opencode/package-lock.json
 .qwen/settings.json
 .qwen/settings.json.orig
 Backend - Deployment/.qwen/settings.json
 Backend - Deployment/.qwen/settings.json.orig
+FrontendMobile - Deployment/DEV-REPORT-LAST-7-DAYS.md
+FrontendMobile/README.md
+FrontendMobile/MIGRATION_STATUS.md
 
 # CDP Temp Dirs
 .edge-cdp-temp
 .edge-cdp-temp2
+Backend - Deployment/API_RESPONSE_FORMATS.md
 edge-home-after.png
 edge-home.png
 docker-compose.dev.yml
 backend-fixes.patch
+backend-fixes-utf8.patch
 FrontendMobile/App.tsx.bak
+FRONTEND_CHANGES_LEARNING_GUIDE.md
 backend-full-final.patch
 .ai/mcp/mcp.json
+FrontendMobile/FIREBASE_AUTH_SETUP.md
+FrontendMobile/GOOGLE_SIGNIN_SETUP.md
+FrontendMobile/QWEN.md
+FrontendMobile/CODE_REVIEW_IMPROVEMENT_PLAN.md
+FrontendMobile/findings-summary.md
+FrontendMobile/implementationplan.md
+FrontendMobile/BUILD_SETUP.md
+PLANNING PHASE/implementationplan.md
+Backend_Changes_Report.md
+FrontendMobile_Changes_Report.md
+learning.md
+WEB_VS_MOBILE_FEATURES.md
+nul
+.playwright-mcp/
 backup.sql
 .qoder/rules/StrictRule.md
 .qoder/specs/phase-3-feature-parity.md

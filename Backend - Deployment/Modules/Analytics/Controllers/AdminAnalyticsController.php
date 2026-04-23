@@ -99,9 +99,7 @@ class AdminAnalyticsController extends Controller
             $results = DB::table('practice_exam_results')
                 ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
                 ->join('subjects', 'practice_exam_results.subjectID', '=', 'subjects.subjectID')
-                ->where(function($query) use ($user) {
-                    $this->applyRoleBasedScope($query, $user);
-                })
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
                 ->select(
                     'subjects.subjectID',
                     'subjects.subjectName',
@@ -141,9 +139,7 @@ class AdminAnalyticsController extends Controller
             
             $results = DB::table('practice_exam_results')
                 ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
-                ->where(function($query) use ($user) {
-                    $this->applyRoleBasedScope($query, $user);
-                })
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
                 ->where('practice_exam_results.created_at', '>=', now()->subMonths(6))
                 ->select(
                     DB::raw("DATE_FORMAT(practice_exam_results.created_at, '{$dateFormat}') as period"),
@@ -181,9 +177,7 @@ class AdminAnalyticsController extends Controller
             
             $stats = DB::table('practice_exam_results')
                 ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
-                ->where(function($query) use ($user) {
-                    $this->applyRoleBasedScope($query, $user);
-                })
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
                 ->select(
                     DB::raw('COUNT(*) as total'),
                     DB::raw('SUM(CASE WHEN percentage >= 60 THEN 1 ELSE 0 END) as passed'),
@@ -234,18 +228,14 @@ class AdminAnalyticsController extends Controller
             // Current month average
             $currentMonth = DB::table('practice_exam_results')
                 ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
-                ->where(function($query) use ($user) {
-                    $this->applyRoleBasedScope($query, $user);
-                })
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
                 ->whereMonth('practice_exam_results.created_at', now()->month)
                 ->avg('percentage') ?? 0;
             
             // Previous month average
             $previousMonth = DB::table('practice_exam_results')
                 ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
-                ->where(function($query) use ($user) {
-                    $this->applyRoleBasedScope($query, $user);
-                })
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
                 ->whereMonth('practice_exam_results.created_at', now()->subMonth()->month)
                 ->avg('percentage') ?? 0;
             
@@ -286,6 +276,8 @@ class AdminAnalyticsController extends Controller
             $results = DB::table('learning_difficulty_analytics')
                 ->join('questions', 'learning_difficulty_analytics.question_id', '=', 'questions.questionID')
                 ->join('subjects', 'learning_difficulty_analytics.subject_id', '=', 'subjects.subjectID')
+                ->join('users as question_users', 'questions.userID', '=', 'question_users.userID')
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user, 'question_users'))
                 ->select(
                     'subjects.subjectName',
                     'questions.topic',
@@ -334,6 +326,8 @@ class AdminAnalyticsController extends Controller
             // Most viewed lessons
             $mostViewed = DB::table('content_analytics')
                 ->join('subjects', 'content_analytics.subject_id', '=', 'subjects.subjectID')
+                ->join('users', 'content_analytics.user_id', '=', 'users.userID')
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
                 ->where('content_analytics.interaction_type', 'lesson_view')
                 ->select('subjects.subjectID as lesson_id', 'subjects.subjectName as lesson_title', DB::raw('COUNT(*) as views'))
                 ->groupBy('subjects.subjectID', 'subjects.subjectName')
@@ -344,6 +338,8 @@ class AdminAnalyticsController extends Controller
             // Most attempted questions
             $mostAttempted = DB::table('practice_exam_answers')
                 ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
+                ->join('users', 'practice_exam_answers.user_id', '=', 'users.userID')
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
                 ->select('questions.questionID as question_id', 'questions.topic as question_preview', DB::raw('COUNT(*) as attempts'))
                 ->groupBy('questions.questionID', 'questions.topic')
                 ->orderByDesc('attempts')
@@ -353,6 +349,8 @@ class AdminAnalyticsController extends Controller
             // Most skipped topics
             $mostSkipped = DB::table('practice_exam_answers')
                 ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
+                ->join('users', 'practice_exam_answers.user_id', '=', 'users.userID')
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
                 ->whereNull('practice_exam_answers.selected_choice_id')
                 ->select('questions.topic', DB::raw('COUNT(*) as skip_count'))
                 ->groupBy('questions.topic')
@@ -363,6 +361,8 @@ class AdminAnalyticsController extends Controller
             // Highest error rate questions
             $highErrorRate = DB::table('practice_exam_answers')
                 ->join('questions', 'practice_exam_answers.question_id', '=', 'questions.questionID')
+                ->join('users', 'practice_exam_answers.user_id', '=', 'users.userID')
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
                 ->select(
                     'questions.questionID as question_id',
                     'questions.topic as question_preview',
@@ -804,25 +804,27 @@ class AdminAnalyticsController extends Controller
      * @param \Modules\Users\Models\User $user The authenticated user
      * @return \Illuminate\Database\Query\Builder The scoped query
      */
-    private function applyRoleBasedScope($query, $user)
+    private function applyRoleBasedScope($query, $user, string $userTable = 'users')
     {
+        $query->where("{$userTable}.isActive", true);
+
         switch ($user->roleID) {
             case 4: // Dean - all campus data
             case 5: // Associate Dean - all campus data
                 if ($user->campusID) {
-                    $query->where('users.campusID', $user->campusID);
+                    $query->where("{$userTable}.campusID", $user->campusID);
                 }
                 break;
             case 3: // Program Chair - program data
                 if ($user->campusID && $user->programID) {
-                    $query->where('users.campusID', $user->campusID)
-                          ->where('users.programID', $user->programID);
+                    $query->where("{$userTable}.campusID", $user->campusID)
+                          ->where("{$userTable}.programID", $user->programID);
                 }
                 break;
             case 2: // Faculty - only their students
                 if ($user->campusID && $user->programID) {
-                    $query->where('users.campusID', $user->campusID)
-                          ->where('users.programID', $user->programID);
+                    $query->where("{$userTable}.campusID", $user->campusID)
+                          ->where("{$userTable}.programID", $user->programID);
                 }
                 break;
             default:

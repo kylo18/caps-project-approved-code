@@ -21,6 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return null;
+            }
+
+            return route('login');
+        });
         
         // Add CORS middleware globally
         $middleware->prepend(

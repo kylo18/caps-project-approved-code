@@ -207,8 +207,7 @@ class FeatureTablesSeeder extends Seeder
 
         $resolverId = optional($staff->first())->userID;
         $now = now();
-
-        DB::table('support_tickets')->insert([
+        $rows = [
             [
                 'user_id' => $students->first()->userID,
                 'subject' => 'Unable to submit practice exam',
@@ -233,7 +232,22 @@ class FeatureTablesSeeder extends Seeder
                 'created_at' => $now->copy()->subDays(4),
                 'updated_at' => $now->copy()->subHours(12),
             ],
-        ]);
+        ];
+
+        DB::table('support_tickets')->insert(array_map(function (array $row) {
+            return [
+                'user_id' => $row['user_id'],
+                'subject' => $row['subject'],
+                'description' => $row['description'],
+                'category' => $row['category'],
+                'status' => $row['status'],
+                'priority' => $row['priority'],
+                'resolved_by' => $row['resolved_by'],
+                'resolved_at' => $row['resolved_at'],
+                'created_at' => $row['created_at'],
+                'updated_at' => $row['updated_at'],
+            ];
+        }, $rows));
     }
 
     private function seedNotifications(Collection $users, Collection $subjects): void

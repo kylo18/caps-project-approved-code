@@ -5,8 +5,9 @@ namespace Modules\Notifications\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Modules\Notifications\Services\PushNotificationService;
 
 /**
  * Notification Controller
@@ -25,6 +26,10 @@ use Illuminate\Support\Facades\DB;
  */
 class NotificationController extends Controller
 {
+    public function __construct(private PushNotificationService $pushNotifications)
+    {
+    }
+
     /**
      * Get paginated list of notifications for authenticated user.
      * 
@@ -229,6 +234,15 @@ class NotificationController extends Controller
                 ]);
                 $createdCount++;
             }
+
+            $this->pushNotifications->sendToUsers(
+                $targetUsers,
+                $validated['title'],
+                $validated['message'],
+                array_merge($validated['data'] ?? [], [
+                    'type' => $validated['type'],
+                ])
+            );
             
             return response()->json([
                 'message' => 'Notification created successfully',

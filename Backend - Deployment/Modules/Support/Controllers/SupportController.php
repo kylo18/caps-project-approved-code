@@ -26,6 +26,21 @@ use Illuminate\Support\Facades\Schema;
  */
 class SupportController extends Controller
 {
+    public function store(Request $request)
+    {
+        return $this->createTicket($request);
+    }
+
+    public function myTickets(Request $request)
+    {
+        return $this->getMyTickets($request);
+    }
+
+    public function index(Request $request)
+    {
+        return $this->getAdminTickets($request);
+    }
+
     /**
      * Get list of frequently asked questions.
      * 
@@ -61,8 +76,6 @@ class SupportController extends Controller
                 return $faq;
             });
             
-            $categoryLabelColumn = Schema::hasColumn('faq_categories', 'name') ? 'name' : 'subject';
-            
             // Group by category if no specific category selected
             if (!$categoryId) {
                 $groupedFaqs = [];
@@ -75,6 +88,7 @@ class SupportController extends Controller
                 $groupedFaqs['Uncategorized'] = $normalizedFaqs->whereNull('category_id')->values();
                 
                 return response()->json([
+                    'success' => true,
                     'message' => 'FAQs retrieved successfully',
                     'data' => $groupedFaqs,
                     'categories' => $categories
@@ -82,6 +96,7 @@ class SupportController extends Controller
             }
             
             return response()->json([
+                'success' => true,
                 'message' => 'FAQs retrieved successfully',
                 'data' => $normalizedFaqs->values()
             ], 200);
@@ -109,12 +124,22 @@ class SupportController extends Controller
         try {
             // Ensure user is authenticated
             $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+
+            $payload = $this->normalizeTicketPayload($request);
             
             // Validate request data
-            $validated = $request->validate([
+            $validated = validator($payload, [
                 'subject' => 'required|string|max:255',
                 'description' => 'required|string|min:10',
                 'category' => 'required|in:technical,account,academic,other',
+            ])->validate();
+
+            $request->validate([
                 'attachment' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,pdf,doc,docx'
             ]);
             
@@ -138,6 +163,7 @@ class SupportController extends Controller
             ]);
             
             return response()->json([
+                'success' => true,
                 'message' => 'Support ticket created successfully',
                 'data' => [
                     'ticket_id' => $ticketId,
@@ -173,6 +199,11 @@ class SupportController extends Controller
     {
         try {
             $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
             
             $query = DB::table('support_tickets')
                 ->where('user_id', $user->userID)
@@ -186,6 +217,7 @@ class SupportController extends Controller
             $tickets = $query->get();
             
             return response()->json([
+                'success' => true,
                 'message' => 'Support tickets retrieved',
                 'data' => $tickets,
                 'total' => $tickets->count()
@@ -212,6 +244,11 @@ class SupportController extends Controller
     {
         try {
             $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
             
             $ticket = DB::table('support_tickets')
                 ->where('id', $id)
@@ -225,6 +262,7 @@ class SupportController extends Controller
             }
             
             return response()->json([
+                'success' => true,
                 'message' => 'Ticket retrieved',
                 'data' => $ticket
             ], 200);
@@ -304,6 +342,7 @@ class SupportController extends Controller
             });
             
             return response()->json([
+                'success' => true,
                 'message' => 'Admin tickets retrieved',
                 'data' => $tickets->items(),
                 'meta' => [
@@ -370,6 +409,7 @@ class SupportController extends Controller
             unset($ticket->firstName, $ticket->lastName, $ticket->email);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Admin ticket retrieved',
                 'data' => $ticket,
             ], 200);
@@ -412,6 +452,9 @@ class SupportController extends Controller
                 if (in_array($validated['status'], ['resolved', 'closed'])) {
                     $updateData['resolved_by'] = $user->userID;
                     $updateData['resolved_at'] = now();
+                } else {
+                    $updateData['resolved_by'] = null;
+                    $updateData['resolved_at'] = null;
                 }
             }
             if (isset($validated['priority'])) {
@@ -431,6 +474,7 @@ class SupportController extends Controller
             $updatedTicket = DB::table('support_tickets')->find($id);
             
             return response()->json([
+                'success' => true,
                 'message' => 'Ticket updated successfully',
                 'data' => $updatedTicket
             ], 200);
@@ -449,6 +493,29 @@ class SupportController extends Controller
         }
     }
 
+    private function normalizeTicketPayload(Request $request): array
+    {
+        $issueType = (string) $request->input('issue_type', '');
+
+        return [
+            'subject' => $request->input('subject'),
+            'description' => $request->input('description', $request->input('message')),
+            'category' => $request->input('category', $this->mapIssueType($issueType)),
+        ];
+    }
+
+    private function mapIssueType(string $type): string
+    {
+        $type = strtolower($type);
+
+        return match (true) {
+            str_contains($type, 'account'), str_contains($type, 'login') => 'account',
+            str_contains($type, 'exam'), str_contains($type, 'quiz') => 'academic',
+            str_contains($type, 'technical'), str_contains($type, 'performance'), str_contains($type, 'notification') => 'technical',
+            default => 'other',
+        };
+    }
+
     /**
      * Get FAQ categories.
      * 
@@ -464,6 +531,7 @@ class SupportController extends Controller
                 ->get();
             
             return response()->json([
+                'success' => true,
                 'message' => 'Categories retrieved',
                 'data' => $categories
             ], 200);
