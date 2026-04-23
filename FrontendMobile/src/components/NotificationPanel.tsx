@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import CapsActivityIndicator from './CapsActivityIndicator';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { apiRequest } from '../../src/services/apiClient';
+import { useTheme } from '../../src/contexts/ThemeContext';
 
 export default function NotificationPanel({ visible, onClose }) {
   const router = useRouter();
-  const isDark = false;
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,11 +25,7 @@ export default function NotificationPanel({ visible, onClose }) {
     try {
       const response = await apiRequest('/api/notifications');
       const data = response?.data ?? response;
-      if (Array.isArray(data)) {
-        setNotifications(data);
-      } else {
-        setNotifications([]);
-      }
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load notifications:', error);
       setNotifications([]);
@@ -59,61 +58,25 @@ export default function NotificationPanel({ visible, onClose }) {
     }
   };
 
-  const extractNotificationData = (notification: any) => {
-    const raw = notification?.data;
-    if (!raw) return {};
-    if (typeof raw === 'string') {
-      try {
-        return JSON.parse(raw);
-      } catch {
-        return {};
-      }
-    }
-    if (typeof raw === 'object') return raw;
-    return {};
-  };
-
-  const normalizeRoleLabel = (rawRole: any): string | null => {
-    if (rawRole == null) return null;
-    const value = String(rawRole).trim().toLowerCase();
-    if (!value) return null;
-
-    if (value === '4' || value.includes('dean')) return 'Dean';
-    if (value === '5' || value.includes('associate dean')) return 'Program Chair';
-    if (value === '3' || value.includes('program chair') || value.includes('chair')) return 'Program Chair';
-    if (value === '2' || value.includes('faculty') || value.includes('teacher')) return 'Faculty';
-    if (value === '1' || value.includes('student')) return 'Student';
-    return null;
-  };
-
   const getSenderLabel = (notification: any): string => {
-    const data = extractNotificationData(notification);
-    const roleLabel = normalizeRoleLabel(
-      notification?.senderRole ||
-      notification?.sender_role ||
-      data?.senderRole ||
-      data?.sender_role ||
-      data?.roleID ||
-      data?.role_id ||
-      data?.role
-    );
-
-    const senderName =
-      notification?.senderName ||
-      notification?.sender_name ||
-      data?.senderName ||
-      data?.sender_name ||
-      data?.from ||
-      data?.created_by_name;
-
+    const raw = notification?.data;
+    const data = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
+    const roleLabel = (() => {
+      const v = notification?.senderRole || data?.senderRole || '';
+      if (!v) return null;
+      const s = String(v).toLowerCase();
+      if (s === '4' || s.includes('dean')) return 'Dean';
+      if (s === '5' || s.includes('associate dean')) return 'Associate Dean';
+      if (s === '3' || s.includes('program chair') || s.includes('chair')) return 'Program Chair';
+      if (s === '2' || s.includes('faculty') || s.includes('teacher')) return 'Faculty';
+      if (s === '1' || s.includes('student')) return 'Student';
+      return null;
+    })();
+    const senderName = notification?.senderName || data?.senderName || '';
     if (senderName && roleLabel) return `${senderName} (${roleLabel})`;
     if (senderName) return senderName;
     if (roleLabel) return roleLabel;
-
-    if (notification?.type === 'system_announcement') {
-      return 'Administration';
-    }
-
+    if (notification?.type === 'system_announcement') return 'Administration';
     return 'System';
   };
 
@@ -123,23 +86,20 @@ export default function NotificationPanel({ visible, onClose }) {
       senderLabel: getSenderLabel(notification),
       subject: notification?.title || 'Notification',
       body: notification?.message || 'No additional details available.',
-      dateLabel: notification?.created_at
-        ? new Date(notification.created_at).toLocaleString()
-        : '',
+      dateLabel: notification?.created_at ? new Date(notification.created_at).toLocaleString() : '',
     });
     setShowDetailModal(true);
   };
 
-  const handleNotificationPress = (notification, notificationID) => {
-    markAsRead(notificationID);
-
+  const handleNotificationPress = (notification) => {
+    const resolvedNotificationId = notification.notificationID ?? notification.id ?? notification.notification_id;
+    markAsRead(resolvedNotificationId);
     if (notification.actionUrl) {
       onClose();
       router.push(notification.actionUrl);
-      return;
+    } else {
+      openNotificationDetail(notification);
     }
-
-    openNotificationDetail(notification);
   };
 
   const getNotificationIcon = (type) => {
@@ -155,10 +115,10 @@ export default function NotificationPanel({ visible, onClose }) {
 
   const colors = {
     bg: 'rgba(0,0,0,0.5)',
-    card: '#fff',
-    text: '#111827',
-    textSecondary: '#6b7280',
-    border: '#e5e7eb',
+    card: isDark ? '#1f2937' : '#fff',
+    text: isDark ? '#f9fafb' : '#111827',
+    textSecondary: isDark ? '#9ca3af' : '#6b7280',
+    border: isDark ? '#374151' : '#e5e7eb',
     orange: '#FE6902',
   };
 
@@ -166,61 +126,54 @@ export default function NotificationPanel({ visible, onClose }) {
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={[styles.overlay, { backgroundColor: colors.bg }]}>
-        <View style={[styles.container, { backgroundColor: colors.card }]}>
-          <View style={styles.header}>
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.bg }}>
+        <View className="rounded-t-3xl p-5 max-h-[85%]" style={{ backgroundColor: colors.card }}>
+          <View className="flex-row justify-between items-start mb-4">
             <View>
-              <Text style={[styles.title, { color: colors.text }]}>Notifications</Text>
-              {unreadCount > 0 && (
-                <Text style={[styles.unreadText, { color: colors.orange }]}>{unreadCount} unread</Text>
-              )}
+              <Text className="text-xl font-bold" style={{ color: colors.text }}>Notifications</Text>
+              {unreadCount > 0 && <Text className="text-sm mt-0.5" style={{ color: colors.orange }}>{unreadCount} unread</Text>}
             </View>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View className="flex-row items-center gap-3">
               {unreadCount > 0 && (
-                <TouchableOpacity onPress={markAllAsRead}>
-                  <Text style={[styles.markAllText, { color: colors.orange }]}>Mark all read</Text>
+                <TouchableOpacity onPress={markAllAsRead} activeOpacity={0.7}>
+                  <Text className="text-sm font-semibold" style={{ color: colors.orange }}>Mark all read</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={onClose}>
+              <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
           </View>
 
           {isLoading ? (
-            <ActivityIndicator size="large" color={colors.orange} style={{ marginVertical: 40 }} />
+            <View className="items-center justify-center py-10">
+              <CapsActivityIndicator size="large" color={colors.orange} />
+            </View>
           ) : notifications.length === 0 ? (
-            <View style={styles.emptyState}>
+            <View className="items-center justify-center py-10">
               <Ionicons name="notifications-off" size={48} color={colors.textSecondary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No notifications</Text>
+              <Text className="text-sm mt-3" style={{ color: colors.textSecondary }}>No notifications</Text>
             </View>
           ) : (
-            <ScrollView style={styles.notificationList}>
+            <ScrollView style={{ maxHeight: 400 }}>
               {notifications.map((notification, idx) => {
-                const resolvedNotificationId =
-                  notification.notificationID ?? notification.id ?? notification.notification_id;
-
+                const resolvedId = notification.notificationID ?? notification.id ?? notification.notification_id;
                 return (
                   <TouchableOpacity
-                    key={resolvedNotificationId || idx}
-                    style={[styles.notificationItem, { borderColor: colors.border }, !notification.isRead && { borderLeftWidth: 4, borderLeftColor: colors.orange }]}
-                    onPress={() => {
-                      handleNotificationPress(notification, resolvedNotificationId);
-                    }}
+                    key={resolvedId || idx}
+                    className="flex-row items-start gap-3 py-3 border-b"
+                    style={{ borderBottomColor: colors.border, backgroundColor: !notification.isRead ? `${colors.orange}10` : 'transparent', borderLeftWidth: !notification.isRead ? 3 : 0, borderLeftColor: colors.orange }}
+                    onPress={() => handleNotificationPress(notification)}
                     activeOpacity={0.7}
                   >
-                    <View style={[styles.iconContainer, { backgroundColor: `${colors.orange}20` }]}>
+                    <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: `${colors.orange}20` }}>
                       <Ionicons name={getNotificationIcon(notification.type)} size={20} color={colors.orange} />
                     </View>
-                    <View style={styles.notificationContent}>
-                      <Text style={[styles.notificationTitle, { color: colors.text }, !notification.isRead && { fontWeight: '700' }]} numberOfLines={2}>
-                        {notification.title || notification.message || 'Notification'}
-                      </Text>
-                      <Text style={[styles.notificationDate, { color: colors.textSecondary }]}>
-                        {notification.created_at ? new Date(notification.created_at).toLocaleDateString() : ''}
-                      </Text>
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold" numberOfLines={2} style={{ color: colors.text }}>{notification.title || notification.message || 'Notification'}</Text>
+                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>{notification.created_at ? new Date(notification.created_at).toLocaleDateString() : ''}</Text>
                     </View>
-                    {!notification.isRead && <View style={styles.unreadDot} />}
+                    {!notification.isRead && <View className="w-2 h-2 rounded-full mt-2" style={{ backgroundColor: colors.orange }} />}
                   </TouchableOpacity>
                 );
               })}
@@ -230,78 +183,43 @@ export default function NotificationPanel({ visible, onClose }) {
       </View>
 
       <Modal visible={showDetailModal} transparent animationType="slide" onRequestClose={() => setShowDetailModal(false)}>
-        <View style={styles.detailOverlay}>
-          <View style={[styles.detailContainer, { backgroundColor: colors.card }]}>
-            <View style={[styles.detailHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.detailTitle, { color: colors.text }]}>Notification Details</Text>
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View className="rounded-t-3xl p-5" style={{ backgroundColor: colors.card }}>
+            <View className="flex-row justify-between items-center pb-4 border-b mb-4" style={{ borderBottomColor: colors.border }}>
+              <Text className="text-lg font-bold" style={{ color: colors.text }}>Notification Details</Text>
               <TouchableOpacity onPress={() => setShowDetailModal(false)}>
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            {selectedNotification ? (
-              <ScrollView style={styles.detailBody} showsVerticalScrollIndicator={false}>
-                <View style={styles.detailTopRow}>
-                  <View style={[styles.typeBadge, { backgroundColor: colors.orange }]}>
-                    <Text style={styles.typeBadgeText}>
-                      {selectedNotification.type === 'system_announcement' ? 'Announcement' : 'Notification'}
-                    </Text>
+            {selectedNotification && (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View className="flex-row items-center gap-2 mb-3">
+                  <View className="px-3 py-1 rounded-full" style={{ backgroundColor: colors.orange }}>
+                    <Text className="text-xs font-bold text-white">{selectedNotification.type === 'system_announcement' ? 'Announcement' : 'Notification'}</Text>
                   </View>
-                  <Text style={[styles.detailDate, { color: colors.textSecondary }]}>
-                    {selectedNotification.dateLabel}
-                  </Text>
+                  <Text className="text-xs" style={{ color: colors.textSecondary }}>{selectedNotification.dateLabel}</Text>
                 </View>
 
-                <View style={[styles.detailSection, { borderColor: colors.border }]}>
-                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Sender</Text>
-                  <Text style={[styles.sectionValue, { color: colors.text }]}>{selectedNotification.senderLabel}</Text>
+                <View className="mb-4">
+                  <Text className="text-xs font-semibold mb-1" style={{ color: colors.textSecondary }}>Sender</Text>
+                  <Text className="text-sm font-medium" style={{ color: colors.text }}>{selectedNotification.senderLabel}</Text>
                 </View>
 
-                <View style={[styles.detailSection, { borderColor: colors.border }]}>
-                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Subject</Text>
-                  <Text style={[styles.sectionValue, { color: colors.text }]}>{selectedNotification.subject}</Text>
+                <View className="mb-4">
+                  <Text className="text-xs font-semibold mb-1" style={{ color: colors.textSecondary }}>Subject</Text>
+                  <Text className="text-sm font-medium" style={{ color: colors.text }}>{selectedNotification.subject}</Text>
                 </View>
 
-                <View style={[styles.detailSection, { borderColor: colors.border }]}>
-                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Message</Text>
-                  <Text style={[styles.sectionMessage, { color: colors.text }]}>{selectedNotification.body}</Text>
+                <View>
+                  <Text className="text-xs font-semibold mb-1" style={{ color: colors.textSecondary }}>Message</Text>
+                  <Text className="text-sm leading-5" style={{ color: colors.text }}>{selectedNotification.body}</Text>
                 </View>
               </ScrollView>
-            ) : null}
+            )}
           </View>
         </View>
       </Modal>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  container: { maxHeight: '85%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: '700' },
-  unreadText: { fontSize: 12, marginTop: 2 },
-  markAllText: { fontSize: 14, fontWeight: '600' },
-  emptyState: { alignItems: 'center', paddingVertical: 40 },
-  emptyText: { fontSize: 14, marginTop: 12 },
-  notificationList: { maxHeight: 500 },
-  notificationItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderWidth: 1, borderRadius: 12, marginBottom: 8, gap: 12 },
-  iconContainer: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  notificationContent: { flex: 1 },
-  notificationTitle: { fontSize: 14, lineHeight: 20 },
-  notificationDate: { fontSize: 11, marginTop: 4 },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FE6902' },
-  detailOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
-  detailContainer: { maxHeight: '82%', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
-  detailTitle: { fontSize: 18, fontWeight: '700' },
-  detailBody: { padding: 16 },
-  detailTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  typeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  typeBadgeText: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  detailDate: { fontSize: 12 },
-  detailSection: { borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 10 },
-  sectionLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', marginBottom: 6 },
-  sectionValue: { fontSize: 15, fontWeight: '500' },
-  sectionMessage: { fontSize: 14, lineHeight: 22 },
-});

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { showToast } from '../../src/hooks/useToast';
 import { useDispatch } from 'react-redux';
 import { updateUser } from '../../src/store/slices/authSlice';
 import apiClient from '../services/apiClient';
+import CapsActivityIndicator from './CapsActivityIndicator';
 
 interface EditProfileModalProps {
   visible: boolean;
@@ -108,28 +109,48 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: colors.bg }]}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>Edit Profile</Text>
-            <TouchableOpacity onPress={onClose}><Text style={[styles.closeBtn, { color: colors.textSecondary }]}>✕</Text></TouchableOpacity>
+      <View className="flex-1 bg-black/60 justify-end">
+        <View className="rounded-t-3xl p-5" style={{ backgroundColor: colors.bg, maxHeight: '80%' }}>
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-xl font-bold" style={{ color: colors.text }}>Edit Profile</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Text className="text-2xl" style={{ color: colors.textSecondary }}>✕</Text>
+            </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={[styles.label, { color: colors.text }]}>First Name</Text>
-            <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]} value={firstName} onChangeText={setFirstName} />
-
-            <Text style={[styles.label, { color: colors.text }]}>Last Name</Text>
-            <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]} value={lastName} onChangeText={setLastName} />
-
-            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
-            <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Change Password (Optional)</Text>
-
-            <Text style={[styles.label, { color: colors.text }]}>Current Password</Text>
+            <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>First Name</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+              className="text-base px-3 py-3 rounded-xl border mb-3"
+              style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }}
+              value={firstName}
+              onChangeText={setFirstName}
+            />
+
+            <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>Last Name</Text>
+            <TextInput
+              className="text-base px-3 py-3 rounded-xl border mb-3"
+              style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }}
+              value={lastName}
+              onChangeText={setLastName}
+            />
+
+            <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>Email</Text>
+            <TextInput
+              className="text-base px-3 py-3 rounded-xl border mb-3"
+              style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <Text className="text-base font-bold mt-5 mb-1" style={{ color: colors.text }}>Change Password (Optional)</Text>
+
+            <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>Current Password</Text>
+            <TextInput
+              className="text-base px-3 py-3 rounded-xl border mb-3"
+              style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }}
               value={currentPassword}
               onChangeText={setCurrentPassword}
               secureTextEntry
@@ -138,9 +159,10 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
               placeholderTextColor={colors.textSecondary}
             />
 
-            <Text style={[styles.label, { color: colors.text }]}>New Password</Text>
+            <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>New Password</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+              className="text-base px-3 py-3 rounded-xl border mb-3"
+              style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }}
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
@@ -149,9 +171,10 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
               placeholderTextColor={colors.textSecondary}
             />
 
-            <Text style={[styles.label, { color: colors.text }]}>Confirm New Password</Text>
+            <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>Confirm New Password</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+              className="text-base px-3 py-3 rounded-xl border mb-3"
+              style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }}
               value={confirmNewPassword}
               onChangeText={setConfirmNewPassword}
               secureTextEntry
@@ -160,8 +183,18 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
               placeholderTextColor={colors.textSecondary}
             />
 
-            <TouchableOpacity style={[styles.saveBtn, { opacity: isSubmitting ? 0.6 : 1 }]} onPress={handleSave} disabled={isSubmitting} activeOpacity={0.8}>
-              <Text style={styles.saveBtnText}>Save Changes</Text>
+            <TouchableOpacity
+              className="py-3.5 rounded-xl items-center mt-4"
+              style={{ backgroundColor: '#FE6902', opacity: isSubmitting ? 0.6 : 1 }}
+              onPress={handleSave}
+              disabled={isSubmitting}
+              activeOpacity={0.8}
+            >
+              {isSubmitting ? (
+                <CapsActivityIndicator color="#fff" size="sm" />
+              ) : (
+                <Text className="text-white text-base font-bold">Save Changes</Text>
+              )}
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -169,16 +202,3 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  container: { padding: 20, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: '700' },
-  closeBtn: { fontSize: 24, padding: 4 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', marginTop: 18 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 12 },
-  input: { borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 15 },
-  saveBtn: { backgroundColor: '#FE6902', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 20 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-});

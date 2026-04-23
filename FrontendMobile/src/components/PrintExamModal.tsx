@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../src/services/apiClient';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { showToast } from '../../src/hooks/useToast';
+import CapsActivityIndicator from './CapsActivityIndicator';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
@@ -15,17 +16,34 @@ export default function PrintExamModal({ visible, onClose }) {
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    if (visible) fetchSubjects();
+    if (visible) {
+      setSelectedSubjects([]);
+      fetchSubjects();
+    }
   }, [visible]);
 
   const fetchSubjects = async () => {
     setIsLoading(true);
+    setLoadError('');
     try {
       const data = await apiRequest('/api/subjects');
-      setSubjects(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []);
-    } catch (error) {
+      const subjectList = Array.isArray(data?.subjects)
+        ? data.subjects
+        : Array.isArray(data?.data?.subjects)
+          ? data.data.subjects
+          : Array.isArray(data?.data)
+            ? data.data
+            : Array.isArray(data)
+              ? data
+              : [];
+      setSubjects(subjectList);
+    } catch (error: any) {
+      console.error('Unable to load subjects for print/export:', error);
+      setSubjects([]);
+      setLoadError(error?.message || 'Unable to load subjects right now.');
       showToast('Failed to load subjects', 'error');
     } finally {
       setIsLoading(false);
@@ -59,11 +77,10 @@ export default function PrintExamModal({ visible, onClose }) {
         },
       });
 
-      // Generate PDF
       const htmlContent = generateExamHTML(response);
       const { uri } = await Print.printToFileAsync({ html: htmlContent });
       await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
-      
+
       showToast('Exam generated successfully', 'success');
       onClose();
     } catch (error) {
@@ -106,48 +123,95 @@ export default function PrintExamModal({ visible, onClose }) {
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={[styles.overlay, { backgroundColor: colors.bg }]}>
-        <View style={[styles.container, { backgroundColor: colors.card }]}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>Generate Exam</Text>
-            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={colors.textSecondary} /></TouchableOpacity>
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.bg }}>
+        <View className="rounded-t-3xl p-5" style={{ backgroundColor: colors.card }}>
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-xl font-bold" style={{ color: colors.text }}>Generate Exam</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
           {isLoading ? (
-            <ActivityIndicator size="large" color={colors.orange} style={{ marginVertical: 40 }} />
+            <View className="items-center justify-center py-10">
+              <CapsActivityIndicator size="lg" color={colors.orange} />
+            </View>
+          ) : loadError ? (
+            <View className="items-center justify-center py-10 px-4">
+              <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+              <Text className="text-base font-bold mt-3 text-center" style={{ color: colors.text }}>Unable to load subjects</Text>
+              <Text className="text-sm mt-1 text-center" style={{ color: colors.textSecondary }}>{loadError}</Text>
+              <TouchableOpacity
+                className="mt-4 px-4 py-2.5 rounded-xl"
+                style={{ backgroundColor: colors.orange }}
+                onPress={fetchSubjects}
+                activeOpacity={0.8}
+              >
+                <Text className="text-white font-bold">Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : subjects.length === 0 ? (
+            <View className="items-center justify-center py-10 px-4">
+              <Ionicons name="library-outline" size={48} color={colors.textSecondary} />
+              <Text className="text-base font-bold mt-3 text-center" style={{ color: colors.text }}>No Subjects Available</Text>
+              <Text className="text-sm mt-1 text-center" style={{ color: colors.textSecondary }}>Export options will appear once subjects are available.</Text>
+            </View>
           ) : (
             <>
-              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Select Subjects</Text>
-              <ScrollView style={styles.subjectList}>
+              <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>Select Subjects</Text>
+              <ScrollView style={{ maxHeight: 300, marginBottom: 12 }}>
                 {subjects.map(subject => {
                   const isSelected = selectedSubjects.some(s => s.subjectID === subject.subjectID);
                   return (
-                    <TouchableOpacity key={subject.subjectID} style={[styles.subjectItem, { borderColor: colors.border }, isSelected && { borderColor: colors.orange, backgroundColor: `${colors.orange}15` }]} onPress={() => toggleSubject(subject)} activeOpacity={0.7}>
-                      <View style={[styles.checkbox, { borderColor: colors.border }, isSelected && { backgroundColor: colors.orange, borderColor: colors.orange }]}>
-                        {isSelected && <Ionicons name="checkmark" size={16} color="#fff" />}
+                    <TouchableOpacity
+                      key={subject.subjectID}
+                      className="flex-row items-center px-3 py-3 rounded-xl border mb-2 gap-3"
+                      style={{
+                        borderColor: isSelected ? colors.orange : colors.border,
+                        backgroundColor: isSelected ? `${colors.orange}15` : 'transparent',
+                      }}
+                      onPress={() => toggleSubject(subject)}
+                      activeOpacity={0.7}
+                    >
+                      <View
+                        className="w-6 h-6 rounded-md border-2 items-center justify-center"
+                        style={{
+                          borderColor: isSelected ? colors.orange : colors.border,
+                          backgroundColor: isSelected ? colors.orange : 'transparent',
+                        }}
+                      >
+                        {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
                       </View>
-                      <Text style={[styles.subjectName, { color: colors.text }]} numberOfLines={1}>{subject.subjectName}</Text>
+                      <Text className="text-sm font-medium flex-1" numberOfLines={1} style={{ color: colors.text }}>{subject.subjectName}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </ScrollView>
 
               {selectedSubjects.length > 0 && (
-                <View style={styles.selectedInfo}>
+                <View className="flex-row items-center gap-2 px-3 py-2.5 rounded-xl mb-3" style={{ backgroundColor: `${colors.orange}15` }}>
                   <Ionicons name="information-circle" size={18} color={colors.orange} />
-                  <Text style={[styles.selectedText, { color: colors.textSecondary }]}>
+                  <Text className="text-sm" style={{ color: colors.textSecondary }}>
                     {selectedSubjects.length} subject{selectedSubjects.length > 1 ? 's' : ''} selected
                   </Text>
                 </View>
               )}
 
               <TouchableOpacity
-                style={[styles.generateBtn, { opacity: isGenerating || selectedSubjects.length === 0 ? 0.6 : 1 }]}
+                className="flex-row items-center justify-center py-3.5 rounded-xl gap-2"
+                style={{ backgroundColor: '#FE6902', opacity: isGenerating || selectedSubjects.length === 0 ? 0.6 : 1 }}
                 onPress={handleGenerateExam}
                 disabled={isGenerating || selectedSubjects.length === 0}
                 activeOpacity={0.8}
               >
-                {isGenerating ? <ActivityIndicator color="#fff" /> : <><Ionicons name="document-text" size={20} color="#fff" /><Text style={styles.generateBtnText}>Generate & Print</Text></>}
+                {isGenerating ? (
+                  <CapsActivityIndicator color="#fff" size="sm" />
+                ) : (
+                  <>
+                    <Ionicons name="document-text" size={20} color="#fff" />
+                    <Text className="text-white text-base font-bold">Generate &amp; Print</Text>
+                  </>
+                )}
               </TouchableOpacity>
             </>
           )}
@@ -156,19 +220,3 @@ export default function PrintExamModal({ visible, onClose }) {
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  container: { maxHeight: '85%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: '700' },
-  subtitle: { fontSize: 14, marginBottom: 12 },
-  subjectList: { maxHeight: 300, marginBottom: 12 },
-  subjectItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderWidth: 1, borderRadius: 12, marginBottom: 8, gap: 12 },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
-  subjectName: { fontSize: 15, fontWeight: '500', flex: 1 },
-  selectedInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, backgroundColor: 'rgba(254,105,2,0.1)', borderRadius: 12, marginBottom: 12 },
-  selectedText: { fontSize: 13 },
-  generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FE6902', paddingVertical: 14, borderRadius: 12, gap: 8 },
-  generateBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-});

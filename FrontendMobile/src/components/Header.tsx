@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, Platform, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -12,8 +12,6 @@ import EditProfileModal from './EditProfileModal';
 import ConfirmModal from './ConfirmModal';
 import HelpCenterModal from './HelpCenterModal';
 import collegeLogo from '../../assets/college-logo.png';
-
-const ADMIN_ROLES = [2, 3, 4, 5];
 
 export default function Header({ title, isStudentPage = false }) {
   const router = useRouter();
@@ -62,48 +60,65 @@ export default function Header({ title, isStudentPage = false }) {
 
   return (
     <>
-      <View style={[styles.header, {
-        backgroundColor: colors.bg,
-        borderBottomColor: colors.border,
-        paddingTop: safeTop + 8,
-      }]}>
-        {/* Left: Title or Logo */}
-        <View style={styles.headerLeft}>
+      <View
+        className="flex-row justify-between items-center px-4"
+        style={{
+          backgroundColor: colors.bg,
+          borderBottomColor: colors.border,
+          paddingTop: safeTop + 8,
+          paddingBottom: 12,
+        }}
+      >
+        <View className="flex-1">
           {isStudentPage ? (
-            <View style={styles.logoRow}>
-              <Image source={collegeLogo} style={styles.logoImg} />
-              <Text style={[styles.headerTitle, { color: colors.text }]}>{title}</Text>
+            <View className="flex-row items-center gap-2">
+              <Image source={collegeLogo} className="w-8 h-8" style={{ resizeMode: 'contain' }} />
+              <Text className="text-xl font-bold" style={{ color: colors.text }}>{title}</Text>
             </View>
           ) : (
-            <Text style={[styles.headerTitle, { color: colors.text }]}>{title}</Text>
+            <Text className="text-xl font-bold" style={{ color: colors.text }}>{title}</Text>
           )}
         </View>
 
-        {/* Right: Icons + Profile */}
-        <View style={styles.headerRight}>
-          {/* Help */}
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.iconBtn }]} onPress={() => setShowHelp(true)} activeOpacity={0.7}>
+        <View className="flex-row items-center gap-2">
+          <TouchableOpacity
+            className="w-9 h-9 rounded-full items-center justify-center"
+            style={{ backgroundColor: colors.iconBtn }}
+            onPress={() => setShowHelp(true)}
+            activeOpacity={0.7}
+          >
             <Ionicons name="help-circle" size={20} color={colors.text} />
           </TouchableOpacity>
 
-          {/* Notifications */}
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.iconBtn }]} onPress={() => setShowNotifications(true)} activeOpacity={0.7}>
+          <TouchableOpacity
+            className="w-9 h-9 rounded-full items-center justify-center"
+            style={{ backgroundColor: colors.iconBtn }}
+            onPress={() => setShowNotifications(true)}
+            activeOpacity={0.7}
+          >
             <Ionicons name="notifications" size={20} color={colors.text} />
           </TouchableOpacity>
 
-          {/* Theme Toggle */}
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.iconBtn }]} onPress={toggleTheme} activeOpacity={0.7}>
+          <TouchableOpacity
+            className="w-9 h-9 rounded-full items-center justify-center"
+            style={{ backgroundColor: colors.iconBtn }}
+            onPress={toggleTheme}
+            activeOpacity={0.7}
+          >
             <Ionicons name={isDark ? 'sunny' : 'moon'} size={20} color={colors.text} />
           </TouchableOpacity>
 
-          {/* Profile */}
-          <TouchableOpacity style={styles.profileBtn} onPress={() => setShowProfileMenu(true)} activeOpacity={0.7}>
-            <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-              <Text style={styles.avatarText}>{initials}</Text>
+          <TouchableOpacity
+            className="flex-row items-center gap-2"
+            onPress={() => setShowProfileMenu(true)}
+            activeOpacity={0.7}
+          >
+            <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: avatarColor }}>
+              <Text className="text-xs font-extrabold text-white">{initials}</Text>
             </View>
             {!isStudentPage && (
               <>
-                <Text style={[styles.profileName, { color: colors.text }]} numberOfLines={1}>{firstName}</Text>
+                <Text className="text-sm font-semibold max-w-24" style={{ color: colors.text }} numberOfLines={1}>{firstName}</Text>
                 <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
               </>
             )}
@@ -111,36 +126,53 @@ export default function Header({ title, isStudentPage = false }) {
         </View>
       </View>
 
-      {/* Profile Menu Modal */}
       <Modal visible={showProfileMenu} transparent animationType="fade">
-        <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setShowProfileMenu(false)}>
+        <TouchableOpacity
+          className="flex-1 justify-start"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)', paddingTop: 60 }}
+          activeOpacity={1}
+          onPress={() => setShowProfileMenu(false)}
+        >
           <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-            <View style={[styles.menuCard, { backgroundColor: isDark ? '#1f2937' : '#fff' }]}>
-              <View style={styles.menuHeader}>
-                <View style={[styles.menuAvatar, { backgroundColor: avatarColor }]}>
-                  <Text style={styles.menuAvatarText}>{initials}</Text>
+            <View className="mx-4 rounded-2xl p-4" style={{ backgroundColor: isDark ? '#1f2937' : '#fff', elevation: 8 }}>
+              <View className="flex-row items-center gap-3 pb-4 mb-4 border-b" style={{ borderBottomColor: '#e5e7eb' }}>
+                <View className="w-12 h-12 rounded-full items-center justify-center" style={{ backgroundColor: avatarColor }}>
+                  <Text className="text-lg font-extrabold text-white">{initials}</Text>
                 </View>
                 <View>
-                  <Text style={[styles.menuName, { color: isDark ? '#f9fafb' : '#111827' }]}>{firstName} {user?.lastName || ''}</Text>
-                  <Text style={[styles.menuEmail, { color: isDark ? '#9ca3af' : '#6b7280' }]} numberOfLines={1}>{email}</Text>
+                  <Text className="text-base font-bold" style={{ color: isDark ? '#f9fafb' : '#111827' }}>{firstName} {user?.lastName || ''}</Text>
+                  <Text className="text-xs mt-0.5" style={{ color: isDark ? '#9ca3af' : '#6b7280' }} numberOfLines={1}>{email}</Text>
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.menuItem} onPress={() => { setShowProfileMenu(false); setShowEditProfile(true); }} activeOpacity={0.7}>
+              <TouchableOpacity
+                className="flex-row items-center gap-3 py-3"
+                onPress={() => { setShowProfileMenu(false); setShowEditProfile(true); }}
+                activeOpacity={0.7}
+              >
                 <Ionicons name="person" size={20} color={isDark ? '#f9fafb' : '#111827'} />
-                <Text style={[styles.menuItemText, { color: isDark ? '#f9fafb' : '#111827' }]}>Edit Profile</Text>
+                <Text className="text-sm font-medium" style={{ color: isDark ? '#f9fafb' : '#111827' }}>Edit Profile</Text>
               </TouchableOpacity>
 
               {!isStudentPage && (
-                <TouchableOpacity style={styles.menuItem} onPress={() => { setShowProfileMenu(false); toggleTheme(); }} activeOpacity={0.7}>
+                <TouchableOpacity
+                  className="flex-row items-center gap-3 py-3"
+                  onPress={() => { setShowProfileMenu(false); toggleTheme(); }}
+                  activeOpacity={0.7}
+                >
                   <Ionicons name={isDark ? 'sunny' : 'moon'} size={20} color={isDark ? '#f9fafb' : '#111827'} />
-                  <Text style={[styles.menuItemText, { color: isDark ? '#f9fafb' : '#111827' }]}>{isDark ? 'Light Mode' : 'Dark Mode'}</Text>
+                  <Text className="text-sm font-medium" style={{ color: isDark ? '#f9fafb' : '#111827' }}>{isDark ? 'Light Mode' : 'Dark Mode'}</Text>
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} onPress={() => { setShowProfileMenu(false); setShowLogoutConfirm(true); }} activeOpacity={0.7}>
+              <TouchableOpacity
+                className="flex-row items-center gap-3 py-3 border-t mt-2"
+                style={{ borderTopColor: '#e5e7eb', paddingTop: 16, marginTop: 8 }}
+                onPress={() => { setShowProfileMenu(false); setShowLogoutConfirm(true); }}
+                activeOpacity={0.7}
+              >
                 <Ionicons name="log-out" size={20} color="#EF4444" />
-                <Text style={styles.logoutText}>Log Out</Text>
+                <Text className="text-sm font-medium" style={{ color: '#EF4444' }}>Log Out</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -161,28 +193,3 @@ export default function Header({ title, isStudentPage = false }) {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  headerLeft: { flex: 1 },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoImg: { width: 32, height: 32, resizeMode: 'contain' },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  iconBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  profileBtn: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  avatar: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontSize: 12, fontWeight: '800', color: '#fff' },
-  profileName: { fontSize: 14, fontWeight: '600', maxWidth: 100 },
-  menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-start', paddingTop: 60 },
-  menuCard: { marginHorizontal: 16, borderRadius: 16, padding: 16, elevation: 8 },
-  menuHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  menuAvatar: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  menuAvatarText: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  menuName: { fontSize: 16, fontWeight: '700' },
-  menuEmail: { fontSize: 13, marginTop: 2 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  menuItemText: { fontSize: 15, fontWeight: '500' },
-  logoutItem: { borderTopWidth: 1, borderTopColor: '#e5e7eb', marginTop: 8, paddingTop: 16 },
-  logoutText: { fontSize: 15, fontWeight: '500', color: '#EF4444' },
-});

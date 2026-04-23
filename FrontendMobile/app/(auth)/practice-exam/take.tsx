@@ -17,10 +17,8 @@
 //         with choices, navigation footer (Previous/Next/Submit), error banner
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo, useRef } from 'react';
-import {
-  View, Text, TouchableOpacity, ScrollView,
-  Modal, Dimensions, Alert, ActivityIndicator, useWindowDimensions
-} from 'react-native';
+import {   View, Text, TouchableOpacity, ScrollView, Modal, Dimensions, Alert, useWindowDimensions } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -219,6 +217,7 @@ export default function PracticeExamScreen() {
             questionImage: question.questionImage || null,
             subjectID: question.subjectID ? Number(question.subjectID) : (subjectID ? Number(subjectID) : 0),
             subjectName: question.subjectName || subjectName || null,
+            origin: question.subjectName || subjectName || 'Practice Exam',
             choices: Array.isArray(question.choices)
               ? question.choices.map((choice: any) => ({
                 choiceID: String(choice.choiceID),
@@ -274,6 +273,7 @@ export default function PracticeExamScreen() {
           subjectName,
           totalItems: questions.length,
           resultId: resultId ? String(resultId) : '',
+          origin: 'home',
         }
       });
     } catch (err: any) {
@@ -348,7 +348,7 @@ export default function PracticeExamScreen() {
             activeOpacity={0.8}
           >
             {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
+              <CapsActivityIndicator color="#fff" />
             ) : (
               <Text className="text-white text-base font-bold">Submit Exam</Text>
             )}
@@ -376,7 +376,7 @@ export default function PracticeExamScreen() {
     <View className="flex-1" style={{ backgroundColor: colors.bg, paddingBottom: insets.bottom + 12 }}>
       {loading || !currentQuestion ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#FE6902" />
+          <CapsActivityIndicator size="large" color="#FE6902" />
           <Text className="text-base mt-4" style={{ color: colors.text }}>
             {loading ? 'Loading exam questions...' : 'No questions available.'}
           </Text>
@@ -550,7 +550,7 @@ export default function PracticeExamScreen() {
                 activeOpacity={0.8}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator color="#fff" />
+                  <CapsActivityIndicator color="#fff" />
                 ) : (
                   <>
                     <Text className="text-white text-[15px] font-bold mx-1.5">Submit</Text>

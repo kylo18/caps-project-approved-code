@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -13,18 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../src/services/apiClient';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { showToast } from '../src/hooks/useToast';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// File purpose: Password reset screen that allows users to set a new password
-//   using a reset token received via email. Validates the new password and
-//   confirmation before submitting to the backend.
-// Key sections:
-//   - New password input with show/hide toggle
-//   - Confirm password input with show/hide toggle
-//   - Reset Password submission button
-//   - Theme toggle (light/dark mode)
-//   - Header with icon and descriptive text
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ResetPasswordScreen() {
   const { token } = useLocalSearchParams();
@@ -76,11 +63,10 @@ export default function ResetPasswordScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, isDark && styles.darkContainer]}
+      className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}
     >
-      <View style={styles.content}>
-        {/* Theme toggle */}
-        <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
+      <View className="flex-1 p-6">
+        <TouchableOpacity onPress={toggleTheme} className="absolute top-12 right-6 z-10 p-2">
           <Ionicons
             name={isDark ? 'sunny' : 'moon'}
             size={24}
@@ -88,24 +74,22 @@ export default function ResetPasswordScreen() {
           />
         </TouchableOpacity>
 
-        {/* Header */}
-        <View style={styles.header}>
+        <View className="mt-[120px] items-center">
           <Ionicons name="key" size={64} color="#FE6902" />
-          <Text style={[styles.title, isDark && styles.darkText]}>
+          <Text className={`text-[28px] font-bold text-gray-900 mt-4 text-center ${isDark ? 'text-white' : ''}`}>
             Reset Password
           </Text>
-          <Text style={[styles.description, isDark && styles.darkSubtext]}>
+          <Text className={`text-sm text-gray-500 mt-3 text-center ${isDark ? 'text-gray-400' : ''}`}>
             Enter your new password
           </Text>
         </View>
 
-        {/* Form */}
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, isDark && styles.darkText]}>New Password</Text>
-            <View style={[styles.inputWithIcon, isDark && styles.darkInputWithIcon]}>
+        <View className="mt-12">
+          <View className="mb-6">
+            <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>New Password</Text>
+            <View className={`flex-row items-center bg-white border border-gray-300 rounded-lg px-4 dark:bg-gray-800 dark:border-gray-600`}>
               <TextInput
-                style={[styles.flexInput, isDark && styles.darkInput]}
+                className={`flex-1 py-3.5 text-base text-gray-900 ${isDark ? 'text-white' : ''}`}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Enter new password"
@@ -123,11 +107,11 @@ export default function ResetPasswordScreen() {
             </View>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, isDark && styles.darkText]}>Confirm Password</Text>
-            <View style={[styles.inputWithIcon, isDark && styles.darkInputWithIcon]}>
+          <View className="mb-6">
+            <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Confirm Password</Text>
+            <View className={`flex-row items-center bg-white border border-gray-300 rounded-lg px-4 dark:bg-gray-800 dark:border-gray-600`}>
               <TextInput
-                style={[styles.flexInput, isDark && styles.darkInput]}
+                className={`flex-1 py-3.5 text-base text-gray-900 ${isDark ? 'text-white' : ''}`}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 placeholder="Confirm new password"
@@ -146,11 +130,11 @@ export default function ResetPasswordScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.primaryButton, isLoading && styles.disabledButton]}
+            className={`bg-[#FE6902] py-4 rounded-lg items-center mt-2 ${isLoading ? 'bg-gray-400' : ''}`}
             onPress={handleSubmit}
             disabled={isLoading}
           >
-            <Text style={styles.primaryButtonText}>
+            <Text className="text-white text-base font-semibold">
               {isLoading ? 'Resetting...' : 'Reset Password'}
             </Text>
           </TouchableOpacity>
@@ -159,96 +143,3 @@ export default function ResetPasswordScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
-  darkContainer: {
-    backgroundColor: '#000',
-  },
-  content: {
-    flex: 1,
-    padding: 24,
-  },
-  themeToggle: {
-    position: 'absolute',
-    top: 48,
-    right: 24,
-    zIndex: 10,
-    padding: 8,
-  },
-  header: {
-    marginTop: 120,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  description: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  form: {
-    marginTop: 48,
-  },
-  inputGroup: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  inputWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-  },
-  darkInputWithIcon: {
-    backgroundColor: '#1f2937',
-    borderColor: '#374151',
-  },
-  flexInput: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#000',
-  },
-  darkInput: {
-    color: '#fff',
-  },
-  primaryButton: {
-    backgroundColor: '#FE6902',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  darkText: {
-    color: '#fff',
-  },
-  darkSubtext: {
-    color: '#9ca3af',
-  },
-});

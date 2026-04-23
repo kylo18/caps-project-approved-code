@@ -10,10 +10,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  View, Text, FlatList, TouchableOpacity,
-  ActivityIndicator, TextInput, RefreshControl, Alert, Animated, Modal, ScrollView
-} from 'react-native';
+import {   View, Text, FlatList, TouchableOpacity, TextInput, RefreshControl, Alert, Animated, Modal, ScrollView } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
@@ -21,6 +19,20 @@ import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UserDetailModal from '../../../src/components/UserDetailModal';
+import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
+import {
+  applyUserActionLocally,
+  canApproveUser,
+  getUserCampusLabel,
+  getUserProgramLabel,
+  getUserStatusLabel,
+  getUserStatusFilterKey,
+  getUserYearLevelLabel,
+  getUserYearLevelValue,
+  isActiveUser,
+  isInactiveUser,
+  matchesUserStatusFilter,
+} from '../../../src/utils/userManagement';
 
 const avatarPalette = ['#FFE17B', '#FFD4EA', '#D9DCFF', '#D6F4D2', '#FFD0B1'];
 const ADMIN_ROLES = [2, 3, 4, 5];
@@ -32,8 +44,8 @@ export default function AdminUsersScreen() {
   const isDark = theme === 'dark';
   const insets = useSafeAreaInsets();
 
-  const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [stats, setStats] = useState({ admins: 0, students: 0 });
   const [searchQuery, setSearchQuery] = useState('');
   const [activeRoleFilter, setActiveRoleFilter] = useState('all');
@@ -66,8 +78,8 @@ export default function AdminUsersScreen() {
       const data = await apiRequest('/api/users?limit=10000');
       const userList = Array.isArray(data?.users) ? data.users : Array.isArray(data?.data) ? data.data : [];
       setUsers(userList);
-      const adminCount = userList.filter(u => ADMIN_ROLES.includes(Number(u.roleID))).length;
-      const studentCount = userList.filter(u => Number(u.roleID) === STUDENT_ROLE).length;
+      const adminCount = userList.filter((u: any) => ADMIN_ROLES.includes(Number(u.roleID))).length;
+      const studentCount = userList.filter((u: any) => Number(u.roleID) === STUDENT_ROLE).length;
       setStats({ admins: adminCount, students: studentCount });
     } catch (error) {
       showToast('Unable to load users', 'error');
@@ -79,15 +91,15 @@ export default function AdminUsersScreen() {
   const applyFilters = useCallback(() => {
     Animated.timing(fadeAnim, { toValue: 0.6, duration: 100, useNativeDriver: true }).start(() => {
       let filtered = [...users];
-      if (activeRoleFilter === 'admin') filtered = filtered.filter(u => ADMIN_ROLES.includes(Number(u.roleID)));
-      else if (activeRoleFilter === 'student') filtered = filtered.filter(u => Number(u.roleID) === STUDENT_ROLE);
-      if (activeStatusFilter !== 'all') filtered = filtered.filter(u => u.status === activeStatusFilter);
-      if (programFilter !== 'all') filtered = filtered.filter(u => String(u.programID) === programFilter);
-      if (yearFilter !== 'all') filtered = filtered.filter(u => String(u.yearLevel) === yearFilter);
-      if (campusFilter !== 'all') filtered = filtered.filter(u => String(u.campusID) === campusFilter);
+      if (activeRoleFilter === 'admin') filtered = filtered.filter((u: any) => ADMIN_ROLES.includes(Number(u.roleID)));
+      else if (activeRoleFilter === 'student') filtered = filtered.filter((u: any) => Number(u.roleID) === STUDENT_ROLE);
+      if (activeStatusFilter !== 'all') filtered = filtered.filter((u: any) => matchesUserStatusFilter(u, activeStatusFilter as any));
+      if (programFilter !== 'all') filtered = filtered.filter((u: any) => String(u.programID) === programFilter);
+      if (yearFilter !== 'all') filtered = filtered.filter((u: any) => String(u.yearLevel) === yearFilter);
+      if (campusFilter !== 'all') filtered = filtered.filter((u: any) => String(u.campusID) === campusFilter);
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        filtered = filtered.filter(u =>
+        filtered = filtered.filter((u: any) =>
           u.firstName?.toLowerCase().includes(q) || u.lastName?.toLowerCase().includes(q) ||
           u.email?.toLowerCase().includes(q) || u.userCode?.toLowerCase().includes(q)
         );
@@ -97,17 +109,20 @@ export default function AdminUsersScreen() {
     });
   }, [searchQuery, activeRoleFilter, activeStatusFilter, programFilter, yearFilter, campusFilter, users]);
 
-  const handleAction = async (userID, action) => {
+  const handleAction = async (userID: number | string, action: string) => {
     try {
       await apiRequest(`/api/users/${userID}/${action}`, { method: 'PATCH' });
-      setUsers(prev => prev.map(u => u.userID === userID ? { ...u, status: action === 'approve' ? 'activated' : action === 'deactivate' ? 'deactivated' : 'activated' } : u));
-      showToast(`User ${action}d`, 'success');
+      setUsers(prev => prev.map((u: any) => (u.userID === userID ? applyUserActionLocally(u, action as 'approve' | 'activate' | 'deactivate') : u)));
+      showToast(
+        action === 'approve' ? 'User approved and activated' : action === 'activate' ? 'User activated' : 'User deactivated',
+        'success'
+      );
     } catch (error) {
       showToast(`Failed to ${action} user`, 'error');
     }
   };
 
-  const confirmAction = (user, action) => {
+  const confirmAction = (user: any, action: string) => {
     Alert.alert(`${action.charAt(0).toUpperCase() + action.slice(1)} User`, `${action.charAt(0).toUpperCase() + action.slice(1)} ${user.firstName} ${user.lastName}?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: action.charAt(0).toUpperCase() + action.slice(1), style: action === 'deactivate' ? 'destructive' : 'default', onPress: () => handleAction(user.userID, action) },
@@ -115,7 +130,7 @@ export default function AdminUsersScreen() {
   };
 
   const handleApproveAll = async () => {
-    const pendingUsers = users.filter(u => u.status === 'pending' || u.status === 'approved');
+    const pendingUsers = users.filter((u: any) => canApproveUser(u));
     if (pendingUsers.length === 0) {
       showToast('No pending users to approve', 'info');
       return;
@@ -134,8 +149,8 @@ export default function AdminUsersScreen() {
             try {
               const userIDs = pendingUsers.map(u => u.userID);
               await apiRequest('/api/users/approve-multiple', { method: 'POST', body: { userIDs } });
-              setUsers(prev => prev.map(u =>
-                ['pending', 'approved'].includes(u.status) ? { ...u, status: 'activated' } : u
+              setUsers(prev => prev.map((u: any) =>
+                canApproveUser(u) ? applyUserActionLocally(u, 'approve') : u
               ));
               showToast(`${pendingUsers.length} user(s) approved`, 'success');
             } catch (error: any) {
@@ -178,7 +193,7 @@ export default function AdminUsersScreen() {
     setSelectionMode(false);
   };
 
-  const handleBulkAction = async (action: 'approve' | 'activate' | 'deactivate' | 'delete') => {
+  const handleBulkAction = async (action: 'approve' | 'activate' | 'deactivate') => {
     const ids = Array.from(selectedUserIDs);
     if (ids.length === 0) return;
     const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
@@ -189,23 +204,15 @@ export default function AdminUsersScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: actionLabel,
-          style: action === 'delete' || action === 'deactivate' ? 'destructive' : 'default',
+          style: action === 'deactivate' ? 'destructive' : 'default',
           onPress: async () => {
             setIsBulkActing(true);
             try {
-              if (action === 'delete') {
-                await apiRequest('/api/users/delete-multiple', { method: 'POST', body: { userIDs: ids } });
-                setUsers(prev => prev.filter(u => !selectedUserIDs.has(u.userID)));
-              } else {
-                await apiRequest(`/api/users/${action}-multiple`, { method: 'POST', body: { userIDs: ids } });
-                setUsers(prev => prev.map(u => {
-                  if (!selectedUserIDs.has(u.userID)) return u;
-                  if (action === 'approve') return { ...u, status: 'activated' };
-                  if (action === 'activate') return { ...u, status: 'activated' };
-                  if (action === 'deactivate') return { ...u, status: 'deactivated' };
-                  return u;
-                }));
-              }
+              await apiRequest(`/api/users/${action}-multiple`, { method: 'POST', body: { userIDs: ids } });
+              setUsers(prev => prev.map((u: any) => {
+                if (!selectedUserIDs.has(u.userID)) return u;
+                return applyUserActionLocally(u, action);
+              }));
               showToast(`${ids.length} user(s) ${action === 'approve' ? 'approved' : action + 'd'}`, 'success');
               deselectAll();
             } catch (error: any) {
@@ -224,8 +231,8 @@ export default function AdminUsersScreen() {
     setShowDetailModal(true);
   };
 
-  const getInitials = (user) => `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || '?';
-  const isAdmin = (user) => ADMIN_ROLES.includes(Number(user.roleID));
+  const getInitials = (user: any) => `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || '?';
+  const isAdmin = (user: any) => ADMIN_ROLES.includes(Number(user.roleID));
 
   const colors = {
     bg: isDark ? '#000' : '#f3f4f6',
@@ -242,12 +249,16 @@ export default function AdminUsersScreen() {
   };
 
   // Extract unique values for filters
-  const programs = [...new Map(users.filter(u => u.programName).map(u => ({ id: String(u.programID), label: u.programName }))).values()];
-  const years = [...new Set(users.filter(u => u.yearLevel).map(u => u.yearLevel))].sort();
-  const campuses = [...new Map(users.filter(u => u.campusName).map(u => ({ id: String(u.campusID), label: u.campusName }))).values()];
+  const programs: { id: string; label: string }[] = [...new Map(users.map((u: any) => [String(u.programID), getUserProgramLabel(u)] as [string, string]).filter(([, label]) => Boolean(label))).entries()].map(([id, label]) => ({ id, label }));
+  const years = [...new Set(users.map((u: any) => getUserYearLevelValue(u)).filter(Boolean))].sort((a: any, b: any) => Number(a) - Number(b));
+  const campuses: { id: string; label: string }[] = [...new Map(users.map((u: any) => [String(u.campusID), getUserCampusLabel(u)] as [string, string]).filter(([, label]) => Boolean(label))).entries()].map(([id, label]) => ({ id, label }));
 
-  const renderUser = useCallback(({ item }) => {
+  const renderUser = useCallback(({ item }: { item: any }) => {
     const isSelected = selectedUserIDs.has(item.userID);
+    const statusLabel = getUserStatusLabel(item);
+    const statusKey = getUserStatusFilterKey(item);
+    const programLabel = getUserProgramLabel(item);
+    const yearLevelLabel = getUserYearLevelLabel(item);
     return (
       <TouchableOpacity
         activeOpacity={0.7}
@@ -283,22 +294,22 @@ export default function AdminUsersScreen() {
           </View>
           <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }} numberOfLines={1}>{item.email}</Text>
           <View className="flex-row items-center gap-1.5 mt-1">
-            <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: item.status === 'activated' ? colors.green : item.status === 'pending' ? colors.blue : item.status === 'approved' ? colors.orange : colors.red }}>
-              <Text className="text-white text-[9px] font-semibold">{item.status || 'pending'}</Text>
+            <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: statusKey === 'active' ? colors.green : statusKey === 'inactive' ? colors.red : statusKey === 'pending' ? colors.blue : colors.orange }}>
+              <Text className="text-white text-[9px] font-semibold">{statusLabel}</Text>
             </View>
-            {item.programName && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>{item.programName}</Text>}
-            {item.yearLevel && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>Year {item.yearLevel}</Text>}
+            {programLabel && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>{programLabel}</Text>}
+            {yearLevelLabel && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>{yearLevelLabel}</Text>}
           </View>
         </View>
         {!selectionMode && (
           <View className="gap-1">
-            {(item.status === 'pending' || item.status === 'approved') && (
+            {canApproveUser(item) && (
               <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.green }} onPress={() => confirmAction(item, 'approve')}><Ionicons name="checkmark" size={18} color="#fff" /></TouchableOpacity>
             )}
-            {item.status === 'activated' && (
+            {isActiveUser(item) && (
               <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.red }} onPress={() => confirmAction(item, 'deactivate')}><Ionicons name="close" size={18} color="#fff" /></TouchableOpacity>
             )}
-            {item.status === 'deactivated' && (
+            {isInactiveUser(item) && (
               <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.blue }} onPress={() => confirmAction(item, 'activate')}><Ionicons name="play" size={18} color="#fff" /></TouchableOpacity>
             )}
           </View>
@@ -317,7 +328,19 @@ export default function AdminUsersScreen() {
     </View>
   );
 
-  const pendingCount = users.filter(u => u.status === 'pending' || u.status === 'approved').length;
+  const pendingCount = users.filter((u: any) => canApproveUser(u)).length;
+
+  useScreenFloatingTools(
+    [
+      {
+        key: 'bulk',
+        icon: 'checkbox-outline',
+        label: 'Bulk Actions',
+        onPress: () => setSelectionMode(true),
+      },
+    ],
+    !selectionMode
+  );
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.bg, paddingBottom: insets.bottom + 12 }}>
@@ -333,7 +356,7 @@ export default function AdminUsersScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 justify-center items-center"><ActivityIndicator size="large" color={colors.orange} /></View>
+        <View className="flex-1 justify-center items-center"><CapsActivityIndicator size="large" color={colors.orange} /></View>
       ) : (
         <>
           <FlatList
@@ -370,7 +393,7 @@ export default function AdminUsersScreen() {
                 <View className="flex-row gap-1.5 mb-2 items-center">
                   {[{ key: 'all', label: 'All', icon: 'people' }, { key: 'admin', label: 'Admins', icon: 'shield-checkmark' }, { key: 'student', label: 'Students', icon: 'school' }].map(f => (
                     <TouchableOpacity key={f.key} className="flex-row items-center px-3 py-[7px] rounded-[18px]" style={activeRoleFilter === f.key ? { backgroundColor: colors.orange } : undefined} onPress={() => setActiveRoleFilter(f.key)} activeOpacity={0.7}>
-                      <Ionicons name={f.icon} size={16} color={activeRoleFilter === f.key ? '#fff' : colors.textSecondary} style={{ marginRight: 4 }} />
+                      <Ionicons name={f.icon as any} size={16} color={activeRoleFilter === f.key ? '#fff' : colors.textSecondary} style={{ marginRight: 4 }} />
                       <Text className="text-xs font-semibold" style={{ color: activeRoleFilter === f.key ? '#fff' : colors.textSecondary }}>{f.label}</Text>
                     </TouchableOpacity>
                   ))}
@@ -380,9 +403,15 @@ export default function AdminUsersScreen() {
                 </View>
 
                 <View className="flex-row gap-1 mb-2 flex-wrap">
-                  {['all', 'pending', 'approved', 'activated', 'deactivated'].map(f => (
-                    <TouchableOpacity key={f} className="px-2.5 py-[5px] rounded-[14px]" style={activeStatusFilter === f ? { backgroundColor: f === 'pending' ? colors.blue : f === 'approved' ? colors.orange : f === 'activated' ? colors.green : colors.red } : undefined} onPress={() => setActiveStatusFilter(f)} activeOpacity={0.7}>
-                      <Text className="text-[11px] font-semibold" style={{ color: activeStatusFilter === f ? '#fff' : colors.textSecondary }}>{f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}</Text>
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'pending', label: 'Pending' },
+                  { key: 'active', label: 'Active' },
+                  { key: 'inactive', label: 'Inactive' },
+                  { key: 'disapproved', label: 'Disapproved' },
+                ].map((f) => (
+                  <TouchableOpacity key={f.key} className="px-2.5 py-[5px] rounded-[14px]" style={activeStatusFilter === f.key ? { backgroundColor: f.key === 'pending' ? colors.blue : f.key === 'active' ? colors.green : f.key === 'inactive' ? colors.red : f.key === 'disapproved' ? colors.orange : colors.orange } : undefined} onPress={() => setActiveStatusFilter(f.key)} activeOpacity={0.7}>
+                    <Text className="text-[11px] font-semibold" style={{ color: activeStatusFilter === f.key ? '#fff' : colors.textSecondary }}>{f.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -431,12 +460,8 @@ export default function AdminUsersScreen() {
                   <Ionicons name="pause" size={18} color="#fff" />
                   <Text className="text-white text-xs font-semibold">Deactivate</Text>
                 </TouchableOpacity>
-                <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 py-2 rounded-[10px]" style={{ backgroundColor: colors.red }} onPress={() => handleBulkAction('delete')} disabled={isBulkActing} activeOpacity={0.8}>
-                  <Ionicons name="trash" size={18} color="#fff" />
-                  <Text className="text-white text-xs font-semibold">Delete</Text>
-                </TouchableOpacity>
               </View>
-              {isBulkActing && <ActivityIndicator className="mt-2" size="small" color={colors.orange} />}
+              {isBulkActing && <CapsActivityIndicator className="mt-2" size="small" color={colors.orange} />}
             </View>
           )}
 
@@ -448,14 +473,16 @@ export default function AdminUsersScreen() {
           />
         </>
       )}
+
+
     </View>
   );
 }
 
 // Reusable Filter Dropdown
-function FilterDropdown({ label, value, onValueChange, options, colors }) {
+function FilterDropdown({ label, value, onValueChange, options, colors }: { label: string; value: string; onValueChange: (v: string) => void; options: { id: string; label: string }[]; colors: any }) {
   const [open, setOpen] = useState(false);
-  const selected = options.find(o => o.id === value);
+  const selected = options.find((o: any) => o.id === value);
 
   return (
     <View className="flex-1 mx-1">
@@ -470,7 +497,7 @@ function FilterDropdown({ label, value, onValueChange, options, colors }) {
           <View className="mx-5 rounded-t-[20px] p-4" style={{ backgroundColor: colors.card }}>
             <Text className="text-base font-bold mb-3" style={{ color: colors.text }}>{label}</Text>
             <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled>
-              {options.map(opt => (
+              {options.map((opt: any) => (
                 <TouchableOpacity key={opt.id} className="flex-row items-center justify-between py-3 border-b border-gray-200" style={value === opt.id ? { backgroundColor: `${colors.orange}15` } : undefined} onPress={() => { onValueChange(opt.id); setOpen(false); }} activeOpacity={0.7}>
                   <Text className="text-sm flex-1" style={[{ color: colors.text }, value === opt.id ? { color: colors.orange, fontWeight: '700' } : undefined]}>{opt.label}</Text>
                   {value === opt.id && <Ionicons name="checkmark" size={18} color={colors.orange} />}

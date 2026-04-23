@@ -11,7 +11,8 @@
 //         save changes button; shows loading spinner while fetching
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
@@ -84,12 +85,12 @@ export default function EditQuestionForm() {
     setIsSubmitting(true);
     try {
       await apiRequest(`/api/questions/update/${questionID}`, {
-        method: 'PUT',
+        method: 'POST',
         body: { questionText },
       });
 
       await apiRequest('/api/choices/update', {
-        method: 'PUT',
+        method: 'POST',
         body: { choices: choices.map(c => ({ choiceID: c.choiceID, choiceText: c.choiceText, isCorrect: c.isCorrect })) },
       });
 
@@ -114,7 +115,7 @@ export default function EditQuestionForm() {
   };
 
   if (isLoading) {
-    return <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.bg }}><ActivityIndicator size="large" color={colors.orange} /></View>;
+    return <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.bg }}><CapsActivityIndicator size="large" color={colors.orange} /></View>;
   }
 
   return (
@@ -174,7 +175,7 @@ export default function EditQuestionForm() {
         </View>
 
         <TouchableOpacity className="flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl gap-2" style={{ opacity: isSubmitting ? 0.6 : 1 }} onPress={handleSubmit} disabled={isSubmitting} activeOpacity={0.8}>
-          {isSubmitting ? <ActivityIndicator color="#fff" /> : <><Ionicons name="save" size={20} color="#fff" /><Text className="text-white text-base font-bold">Save Changes</Text></>}
+          {isSubmitting ? <CapsActivityIndicator color="#fff" /> : <><Ionicons name="save" size={20} color="#fff" /><Text className="text-white text-base font-bold">Save Changes</Text></>}
         </TouchableOpacity>
       </ScrollView>
     </View>

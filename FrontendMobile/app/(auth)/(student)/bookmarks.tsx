@@ -1,10 +1,5 @@
 import { useCallback, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +11,7 @@ import {
   type BookmarkItem,
 } from '../../../src/services/studentBookmarkService';
 import { studentColors } from '../../../src/student/ui';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 
 export default function BookmarksScreen() {
   const router = useRouter();
@@ -37,9 +33,22 @@ export default function BookmarksScreen() {
     }, [load])
   );
 
-  const handleRemove = async (questionID: string) => {
-    await removeBookmark(questionID);
-    setBookmarks((prev) => prev.filter((b) => b.questionID !== questionID));
+  const handleRemove = (questionID: string) => {
+    Alert.alert(
+      'Remove Bookmark',
+      'Are you sure you want to remove this bookmarked question?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            await removeBookmark(questionID);
+            setBookmarks((prev) => prev.filter((b) => b.questionID !== questionID));
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -68,7 +77,8 @@ export default function BookmarksScreen() {
       >
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <Text className="text-base text-gray-400">Loading bookmarks...</Text>
+            <CapsActivityIndicator size="large" color={studentColors.orange} />
+            <Text className="mt-4 text-base text-gray-400">Loading bookmarks...</Text>
           </View>
         ) : bookmarks.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
@@ -134,6 +144,14 @@ export default function BookmarksScreen() {
                         >
                           {item.subjectName || 'Unknown Subject'}
                         </Text>
+                        {item.origin ? (
+                          <Text
+                            className="text-[11px] mt-1"
+                            style={{ color: studentColors.textSoft }}
+                          >
+                            From: {item.origin}
+                          </Text>
+                        ) : null}
                       </View>
                     </View>
                     <Pressable

@@ -8,7 +8,7 @@
 
 // Root layout with providers
 import { useEffect, useRef } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -18,10 +18,20 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import NetInfo from '@react-native-community/netinfo';
 import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
 import { store } from '../src/store';
+import { logout } from '../src/store/slices/authSlice';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
 import { toastConfig } from '../src/hooks/useToast';
-import { syncOfflineQueue } from '../src/services/apiClient';
+import { syncOfflineQueue, registerUnauthorizedCallback } from '../src/services/apiClient';
+import {
+  addNotificationReceivedListener,
+  addNotificationResponseReceivedListener,
+  registerForPushNotificationsAsync,
+  registerPushTokenWithBackend,
+  resolveNotificationActionUrl,
+  setNotificationHandler,
+} from '../src/services/notificationService';
 import '../global.css';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
@@ -31,6 +41,15 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 export default function RootLayout() {
+  const router = useRouter();
+
+  useEffect(() => {
+    registerUnauthorizedCallback(() => {
+      store.dispatch(logout());
+      router.replace('/');
+    });
+  }, [router]);
+
   const [fontsLoaded] = useFonts({
     Rubik: require('../assets/fonts/Rubik-Variable.ttf'),
   });
@@ -62,29 +81,43 @@ export default function RootLayout() {
     // Skip push notifications in Expo Go — not supported on Android SDK 53+
     if (isExpoGo) return;
 
-    import('../src/services/notificationService').then((notifications) => {
-      notifications.setNotificationHandler();
+    let unsubscribeReceived: (() => void) | undefined;
+    let unsubscribeResponse: (() => void) | undefined;
 
-      notifications.registerForPushNotificationsAsync().then((result) => {
-        if (result.token) {
-          notifications.registerPushTokenWithBackend(result.token);
+    const bootstrapNotifications = async () => {
+      await setNotificationHandler();
+
+      const authToken = await SecureStore.getItemAsync('token');
+      const result = await registerForPushNotificationsAsync();
+      if (authToken && result.token) {
+        await registerPushTokenWithBackend(result.token);
+      }
+
+      unsubscribeReceived = await addNotificationReceivedListener((notification) => {
+        console.log('Notification received:', notification);
+      });
+
+      unsubscribeResponse = await addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data as Record<string, any>;
+        const actionUrl =
+          (typeof data?.actionUrl === 'string' ? data.actionUrl : null) ||
+          resolveNotificationActionUrl(String(data?.type ?? ''), data);
+
+        if (actionUrl) {
+          router.push(actionUrl as any);
         }
       });
+    };
 
-      const unsubscribeReceived = notifications.addNotificationReceivedListener((n) => {
-        console.log('Notification received:', n);
-      });
-
-      const unsubscribeResponse = notifications.addNotificationResponseReceivedListener((r) => {
-        console.log('Notification response:', r);
-      });
-
-      return () => {
-        unsubscribeReceived();
-        unsubscribeResponse();
-      };
+    bootstrapNotifications().catch((error) => {
+      console.error('Notification bootstrap failed:', error);
     });
-  }, []);
+
+    return () => {
+      unsubscribeReceived?.();
+      unsubscribeResponse?.();
+    };
+  }, [router]);
 
   if (!fontsLoaded) {
     return null;

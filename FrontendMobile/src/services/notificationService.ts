@@ -51,7 +51,7 @@ export interface NotificationListResponse {
 /**
  * Map notification type to Expo Router action URL
  */
-function resolveActionUrl(type: string, data?: any): string | null {
+export function resolveNotificationActionUrl(type: string, data?: any): string | null {
     switch (type) {
         case 'achievement':
         case 'milestone':
@@ -129,7 +129,7 @@ function normalizeNotification(item: any): Notification {
         title: item.title || item.message?.slice(0, 50) || 'Notification',
         message: item.message || '',
         isRead: Boolean(item.isRead ?? item.is_read ?? item.read),
-        actionUrl: item.actionUrl || item.action_url || resolveActionUrl(item.type, item.data),
+        actionUrl: item.actionUrl || item.action_url || resolveNotificationActionUrl(item.type, item.data),
         created_at: item.created_at || item.createdAt || '',
     };
 }

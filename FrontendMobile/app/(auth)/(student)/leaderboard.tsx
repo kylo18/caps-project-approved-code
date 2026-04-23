@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -200,7 +195,7 @@ export default function LeaderboardScreen() {
           <View className="bg-white px-6 pt-[22px] pb-7 min-h-[620px] rounded-t-[34px] -mt-2.5">
             {loading ? (
               <View className="items-center justify-center gap-2.5 rounded-3xl bg-white border-2 py-[30px] px-5" style={{ borderColor: studentColors.border, ...studentShadow }}>
-                <ActivityIndicator size="large" color={studentColors.orange} />
+                <CapsActivityIndicator size="large" color={studentColors.orange} />
                 <Text className="text-sm font-normal leading-5 text-center" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>Loading leaderboard...</Text>
               </View>
             ) : error ? (

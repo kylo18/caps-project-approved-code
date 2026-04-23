@@ -1,32 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Dimensions,
-  Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../../../src/store/slices/authSlice';
-import * as SecureStore from 'expo-secure-store';
+import { useSelector } from 'react-redux';
 import NotificationPanel from '../../../src/components/NotificationPanel';
-import EditProfileModal from '../../../src/components/EditProfileModal';
-import ConfirmModal from '../../../src/components/ConfirmModal';
 import HelpCenterModal from '../../../src/components/HelpCenterModal';
-import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import { apiRequest } from '../../../src/services/apiClient';
 import { getDashboardSummary, getPerformanceTrend } from '../../../src/services/studentAnalyticsService';
 import {
-  StudentAvatar,
   StudentExamCard,
   StudentHeroDecoration,
   StudentSectionHeader,
@@ -64,11 +49,9 @@ const formatShortDate = (value?: string | null) => {
 
 export default function StudentDashboard() {
   const router = useRouter();
-  const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
   const auth = useSelector((state: any) => state.auth);
   const user = auth?.user;
-  const { theme, toggleTheme } = useTheme();
 
   // ── Data state ───────────────────────────────────────────────────────────
   const [subjects, setSubjects] = useState<any[]>([]);
@@ -83,37 +66,15 @@ export default function StudentDashboard() {
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // ── Profile menu state ───────────────────────────────────────────────────
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showEditProfile, setShowEditProfile] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
   const carouselRef = useRef<ScrollView>(null);
 
   const firstName = user?.firstName || user?.name || 'Student';
-  const displayName =
-    user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Student';
-  const email = user?.email || '';
-  const initials = `${firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase() || '?';
 
   const recentExam = trend[0];
   const recentExamScore =
     recentExam?.score_percentage != null ? `${Math.round(recentExam.score_percentage)}%` : '--';
-
-  const avatarPalette = ['#FFE17B', '#FFD4EA', '#D9DCFF', '#D6F4D2', '#FFD0B1'];
-  const avatarColor = avatarPalette[(user?.userID || 0) % avatarPalette.length];
-
-  const handleLogout = async () => {
-    try {
-      await SecureStore.deleteItemAsync('token');
-      await SecureStore.deleteItemAsync('user');
-      dispatch(logout());
-      router.replace('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
 
   const slides = useMemo(
     () => [
@@ -291,7 +252,7 @@ export default function StudentDashboard() {
               <Text className="text-[30px] font-medium text-white">{firstName}</Text>
             </View>
 
-            {/* Action buttons: help center, notifications, profile menu */}
+            {/* Action buttons: help center, notifications */}
             <View className="flex-row items-center gap-3">
               {/* Help Center */}
               <Pressable
@@ -328,15 +289,6 @@ export default function StudentDashboard() {
                 ) : null}
               </Pressable>
 
-              {/* Profile Avatar */}
-              <Pressable onPress={() => setShowProfileMenu(true)}>
-                <StudentAvatar
-                  label={displayName}
-                  size={52}
-                  index={1}
-                  style={{ borderWidth: 3, borderColor: 'rgba(255,255,255,0.65)' }}
-                />
-              </Pressable>
             </View>
           </View>
 
@@ -346,7 +298,7 @@ export default function StudentDashboard() {
               if (recentExam?.result_id) {
                 router.push({
                   pathname: '/(auth)/practice-exam/results',
-                  params: { resultId: recentExam.result_id },
+                  params: { resultId: recentExam.result_id, origin: 'home' },
                 });
               } else {
                 router.push('/(auth)/(student)/insights');
@@ -470,7 +422,7 @@ export default function StudentDashboard() {
             }}
           >
             <StudentSectionHeader
-              title="Live Exams"
+              title="Available Subjects"
               actionLabel="Search"
               onActionPress={() => router.push('/(auth)/(student)/search')}
             />
@@ -492,7 +444,7 @@ export default function StudentDashboard() {
                     backgroundColor: studentColors.white,
                   }}
                 >
-                  <ActivityIndicator size="large" color={studentColors.orange} />
+                  <CapsActivityIndicator size="large" color={studentColors.orange} />
                   <Text style={{ color: studentColors.textSoft }}>Loading live exams...</Text>
                 </View>
               ) : loadingExam ? (
@@ -504,7 +456,7 @@ export default function StudentDashboard() {
                     backgroundColor: studentColors.white,
                   }}
                 >
-                  <ActivityIndicator size="large" color={studentColors.orange} />
+                  <CapsActivityIndicator size="large" color={studentColors.orange} />
                   <Text style={{ color: studentColors.textSoft }}>Preparing your practice exam...</Text>
                 </View>
               ) : fetchError ? (
@@ -554,73 +506,6 @@ export default function StudentDashboard() {
         </View>
       </ScrollView>
 
-      {/* PROFILE MENU MODAL */}
-      <Modal visible={showProfileMenu} transparent animationType="fade">
-        <Pressable
-          className="flex-1 justify-start pt-[60px]"
-          style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
-          onPress={() => setShowProfileMenu(false)}
-        >
-          <Pressable onPress={(e) => e.stopPropagation()}>
-            <View
-              className="mx-4 rounded-2xl p-4"
-              style={{ backgroundColor: studentColors.orange }}
-            >
-              <View className="flex-row items-center gap-3 mb-4 pb-4 border-b border-white/25">
-                <View
-                  className="w-12 h-12 rounded-full justify-center items-center"
-                  style={{ backgroundColor: avatarColor, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }}
-                >
-                  <Text className="text-lg font-extrabold text-white">{initials}</Text>
-                </View>
-                <View>
-                  <Text className="text-base font-bold text-white">
-                    {firstName} {user?.lastName || ''}
-                  </Text>
-                  <Text className="text-[13px] text-white/80" numberOfLines={1}>
-                    {email}
-                  </Text>
-                </View>
-              </View>
-
-              <Pressable
-                className="flex-row items-center gap-3 py-3"
-                onPress={() => { setShowProfileMenu(false); setShowEditProfile(true); }}
-              >
-                <Ionicons name="person" size={20} color="#fff" />
-                <Text className="text-[15px] font-medium text-white">Edit Profile</Text>
-              </Pressable>
-
-              <Pressable
-                className="flex-row items-center gap-3 py-3"
-                onPress={() => { setShowProfileMenu(false); router.push('/(auth)/(student)/bookmarks'); }}
-              >
-                <Ionicons name="bookmark" size={20} color="#fff" />
-                <Text className="text-[15px] font-medium text-white">My Bookmarks</Text>
-              </Pressable>
-
-              <Pressable
-                className="flex-row items-center gap-3 py-3"
-                onPress={() => { setShowProfileMenu(false); toggleTheme(); }}
-              >
-                <Ionicons name={theme === 'dark' ? 'sunny' : 'moon'} size={20} color="#fff" />
-                <Text className="text-[15px] font-medium text-white">
-                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                className="flex-row items-center gap-3 py-3 mt-2 pt-4 border-t border-white/25"
-                onPress={() => { setShowProfileMenu(false); setShowLogoutConfirm(true); }}
-              >
-                <Ionicons name="log-out" size={20} color="#FFD7BC" />
-                <Text className="text-[15px] font-medium text-[#FFD7BC]">Log Out</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       {/* SECONDARY MODALS */}
       <NotificationPanel
         visible={notificationsVisible}
@@ -629,16 +514,7 @@ export default function StudentDashboard() {
           loadUnreadCount();
         }}
       />
-      <EditProfileModal visible={showEditProfile} onClose={() => setShowEditProfile(false)} user={user} />
       <HelpCenterModal visible={showHelp} onClose={() => setShowHelp(false)} />
-      <ConfirmModal
-        visible={showLogoutConfirm}
-        title="Log Out"
-        message="Are you sure you want to log out?"
-        confirmText="Log Out"
-        onConfirm={handleLogout}
-        onCancel={() => setShowLogoutConfirm(false)}
-      />
     </View>
   );
 }

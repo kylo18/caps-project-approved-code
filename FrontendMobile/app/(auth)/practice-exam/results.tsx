@@ -14,10 +14,8 @@
 //         showing user answer vs correct answer, "Back" and "Retake Exam" buttons
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  ActivityIndicator, useWindowDimensions
-} from 'react-native';
+import {   View, Text, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import RenderHtml from 'react-native-render-html';
@@ -33,6 +31,7 @@ export default function PracticeExamResults() {
   const { width: windowWidth } = useWindowDimensions();
 
   const resultId = params.resultId as string;
+  const origin = (params.origin as string) || 'home';
   const [loading, setLoading] = useState(!!resultId);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'correct' | 'incorrect'>('all');
@@ -129,10 +128,13 @@ export default function PracticeExamResults() {
     return true;
   });
 
+  const backRoute = origin === 'profile' ? '/(auth)/(student)/insights' : '/(auth)/(student)/dashboard';
+  const backLabel = origin === 'profile' ? 'Back to Profile' : 'Back to Home';
+
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.bg }}>
-        <ActivityIndicator size="large" color={colors.orange} />
+        <CapsActivityIndicator size="large" color={colors.orange} />
         <Text className="text-sm mt-3" style={{ color: colors.textSecondary }}>Loading exam result...</Text>
       </View>
     );
@@ -257,9 +259,6 @@ export default function PracticeExamResults() {
               <Text className="text-sm text-center py-5" style={{ color: colors.textSecondary }}>No questions to display.</Text>
             ) : (
               filteredResults.map((q, index) => {
-                const userChoice = q.choices?.find((c: any) => c.choiceID === q.selectedChoiceID);
-                const correctChoice = q.choices?.find((c: any) => c.isCorrect);
-
                 return (
                   <View
                     key={q.questionID || index}
@@ -299,17 +298,18 @@ export default function PracticeExamResults() {
                     {/* Choices */}
                     {q.choices?.map((choice: any, cIdx: number) => {
                       const isUserChoice = choice.choiceID === q.selectedChoiceID;
-                      const isCorrectChoice = choice.isCorrect;
+                      const isUserChoiceCorrect = isUserChoice && q.isCorrect;
+                      const isUserChoiceWrong = isUserChoice && !q.isCorrect;
 
                       let choiceBg = isDark ? '#1f2937' : '#fff';
                       let choiceBorder = colors.border;
                       let choiceIcon = null;
 
-                      if (isCorrectChoice) {
+                      if (isUserChoiceCorrect) {
                         choiceBg = colors.greenBg;
                         choiceBorder = colors.green;
                         choiceIcon = <Ionicons name="checkmark-circle" size={18} color={colors.green} />;
-                      } else if (isUserChoice && !isCorrectChoice) {
+                      } else if (isUserChoiceWrong) {
                         choiceBg = colors.redBg;
                         choiceBorder = colors.red;
                         choiceIcon = <Ionicons name="close-circle" size={18} color={colors.red} />;
@@ -352,12 +352,12 @@ export default function PracticeExamResults() {
           <TouchableOpacity
             className="flex-row items-center justify-center py-3.5 rounded-xl border"
             style={{ borderColor: colors.border }}
-            onPress={() => router.replace(resultId ? '/(auth)/(student)/insights' : '/(auth)/(student)/dashboard')}
+            onPress={() => router.replace(backRoute)}
             activeOpacity={0.7}
           >
             <Ionicons name="chevron-back" size={20} color={colors.text} style={{ marginRight: 8 }} />
             <Text className="text-base font-semibold" style={{ color: colors.text }}>
-              {resultId ? 'Back to Insights' : 'Back to Dashboard'}
+              {backLabel}
             </Text>
           </TouchableOpacity>
 

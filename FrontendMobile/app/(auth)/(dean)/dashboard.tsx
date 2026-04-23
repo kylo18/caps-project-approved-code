@@ -3,14 +3,17 @@
 //          quick access to management functions.
 //
 // Features:
-// - Platform stats (questions, users, subjects)
+// - Welcome banner with admin name
+// - Platform stats (questions, users, subjects) with color accents
 // - Quick action cards
+// - Management list with color bar indicators
 // - Pull-to-refresh
 // - Uses MobileHeader with NativeWind styling
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +22,7 @@ import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import MobileHeader from '../../../src/components/MobileHeader';
+import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 type DashboardSubject = { subjectID: number; [key: string]: any };
@@ -106,6 +110,13 @@ export default function AdminDashboard() {
       route: '/(auth)/(dean)/support',
       description: 'Manage tickets'
     },
+    {
+      icon: 'layers',
+      label: 'Classes',
+      color: '#10B981',
+      route: '/(auth)/(dean)/classes',
+      description: 'Manage class flows'
+    },
   ];
 
   const statCards: { icon: IoniconName; label: string; value: number; color: string; route: any }[] = [
@@ -114,13 +125,76 @@ export default function AdminDashboard() {
     { icon: 'book', label: 'Subjects', value: stats.subjects, color: '#3B82F6', route: '/(auth)/(dean)/subjects' },
   ];
 
+  const managementItems = [
+    {
+      icon: 'people' as IoniconName,
+      label: 'User Management',
+      description: 'Manage users, roles, and permissions',
+      color: '#10B981',
+      route: '/(auth)/(dean)/users',
+    },
+    {
+      icon: 'book' as IoniconName,
+      label: 'Subject Management',
+      description: 'Questions, topics, and content',
+      color: '#3B82F6',
+      route: '/(auth)/(dean)/subjects',
+    },
+    {
+      icon: 'help-circle' as IoniconName,
+      label: 'Support Tickets',
+      description: 'View and respond to tickets',
+      color: '#EF4444',
+      route: '/(auth)/(dean)/support',
+    },
+  ];
+
+  useScreenFloatingTools([
+    {
+      key: 'insights',
+      icon: 'grid-outline',
+      label: 'Insights',
+      onPress: () => router.push('/(auth)/(dean)/insights'),
+    },
+    {
+      key: 'enhancement',
+      icon: 'trending-up-outline',
+      label: 'Enhancement',
+      onPress: () => router.push('/(auth)/(dean)/enhancement'),
+    },
+    {
+      key: 'analytics',
+      icon: 'analytics-outline',
+      label: 'Analytics',
+      onPress: () => router.push('/(auth)/(dean)/analytics'),
+    },
+    {
+      key: 'reports',
+      icon: 'document-text-outline',
+      label: 'Reports',
+      onPress: () => router.push('/(auth)/(dean)/reports'),
+    },
+    {
+      key: 'support',
+      icon: 'headset-outline',
+      label: 'Support',
+      onPress: () => router.push('/(auth)/(dean)/support'),
+    },
+    {
+      key: 'export',
+      icon: 'print-outline',
+      label: 'Export',
+      onPress: () => router.push('/(auth)/(dean)/subjects'),
+    },
+  ]);
+
   return (
     <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
-      <MobileHeader title="Admin Dashboard" />
+      <MobileHeader title="Dashboard" />
 
       {isLoading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#FE6902" />
+          <CapsActivityIndicator size="large" color="#FE6902" />
           <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             Loading dashboard...
           </Text>
@@ -138,6 +212,33 @@ export default function AdminDashboard() {
             />
           }
         >
+          {/* Welcome Banner */}
+          <View className="px-4 pt-4">
+            <View
+              className="rounded-2xl p-5 flex-row items-center"
+              style={{
+                backgroundColor: isDark ? '#111827' : '#FFF7ED',
+                borderWidth: 1,
+                borderColor: isDark ? '#1F2937' : '#FED7AA',
+              }}
+            >
+              <View
+                className="w-12 h-12 rounded-full items-center justify-center mr-4"
+                style={{ backgroundColor: '#FE6902' }}
+              >
+                <Ionicons name="happy-outline" size={24} color="#FFFFFF" />
+              </View>
+              <View className="flex-1">
+                <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  Welcome back, {user?.firstName || 'Admin'}
+                </Text>
+                <Text className={`text-sm mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Dean · CAPS Platform
+                </Text>
+              </View>
+            </View>
+          </View>
+
           {/* Stats Row */}
           <View className="px-4 pt-4">
             <View className="flex-row gap-3">
@@ -147,10 +248,19 @@ export default function AdminDashboard() {
                   onPress={() => router.push(card.route)}
                   className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
                   activeOpacity={0.8}
+                  style={{
+                    borderLeftWidth: 4,
+                    borderLeftColor: card.color,
+                    shadowColor: isDark ? '#000' : card.color,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isDark ? 0.2 : 0.06,
+                    shadowRadius: 6,
+                    elevation: 3,
+                  }}
                 >
                   <View
                     className="w-14 h-14 rounded-2xl items-center justify-center mb-2"
-                    style={{ backgroundColor: `${card.color}20` }}
+                    style={{ backgroundColor: `${card.color}15` }}
                   >
                     <Ionicons name={card.icon} size={28} color={card.color} />
                   </View>
@@ -170,17 +280,24 @@ export default function AdminDashboard() {
             <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               Quick Actions
             </Text>
-            <View className="flex-row gap-3">
+            <View className="flex-row flex-wrap gap-3">
               {quickActions.map((action, idx) => (
                 <TouchableOpacity
                   key={idx}
                   onPress={() => router.push(action.route)}
-                  className={`flex-1 rounded-2xl p-5 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                  className={`w-[48%] rounded-2xl p-5 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
                   activeOpacity={0.8}
+                  style={{
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isDark ? 0.2 : 0.04,
+                    shadowRadius: 6,
+                    elevation: 2,
+                  }}
                 >
                   <View
                     className="w-16 h-16 rounded-full items-center justify-center mb-3"
-                    style={{ backgroundColor: `${action.color}20` }}
+                    style={{ backgroundColor: `${action.color}15` }}
                   >
                     <Ionicons name={action.icon} size={32} color={action.color} />
                   </View>
@@ -197,69 +314,43 @@ export default function AdminDashboard() {
 
           {/* Management Section */}
           <View className="px-4 pt-6">
-            <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Management
-            </Text>
+            <View className="flex-row items-center mb-3">
+              <Ionicons name="briefcase-outline" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+              <Text className={`text-lg font-bold ml-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Management
+              </Text>
+            </View>
 
-            {/* Users Card */}
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/(dean)/users')}
-              className={`flex-row items-center rounded-2xl p-4 mb-3 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
-              activeOpacity={0.8}
-            >
-              <View className="w-12 h-12 rounded-xl items-center justify-center bg-green-100">
-                <Ionicons name="people" size={24} color="#10B981" />
-              </View>
-              <View className="flex-1 ml-4">
-                <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  User Management
-                </Text>
-                <Text className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Manage users, roles, and permissions
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
-            </TouchableOpacity>
-
-            {/* Subjects Card */}
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/(dean)/subjects')}
-              className={`flex-row items-center rounded-2xl p-4 mb-3 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
-              activeOpacity={0.8}
-            >
-              <View className="w-12 h-12 rounded-xl items-center justify-center bg-blue-100">
-                <Ionicons name="book" size={24} color="#3B82F6" />
-              </View>
-              <View className="flex-1 ml-4">
-                <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  Subject Management
-                </Text>
-                <Text className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Questions, topics, and content
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
-            </TouchableOpacity>
-
-            {/* Support Card */}
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/(dean)/support')}
-              className={`flex-row items-center rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
-              activeOpacity={0.8}
-            >
-              <View className="w-12 h-12 rounded-xl items-center justify-center bg-red-100">
-                <Ionicons name="help-circle" size={24} color="#EF4444" />
-              </View>
-              <View className="flex-1 ml-4">
-                <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  Support Tickets
-                </Text>
-                <Text className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  View and respond to tickets
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
-            </TouchableOpacity>
+            {managementItems.map((item, idx) => (
+              <TouchableOpacity
+                key={idx}
+                onPress={() => router.push(item.route)}
+                className={`flex-row items-center rounded-2xl p-4 mb-3 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                activeOpacity={0.8}
+                style={{
+                  borderLeftWidth: 4,
+                  borderLeftColor: item.color,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: isDark ? 0.2 : 0.04,
+                  shadowRadius: 4,
+                  elevation: 2,
+                }}
+              >
+                <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: `${item.color}15` }}>
+                  <Ionicons name={item.icon} size={24} color={item.color} />
+                </View>
+                <View className="flex-1 ml-4">
+                  <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    {item.label}
+                  </Text>
+                  <Text className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {item.description}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+              </TouchableOpacity>
+            ))}
           </View>
 
           {/* Bottom Safe Area */}

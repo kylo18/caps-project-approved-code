@@ -4,33 +4,15 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../src/services/apiClient';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { showToast } from '../src/hooks/useToast';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// File purpose: Multi-step user registration screen for the CAPS mobile app.
-//   Collects personal information, account details, academic information, and
-//   password, then submits the data to the backend for account creation pending
-//   admin approval.
-// Key sections:
-//   - Step 1: Personal Information (first name, last name)
-//   - Step 2: Account Details (user code, email)
-//   - Step 3: Academic Information (role/position, campus, program)
-//   - Step 4: Password creation and confirmation
-//   - Step indicator showing current progress across all 4 steps
-//   - Navigation buttons (Previous/Next/Register)
-//   - Login link for users who already have an account
-//   - Theme toggle (light/dark mode)
-// ─────────────────────────────────────────────────────────────────────────────
 
 const allPrograms = [
   { id: '1', name: 'BS Computer Engineering' },
@@ -152,7 +134,7 @@ export default function RegisterScreen() {
 
     setIsRegistering(true);
     try {
-      const response = await apiClient.post('/api/register', {
+      await apiClient.post('/api/register', {
         userCode,
         firstName,
         lastName,
@@ -165,7 +147,7 @@ export default function RegisterScreen() {
 
       setMessage('Registration successful! Your account is pending approval.');
       showToast('Registration successful!', 'success');
-      
+
       setTimeout(() => {
         router.replace('/' as any);
       }, 3000);
@@ -179,67 +161,65 @@ export default function RegisterScreen() {
   };
 
   const renderStepIndicator = () => (
-    <View style={styles.stepIndicator}>
+    <View className="flex-row justify-center gap-2 mb-6">
       {[1, 2, 3, 4].map((step) => (
         <View
           key={step}
-          style={[
-            styles.stepDot,
-            { backgroundColor: step <= currentStep ? '#FE6902' : isDark ? '#374151' : '#d1d5db' },
-          ]}
+          className="w-8 h-1 rounded-sm"
+          style={{ backgroundColor: step <= currentStep ? '#FE6902' : isDark ? '#374151' : '#d1d5db' }}
         />
       ))}
     </View>
   );
 
   const renderStep1 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={[styles.stepTitle, isDark && styles.darkText]}>Personal Information</Text>
-      <Text style={[styles.stepDescription, isDark && styles.darkSubtext]}>
+    <View className="mb-6">
+      <Text className={`text-2xl font-bold text-gray-900 mb-2 ${isDark ? 'text-white' : ''}`}>Personal Information</Text>
+      <Text className={`text-sm text-gray-500 mb-6 ${isDark ? 'text-gray-400' : ''}`}>
         Enter your full name
       </Text>
 
-      <View style={styles.inputGroup}>
-        <Text style={[styles.label, isDark && styles.darkText]}>First Name *</Text>
+      <View className="mb-5">
+        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>First Name *</Text>
         <TextInput
-          style={[styles.input, isDark && styles.darkInput, errors.firstName && styles.inputError]}
+          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 dark:bg-gray-800 dark:border-gray-600 ${errors.firstName ? 'border-red-500' : ''}`}
           value={firstName}
           onChangeText={setFirstName}
           placeholder="Enter first name"
           placeholderTextColor="#999"
         />
         {errors.firstName && (
-          <Text style={styles.errorText}>{errors.firstName}</Text>
+          <Text className="text-red-500 text-xs mt-1">{errors.firstName}</Text>
         )}
       </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={[styles.label, isDark && styles.darkText]}>Last Name *</Text>
+      <View className="mb-5">
+        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Last Name *</Text>
         <TextInput
-          style={[styles.input, isDark && styles.darkInput, errors.lastName && styles.inputError]}
+          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 dark:bg-gray-800 dark:border-gray-600 ${errors.lastName ? 'border-red-500' : ''}`}
           value={lastName}
           onChangeText={setLastName}
           placeholder="Enter last name"
           placeholderTextColor="#999"
         />
         {errors.lastName && (
-          <Text style={styles.errorText}>{errors.lastName}</Text>
+          <Text className="text-red-500 text-xs mt-1">{errors.lastName}</Text>
         )}
       </View>
     </View>
   );
 
   const renderStep2 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={[styles.stepTitle, isDark && styles.darkText]}>Account Details</Text>
-      <Text style={[styles.stepDescription, isDark && styles.darkSubtext]}>
+    <View className="mb-6">
+      <Text className={`text-2xl font-bold text-gray-900 mb-2 ${isDark ? 'text-white' : ''}`}>Account Details</Text>
+      <Text className={`text-sm text-gray-500 mb-6 ${isDark ? 'text-gray-400' : ''}`}>
         Set up your login credentials
       </Text>
 
-      <View style={styles.inputGroup}>
-        <Text style={[styles.label, isDark && styles.darkText]}>User Code *</Text>
+      <View className="mb-5">
+        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>User Code *</Text>
         <TextInput
-          style={[styles.input, isDark && styles.darkInput, errors.userCode && styles.inputError]}
+          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 dark:bg-gray-800 dark:border-gray-600 ${errors.userCode ? 'border-red-500' : ''}`}
           value={userCode}
           onChangeText={setUserCode}
           placeholder="Enter user code"
@@ -247,14 +227,14 @@ export default function RegisterScreen() {
           autoCapitalize="none"
         />
         {errors.userCode && (
-          <Text style={styles.errorText}>{errors.userCode}</Text>
+          <Text className="text-red-500 text-xs mt-1">{errors.userCode}</Text>
         )}
       </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={[styles.label, isDark && styles.darkText]}>Email Address *</Text>
+      <View className="mb-5">
+        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Email Address *</Text>
         <TextInput
-          style={[styles.input, isDark && styles.darkInput, errors.email && styles.inputError]}
+          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 dark:bg-gray-800 dark:border-gray-600 ${errors.email ? 'border-red-500' : ''}`}
           value={email}
           onChangeText={setEmail}
           placeholder="Enter email address"
@@ -263,33 +243,29 @@ export default function RegisterScreen() {
           autoCapitalize="none"
         />
         {errors.email && (
-          <Text style={styles.errorText}>{errors.email}</Text>
+          <Text className="text-red-500 text-xs mt-1">{errors.email}</Text>
         )}
       </View>
     </View>
   );
 
   const renderStep3 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={[styles.stepTitle, isDark && styles.darkText]}>Academic Information</Text>
-      <Text style={[styles.stepDescription, isDark && styles.darkSubtext]}>
+    <View className="mb-6">
+      <Text className={`text-2xl font-bold text-gray-900 mb-2 ${isDark ? 'text-white' : ''}`}>Academic Information</Text>
+      <Text className={`text-sm text-gray-500 mb-6 ${isDark ? 'text-gray-400' : ''}`}>
         Select your role and institution details
       </Text>
 
-      <View style={styles.inputGroup}>
-        <Text style={[styles.label, isDark && styles.darkText]}>Position *</Text>
-        <View style={styles.dropdownContainer}>
+      <View className="mb-5">
+        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Position *</Text>
+        <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px] dark:bg-gray-800 dark:border-gray-600`}>
           {roles.map((role) => (
             <TouchableOpacity
               key={role.id}
-              style={[
-                styles.dropdownOption,
-                isDark && styles.darkDropdownOption,
-                roleID === role.id && styles.selectedOption,
-              ]}
+              className={`flex-row justify-between items-center p-3 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-600 ${roleID === role.id ? 'bg-amber-100' : ''}`}
               onPress={() => setRoleID(role.id)}
             >
-              <Text style={[styles.dropdownOptionText, isDark && styles.darkText]}>
+              <Text className={`text-sm text-gray-900 flex-1 ${isDark ? 'text-white' : ''}`}>
                 {role.name}
               </Text>
               {roleID === role.id && (
@@ -298,26 +274,22 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           ))}
         </View>
-        {errors.roleID && <Text style={styles.errorText}>{errors.roleID}</Text>}
+        {errors.roleID && <Text className="text-red-500 text-xs mt-1">{errors.roleID}</Text>}
       </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={[styles.label, isDark && styles.darkText]}>Campus *</Text>
-        <View style={styles.dropdownContainer}>
+      <View className="mb-5">
+        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Campus *</Text>
+        <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px] dark:bg-gray-800 dark:border-gray-600`}>
           {campuses.map((campus) => (
             <TouchableOpacity
               key={campus.id}
-              style={[
-                styles.dropdownOption,
-                isDark && styles.darkDropdownOption,
-                campusID === campus.id && styles.selectedOption,
-              ]}
+              className={`flex-row justify-between items-center p-3 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-600 ${campusID === campus.id ? 'bg-amber-100' : ''}`}
               onPress={() => {
                 setCampusID(campus.id);
-                setProgramID(''); // Reset program when campus changes
+                setProgramID('');
               }}
             >
-              <Text style={[styles.dropdownOptionText, isDark && styles.darkText]}>
+              <Text className={`text-sm text-gray-900 flex-1 ${isDark ? 'text-white' : ''}`}>
                 {campus.name}
               </Text>
               {campusID === campus.id && (
@@ -326,25 +298,21 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           ))}
         </View>
-        {errors.campusID && <Text style={styles.errorText}>{errors.campusID}</Text>}
+        {errors.campusID && <Text className="text-red-500 text-xs mt-1">{errors.campusID}</Text>}
       </View>
 
       {campusID && (
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, isDark && styles.darkText]}>Program *</Text>
-          <View style={styles.dropdownContainer}>
+        <View className="mb-5">
+          <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Program *</Text>
+          <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px] dark:bg-gray-800 dark:border-gray-600`}>
             {getFilteredPrograms().map((program) => (
               <TouchableOpacity
                 key={program.id}
-                style={[
-                  styles.dropdownOption,
-                  isDark && styles.darkDropdownOption,
-                  programID === program.id && styles.selectedOption,
-                ]}
+                className={`flex-row justify-between items-center p-3 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-600 ${programID === program.id ? 'bg-amber-100' : ''}`}
                 onPress={() => setProgramID(program.id)}
               >
                 <Text
-                  style={[styles.dropdownOptionText, isDark && styles.darkText]}
+                  className={`text-sm text-gray-900 flex-1 ${isDark ? 'text-white' : ''}`}
                   numberOfLines={2}
                 >
                   {program.name}
@@ -355,24 +323,24 @@ export default function RegisterScreen() {
               </TouchableOpacity>
             ))}
           </View>
-          {errors.programID && <Text style={styles.errorText}>{errors.programID}</Text>}
+          {errors.programID && <Text className="text-red-500 text-xs mt-1">{errors.programID}</Text>}
         </View>
       )}
     </View>
   );
 
   const renderStep4 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={[styles.stepTitle, isDark && styles.darkText]}>Set Password</Text>
-      <Text style={[styles.stepDescription, isDark && styles.darkSubtext]}>
+    <View className="mb-6">
+      <Text className={`text-2xl font-bold text-gray-900 mb-2 ${isDark ? 'text-white' : ''}`}>Set Password</Text>
+      <Text className={`text-sm text-gray-500 mb-6 ${isDark ? 'text-gray-400' : ''}`}>
         Create a secure password
       </Text>
 
-      <View style={styles.inputGroup}>
-        <Text style={[styles.label, isDark && styles.darkText]}>Password *</Text>
-        <View style={[styles.inputWithIcon, isDark && styles.darkInputWithIcon]}>
+      <View className="mb-5">
+        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Password *</Text>
+        <View className={`flex-row items-center bg-white border border-gray-300 rounded-lg px-4 dark:bg-gray-800 dark:border-gray-600`}>
           <TextInput
-            style={[styles.flexInput, isDark && styles.darkInput]}
+            className={`flex-1 py-3 text-base text-gray-900 ${isDark ? 'text-white' : ''}`}
             value={password}
             onChangeText={setPassword}
             placeholder="Enter password"
@@ -388,17 +356,17 @@ export default function RegisterScreen() {
             />
           </TouchableOpacity>
         </View>
-        {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-        <Text style={[styles.hintText, isDark && styles.darkSubtext]}>
+        {errors.password && <Text className="text-red-500 text-xs mt-1">{errors.password}</Text>}
+        <Text className={`text-xs text-gray-500 mt-1 ${isDark ? 'text-gray-400' : ''}`}>
           Must be at least 8 characters
         </Text>
       </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={[styles.label, isDark && styles.darkText]}>Confirm Password *</Text>
-        <View style={[styles.inputWithIcon, isDark && styles.darkInputWithIcon]}>
+      <View className="mb-5">
+        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Confirm Password *</Text>
+        <View className={`flex-row items-center bg-white border border-gray-300 rounded-lg px-4 dark:bg-gray-800 dark:border-gray-600`}>
           <TextInput
-            style={[styles.flexInput, isDark && styles.darkInput]}
+            className={`flex-1 py-3 text-base text-gray-900 ${isDark ? 'text-white' : ''}`}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             placeholder="Confirm password"
@@ -415,7 +383,7 @@ export default function RegisterScreen() {
           </TouchableOpacity>
         </View>
         {errors.confirmPassword && (
-          <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+          <Text className="text-red-500 text-xs mt-1">{errors.confirmPassword}</Text>
         )}
       </View>
     </View>
@@ -424,11 +392,10 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, isDark && styles.darkContainer]}
+      className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        {/* Theme toggle */}
-        <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
+      <ScrollView contentContainerStyle="flex-grow-1 p-6 pt-[60px]" keyboardShouldPersistTaps="handled">
+        <TouchableOpacity onPress={toggleTheme} className="absolute top-12 right-6 z-10 p-2">
           <Ionicons
             name={isDark ? 'sunny' : 'moon'}
             size={24}
@@ -436,293 +403,67 @@ export default function RegisterScreen() {
           />
         </TouchableOpacity>
 
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <Text style={[styles.logoText, isDark && styles.darkText]}>CAPS</Text>
-          <Text style={[styles.subtitle, isDark && styles.darkSubtext]}>
+        <View className="items-center mb-8">
+          <Text className="text-[40px] font-bold text-[#FE6902]">CAPS</Text>
+          <Text className={`text-base text-gray-500 mt-2 ${isDark ? 'text-gray-400' : ''}`}>
             Create your account
           </Text>
         </View>
 
-        {/* Step Indicator */}
         {renderStepIndicator()}
 
-        {/* Steps */}
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
         {currentStep === 3 && renderStep3()}
         {currentStep === 4 && renderStep4()}
 
-        {/* Success Message */}
         {message && (
-          <View style={styles.successMessage}>
+          <View className="flex-row items-center bg-green-100 p-4 rounded-lg gap-3 mb-4">
             <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-            <Text style={styles.successText}>{message}</Text>
+            <Text className="flex-1 text-green-800 text-sm font-medium">{message}</Text>
           </View>
         )}
 
-        {/* Navigation Buttons */}
-        <View style={styles.buttonContainer}>
+        <View className="flex-row gap-3 mt-6 items-center">
           {currentStep > 1 && (
             <TouchableOpacity
-              style={[styles.secondaryButton, isDark && styles.darkSecondaryButton]}
+              className={`px-6 py-3.5 rounded-lg bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-600`}
               onPress={() => setCurrentStep((prev) => prev - 1)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.secondaryButtonText, isDark && styles.darkText]}>
+              <Text className={`text-base font-semibold text-gray-700 ${isDark ? 'text-white' : ''}`}>
                 Previous
               </Text>
             </TouchableOpacity>
           )}
 
           {currentStep < 4 ? (
-            <TouchableOpacity style={styles.primaryButton} onPress={handleNextStep} activeOpacity={0.8}>
-              <Text style={styles.primaryButtonText}>Next</Text>
+            <TouchableOpacity className="flex-1 bg-[#FE6902] py-3.5 rounded-lg items-center justify-center min-h-12" onPress={handleNextStep} activeOpacity={0.8}>
+              <Text className="text-white text-base font-semibold">Next</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.primaryButton, isRegistering && styles.disabledButton]}
+              className={`flex-1 bg-[#FE6902] py-3.5 rounded-lg items-center justify-center min-h-12 ${isRegistering ? 'bg-gray-400' : ''}`}
               onPress={handleSubmit}
               disabled={isRegistering}
               activeOpacity={isRegistering ? 1 : 0.8}
             >
-              <Text style={styles.primaryButtonText}>
+              <Text className="text-white text-base font-semibold">
                 {isRegistering ? 'Registering...' : 'Register'}
               </Text>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Login Link */}
-        <View style={styles.loginLinkContainer}>
-          <Text style={isDark ? styles.darkSubtext : styles.loginText}>
+        <View className="flex-row justify-center mt-6 gap-2">
+          <Text className={`text-sm text-gray-500 ${isDark ? 'text-gray-400' : ''}`}>
             Already have an account?
           </Text>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.loginLink}>Login</Text>
+            <Text className="text-sm font-semibold text-[#FE6902]">Login</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
-  darkContainer: {
-    backgroundColor: '#000',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 24,
-    paddingTop: 60,
-  },
-  themeToggle: {
-    position: 'absolute',
-    top: 48,
-    right: 24,
-    zIndex: 10,
-    padding: 8,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  logoText: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#FE6902',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 8,
-  },
-  stepIndicator: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 24,
-  },
-  stepDot: {
-    width: 32,
-    height: 4,
-    borderRadius: 2,
-  },
-  stepContainer: {
-    marginBottom: 24,
-  },
-  stepTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
-  },
-  stepDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 24,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#000',
-  },
-  darkInput: {
-    backgroundColor: '#1f2937',
-    borderColor: '#374151',
-    color: '#fff',
-  },
-  inputWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-  },
-  darkInputWithIcon: {
-    backgroundColor: '#1f2937',
-    borderColor: '#374151',
-  },
-  flexInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#000',
-  },
-  inputError: {
-    borderColor: '#EF4444',
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  hintText: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
-  },
-  dropdownContainer: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    maxHeight: 200,
-  },
-  darkDropdownOption: {
-    backgroundColor: '#1f2937',
-    borderColor: '#374151',
-  },
-  dropdownOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  selectedOption: {
-    backgroundColor: '#FEF3C7',
-  },
-  dropdownOptionText: {
-    fontSize: 14,
-    color: '#000',
-    flex: 1,
-  },
-  successMessage: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D1FAE5',
-    padding: 16,
-    borderRadius: 8,
-    gap: 12,
-    marginBottom: 16,
-  },
-  successText: {
-    flex: 1,
-    color: '#065F46',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  primaryButton: {
-    flex: 1,
-    backgroundColor: '#FE6902',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-  },
-  darkSecondaryButton: {
-    backgroundColor: '#1f2937',
-    borderColor: '#374151',
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  loginLinkContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-    gap: 8,
-  },
-  loginText: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  loginLink: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FE6902',
-  },
-  darkText: {
-    color: '#fff',
-  },
-  darkSubtext: {
-    color: '#9ca3af',
-  },
-});

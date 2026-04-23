@@ -46,6 +46,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       SecureStore.deleteItemAsync('token').catch(() => { });
       SecureStore.deleteItemAsync('user').catch(() => { });
+      SecureStore.deleteItemAsync('pushToken').catch(() => { });
       SecureStore.deleteItemAsync('rememberMe').catch(() => { });
       SecureStore.deleteItemAsync('biometricEnabled').catch(() => { });
     },

@@ -10,8 +10,9 @@
 //   - UI: header, question text input (multiline), choices section with radio
 //         buttons and text inputs, hint text, submit button
 // ─────────────────────────────────────────────────────────────────────────────
-import { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { useRef, useState } from 'react';
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
@@ -37,13 +38,13 @@ export default function AddQuestionForm() {
 
   const subjectID = params.subjectID;
 
-  const handleChoiceChange = (index, value) => {
+  const handleChoiceChange = (index: number, value: string) => {
     const newChoices = [...choices];
     newChoices[index].choiceText = value;
     setChoices(newChoices);
   };
 
-  const handleCorrectToggle = (index) => {
+  const handleCorrectToggle = (index: number) => {
     const newChoices = choices.map((c, i) => ({ ...c, isCorrect: i === index }));
     setChoices(newChoices);
   };
@@ -64,36 +65,47 @@ export default function AddQuestionForm() {
 
     setIsSubmitting(true);
     try {
-      // Add question
+      // Build exactly 5 choices (4 user choices + 1 automatic "None of the above")
+      const allChoices = [
+        ...choices.map((c) => ({
+          choiceText: c.choiceText,
+          isCorrect: c.isCorrect,
+        })),
+        { choiceText: 'None of the above', isCorrect: false },
+      ];
+
+      // Add question with required backend fields
       const questionRes = await apiRequest('/api/questions/add', {
         method: 'POST',
         body: {
-          subjectID,
-          questionText,
-          questionType: 'multiple_choice',
+          subjectID: Number(subjectID),
+          questionText: questionText.trim(),
+          coverage_id: 1,
+          score: 1,
+          difficulty_id: 1,
+          status_id: 2,
+          purpose_id: 1,
         },
       });
 
-      const questionID = questionRes?.questionID || questionRes?.data?.questionID;
+      const questionID = questionRes?.questionID || questionRes?.data?.questionID || questionRes?.data?.id;
 
       // Add choices
       if (questionID) {
         await apiRequest('/api/questions/choices', {
           method: 'POST',
           body: {
-            questionID,
-            choices: choices.map((c, idx) => ({
-              choiceText: c.choiceText,
-              isCorrect: c.isCorrect ? 1 : 0,
-            })),
+            questionID: Number(questionID),
+            choices: allChoices,
           },
         });
       }
 
       showToast('Question added successfully', 'success');
       router.back();
-    } catch (error) {
-      showToast(error.message || 'Failed to add question', 'error');
+    } catch (error: any) {
+      const message = error?.data?.message || error?.message || 'Failed to add question';
+      showToast(message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -147,7 +159,7 @@ export default function AddQuestionForm() {
               initialContentHTML={questionText}
               onChange={setQuestionText}
               placeholder="Enter question..."
-              style={{ backgroundColor: colors.inputBg, color: colors.text, flex: 1 }}
+              style={{ backgroundColor: colors.inputBg, flex: 1 }}
               initialHeight={180}
               useContainer
             />
@@ -187,7 +199,7 @@ export default function AddQuestionForm() {
           activeOpacity={0.8}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <CapsActivityIndicator color="#fff" />
           ) : (
             <>
               <Ionicons name="checkmark-circle" size={20} color="#fff" />

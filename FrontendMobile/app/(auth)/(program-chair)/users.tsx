@@ -5,17 +5,29 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  View, Text, FlatList, TouchableOpacity,
-  ActivityIndicator, TextInput, RefreshControl, Alert, Animated, Modal, ScrollView
-} from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, RefreshControl, Alert, Animated, Modal, ScrollView } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import UserDetailModal from '../../../src/components/UserDetailModal';
+import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  applyUserActionLocally,
+  canApproveUser,
+  getUserCampusLabel,
+  getUserProgramLabel,
+  getUserStatusLabel,
+  getUserStatusFilterKey,
+  getUserYearLevelLabel,
+  getUserYearLevelValue,
+  isActiveUser,
+  isInactiveUser,
+  matchesUserStatusFilter,
+} from '../../../src/utils/userManagement';
 
 const avatarPalette = ['#FFE17B', '#FFD4EA', '#D9DCFF', '#D6F4D2', '#FFD0B1'];
 const ADMIN_ROLES = [2, 3, 4, 5];
@@ -83,7 +95,7 @@ export default function ProgramChairUsersScreen() {
       let filtered = [...users];
       if (activeRoleFilter === 'admin') filtered = filtered.filter((u: any) => ADMIN_ROLES.includes(Number(u.roleID)));
       else if (activeRoleFilter === 'student') filtered = filtered.filter((u: any) => Number(u.roleID) === STUDENT_ROLE);
-      if (activeStatusFilter !== 'all') filtered = filtered.filter((u: any) => u.status === activeStatusFilter);
+      if (activeStatusFilter !== 'all') filtered = filtered.filter((u: any) => matchesUserStatusFilter(u, activeStatusFilter as any));
       if (programFilter !== 'all') filtered = filtered.filter((u: any) => String(u.programID) === programFilter);
       if (yearFilter !== 'all') filtered = filtered.filter((u: any) => String(u.yearLevel) === yearFilter);
       if (campusFilter !== 'all') filtered = filtered.filter((u: any) => String(u.campusID) === campusFilter);
@@ -102,8 +114,11 @@ export default function ProgramChairUsersScreen() {
   const handleAction = async (userID: number, action: string) => {
     try {
       await apiRequest(`/api/users/${userID}/${action}`, { method: 'PATCH' });
-      setUsers(prev => prev.map((u: any) => u.userID === userID ? { ...u, status: action === 'approve' ? 'activated' : action === 'deactivate' ? 'deactivated' : 'activated' } : u));
-      showToast(`User ${action}d`, 'success');
+      setUsers(prev => prev.map((u: any) => (u.userID === userID ? applyUserActionLocally(u, action as 'approve' | 'activate' | 'deactivate') : u)));
+      showToast(
+        action === 'approve' ? 'User approved and activated' : action === 'activate' ? 'User activated' : 'User deactivated',
+        'success'
+      );
     } catch (error) {
       showToast(`Failed to ${action} user`, 'error');
     }
@@ -117,7 +132,7 @@ export default function ProgramChairUsersScreen() {
   };
 
   const handleApproveAll = async () => {
-    const pendingUsers = users.filter((u: any) => u.status === 'pending' || u.status === 'approved');
+    const pendingUsers = users.filter((u: any) => canApproveUser(u));
     if (pendingUsers.length === 0) {
       showToast('No pending users to approve', 'info');
       return;
@@ -136,7 +151,7 @@ export default function ProgramChairUsersScreen() {
               const userIDs = pendingUsers.map((u: any) => u.userID);
               await apiRequest('/api/users/approve-multiple', { method: 'POST', body: { userIDs } });
               setUsers(prev => prev.map((u: any) =>
-                ['pending', 'approved'].includes(u.status) ? { ...u, status: 'activated' } : u
+                canApproveUser(u) ? applyUserActionLocally(u, 'approve') : u
               ));
               showToast(`${pendingUsers.length} user(s) approved`, 'success');
             } catch (error: any) {
@@ -197,10 +212,7 @@ export default function ProgramChairUsersScreen() {
               await apiRequest(`/api/users/${action}-multiple`, { method: 'POST', body: { userIDs: ids } });
               setUsers(prev => prev.map(u => {
                 if (!selectedUserIDs.has(u.userID)) return u;
-                if (action === 'approve') return { ...u, status: 'activated' };
-                if (action === 'activate') return { ...u, status: 'activated' };
-                if (action === 'deactivate') return { ...u, status: 'deactivated' };
-                return u;
+                return applyUserActionLocally(u, action);
               }));
               showToast(`${ids.length} user(s) ${action === 'approve' ? 'approved' : action + 'd'}`, 'success');
               deselectAll();
@@ -237,12 +249,16 @@ export default function ProgramChairUsersScreen() {
     purple: '#8B5CF6',
   };
 
-  const programs: { id: string; label: string }[] = [...new Map(users.filter((u: any) => u.programName).map((u: any) => [String(u.programID), u.programName])).entries()].map(([id, label]) => ({ id: String(id), label: String(label) }));
-  const years = [...new Set(users.filter((u: any) => u.yearLevel).map((u: any) => u.yearLevel))].sort((a: any, b: any) => a - b);
-  const campuses: { id: string; label: string }[] = [...new Map(users.filter((u: any) => u.campusName).map((u: any) => [String(u.campusID), u.campusName])).entries()].map(([id, label]) => ({ id: String(id), label: String(label) }));
+  const programs: { id: string; label: string }[] = [...new Map(users.map((u: any) => [String(u.programID), getUserProgramLabel(u)] as [string, string]).filter(([, label]) => Boolean(label))).entries()].map(([id, label]) => ({ id, label }));
+  const years = [...new Set(users.map((u: any) => getUserYearLevelValue(u)).filter(Boolean))].sort((a: any, b: any) => Number(a) - Number(b));
+  const campuses: { id: string; label: string }[] = [...new Map(users.map((u: any) => [String(u.campusID), getUserCampusLabel(u)] as [string, string]).filter(([, label]) => Boolean(label))).entries()].map(([id, label]) => ({ id, label }));
 
   const renderUser = useCallback(({ item }: { item: any }) => {
     const isSelected = selectedUserIDs.has(item.userID);
+    const statusLabel = getUserStatusLabel(item);
+    const statusKey = getUserStatusFilterKey(item);
+    const programLabel = getUserProgramLabel(item);
+    const yearLevelLabel = getUserYearLevelLabel(item);
     return (
       <TouchableOpacity
         activeOpacity={0.7}
@@ -278,22 +294,22 @@ export default function ProgramChairUsersScreen() {
           </View>
           <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }} numberOfLines={1}>{item.email}</Text>
           <View className="flex-row items-center gap-1.5 mt-1">
-            <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: item.status === 'activated' ? colors.green : item.status === 'pending' ? colors.blue : item.status === 'approved' ? colors.orange : colors.red }}>
-              <Text className="text-white text-[9px] font-semibold">{item.status || 'pending'}</Text>
+            <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: statusKey === 'active' ? colors.green : statusKey === 'inactive' ? colors.red : statusKey === 'pending' ? colors.blue : colors.orange }}>
+              <Text className="text-white text-[9px] font-semibold">{statusLabel}</Text>
             </View>
-            {item.programName && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>{item.programName}</Text>}
-            {item.yearLevel && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>Year {item.yearLevel}</Text>}
+            {programLabel && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>{programLabel}</Text>}
+            {yearLevelLabel && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>{yearLevelLabel}</Text>}
           </View>
         </View>
         {!selectionMode && (
           <View className="gap-1">
-            {(item.status === 'pending' || item.status === 'approved') && (
+            {canApproveUser(item) && (
               <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.green }} onPress={() => confirmAction(item, 'approve')}><Ionicons name="checkmark" size={18} color="#fff" /></TouchableOpacity>
             )}
-            {item.status === 'activated' && (
+            {isActiveUser(item) && (
               <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.red }} onPress={() => confirmAction(item, 'deactivate')}><Ionicons name="close" size={18} color="#fff" /></TouchableOpacity>
             )}
-            {item.status === 'deactivated' && (
+            {isInactiveUser(item) && (
               <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.blue }} onPress={() => confirmAction(item, 'activate')}><Ionicons name="play" size={18} color="#fff" /></TouchableOpacity>
             )}
           </View>
@@ -312,7 +328,19 @@ export default function ProgramChairUsersScreen() {
     </View>
   );
 
-  const pendingCount = users.filter((u: any) => u.status === 'pending' || u.status === 'approved').length;
+  const pendingCount = users.filter((u: any) => canApproveUser(u)).length;
+
+  useScreenFloatingTools(
+    [
+      {
+        key: 'bulk',
+        icon: 'checkbox-outline',
+        label: 'Bulk Actions',
+        onPress: () => setSelectionMode(true),
+      },
+    ],
+    !selectionMode
+  );
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.bg, paddingBottom: insets.bottom + 12 }}>
@@ -328,7 +356,7 @@ export default function ProgramChairUsersScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 justify-center items-center"><ActivityIndicator size="large" color={colors.orange} /></View>
+        <View className="flex-1 justify-center items-center"><CapsActivityIndicator size="large" color={colors.orange} /></View>
       ) : (
         <>
           <FlatList
@@ -375,9 +403,15 @@ export default function ProgramChairUsersScreen() {
                 </View>
 
                 <View className="flex-row gap-1 mb-2 flex-wrap">
-                  {['all', 'pending', 'approved', 'activated', 'deactivated'].map(f => (
-                    <TouchableOpacity key={f} className="px-2.5 py-[5px] rounded-[14px]" style={activeStatusFilter === f ? { backgroundColor: f === 'pending' ? colors.blue : f === 'approved' ? colors.orange : f === 'activated' ? colors.green : colors.red } : undefined} onPress={() => setActiveStatusFilter(f)} activeOpacity={0.7}>
-                      <Text className="text-[11px] font-semibold" style={{ color: activeStatusFilter === f ? '#fff' : colors.textSecondary }}>{f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}</Text>
+                  {[
+                    { key: 'all', label: 'All' },
+                    { key: 'pending', label: 'Pending' },
+                    { key: 'active', label: 'Active' },
+                    { key: 'inactive', label: 'Inactive' },
+                    { key: 'disapproved', label: 'Disapproved' },
+                  ].map((f) => (
+                    <TouchableOpacity key={f.key} className="px-2.5 py-[5px] rounded-[14px]" style={activeStatusFilter === f.key ? { backgroundColor: f.key === 'pending' ? colors.blue : f.key === 'active' ? colors.green : f.key === 'inactive' ? colors.red : colors.orange } : undefined} onPress={() => setActiveStatusFilter(f.key)} activeOpacity={0.7}>
+                      <Text className="text-[11px] font-semibold" style={{ color: activeStatusFilter === f.key ? '#fff' : colors.textSecondary }}>{f.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -427,7 +461,7 @@ export default function ProgramChairUsersScreen() {
                   <Text className="text-white text-xs font-semibold">Deactivate</Text>
                 </TouchableOpacity>
               </View>
-              {isBulkActing && <ActivityIndicator className="mt-2" size="small" color={colors.orange} />}
+              {isBulkActing && <CapsActivityIndicator className="mt-2" size="small" color={colors.orange} />}
             </View>
           )}
 
@@ -439,6 +473,8 @@ export default function ProgramChairUsersScreen() {
           />
         </>
       )}
+
+
     </View>
   );
 }

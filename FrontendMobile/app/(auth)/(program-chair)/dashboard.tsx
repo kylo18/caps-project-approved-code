@@ -13,7 +13,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
@@ -21,6 +22,7 @@ import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import MobileHeader from '../../../src/components/MobileHeader';
+import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 56) / 3;
@@ -120,12 +122,39 @@ export default function ProgramChairDashboard() {
     { icon: 'clipboard' as const, value: stats.activeQuizzes, label: 'Quizzes', color: '#10B981', route: '/(auth)/(program-chair)/subjects' },
   ];
 
+  useScreenFloatingTools([
+    {
+      key: 'insights',
+      icon: 'grid-outline',
+      label: 'Insights',
+      onPress: () => router.push('/(auth)/(program-chair)/insights'),
+    },
+    {
+      key: 'reports',
+      icon: 'bar-chart-outline',
+      label: 'Reports',
+      onPress: () => router.push('/(auth)/(program-chair)/reports'),
+    },
+    {
+      key: 'export',
+      icon: 'print-outline',
+      label: 'Export',
+      onPress: () => router.push('/(auth)/(program-chair)/subjects'),
+    },
+    {
+      key: 'classes',
+      icon: 'layers-outline',
+      label: 'Classes',
+      onPress: () => router.push('/(auth)/(program-chair)/classes'),
+    },
+  ]);
+
   if (isLoading) {
     return (
       <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
         <MobileHeader title="Program Chair" />
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#FE6902" />
+          <CapsActivityIndicator size="large" color="#FE6902" />
           <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             Loading dashboard...
           </Text>
@@ -250,7 +279,7 @@ export default function ProgramChairDashboard() {
         <View className="flex-row flex-wrap gap-3">
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
-            onPress={() => router.push('/(auth)/(program-chair)/subjects')}
+            onPress={() => router.push('/(auth)/(program-chair)/reports')}
             activeOpacity={0.7}
           >
             <Ionicons name="library" size={28} color="#FE6902" />
@@ -276,15 +305,15 @@ export default function ProgramChairDashboard() {
           </TouchableOpacity>
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
-            onPress={() => router.push('/(auth)/practice-exam/add-question')}
+            onPress={() => router.push('/(auth)/(program-chair)/classes')}
             activeOpacity={0.7}
           >
-            <Ionicons name="create" size={28} color="#10B981" />
+            <Ionicons name="layers" size={28} color="#10B981" />
             <Text className={`font-semibold mt-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Create Quiz
+              Manage Classes
             </Text>
             <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              Add new questions
+              Match the web class flow
             </Text>
           </TouchableOpacity>
           <TouchableOpacity

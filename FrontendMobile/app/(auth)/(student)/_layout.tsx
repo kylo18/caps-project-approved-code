@@ -4,9 +4,9 @@
 //
 // Tabs:
 //   - dashboard  → Home (student dashboard/overview)
-//   - search     → Search (search functionality)
+//   - classes    → Classes (enrolled classes & quizzes)
 //   - leaderboard→ Leaderboard (student rankings/achievements)
-//   - insights   → Insights (analytics/personal progress)
+//   - insights   → Profile (analytics/personal progress)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Tabs } from 'expo-router';
@@ -29,9 +29,9 @@ export default function StudentTabs() {
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="classes"
         options={{
-          title: 'Search',
+          title: 'Classes',
         }}
       />
       <Tabs.Screen
@@ -43,7 +43,14 @@ export default function StudentTabs() {
       <Tabs.Screen
         name="insights"
         options={{
-          title: 'Insights',
+          title: 'Profile',
+        }}
+      />
+      {/* Hidden routes (accessible via deep links / router.push) */}
+      <Tabs.Screen
+        name="search"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -54,6 +61,30 @@ export default function StudentTabs() {
       />
       <Tabs.Screen
         name="frequently-mistaken"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="practice-history"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="strong-areas"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="weak-areas"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="time-per-topic"
         options={{
           href: null,
         }}

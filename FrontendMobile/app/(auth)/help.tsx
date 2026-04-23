@@ -21,6 +21,7 @@ export default function TutorialLayout() {
     card: isDark ? '#1f2937' : '#fff',
     text: isDark ? '#f9fafb' : '#111827',
     textSecondary: isDark ? '#9ca3af' : '#6b7280',
+    border: isDark ? '#374151' : '#e5e7eb',
     orange: '#FE6902',
   };
 

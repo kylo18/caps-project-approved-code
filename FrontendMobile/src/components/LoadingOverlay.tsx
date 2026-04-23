@@ -1,5 +1,6 @@
-import { View, ActivityIndicator, Modal, Text, StyleSheet } from 'react-native';
+import { View, Modal, Text } from 'react-native';
 import { useTheme } from '../../src/contexts/ThemeContext';
+import AnimatedCapsLoader from './AnimatedCapsLoader';
 
 export default function LoadingOverlay({ visible = false, message = 'Loading...' }) {
   const { theme } = useTheme();
@@ -7,18 +8,20 @@ export default function LoadingOverlay({ visible = false, message = 'Loading...'
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: isDark ? '#1f2937' : '#fff' }]}>
-          <ActivityIndicator size="large" color="#FE6902" />
-          {message && <Text style={[styles.message, { color: isDark ? '#f9fafb' : '#111827' }]}>{message}</Text>}
+      <View className="flex-1 bg-black/50 justify-center items-center">
+        <View className={`p-6 rounded-2xl items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`} style={{ minWidth: 120 }}>
+          <AnimatedCapsLoader
+            size="md"
+            color={isDark ? '#f9fafb' : '#111827'}
+            accentColor="#FE6902"
+          />
+          {message && (
+            <Text className={`mt-3 text-sm text-center ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+              {message}
+            </Text>
+          )}
         </View>
       </View>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  container: { padding: 24, borderRadius: 16, alignItems: 'center', minWidth: 120 },
-  message: { marginTop: 12, fontSize: 14, textAlign: 'center' },
-});

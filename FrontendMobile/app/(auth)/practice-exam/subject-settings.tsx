@@ -11,7 +11,8 @@
 //         section (timer switch + duration input), save button
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, TextInput } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
@@ -31,6 +32,17 @@ export default function SubjectSettingsDean() {
   const [durationMinutes, setDurationMinutes] = useState('60');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState('');
+
+  const applyPracticeSettings = (practice: any) => {
+    const payload = practice?.data || practice || {};
+    const nextDuration = payload?.durationMinutes ?? payload?.duration_minutes ?? 60;
+    const nextTimerEnabled = payload?.enableTimer ?? payload?.isEnabled ?? Number(nextDuration) > 0;
+
+    setPracticeSettings(payload);
+    setTimerEnabled(Boolean(nextTimerEnabled));
+    setDurationMinutes(String(nextDuration || 60));
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -38,17 +50,40 @@ export default function SubjectSettingsDean() {
 
   const fetchSettings = async () => {
     setIsLoading(true);
+    setSettingsMessage('');
     try {
-      const [examStatus, practice] = await Promise.all([
+      const [examStatus, practice] = await Promise.allSettled([
         apiRequest(`/api/subjects/${subjectID}/exam-questions-status`),
         apiRequest(`/api/practice-settings/${subjectID}`),
       ]);
-      setExamEnabled(examStatus?.enabled || false);
-      setPracticeSettings(practice?.data || practice);
-      setTimerEnabled(practice?.data?.enableTimer || false);
-      setDurationMinutes(String(practice?.data?.durationMinutes || 60));
+
+      if (examStatus.status === 'fulfilled') {
+        const examPayload = examStatus.value?.data || examStatus.value || {};
+        setExamEnabled(Boolean(examPayload?.is_enabled_for_exam_questions ?? examPayload?.enabled));
+      } else {
+        console.error('Failed to load exam question status:', examStatus.reason);
+        setExamEnabled(false);
+      }
+
+      if (practice.status === 'fulfilled') {
+        applyPracticeSettings(practice.value);
+      } else {
+        const message = String(practice.reason?.message || '');
+        const isMissingSettings = message.toLowerCase().includes('practice exam setting not found');
+        applyPracticeSettings(null);
+        setSettingsMessage(
+          isMissingSettings
+            ? 'No settings available yet. Default values are shown below.'
+            : 'Unable to load saved practice settings. Default values are shown below.'
+        );
+        if (!isMissingSettings) {
+          console.error('Failed to load practice settings:', practice.reason);
+        }
+      }
     } catch (error) {
       console.error('Failed to load settings:', error);
+      applyPracticeSettings(null);
+      setSettingsMessage('Unable to load saved practice settings. Default values are shown below.');
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +130,7 @@ export default function SubjectSettingsDean() {
   };
 
   if (isLoading) {
-    return <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.bg }}><ActivityIndicator size="large" color={colors.orange} /></View>;
+    return <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.bg }}><CapsActivityIndicator size="large" color={colors.orange} /></View>;
   }
 
   return (
@@ -122,6 +157,12 @@ export default function SubjectSettingsDean() {
         <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
           <Text className="text-base font-bold mb-1" style={{ color: colors.text }}>Practice Exam Settings</Text>
 
+          {settingsMessage ? (
+            <View className="rounded-xl px-3 py-3 mt-3 mb-1" style={{ backgroundColor: `${colors.orange}12`, borderWidth: 1, borderColor: `${colors.orange}33` }}>
+              <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>{settingsMessage}</Text>
+            </View>
+          ) : null}
+
           <View className="flex-row items-center py-3 gap-3">
             <View style={{ flex: 1 }}>
               <Text className="text-[15px] font-semibold" style={{ color: colors.text }}>Enable Timer</Text>
@@ -146,7 +187,7 @@ export default function SubjectSettingsDean() {
           )}
 
           <TouchableOpacity className="bg-[#FE6902] py-3 rounded-xl items-center mt-2" style={{ opacity: isSaving ? 0.6 : 1 }} onPress={handleSavePractice} disabled={isSaving} activeOpacity={0.8}>
-            {isSaving ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-[15px] font-bold">Save Settings</Text>}
+            {isSaving ? <CapsActivityIndicator color="#fff" /> : <Text className="text-white text-[15px] font-bold">Save Settings</Text>}
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -10,7 +10,8 @@
 //         visual indicators for the correct answer, duplicate button
 // ─────────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import RenderHtml from 'react-native-render-html';
@@ -93,7 +94,7 @@ export default function DuplicateQuestionForm() {
   }), [colors.text, colors.orange]);
 
   if (isLoading) {
-    return <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.bg }}><ActivityIndicator size="large" color={colors.orange} /></View>;
+    return <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.bg }}><CapsActivityIndicator size="large" color={colors.orange} /></View>;
   }
 
   return (
@@ -127,7 +128,7 @@ export default function DuplicateQuestionForm() {
         </View>
 
         <TouchableOpacity className="flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl gap-2" style={{ opacity: isSubmitting ? 0.6 : 1 }} onPress={handleSubmit} disabled={isSubmitting} activeOpacity={0.8}>
-          {isSubmitting ? <ActivityIndicator color="#fff" /> : <><Ionicons name="copy" size={20} color="#fff" /><Text className="text-white text-base font-bold">Duplicate Question</Text></>}
+          {isSubmitting ? <CapsActivityIndicator color="#fff" /> : <><Ionicons name="copy" size={20} color="#fff" /><Text className="text-white text-base font-bold">Duplicate Question</Text></>}
         </TouchableOpacity>
       </ScrollView>
     </View>

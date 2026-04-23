@@ -5,7 +5,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, ScrollView, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, RefreshControl, Modal, ScrollView, TextInput, StyleSheet } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -217,7 +218,7 @@ export default function AdminSupportScreen() {
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.orange} />
+          <CapsActivityIndicator size="large" color={colors.orange} />
         </View>
       ) : (
         <FlatList
@@ -246,7 +247,7 @@ export default function AdminSupportScreen() {
 
             {isLoadingDetail ? (
               <View style={styles.modalLoading}>
-                <ActivityIndicator size="large" color={colors.orange} />
+                <CapsActivityIndicator size="large" color={colors.orange} />
               </View>
             ) : selectedTicket ? (
               <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
@@ -309,7 +310,7 @@ export default function AdminSupportScreen() {
                       disabled={isSendingResponse || !responseMessage.trim()}
                     >
                       {isSendingResponse ? (
-                        <ActivityIndicator color="#fff" />
+                        <CapsActivityIndicator color="#fff" />
                       ) : (
                         <>
                           <Ionicons name="send" size={18} color="#fff" />
@@ -351,7 +352,7 @@ export default function AdminSupportScreen() {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -407,7 +408,6 @@ const styles = {
     borderRadius: 12,
   },
   actionBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -469,4 +469,4 @@ const styles = {
     alignItems: 'center',
   },
   statusBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-};
+});

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/contexts/ThemeContext';
 
@@ -36,35 +36,42 @@ export default function CustomDropdown({ items, selectedValue, onSelect, placeho
 
   return (
     <>
-      {label && <Text style={[styles.label, { color: colors.text }]}>{label}</Text>}
+      {label && <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>{label}</Text>}
       <TouchableOpacity
-        style={[styles.dropdown, { backgroundColor: colors.card, borderColor: colors.border }]}
+        className="flex-row items-center justify-between px-3 py-3 rounded-xl border"
+        style={{ backgroundColor: colors.card, borderColor: colors.border }}
         onPress={() => setIsOpen(true)}
         activeOpacity={0.7}
       >
-        <Text style={[styles.selectedText, { color: selectedItem ? colors.text : colors.textSecondary }]} numberOfLines={1}>
+        <Text className="text-sm flex-1 mr-2" style={{ color: selectedItem ? colors.text : colors.textSecondary }} numberOfLines={1}>
           {displayText}
         </Text>
         <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
       </TouchableOpacity>
 
       <Modal visible={isOpen} transparent animationType="fade">
-        <TouchableOpacity style={[styles.overlay, { backgroundColor: colors.bg }]} activeOpacity={1} onPress={() => setIsOpen(false)}>
+        <TouchableOpacity
+          className="flex-1 justify-end"
+          style={{ backgroundColor: colors.bg }}
+          activeOpacity={1}
+          onPress={() => setIsOpen(false)}
+        >
           <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-            <View style={[styles.optionsCard, { backgroundColor: colors.card }]}>
-              {label && <Text style={[styles.optionsTitle, { color: colors.text }]}>{label}</Text>}
-              <ScrollView style={styles.optionsList} nestedScrollEnabled>
+            <View className="mx-5 rounded-t-3xl p-4" style={{ backgroundColor: colors.card, maxHeight: '60%' }}>
+              {label && <Text className="text-base font-bold mb-3" style={{ color: colors.text }}>{label}</Text>}
+              <ScrollView nestedScrollEnabled style={{ maxHeight: 300 }}>
                 {items.map((item) => (
                   <TouchableOpacity
                     key={item.id}
-                    style={[styles.optionItem, { borderBottomColor: colors.border }, selectedItem?.value === item.value && { backgroundColor: `${colors.orange}15` }]}
+                    className="flex-row items-center justify-between py-3 border-b gap-2"
+                    style={{ borderBottomColor: colors.border, backgroundColor: selectedItem?.value === item.value ? `${colors.orange}15` : 'transparent' }}
                     onPress={() => {
                       onSelect(item.value, item);
                       setIsOpen(false);
                     }}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.optionText, { color: colors.text }, selectedItem?.value === item.value && { color: colors.orange, fontWeight: '700' }]} numberOfLines={2}>
+                    <Text className="text-sm flex-1" style={{ color: selectedItem?.value === item.value ? colors.orange : colors.text, fontWeight: selectedItem?.value === item.value ? '700' : '400' }} numberOfLines={2}>
                       {item.label}
                     </Text>
                     {selectedItem?.value === item.value && <Ionicons name="checkmark" size={20} color={colors.orange} />}
@@ -78,15 +85,3 @@ export default function CustomDropdown({ items, selectedValue, onSelect, placeho
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 6 },
-  dropdown: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 12, padding: 12 },
-  selectedText: { fontSize: 15, flex: 1, marginRight: 8 },
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  optionsCard: { marginHorizontal: 20, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16, maxHeight: '60%' },
-  optionsTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12 },
-  optionsList: { maxHeight: 300 },
-  optionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, gap: 8 },
-  optionText: { fontSize: 15, flex: 1 },
-});

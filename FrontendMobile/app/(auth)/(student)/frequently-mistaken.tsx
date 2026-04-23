@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { apiRequest } from '../../../src/services/apiClient';
@@ -28,16 +23,20 @@ interface MistakenQuestion {
   subjectName: string;
   wrong_count: number;
   consecutive_wrong_count: number;
+  selectedChoiceID: string | null;
+  selectedAnswerIsCorrect: boolean;
   choices: Choice[];
 }
 
 export default function FrequentlyMistakenScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const [questions, setQuestions] = useState<MistakenQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const origin = (params.origin as string) || 'home';
 
   useEffect(() => {
     fetchMistaken();
@@ -71,7 +70,9 @@ export default function FrequentlyMistakenScreen() {
       >
         <View className="flex-row items-center">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() =>
+              router.replace(origin === 'profile' ? '/(auth)/(student)/insights' : '/(auth)/(student)/dashboard')
+            }
             className="mr-3 h-10 w-10 items-center justify-center rounded-full"
             style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
           >
@@ -95,7 +96,7 @@ export default function FrequentlyMistakenScreen() {
       >
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={studentColors.orange} />
+            <CapsActivityIndicator size="large" color={studentColors.orange} />
             <Text className="mt-4 text-base text-gray-400">Loading...</Text>
           </View>
         ) : error ? (
@@ -180,35 +181,63 @@ export default function FrequentlyMistakenScreen() {
                       <Text className="mb-2 text-xs font-medium text-gray-400 uppercase">
                         Choices
                       </Text>
-                      {q.choices.map((c) => (
-                        <View
-                          key={c.choiceID}
-                          className="mb-2 flex-row items-center rounded-xl p-3"
-                          style={{
-                            backgroundColor: c.isCorrect
-                              ? 'rgba(134,210,168,0.15)'
-                              : studentColors.pale,
-                            borderWidth: c.isCorrect ? 1 : 0,
-                            borderColor: c.isCorrect ? studentColors.success : 'transparent',
-                          }}
-                        >
-                          <Ionicons
-                            name={c.isCorrect ? 'checkmark-circle' : 'ellipse-outline'}
-                            size={18}
-                            color={c.isCorrect ? studentColors.success : studentColors.textSoft}
-                            style={{ marginRight: 8 }}
-                          />
-                          <Text
-                            className="flex-1 text-sm"
+                      {q.choices.map((c) => {
+                        const isSelected = String(c.choiceID) === String(q.selectedChoiceID);
+                        const isSelectedCorrect = isSelected && q.selectedAnswerIsCorrect;
+                        const isSelectedWrong = isSelected && !q.selectedAnswerIsCorrect;
+
+                        return (
+                          <View
+                            key={c.choiceID}
+                            className="mb-2 flex-row items-center rounded-xl p-3"
                             style={{
-                              color: c.isCorrect ? '#065f46' : studentColors.text,
-                              fontWeight: c.isCorrect ? '600' : '400',
+                              backgroundColor: isSelectedCorrect
+                                ? 'rgba(134,210,168,0.15)'
+                                : isSelectedWrong
+                                  ? 'rgba(239,68,68,0.12)'
+                                  : studentColors.pale,
+                              borderWidth: isSelected ? 1 : 0,
+                              borderColor: isSelectedCorrect
+                                ? studentColors.success
+                                : isSelectedWrong
+                                  ? '#EF4444'
+                                  : 'transparent',
                             }}
                           >
-                            {c.choiceText}
-                          </Text>
-                        </View>
-                      ))}
+                            <Ionicons
+                              name={
+                                isSelectedCorrect
+                                  ? 'checkmark-circle'
+                                  : isSelectedWrong
+                                    ? 'close-circle'
+                                    : 'ellipse-outline'
+                              }
+                              size={18}
+                              color={
+                                isSelectedCorrect
+                                  ? studentColors.success
+                                  : isSelectedWrong
+                                    ? '#EF4444'
+                                    : studentColors.textSoft
+                              }
+                              style={{ marginRight: 8 }}
+                            />
+                            <Text
+                              className="flex-1 text-sm"
+                              style={{
+                                color: isSelectedCorrect
+                                  ? '#065f46'
+                                  : isSelectedWrong
+                                    ? '#B91C1C'
+                                    : studentColors.text,
+                                fontWeight: isSelected ? '600' : '400',
+                              }}
+                            >
+                              {c.choiceText}
+                            </Text>
+                          </View>
+                        );
+                      })}
                       <View className="mt-3 flex-row items-center justify-between">
                         <Text className="text-xs text-gray-400">
                           Total wrong attempts: {q.wrong_count}

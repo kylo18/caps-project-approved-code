@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../src/services/apiClient';
 import { useTheme } from '../../src/contexts/ThemeContext';
@@ -36,26 +36,21 @@ export default function SubjectCardFaculty({ subject, onUnassign }) {
   };
 
   return (
-    <TouchableOpacity style={[styles.card, { backgroundColor: colors.card }]} activeOpacity={0.7}>
-      <View style={styles.subjectIcon}>
+    <TouchableOpacity
+      className="flex-row items-center rounded-2xl p-4 gap-3 mb-2.5"
+      style={{ backgroundColor: colors.card }}
+      activeOpacity={0.7}
+    >
+      <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: '#FEF3C7' }}>
         <Ionicons name="book" size={24} color={colors.orange} />
       </View>
-      <View style={styles.subjectInfo}>
-        <Text style={[styles.subjectName, { color: colors.text }]} numberOfLines={1}>{subject?.subjectName || 'Unknown Subject'}</Text>
-        <Text style={[styles.subjectMeta, { color: colors.textSecondary }]}>{subject?.subjectCode || 'GEN'}</Text>
+      <View className="flex-1">
+        <Text className="text-base font-bold" numberOfLines={1} style={{ color: colors.text }}>{subject?.subjectName || 'Unknown Subject'}</Text>
+        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>{subject?.subjectCode || 'GEN'}</Text>
       </View>
-      <TouchableOpacity style={styles.unassignBtn} onPress={handleUnassign} activeOpacity={0.7}>
+      <TouchableOpacity className="p-1.5" onPress={handleUnassign} activeOpacity={0.7}>
         <Ionicons name="remove-circle" size={20} color={colors.red} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 14, gap: 12, elevation: 2, marginBottom: 10 },
-  subjectIcon: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#FEF3C7', justifyContent: 'center', alignItems: 'center' },
-  subjectInfo: { flex: 1 },
-  subjectName: { fontSize: 16, fontWeight: '700' },
-  subjectMeta: { fontSize: 13, marginTop: 2 },
-  unassignBtn: { padding: 6 },
-});

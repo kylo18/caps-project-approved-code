@@ -6,11 +6,9 @@
 //          (add/edit/delete). Uses NativeWind for mobile-native styling.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  RefreshControl, useWindowDimensions, Modal, TextInput, Alert, ActivityIndicator
-} from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, TextInput, Alert } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +17,9 @@ import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import { Skeleton, SkeletonList } from '../../../src/components/Skeleton';
+import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
+import type { AdminToolAction } from '../../../src/components/admin/AdminFloatingTools';
+import PrintExamModal from '../../../src/components/PrintExamModal';
 
 const TABS = [
   { key: 'practice', label: 'Practice' },
@@ -45,6 +46,11 @@ export default function ProgramChairSubjectsScreen() {
   const [subjectCode, setSubjectCode] = useState('');
   const [subjectName, setSubjectName] = useState('');
   const [isSavingSubject, setIsSavingSubject] = useState(false);
+  const [programID, setProgramID] = useState('');
+  const [yearLevelID, setYearLevelID] = useState('');
+  const [programs, setPrograms] = useState<any[]>([]);
+  const [yearLevels, setYearLevels] = useState<any[]>([]);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   useEffect(() => {
     fetchSubjects();
@@ -60,7 +66,10 @@ export default function ProgramChairSubjectsScreen() {
       const data = await apiRequest('/api/subjects');
       const list = Array.isArray(data?.subjects) ? data.subjects : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
       setSubjects(list);
-      if (list.length > 0 && !selectedSubject) setSelectedSubject(list[0]);
+      if (selectedSubject) {
+        const updatedSelection = list.find((subject: any) => subject.subjectID === selectedSubject.subjectID);
+        setSelectedSubject(updatedSelection || null);
+      }
     } catch (error) {
       showToast('Unable to load subjects', 'error');
     } finally {
@@ -76,6 +85,30 @@ export default function ProgramChairSubjectsScreen() {
       setQuestions(allQuestions);
     } catch (error) {
       console.error('Error fetching questions:', error);
+    }
+  };
+
+  const fetchPrograms = async () => {
+    try {
+      const res = await apiRequest('/api/programs');
+      const list = Array.isArray(res?.programs) ? res.programs :
+        Array.isArray(res?.data) ? res.data :
+        Array.isArray(res) ? res : [];
+      setPrograms(list);
+    } catch {
+      setPrograms([]);
+    }
+  };
+
+  const fetchYearLevels = async () => {
+    try {
+      const res = await apiRequest('/api/year-levels');
+      const list = Array.isArray(res?.year_levels) ? res.year_levels :
+        Array.isArray(res?.data) ? res.data :
+        Array.isArray(res) ? res : [];
+      setYearLevels(list);
+    } catch {
+      setYearLevels([]);
     }
   };
 
@@ -135,6 +168,10 @@ export default function ProgramChairSubjectsScreen() {
     setEditingSubject(null);
     setSubjectCode('');
     setSubjectName('');
+    setProgramID('');
+    setYearLevelID('');
+    fetchPrograms();
+    fetchYearLevels();
     setShowSubjectModal(true);
   };
 
@@ -142,6 +179,10 @@ export default function ProgramChairSubjectsScreen() {
     setEditingSubject(subject);
     setSubjectCode(subject.subjectCode || '');
     setSubjectName(subject.subjectName || subject.name || '');
+    setProgramID(String(subject.programID || ''));
+    setYearLevelID(String(subject.yearLevelID || ''));
+    fetchPrograms();
+    fetchYearLevels();
     setShowSubjectModal(true);
   };
 
@@ -150,16 +191,24 @@ export default function ProgramChairSubjectsScreen() {
       showToast('Please fill in all fields', 'error');
       return;
     }
+    if (!programID) {
+      showToast('Please select a program', 'error');
+      return;
+    }
+    if (!yearLevelID) {
+      showToast('Please select a year level', 'error');
+      return;
+    }
     setIsSavingSubject(true);
     try {
       if (editingSubject) {
         await apiRequest(`/api/subjects/${editingSubject.subjectID}/update`, {
-          method: 'PUT',
+          method: 'POST',
           body: {
             subjectCode: subjectCode.trim(),
             subjectName: subjectName.trim(),
-            programID: editingSubject.programID,
-            yearLevelID: editingSubject.yearLevelID,
+            programID: Number(programID),
+            yearLevelID: Number(yearLevelID),
           },
         });
         showToast('Subject updated', 'success');
@@ -169,16 +218,17 @@ export default function ProgramChairSubjectsScreen() {
           body: {
             subjectCode: subjectCode.trim(),
             subjectName: subjectName.trim(),
-            programID: '',
-            yearLevelID: '',
+            programID: Number(programID),
+            yearLevelID: Number(yearLevelID),
           },
         });
         showToast('Subject added', 'success');
       }
       setShowSubjectModal(false);
       await fetchSubjects();
-    } catch (error) {
-      showToast('Failed to save subject', 'error');
+    } catch (error: any) {
+      const message = error?.data?.message || error?.message || 'Failed to save subject';
+      showToast(message, 'error');
     } finally {
       setIsSavingSubject(false);
     }
@@ -217,6 +267,29 @@ export default function ProgramChairSubjectsScreen() {
     setIsRefreshing(false);
   };
 
+  const fabActions = useMemo<AdminToolAction[]>(() => [
+    {
+      key: 'add-question',
+      icon: 'help-circle-outline',
+      label: 'Add Question',
+      onPress: () => {
+        if (!selectedSubject) return;
+        router.push({ pathname: '/(auth)/practice-exam/add-question', params: { subjectID: selectedSubject.subjectID } });
+      },
+      disabled: !selectedSubject,
+      backgroundColor: '#10B981',
+    },
+    {
+      key: 'print-export',
+      icon: 'print-outline',
+      label: 'Print / Export',
+      onPress: () => setShowPrintModal(true),
+      backgroundColor: '#8B5CF6',
+    },
+  ], [selectedSubject, router, setShowPrintModal]);
+
+  useScreenFloatingTools(fabActions);
+
   // Render loading skeleton
   if (isLoading) {
     return (
@@ -244,19 +317,35 @@ export default function ProgramChairSubjectsScreen() {
       <View className={`px-4 pb-3 pt-3 ${isDark ? 'bg-gray-900' : 'bg-white'} border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`} style={{ paddingTop: insets.top + 12 }}>
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/(program-chair)/dashboard' as any); }} className="p-2 -ml-2 mr-2">
+            <TouchableOpacity
+              onPress={() => {
+                if (selectedSubject) {
+                  setSelectedSubject(null);
+                  return;
+                }
+                if (router.canGoBack()) router.back();
+                else router.replace('/(auth)/(program-chair)/dashboard' as any);
+              }}
+              className="p-2 -ml-2 mr-2"
+            >
               <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#111827'} />
             </TouchableOpacity>
-            <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Program Subjects</Text>
+            <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              {selectedSubject ? (selectedSubject.subjectName || selectedSubject.name || 'Subject Questions') : 'Program Subjects'}
+            </Text>
           </View>
-          <TouchableOpacity
-            onPress={openAddSubject}
-            className="flex-row items-center bg-primary px-3 py-2 rounded-xl"
-            activeOpacity={0.7}
-          >
-            <Ionicons name="add" size={18} color="white" />
-            <Text className="text-white font-semibold ml-1">Subject</Text>
-          </TouchableOpacity>
+          <View className="flex-row items-center" style={{ gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => router.push('/(auth)/(program-chair)/classes')}
+              className={`px-3 py-2 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center">
+                <Ionicons name="layers-outline" size={18} color="#FE6902" />
+                <Text className="font-semibold ml-1 text-primary">Classes</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -266,48 +355,62 @@ export default function ProgramChairSubjectsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#FE6902" />}
       >
-        {/* Subject Tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 py-3 max-h-14">
-          {subjects.map(subject => (
-            <TouchableOpacity
-              key={subject.subjectID}
-              onPress={() => setSelectedSubject(subject)}
-              className={`
-                px-4 py-2 rounded-full mr-2 border flex-row items-center
-                ${selectedSubject?.subjectID === subject.subjectID
-                  ? 'bg-primary border-primary'
-                  : `${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`
-                }
-              `}
-              activeOpacity={0.7}
-            >
-              <Text className={`text-sm font-semibold max-w-36 ${selectedSubject?.subjectID === subject.subjectID ? 'text-white' : isDark ? 'text-white' : 'text-gray-900'}`} numberOfLines={1}>
-                {subject.subjectName}
-              </Text>
-              {selectedSubject?.subjectID === subject.subjectID && (
-                <>
-                  <TouchableOpacity
-                    onPress={() => openEditSubject(subject)}
-                    className="ml-2"
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Ionicons name="create-outline" size={14} color="#fff" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteSubject(subject)}
-                    className="ml-1"
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Ionicons name="trash-outline" size={14} color="#fff" />
-                  </TouchableOpacity>
-                </>
-              )}
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Question Tabs */}
-        {selectedSubject && (
+        {!selectedSubject ? (
+          <View className="px-4 py-4">
+            <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Subject List ({subjects.length})
+            </Text>
+            {subjects.length === 0 ? (
+              <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                <Ionicons name="book-outline" size={64} color="#FE6902" />
+                <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Subjects Yet</Text>
+                <Text className={`text-sm mt-2 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Add a subject to start organizing your question bank.
+                </Text>
+              </View>
+            ) : (
+              subjects.map((subject) => (
+                <TouchableOpacity
+                  key={subject.subjectID}
+                  onPress={() => setSelectedSubject(subject)}
+                  className={`rounded-2xl p-4 mb-3 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+                  activeOpacity={0.7}
+                >
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-1 pr-3">
+                      <Text className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        {subject.subjectName || subject.name}
+                      </Text>
+                      {!!subject.subjectCode && (
+                        <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {subject.subjectCode}
+                        </Text>
+                      )}
+                    </View>
+                    <View className="flex-row items-center" style={{ gap: 10 }}>
+                      <TouchableOpacity
+                        onPress={() => openEditSubject(subject)}
+                        className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-orange-50'}`}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="create-outline" size={18} color="#FE6902" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteSubject(subject)}
+                        className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-red-50'}`}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                      <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        ) : (
+          <>
           <View className="px-4 mb-3">
             <View className={`flex-row rounded-xl p-1 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
               {TABS.map(tab => (
@@ -324,23 +427,12 @@ export default function ProgramChairSubjectsScreen() {
               ))}
             </View>
           </View>
-        )}
 
-        {/* Questions List */}
-        {selectedSubject && (
           <View className="px-4">
             <View className="flex-row justify-between items-center mb-3">
               <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 Questions ({filteredQuestions.length})
               </Text>
-              <TouchableOpacity
-                onPress={() => router.push({ pathname: '/(auth)/practice-exam/add-question', params: { subjectID: selectedSubject.subjectID } })}
-                className="flex-row items-center bg-primary px-3 py-2 rounded-xl"
-                activeOpacity={0.7}
-              >
-                <Ionicons name="add" size={18} color="white" />
-                <Text className="text-white font-semibold ml-1">Add</Text>
-              </TouchableOpacity>
             </View>
 
             {filteredQuestions.length === 0 ? (
@@ -409,8 +501,13 @@ export default function ProgramChairSubjectsScreen() {
               ))
             )}
           </View>
+          </>
         )}
       </ScrollView>
+
+
+
+      <PrintExamModal visible={showPrintModal} onClose={() => setShowPrintModal(false)} />
 
       {/* Add/Edit Subject Modal */}
       <Modal visible={showSubjectModal} transparent animationType="fade" onRequestClose={() => setShowSubjectModal(false)}>
@@ -440,8 +537,42 @@ export default function ProgramChairSubjectsScreen() {
               onChangeText={setSubjectName}
               placeholder="e.g. Introduction to Computer Science"
               placeholderTextColor={isDark ? '#9CA3AF' : '#9CA3AF'}
-              className={`border rounded-xl px-4 py-3 mb-6 ${isDark ? 'border-gray-700 text-white bg-gray-800' : 'border-gray-200 text-gray-900 bg-white'}`}
+              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-gray-700 text-white bg-gray-800' : 'border-gray-200 text-gray-900 bg-white'}`}
             />
+
+            <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Program</Text>
+            <View className={`border rounded-xl mb-4 overflow-hidden ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, gap: 8 }}>
+                {programs.map((p: any) => (
+                  <TouchableOpacity
+                    key={p.programID || p.id}
+                    onPress={() => setProgramID(String(p.programID || p.id))}
+                    className={`px-3 py-2 rounded-lg ${String(programID) === String(p.programID || p.id) ? 'bg-primary' : isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
+                  >
+                    <Text className={`text-sm ${String(programID) === String(p.programID || p.id) ? 'text-white font-bold' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {p.programName || p.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Year Level</Text>
+            <View className={`border rounded-xl mb-6 overflow-hidden ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, gap: 8 }}>
+                {yearLevels.map((yl: any) => (
+                  <TouchableOpacity
+                    key={yl.yearLevelID || yl.id}
+                    onPress={() => setYearLevelID(String(yl.yearLevelID || yl.id))}
+                    className={`px-3 py-2 rounded-lg ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'bg-primary' : isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
+                  >
+                    <Text className={`text-sm ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'text-white font-bold' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {yl.name || yl.yearLevel}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
             <TouchableOpacity
               onPress={handleSaveSubject}
@@ -451,7 +582,7 @@ export default function ProgramChairSubjectsScreen() {
               activeOpacity={0.8}
             >
               {isSavingSubject ? (
-                <ActivityIndicator color="#fff" />
+                <CapsActivityIndicator color="#fff" />
               ) : (
                 <Text className="text-white font-bold text-base">{editingSubject ? 'Save Changes' : 'Add Subject'}</Text>
               )}

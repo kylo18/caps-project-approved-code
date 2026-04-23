@@ -1,8 +1,10 @@
 import * as SecureStore from 'expo-secure-store';
 import { showToast } from '../hooks/useToast';
+import { unregisterStoredPushToken } from '../services/pushNotificationService';
 
 export async function logoutUser(redirect?: string) {
   try {
+    await unregisterStoredPushToken();
     await SecureStore.deleteItemAsync('token');
     await SecureStore.deleteItemAsync('user');
     

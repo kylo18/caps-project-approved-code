@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -184,7 +178,7 @@ export default function StudentSearchScreen() {
                   className="items-center justify-center gap-2.5 rounded-3xl border-2 border-caps-border bg-white py-8 px-5"
                   style={studentShadow}
                 >
-                  <ActivityIndicator size="large" color={studentColors.orange} />
+                  <CapsActivityIndicator size="large" color={studentColors.orange} />
                   <Text className="text-center text-sm leading-5 text-gray-400" style={{ fontFamily: 'Rubik' }}>
                     Loading subjects...
                   </Text>
@@ -194,7 +188,7 @@ export default function StudentSearchScreen() {
                   className="items-center justify-center gap-2.5 rounded-3xl border-2 border-caps-border bg-white py-8 px-5"
                   style={studentShadow}
                 >
-                  <ActivityIndicator size="large" color={studentColors.orange} />
+                  <CapsActivityIndicator size="large" color={studentColors.orange} />
                   <Text className="text-center text-sm leading-5 text-gray-400" style={{ fontFamily: 'Rubik' }}>
                     Loading exam...
                   </Text>

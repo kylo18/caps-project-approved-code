@@ -1,69 +1,107 @@
 /**
  * Admin Analytics Service
- * Handles all admin analytics API endpoints for the CAPS mobile app
+ * Handles all admin analytics API endpoints for the CAPS mobile app.
+ * Data models are aligned with the TRUE backend return structures from
+ * Modules\Analytics\Controllers\AdminAnalyticsController.php
  */
 
 import { apiRequest } from './apiClient';
 
-// Types
+// ─────────────────────────────────────────────────────────────────────────────
+// Types matching the actual backend JSON responses
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface DashboardSummary {
-    average_score: number;
     active_students: number;
+    total_students: number;
     total_exams: number;
-    best_score: number;
-    lowest_score: number;
-    frequently_mistaken_questions_count: number;
-    average_attempts_before_passing: number;
-    weakest_topic: { name: string; error_rate: number } | null;
-    strongest_subject: string | null;
-    trend: 'up' | 'down' | 'stable';
-}
-
-export interface SubjectScore {
-    subject_id: number;
-    subject_name: string;
-    average_score: number;
-    total_exams: number;
-}
-
-export interface ProgressPoint {
-    date: string;
-    score: number;
-    exams_taken: number;
+    average_score: number;          // 0-100
+    pass_rate: number;              // Backend returns 0-1 ratio
+    improvement_percentage: number;
+    fail_rate: number;              // Backend returns 0-1 ratio
 }
 
 export interface PassFailRate {
-    pass_rate: number;
-    fail_rate: number;
-    total_passed: number;
-    total_failed: number;
+    total: number;
+    passed: number;
+    failed: number;
+    pass_rate: number;              // Backend returns 0-100 percentage
+    breakdown: {
+        excellent: number;          // 80%+
+        good: number;               // 60-79%
+        needs_improvement: number;  // 40-59%
+        poor: number;               // <40%
+    };
 }
 
 export interface ImprovementData {
+    current_month_avg: number;
+    previous_month_avg: number;
     improvement_percentage: number;
-    previous_period_avg: number;
-    current_period_avg: number;
+    trend: 'improving' | 'declining' | 'stable';
+}
+
+export interface ProgressPoint {
+    period: string;                 // e.g. "2025-10" or "2025-10-21"
+    avg_score: number;
+    student_count: number;
+    exam_count: number;
+}
+
+export interface SubjectScore {
+    subjectID: number;
+    subjectName: string;
+    avg_score: number;
+    exam_count: number;
 }
 
 export interface TopicMastery {
-    topic_id: number;
-    topic_name: string;
-    mastery_level: number; // 0-1 ratio
-    total_questions: number;
-    correct_answers: number;
+    subjectName: string;
+    topic: string;
+    avg_difficulty: number;
+    total_attempts: number;
+    avg_attempts: number;
+    mastery_level: 'easy' | 'moderate' | 'difficult';
 }
 
 export interface ContentAnalytics {
-    total_questions: number;
-    approved_questions: number;
-    pending_questions: number;
-    total_subjects: number;
-    total_topics: number;
-    total_lessons: number;
+    most_viewed_lessons: Array<{
+        lesson_id: number;
+        lesson_title: string;
+        views: number;
+    }>;
+    most_attempted_quiz_questions: Array<{
+        question_id: number;
+        question_preview: string;
+        attempts: number;
+    }>;
+    most_skipped_topics: Array<{
+        topic: string;
+        skip_count: number;
+    }>;
+    highest_error_questions: Array<{
+        question_id: number;
+        question_preview: string;
+        error_rate: number;
+    }>;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// API helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function safeNumber(value: any, fallback = 0): number {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Get dashboard summary with key metrics
+ * Get dashboard summary with key metrics.
+ * Backend returns pass_rate and fail_rate as 0-1 ratios.
  */
 export async function getDashboardSummary(): Promise<{ data: DashboardSummary }> {
     try {
@@ -72,31 +110,92 @@ export async function getDashboardSummary(): Promise<{ data: DashboardSummary }>
 
         return {
             data: {
-                average_score: Number(d.average_score ?? d.averageScore ?? 0),
-                active_students: Number(d.active_students ?? d.activeStudents ?? 0),
-                total_exams: Number(d.total_exams ?? d.totalExams ?? 0),
-                best_score: Number(d.best_score ?? d.bestScore ?? 0),
-                lowest_score: Number(d.lowest_score ?? d.lowestScore ?? 0),
-                frequently_mistaken_questions_count: Number(d.frequently_mistaken_questions_count ?? 0),
-                average_attempts_before_passing: Number(d.average_attempts_before_passing ?? 0),
-                weakest_topic: d.weakest_topic || null,
-                strongest_subject: d.strongest_subject || null,
-                trend: d.trend || 'stable',
+                active_students: safeNumber(d.active_students),
+                total_students: safeNumber(d.total_students),
+                total_exams: safeNumber(d.total_exams),
+                average_score: safeNumber(d.average_score),
+                pass_rate: safeNumber(d.pass_rate),              // 0-1 ratio
+                improvement_percentage: safeNumber(d.improvement_percentage),
+                fail_rate: safeNumber(d.fail_rate),              // 0-1 ratio
             },
         };
     } catch (error) {
         console.error('Failed to get dashboard summary:', error);
         return {
             data: {
-                average_score: 0,
                 active_students: 0,
+                total_students: 0,
                 total_exams: 0,
-                best_score: 0,
-                lowest_score: 0,
-                frequently_mistaken_questions_count: 0,
-                average_attempts_before_passing: 0,
-                weakest_topic: null,
-                strongest_subject: null,
+                average_score: 0,
+                pass_rate: 0,
+                improvement_percentage: 0,
+                fail_rate: 0,
+            },
+        };
+    }
+}
+
+/**
+ * Get pass/fail rate statistics.
+ * Backend returns: total, passed, failed, pass_rate (0-100), breakdown.
+ */
+export async function getPassFailRate(): Promise<{ data: PassFailRate }> {
+    try {
+        const response = await apiRequest('/api/admin/analytics/pass-fail-rate');
+        const d = response?.data || response || {};
+        const b = d.breakdown || {};
+
+        return {
+            data: {
+                total: safeNumber(d.total),
+                passed: safeNumber(d.passed),
+                failed: safeNumber(d.failed),
+                pass_rate: safeNumber(d.pass_rate),               // already 0-100
+                breakdown: {
+                    excellent: safeNumber(b.excellent),
+                    good: safeNumber(b.good),
+                    needs_improvement: safeNumber(b.needs_improvement),
+                    poor: safeNumber(b.poor),
+                },
+            },
+        };
+    } catch (error) {
+        console.error('Failed to get pass/fail rate:', error);
+        return {
+            data: {
+                total: 0,
+                passed: 0,
+                failed: 0,
+                pass_rate: 0,
+                breakdown: { excellent: 0, good: 0, needs_improvement: 0, poor: 0 },
+            },
+        };
+    }
+}
+
+/**
+ * Get improvement percentage comparing periods.
+ */
+export async function getImprovementPercentage(): Promise<{ data: ImprovementData }> {
+    try {
+        const response = await apiRequest('/api/admin/analytics/improvement-percentage');
+        const d = response?.data || response || {};
+
+        return {
+            data: {
+                current_month_avg: safeNumber(d.current_month_avg),
+                previous_month_avg: safeNumber(d.previous_month_avg),
+                improvement_percentage: safeNumber(d.improvement_percentage),
+                trend: d.trend || 'stable',
+            },
+        };
+    } catch (error) {
+        console.error('Failed to get improvement percentage:', error);
+        return {
+            data: {
+                current_month_avg: 0,
+                previous_month_avg: 0,
+                improvement_percentage: 0,
                 trend: 'stable',
             },
         };
@@ -104,7 +203,34 @@ export async function getDashboardSummary(): Promise<{ data: DashboardSummary }>
 }
 
 /**
- * Get average score per subject
+ * Get student progress over time.
+ * Backend returns period (string), avg_score, student_count, exam_count.
+ */
+export async function getStudentProgressOverTime(
+    period: 'week' | 'month' = 'week'
+): Promise<{ data: ProgressPoint[]; period: string }> {
+    try {
+        const response = await apiRequest(`/api/admin/analytics/student-progress?period=${period}`);
+        const items = response?.data || response || [];
+        const resPeriod = response?.period || period;
+
+        const data = (Array.isArray(items) ? items : []).map((item: any) => ({
+            period: String(item.period || ''),
+            avg_score: safeNumber(item.avg_score),
+            student_count: safeNumber(item.student_count),
+            exam_count: safeNumber(item.exam_count),
+        }));
+
+        return { data, period: resPeriod };
+    } catch (error) {
+        console.error('Failed to get student progress over time:', error);
+        return { data: [], period };
+    }
+}
+
+/**
+ * Get average score per subject.
+ * Backend returns subjectID, subjectName, avg_score, exam_count.
  */
 export async function getAverageScorePerSubject(): Promise<{ data: SubjectScore[] }> {
     try {
@@ -112,10 +238,10 @@ export async function getAverageScorePerSubject(): Promise<{ data: SubjectScore[
         const items = response?.data || response || [];
 
         const data = (Array.isArray(items) ? items : []).map((item: any) => ({
-            subject_id: item.subjectID || item.subject_id,
-            subject_name: item.subjectName || item.subject_name || 'Unknown',
-            average_score: Number(Number(item.avg_score ?? item.average_score ?? 0).toFixed(2)),
-            total_exams: Number(item.total_exams ?? item.totalExams ?? 0),
+            subjectID: Number(item.subjectID || item.subject_id || 0),
+            subjectName: String(item.subjectName || item.subject_name || 'Unknown'),
+            avg_score: safeNumber(item.avg_score),
+            exam_count: safeNumber(item.exam_count),
         }));
 
         return { data };
@@ -126,84 +252,8 @@ export async function getAverageScorePerSubject(): Promise<{ data: SubjectScore[
 }
 
 /**
- * Get student progress over time
- */
-export async function getStudentProgressOverTime(days: number = 30): Promise<{ data: ProgressPoint[] }> {
-    try {
-        const response = await apiRequest(`/api/admin/analytics/student-progress?days=${days}`);
-        const items = response?.data || response || [];
-
-        const data = (Array.isArray(items) ? items : []).map((item: any) => ({
-            date: item.date || item.created_at || '',
-            score: Number(Number(item.score ?? item.avg_score ?? 0).toFixed(2)),
-            exams_taken: Number(item.exams_taken ?? item.count ?? 0),
-        }));
-
-        return { data };
-    } catch (error) {
-        console.error('Failed to get student progress over time:', error);
-        return { data: [] };
-    }
-}
-
-/**
- * Get pass/fail rate statistics
- */
-export async function getPassFailRate(): Promise<{ data: PassFailRate }> {
-    try {
-        const response = await apiRequest('/api/admin/analytics/pass-fail-rate');
-        const d = response?.data || response || {};
-
-        return {
-            data: {
-                pass_rate: Number(d.pass_rate ?? d.passRate ?? 0),
-                fail_rate: Number(d.fail_rate ?? d.failRate ?? 0),
-                total_passed: Number(d.total_passed ?? d.totalPassed ?? 0),
-                total_failed: Number(d.total_failed ?? d.totalFailed ?? 0),
-            },
-        };
-    } catch (error) {
-        console.error('Failed to get pass/fail rate:', error);
-        return {
-            data: {
-                pass_rate: 0,
-                fail_rate: 0,
-                total_passed: 0,
-                total_failed: 0,
-            },
-        };
-    }
-}
-
-/**
- * Get improvement percentage comparing periods
- */
-export async function getImprovementPercentage(): Promise<{ data: ImprovementData }> {
-    try {
-        const response = await apiRequest('/api/admin/analytics/improvement-percentage');
-        const d = response?.data || response || {};
-
-        return {
-            data: {
-                improvement_percentage: Number(d.improvement_percentage ?? d.improvementPercentage ?? 0),
-                previous_period_avg: Number(d.previous_period_avg ?? d.previousPeriodAvg ?? 0),
-                current_period_avg: Number(d.current_period_avg ?? d.currentPeriodAvg ?? 0),
-            },
-        };
-    } catch (error) {
-        console.error('Failed to get improvement percentage:', error);
-        return {
-            data: {
-                improvement_percentage: 0,
-                previous_period_avg: 0,
-                current_period_avg: 0,
-            },
-        };
-    }
-}
-
-/**
- * Get topic mastery levels
+ * Get topic mastery levels.
+ * Backend returns subjectName, topic, avg_difficulty, total_attempts, avg_attempts, mastery_level (STRING).
  */
 export async function getTopicMasteryLevel(): Promise<{ data: TopicMastery[] }> {
     try {
@@ -211,11 +261,12 @@ export async function getTopicMasteryLevel(): Promise<{ data: TopicMastery[] }> 
         const items = response?.data || response || [];
 
         const data = (Array.isArray(items) ? items : []).map((item: any) => ({
-            topic_id: item.topicID || item.topic_id,
-            topic_name: item.topicName || item.topic_name || 'Unknown',
-            mastery_level: Number(Number(item.mastery_level ?? item.masteryLevel ?? 0).toFixed(2)),
-            total_questions: Number(item.total_questions ?? 0),
-            correct_answers: Number(item.correct_answers ?? 0),
+            subjectName: String(item.subjectName || ''),
+            topic: String(item.topic || 'Unnamed Topic'),
+            avg_difficulty: safeNumber(item.avg_difficulty),
+            total_attempts: safeNumber(item.total_attempts),
+            avg_attempts: safeNumber(item.avg_attempts),
+            mastery_level: (item.mastery_level || 'moderate') as TopicMastery['mastery_level'],
         }));
 
         return { data };
@@ -226,7 +277,8 @@ export async function getTopicMasteryLevel(): Promise<{ data: TopicMastery[] }> 
 }
 
 /**
- * Get content analytics (questions, subjects, topics, lessons counts)
+ * Get content analytics.
+ * Backend returns most_viewed_lessons, most_attempted_quiz_questions, most_skipped_topics, highest_error_questions.
  */
 export async function getContentAnalytics(): Promise<{ data: ContentAnalytics }> {
     try {
@@ -235,42 +287,70 @@ export async function getContentAnalytics(): Promise<{ data: ContentAnalytics }>
 
         return {
             data: {
-                total_questions: Number(d.total_questions ?? d.totalQuestions ?? 0),
-                approved_questions: Number(d.approved_questions ?? d.approvedQuestions ?? 0),
-                pending_questions: Number(d.pending_questions ?? d.pendingQuestions ?? 0),
-                total_subjects: Number(d.total_subjects ?? d.totalSubjects ?? 0),
-                total_topics: Number(d.total_topics ?? d.totalTopics ?? 0),
-                total_lessons: Number(d.total_lessons ?? d.totalLessons ?? 0),
+                most_viewed_lessons: Array.isArray(d.most_viewed_lessons)
+                    ? d.most_viewed_lessons.map((item: any) => ({
+                          lesson_id: Number(item.lesson_id || 0),
+                          lesson_title: String(item.lesson_title || ''),
+                          views: safeNumber(item.views),
+                      }))
+                    : [],
+                most_attempted_quiz_questions: Array.isArray(d.most_attempted_quiz_questions)
+                    ? d.most_attempted_quiz_questions.map((item: any) => ({
+                          question_id: Number(item.question_id || 0),
+                          question_preview: String(item.question_preview || ''),
+                          attempts: safeNumber(item.attempts),
+                      }))
+                    : [],
+                most_skipped_topics: Array.isArray(d.most_skipped_topics)
+                    ? d.most_skipped_topics.map((item: any) => ({
+                          topic: String(item.topic || ''),
+                          skip_count: safeNumber(item.skip_count),
+                      }))
+                    : [],
+                highest_error_questions: Array.isArray(d.highest_error_questions)
+                    ? d.highest_error_questions.map((item: any) => ({
+                          question_id: Number(item.question_id || 0),
+                          question_preview: String(item.question_preview || ''),
+                          error_rate: safeNumber(item.error_rate),
+                      }))
+                    : [],
             },
         };
     } catch (error) {
         console.error('Failed to get content analytics:', error);
         return {
             data: {
-                total_questions: 0,
-                approved_questions: 0,
-                pending_questions: 0,
-                total_subjects: 0,
-                total_topics: 0,
-                total_lessons: 0,
+                most_viewed_lessons: [],
+                most_attempted_quiz_questions: [],
+                most_skipped_topics: [],
+                highest_error_questions: [],
             },
         };
     }
 }
 
 /**
- * Fetch all analytics data in parallel (convenience function)
+ * Fetch all analytics data in parallel (convenience function).
  */
 export async function getAllAnalytics(): Promise<{
     summary: DashboardSummary;
     subjectScores: SubjectScore[];
     progress: ProgressPoint[];
+    progressPeriod: string;
     passFail: PassFailRate;
     improvement: ImprovementData;
     topicMastery: TopicMastery[];
     content: ContentAnalytics;
 }> {
-    const [summaryRes, subjectRes, progressRes, passFailRes, improvementRes, topicRes, contentRes] = await Promise.all([
+    const [
+        summaryRes,
+        subjectRes,
+        progressRes,
+        passFailRes,
+        improvementRes,
+        topicRes,
+        contentRes,
+    ] = await Promise.all([
         getDashboardSummary(),
         getAverageScorePerSubject(),
         getStudentProgressOverTime(),
@@ -284,6 +364,7 @@ export async function getAllAnalytics(): Promise<{
         summary: summaryRes.data,
         subjectScores: subjectRes.data,
         progress: progressRes.data,
+        progressPeriod: progressRes.period,
         passFail: passFailRes.data,
         improvement: improvementRes.data,
         topicMastery: topicRes.data,

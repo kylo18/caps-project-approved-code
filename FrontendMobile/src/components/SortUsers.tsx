@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/contexts/ThemeContext';
 
@@ -35,39 +35,53 @@ export default function SortUsers({ onSelect, currentValue }) {
 
   return (
     <>
-      <TouchableOpacity style={[styles.button, { borderColor: colors.border }]} onPress={() => setVisible(true)} activeOpacity={0.7}>
+      <TouchableOpacity
+        className="flex-row items-center gap-1.5 px-3 py-2 rounded-lg border"
+        style={{ borderColor: colors.border }}
+        onPress={() => setVisible(true)}
+        activeOpacity={0.7}
+      >
         <Ionicons name="swap-vertical" size={18} color={colors.textSecondary} />
-        <Text style={[styles.buttonText, { color: colors.text }]}>{currentLabel}</Text>
+        <Text className="text-sm" style={{ color: colors.text }}>{currentLabel}</Text>
       </TouchableOpacity>
 
       <Modal visible={visible} transparent animationType="fade">
-        <View style={[styles.overlay, { backgroundColor: colors.bg }]}>
-          <View style={[styles.container, { backgroundColor: colors.card }]}>
-            <View style={styles.header}>
-              <Text style={[styles.title, { color: colors.text }]}>Sort By</Text>
-              <TouchableOpacity onPress={() => setVisible(false)}><Ionicons name="close" size={24} color={colors.textSecondary} /></TouchableOpacity>
-            </View>
+        <TouchableOpacity
+          className="flex-1 justify-end"
+          style={{ backgroundColor: colors.bg }}
+          activeOpacity={1}
+          onPress={() => setVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <View className="rounded-t-3xl p-5" style={{ backgroundColor: colors.card }}>
+              <View className="flex-row justify-between items-center mb-4">
+                <Text className="text-base font-bold" style={{ color: colors.text }}>Sort By</Text>
+                <TouchableOpacity onPress={() => setVisible(false)}>
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
 
-            {sortOptions.map(option => (
-              <TouchableOpacity key={option.value} style={[styles.option, { borderBottomColor: colors.border }, currentValue === option.value && { backgroundColor: `${colors.orange}15` }]} onPress={() => handleSelect(option.value)} activeOpacity={0.7}>
-                <Text style={[styles.optionText, { color: colors.text }, currentValue === option.value && { color: colors.orange, fontWeight: '700' }]}>{option.label}</Text>
-                {currentValue === option.value && <Ionicons name="checkmark" size={20} color={colors.orange} />}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+              {sortOptions.map(option => (
+                <TouchableOpacity
+                  key={option.value}
+                  className="flex-row items-center justify-between py-3 border-b"
+                  style={{ borderBottomColor: colors.border, backgroundColor: currentValue === option.value ? `${colors.orange}15` : 'transparent' }}
+                  onPress={() => handleSelect(option.value)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    className="text-sm"
+                    style={{ color: currentValue === option.value ? colors.orange : colors.text, fontWeight: currentValue === option.value ? '700' : '400' }}
+                  >
+                    {option.label}
+                  </Text>
+                  {currentValue === option.value && <Ionicons name="checkmark" size={20} color={colors.orange} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  button: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  buttonText: { fontSize: 13, fontWeight: '600' },
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  container: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '60%' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 18, fontWeight: '700' },
-  option: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1 },
-  optionText: { fontSize: 15 },
-});

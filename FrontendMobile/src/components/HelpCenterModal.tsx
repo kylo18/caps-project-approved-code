@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import CapsActivityIndicator from './CapsActivityIndicator';
 import { showToast } from '../hooks/useToast';
 import { getFAQs, submitSupportRequest, FAQ } from '../services/helpService';
 
@@ -12,7 +13,6 @@ interface HelpCenterModalProps {
 
 export default function HelpCenterModal({ visible, onClose, userRole }: HelpCenterModalProps) {
   const isStudent = !userRole || userRole === 1;
-  const isDark = false;
 
   const [activeTab, setActiveTab] = useState(isStudent ? 'faq' : 'announcement');
   const [subject, setSubject] = useState('');
@@ -106,10 +106,10 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={[styles.overlay, { backgroundColor: colors.bg }]}>
-        <View style={[styles.container, { backgroundColor: colors.card }]}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.bg }}>
+        <View className="rounded-t-3xl p-5" style={{ backgroundColor: colors.card, maxHeight: '85%' }}>
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-xl font-bold" style={{ color: colors.text }}>{title}</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
@@ -117,85 +117,82 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
 
           {isStudent ? (
             <>
-              {/* Tabs */}
-              <View style={styles.tabRow}>
+              <View className="flex-row gap-2 mb-4">
                 <TouchableOpacity
-                  style={[styles.tab, activeTab === 'faq' && { backgroundColor: colors.orange }]}
+                  className="flex-row items-center px-4 py-2 rounded-full"
+                  style={{ backgroundColor: activeTab === 'faq' ? colors.orange : 'transparent' }}
                   onPress={() => setActiveTab('faq')}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="help-circle" size={16} color={activeTab === 'faq' ? '#fff' : colors.textSecondary} style={{ marginRight: 4 }} />
-                  <Text style={[styles.tabText, { color: activeTab === 'faq' ? '#fff' : colors.textSecondary }]}>FAQs</Text>
+                  <Ionicons name="help-circle" size={16} color={activeTab === 'faq' ? '#fff' : colors.textSecondary} />
+                  <Text className="text-xs font-semibold ml-1" style={{ color: activeTab === 'faq' ? '#fff' : colors.textSecondary }}>FAQs</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.tab, activeTab === 'support' && { backgroundColor: colors.orange }]}
+                  className="flex-row items-center px-4 py-2 rounded-full"
+                  style={{ backgroundColor: activeTab === 'support' ? colors.orange : 'transparent' }}
                   onPress={() => setActiveTab('support')}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="headset" size={16} color={activeTab === 'support' ? '#fff' : colors.textSecondary} style={{ marginRight: 4 }} />
-                  <Text style={[styles.tabText, { color: activeTab === 'support' ? '#fff' : colors.textSecondary }]}>Support</Text>
+                  <Ionicons name="headset" size={16} color={activeTab === 'support' ? '#fff' : colors.textSecondary} />
+                  <Text className="text-xs font-semibold ml-1" style={{ color: activeTab === 'support' ? '#fff' : colors.textSecondary }}>Support</Text>
                 </TouchableOpacity>
               </View>
 
               {activeTab === 'faq' ? (
-                <ScrollView style={styles.content}>
+                <ScrollView style={{ maxHeight: 400 }}>
                   {isLoadingFaqs ? (
-                    <ActivityIndicator color={colors.orange} style={{ marginTop: 20 }} />
+                    <View className="items-center justify-center py-5">
+                      <CapsActivityIndicator color={colors.orange} />
+                    </View>
                   ) : (
                     faqs.map((faq, idx) => (
                       <TouchableOpacity
                         key={faq.id ?? idx}
-                        style={[styles.faqItem, { borderBottomColor: colors.border }]}
+                        className="py-3 border-b"
+                        style={{ borderBottomColor: colors.border }}
                         onPress={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
                         activeOpacity={0.7}
                       >
-                        <View style={styles.faqHeader}>
-                          <Text style={[styles.faqQ, { color: colors.text }]}>{faq.question}</Text>
+                        <View className="flex-row justify-between items-center">
+                          <Text className="text-sm font-semibold flex-1 mr-2" style={{ color: colors.text }}>{faq.question}</Text>
                           <Ionicons name={expandedFaq === idx ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
                         </View>
-                        {expandedFaq === idx && <Text style={[styles.faqA, { color: colors.textSecondary }]}>{faq.answer}</Text>}
+                        {expandedFaq === idx && <Text className="text-sm mt-2 leading-5" style={{ color: colors.textSecondary }}>{faq.answer}</Text>}
                       </TouchableOpacity>
                     ))
                   )}
                 </ScrollView>
               ) : (
-                <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 20 }}>
-                  <Text style={[styles.formLabel, { color: colors.text }]}>Category</Text>
-                  <View style={styles.categoryRow}>
+                <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+                  <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>Category</Text>
+                  <View className="flex-row flex-wrap gap-2 mb-1">
                     {supportCategories.map((cat) => (
                       <TouchableOpacity
                         key={cat.key}
-                        style={[
-                          styles.categoryChip,
-                          category === cat.key && { backgroundColor: colors.orange, borderColor: colors.orange },
-                        ]}
+                        className="px-3 py-1.5 rounded-full border"
+                        style={{ borderColor: category === cat.key ? colors.orange : '#e5e7eb', backgroundColor: category === cat.key ? colors.orange : '#fff' }}
                         onPress={() => setCategory(cat.key)}
                         activeOpacity={0.7}
                       >
-                        <Text
-                          style={[
-                            styles.categoryChipText,
-                            { color: category === cat.key ? '#fff' : colors.textSecondary },
-                          ]}
-                        >
-                          {cat.label}
-                        </Text>
+                        <Text className="text-xs font-semibold" style={{ color: category === cat.key ? '#fff' : colors.textSecondary }}>{cat.label}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
 
-                  <Text style={[styles.formLabel, { color: colors.text }]}>Subject</Text>
+                  <Text className="text-sm font-semibold mb-1.5 mt-3" style={{ color: colors.text }}>Subject</Text>
                   <TextInput
-                    style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+                    className="text-sm px-3 py-2.5 rounded-lg border mb-3"
+                    style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }}
                     value={subject}
                     onChangeText={setSubject}
                     placeholder="Brief description of your issue"
                     placeholderTextColor={colors.textSecondary}
                   />
 
-                  <Text style={[styles.formLabel, { color: colors.text }]}>Message</Text>
+                  <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>Message</Text>
                   <TextInput
-                    style={[styles.messageInput, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+                    className="text-sm px-3 py-2.5 rounded-lg border mb-3"
+                    style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text, minHeight: 100 }}
                     value={message}
                     onChangeText={setMessage}
                     placeholder="Describe your issue in detail..."
@@ -206,30 +203,33 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
                   />
 
                   <TouchableOpacity
-                    style={[styles.submitBtn, { opacity: isSubmitting ? 0.6 : 1 }]}
+                    className="py-3.5 rounded-xl items-center mt-4"
+                    style={{ backgroundColor: '#FE6902', opacity: isSubmitting ? 0.6 : 1 }}
                     onPress={handleSubmit}
                     disabled={isSubmitting}
                     activeOpacity={0.8}
                   >
-                    {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>{submitLabel}</Text>}
+                    {isSubmitting ? <CapsActivityIndicator color="#fff" size="sm" /> : <Text className="text-white text-base font-bold">{submitLabel}</Text>}
                   </TouchableOpacity>
                 </ScrollView>
               )}
             </>
           ) : (
-            <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 20 }}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Title</Text>
+            <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+              <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>Title</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+                className="text-sm px-3 py-2.5 rounded-lg border mb-3"
+                style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }}
                 value={subject}
                 onChangeText={setSubject}
                 placeholder="Announcement title"
                 placeholderTextColor={colors.textSecondary}
               />
 
-              <Text style={[styles.formLabel, { color: colors.text }]}>Message</Text>
+              <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>Message</Text>
               <TextInput
-                style={[styles.messageInput, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+                className="text-sm px-3 py-2.5 rounded-lg border mb-3"
+                style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text, minHeight: 100 }}
                 value={message}
                 onChangeText={setMessage}
                 placeholder="Write your announcement here..."
@@ -240,12 +240,13 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
               />
 
               <TouchableOpacity
-                style={[styles.submitBtn, { opacity: isSubmitting ? 0.6 : 1 }]}
+                className="py-3.5 rounded-xl items-center mt-4"
+                style={{ backgroundColor: '#FE6902', opacity: isSubmitting ? 0.6 : 1 }}
                 onPress={handleSubmit}
                 disabled={isSubmitting}
                 activeOpacity={0.8}
               >
-                {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>{submitLabel}</Text>}
+                {isSubmitting ? <CapsActivityIndicator color="#fff" size="sm" /> : <Text className="text-white text-base font-bold">{submitLabel}</Text>}
               </TouchableOpacity>
             </ScrollView>
           )}
@@ -254,26 +255,3 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  container: { maxHeight: '85%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: '700' },
-  tabRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  tab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  tabText: { fontSize: 13, fontWeight: '600' },
-  content: { maxHeight: 400 },
-  faqItem: { paddingVertical: 12, borderBottomWidth: 1 },
-  faqHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  faqQ: { fontSize: 15, fontWeight: '600', flex: 1, marginRight: 8 },
-  faqA: { fontSize: 14, marginTop: 8, lineHeight: 20 },
-  formLabel: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 12 },
-  input: { borderWidth: 1, borderRadius: 10, padding: 10, fontSize: 15 },
-  messageInput: { borderWidth: 1, borderRadius: 10, padding: 10, fontSize: 15, minHeight: 100 },
-  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
-  categoryChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#fff' },
-  categoryChipText: { fontSize: 13, fontWeight: '600' },
-  submitBtn: { backgroundColor: '#FE6902', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 16 },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-});

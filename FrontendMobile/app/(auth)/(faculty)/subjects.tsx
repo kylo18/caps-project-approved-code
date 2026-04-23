@@ -8,11 +8,9 @@
 // Uses NativeWind for mobile-native styling.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  RefreshControl, useWindowDimensions, Modal, Alert, ActivityIndicator
-} from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, Alert } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +19,8 @@ import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import { Skeleton, SkeletonList } from '../../../src/components/Skeleton';
+import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
+import type { AdminToolAction } from '../../../src/components/admin/AdminFloatingTools';
 
 export default function FacultySubjectsScreen() {
   const router = useRouter();
@@ -53,7 +53,10 @@ export default function FacultySubjectsScreen() {
       const data = await apiRequest('/api/faculty/my-subjects');
       const list = Array.isArray(data?.data) ? data.data : Array.isArray(data?.subjects) ? data.subjects : Array.isArray(data) ? data : [];
       setSubjects(list);
-      if (list.length > 0 && !selectedSubject) setSelectedSubject(list[0]);
+      if (selectedSubject) {
+        const updatedSelection = list.find((subject: any) => subject.subjectID === selectedSubject.subjectID);
+        setSelectedSubject(updatedSelection || null);
+      }
     } catch (error) {
       console.error('Error fetching subjects:', error);
       showToast('Unable to load subjects', 'error');
@@ -161,6 +164,30 @@ export default function FacultySubjectsScreen() {
     setShowAssignModal(true);
   };
 
+  const fabActions = useMemo<AdminToolAction[]>(() => [
+    {
+      key: 'assign-subject',
+      icon: 'bookmark-outline',
+      label: 'Assign Subject',
+      onPress: openAssignModal,
+      disabled: !!selectedSubject,
+      backgroundColor: '#3B82F6',
+    },
+    {
+      key: 'add-question',
+      icon: 'help-circle-outline',
+      label: 'Add Question',
+      onPress: () => {
+        if (!selectedSubject) return;
+        router.push({ pathname: '/(auth)/practice-exam/add-question', params: { subjectID: selectedSubject.subjectID } });
+      },
+      disabled: !selectedSubject,
+      backgroundColor: '#10B981',
+    },
+  ], [selectedSubject, router, openAssignModal]);
+
+  useScreenFloatingTools(fabActions);
+
   // Render loading skeleton
   if (isLoading) {
     return (
@@ -188,19 +215,35 @@ export default function FacultySubjectsScreen() {
       <View className={`px-4 pb-3 pt-3 ${isDark ? 'bg-gray-900' : 'bg-white'} border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`} style={{ paddingTop: insets.top + 12 }}>
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/(faculty)/dashboard' as any); }} className="p-2 -ml-2 mr-2">
+            <TouchableOpacity
+              onPress={() => {
+                if (selectedSubject) {
+                  setSelectedSubject(null);
+                  return;
+                }
+                if (router.canGoBack()) router.back();
+                else router.replace('/(auth)/(faculty)/dashboard' as any);
+              }}
+              className="p-2 -ml-2 mr-2"
+            >
               <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#111827'} />
             </TouchableOpacity>
-            <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>My Subjects</Text>
+            <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              {selectedSubject ? (selectedSubject.subjectName || selectedSubject.name || 'Subject Questions') : 'My Subjects'}
+            </Text>
           </View>
-          <TouchableOpacity
-            onPress={openAssignModal}
-            className="flex-row items-center bg-primary px-3 py-2 rounded-xl"
-            activeOpacity={0.7}
-          >
-            <Ionicons name="add" size={18} color="white" />
-            <Text className="text-white font-semibold ml-1">Assign</Text>
-          </TouchableOpacity>
+          <View className="flex-row items-center" style={{ gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => router.push('/(auth)/(faculty)/classes')}
+              className={`px-3 py-2 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center">
+                <Ionicons name="layers-outline" size={18} color="#FE6902" />
+                <Text className="font-semibold ml-1 text-primary">Classes</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -210,50 +253,59 @@ export default function FacultySubjectsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#FE6902" />}
       >
-        {/* Subject Tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 py-3 max-h-14">
-          {subjects.map(subject => (
-            <TouchableOpacity
-              key={subject.subjectID}
-              onPress={() => setSelectedSubject(subject)}
-              className={`
-                px-4 py-2 rounded-full mr-2 border flex-row items-center
-                ${selectedSubject?.subjectID === subject.subjectID
-                  ? 'bg-primary border-primary'
-                  : `${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`
-                }
-              `}
-              activeOpacity={0.7}
-            >
-              <Text className={`text-sm font-semibold max-w-36 ${selectedSubject?.subjectID === subject.subjectID ? 'text-white' : isDark ? 'text-white' : 'text-gray-900'}`} numberOfLines={1}>
-                {subject.subjectName}
-              </Text>
-              <TouchableOpacity
-                onPress={() => handleRemoveSubject(subject)}
-                className="ml-2"
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name="close-circle" size={16} color={selectedSubject?.subjectID === subject.subjectID ? '#fff' : '#EF4444'} />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Questions List */}
-        {selectedSubject && (
+        {!selectedSubject ? (
+          <View className="px-4 py-4">
+            <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Subject List ({subjects.length})
+            </Text>
+            {subjects.length === 0 ? (
+              <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                <Ionicons name="book-outline" size={64} color="#FE6902" />
+                <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Assigned Subjects</Text>
+                <Text className={`text-sm mt-2 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Assign a subject to start managing questions.
+                </Text>
+              </View>
+            ) : (
+              subjects.map((subject) => (
+                <TouchableOpacity
+                  key={subject.subjectID}
+                  onPress={() => setSelectedSubject(subject)}
+                  className={`rounded-2xl p-4 mb-3 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+                  activeOpacity={0.7}
+                >
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-1 pr-3">
+                      <Text className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        {subject.subjectName || subject.name}
+                      </Text>
+                      {!!subject.subjectCode && (
+                        <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {subject.subjectCode}
+                        </Text>
+                      )}
+                    </View>
+                    <View className="flex-row items-center" style={{ gap: 10 }}>
+                      <TouchableOpacity
+                        onPress={() => handleRemoveSubject(subject)}
+                        className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-red-50'}`}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                      <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        ) : (
           <View className="px-4">
             <View className="flex-row justify-between items-center mb-3">
               <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 Questions ({questions.length})
               </Text>
-              <TouchableOpacity
-                onPress={() => router.push({ pathname: '/(auth)/practice-exam/add-question', params: { subjectID: selectedSubject.subjectID } })}
-                className="flex-row items-center bg-primary px-3 py-2 rounded-xl"
-                activeOpacity={0.7}
-              >
-                <Ionicons name="add" size={18} color="white" />
-                <Text className="text-white font-semibold ml-1">Add</Text>
-              </TouchableOpacity>
             </View>
 
             {questions.length === 0 ? (
@@ -316,6 +368,8 @@ export default function FacultySubjectsScreen() {
         )}
       </ScrollView>
 
+
+
       {/* Assign Subject Modal */}
       <Modal visible={showAssignModal} transparent animationType="fade" onRequestClose={() => setShowAssignModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -358,7 +412,7 @@ export default function FacultySubjectsScreen() {
                       )}
                     </View>
                     {isAssigning ? (
-                      <ActivityIndicator color="#FE6902" />
+                      <CapsActivityIndicator color="#FE6902" />
                     ) : (
                       <Ionicons name="add-circle" size={24} color="#FE6902" />
                     )}

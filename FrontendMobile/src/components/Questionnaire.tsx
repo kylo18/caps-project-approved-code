@@ -1,4 +1,4 @@
-import { TouchableOpacity, StyleSheet } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/contexts/ThemeContext';
 
@@ -12,12 +12,13 @@ export default function Questionnaire({ onPress }) {
   };
 
   return (
-    <TouchableOpacity style={[styles.container, { backgroundColor: colors.bg }]} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      className="w-10 h-10 rounded-full items-center justify-center"
+      style={{ backgroundColor: colors.bg }}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <Ionicons name="help-circle" size={22} color={colors.icon} />
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-});

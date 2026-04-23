@@ -15,11 +15,9 @@
 // Uses NativeWind for mobile-native styling.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useCallback } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Modal, TextInput, useWindowDimensions, Switch
-} from 'react-native';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, useWindowDimensions, Switch, Alert } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +27,9 @@ import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import ConfirmModal from '../../../src/components/ConfirmModal';
 import CustomDropdown from '../../../src/components/CustomDropdown';
+import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
+import type { AdminToolAction } from '../../../src/components/admin/AdminFloatingTools';
+import PrintExamModal from '../../../src/components/PrintExamModal';
 
 type SubjectItem = {
   subjectID: number;
@@ -104,12 +105,24 @@ export default function AdminSubjectsScreen() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<QuestionItem | null>(null);
+  const [showSubjectModal, setShowSubjectModal] = useState(false);
+  const [editingSubject, setEditingSubject] = useState<SubjectItem | null>(null);
+  const [subjectCode, setSubjectCode] = useState('');
+  const [subjectName, setSubjectName] = useState('');
+  const [isSavingSubject, setIsSavingSubject] = useState(false);
+  const [programID, setProgramID] = useState('');
+  const [yearLevelID, setYearLevelID] = useState('');
+  const [programs, setPrograms] = useState<any[]>([]);
+  const [yearLevels, setYearLevels] = useState<any[]>([]);
 
   // Subject settings modal state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settingsTargetSubjectIDs, setSettingsTargetSubjectIDs] = useState<number[]>([]);
   const [isExamEnabled, setIsExamEnabled] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState('');
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [practiceSettings, setPracticeSettings] = useState({
     isEnabled: false,
     enableTimer: false,
@@ -121,6 +134,22 @@ export default function AdminSubjectsScreen() {
     total_items: 100,
   });
   const [difficultyMode, setDifficultyMode] = useState<'default' | 'custom'>('default');
+
+  const resetSettingsForm = () => {
+    setIsExamEnabled(false);
+    setSettingsMessage('');
+    setPracticeSettings({
+      isEnabled: false,
+      enableTimer: false,
+      duration_minutes: 30,
+      coverage: 'midterm',
+      easy_percentage: 30,
+      moderate_percentage: 50,
+      hard_percentage: 20,
+      total_items: 100,
+    });
+    setDifficultyMode('default');
+  };
 
   // Fetch subjects on mount
   useEffect(() => {
@@ -148,11 +177,8 @@ export default function AdminSubjectsScreen() {
 
       if (selectedSubject) {
         const updatedSelection = normalizedSubjects.find((subject: SubjectItem) => subject.subjectID === selectedSubject.subjectID);
-        setSelectedSubject(updatedSelection || normalizedSubjects[0]);
-        return;
+        setSelectedSubject(updatedSelection || null);
       }
-
-      setSelectedSubject(normalizedSubjects[0]);
     } catch (error) {
       showToast('Unable to load subjects', 'error');
     } finally {
@@ -173,18 +199,144 @@ export default function AdminSubjectsScreen() {
     }
   };
 
-  const fetchSubjectSettings = async () => {
-    if (!selectedSubject) return;
-    setSettingsLoading(true);
+  const fetchPrograms = async () => {
     try {
-      const [qeRes, practiceRes] = await Promise.all([
-        apiRequest(`/api/subjects/${selectedSubject.subjectID}/exam-questions-status`),
-        apiRequest(`/api/practice-settings/${selectedSubject.subjectID}`),
-      ]);
-      const qeData = qeRes?.data || {};
-      setIsExamEnabled(!!qeData.is_enabled_for_exam_questions);
+      const res = await apiRequest('/api/programs');
+      const list = Array.isArray(res?.programs) ? res.programs :
+        Array.isArray(res?.data) ? res.data :
+        Array.isArray(res) ? res : [];
+      setPrograms(list);
+    } catch {
+      setPrograms([]);
+    }
+  };
 
-      const ps = practiceRes?.data || practiceRes || {};
+  const fetchYearLevels = async () => {
+    try {
+      const res = await apiRequest('/api/year-levels');
+      const list = Array.isArray(res?.year_levels) ? res.year_levels :
+        Array.isArray(res?.data) ? res.data :
+        Array.isArray(res) ? res : [];
+      setYearLevels(list);
+    } catch {
+      setYearLevels([]);
+    }
+  };
+
+  const openAddSubject = () => {
+    setEditingSubject(null);
+    setSubjectCode('');
+    setSubjectName('');
+    setProgramID('');
+    setYearLevelID('');
+    fetchPrograms();
+    fetchYearLevels();
+    setShowSubjectModal(true);
+  };
+
+  const openEditSubject = (subject: SubjectItem) => {
+    setEditingSubject(subject);
+    setSubjectCode((subject as any).subjectCode || '');
+    setSubjectName(subject.subjectName || '');
+    setProgramID(String((subject as any).programID || ''));
+    setYearLevelID(String((subject as any).yearLevelID || ''));
+    fetchPrograms();
+    fetchYearLevels();
+    setShowSubjectModal(true);
+  };
+
+  const handleSaveSubject = async () => {
+    if (!subjectCode.trim() || !subjectName.trim()) {
+      showToast('Please fill in all fields', 'error');
+      return;
+    }
+    if (!programID) {
+      showToast('Please select a program', 'error');
+      return;
+    }
+    if (!yearLevelID) {
+      showToast('Please select a year level', 'error');
+      return;
+    }
+    setIsSavingSubject(true);
+    try {
+      if (editingSubject) {
+        await apiRequest(`/api/subjects/${editingSubject.subjectID}/update`, {
+          method: 'POST',
+          body: {
+            subjectCode: subjectCode.trim(),
+            subjectName: subjectName.trim(),
+            programID: Number(programID),
+            yearLevelID: Number(yearLevelID),
+          },
+        });
+        showToast('Subject updated', 'success');
+      } else {
+        await apiRequest('/api/add-subjects', {
+          method: 'POST',
+          body: {
+            subjectCode: subjectCode.trim(),
+            subjectName: subjectName.trim(),
+            programID: Number(programID),
+            yearLevelID: Number(yearLevelID),
+          },
+        });
+        showToast('Subject added', 'success');
+      }
+      setShowSubjectModal(false);
+      await fetchSubjects();
+    } catch (error: any) {
+      const message = error?.data?.message || error?.message || 'Failed to save subject';
+      showToast(message, 'error');
+    } finally {
+      setIsSavingSubject(false);
+    }
+  };
+
+  const handleDeleteSubject = (subject: SubjectItem) => {
+    const subjectLabel = subject.subjectName || 'this subject';
+    Alert.alert('Delete Subject', `Are you sure you want to delete "${subjectLabel}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await apiRequest(`/api/subjects/${subject.subjectID}/delete`, { method: 'DELETE' });
+            if (selectedSubject?.subjectID === subject.subjectID) {
+              setSelectedSubject(null);
+              setQuestions([]);
+            }
+            await fetchSubjects();
+            showToast('Subject deleted', 'success');
+          } catch (error) {
+            showToast('Failed to delete subject', 'error');
+          }
+        },
+      },
+    ]);
+  };
+
+  const fetchSubjectSettings = async (subjectId: number) => {
+    setSettingsLoading(true);
+    setSettingsMessage('');
+    try {
+      const [qeRes, practiceRes] = await Promise.allSettled([
+        apiRequest(`/api/subjects/${subjectId}/exam-questions-status`),
+        apiRequest(`/api/practice-settings/${subjectId}`),
+      ]);
+      if (qeRes.status === 'fulfilled') {
+        const qeData = qeRes.value?.data || qeRes.value || {};
+        setIsExamEnabled(!!qeData.is_enabled_for_exam_questions);
+      } else {
+        setIsExamEnabled(false);
+        console.error('Error fetching exam question status:', qeRes.reason);
+      }
+
+      const ps =
+        practiceRes.status === 'fulfilled'
+          ? practiceRes.value?.data || practiceRes.value || {}
+          : {};
       const nextSettings = {
         isEnabled: Boolean(ps.isEnabled ?? false),
         enableTimer: (ps.duration_minutes ?? 0) > 0,
@@ -198,23 +350,60 @@ export default function AdminSubjectsScreen() {
       setPracticeSettings(nextSettings);
       const isDefault = nextSettings.easy_percentage === 30 && nextSettings.moderate_percentage === 50 && nextSettings.hard_percentage === 20;
       setDifficultyMode(isDefault ? 'default' : 'custom');
+      if (practiceRes.status === 'rejected') {
+        const message = String(practiceRes.reason?.message || '').toLowerCase();
+        if (message.includes('practice exam setting not found')) {
+          setSettingsMessage('No settings available yet. Default values are shown below.');
+        } else {
+          setSettingsMessage('Unable to load saved settings. Default values are shown below.');
+          console.error('Error fetching practice settings:', practiceRes.reason);
+        }
+      }
     } catch (error) {
       console.error('Error fetching subject settings:', error);
+      resetSettingsForm();
+      setSettingsMessage('Unable to load saved settings. Default values are shown below.');
     } finally {
       setSettingsLoading(false);
     }
   };
 
+  const openSettingsModal = async (subjectIds: number[] = selectedSubject ? [selectedSubject.subjectID] : []) => {
+    setSettingsTargetSubjectIDs(subjectIds);
+    setShowSettingsModal(true);
+
+    if (subjectIds.length === 1) {
+      await fetchSubjectSettings(subjectIds[0]);
+      return;
+    }
+
+    resetSettingsForm();
+  };
+
+  const toggleSettingsTargetSubject = async (subjectId: number) => {
+    let nextSelection: number[] = [];
+
+    setSettingsTargetSubjectIDs((prev) => {
+      nextSelection = prev.includes(subjectId)
+        ? prev.filter((id) => id !== subjectId)
+        : [...prev, subjectId];
+      return nextSelection;
+    });
+
+    if (nextSelection.length === 1) {
+      await fetchSubjectSettings(nextSelection[0]);
+    } else if (nextSelection.length === 0) {
+      resetSettingsForm();
+    }
+  };
+
   const saveSubjectSettings = async () => {
-    if (!selectedSubject) return;
+    if (settingsTargetSubjectIDs.length === 0) {
+      showToast('Select at least one subject for the settings.', 'error');
+      return;
+    }
     setSettingsSaving(true);
     try {
-      // Update exam questions enable/disable if changed
-      const endpoint = isExamEnabled
-        ? `/api/subjects/${selectedSubject.subjectID}/enable-exam-questions`
-        : `/api/subjects/${selectedSubject.subjectID}/disable-exam-questions`;
-      await apiRequest(endpoint, { method: 'PATCH' });
-
       const total = practiceSettings.easy_percentage + practiceSettings.moderate_percentage + practiceSettings.hard_percentage;
       if (practiceSettings.isEnabled && total !== 100) {
         showToast('Difficulty percentages must total 100%', 'error');
@@ -222,19 +411,39 @@ export default function AdminSubjectsScreen() {
         return;
       }
 
-      await apiRequest('/api/practice-settings', {
-        method: 'POST',
-        body: {
-          subjectID: selectedSubject.subjectID,
-          ...practiceSettings,
-          duration_minutes: practiceSettings.enableTimer ? practiceSettings.duration_minutes : 0,
-        },
-      });
+      await Promise.all(
+        settingsTargetSubjectIDs.map(async (subjectId) => {
+          const endpoint = isExamEnabled
+            ? `/api/subjects/${subjectId}/enable-exam-questions`
+            : `/api/subjects/${subjectId}/disable-exam-questions`;
+          await apiRequest(endpoint, { method: 'PATCH' });
+
+          await apiRequest('/api/practice-settings', {
+            method: 'POST',
+            body: {
+              subjectID: subjectId,
+              ...practiceSettings,
+              duration_minutes: practiceSettings.enableTimer ? practiceSettings.duration_minutes : 0,
+            },
+          });
+        })
+      );
 
       // Update local subject state to reflect exam enabled status
-      setSubjects(prev => prev.map(s => s.subjectID === selectedSubject.subjectID ? { ...s, is_enabled_for_exam_questions: isExamEnabled } : s));
+      setSubjects((prev) =>
+        prev.map((s) =>
+          settingsTargetSubjectIDs.includes(s.subjectID)
+            ? { ...s, is_enabled_for_exam_questions: isExamEnabled }
+            : s
+        )
+      );
 
-      showToast('Subject settings saved', 'success');
+      showToast(
+        settingsTargetSubjectIDs.length === 1
+          ? 'Subject settings saved'
+          : `Settings saved to ${settingsTargetSubjectIDs.length} subjects`,
+        'success'
+      );
       setShowSettingsModal(false);
     } catch (error) {
       showToast('Failed to save settings', 'error');
@@ -319,6 +528,40 @@ export default function AdminSubjectsScreen() {
     }
   };
 
+  const fabActions = useMemo<AdminToolAction[]>(() => [
+    {
+      key: 'add-subject',
+      icon: 'book-outline',
+      label: 'Add Subject',
+      onPress: openAddSubject,
+      disabled: !!selectedSubject,
+      backgroundColor: '#FE6902',
+    },
+    {
+      key: 'add-question',
+      icon: 'help-circle-outline',
+      label: 'Add Question',
+      onPress: () => {
+        if (!selectedSubject) return;
+        router.push({
+          pathname: '/(auth)/practice-exam/add-question',
+          params: { subjectID: selectedSubject.subjectID }
+        });
+      },
+      disabled: !selectedSubject,
+      backgroundColor: '#10B981',
+    },
+    {
+      key: 'print-export',
+      icon: 'print-outline',
+      label: 'Print / Export',
+      onPress: () => setShowPrintModal(true),
+      backgroundColor: '#8B5CF6',
+    },
+  ], [selectedSubject, router, openAddSubject, setShowPrintModal]);
+
+  useScreenFloatingTools(fabActions);
+
   // Render loading skeleton
   if (isLoading) {
     return (
@@ -327,7 +570,7 @@ export default function AdminSubjectsScreen() {
           <View className="h-8 w-40 bg-gray-300 rounded-lg" />
         </View>
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#FE6902" />
+          <CapsActivityIndicator size="large" color="#FE6902" />
           <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             Loading questions...
           </Text>
@@ -346,35 +589,30 @@ export default function AdminSubjectsScreen() {
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
             <TouchableOpacity
-              onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/(dean)/dashboard' as any); }}
+              onPress={() => {
+                if (selectedSubject) {
+                  setSelectedSubject(null);
+                  setSearchQuery('');
+                  return;
+                }
+                if (router.canGoBack()) router.back();
+                else router.replace('/(auth)/(dean)/dashboard' as any);
+              }}
               className="p-2 -ml-2 mr-2"
             >
               <Ionicons name="arrow-back" size={24} className={isDark ? 'text-white' : 'text-gray-900'} />
             </TouchableOpacity>
             <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Question Bank
+              {selectedSubject?.subjectName || 'Subjects'}
             </Text>
           </View>
           <View className="flex-row items-center gap-2">
             <TouchableOpacity
-              onPress={() => {
-                fetchSubjectSettings();
-                setShowSettingsModal(true);
-              }}
-              className="flex-row items-center bg-gray-200 dark:bg-gray-700 px-3 py-2 rounded-xl"
+              onPress={() => openSettingsModal()}
+              className={`flex-row items-center px-3 py-2 rounded-xl ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}
             >
               <Ionicons name="settings-outline" size={18} color={isDark ? '#fff' : '#374151'} />
               <Text className={`font-semibold ml-1 ${isDark ? 'text-white' : 'text-gray-700'}`}>Settings</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push({
-                pathname: '/(auth)/practice-exam/add-question',
-                params: { subjectID: selectedSubject?.subjectID }
-              })}
-              className="flex-row items-center bg-primary px-3 py-2 rounded-xl"
-            >
-              <Ionicons name="add" size={18} color="white" />
-              <Text className="text-white font-semibold ml-1">Add</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -392,41 +630,67 @@ export default function AdminSubjectsScreen() {
           />
         }
       >
-        {/* Subject Tabs */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="px-4 py-3 max-h-14"
-        >
-          {subjects.map(subject => (
-            <TouchableOpacity
-              key={subject.subjectID}
-              onPress={() => setSelectedSubject(subject)}
-              className={`
-                px-4 py-2 rounded-full mr-2 border flex-row items-center
-                ${selectedSubject?.subjectID === subject.subjectID
-                  ? 'bg-primary border-primary'
-                  : `${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`
-                }
-              `}
-            >
-              <Text
-                className={`text-sm font-semibold max-w-36 ${selectedSubject?.subjectID === subject.subjectID
-                  ? 'text-white'
-                  : isDark ? 'text-white' : 'text-gray-900'
-                  }`}
-                numberOfLines={1}
-              >
-                {subject.subjectName}
-              </Text>
-              {!!subject.is_enabled_for_exam_questions && (
-                <View className="ml-2 w-2 h-2 rounded-full bg-green-400" />
-              )}
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Search Bar */}
+        {!selectedSubject ? (
+          <View className="px-4 py-4">
+            <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Subject List ({subjects.length})
+            </Text>
+            {subjects.length === 0 ? (
+              <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                <Ionicons name="book-outline" size={64} color="#FE6902" />
+                <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Subjects Yet</Text>
+                <Text className={`text-sm mt-2 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Add a subject to start reviewing its questions.
+                </Text>
+              </View>
+            ) : (
+              subjects.map((subject) => (
+                <TouchableOpacity
+                  key={subject.subjectID}
+                  onPress={() => setSelectedSubject(subject)}
+                  className={`rounded-2xl p-4 mb-3 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+                  activeOpacity={0.7}
+                >
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-1 pr-3">
+                      <View className="flex-row items-center">
+                        <Text className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {subject.subjectName}
+                        </Text>
+                        {!!subject.is_enabled_for_exam_questions && (
+                          <View className="ml-2 w-2 h-2 rounded-full bg-green-400" />
+                        )}
+                      </View>
+                      {!!(subject as any).subjectCode && (
+                        <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {(subject as any).subjectCode}
+                        </Text>
+                      )}
+                    </View>
+                    <View className="flex-row items-center" style={{ gap: 10 }}>
+                      <TouchableOpacity
+                        onPress={() => openEditSubject(subject)}
+                        className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-orange-50'}`}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="create-outline" size={18} color="#FE6902" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteSubject(subject)}
+                        className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-red-50'}`}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                      <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        ) : (
+          <>
         <View className="px-4 mb-3">
           <View className={`
             flex-row items-center px-3 py-2 rounded-xl
@@ -448,8 +712,6 @@ export default function AdminSubjectsScreen() {
           </View>
         </View>
 
-        {/* Questions List */}
-        {selectedSubject && (
           <View className="px-4">
             <View className="flex-row justify-between items-center mb-3">
               <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -583,8 +845,94 @@ export default function AdminSubjectsScreen() {
               ))
             )}
           </View>
+          </>
         )}
       </ScrollView>
+
+
+
+      <PrintExamModal visible={showPrintModal} onClose={() => setShowPrintModal(false)} />
+
+      <Modal visible={showSubjectModal} transparent animationType="fade" onRequestClose={() => setShowSubjectModal(false)}>
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                {editingSubject ? 'Edit Subject' : 'Add Subject'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowSubjectModal(false)}>
+                <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+              </TouchableOpacity>
+            </View>
+
+            <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Subject Code</Text>
+            <TextInput
+              value={subjectCode}
+              onChangeText={setSubjectCode}
+              placeholder="e.g. CS101"
+              placeholderTextColor={isDark ? '#9CA3AF' : '#9CA3AF'}
+              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-gray-700 text-white bg-gray-800' : 'border-gray-200 text-gray-900 bg-white'}`}
+            />
+
+            <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Subject Name</Text>
+            <TextInput
+              value={subjectName}
+              onChangeText={setSubjectName}
+              placeholder="e.g. Introduction to Computer Science"
+              placeholderTextColor={isDark ? '#9CA3AF' : '#9CA3AF'}
+              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-gray-700 text-white bg-gray-800' : 'border-gray-200 text-gray-900 bg-white'}`}
+            />
+
+            <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Program</Text>
+            <View className={`border rounded-xl mb-4 overflow-hidden ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, gap: 8 }}>
+                {programs.map((p: any) => (
+                  <TouchableOpacity
+                    key={p.programID || p.id}
+                    onPress={() => setProgramID(String(p.programID || p.id))}
+                    className={`px-3 py-2 rounded-lg ${String(programID) === String(p.programID || p.id) ? 'bg-primary' : isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
+                  >
+                    <Text className={`text-sm ${String(programID) === String(p.programID || p.id) ? 'text-white font-bold' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {p.programName || p.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Year Level</Text>
+            <View className={`border rounded-xl mb-6 overflow-hidden ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, gap: 8 }}>
+                {yearLevels.map((yl: any) => (
+                  <TouchableOpacity
+                    key={yl.yearLevelID || yl.id}
+                    onPress={() => setYearLevelID(String(yl.yearLevelID || yl.id))}
+                    className={`px-3 py-2 rounded-lg ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'bg-primary' : isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
+                  >
+                    <Text className={`text-sm ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'text-white font-bold' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {yl.name || yl.yearLevel}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleSaveSubject}
+              disabled={isSavingSubject}
+              className={`rounded-xl py-4 items-center ${isSavingSubject ? 'opacity-60' : ''}`}
+              style={{ backgroundColor: '#FE6902' }}
+              activeOpacity={0.8}
+            >
+              {isSavingSubject ? (
+                <CapsActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-white font-bold text-base">{editingSubject ? 'Save Changes' : 'Add Subject'}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Question Detail Modal */}
       <Modal
@@ -786,11 +1134,52 @@ export default function AdminSubjectsScreen() {
           <ScrollView className="flex-1 p-4">
             {settingsLoading ? (
               <View className="flex-1 justify-center items-center py-12">
-                <ActivityIndicator size="large" color="#FE6902" />
+                <CapsActivityIndicator size="large" color="#FE6902" />
                 <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Loading settings...</Text>
               </View>
             ) : (
               <>
+                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                  <View className="flex-row justify-between items-center mb-3">
+                    <View className="flex-1 mr-3">
+                      <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Target Subjects</Text>
+                      <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Apply these settings to one subject or multiple subjects.
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setSettingsTargetSubjectIDs(subjects.map((subject) => subject.subjectID))}
+                      className={`px-3 py-2 rounded-xl ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
+                    >
+                      <Text className="text-primary font-semibold">Select All</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View className="flex-row flex-wrap gap-2">
+                    {subjects.map((subject) => {
+                      const selected = settingsTargetSubjectIDs.includes(subject.subjectID);
+                      return (
+                        <TouchableOpacity
+                          key={subject.subjectID}
+                          onPress={() => toggleSettingsTargetSubject(subject.subjectID)}
+                          className={`px-3 py-2 rounded-full border ${selected ? 'bg-primary border-primary' : isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}
+                          activeOpacity={0.7}
+                        >
+                          <Text className={`text-sm font-semibold ${selected ? 'text-white' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {subject.subjectName}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {settingsTargetSubjectIDs.length === 0 ? (
+                    <Text className={`text-xs mt-3 ${isDark ? 'text-yellow-300' : 'text-yellow-700'}`}>
+                      Select at least one subject before saving.
+                    </Text>
+                  ) : null}
+                </View>
+
                 {/* Qualifying Exam Toggle */}
                 <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
                   <View className="flex-row justify-between items-center">
@@ -811,6 +1200,13 @@ export default function AdminSubjectsScreen() {
 
                 {/* Practice Exam Settings */}
                 <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                  {settingsMessage ? (
+                    <View className={`rounded-xl px-3 py-3 mb-4 ${isDark ? 'bg-orange-500/10 border border-orange-400/30' : 'bg-orange-50 border border-orange-200'}`}>
+                      <Text className={`${isDark ? 'text-orange-100' : 'text-orange-800'} text-sm font-medium`}>
+                        {settingsMessage}
+                      </Text>
+                    </View>
+                  ) : null}
                   <View className="flex-row justify-between items-center mb-4">
                     <View className="flex-1 mr-4">
                       <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Enable Practice Exam</Text>

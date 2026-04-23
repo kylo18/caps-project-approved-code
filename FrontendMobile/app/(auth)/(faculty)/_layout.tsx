@@ -1,11 +1,36 @@
-import { Stack } from 'expo-router';
+import { Tabs } from 'expo-router';
+import { View } from 'react-native';
+import RoleTabBar from '../../../src/components/RoleTabBar';
+import AdminFloatingTools from '../../../src/components/admin/AdminFloatingTools';
+import { FloatingToolsProvider, useFloatingToolsState } from '../../../src/contexts/FloatingToolsContext';
+
+function FacultyFloatingTools() {
+  const { actions, visible } = useFloatingToolsState();
+  return <AdminFloatingTools actions={actions} visible={visible} />;
+}
 
 export default function FacultyLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="dashboard" />
-      <Stack.Screen name="subjects" />
-      <Stack.Screen name="users" />
-    </Stack>
+    <FloatingToolsProvider>
+      <View style={{ flex: 1 }}>
+        <Tabs
+          screenOptions={{ headerShown: false }}
+          tabBar={(props) => (
+            <RoleTabBar {...props} visibleRoutes={['dashboard', 'subjects', 'classes', 'profile']} />
+          )}
+        >
+          <Tabs.Screen name="dashboard" options={{ title: 'Home' }} />
+          <Tabs.Screen name="subjects" options={{ title: 'Subjects' }} />
+          <Tabs.Screen name="classes" options={{ title: 'Classes' }} />
+          <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+          <Tabs.Screen name="users" options={{ href: null }} />
+          <Tabs.Screen name="class-detail" options={{ href: null }} />
+          <Tabs.Screen name="reports" options={{ href: null }} />
+          <Tabs.Screen name="insights" options={{ href: null }} />
+          <Tabs.Screen name="archived-classes" options={{ href: null }} />
+        </Tabs>
+        <FacultyFloatingTools />
+      </View>
+    </FloatingToolsProvider>
   );
 }

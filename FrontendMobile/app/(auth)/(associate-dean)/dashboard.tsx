@@ -14,7 +14,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
@@ -22,6 +23,7 @@ import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import MobileHeader from '../../../src/components/MobileHeader';
+import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 56) / 3;
@@ -113,12 +115,51 @@ export default function AssoDeanDashboard() {
     { name: 'BSCpE', score: 75 },
   ];
 
+  useScreenFloatingTools([
+    {
+      key: 'insights',
+      icon: 'grid-outline',
+      label: 'Insights',
+      onPress: () => router.push('/(auth)/(associate-dean)/insights'),
+    },
+    {
+      key: 'enhancement',
+      icon: 'trending-up-outline',
+      label: 'Enhancement',
+      onPress: () => router.push('/(auth)/(associate-dean)/enhancement'),
+    },
+    {
+      key: 'analytics',
+      icon: 'analytics-outline',
+      label: 'Analytics',
+      onPress: () => router.push('/(auth)/(associate-dean)/analytics'),
+    },
+    {
+      key: 'reports',
+      icon: 'document-text-outline',
+      label: 'Reports',
+      onPress: () => router.push('/(auth)/(associate-dean)/reports'),
+    },
+    {
+      key: 'export',
+      icon: 'print-outline',
+      label: 'Export',
+      onPress: () => router.push('/(auth)/(associate-dean)/subjects'),
+    },
+    {
+      key: 'announcement',
+      icon: 'megaphone-outline',
+      label: 'Announcement',
+      onPress: () => router.push('/(auth)/(associate-dean)/create-announcement'),
+    },
+  ]);
+
   if (isLoading) {
     return (
       <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
-        <MobileHeader title="Associate Dean" />
+        <MobileHeader title="Dashboard" />
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#FE6902" />
+          <CapsActivityIndicator size="large" color="#FE6902" />
           <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             Loading dashboard...
           </Text>
@@ -129,7 +170,7 @@ export default function AssoDeanDashboard() {
 
   return (
     <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
-      <MobileHeader title="Associate Dean" />
+      <MobileHeader title="Dashboard" />
 
       <ScrollView
         className="flex-1"
@@ -251,7 +292,7 @@ export default function AssoDeanDashboard() {
         <View className="flex-row flex-wrap gap-3">
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
-            onPress={() => router.push('/(auth)/(associate-dean)/subjects')}
+            onPress={() => router.push('/(auth)/(associate-dean)/reports')}
             activeOpacity={0.7}
           >
             <View
@@ -269,20 +310,38 @@ export default function AssoDeanDashboard() {
           </TouchableOpacity>
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
-            onPress={() => router.push('/(auth)/(associate-dean)/users')}
+            onPress={() => router.push('/(auth)/(associate-dean)/classes')}
             activeOpacity={0.7}
           >
             <View
               className="w-12 h-12 rounded-full items-center justify-center mb-2"
               style={{ backgroundColor: '#3B82F615' }}
             >
-              <Ionicons name="people" size={24} color="#3B82F6" />
+              <Ionicons name="layers" size={24} color="#3B82F6" />
+            </View>
+            <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Classes
+            </Text>
+            <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Match the web class flow
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className={`w-[48%] rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            onPress={() => router.push('/(auth)/(associate-dean)/users')}
+            activeOpacity={0.7}
+          >
+            <View
+              className="w-12 h-12 rounded-full items-center justify-center mb-2"
+              style={{ backgroundColor: '#8B5CF615' }}
+            >
+              <Ionicons name="people" size={24} color="#8B5CF6" />
             </View>
             <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
               User Management
             </Text>
             <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              Manage all users
+              Still available from Home
             </Text>
           </TouchableOpacity>
           <TouchableOpacity

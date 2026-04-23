@@ -1,15 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
-import {
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleProp,
-  Text,
-  View,
-  ViewStyle,
-} from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; import { useMemo } from 'react';
+import {   Modal, Platform, Pressable, ScrollView, StyleProp, Text, View, ViewStyle } from 'react-native';
 
 export const studentColors = {
   orange: '#FF6E00',
@@ -519,7 +509,7 @@ export function formatWeeklyCountdown(periodEndsAt?: string | null) {
 
 export function StudentTabBar({ state, descriptors, navigation }: any) {
   const routes = state.routes;
-  const visibleTabNames = new Set(['dashboard', 'search', 'leaderboard', 'insights']);
+  const visibleTabNames = new Set(['dashboard', 'classes', 'leaderboard', 'insights']);
   const activeRouteName = state.routes[state.index]?.name;
   const visibleRoutes = routes.filter((route: any) => visibleTabNames.has(route.name));
 
@@ -554,8 +544,8 @@ function getTabIcon(name: string, focused: boolean) {
   if (name === 'dashboard') {
     return focused ? 'home' : 'home-outline';
   }
-  if (name === 'search') {
-    return focused ? 'search' : 'search-outline';
+  if (name === 'classes') {
+    return focused ? 'school' : 'school-outline';
   }
   if (name === 'leaderboard') {
     return focused ? 'trophy' : 'trophy-outline';

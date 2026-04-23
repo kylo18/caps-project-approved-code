@@ -8,6 +8,7 @@ export interface BookmarkItem {
   questionImage: string | null;
   subjectID: string | number;
   subjectName: string;
+  origin?: string;
   choices?: Array<{
     choiceID: string;
     choiceText: string;

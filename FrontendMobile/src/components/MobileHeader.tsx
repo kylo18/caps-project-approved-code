@@ -24,6 +24,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
 import { useTheme } from '../contexts/ThemeContext';
 import * as SecureStore from 'expo-secure-store';
+import { unregisterStoredPushToken } from '../services/pushNotificationService';
 import NotificationPanel from './NotificationPanel';
 import EditProfileModal from './EditProfileModal';
 import ConfirmModal from './ConfirmModal';
@@ -62,6 +63,7 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
 
     const handleLogout = async () => {
         try {
+            await unregisterStoredPushToken();
             await SecureStore.deleteItemAsync('token');
             await SecureStore.deleteItemAsync('user');
             dispatch(logout());

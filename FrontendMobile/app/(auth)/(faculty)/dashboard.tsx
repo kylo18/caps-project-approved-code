@@ -13,7 +13,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
@@ -21,6 +22,7 @@ import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import MobileHeader from '../../../src/components/MobileHeader';
+import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function FacultyDashboard() {
@@ -99,18 +101,45 @@ export default function FacultyDashboard() {
   };
 
   const quickActions = [
-    { icon: 'book' as const, label: 'My Subjects', route: '/(auth)/(faculty)/subjects', color: '#FE6902' },
+    { icon: 'layers' as const, label: 'My Classes', route: '/(auth)/(faculty)/classes', color: '#FE6902' },
     { icon: 'people' as const, label: 'Students', route: '/(auth)/(faculty)/users', color: '#3B82F6' },
     { icon: 'create' as const, label: 'Create Quiz', route: '/(auth)/practice-exam/add-question', color: '#10B981' },
-    { icon: 'stats-chart' as const, label: 'Reports', route: '/(auth)/(faculty)/subjects', color: '#8B5CF6' },
+    { icon: 'stats-chart' as const, label: 'Reports', route: '/(auth)/(faculty)/reports', color: '#8B5CF6' },
   ];
+
+  useScreenFloatingTools([
+    {
+      key: 'insights',
+      icon: 'grid-outline',
+      label: 'Insights',
+      onPress: () => router.push('/(auth)/(faculty)/insights'),
+    },
+    {
+      key: 'reports',
+      icon: 'document-text-outline',
+      label: 'Reports',
+      onPress: () => router.push('/(auth)/(faculty)/reports'),
+    },
+    {
+      key: 'classes',
+      icon: 'layers-outline',
+      label: 'Classes',
+      onPress: () => router.push('/(auth)/(faculty)/classes'),
+    },
+    {
+      key: 'quiz',
+      icon: 'create-outline',
+      label: 'Create Quiz',
+      onPress: () => router.push('/(auth)/practice-exam/add-question'),
+    },
+  ]);
 
   if (isLoading) {
     return (
       <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`} style={{ paddingBottom: insets.bottom + 12 }}>
-        <MobileHeader title="Faculty Dashboard" style={{ paddingTop: insets.top + 8 }} />
+        <MobileHeader title="Faculty Dashboard" />
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#FE6902" />
+          <CapsActivityIndicator size="large" color="#FE6902" />
           <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             Loading dashboard...
           </Text>
@@ -121,7 +150,7 @@ export default function FacultyDashboard() {
 
   return (
     <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`} style={{ paddingBottom: insets.bottom + 12 }}>
-      <MobileHeader title="Faculty Dashboard" style={{ paddingTop: insets.top + 8 }} />
+      <MobileHeader title="Faculty Dashboard" />
 
       <ScrollView
         className="flex-1 px-4 pt-4"

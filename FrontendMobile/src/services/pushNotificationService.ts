@@ -8,23 +8,47 @@
 // - Register push token with backend
 // ─────────────────────────────────────────────────────────────────────────────
 
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { apiRequest } from './apiClient';
 
-const API_URL = Constants.expoConfig?.extra?.API_URL || 'http://100.91.44.24:8000';
+const PUSH_TOKEN_STORAGE_KEY = 'pushToken';
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+type ExpoNotificationsModule = typeof import('expo-notifications');
+type ExpoNotification = Awaited<
+  ReturnType<ExpoNotificationsModule['getLastNotificationResponseAsync']>
+> extends { notification: infer T }
+  ? T
+  : unknown;
+type ExpoNotificationResponse = Awaited<
+  ReturnType<ExpoNotificationsModule['getLastNotificationResponseAsync']>
+>;
 
 export interface PushTokenResult {
   token: string | null;
   status: 'granted' | 'denied' | 'not-supported';
 }
 
+async function getNotificationsModule(): Promise<ExpoNotificationsModule | null> {
+  if (isExpoGo) {
+    return null;
+  }
+
+  return import('expo-notifications');
+}
+
 /**
  * Request notification permissions and return the Expo push token.
  */
 export async function registerForPushNotificationsAsync(): Promise<PushTokenResult> {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) {
+    return { token: null, status: 'not-supported' };
+  }
+
   if (!Device.isDevice) {
     return { token: null, status: 'not-supported' };
   }
@@ -54,6 +78,8 @@ export async function registerForPushNotificationsAsync(): Promise<PushTokenResu
       lightColor: '#FE6902',
     });
   }
+
+  await SecureStore.setItemAsync(PUSH_TOKEN_STORAGE_KEY, tokenData.data);
 
   return { token: tokenData.data, status: 'granted' };
 }
@@ -86,12 +112,30 @@ export async function unregisterPushTokenWithBackend(token: string): Promise<voi
   }
 }
 
+export async function unregisterStoredPushToken(): Promise<void> {
+  try {
+    const token = await SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY);
+    if (token) {
+      await unregisterPushTokenWithBackend(token);
+    }
+  } catch (error) {
+    console.error('Failed to remove stored push token from backend:', error);
+  } finally {
+    await SecureStore.deleteItemAsync(PUSH_TOKEN_STORAGE_KEY);
+  }
+}
+
 /**
  * Configure default notification handler for foreground notifications.
  */
-export function setNotificationHandler(): void {
+export async function setNotificationHandler(): Promise<void> {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) {
+    return;
+  }
+
   Notifications.setNotificationHandler({
-    handleNotification: async (): Promise<Notifications.NotificationBehavior> => ({
+    handleNotification: async () => ({
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
@@ -104,9 +148,14 @@ export function setNotificationHandler(): void {
 /**
  * Add notification received listener. Returns unsubscribe function.
  */
-export function addNotificationReceivedListener(
-  callback: (notification: Notifications.Notification) => void
-): () => void {
+export async function addNotificationReceivedListener(
+  callback: (notification: ExpoNotification) => void
+): Promise<() => void> {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) {
+    return () => {};
+  }
+
   const subscription = Notifications.addNotificationReceivedListener(callback);
   return () => subscription.remove();
 }
@@ -114,9 +163,14 @@ export function addNotificationReceivedListener(
 /**
  * Add notification response listener (user taps notification). Returns unsubscribe function.
  */
-export function addNotificationResponseReceivedListener(
-  callback: (response: Notifications.NotificationResponse) => void
-): () => void {
+export async function addNotificationResponseReceivedListener(
+  callback: (response: ExpoNotificationResponse) => void
+): Promise<() => void> {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) {
+    return () => {};
+  }
+
   const subscription = Notifications.addNotificationResponseReceivedListener(callback);
   return () => subscription.remove();
 }

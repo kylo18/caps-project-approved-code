@@ -12,7 +12,8 @@
 //         buttons and text inputs, submit button
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
@@ -110,7 +111,7 @@ export default function CombinedPracticeQuestionForm() {
         </View>
 
         <TouchableOpacity className="flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl gap-2" style={{ opacity: isSubmitting ? 0.6 : 1 }} onPress={handleSubmit} disabled={isSubmitting} activeOpacity={0.8}>
-          {isSubmitting ? <ActivityIndicator color="#fff" /> : <><Ionicons name="checkmark-circle" size={20} color="#fff" /><Text className="text-white text-base font-bold">Add Question</Text></>}
+          {isSubmitting ? <CapsActivityIndicator color="#fff" /> : <><Ionicons name="checkmark-circle" size={20} color="#fff" /><Text className="text-white text-base font-bold">Add Question</Text></>}
         </TouchableOpacity>
       </ScrollView>
     </View>

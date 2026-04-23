@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useRef, useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -30,7 +30,7 @@ export default function RichTextEditor({ initialContent = '', onChange, placehol
 
     return (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-            <View style={[styles.container, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+            <View className="flex-1 rounded-xl overflow-hidden border" style={{ backgroundColor: colors.bg, borderColor: colors.border, minHeight: 240 }}>
                 <RichToolbar
                     editor={richText}
                     actions={[
@@ -44,7 +44,7 @@ export default function RichTextEditor({ initialContent = '', onChange, placehol
                         actions.insertLink,
                         actions.keyboard,
                     ]}
-                    style={[styles.toolbar, { backgroundColor: colors.toolbarBg }]}
+                    className="rounded-t-xl"
                     iconTint={colors.icon}
                     selectedIconTint="#FE6902"
                     disabledIconTint="#9ca3af"
@@ -55,7 +55,8 @@ export default function RichTextEditor({ initialContent = '', onChange, placehol
                         initialContentHTML={initialContent}
                         onChange={onChange}
                         placeholder={placeholder}
-                        style={[styles.editor, { backgroundColor: colors.bg, color: colors.text }]}
+                        className="flex-1 p-3 rounded-b-xl"
+                        style={{ backgroundColor: colors.bg, color: colors.text }}
                         initialHeight={height}
                         onHeightChange={setHeight}
                         useContainer
@@ -66,8 +67,3 @@ export default function RichTextEditor({ initialContent = '', onChange, placehol
     );
 }
 
-const styles = StyleSheet.create({
-    container: { borderWidth: 1, borderRadius: 12, overflow: 'hidden', flex: 1, minHeight: 240 },
-    toolbar: { borderTopLeftRadius: 12, borderTopRightRadius: 12 },
-    editor: { flex: 1, padding: 12, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
-});

@@ -5,16 +5,23 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  View, Text, FlatList, TouchableOpacity,
-  ActivityIndicator, TextInput, RefreshControl, Animated, Modal, ScrollView
-} from 'react-native';
+import {   View, Text, FlatList, TouchableOpacity, TextInput, RefreshControl, Animated, Modal, ScrollView } from 'react-native';
+import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  getUserCampusLabel,
+  getUserProgramLabel,
+  getUserStatusLabel,
+  getUserStatusFilterKey,
+  getUserYearLevelLabel,
+  getUserYearLevelValue,
+  matchesUserStatusFilter,
+} from '../../../src/utils/userManagement';
 
 const avatarPalette = ['#FFE17B', '#FFD4EA', '#D9DCFF', '#D6F4D2', '#FFD0B1'];
 const ADMIN_ROLES = [2, 3, 4, 5];
@@ -76,7 +83,7 @@ export default function FacultyUsersScreen() {
       let filtered = [...users];
       if (activeRoleFilter === 'admin') filtered = filtered.filter((u: any) => ADMIN_ROLES.includes(Number(u.roleID)));
       else if (activeRoleFilter === 'student') filtered = filtered.filter((u: any) => Number(u.roleID) === STUDENT_ROLE);
-      if (activeStatusFilter !== 'all') filtered = filtered.filter((u: any) => u.status === activeStatusFilter);
+      if (activeStatusFilter !== 'all') filtered = filtered.filter((u: any) => matchesUserStatusFilter(u, activeStatusFilter as any));
       if (programFilter !== 'all') filtered = filtered.filter((u: any) => String(u.programID) === programFilter);
       if (yearFilter !== 'all') filtered = filtered.filter((u: any) => String(u.yearLevel) === yearFilter);
       if (campusFilter !== 'all') filtered = filtered.filter((u: any) => String(u.campusID) === campusFilter);
@@ -115,11 +122,15 @@ export default function FacultyUsersScreen() {
     purple: '#8B5CF6',
   };
 
-  const programs = [...new Map(users.filter((u: any) => u.programName).map((u: any) => [String(u.programID), u.programName])).entries()].map(([id, label]) => ({ id: String(id), label: String(label) }));
-  const years = [...new Set(users.filter((u: any) => u.yearLevel).map((u: any) => u.yearLevel))].sort((a: any, b: any) => a - b);
-  const campuses = [...new Map(users.filter((u: any) => u.campusName).map((u: any) => [String(u.campusID), u.campusName])).entries()].map(([id, label]) => ({ id: String(id), label: String(label) }));
+  const programs = [...new Map(users.map((u: any) => [String(u.programID), getUserProgramLabel(u)] as [string, string]).filter(([, label]) => Boolean(label))).entries()].map(([id, label]) => ({ id, label }));
+  const years = [...new Set(users.map((u: any) => getUserYearLevelValue(u)).filter(Boolean))].sort((a: any, b: any) => Number(a) - Number(b));
+  const campuses = [...new Map(users.map((u: any) => [String(u.campusID), getUserCampusLabel(u)] as [string, string]).filter(([, label]) => Boolean(label))).entries()].map(([id, label]) => ({ id, label }));
 
   const renderUser = useCallback(({ item }: { item: any }) => {
+    const statusLabel = getUserStatusLabel(item);
+    const statusKey = getUserStatusFilterKey(item);
+    const programLabel = getUserProgramLabel(item);
+    const yearLevelLabel = getUserYearLevelLabel(item);
     return (
       <View
         className="flex-row items-center rounded-2xl p-3 gap-3 mb-2.5"
@@ -137,11 +148,11 @@ export default function FacultyUsersScreen() {
           </View>
           <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }} numberOfLines={1}>{item.email}</Text>
           <View className="flex-row items-center gap-1.5 mt-1">
-            <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: item.status === 'activated' ? colors.green : item.status === 'pending' ? colors.blue : item.status === 'approved' ? colors.orange : colors.red }}>
-              <Text className="text-white text-[9px] font-semibold">{item.status || 'pending'}</Text>
+            <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: statusKey === 'active' ? colors.green : statusKey === 'inactive' ? colors.red : statusKey === 'pending' ? colors.blue : colors.orange }}>
+              <Text className="text-white text-[9px] font-semibold">{statusLabel}</Text>
             </View>
-            {item.programName && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>{item.programName}</Text>}
-            {item.yearLevel && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>Year {item.yearLevel}</Text>}
+            {programLabel && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>{programLabel}</Text>}
+            {yearLevelLabel && <Text className="text-[10px]" style={{ color: colors.textSecondary }}>{yearLevelLabel}</Text>}
           </View>
         </View>
       </View>
@@ -156,7 +167,7 @@ export default function FacultyUsersScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 justify-center items-center"><ActivityIndicator size="large" color={colors.orange} /></View>
+        <View className="flex-1 justify-center items-center"><CapsActivityIndicator size="large" color={colors.orange} /></View>
       ) : (
         <FlatList
           data={filteredUsers}
@@ -202,9 +213,15 @@ export default function FacultyUsersScreen() {
               </View>
 
               <View className="flex-row gap-1 mb-2 flex-wrap">
-                {['all', 'pending', 'approved', 'activated', 'deactivated'].map(f => (
-                  <TouchableOpacity key={f} className="px-2.5 py-[5px] rounded-[14px]" style={activeStatusFilter === f ? { backgroundColor: f === 'pending' ? colors.blue : f === 'approved' ? colors.orange : f === 'activated' ? colors.green : colors.red } : undefined} onPress={() => setActiveStatusFilter(f)} activeOpacity={0.7}>
-                    <Text className="text-[11px] font-semibold" style={{ color: activeStatusFilter === f ? '#fff' : colors.textSecondary }}>{f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}</Text>
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'pending', label: 'Pending' },
+                  { key: 'active', label: 'Active' },
+                  { key: 'inactive', label: 'Inactive' },
+                  { key: 'disapproved', label: 'Disapproved' },
+                ].map((f) => (
+                  <TouchableOpacity key={f.key} className="px-2.5 py-[5px] rounded-[14px]" style={activeStatusFilter === f.key ? { backgroundColor: f.key === 'pending' ? colors.blue : f.key === 'active' ? colors.green : f.key === 'inactive' ? colors.red : colors.orange } : undefined} onPress={() => setActiveStatusFilter(f.key)} activeOpacity={0.7}>
+                    <Text className="text-[11px] font-semibold" style={{ color: activeStatusFilter === f.key ? '#fff' : colors.textSecondary }}>{f.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

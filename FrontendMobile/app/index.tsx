@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -16,8 +15,9 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import apiClient from '../src/services/apiClient';
+import apiClient, { apiRequest } from '../src/services/apiClient';
 import * as SecureStore from 'expo-secure-store';
+import NetInfo from '@react-native-community/netinfo';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../src/store/slices/authSlice';
 import { useTheme } from '../src/contexts/ThemeContext';
@@ -26,6 +26,15 @@ import {
   isBiometricAvailable,
   authenticateWithBiometrics,
 } from '../src/services/biometricAuthService';
+import {
+  registerForPushNotificationsAsync,
+  registerPushTokenWithBackend,
+} from '../src/services/pushNotificationService';
+import {
+  useGoogleAuth,
+  signInWithGooglePopup,
+} from '../src/services/googleAuthService';
+import AnimatedCapsLoader from '../src/components/AnimatedCapsLoader';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,22 +58,14 @@ export default function LoginScreen() {
   const [isUserCodeFocused, setIsUserCodeFocused] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [loaderIdx, setLoaderIdx] = useState(0);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
+
+  const { request, signInWithGoogle } = useGoogleAuth();
 
   const router = useRouter();
   const dispatch = useDispatch();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
-
-  useEffect(() => {
-    if (isLoading) {
-      const interval = setInterval(() => {
-        setLoaderIdx((prev) => (prev + 1) % 3);
-      }, 200);
-      return () => clearInterval(interval);
-    }
-  }, [isLoading]);
 
   // Restore persistent session on mount
   useEffect(() => {
@@ -79,6 +80,23 @@ export default function LoginScreen() {
 
         if (token && userJson && rememberMeStored === 'true') {
           const user = JSON.parse(userJson);
+
+          // Validate token is still active before auto-login (skip if offline)
+          const net = await NetInfo.fetch();
+          const isOnline = net.isConnected ?? true;
+          if (isOnline) {
+            try {
+              await apiRequest('/api/user/profile');
+            } catch (err: any) {
+              if (err.status === 401) {
+                // Token expired — global handler already cleared storage,
+                // just stop the spinner so the login form appears.
+                setIsRestoringSession(false);
+                return;
+              }
+              // Other errors (network, 5xx): still attempt auto-login with cached data
+            }
+          }
 
           if (biometricEnabled === 'true') {
             const bioAvailable = await isBiometricAvailable();
@@ -129,6 +147,11 @@ export default function LoginScreen() {
       await SecureStore.setItemAsync('user', JSON.stringify(user));
       await SecureStore.setItemAsync('rememberMe', rememberMe ? 'true' : 'false');
 
+      const pushResult = await registerForPushNotificationsAsync();
+      if (pushResult.token) {
+        await registerPushTokenWithBackend(pushResult.token);
+      }
+
       // Prompt to enable biometric auth on first successful login with Remember Me
       if (rememberMe) {
         const biometricEnabled = await SecureStore.getItemAsync('biometricEnabled');
@@ -165,24 +188,50 @@ export default function LoginScreen() {
     }
   };
 
-  // ── OAuth: Google (Firebase) / Facebook (Backend) ──
+  // ── OAuth: Google / Facebook (Backend) ──
   const handleOAuthLogin = async (provider: 'google' | 'facebook') => {
-    if (provider === 'google') {
-      // Temporarily disabled - requires expo-dev-client for full native support
-      Alert.alert(
-        'Coming Soon',
-        'Google Sign-In requires a custom development build. Please use Email/Password or Student ID login for now.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    // Use backend OAuth for Facebook
+    setIsLoading(true);
     try {
+      if (provider === 'google') {
+        let result;
+        if (Platform.OS === 'web') {
+          result = await signInWithGooglePopup();
+        } else {
+          result = await signInWithGoogle();
+        }
+
+        if (!result.success || !result.token) {
+          showToast(result.error || 'Google sign in failed', 'error');
+          return;
+        }
+
+        // Mobile flow returns user; web flow only returns token
+        let user = result.user;
+        if (!user) {
+          await SecureStore.setItemAsync('token', result.token);
+          const profileRes = await apiClient.get('/api/user/profile');
+          user = profileRes.data;
+        }
+
+        await SecureStore.setItemAsync('token', result.token);
+        await SecureStore.setItemAsync('user', JSON.stringify(user));
+        await SecureStore.setItemAsync('rememberMe', 'true');
+
+        const pushResult = await registerForPushNotificationsAsync();
+        if (pushResult.token) {
+          await registerPushTokenWithBackend(pushResult.token);
+        }
+
+        dispatch(setCredentials({ user, token: result.token }));
+        routeBasedOnRole(user.roleID ?? user.roleId);
+        return;
+      }
+
+      // Facebook: use backend OAuth redirect via web browser
       const API_URL = 'http://100.91.44.24:8000';
       const result = await WebBrowser.openAuthSessionAsync(
         `${API_URL}/api/auth/${provider}/redirect`,
-        'caps-mobile://auth/callback'
+        'caps://auth/callback'
       );
       if (result.type === 'success') {
         const token = extractTokenFromUrl(result.url);
@@ -190,15 +239,22 @@ export default function LoginScreen() {
           showToast('OAuth login failed', 'error');
           return;
         }
+        await SecureStore.setItemAsync('token', token);
         const response = await apiClient.get('/api/user/profile');
         const user = response.data;
-        await SecureStore.setItemAsync('token', token);
         await SecureStore.setItemAsync('user', JSON.stringify(user));
+        await SecureStore.setItemAsync('rememberMe', 'true');
+        const pushResult = await registerForPushNotificationsAsync();
+        if (pushResult.token) {
+          await registerPushTokenWithBackend(pushResult.token);
+        }
         dispatch(setCredentials({ user, token }));
         routeBasedOnRole(user.roleID ?? user.roleId);
       }
-    } catch (error) {
-      showToast('OAuth login failed', 'error');
+    } catch (error: any) {
+      showToast(error?.message || 'OAuth login failed', 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -213,10 +269,10 @@ export default function LoginScreen() {
   const routeBasedOnRole = (roleID: number) => {
     switch (roleID) {
       case 1: router.replace('/(auth)/(student)/dashboard'); break;
-      case 2: router.replace('/(auth)/(faculty)/subjects'); break;
-      case 3: router.replace('/(auth)/(program-chair)/subjects'); break;
+      case 2: router.replace('/(auth)/(faculty)/dashboard'); break;
+      case 3: router.replace('/(auth)/(program-chair)/dashboard'); break;
       case 4: router.replace('/(auth)/(dean)/dashboard'); break;
-      case 5: router.replace('/(auth)/(associate-dean)/subjects'); break;
+      case 5: router.replace('/(auth)/(associate-dean)/dashboard'); break;
       default: router.replace('/(auth)/dashboard');
     }
   };
@@ -231,91 +287,107 @@ export default function LoginScreen() {
 
   const hasUser = (val: string, focused: boolean) => val.length > 0 || focused;
 
+  if (isRestoringSession) {
+    return (
+      <View className="flex-1 bg-[#242424]">
+        <Image source={loginBg} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+        <View className="flex-1 justify-center items-center bg-black/55 p-6">
+          <AnimatedCapsLoader
+            size="lg"
+            color="#FFFFFF"
+            accentColor="#FE6902"
+            subtitle="Preparing your CAPS experience..."
+          />
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={{ flex: 1, backgroundColor: '#242424' }}>
+    <View className="flex-1 bg-[#242424]">
       {/* Login Background Image */}
-      <Image source={loginBg} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      <Image source={loginBg} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
 
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingBottom: 0 }} keyboardShouldPersistTaps="handled" bounces={false}>
 
           {/* ===== HEADER - h-60 (240px) with gradient ===== */}
-          <View style={[styles.header, { backgroundColor: isDark ? '#000' : '#242424' }]}>
+          <View className="h-60 px-4 pt-11 pb-12" style={{ backgroundColor: isDark ? '#000' : '#242424' }}>
             {/* Top bar */}
-            <View style={styles.topBar}>
-              <View style={styles.leftGroup}>
+            <View className="flex-row justify-between items-center px-4">
+              <View className="flex-row items-center">
                 {/* Actual logos from original project */}
-                <Image source={univLogo} style={styles.logoImg} />
-                <Image source={collegeLogo} style={styles.logoImg} />
-                <TouchableOpacity onPress={toggleTheme} style={styles.themeCircle} activeOpacity={0.7}>
+                <Image source={univLogo} className="w-8 h-8 mr-2" />
+                <Image source={collegeLogo} className="w-8 h-8 mr-2" />
+                <TouchableOpacity onPress={toggleTheme} className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} activeOpacity={0.7}>
                   <Ionicons name={isDark ? 'sunny' : 'moon'} size={14} color={isDark ? '#FBBF24' : '#fff'} />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.rightGroup}>
-                <Text style={styles.signUpLabel}>Don't have an account?</Text>
-                <TouchableOpacity onPress={() => router.push('/register' as any)} style={styles.signUpBtn} activeOpacity={0.7}>
-                  <Text style={styles.signUpBtnText}>Sign up</Text>
+              <View className="flex-row items-center">
+                <Text className="text-white/80 text-xs mr-2">{"Don't have an account?"}</Text>
+                <TouchableOpacity onPress={() => router.push('/register' as any)} className="px-3.5 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} activeOpacity={0.7}>
+                  <Text className="text-white text-sm font-medium">Sign up</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* CAPS Title - exactly 2 lines, fits mobile */}
-            <View style={styles.titleArea}>
-              <Text style={styles.capsLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                <Text style={styles.capOrange}>C</Text>OMPREHENSIVE <Text style={styles.capOrange}>A</Text>SSESSMENT
+            <View className="items-center mt-4 gap-1 w-full">
+              <Text className="text-white text-2xl font-black text-center tracking-wide leading-8 text-shadow text-shadow-sm" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                <Text className="text-[#FE6902] text-3xl font-black tracking-wider">C</Text>OMPREHENSIVE <Text className="text-[#FE6902] text-3xl font-black tracking-wider">A</Text>SSESSMENT
               </Text>
-              <Text style={styles.capsLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                AND <Text style={styles.capOrange}>P</Text>REPARATION <Text style={styles.capOrange}>S</Text>YSTEM
+              <Text className="text-white text-2xl font-black text-center tracking-wide leading-8" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                AND <Text className="text-[#FE6902] text-3xl font-black tracking-wider">P</Text>REPARATION <Text className="text-[#FE6902] text-3xl font-black tracking-wider">S</Text>YSTEM
               </Text>
             </View>
           </View>
 
           {/* ===== CURVE + LOGIN CARD ===== */}
-          <View style={[styles.card, { backgroundColor: isDark ? '#000' : '#242424' }]}>
-            <View style={[styles.cardContent, { backgroundColor: colors.bg }]}>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>LOG IN ACCOUNT</Text>
-              <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
+          <View className="flex-1" style={{ backgroundColor: isDark ? '#000' : '#242424' }}>
+            <View className="flex-1 px-6 pt-7 pb-6 rounded-[34px] -mt-5" style={{ backgroundColor: colors.bg }}>
+              <Text className="text-center text-xl font-black tracking-wide mb-1.5 leading-7" style={{ color: colors.text }}>LOG IN ACCOUNT</Text>
+              <Text className="text-center text-sm leading-5 mb-2.5" style={{ color: colors.textSecondary }}>
                 Welcome! Please enter your code and password to access your account.
               </Text>
 
-              <View style={styles.form}>
+              <View className="mt-2 mb-3">
                 {/* User Code */}
-                <View style={styles.field}>
-                  <View style={[styles.fieldBox, { backgroundColor: colors.inputBg, borderColor: isUserCodeFocused ? '#FE6902' : colors.border }]}>
-                    <TextInput style={[styles.fieldInput, { color: colors.text }]} value={userCode} onChangeText={setUserCode} onFocus={() => setIsUserCodeFocused(true)} onBlur={() => setIsUserCodeFocused(false)} placeholder="" autoCapitalize="none" autoCorrect={false} />
-                    <Text style={[styles.fieldLabel, {
+                <View className="mb-3 mt-2">
+                  <View className="relative border rounded-xl min-h-[46px] justify-center py-0" style={{ backgroundColor: colors.inputBg, borderColor: isUserCodeFocused ? '#FE6902' : colors.border }}>
+                    <TextInput className="px-4 py-2 text-sm" style={{ color: colors.text, height: 46 }} value={userCode} onChangeText={setUserCode} onFocus={() => setIsUserCodeFocused(true)} onBlur={() => setIsUserCodeFocused(false)} placeholder="" autoCapitalize="none" autoCorrect={false} />
+                    <Text className="absolute z-10 px-1 text-sm" style={{
                       backgroundColor: colors.inputBg,
                       top: hasUser(userCode, isUserCodeFocused) ? 0 : 14,
                       fontSize: hasUser(userCode, isUserCodeFocused) ? 10 : 14,
                       left: hasUser(userCode, isUserCodeFocused) ? 8 : 16,
                       paddingHorizontal: 4,
                       color: isUserCodeFocused ? '#FE6902' : colors.textSecondary,
-                    }]}>
+                    }}>
                       Instructor Code/Student ID Number
                     </Text>
                   </View>
                 </View>
 
                 {/* Password */}
-                <View style={styles.field}>
-                  <View style={[styles.fieldBox, { backgroundColor: colors.inputBg, borderColor: isPasswordFocused ? '#FE6902' : colors.border }]}>
-                    <TextInput style={[styles.fieldInput, styles.pwdInput, { color: colors.text }]} value={password} onChangeText={setPassword} onFocus={() => setIsPasswordFocused(true)} onBlur={() => setIsPasswordFocused(false)} placeholder="" secureTextEntry={!showPassword} autoCapitalize="none" autoComplete="current-password" />
-                    <Text style={[styles.fieldLabel, {
+                <View className="mb-3">
+                  <View className="relative border rounded-xl min-h-[46px] justify-center py-0" style={{ backgroundColor: colors.inputBg, borderColor: isPasswordFocused ? '#FE6902' : colors.border }}>
+                    <TextInput className="px-4 py-2 pr-12 text-sm" style={{ color: colors.text, height: 46 }} value={password} onChangeText={setPassword} onFocus={() => setIsPasswordFocused(true)} onBlur={() => setIsPasswordFocused(false)} placeholder="" secureTextEntry={!showPassword} autoCapitalize="none" autoComplete="current-password" />
+                    <Text className="absolute z-10 px-1 text-sm" style={{
                       backgroundColor: colors.inputBg,
                       top: hasUser(password, isPasswordFocused) ? 0 : 14,
                       fontSize: hasUser(password, isPasswordFocused) ? 10 : 14,
                       left: hasUser(password, isPasswordFocused) ? 8 : 16,
                       paddingHorizontal: 4,
                       color: isPasswordFocused ? '#FE6902' : colors.textSecondary,
-                    }]}>
+                    }}>
                       Password
                     </Text>
                     <TouchableOpacity
                       onPress={() => setShowPassword(!showPassword)}
-                      style={styles.eyeBtn}
+                      className="absolute right-3 top-3 p-1 z-20"
                       activeOpacity={0.7}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
@@ -324,61 +396,60 @@ export default function LoginScreen() {
                   </View>
                 </View>
 
-                {error ? <Text style={styles.errMsg}>{error}</Text> : null}
+                {error ? <Text className="text-red-500 text-xs text-center mt-2 mb-1">{error}</Text> : null}
 
                 {/* Remember Me */}
                 <TouchableOpacity
-                  style={styles.rememberRow}
+                  className="flex-row items-center gap-2 mt-1 mb-2"
                   onPress={() => setRememberMe((v) => !v)}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                  <View className="w-[18px] h-[18px] rounded border-2 items-center justify-center" style={{ borderColor: '#FE6902', backgroundColor: rememberMe ? '#FE6902' : 'transparent' }}>
                     {rememberMe && <Ionicons name="checkmark" size={14} color="#fff" />}
                   </View>
-                  <Text style={[styles.rememberText, { color: colors.textSecondary }]}>Remember me</Text>
+                  <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Remember me</Text>
                 </TouchableOpacity>
 
                 {/* Login Button */}
-                <TouchableOpacity style={[styles.loginBtn, isLoading && styles.loginBtnOff]} onPress={handleLogin} disabled={isLoading} activeOpacity={0.9}>
+                <TouchableOpacity className="flex-row items-center justify-center py-3 rounded-xl mt-3 mb-2" style={{ backgroundColor: '#FE6902', opacity: isLoading ? 0.6 : 1 }} onPress={handleLogin} disabled={isLoading} activeOpacity={0.9}>
                   {isLoading ? (
-                    <View style={styles.loaderRow}>
-                      <View style={[styles.loaderDot, { opacity: loaderIdx === 0 ? 1 : 0.3 }]} />
-                      <View style={[styles.loaderDot, { opacity: loaderIdx === 1 ? 1 : 0.3 }]} />
-                      <View style={[styles.loaderDot, { opacity: loaderIdx === 2 ? 1 : 0.3 }]} />
-                    </View>
-                  ) : <Text style={styles.loginBtnText}>LOG IN</Text>}
+                    <AnimatedCapsLoader size="sm" color="#FFFFFF" accentColor="#FFD2B2" />
+                  ) : <Text className="text-white text-base font-bold">LOG IN</Text>}
                 </TouchableOpacity>
 
                 {/* Forgot */}
                 <TouchableOpacity onPress={() => router.push('/forgot-password' as any)} activeOpacity={0.7}>
-                  <Text style={styles.forgotTxt}>Forgot your password?</Text>
+                  <Text className="text-[#FE6902] text-sm text-center mt-2 mb-3">Forgot your password?</Text>
                 </TouchableOpacity>
 
                 {/* Or divider */}
-                <View style={styles.orRow}><Text style={styles.orTxt}>or continue with</Text></View>
+                <View className="items-center mb-4"><Text className="text-gray-500 text-xs">or continue with</Text></View>
 
                 {/* OAuth */}
-                <View style={styles.oauthRow}>
+                <View className="flex-row gap-3 mb-6">
                   <TouchableOpacity
-                    style={[styles.oauthBtn, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                    className="flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-xl border"
+                    style={{ borderColor: colors.border, backgroundColor: colors.inputBg, opacity: (!request && Platform.OS !== 'web') || isLoading ? 0.5 : 1 }}
                     onPress={() => handleOAuthLogin('google')}
                     activeOpacity={0.7}
+                    disabled={(!request && Platform.OS !== 'web') || isLoading}
                   >
                     <Ionicons name="logo-google" size={18} color={colors.text} />
-                    <Text style={[styles.oauthLabel, { color: colors.text }]}>Google</Text>
+                    <Text className="text-sm font-medium" style={{ color: colors.text }}>Google</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.oauthBtn, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                    className="flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-xl border"
+                    style={{ borderColor: colors.border, backgroundColor: colors.inputBg }}
                     onPress={() => handleOAuthLogin('facebook')}
                     activeOpacity={0.7}
                   >
                     <FontAwesome name="facebook" size={18} color="#1877F2" />
-                    <Text style={[styles.oauthLabel, { color: colors.text }]}>Facebook</Text>
+                    <Text className="text-sm font-medium" style={{ color: colors.text }}>Facebook</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
-              <Text style={styles.creditTxt}>Developed by <Text style={styles.creditLink}>Team Caps</Text></Text>
+              <Text className="text-center text-gray-500 text-xs mt-2">Developed by <Text className="text-[#FE6902]">Team Caps</Text></Text>
             </View>
           </View>
         </ScrollView>
@@ -387,118 +458,4 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: { height: 240, paddingTop: 44, paddingBottom: 48 },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 },
-  leftGroup: { flexDirection: 'row', alignItems: 'center' },
-  logoImg: { width: 32, height: 32, marginRight: 8, resizeMode: 'contain' },
-  themeCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
-  rightGroup: { flexDirection: 'row', alignItems: 'center' },
-  signUpLabel: { color: '#fff', fontSize: 11, marginRight: 8 },
-  signUpBtn: { backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 14, paddingVertical: 5, borderRadius: 8 },
-  signUpBtnText: { color: '#fff', fontSize: 13, fontWeight: '500' },
-  titleArea: { alignItems: 'center', marginTop: 16, gap: 4, width: '100%' },
-  capsLine: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#fff',
-    textAlign: 'center',
-    letterSpacing: 0.5,
-    lineHeight: 32,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  capOrange: {
-    color: '#FE6902',
-    fontSize: 36,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-    lineHeight: 38,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
-  },
 
-  curveContainer: { width: '100%' },
-  curveBar: {
-    width: width * 0.85,
-    height: 16,
-    alignSelf: 'center',
-    backgroundColor: '#1a1a1a',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    borderBottomLeftRadius: 6,
-    borderBottomRightRadius: 6,
-    elevation: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.7,
-    shadowRadius: 10,
-  },
-
-  card: {
-    flex: 1,
-    marginTop: -20,
-    backgroundColor: '#242424',
-  },
-  cardContent: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 24,
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
-    marginTop: -20,
-  },
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    textAlign: 'center',
-    marginBottom: 6,
-    letterSpacing: 0.8,
-    lineHeight: 28,
-    textShadowColor: 'rgba(0, 0, 0, 0.05)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
-  },
-  cardDesc: { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 10 },
-
-  form: { marginTop: 8 },
-  field: { marginBottom: 12, marginTop: 8 },
-  fieldBox: { position: 'relative', borderWidth: 1, borderRadius: 12, minHeight: 46, justifyContent: 'center', paddingVertical: 0 },
-  fieldInput: { paddingHorizontal: 16, paddingVertical: 8, fontSize: 14, includeFontPadding: false, textAlignVertical: 'center', height: 46 },
-  pwdInput: { paddingRight: 50 },
-  fieldLabel: {
-    position: 'absolute',
-    zIndex: 10,
-    paddingHorizontal: 4,
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-    transitionProperty: 'all',
-  },
-  eyeBtn: { position: 'absolute', right: 12, top: 12, padding: 4, zIndex: 20 },
-
-  errMsg: { color: '#EF4444', fontSize: 12, textAlign: 'center', marginTop: 8, marginBottom: 4 },
-  loginBtn: { backgroundColor: '#FE6902', paddingVertical: 12, borderRadius: 12, alignItems: 'center', marginTop: 12, marginBottom: 8, elevation: 4 },
-  loginBtnOff: { opacity: 0.6 },
-  loginBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-
-  loaderRow: { flexDirection: 'row', gap: 8 },
-  loaderDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#fff' },
-
-  forgotTxt: { color: '#FE6902', fontSize: 14, textAlign: 'center', marginTop: 8, marginBottom: 12 },
-  rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 8 },
-  checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 2, borderColor: '#FE6902', alignItems: 'center', justifyContent: 'center' },
-  checkboxChecked: { backgroundColor: '#FE6902', borderColor: '#FE6902' },
-  rememberText: { fontSize: 13, fontWeight: '500' },
-  orRow: { alignItems: 'center', marginBottom: 16 },
-  orTxt: { color: '#6b7280', fontSize: 12 },
-  oauthRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  oauthBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
-  oauthBtnDisabled: { opacity: 0.5 },
-  oauthLabel: { fontSize: 14, fontWeight: '500' },
-
-  creditTxt: { textAlign: 'center', color: '#9ca3af', fontSize: 12, marginTop: 8 },
-  creditLink: { color: '#FE6902' },
-});

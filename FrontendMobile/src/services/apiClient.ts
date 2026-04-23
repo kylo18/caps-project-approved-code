@@ -14,6 +14,27 @@ import { showToast } from '../hooks/useToast';
 
 const API_URL = Constants.expoConfig?.extra?.API_URL || 'http://100.91.44.24:8000';
 
+/* ── Global unauthorized handler ─────────────────────────────────────────── */
+let onUnauthorizedCallback: (() => void) | null = null;
+
+export function registerUnauthorizedCallback(callback: () => void) {
+  onUnauthorizedCallback = callback;
+}
+
+async function handleUnauthorized() {
+  // Always clear storage first
+  await SecureStore.deleteItemAsync('token').catch(() => {});
+  await SecureStore.deleteItemAsync('user').catch(() => {});
+  await SecureStore.deleteItemAsync('pushToken').catch(() => {});
+  await SecureStore.deleteItemAsync('rememberMe').catch(() => {});
+  await SecureStore.deleteItemAsync('biometricEnabled').catch(() => {});
+
+  // Notify the app layer (Redux logout + navigation)
+  if (onUnauthorizedCallback) {
+    onUnauthorizedCallback();
+  }
+}
+
 function buildUrl(path: string) {
   const baseUrl = API_URL.replace(/\/$/, '');
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -45,6 +66,9 @@ async function rawApiRequest(
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    if (response.status === 401) {
+      await handleUnauthorized();
+    }
     const error: any = new Error(data.message || 'Request failed');
     error.status = response.status;
     error.data = data;
@@ -162,8 +186,7 @@ axiosClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      await SecureStore.deleteItemAsync('token');
-      await SecureStore.deleteItemAsync('user');
+      await handleUnauthorized();
     }
     return Promise.reject(error);
   }

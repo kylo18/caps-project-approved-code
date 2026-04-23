@@ -1,9 +1,5 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Purpose: Reusable offline connectivity banner.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
 export function OfflineBanner() {
@@ -24,23 +20,8 @@ export function OfflineBanner() {
   if (!isOffline) return null;
 
   return (
-    <View style={styles.banner}>
-      <Text style={styles.text}>You are offline. Some data may be cached.</Text>
+    <View className="flex-row items-center justify-center py-2 px-4" style={{ backgroundColor: '#f59e0b' }}>
+      <Text className="text-white text-xs font-semibold">You are offline. Some data may be cached.</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  banner: {
-    backgroundColor: '#f59e0b',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-});
