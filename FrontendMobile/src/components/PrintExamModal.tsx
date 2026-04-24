@@ -18,9 +18,19 @@ export default function PrintExamModal({ visible, onClose }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [loadError, setLoadError] = useState('');
 
+  // Exam settings
+  const [totalItems, setTotalItems] = useState('20');
+  const [easyPercentage, setEasyPercentage] = useState('30');
+  const [moderatePercentage, setModeratePercentage] = useState('50');
+  const [hardPercentage, setHardPercentage] = useState('20');
+
   useEffect(() => {
     if (visible) {
       setSelectedSubjects([]);
+      setTotalItems('20');
+      setEasyPercentage('30');
+      setModeratePercentage('50');
+      setHardPercentage('20');
       fetchSubjects();
     }
   }, [visible]);
@@ -53,9 +63,27 @@ export default function PrintExamModal({ visible, onClose }) {
   const toggleSubject = (subject) => {
     const exists = selectedSubjects.find(s => s.subjectID === subject.subjectID);
     if (exists) {
-      setSelectedSubjects(prev => prev.filter(s => s.subjectID !== subject.subjectID));
+      // Remove subject and redistribute percentages among remaining
+      const remaining = selectedSubjects.filter(s => s.subjectID !== subject.subjectID);
+      if (remaining.length > 0) {
+        const basePercent = Math.floor(100 / remaining.length);
+        const remainder = 100 - (basePercent * remaining.length);
+        setSelectedSubjects(remaining.map((s, idx) => ({
+          ...s,
+          percentage: basePercent + (idx < remainder ? 1 : 0),
+        })));
+      } else {
+        setSelectedSubjects([]);
+      }
     } else {
-      setSelectedSubjects(prev => [...prev, { ...subject, percentage: 50 }]);
+      // Add subject and redistribute percentages
+      const next = [...selectedSubjects, subject];
+      const basePercent = Math.floor(100 / next.length);
+      const remainder = 100 - (basePercent * next.length);
+      setSelectedSubjects(next.map((s, idx) => ({
+        ...s,
+        percentage: basePercent + (idx < remainder ? 1 : 0),
+      })));
     }
   };
 
@@ -65,15 +93,39 @@ export default function PrintExamModal({ visible, onClose }) {
       return;
     }
 
+    const total = parseInt(totalItems, 10);
+    if (isNaN(total) || total < 1) {
+      showToast('Total items must be at least 1', 'error');
+      return;
+    }
+
+    const easy = parseInt(easyPercentage, 10) || 0;
+    const moderate = parseInt(moderatePercentage, 10) || 0;
+    const hard = parseInt(hardPercentage, 10) || 0;
+    const sum = easy + moderate + hard;
+
+    if (sum !== 100) {
+      showToast(`Difficulty percentages must sum to 100% (currently ${sum}%)`, 'error');
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const response = await apiRequest('/api/generate-multi-subject-exam', {
         method: 'POST',
         body: {
+          total_items: total,
           subjects: selectedSubjects.map(s => ({
             subjectID: s.subjectID,
             percentage: s.percentage || 50,
           })),
+          difficulty_distribution: {
+            easy,
+            moderate,
+            hard,
+          },
+          preview: true,
+          purpose: 'examQuestions',
         },
       });
 
@@ -121,6 +173,19 @@ export default function PrintExamModal({ visible, onClose }) {
     orange: '#FE6902',
   };
 
+  const inputStyle = {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: colors.text,
+    backgroundColor: isDark ? '#111827' : '#f9fafb',
+    fontSize: 14,
+    minWidth: 60,
+    textAlign: 'center',
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View className="flex-1 justify-end" style={{ backgroundColor: colors.bg }}>
@@ -158,47 +223,107 @@ export default function PrintExamModal({ visible, onClose }) {
             </View>
           ) : (
             <>
-              <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>Select Subjects</Text>
-              <ScrollView style={{ maxHeight: 300, marginBottom: 12 }}>
-                {subjects.map(subject => {
-                  const isSelected = selectedSubjects.some(s => s.subjectID === subject.subjectID);
-                  return (
-                    <TouchableOpacity
-                      key={subject.subjectID}
-                      className="flex-row items-center px-3 py-3 rounded-xl border mb-2 gap-3"
-                      style={{
-                        borderColor: isSelected ? colors.orange : colors.border,
-                        backgroundColor: isSelected ? `${colors.orange}15` : 'transparent',
-                      }}
-                      onPress={() => toggleSubject(subject)}
-                      activeOpacity={0.7}
-                    >
-                      <View
-                        className="w-6 h-6 rounded-md border-2 items-center justify-center"
+              <ScrollView style={{ maxHeight: 420 }}>
+                <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>Select Subjects</Text>
+                <View style={{ marginBottom: 12 }}>
+                  {subjects.map(subject => {
+                    const isSelected = selectedSubjects.some(s => s.subjectID === subject.subjectID);
+                    return (
+                      <TouchableOpacity
+                        key={subject.subjectID}
+                        className="flex-row items-center px-3 py-3 rounded-xl border mb-2 gap-3"
                         style={{
                           borderColor: isSelected ? colors.orange : colors.border,
-                          backgroundColor: isSelected ? colors.orange : 'transparent',
+                          backgroundColor: isSelected ? `${colors.orange}15` : 'transparent',
                         }}
+                        onPress={() => toggleSubject(subject)}
+                        activeOpacity={0.7}
                       >
-                        {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                        <View
+                          className="w-6 h-6 rounded-md border-2 items-center justify-center"
+                          style={{
+                            borderColor: isSelected ? colors.orange : colors.border,
+                            backgroundColor: isSelected ? colors.orange : 'transparent',
+                          }}
+                        >
+                          {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                        </View>
+                        <Text className="text-sm font-medium flex-1" numberOfLines={1} style={{ color: colors.text }}>{subject.subjectName}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {selectedSubjects.length > 0 && (
+                  <>
+                    <View className="flex-row items-center gap-2 px-3 py-2.5 rounded-xl mb-3" style={{ backgroundColor: `${colors.orange}15` }}>
+                      <Ionicons name="information-circle" size={18} color={colors.orange} />
+                      <Text className="text-sm" style={{ color: colors.textSecondary }}>
+                        {selectedSubjects.length} subject{selectedSubjects.length > 1 ? 's' : ''} selected
+                      </Text>
+                    </View>
+
+                    {/* Total Items */}
+                    <View className="mb-4">
+                      <Text className="text-sm font-semibold mb-2" style={{ color: colors.textSecondary }}>Total Items</Text>
+                      <TextInput
+                        style={[inputStyle, { textAlign: 'left', minWidth: '100%' }]}
+                        keyboardType="numeric"
+                        value={totalItems}
+                        onChangeText={setTotalItems}
+                        placeholder="Enter total items"
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                    </View>
+
+                    {/* Difficulty Distribution */}
+                    <View className="mb-4">
+                      <Text className="text-sm font-semibold mb-2" style={{ color: colors.textSecondary }}>Difficulty Distribution (%)</Text>
+                      <View className="flex-row justify-between gap-2">
+                        <View className="flex-1">
+                          <Text className="text-xs mb-1" style={{ color: colors.textSecondary }}>Easy</Text>
+                          <TextInput
+                            style={inputStyle}
+                            keyboardType="numeric"
+                            value={easyPercentage}
+                            onChangeText={setEasyPercentage}
+                            placeholder="0"
+                            placeholderTextColor={colors.textSecondary}
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-xs mb-1" style={{ color: colors.textSecondary }}>Moderate</Text>
+                          <TextInput
+                            style={inputStyle}
+                            keyboardType="numeric"
+                            value={moderatePercentage}
+                            onChangeText={setModeratePercentage}
+                            placeholder="0"
+                            placeholderTextColor={colors.textSecondary}
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-xs mb-1" style={{ color: colors.textSecondary }}>Hard</Text>
+                          <TextInput
+                            style={inputStyle}
+                            keyboardType="numeric"
+                            value={hardPercentage}
+                            onChangeText={setHardPercentage}
+                            placeholder="0"
+                            placeholderTextColor={colors.textSecondary}
+                          />
+                        </View>
                       </View>
-                      <Text className="text-sm font-medium flex-1" numberOfLines={1} style={{ color: colors.text }}>{subject.subjectName}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                      <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>
+                        Total: {(parseInt(easyPercentage, 10) || 0) + (parseInt(moderatePercentage, 10) || 0) + (parseInt(hardPercentage, 10) || 0)}%
+                      </Text>
+                    </View>
+                  </>
+                )}
               </ScrollView>
 
-              {selectedSubjects.length > 0 && (
-                <View className="flex-row items-center gap-2 px-3 py-2.5 rounded-xl mb-3" style={{ backgroundColor: `${colors.orange}15` }}>
-                  <Ionicons name="information-circle" size={18} color={colors.orange} />
-                  <Text className="text-sm" style={{ color: colors.textSecondary }}>
-                    {selectedSubjects.length} subject{selectedSubjects.length > 1 ? 's' : ''} selected
-                  </Text>
-                </View>
-              )}
-
               <TouchableOpacity
-                className="flex-row items-center justify-center py-3.5 rounded-xl gap-2"
+                className="flex-row items-center justify-center py-3.5 rounded-xl gap-2 mt-2"
                 style={{ backgroundColor: '#FE6902', opacity: isGenerating || selectedSubjects.length === 0 ? 0.6 : 1 }}
                 onPress={handleGenerateExam}
                 disabled={isGenerating || selectedSubjects.length === 0}
