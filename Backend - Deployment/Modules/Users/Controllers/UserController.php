@@ -110,7 +110,7 @@ class UserController extends Controller
             $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
         }
 
-        return response()->json([
+        $profile = [
             'userCode' => $user->userCode,
             'email' => $user->email,
             'firstName' => $user->firstName,
@@ -119,7 +119,18 @@ class UserController extends Controller
             'fullName' => $user->firstName . ' ' . $user->lastName,
             'remarks' => $remarks,
             'curriculum' => $curriculum,
-        ], 200);
+        ];
+
+        if ($user->roleID == 1 && $user->student) {
+            $profile['yearLevel'] = $user->student->yearLevel;
+            $profile['student_profile'] = [
+                'year_level' => $user->student->yearLevel,
+                'block' => $user->student->block,
+                'programID' => $user->student->programID,
+            ];
+        }
+
+        return response()->json($profile, 200);
     }
 
     /**
@@ -565,7 +576,7 @@ class UserController extends Controller
 
     private function buildUserQuery(Request $request)
     {
-        $query = User::with(['role', 'campus', 'program', 'status']);
+        $query = User::with(['role', 'campus', 'program', 'status', 'student']);
         $user = Auth::user();
 
         // Apply role-based filters
@@ -737,6 +748,12 @@ class UserController extends Controller
                               'status' => $user->status ? $user->status->name : 'Unknown',
                               'remarks' => $remarks,
                               'curriculum' => $curriculum,
+                              'yearLevel' => $user->student ? $user->student->yearLevel : null,
+                              'student_profile' => $user->student ? [
+                                  'year_level' => $user->student->yearLevel,
+                                  'block' => $user->student->block,
+                                  'programID' => $user->student->programID,
+                              ] : null,
                           ];
                       });
 

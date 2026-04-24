@@ -128,40 +128,13 @@ class SocialAuthController extends Controller
     {
         $providerId = $provider . '_id';
 
-        // 1. Try finding the user by their social ID first (already linked).
+        // STRICT CHECK: Only allow login if the social ID is already explicitly linked in our database.
         $user = User::where($providerId, $oauthUser->getId())->first();
 
-        // 2. FALLBACK: If not found by social ID, try finding by email (auto-linking).
-        if (!$user && $oauthUser->getEmail()) {
-            $user = User::where('email', $oauthUser->getEmail())->first();
-
-            if ($user) {
-                try {
-                    // Auto-link the social ID to this account
-                    $user->{$providerId} = $oauthUser->getId();
-                    $user->save();
-
-                    Log::info('Social account auto-linked via email matching.', [
-                        'provider' => $provider,
-                        'userID' => $user->userID,
-                        'email' => $user->email,
-                    ]);
-                } catch (\Exception $e) {
-                    Log::error('Failed to auto-link social account: ' . $e->getMessage(), [
-                        'provider' => $provider,
-                        'userID' => $user->userID,
-                        'email' => $user->email,
-                    ]);
-                    // Continue as $user is found but linking failed. 
-                    // The next check will handle account status.
-                }
-            }
-        }
-
         if (!$user) {
-            Log::warning('Social login attempt failed: Account not found or linked.', [
-                'provider' => $provider,
-                'email' => $oauthUser->getEmail(),
+            Log::warning('Social login attempt failed: Account not linked.', [
+                'provider'  => $provider,
+                'email'     => $oauthUser->getEmail(),
                 'social_id' => $oauthUser->getId(),
             ]);
 
@@ -311,6 +284,83 @@ class SocialAuthController extends Controller
         $host = $request->getHost() ?: parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
 
         return "{$scheme}://{$host}:5173";
+    }
+
+    // Mobile Google Login — accepts a Google ID token directly from a native app.
+    public function mobileGoogleLogin(Request $request)
+    {
+        try {
+            $request->validate([
+                'idToken' => 'required|string',
+                'email' => 'required|email',
+                'name' => 'nullable|string',
+                'providerId' => 'nullable|string',
+            ]);
+
+            // Verify the Google ID token via Google's tokeninfo endpoint
+            $idToken = $request->input('idToken');
+            $tokenInfoUrl = 'https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($idToken);
+            $tokenInfoResponse = @file_get_contents($tokenInfoUrl);
+
+            if (!$tokenInfoResponse) {
+                return response()->json(['message' => 'Unable to verify Google ID token'], 401);
+            }
+
+            $googlePayload = json_decode($tokenInfoResponse, true);
+
+            if (isset($googlePayload['error']) || empty($googlePayload['email'])) {
+                return response()->json(['message' => 'Invalid Google ID token'], 401);
+            }
+
+            // Ensure the token email matches the request email
+            if ($googlePayload['email'] !== $request->input('email')) {
+                return response()->json(['message' => 'Email mismatch with Google token'], 401);
+            }
+
+            $providerId = $request->input('providerId') ?? ($googlePayload['sub'] ?? null);
+
+            // STRICT CHECK: Only allow login if the Google ID is already explicitly linked.
+            $user = $providerId ? User::where('google_id', $providerId)->first() : null;
+
+            if (!$user) {
+                return response()->json([
+                    'message' => 'This Google account is not linked to a CAPS account. Please log in normally and link it in your settings.',
+                ], 404);
+            }
+
+            // Status checks (mirror handleOAuthUser logic)
+            $pendingStatusId = \DB::table('statuses')->where('name', 'pending')->first()->id ?? null;
+            if ($pendingStatusId && $user->status_id === $pendingStatusId) {
+                return response()->json([
+                    'message' => 'Your account is pending approval. Please wait for administrator verification.',
+                ], 403);
+            }
+
+            if (!$user->isActive) {
+                return response()->json([
+                    'message' => 'Your account is inactive. Please contact an administrator to reactivate your account.',
+                ], 403);
+            }
+
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'token' => $token,
+                'user' => $user,
+                'message' => 'Authenticated successfully',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Mobile Google login error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to authenticate with Google.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     // Links an OAuth provider to an already authenticated CAPS account after token verification.

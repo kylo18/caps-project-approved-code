@@ -84,6 +84,12 @@ class User extends Authenticatable
         return $this->hasMany(FacultySubject::class, 'facultyID');
     }
 
+    // 🔹 Relationship: User may have a student profile
+    public function student(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Student::class, 'userCode', 'userCode');
+    }
+
     // 🔹 Check if the user is a Dean
     public function isDean(): bool
     {
