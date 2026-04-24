@@ -28,8 +28,6 @@ import PrintIconH from "/src/assets/symbols/printhover.svg";
 import SessionsIcon from "/src/assets/symbols/sessions.svg";
 import SessionsIconH from "/src/assets/symbols/sessionshover.svg";
 
-import ReportsIcon from "/src/assets/symbols/reports.svg";
-import ReportsIconH from "/src/assets/symbols/reportshover.svg";
 
 import SupportIcon from "/src/assets/symbols/support.svg";
 import SupportIconH from "/src/assets/symbols/supporthover.svg";
@@ -264,6 +262,18 @@ const Sidebar = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showAnalyticsPopup]);
+
+  // Close Support popup when clicking outside
+  useEffect(() => {
+    if (activeMenu !== "Support") return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest("[data-support-popup]")) {
+        setActiveMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [activeMenu]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -652,9 +662,12 @@ const Sidebar = ({
       { label: "More", path: null, icon: "bx bx-dots-horizontal-rounded", more: true },
     ]
     : [
+      { label: "Users",    path: "/users",     image: UsersIcon,    activeImage: UsersIconH    },
       { label: "Classes",  path: "/class",     image: ClassIcon,    activeImage: ClassIconH    },
       { label: "Home",     path: homeItem?.path || "/", icon: "bx-home-alt-3", home: true     },
       { label: "Sessions", path: "/sessions",  image: SessionsIcon, activeImage: SessionsIconH },
+      { label: "More",     path: null,         icon: "bx bx-dots-horizontal-rounded", more: true },
+      
     ];
     
     return (
@@ -682,7 +695,7 @@ const Sidebar = ({
                       </button>
 
                       {/* Popup box above More button */}
-                      {showMoreDrawer && (
+                      {showMoreDrawer && parsedRoleId === 1 && (
                         <div className="absolute bottom-[52px] right-[-60px] z-[70] w-[200px] rounded-2xl border border-gray-200 bg-white shadow-xl p-3">
                           {/* Arrow pointer */}
                           <div className="absolute bottom-[-7px] right-[72px] h-3 w-3 rotate-45 border-b border-r border-gray-200 bg-white"></div>
@@ -692,10 +705,9 @@ const Sidebar = ({
                           </p>
                           <div className="flex flex-col gap-1">
                             {[
-                              { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
+                              { label: " My Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
                               { label: "Content", path: "/analytics/content-analytics", icon: "bx bx-file" },
-                              { label: "Difficult", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
-                              { label: "Enhancement", path: "/analytics/enhancement", icon: "bx bx-bar-chart-square" },
+                              { label: "Difficulty", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
                             ].map((moreItem) => (
                               <Link
                                 key={moreItem.label}
@@ -711,6 +723,57 @@ const Sidebar = ({
                                 <span className="outfit-500 text-[13px]">{moreItem.label}</span>
                               </Link>
                             ))}
+                          </div>
+                        </div>
+                      )}
+                      {showMoreDrawer && parsedRoleId !== 1 && (
+                        <div className="absolute bottom-[52px] right-[-60px] z-[70] w-[200px] rounded-2xl border border-gray-200 bg-white shadow-xl p-3">
+                          <div className="absolute bottom-[-7px] right-[72px] h-3 w-3 rotate-45 border-b border-r border-gray-200 bg-white"></div>
+                          <p className="outfit-500 mb-2 px-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">More options</p>
+                          <div className="flex flex-col gap-1">
+                            <Link
+                              to="/libraries"
+                              onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                              className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${isActive("/libraries") ? "bg-orange-50 text-orange-600" : "text-gray-600"}`}
+                            >
+                              <img src={isActive("/libraries") ? LibrariesIconH : LibrariesIcon} alt="Quizzes" className="h-[18px] w-[18px] object-contain" />
+                              <span className="outfit-500 text-[13px]">Quizzes</span>
+                            </Link>
+                            <Link
+                              to={parsedRoleId === 4 ? "/dean/subjects" : parsedRoleId === 5 ? "/asso-dean/subjects" : parsedRoleId === 3 ? "/program-chair/subjects" : "/faculty/subjects"}
+                              onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                              className="flex items-center gap-3 rounded-xl px-3 py-2 text-gray-600 transition-colors hover:bg-gray-100"
+                            >
+                              <img src={SubjectsIcon} alt="Subjects" className="h-[18px] w-[18px] object-contain" />
+                              <span className="outfit-500 text-[13px]">Subjects</span>
+                            </Link>
+                            {(parsedRoleId === 4 || parsedRoleId === 5) && (
+                              <Link
+                                to="/admin/enhancement"
+                                onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                                className="flex items-center gap-3 rounded-xl px-3 py-2 text-gray-600 transition-colors hover:bg-gray-100"
+                              >
+                                <i className="bx bx-bar-chart-square text-[18px]"></i>
+                                <span className="outfit-500 text-[13px]">Enhancement</span>
+                              </Link>
+                            )}
+                            <button
+                              onClick={() => { setShowMoreDrawer(false); setShowPrintModal(true); }}
+                              className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-gray-600 transition-colors hover:bg-gray-100"
+                            >
+                              <img src={PrintIcon} alt="Export" className="h-[18px] w-[18px] object-contain" />
+                              <span className="outfit-500 text-[13px]">Export</span>
+                            </button>
+                            {(parsedRoleId === 4 || parsedRoleId === 5) && (
+                              <Link
+                                to="/reports"
+                                onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                                className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${isActive("/reports") ? "bg-orange-50 text-orange-600" : "text-gray-600"}`}
+                              >
+                                <i className="bx bx-clipboard text-[18px]"></i>
+                                <span className="outfit-500 text-[13px]">Reports</span>
+                              </Link>
+                            )}
                           </div>
                         </div>
                       )}
@@ -764,17 +827,12 @@ const Sidebar = ({
     );
   }
 
-  // Desktop sidebar
-  const handleSupportClick = () => {
-    navigate("/support");
-  };
-
   return (
     <>
       {/* Sidebar yes*/}
       <div
         ref={sidebarRef}
-        className={`border-color fixed top-0 left-0 z-55 h-[100vh] border-r border-gray-200 bg-white ${
+        className={`border-color fixed top-0 left-0 z-55 flex h-[100vh] flex-col border-r border-gray-200 bg-white ${
           isUsersPage ? "w-[63px]" : "w-[220px]"
         }`}
       >
@@ -912,6 +970,7 @@ const Sidebar = ({
           )}
         </div>
         
+        <div className="min-h-0 flex-1 overflow-y-auto pb-3">
         {/* Sidebar menu items */}
         <ul className="mt-2 mb-3 space-y-[5px] px-0">
           {menuItems.map((item, index) => {
@@ -1266,61 +1325,31 @@ const Sidebar = ({
                   </div>
                 </li>
               )}
-
-
-
-              {/* Reports button below Print */}
+              
+              {/* Reports button */}
               <li className="group relative">
                 <span
                   className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                    activeMenu === "Reports"
-                      ? "bg-orange-500"
-                      : "bg-transparent"
+                    isActive("/reports") ? "bg-orange-500" : "bg-transparent"
                   }`}
                 ></span>
                 <div className="px-3">
-                  <button
-                    onClick={() => {
-                      setActiveMenu("Reports");
-                      navigate("/reports");
-                    }}
+                  <Link
+                    to="/reports"
+                    onClick={handleMenuClick}
                     className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                      isUsersPage
-                        ? "justify-center py-[10px]"
-                        : "justify-start py-[6px]"
-                    } ${
-                      activeMenu === "Reports"
-                        ? "bg-gray-100 text-orange-600"
-                        : ""
-                    }`}
+                      isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"
+                    } ${isActive("/reports") ? "bg-gray-100 text-orange-600" : ""}`}
                   >
-                    <div
-                      className={`flex items-center ${
-                        isUsersPage ? "justify-center" : "ml-3 gap-[10px]"
-                      }`}
-                    >
-                      <img
-                        src={
-                          activeMenu === "Reports" ? ReportsIconH : ReportsIcon
-                        }
-                        alt="Reports"
-                        className={`${
-                          isUsersPage ? "size-[20px]" : "size-[20px]"
-                        } flex-shrink-0`}
-                      />
+                    <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-[10px]"}`}>
+                      <i className={`bx bx-clipboard flex-shrink-0 text-[20px] ${isActive("/reports") ? "text-orange-500" : "text-gray-600"}`}></i>
                       {!isUsersPage && (
-                        <span
-                          className={`outfit-500 text-[15px] whitespace-nowrap ${
-                            activeMenu === "Reports"
-                              ? "text-black"
-                              : "text-gray-600"
-                          }`}
-                        >
+                        <span className={`outfit-500 text-[15px] whitespace-nowrap ${isActive("/reports") ? "text-black" : "text-gray-600"}`}>
                           Reports
                         </span>
                       )}
                     </div>
-                  </button>
+                  </Link>
                   {isUsersPage && (
                     <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
                       Reports
@@ -1328,6 +1357,7 @@ const Sidebar = ({
                   )}
                 </div>
               </li>
+
             </ul>
           </div>
         )}
@@ -1408,6 +1438,9 @@ const Sidebar = ({
                   </div>
                 </li>
               ))}
+
+
+
               {/* Export button below Subjects */}
               {parsedRoleId >= 3 && (
                 <li className="group relative">
@@ -1463,61 +1496,9 @@ const Sidebar = ({
                   </div>
                 </li>
               )}
-              {/* Reports button below Print */}
-              <li className="group relative">
-                <span
-                  className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                    activeMenu === "Reports"
-                      ? "bg-orange-500"
-                      : "bg-transparent"
-                  }`}
-                ></span>
-                <div className="px-3">
-                  <button
-                    onClick={() => {
-                      setActiveMenu("Reports");
-                      navigate("/reports");
-                    }}
-                    className={`group flex w-full cursor-pointer items-center rounded-lg py-[6px] transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                      isUsersPage ? "justify-center" : "justify-start"
-                    } ${
-                      activeMenu === "Reports"
-                        ? "bg-gray-100 text-orange-600"
-                        : ""
-                    }`}
-                  >
-                    <div
-                      className={`flex items-center ${
-                        isUsersPage ? "justify-center" : "ml-3 gap-[10px]"
-                      }`}
-                    >
-                      <img
-                        src={
-                          activeMenu === "Reports" ? ReportsIconH : ReportsIcon
-                        }
-                        alt="Reports"
-                        className="size-[20px] flex-shrink-0"
-                      />
-                      {!isUsersPage && (
-                        <span
-                          className={`outfit-500 text-[15px] whitespace-nowrap ${
-                            activeMenu === "Reports"
-                              ? "text-black"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          Reports
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                  {isUsersPage && (
-                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
-                      Reports
-                    </span>
-                  )}
-                </div>
-              </li>
+
+
+
             </ul>
           </div>
         )}
@@ -1656,81 +1637,22 @@ const Sidebar = ({
                   </div>
                 </li>
               )}
-              {/* Reports button below Print */}
-              <li className="group relative">
-                <span
-                  className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${
-                    activeMenu === "Reports"
-                      ? "bg-orange-500"
-                      : "bg-transparent"
-                  }`}
-                ></span>
-                <div className="px-3">
-                  <button
-                    onClick={() => {
-                      setActiveMenu("Reports");
-                      navigate("/reports");
-                    }}
-                    className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
-                      isUsersPage
-                        ? "justify-center py-[10px]"
-                        : "justify-start py-[6px]"
-                    } ${
-                      activeMenu === "Reports"
-                        ? "bg-gray-100 text-orange-600"
-                        : ""
-                    }`}
-                  >
-                    <div
-                      className={`flex items-center ${
-                        isUsersPage ? "justify-center" : "ml-3 gap-[10px]"
-                      }`}
-                    >
-                      <img
-                        src={
-                          activeMenu === "Reports" ? ReportsIconH : ReportsIcon
-                        }
-                        alt="Reports"
-                        className={`${
-                          isUsersPage ? "size-[20px]" : "size-[20px]"
-                        } flex-shrink-0`}
-                      />
-                      {!isUsersPage && (
-                        <span
-                          className={`outfit-500 text-[15px] whitespace-nowrap ${
-                            activeMenu === "Reports"
-                              ? "text-black"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          Reports
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                  {isUsersPage && (
-                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
-                      Reports
-                    </span>
-                  )}
-                </div>
-              </li>
+              
+
             </ul>
           </div>
         )}
+        
+        </div>
         {/* Support button at the bottom */}
-        <div className="absolute bottom-4 left-0 w-full">
-          <div className="px-3">
+        <div className="mt-auto border-t border-gray-200 bg-white px-3 py-3">
+          {/* Support popup trigger */}
+          <div className="relative" data-support-popup>
             <button
-              onClick={() => {
-                setActiveMenu("Support");
-                handleSupportClick();
-              }}
+              onClick={() => setActiveMenu(activeMenu === "Support" ? null : "Support")}
               className={`group mb-2 flex w-full cursor-pointer items-center rounded-lg py-[8px] transition-colors hover:bg-gray-100 hover:text-gray-800 ${
                 isUsersPage ? "justify-center" : "justify-start"
-              } ${
-                activeMenu === "Support" ? "bg-gray-100 text-orange-600" : ""
-              }`}
+              } ${activeMenu === "Support" ? "bg-gray-100 text-orange-600" : ""}`}
             >
               <div
                 className={`flex items-center ${
@@ -1742,17 +1664,64 @@ const Sidebar = ({
                   alt="Support"
                   className="size-[20px] flex-shrink-0"
                 />
-                {!isUsersPage && ( //this is for help and support
+                {!isUsersPage && (
                   <span className="outfit-500 text-[15px] whitespace-nowrap text-gray-600">
-                    Help & Support
+                    Support
                   </span>
                 )}
               </div>
             </button>
+
+            {/* Popup */}
+            {activeMenu === "Support" && (
+              <div className="absolute bottom-full left-0 z-[70] mb-2 w-[200px] rounded-2xl border border-gray-200 bg-white p-3 shadow-xl">
+                {/* Arrow pointer */}
+                <div className="absolute -bottom-[7px] left-4 h-3 w-3 rotate-45 border-r border-b border-gray-200 bg-white"></div>
+                  <div className="flex flex-col gap-1">
+                    {parsedRoleId >= 2 && (
+                    <button
+                      onClick={() => {
+                        setActiveMenu(null);
+                        navigate("/support?tab=reports");
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-gray-600 transition-colors hover:bg-gray-100"
+                    >
+                      <i className="bx bx-clipboard text-[18px]"></i>
+                      <span className="outfit-500 text-[13px]">All Reports</span>
+                    </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setActiveMenu(null);
+                        navigate("/support?tab=help");
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-gray-600 transition-colors hover:bg-gray-100"
+                    >
+                      <i className="bx bx-help-circle text-[18px]"></i>
+                      <span className="outfit-500 text-[13px]">Help & FAQs</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setActiveMenu(null);
+                        navigate("/support?tab=tickets");
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-gray-600 transition-colors hover:bg-gray-100"
+                    >
+                      <i className="bx bx-receipt text-[18px]"></i>
+                      <span className="outfit-500 text-[13px]">
+                        My Tickets
+                      </span>
+                    </button>
+
+                  </div>
+              </div>
+            )}
           </div>
           <div className="px-3">
             <div className="mb-2 h-[1.5px] w-full bg-gray-200"></div>{" "}
-            <button
+              <button
               onClick={() => {
                 navigate("/team-caps");
               }}

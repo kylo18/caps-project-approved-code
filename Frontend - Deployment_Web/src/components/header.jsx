@@ -479,11 +479,21 @@ const AdminHeader = ({ title, className = "" }) => {
                 </div>
 
                 <div className="mx-1 h-[1px] bg-[rgb(200,200,200)]" />
+
+                {[4, 5].includes(Number(userInfo?.roleID)) && (
+                  <button
+                    onClick={() => { setDropdownOpen(false); navigate("/support?tab=reports"); }}
+                    className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                  >
+                    <i className="bx bx-clipboard mr-2 text-[16px]"></i> All Reports
+                  </button>
+                )}
+
                 <button
-                  onClick={() => setShowProfileModal(true)}
-                  className="mt-1 flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                  onClick={() => { setDropdownOpen(false); navigate("/support?tab=help"); }}
+                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i className="bx bx-cog mr-2 text-[16px]"></i> Settings
+                  <i className="bx bx-help-circle mr-2 text-[16px]"></i> Ask Help
                 </button>
 
                 <button
@@ -495,11 +505,20 @@ const AdminHeader = ({ title, className = "" }) => {
                   <i className="bx bx-moon mr-2 text-[16px]"></i> Dark Mode
                 </button>
 
+                
+
                 <button
-                  onClick={() => { setDropdownOpen(false); navigate("/support"); }}
+                  onClick={() => { setDropdownOpen(false); navigate("/support?tab=tickets"); }}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i className="bx bx-message-question-mark mr-2 text-[16px]"></i> Help & Support
+                  <i className="bx bx-receipt mr-2 text-[16px]"></i> My Tickets
+                </button>
+
+                <button
+                  onClick={() => setShowProfileModal(true)}
+                  className="mt-1 flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                >
+                  <i className="bx bx-cog mr-2 text-[16px]"></i> Settings
                 </button>
 
                 {/*
@@ -535,6 +554,9 @@ const AdminHeader = ({ title, className = "" }) => {
                     "Log out"
                   )}
                 </button>
+
+                
+
               </div>
             )}
           </div>

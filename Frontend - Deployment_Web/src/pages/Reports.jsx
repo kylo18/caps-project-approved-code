@@ -246,7 +246,7 @@ const Reports = () => {
                 </span>
               </button>
 
-              {/*new added: for user-specific reports */}
+              {/*new added: for user-specific reports *
               {isFaculty && (
                 <button
                   onClick={() => {
@@ -264,7 +264,7 @@ const Reports = () => {
                     All Reports
                   </span>
                 </button>
-              )}
+              )}*/}
             </div>
 
             {/* Tab Content */}
