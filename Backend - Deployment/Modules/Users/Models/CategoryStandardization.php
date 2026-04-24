@@ -5,7 +5,7 @@ namespace Modules\Users\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class CategoryNormalization extends Model
+class CategoryStandardization extends Model
 {
     protected $table = 'category_normalization';
     
