@@ -2311,7 +2311,7 @@ const UserList = () => {
                           />
                         </th>
                       )}
-                      <th className={`py-3 text-left text-[12px] font-medium tracking-wider text-gray-600 uppercase ${activeView === "faculty" ? "pl-4" : ""}`}>
+                      <th className={`py-3 text-left text-[12px] font-medium tracking-wider text-gray-600 uppercase ${(!canManageUsers) ? "pl-4" : ""}`}>
                         User Information
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-medium tracking-wider text-gray-600 uppercase">
@@ -2362,7 +2362,7 @@ const UserList = () => {
                             />
                           </td>
                         )}
-                        <td className={`py-2 whitespace-nowrap ${(user.roleID === 2 || user.roleID === 3) ? "pl-4" : ""}`}>
+                        <td className={`py-2 whitespace-nowrap ${(!canManageUsers) ? "pl-4" : ""}`}>
                           <div className="flex items-center gap-3">
                             <div className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-gray-100">
                               <img

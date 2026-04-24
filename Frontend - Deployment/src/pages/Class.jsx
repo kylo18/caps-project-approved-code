@@ -10,6 +10,7 @@ import WarningModal from "../components/WarningModal";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import emptyImage from "../assets/icons/empty.png";
+import ClassWalkthroughModal from "../components/ClassWalkthroughModal";
 
 import BlueBackground from "/src/assets/backgrounds/blue.png";
 import GreenBackground from "/src/assets/backgrounds/green.png";
@@ -61,6 +62,16 @@ const Class = () => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const mobileSearchInputRef = useRef(null);
   const joinInputRefs = useRef([]);
+
+  /* Walkthrough — auto-open once per device */
+  const WALKTHROUGH_KEY = "class_walkthrough_v1_seen";
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
+  useEffect(() => {
+    if (!localStorage.getItem(WALKTHROUGH_KEY)) {
+      setShowWalkthrough(true);
+      localStorage.setItem(WALKTHROUGH_KEY, "true");
+    }
+  }, []);
 
   const handleJoinOtpChange = (index, value) => {
     const cleanValue = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
@@ -523,6 +534,10 @@ const Class = () => {
   return (
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
+
+      {showWalkthrough && (
+        <ClassWalkthroughModal onClose={() => setShowWalkthrough(false)} />
+      )}
       <div className="scrollbar-hide mt-10 flex min-h-screen flex-1 flex-col gap-6 overflow-y-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] lg:mt-0 [&::-webkit-scrollbar]:hidden">
         <div className="min-w-0 space-y-4 px-4 pt-4 md:px-6 md:pt-6">
           <SearchBar
@@ -554,9 +569,9 @@ const Class = () => {
                     type="button"
                     onClick={() => setIsCreateModalOpen(true)}
                     title="Create class"
-                    className="outfit-500 -mb-2 hidden cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:inline-flex md:text-[14px]"
+                    className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:text-[14px]"
                   >
-                    <i className="bxx bx-plus text-[20px]"></i>
+                    <i className="bx bx-plus text-[20px]"></i>
                   </button>
                   <SearchBarTrigger
                     isOpen={showMobileSearch}
@@ -587,7 +602,7 @@ const Class = () => {
                     setShowJoinForm(true);
                     resetJoinForm();
                   }}
-                  className="outfit-500 -mb-2 hidden cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:inline-flex md:text-[14px]"
+                  className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:text-[14px]"
                 >
                   <i className="bxx bx-plus text-[20px]"></i>
                 </button>
@@ -692,7 +707,10 @@ const Class = () => {
                           decoding="async"
                           className="absolute inset-0 h-full w-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-black/10" aria-hidden="true" />
+                        <div
+                          className="absolute inset-0 bg-black/10"
+                          aria-hidden="true"
+                        />
                         <div className="relative z-10 pr-16 md:flex md:h-full md:flex-col md:justify-between md:pr-0">
                           <div>
                             <div className="mb-4 hidden text-xs font-medium text-white opacity-90 md:block">
@@ -995,18 +1013,32 @@ const Class = () => {
         )}
       </div>
 
-      {/* Floating Create Class button (mobile only) - same as Libraries */}
-      {userRole !== 1 && (
-        <div className="fixed right-4 bottom-[110px] z-50 md:hidden">
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="outfit-400 flex cursor-pointer items-center gap-2 rounded-full bg-orange-500 p-4 text-[14px] font-medium text-white shadow-xl transition-colors hover:bg-orange-600"
+      {/* Floating Help button — opens walkthrough */}
+      <div className="fixed right-4 bottom-[110px] z-50 md:right-6 md:bottom-6">
+        <button
+          type="button"
+          onClick={() => setShowWalkthrough(true)}
+          title="How classes work"
+          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-orange-500 text-white shadow-lg transition hover:bg-orange-600 active:scale-90"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-circle-question-mark-icon lucide-circle-question-mark"
           >
-            <i className="bx bx-plus text-[22px]" />
-          </button>
-        </div>
-      )}
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <path d="M12 17h.01" />
+          </svg>
+        </button>
+      </div>
     </>
   );
 };

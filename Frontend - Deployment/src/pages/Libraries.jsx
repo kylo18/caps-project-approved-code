@@ -27,6 +27,7 @@ import Collections from "./Collections";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
+import QuizWalkthroughModal from "../components/QuizWalkthroughModal";
 
 // Program colors + icons for the grid cards
 const PROGRAM_COLORS = [
@@ -267,6 +268,16 @@ function Libraries() {
   // Multi-selection state
   const [selectedQuizzes, setSelectedQuizzes] = useState([]);
   const [roleId, setRoleId] = useState(null);
+
+  /* Walkthrough — auto-open once per device */
+  const WALKTHROUGH_KEY = "quiz_walkthrough_v1_seen";
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
+  useEffect(() => {
+    if (!localStorage.getItem(WALKTHROUGH_KEY)) {
+      setShowWalkthrough(true);
+      localStorage.setItem(WALKTHROUGH_KEY, "true");
+    }
+  }, []);
 
   useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem("user") || "{}");
@@ -1009,6 +1020,9 @@ function Libraries() {
 
   return (
     <div className="flex min-h-screen">
+      {showWalkthrough && (
+        <QuizWalkthroughModal onClose={() => setShowWalkthrough(false)} />
+      )}
       {/* Library left panel (only visible on Libraries page) */}
       <aside className="fixed top-0 left-[63px] hidden h-screen w-56 overflow-hidden border-r border-gray-200 bg-white px-4 py-4 lg:block lg:w-64">
         <h2 className="outfit-500 mb-4 text-[16px] tracking-wide text-black">
@@ -1149,8 +1163,8 @@ function Libraries() {
                     resetForm();
                     setShowForm(true);
                   }}
-                  title="Create class"
-                  className="outfit-500 -mb-2 hidden cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:inline-flex md:text-[14px] lg:hidden"
+                  title="Create quiz"
+                  className="outfit-500 -mb-2 inline-flex cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:text-[14px] lg:hidden"
                 >
                   <i className="bxx bx-plus text-[20px]"></i>
                 </button>
@@ -2286,21 +2300,32 @@ function Libraries() {
         </div>
       )}
 
-      {/* Floating Create Quiz button (mobile only) */}
-      {activeView === "my-quizzes" && !showForm && (
-        <div className="fixed right-4 bottom-[110px] z-50 md:hidden">
-          <button
-            type="button"
-            onClick={() => {
-              resetForm();
-              setShowForm(true);
-            }}
-            className="outfit-400 flex cursor-pointer items-center gap-2 rounded-full bg-orange-500 p-4 text-[14px] font-medium text-white shadow-xl transition-colors hover:bg-orange-600"
+      {/* Floating Help button — opens walkthrough */}
+      <div className="fixed right-4 bottom-[110px] z-50 md:right-6 md:bottom-6">
+        <button
+          type="button"
+          onClick={() => setShowWalkthrough(true)}
+          title="How quizzes work"
+          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-orange-500 text-white shadow-lg transition hover:bg-blue-700 active:scale-90"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-circle-question-mark-icon lucide-circle-question-mark"
           >
-            <i className="bx bx-plus text-[22px]" />
-          </button>
-        </div>
-      )}
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <path d="M12 17h.01" />
+          </svg>
+        </button>
+      </div>
 
       {activeView === "shared-with-me" && <SharedWithMe />}
       {activeView === "all-activities" && <AllActivities />}

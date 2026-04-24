@@ -161,16 +161,67 @@ export default function PrintQualifyingExam() {
       ? subjects.map((s) => s.subjectName).join(", ")
       : "Qualifying Examination";
 
-  // Function to force all oklch colors to safe values before PDF
-  const forceSafeColors = (element) => {
-    const all = element.querySelectorAll("*");
-    for (let el of all) {
-      const style = getComputedStyle(el);
-      if (style.color && style.color.includes("oklch")) {
-        el.style.color = "#222";
+  // Sanitize a cloned document to remove oklch() colors before html2canvas renders it.
+  // This runs inside html2canvas's `onclone` callback so the live DOM is never touched.
+  const sanitizeClonedDoc = (clonedDoc) => {
+    const oklchRegex = /oklch\([^)]*\)/gi;
+    for (const sheet of clonedDoc.styleSheets) {
+      try {
+        const rules = sheet.cssRules || sheet.rules;
+        if (!rules) continue;
+        let hasOklch = false;
+        let sanitizedCss = "";
+        for (const rule of rules) {
+          if (rule.cssText && rule.cssText.includes("oklch")) {
+            hasOklch = true;
+            sanitizedCss +=
+              rule.cssText.replace(oklchRegex, "transparent") + "\n";
+          } else {
+            sanitizedCss += (rule.cssText || "") + "\n";
+          }
+        }
+        if (hasOklch) {
+          sheet.disabled = true;
+          const cleanStyle = clonedDoc.createElement("style");
+          cleanStyle.textContent = sanitizedCss;
+          clonedDoc.head.appendChild(cleanStyle);
+        }
+      } catch (e) {
+        // Cross-origin stylesheets will throw - skip them
       }
-      if (style.backgroundColor && style.backgroundColor.includes("oklch")) {
-        el.style.backgroundColor = "#fff";
+    }
+    const colorProps = [
+      "color",
+      "backgroundColor",
+      "borderColor",
+      "borderTopColor",
+      "borderRightColor",
+      "borderBottomColor",
+      "borderLeftColor",
+      "outlineColor",
+      "textDecorationColor",
+      "caretColor",
+      "columnRuleColor",
+      "fill",
+      "stroke",
+    ];
+    const elements = clonedDoc.querySelectorAll("*");
+    for (const el of elements) {
+      const style = clonedDoc.defaultView.getComputedStyle(el);
+      for (const prop of colorProps) {
+        const val = style[prop];
+        if (val && val.includes("oklch")) {
+          if (prop === "color" || prop === "fill") {
+            el.style[prop] = "#222";
+          } else if (prop === "backgroundColor") {
+            el.style[prop] = "transparent";
+          } else {
+            el.style[prop] = "#d1d5db";
+          }
+        }
+      }
+      if (style.boxShadow && style.boxShadow.includes("oklch")) {
+        el.style.boxShadow = "none";
       }
     }
   };
@@ -185,7 +236,7 @@ export default function PrintQualifyingExam() {
             resolve();
           } else {
             img.onload = resolve;
-            img.onerror = resolve; // resolve even if image fails to load
+            img.onerror = resolve;
           }
         }),
     );
@@ -199,40 +250,36 @@ export default function PrintQualifyingExam() {
       const element = pdfContentRef.current;
       if (!element) throw new Error("Content not found");
 
-      forceSafeColors(element);
-      await waitForImagesToLoad(element); // Wait for all images to load
+      await waitForImagesToLoad(element);
+
+      const html2canvasOptions = {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        letterRendering: true,
+        backgroundColor: "#ffffff",
+        onclone: sanitizeClonedDoc,
+      };
 
       const pdf = new jsPDF("p", "mm", "a4");
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const margin = 10; // Reduced from 20mm to 10mm
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const margin = 10;
       const contentWidth = imgWidth - margin * 2;
       const contentHeight = pageHeight - margin * 2;
 
-      // Get the header section and question containers
-      const headerSection = element.querySelector(".exam-header"); // Header with logos
+      const headerSection = element.querySelector(".exam-header");
       const questionContainers = element.querySelectorAll(
         ".question-container",
       );
-      // const answerKeySection = element.querySelector(".answer-key-page-break"); // REMOVE
 
       let currentY = margin;
       let currentPage = 0;
 
-      // First, add the header to the first page
       if (headerSection) {
-        console.log("Header section found:", headerSection);
-        const headerCanvas = await html2canvas(headerSection, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          letterRendering: true,
-          backgroundColor: "#ffffff",
-        });
-
+        const headerCanvas = await html2canvas(headerSection, html2canvasOptions);
         const headerHeight =
           (headerCanvas.height * contentWidth) / headerCanvas.width;
-
         pdf.addImage(
           headerCanvas.toDataURL("image/png"),
           "PNG",
@@ -241,66 +288,20 @@ export default function PrintQualifyingExam() {
           contentWidth,
           headerHeight,
         );
-
-        currentY += headerHeight + 10; // Add 10mm spacing after header
-      } else {
-        console.log("Header section not found, trying alternative approach");
-        // Fallback: capture the entire first page content
-        const firstPageContent = element.querySelector(".a4-page");
-        if (firstPageContent) {
-          const firstPageCanvas = await html2canvas(firstPageContent, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            letterRendering: true,
-            backgroundColor: "#ffffff",
-          });
-
-          const firstPageHeight =
-            (firstPageCanvas.height * contentWidth) / firstPageCanvas.width;
-
-          // Check if this fits on one page
-          if (firstPageHeight <= contentHeight) {
-            pdf.addImage(
-              firstPageCanvas.toDataURL("image/png"),
-              "PNG",
-              margin,
-              margin,
-              contentWidth,
-              firstPageHeight,
-            );
-            currentY = margin + firstPageHeight + 10;
-          } else {
-            // If it doesn't fit, we'll need to handle it differently
-            console.log("First page content too large, processing separately");
-          }
-        }
+        currentY += headerHeight + 5;
       }
 
-      // Process each question container
       for (let i = 0; i < questionContainers.length; i++) {
         const questionContainer = questionContainers[i];
-
-        // Capture this question container
-        const canvas = await html2canvas(questionContainer, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          letterRendering: true,
-          backgroundColor: "#ffffff",
-        });
-
+        const canvas = await html2canvas(questionContainer, html2canvasOptions);
         const questionHeight = (canvas.height * contentWidth) / canvas.width;
 
-        // Check if this question would fit on current page
         if (currentY + questionHeight > contentHeight && currentY > margin) {
-          // Add new page
           pdf.addPage();
           currentPage++;
           currentY = margin;
         }
 
-        // Add the question to the current page
         pdf.addImage(
           canvas.toDataURL("image/png"),
           "PNG",
@@ -309,14 +310,11 @@ export default function PrintQualifyingExam() {
           contentWidth,
           questionHeight,
         );
-
-        currentY += questionHeight + 5; // Add 5mm spacing between questions
+        currentY += questionHeight + 2;
       }
 
-      // Do NOT add answer key to worksheet PDF
-
       pdf.save("qualifying-exam.pdf");
-      setRetryCount(0); // Reset retry count on success
+      setRetryCount(0);
     } catch (err) {
       console.error("Download error:", err);
       if (
@@ -333,8 +331,7 @@ export default function PrintQualifyingExam() {
           }, 2000);
         } else {
           setError(
-            "PDF generation failed after multiple attempts. This might be due to large images or complex content. " +
-              "Please try reducing the number of questions or images and try again.",
+            "PDF generation failed after multiple attempts. Please try reducing the number of questions or images and try again.",
           );
         }
       } else {
@@ -352,8 +349,16 @@ export default function PrintQualifyingExam() {
       const element = pdfContentRef.current;
       if (!element) throw new Error("Content not found");
 
-      forceSafeColors(element);
       await waitForImagesToLoad(element);
+
+      const html2canvasOptions = {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        letterRendering: true,
+        backgroundColor: "#ffffff",
+        onclone: sanitizeClonedDoc,
+      };
 
       const pdf = new jsPDF("p", "mm", "a4");
       const imgWidth = 210;
@@ -361,7 +366,6 @@ export default function PrintQualifyingExam() {
       const margin = 10;
       const contentWidth = imgWidth - margin * 2;
 
-      // Get the header section and answer key
       const headerSection = element.querySelector(".exam-header");
       const answerKeySection = element.querySelector(".answer-key-page-break");
 
@@ -371,19 +375,10 @@ export default function PrintQualifyingExam() {
 
       let currentY = margin;
 
-      // Add header to first page
       if (headerSection) {
-        const headerCanvas = await html2canvas(headerSection, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          letterRendering: true,
-          backgroundColor: "#ffffff",
-        });
-
+        const headerCanvas = await html2canvas(headerSection, html2canvasOptions);
         const headerHeight =
           (headerCanvas.height * contentWidth) / headerCanvas.width;
-
         pdf.addImage(
           headerCanvas.toDataURL("image/png"),
           "PNG",
@@ -392,22 +387,12 @@ export default function PrintQualifyingExam() {
           contentWidth,
           headerHeight,
         );
-
-        currentY += headerHeight + 10; // Add 10mm spacing after header
+        currentY += headerHeight + 5;
       }
 
-      // Add answer key on the same page
-      const answerCanvas = await html2canvas(answerKeySection, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        letterRendering: true,
-        backgroundColor: "#ffffff",
-      });
-
+      const answerCanvas = await html2canvas(answerKeySection, html2canvasOptions);
       const answerHeight =
         (answerCanvas.height * contentWidth) / answerCanvas.width;
-
       pdf.addImage(
         answerCanvas.toDataURL("image/png"),
         "PNG",
@@ -1333,7 +1318,7 @@ export default function PrintQualifyingExam() {
             {/* Header and Questions */}
             <div className="a4-page">
               {/* Header with logos */}
-              <div className="exam-header flex items-center justify-between px-8 pb-6">
+              <div className="exam-header flex items-center justify-between px-8 pb-2">
                 {/* Left Logo and code */}
                 <div className="flex w-32 flex-col items-center">
                   <img
@@ -1400,7 +1385,7 @@ export default function PrintQualifyingExam() {
               </div>
 
               {/* Questions */}
-              <div className="mt-8 space-y-4">
+              <div className="space-y-2">
                 {displayedQuestions.map((question, index) => (
                   <div key={index} className="question-container">
                     <div className="pdf-text flex items-start">
