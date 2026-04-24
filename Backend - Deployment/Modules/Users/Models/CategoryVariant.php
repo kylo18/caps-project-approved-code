@@ -24,6 +24,6 @@ class CategoryVariant extends Model
      */
     public function categoryNormalization(): BelongsTo
     {
-        return $this->belongsTo(CategoryNormalization::class);
+        return $this->belongsTo(CategoryStandardization::class);
     }
 }

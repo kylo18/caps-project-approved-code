@@ -6,15 +6,15 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Modules\Users\Models\IssueType;
 use Modules\Users\Models\IssueTypeVariant;
-use Modules\Users\Models\SubjectNormalization;
+use Modules\Users\Models\SubjectStandardization;
 use Modules\Users\Models\SubjectVariant;
-use Modules\Users\Models\StatusNormalization;
+use Modules\Users\Models\StatusStandardization;
 use Modules\Users\Models\StatusVariant;
-use Modules\Users\Models\CategoryNormalization;
+use Modules\Users\Models\CategoryStandardization;
 use Modules\Users\Models\CategoryVariant;
 use Modules\Users\Models\SubjectIssueType;
 
-class FeedbackNormalizationSeeder extends Seeder
+class FeedbackStandardizationSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -68,10 +68,10 @@ class FeedbackNormalizationSeeder extends Seeder
         ]);
 
         // Create Subjects
-        $databaseSystems = SubjectNormalization::create(['normalized_name' => 'Database Systems']);
-        $electronics1 = SubjectNormalization::create(['normalized_name' => 'Electronics 1']);
-        $programmingLogic = SubjectNormalization::create(['normalized_name' => 'Programming Logic']);
-        $collegeAlgebra = SubjectNormalization::create(['normalized_name' => 'College Algebra']);
+        $databaseSystems = SubjectStandardization::create(['normalized_name' => 'Database Systems']);
+        $electronics1 = SubjectStandardization::create(['normalized_name' => 'Electronics 1']);
+        $programmingLogic = SubjectStandardization::create(['normalized_name' => 'Programming Logic']);
+        $collegeAlgebra = SubjectStandardization::create(['normalized_name' => 'College Algebra']);
 
         // Create Subject Variants
         $databaseSystems->variants()->createMany([
@@ -94,8 +94,8 @@ class FeedbackNormalizationSeeder extends Seeder
         ]);
 
         // Create Statuses
-        $inProgress = StatusNormalization::create(['normalized_name' => 'In Progress']);
-        $resolved = StatusNormalization::create(['normalized_name' => 'Resolved']);
+        $inProgress = StatusStandardization::create(['normalized_name' => 'In Progress']);
+        $resolved = StatusStandardization::create(['normalized_name' => 'Resolved']);
 
         // Create Status Variants
         $inProgress->variants()->createMany([
@@ -110,9 +110,9 @@ class FeedbackNormalizationSeeder extends Seeder
         ]);
 
         // Create Categories
-        $critical = CategoryNormalization::create(['normalized_name' => 'Critical', 'priority' => 1]);
-        $major = CategoryNormalization::create(['normalized_name' => 'Major', 'priority' => 2]);
-        $minor = CategoryNormalization::create(['normalized_name' => 'Minor', 'priority' => 3]);
+        $critical = CategoryStandardization::create(['normalized_name' => 'Critical', 'priority' => 1]);
+        $major = CategoryStandardization::create(['normalized_name' => 'Major', 'priority' => 2]);
+        $minor = CategoryStandardization::create(['normalized_name' => 'Minor', 'priority' => 3]);
 
         // Create Category Variants
         $critical->variants()->createMany([

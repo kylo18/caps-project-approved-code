@@ -4,11 +4,11 @@ namespace Modules\Users\Services;
 
 use Modules\Users\Models\IssueType;
 use Modules\Users\Models\IssueTypeVariant;
-use Modules\Users\Models\SubjectNormalization;
+use Modules\Users\Models\SubjectStandardization;
 use Modules\Users\Models\SubjectVariant;
-use Modules\Users\Models\StatusNormalization;
+use Modules\Users\Models\StatusStandardization;
 use Modules\Users\Models\StatusVariant;
-use Modules\Users\Models\CategoryNormalization;
+use Modules\Users\Models\CategoryStandardization;
 use Modules\Users\Models\CategoryVariant;
 use Illuminate\Support\Facades\Cache;
 
@@ -54,7 +54,7 @@ class FeedbackStandardizationService
         }
 
         // Load statuses and variants
-        $statuses = StatusNormalization::with('variants')->get();
+        $statuses = StatusStandardization::with('variants')->get();
         foreach ($statuses as $status) {
             $data['statuses'][$status->normalized_name] = $status->normalized_name;
             foreach ($status->variants as $variant) {
@@ -63,7 +63,7 @@ class FeedbackStandardizationService
         }
 
         // Load categories and variants
-        $categories = CategoryNormalization::with('variants')->get();
+        $categories = CategoryStandardization::with('variants')->get();
         foreach ($categories as $category) {
             $data['categories'][$category->normalized_name] = $category->normalized_name;
             foreach ($category->variants as $variant) {

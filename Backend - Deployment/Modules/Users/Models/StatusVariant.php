@@ -24,6 +24,6 @@ class StatusVariant extends Model
      */
     public function statusNormalization(): BelongsTo
     {
-        return $this->belongsTo(StatusNormalization::class);
+        return $this->belongsTo(StatusStandardization::class);
     }
 }

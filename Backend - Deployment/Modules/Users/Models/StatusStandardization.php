@@ -5,7 +5,7 @@ namespace Modules\Users\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class StatusNormalization extends Model
+class StatusStandardization extends Model
 {
     protected $table = 'status_normalization';
     
