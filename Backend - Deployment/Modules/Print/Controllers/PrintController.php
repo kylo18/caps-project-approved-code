@@ -229,14 +229,14 @@ class PrintController extends Controller
                     'action' => 'Please contact system administrator to resolve this issue.'
                 ], 500);
             }
+            $totalSubjectPercentage = collect($validated['subjects'])->sum('percentage');
+            $totalDifficultyPercentage = $validated['difficulty_distribution']['easy'] +
+                                       $validated['difficulty_distribution']['moderate'] +
+                                       $validated['difficulty_distribution']['hard'];
             try {
-                $totalSubjectPercentage = collect($validated['subjects'])->sum('percentage');
                 if ($totalSubjectPercentage !== 100) {
                     throw new \Exception("Subject percentages sum to {$totalSubjectPercentage}%, expected 100%");
                 }
-                $totalDifficultyPercentage = $validated['difficulty_distribution']['easy'] +
-                                           $validated['difficulty_distribution']['moderate'] +
-                                           $validated['difficulty_distribution']['hard'];
                 if ($totalDifficultyPercentage !== 100) {
                     throw new \Exception("Difficulty percentages sum to {$totalDifficultyPercentage}%, expected 100%");
                 }
