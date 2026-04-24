@@ -191,9 +191,7 @@ const Class = () => {
     const term = searchTerm.toLowerCase().trim();
     return (
       cls.className?.toLowerCase().includes(term) ||
-      cls.classCode?.toLowerCase().includes(term) ||
-      cls.subject?.subjectCode?.toLowerCase().includes(term) ||
-      cls.subject?.subjectName?.toLowerCase().includes(term)
+      cls.classCode?.toLowerCase().includes(term)
     );
   });
 
@@ -574,6 +572,8 @@ const Class = () => {
                     <img
                       src={ArchiveIcon}
                       alt="archived classes"
+                      loading="lazy"
+                      decoding="async"
                       className="size-[22px]"
                     />
                   </button>
@@ -617,6 +617,8 @@ const Class = () => {
                   <img
                     src={emptyImage}
                     alt="No classes available"
+                    loading="lazy"
+                    decoding="async"
                     className="mx-auto mb-3 h-32 w-32 opacity-80"
                   />
                   <p className="outfit-400 text-[14px] text-gray-600">
@@ -662,11 +664,11 @@ const Class = () => {
                   return (
                     <div
                       key={classItem.classID || classItem.id}
-                      className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[310px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
+                      className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[250px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
                     >
                       {/* Background Image Header Section */}
                       <div
-                        className="relative cursor-pointer bg-cover bg-center bg-no-repeat px-4 pt-4 pb-4 md:h-[150px]"
+                        className="relative cursor-pointer overflow-hidden px-4 pt-4 pb-4 md:h-[150px]"
                         onClick={() => {
                           const id = classItem.classID || classItem.id;
                           if (!id) return;
@@ -681,8 +683,16 @@ const Class = () => {
                             navigate(`/class/${id}/students`);
                           }
                         }}
-                        style={{ backgroundImage: `url(${headerBackground})` }}
                       >
+                        <img
+                          src={headerBackground}
+                          alt=""
+                          aria-hidden="true"
+                          loading="lazy"
+                          decoding="async"
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/10" aria-hidden="true" />
                         <div className="relative z-10 pr-16 md:flex md:h-full md:flex-col md:justify-between md:pr-0">
                           <div>
                             <div className="mb-4 hidden text-xs font-medium text-white opacity-90 md:block">
@@ -804,42 +814,26 @@ const Class = () => {
                           }
                         }}
                       >
-                        {/* Subject Information */}
-                        {classItem.subject && (
-                          <div className="min-h-[2.5rem]">
-                            <div className="outfit-500 line-clamp-2 overflow-hidden text-[14px] font-medium text-ellipsis text-gray-700">
-                              {classItem.subject.subjectCode} -{" "}
-                              {classItem.subject.subjectName}
-                            </div>
+                        <div className="outfit-400 mt-2 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
+                          <i className="bx bx-history text-sm text-gray-500"></i>
+                          <span className="truncate">
+                            {classItem.schedule || "No schedule set"}
+                          </span>
+                        </div>
+                        {userRole !== 1 && (
+                          <div className="outfit-400 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
+                            <i className="bx bx-group text-sm text-gray-500"></i>
+                            <span>
+                              {enrollmentCount}{" "}
+                              {enrollmentCount === 1 ? "Student" : "Students"}
+                            </span>
                           </div>
                         )}
-
-                        <div className="mt-auto">
-                          <div className="space-y-1">
-                            <div className="outfit-400 mt-2 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
-                              <i className="bx bx-history text-sm text-gray-500"></i>
-                              <span className="truncate">
-                                {classItem.schedule || "No schedule set"}
-                              </span>
-                            </div>
-                            {userRole !== 1 && (
-                              <div className="outfit-400 hidden items-center gap-2 text-[12px] text-gray-700 md:flex">
-                                <i className="bx bx-group text-sm text-gray-500"></i>
-                                <span>
-                                  {enrollmentCount}{" "}
-                                  {enrollmentCount === 1
-                                    ? "Student"
-                                    : "Students"}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          {/* Separator */}
-                          <div className="mt-2 mb-3 h-px bg-gray-200"></div>
-                          {/* Date Information */}
-                          <div className="outfit-400 space-y-1 text-[12px] text-gray-600">
-                            <div>Created: {createdDate}</div>
-                          </div>
+                        {/* Separator */}
+                        <div className="mt-2 mb-3 h-px bg-gray-200"></div>
+                        {/* Date Information */}
+                        <div className="outfit-400 space-y-1 text-[12px] text-gray-600">
+                          <div>Created: {createdDate}</div>
                         </div>
                       </div>
                     </div>

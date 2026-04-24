@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import univLogo from "../assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
 import { useNavigate } from "react-router-dom";
-import LoadingOverlay from "../components/loadingOverlay";
 import AppVersion from "../components/appVersion";
 import Toast from "../components/Toast";
 import useToast from "../hooks/useToast";

@@ -101,6 +101,8 @@ function LandingPage() {
           <img
             src={collegeLogo}
             alt="CAPS logo"
+            decoding="async"
+            fetchPriority="low"
             className="h-6 w-6 md:h-8 md:w-8"
           />
           <span className="outfit-500 text-[20px] tracking-wide md:text-[24px]">
@@ -300,16 +302,17 @@ function LandingPage() {
               {/* Image on the right */}
               <div className="relative mx-auto -mb-77 flex w-full justify-center md:block md:self-start">
                 <div className="flex w-full justify-center md:-mt-10 md:block md:size-90 lg:-mt-10 lg:size-120 lg:-translate-x-15 xl:mt-5 xl:size-140 xl:-translate-x-20">
-                  <img
-                    src={heroImg}
-                    alt="Illustration"
-                    className="hidden w-[400px] object-contain sm:w-[400px] md:block md:size-225 md:w-auto"
-                  />
-                  <img
-                    src={MobileheroImg}
-                    alt="Illustration"
-                    className="w-[400px] object-contain sm:w-[400px] md:hidden md:size-225 md:w-auto"
-                  />
+                  <picture>
+                    <source media="(min-width: 768px)" srcSet={heroImg} />
+                    <img
+                      src={MobileheroImg}
+                      alt="Illustration"
+                      loading="eager"
+                      decoding="async"
+                      fetchPriority="high"
+                      className="w-[400px] object-contain sm:w-[400px] md:size-225 md:w-auto"
+                    />
+                  </picture>
                 </div>
               </div>
             </header>
@@ -432,6 +435,8 @@ function LandingPage() {
                   <img
                     src={APlusIcon}
                     alt="Settings"
+                    loading="lazy"
+                    decoding="async"
                     className="h-[34px] w-[34px] object-contain"
                   />
                 </div>
@@ -465,6 +470,8 @@ function LandingPage() {
                     <img
                       src={CogIcon}
                       alt="Settings"
+                      loading="lazy"
+                      decoding="async"
                       className="size-[24px] object-contain lg:size-[28px] xl:size-[34px]"
                     />
                   </div>
@@ -485,6 +492,8 @@ function LandingPage() {
                     <img
                       src={ExportIcon}
                       alt="Settings"
+                      loading="lazy"
+                      decoding="async"
                       className="size-[24px] object-contain lg:size-[28px] xl:size-[34px]"
                     />
                   </div>
@@ -505,6 +514,8 @@ function LandingPage() {
                 <img
                   src={RightDisplay}
                   alt="Ready-to-print exam preview"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full max-w-[500px] lg:-mb-20 lg:ml-18 lg:max-w-[650px]"
                 />
               </div>
@@ -519,6 +530,8 @@ function LandingPage() {
               <img
                 src={GetStarted}
                 alt="Get started with CAPS"
+                loading="lazy"
+                decoding="async"
                 className="w-full rounded-2xl"
               />
 

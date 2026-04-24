@@ -4,7 +4,12 @@ import collegeLogo from "/src/assets/college-logo.png";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 
-export default function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwitchToForgotPassword }) {
+export default function LoginModal({
+  isOpen,
+  onClose,
+  onSwitchToRegister,
+  onSwitchToForgotPassword,
+}) {
   const [idCode, setIdCode] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -30,6 +35,17 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwit
     return () => {
       document.body.style.overflow = "";
     };
+  }, [isOpen]);
+
+  // Reset all inputs when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIdCode("");
+      setPassword("");
+      setError("");
+      setPasswordVisible(false);
+      setIsLogIn(false);
+    }
   }, [isOpen]);
 
   const handleLogin = async (e) => {
@@ -182,7 +198,10 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwit
                 </label>
                 <button
                   type="button"
-                  onClick={() => { onClose(); onSwitchToForgotPassword?.(); }}
+                  onClick={() => {
+                    onClose();
+                    onSwitchToForgotPassword?.();
+                  }}
                   className="outfit-400 text-sm text-orange-500 hover:underline"
                 >
                   Forgot password?
@@ -210,14 +229,14 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwit
               </div>
             </div>
 
-            {/* Remember me */}
+            {/* Remember me 
             <label className="outfit-400 flex cursor-pointer items-center gap-2 text-sm text-gray-600">
               <input
                 type="checkbox"
                 className="h-4 w-4 rounded border-gray-300 accent-blue-500"
               />
               Remember me
-            </label>
+            </label>*/}
 
             {error && (
               <p className="text-center text-xs text-red-500">{error}</p>

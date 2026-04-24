@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Layout from "./components/layout";
 import ProtectedRoute from "./components/protectRoute";
@@ -28,7 +27,6 @@ import ResetPasswordPage from "./components/resetPassForm";
 import ForgotPasswordForm from "./components/forgotPassForm";
 import PracticeExamInfo from "./pages/PracticeExamInfo";
 
-import TestLogin from "./tests/testLogin";
 import PrintQualifyingExam from "./pages/PrintQualifyingExam";
 import PrintPersonalQuiz from "./pages/PrintPersonalQuiz";
 import SubjectOverview from "./pages/SubjectOverview";
@@ -59,7 +57,6 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/testLogin" element={<TestLogin />} />
 
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />

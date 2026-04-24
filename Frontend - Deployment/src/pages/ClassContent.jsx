@@ -112,62 +112,11 @@ const ClassContent = () => {
   const [isArchiving, setIsArchiving] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState(null);
-  const [userRole, setUserRole] = useState(null);
-  const [classes, setClasses] = useState([]);
   const [expandedQuizStats, setExpandedQuizStats] = useState(null); // track which quiz stats are shown on mobile
-
-  // Get user role on mount
-  useEffect(() => {
-    const user = JSON.parse(sessionStorage.getItem("user"));
-    if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
-      setUserRole(user.roleID ?? user.roleId);
-    }
-  }, []);
-
-  // Fetch classes (same API as Class.jsx) to get schedule and class shape for edit/archive
-  useEffect(() => {
-    const fetchClasses = async () => {
-      if (!classID || userRole === null) return;
-
-      try {
-        const token = sessionStorage.getItem("token");
-        if (!token) return;
-
-        const endpoint =
-          userRole === 1
-            ? `${apiUrl}/classes/my-classes`
-            : `${apiUrl}/classes/index`;
-
-        const response = await fetch(endpoint, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-        });
-
-        if (!response.ok) return;
-
-        const data = await response.json();
-        if (data.success && Array.isArray(data.classes)) {
-          setClasses(data.classes || []);
-        }
-      } catch (err) {
-        console.error("Error loading classes:", err);
-      }
-    };
-
-    fetchClasses();
-  }, [classID, userRole, apiUrl]);
-
-  // Current class from classes list (same shape as Class.jsx) for schedule and modals
-  const currentClass =
-    classes.find((c) => String(c.classID ?? c.id) === String(classID)) || null;
 
   // Fetch class students on component mount
   useEffect(() => {
-    const fetchClassStudents = async () => {
+    const fetchClass = async () => {
       if (!classID) return;
 
       setIsLoading(true);
@@ -180,7 +129,7 @@ const ClassContent = () => {
           throw new Error("You are not authenticated. Please log in again.");
         }
 
-        const response = await fetch(`${apiUrl}/classes/${classID}/students`, {
+        const response = await fetch(`${apiUrl}/classes/show/${classID}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -195,7 +144,7 @@ const ClassContent = () => {
             throw new Error("Your session has expired. Please log in again.");
           }
 
-          let errorMessage = "Failed to load class students.";
+          let errorMessage = "Failed to load class.";
           try {
             const errorData = await response.json();
             errorMessage =
@@ -209,22 +158,73 @@ const ClassContent = () => {
         const data = await response.json();
 
         if (!data.success) {
-          throw new Error(data.message || "Failed to fetch class students");
+          throw new Error(data.message || "Failed to fetch class");
         }
 
-        setClassInfo(data.class);
-        setStudents(data.students || []);
+        const apiClass = data.class;
+        setClassInfo(apiClass);
+
+        const normalizedStudents = Array.isArray(apiClass?.students)
+          ? apiClass.students.map((s) => {
+              const fullName = String(s?.name || "").trim();
+              const parts = fullName ? fullName.split(/\s+/) : [];
+              const firstName = parts[0] || "";
+              const lastName = parts.slice(1).join(" ") || "";
+
+              const answered =
+                typeof s?.quizzesAnswered === "number" ? s.quizzesAnswered : null;
+              const completedPct =
+                typeof s?.completedQuizzes === "number" ? s.completedQuizzes : null;
+
+              const quizProgress =
+                answered != null && completedPct != null
+                  ? `${answered} answered · ${completedPct}% completed`
+                  : answered != null
+                    ? `${answered} answered`
+                    : completedPct != null
+                      ? `${completedPct}% completed`
+                      : "—";
+
+              return {
+                enrollmentID: s?.enrollmentID,
+                studentID: s?.studentID,
+                firstName,
+                lastName,
+                program: s?.program,
+                enrolledAt: s?.enrolledAt,
+                quizProgress,
+                averageAccuracy: s?.averageAccuracy,
+              };
+            })
+          : [];
+
+        setStudents(normalizedStudents);
+
+        // Also hydrate assigned quizzes from the show() response so the Quizzes tab
+        // has data even before hitting other quiz endpoints.
+        const normalizedQuizzes = Array.isArray(apiClass?.quizzes)
+          ? apiClass.quizzes.map((q) => ({
+              ...q,
+              personalQuizID: q?.personalQuizID,
+              classPersonalQuizID: q?.classPersonalQuizID,
+              quizName: q?.quizName,
+              startDate: q?.startDate,
+              deadlineDate: q?.deadlineDate,
+              accuracy: q?.accuracy,
+            }))
+          : [];
+        setAssignedQuizzes(normalizedQuizzes);
       } catch (err) {
         setError(
-          err.message || "Failed to load class students. Please try again.",
+          err.message || "Failed to load class. Please try again.",
         );
-        console.error("Error loading class students:", err);
+        console.error("Error loading class:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchClassStudents();
+    fetchClass();
   }, [classID, apiUrl]);
 
   // Filter students based on search term
@@ -240,46 +240,9 @@ const ClassContent = () => {
     );
   });
 
-  // Refresh classes list (same as Class.jsx) so schedule and currentClass stay in sync
-  const refreshClasses = () => {
-    if (!classID || userRole === null) return;
-
-    const doFetch = async () => {
-      try {
-        const token = sessionStorage.getItem("token");
-        if (!token) return;
-
-        const endpoint =
-          userRole === 1
-            ? `${apiUrl}/classes/my-classes`
-            : `${apiUrl}/classes/index`;
-
-        const response = await fetch(endpoint, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && Array.isArray(data.classes)) {
-            setClasses(data.classes || []);
-          }
-        }
-      } catch (err) {
-        console.error("Error refreshing classes:", err);
-      }
-    };
-
-    doFetch();
-  };
-
   // Refresh students list
   const refreshStudents = () => {
-    const fetchClassStudents = async () => {
+    const fetchClass = async () => {
       if (!classID) return;
 
       setIsLoading(true);
@@ -292,7 +255,7 @@ const ClassContent = () => {
           return;
         }
 
-        const response = await fetch(`${apiUrl}/classes/${classID}/students`, {
+        const response = await fetch(`${apiUrl}/classes/show/${classID}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -304,8 +267,61 @@ const ClassContent = () => {
         if (response.ok) {
           const data = await response.json();
           if (data.success) {
-            setClassInfo(data.class);
-            setStudents(data.students || []);
+            const apiClass = data.class;
+            setClassInfo(apiClass);
+
+            const normalizedStudents = Array.isArray(apiClass?.students)
+              ? apiClass.students.map((s) => {
+                  const fullName = String(s?.name || "").trim();
+                  const parts = fullName ? fullName.split(/\s+/) : [];
+                  const firstName = parts[0] || "";
+                  const lastName = parts.slice(1).join(" ") || "";
+
+                  const answered =
+                    typeof s?.quizzesAnswered === "number"
+                      ? s.quizzesAnswered
+                      : null;
+                  const completedPct =
+                    typeof s?.completedQuizzes === "number"
+                      ? s.completedQuizzes
+                      : null;
+
+                  const quizProgress =
+                    answered != null && completedPct != null
+                      ? `${answered} answered · ${completedPct}% completed`
+                      : answered != null
+                        ? `${answered} answered`
+                        : completedPct != null
+                          ? `${completedPct}% completed`
+                          : "—";
+
+                  return {
+                    enrollmentID: s?.enrollmentID,
+                    studentID: s?.studentID,
+                    firstName,
+                    lastName,
+                    program: s?.program,
+                    enrolledAt: s?.enrolledAt,
+                    quizProgress,
+                    averageAccuracy: s?.averageAccuracy,
+                  };
+                })
+              : [];
+
+            setStudents(normalizedStudents);
+
+            const normalizedQuizzes = Array.isArray(apiClass?.quizzes)
+              ? apiClass.quizzes.map((q) => ({
+                  ...q,
+                  personalQuizID: q?.personalQuizID,
+                  classPersonalQuizID: q?.classPersonalQuizID,
+                  quizName: q?.quizName,
+                  startDate: q?.startDate,
+                  deadlineDate: q?.deadlineDate,
+                  accuracy: q?.accuracy,
+                }))
+              : [];
+            setAssignedQuizzes(normalizedQuizzes);
           }
         }
       } catch (err) {
@@ -315,7 +331,7 @@ const ClassContent = () => {
       }
     };
 
-    fetchClassStudents();
+    fetchClass();
   };
 
   const handleRemoveClick = (student, e) => {
@@ -649,7 +665,7 @@ const ClassContent = () => {
 
   const handleArchiveClick = (e) => {
     e?.stopPropagation?.();
-    const classItem = currentClass || classInfo;
+    const classItem = classInfo;
     if (!classItem) return;
     setArchivingClass(classItem);
     setIsArchiveModalOpen(true);
@@ -700,7 +716,6 @@ const ClassContent = () => {
       const data = await response.json();
       if (data.success) {
         showToast(data.message || "Class archived successfully.", "success");
-        refreshClasses();
         navigate("/class");
       } else {
         showToast(
@@ -723,7 +738,7 @@ const ClassContent = () => {
 
   const handleEditClick = (e) => {
     e?.stopPropagation?.();
-    const classItem = currentClass || classInfo;
+    const classItem = classInfo;
     setEditingClass(
       classItem
         ? {
@@ -737,7 +752,6 @@ const ClassContent = () => {
 
   const handleClassUpdated = () => {
     refreshStudents();
-    refreshClasses();
   };
 
   const handleConfirmUnassignQuiz = async () => {
@@ -897,17 +911,6 @@ const ClassContent = () => {
         : "?";
   const creatorAvatarBg = getInitialsBgColor(creatorFullName);
 
-  // Class subject from API (same shape as Class.jsx: subject.subjectCode, subject.subjectName)
-  const classSubject = currentClass?.subject ?? classInfo?.subject;
-  const subjectDisplay =
-    classSubject?.subjectCode && classSubject?.subjectName
-      ? `${classSubject.subjectCode} - ${classSubject.subjectName}`
-      : classSubject?.subjectCode
-        ? classSubject.subjectCode
-        : classSubject?.subjectName
-          ? classSubject.subjectName
-          : "—";
-
   return (
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
@@ -932,29 +935,18 @@ const ClassContent = () => {
                 <div className="relative z-10 flex h-full flex-col">
                   <div className="pr-16">
                     <h1 className="outfit-500 text-xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] md:text-2xl">
-                      {/* Mobile: subject code beside class name (e.g. MATH111 - Calculus 1) */}
-                      <span className="md:hidden">
-                        {classSubject?.subjectCode
-                          ? `${classSubject.subjectCode} - ${classInfo?.className ?? "Class Name"}`
-                          : (classInfo?.className ?? "Class Name")}
-                      </span>
-                      {/* Desktop: class name only */}
-                      <span className="hidden md:inline">
-                        {classInfo ? classInfo.className : "Class Name"}
-                      </span>
+                      {classInfo ? classInfo.className : "Class Name"}
                     </h1>
                     <p className="outfit-400 mt-1 flex items-center gap-2 text-[14px] font-normal text-white/95">
                       <i className="bx bx-alarm-alt text-[16px]"></i>
-                      {currentClass?.schedule ??
-                        classInfo?.schedule ??
-                        "Schedule not set"}
+                      {classInfo?.schedule ?? "Schedule not set"}
                     </p>
                   </div>
                   <div className="outfit-400 mt-8 flex items-end justify-between">
                     <div className="inline-flex max-w-full items-center overflow-hidden rounded-full bg-white px-2 py-0.5">
                       <span className="truncate text-[12px] font-semibold whitespace-nowrap text-black uppercase">
                         Class Code -{" "}
-                        {currentClass?.classCode ?? classInfo?.classCode ?? "—"}
+                        {classInfo?.classCode ?? "—"}
                       </span>
                     </div>
 

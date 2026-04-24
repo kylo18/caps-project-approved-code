@@ -11,6 +11,7 @@ import Toast from "../components/Toast";
 import useToast from "../hooks/useToast";
 import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
 import PrintExamModal from "../components/PrintExamModal";
+import WarningModal from "../components/WarningModal";
 import notFoundImage from "../assets/icons/notfound.png";
 import noInternetImage from "../assets/icons/404notfound.png";
 import emptyImage from "../assets/icons/empty.png";
@@ -539,6 +540,29 @@ function SubjectList() {
     }
   };
 
+  const closeAddModal = () => {
+    if (isAdding) return;
+    setNewSubjectName("");
+    setNewSubjectCode("");
+    setSelectedProgramID("");
+    setSelectedYearLevelID("");
+    setShowAddModal(false);
+    setValidationError("");
+  };
+
+  const closeEditModal = () => {
+    if (isEditing) return;
+    setShowEditModal(false);
+    setEditingSubject(null);
+    setEditedSubject({
+      subjectCode: "",
+      subjectName: "",
+      programID: "",
+      yearLevelID: "",
+    });
+    setValidationError("");
+  };
+
   const handleSubjectClick = (subject) => {
     navigate(`/subject-overview/subjectID=${subject.subjectID}`, {
       state: { subject },
@@ -786,6 +810,8 @@ function SubjectList() {
                     : AllSubjectsIcon
                 }
                 alt="All Subjects"
+                loading="lazy"
+                decoding="async"
                 className="h-4 w-4"
               />
               <span>All Subjects</span>
@@ -890,6 +916,8 @@ function SubjectList() {
                 <img
                   src={ReportsIcon}
                   alt="Reports"
+                  loading="lazy"
+                  decoding="async"
                   className="size-[24px] flex-shrink-0"
                 />
               </button>
@@ -1009,6 +1037,8 @@ function SubjectList() {
               <img
                 src={noInternetImage}
                 alt="No internet connection"
+                loading="lazy"
+                decoding="async"
                 className="mb-3 h-32 w-32 opacity-80"
               />
               <span className="text-[14px] font-semibold text-gray-500">
@@ -1021,6 +1051,8 @@ function SubjectList() {
                 <img
                   src={emptyImage}
                   alt="No subjects available"
+                  loading="lazy"
+                  decoding="async"
                   className="mx-auto mb-3 h-32 w-32 opacity-80"
                 />
                 <p className="outfit-400 text-[14px] text-gray-600">
@@ -1191,16 +1223,22 @@ function SubjectList() {
                             <>
                               <div
                                 key={subject.subjectID}
-                                className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[320px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
+                                className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[250px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
                               >
                                 {/* Background Image Header Section */}
                                 <div
-                                  className="relative cursor-pointer bg-cover bg-center bg-no-repeat px-4 pt-4 pb-4 md:h-[150px]"
+                                  className="relative cursor-pointer overflow-hidden px-4 pt-4 pb-4 md:h-[150px]"
                                   onClick={() => handleSubjectClick(subject)}
-                                  style={{
-                                    backgroundImage: `url(${headerBackground})`,
-                                  }}
                                 >
+                                  <img
+                                    src={headerBackground}
+                                    alt=""
+                                    aria-hidden="true"
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="absolute inset-0 h-full w-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-black/10" aria-hidden="true" />
                                   <div className="relative z-10 pr-16 md:flex md:h-full md:flex-col md:justify-between md:pr-0">
                                     <div>
                                       <div className="mb-4 hidden text-xs font-medium text-white opacity-90 md:block">
@@ -1282,14 +1320,6 @@ function SubjectList() {
                                   className="hidden flex-1 cursor-pointer flex-col px-4 py-4 md:flex"
                                   onClick={() => handleSubjectClick(subject)}
                                 >
-                                  {/* Min height for 2 lines so separator stays at same position when name is 1 line */}
-                                  <div className="mb-3 min-h-[2.5rem]">
-                                    <div className="outfit-500 line-clamp-2 overflow-hidden text-[14px] font-medium text-ellipsis text-gray-700">
-                                      {subject.subjectCode} -{" "}
-                                      {subject.subjectName}
-                                    </div>
-                                  </div>
-
                                   {/* Metadata */}
                                   <div className="mb-3 space-y-1">
                                     {subject.yearLevel && (
@@ -1484,130 +1514,151 @@ function SubjectList() {
       {/* Add Subject Modal */}
       {showAddModal && (
         <>
-          <div className="lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
-            <div className="animate-fade-in-up relative max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
-              <div className="border-color flex items-center justify-between border-b px-4 py-2">
-                <h2 className="text-[16px] font-semibold text-black">
-                  Add a Subject
-                </h2>
-
-                <button
-                  onClick={() => {
-                    setNewSubjectName("");
-                    setNewSubjectCode("");
-                    setSelectedProgramID("");
-                    setSelectedYearLevelID("");
-                    setShowAddModal(false);
-                    setValidationError("");
-                  }}
-                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-700 transition duration-100 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  <i className="bx bx-x text-lg"></i>
-                </button>
-              </div>
-
-              <div className="px-5 py-4">
-                <div className="mb-4 text-start">
-                  <div className="mb-4">
-                    <span className="block text-[14px] text-gray-700">
-                      Subject Name
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Enter"
-                        value={newSubjectName}
-                        onChange={(e) => setNewSubjectName(e.target.value)}
-                        className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                      />
+          <div
+            className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center p-4"
+            onClick={closeAddModal}
+          >
+            <div
+              className="animate-fade-in-up relative mx-auto flex w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+              style={{ minHeight: "480px" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-1 flex-col">
+                {/* Header */}
+                <div className="outfit-400 flex items-start justify-between border-b border-gray-200 px-6 py-5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500 text-white">
+                      <i className="bx bx-pen-plus text-2xl" />
                     </div>
-                  </div>
-                </div>
-
-                <div className="mb-4 text-start">
-                  <div className="mb-4">
-                    <span className="block text-[14px] text-gray-700">
-                      Subject Code
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Enter"
-                        value={newSubjectCode}
-                        onChange={(e) => setNewSubjectCode(e.target.value)}
-                        className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                      />
-                    </div>
-                    <div className="mt-1 text-start text-[11px] text-gray-400">
-                      Enter the subject code of the subject you want to add (e.g
-                      MATH123)
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <div className="mb-2 flex items-start gap-1">
-                      <span className="block text-[14px] text-gray-700">
-                        Program
-                      </span>
-                    </div>
-
-                    <RegisterDropDownSmall
-                      name="Program"
-                      value={selectedProgramID}
-                      onChange={(e) => setSelectedProgramID(e.target.value)}
-                      placeholder="Select Program"
-                      options={programs.map((program) => ({
-                        value: program.programID,
-                        label: getDisplayProgramName(program.programName),
-                      }))}
-                    />
-
-                    <div className="text-start text-[11px] text-gray-400">
-                      Enter the program of the subject you want to add
+                    <div>
+                      <h2 className="outfit-700 text-[16px] text-gray-900">
+                        Create a Subject
+                      </h2>
+                      <p className="text-xs text-gray-500">
+                        Enter the details for a new subject.
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex-1">
-                    <div className="mb-2 flex items-start gap-1">
-                      <span className="block text-[14px] text-gray-700">
-                        Year Level
-                      </span>
-                    </div>
-
-                    <RegisterDropDownSmall
-                      name="Year Level"
-                      value={selectedYearLevelID}
-                      onChange={(e) => setSelectedYearLevelID(e.target.value)}
-                      placeholder="Select Year Level"
-                      options={yearLevelOptions.map((yearLevel) => ({
-                        value: yearLevel,
-                        label: `${yearLevel}${yearLevel === "1" ? "st" : yearLevel === "2" ? "nd" : yearLevel === "3" ? "rd" : "th"} Year`,
-                      }))}
-                    />
-                    <div className="text-start text-[11px] text-gray-400">
-                      Enter the year level of the subject
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-                {validationError && (
-                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                    {validationError}
-                  </div>
-                )}
-
-                {newSubjectCode.length > 20 && (
-                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                    Code must be 20 characters or less.
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-2">
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={closeAddModal}
+                    className="ml-4 flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    aria-label="Close modal"
+                  >
+                    <i className="bx bx-x text-xl"></i>
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="outfit-400 flex-1 overflow-y-auto px-6 py-5">
+                  {(validationError || newSubjectCode.length > 20) && (
+                    <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[13px] text-red-700">
+                      <i className="bx bx-error-circle text-base"></i>
+                      {validationError || "Code must be 20 characters or less."}
+                    </div>
+                  )}
+
+                  <form
+                    id="subject-create-form"
+                    onSubmit={(e) => e.preventDefault()}
+                  >
+                    <div className="space-y-5">
+                      <div>
+                        <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                          Subject Name <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <i className="bx bx-book-open absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"></i>
+                          <input
+                            type="text"
+                            placeholder="e.g. Calculus 1"
+                            value={newSubjectName}
+                            onChange={(e) => setNewSubjectName(e.target.value)}
+                            className="w-full rounded-xl border border-gray-200 py-2.5 pr-3 pl-9 text-sm transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                          Subject Code <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <i className="bx bx-edit absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"></i>
+                          <input
+                            type="text"
+                            placeholder="e.g. MATH123"
+                            value={newSubjectCode}
+                            onChange={(e) => setNewSubjectCode(e.target.value)}
+                            className="w-full rounded-xl border border-gray-200 py-2.5 pr-3 pl-9 text-sm transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                          />
+                        </div>
+                        <p className="mt-1 text-[11px] text-gray-400">
+                          Enter the subject code (max 20 characters).
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                            Program <span className="text-red-500">*</span>
+                          </label>
+                          <RegisterDropDownSmall
+                            name="Program"
+                            value={selectedProgramID}
+                            onChange={(e) =>
+                              setSelectedProgramID(e.target.value)
+                            }
+                            placeholder="Select Program"
+                            options={programs.map((program) => ({
+                              value: program.programID,
+                              label: getDisplayProgramName(program.programName),
+                            }))}
+                          />
+                          <p className="mt-1 text-[11px] text-gray-400">
+                            Select the program for this subject.
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                            Year Level <span className="text-red-500">*</span>
+                          </label>
+                          <RegisterDropDownSmall
+                            name="Year Level"
+                            value={selectedYearLevelID}
+                            onChange={(e) =>
+                              setSelectedYearLevelID(e.target.value)
+                            }
+                            placeholder="Select Year Level"
+                            options={yearLevelOptions.map((yearLevel) => ({
+                              value: yearLevel,
+                              label: `${yearLevel}${yearLevel === "1" ? "st" : yearLevel === "2" ? "nd" : yearLevel === "3" ? "rd" : "th"} Year`,
+                            }))}
+                          />
+                          <p className="mt-1 text-[11px] text-gray-400">
+                            Select the year level for this subject.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Footer */}
+                <div className="outfit-400 flex items-center justify-between border-t border-gray-100 px-6 py-4">
+                  <button
+                    type="button"
+                    onClick={closeAddModal}
+                    disabled={isAdding}
+                    className="cursor-pointer text-[14px] font-medium text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
                     disabled={isAdding}
                     onClick={async () => {
                       const valid =
@@ -1627,14 +1678,15 @@ function SubjectList() {
                       setValidationError("");
                       await handleAddSubject();
                     }}
-                    className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isAdding ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                    className="outfit-500 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-[14px] font-medium text-white shadow-sm transition hover:bg-orange-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {isAdding ? (
-                      <div className="flex items-center justify-center">
-                        <span className="loader-white"></span>
-                      </div>
+                      <>
+                        <i className="bx bx-loader-alt animate-spin text-lg"></i>
+                        Saving...
+                      </>
                     ) : (
-                      "Save Changes"
+                      <>Add Subject</>
                     )}
                   </button>
                 </div>
@@ -1647,172 +1699,174 @@ function SubjectList() {
       {/* Edit Subject Modal */}
       {showEditModal && editingSubject && (
         <>
-          <div className="lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
-            <div className="animate-fade-in-up relative max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
-              <div className="border-color flex items-center justify-between border-b px-4 py-2">
-                <h2 className="text-[16px] font-semibold text-black">
-                  Edit Subject
-                </h2>
-
-                <button
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setEditingSubject(null);
-                    setEditedSubject({
-                      subjectCode: "",
-                      subjectName: "",
-                      programID: "",
-                      yearLevelID: "",
-                    });
-                    setValidationError("");
-                  }}
-                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-700 transition duration-100 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  <i className="bx bx-x text-lg"></i>
-                </button>
-              </div>
-
-              <div className="px-5 py-4">
-                <div className="mb-4 text-start">
-                  <div className="mb-4">
-                    <span className="block text-[14px] text-gray-700">
-                      Subject Name
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Enter"
-                        value={editedSubject.subjectName}
-                        onChange={(e) =>
-                          setEditedSubject({
-                            ...editedSubject,
-                            subjectName: e.target.value,
-                          })
-                        }
-                        className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                      />
+          <div
+            className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center p-4"
+            onClick={closeEditModal}
+          >
+            <div
+              className="animate-fade-in-up relative mx-auto flex w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+              style={{ minHeight: "480px" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-1 flex-col">
+                {/* Header */}
+                <div className="outfit-400 flex items-start justify-between border-b border-gray-200 px-6 py-5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500 text-white">
+                      <i className="bx bx-edit text-2xl" />
+                    </div>
+                    <div>
+                      <h2 className="outfit-700 text-[16px] text-gray-900">
+                        Edit Subject
+                      </h2>
+                      <p className="text-xs text-gray-500">
+                        Update the details for this subject.
+                      </p>
                     </div>
                   </div>
-                </div>
 
-                <div className="mb-4 text-start">
-                  <div className="mb-4">
-                    <span className="block text-[14px] text-gray-700">
-                      Subject Code
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Enter"
-                        value={editedSubject.subjectCode}
-                        onChange={(e) =>
-                          setEditedSubject({
-                            ...editedSubject,
-                            subjectCode: e.target.value,
-                          })
-                        }
-                        className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                      />
-                    </div>
-                    <div className="mt-1 text-start text-[11px] text-gray-400">
-                      Enter the subject code of the subject (e.g MATH123)
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <div className="mb-2 flex items-start gap-1">
-                      <span className="block text-[14px] text-gray-700">
-                        Program
-                      </span>
-                    </div>
-
-                    <RegisterDropDownSmall
-                      name="Program"
-                      value={editedSubject.programID}
-                      onChange={(e) =>
-                        setEditedSubject({
-                          ...editedSubject,
-                          programID: e.target.value,
-                        })
-                      }
-                      placeholder="Select Program"
-                      options={programs.map((program) => ({
-                        value: program.programID,
-                        label: getDisplayProgramName(program.programName),
-                      }))}
-                    />
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="mb-2 flex items-start gap-1">
-                      <span className="block text-[14px] text-gray-700">
-                        Year Level
-                      </span>
-                    </div>
-
-                    <RegisterDropDownSmall
-                      name="Year Level"
-                      value={editedSubject.yearLevelID}
-                      onChange={(e) =>
-                        setEditedSubject({
-                          ...editedSubject,
-                          yearLevelID: e.target.value,
-                        })
-                      }
-                      placeholder="Select Year Level"
-                      options={yearLevelOptions.map((yearLevel) => ({
-                        value: yearLevel,
-                        label: `${yearLevel}${yearLevel === "1" ? "st" : yearLevel === "2" ? "nd" : yearLevel === "3" ? "rd" : "th"} Year`,
-                      }))}
-                    />
-                  </div>
-                </div>
-                <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-                {validationError && (
-                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                    {validationError}
-                  </div>
-                )}
-
-                {editedSubject.subjectCode.length > 20 && (
-                  <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                    Code must be 20 characters or less.
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setEditingSubject(null);
-                      setEditedSubject({
-                        subjectCode: "",
-                        subjectName: "",
-                        programID: "",
-                        yearLevelID: "",
-                      });
-                      setValidationError("");
-                    }}
-                    className="mt-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-[14px] font-semibold text-gray-700 transition-all duration-100 ease-in-out hover:bg-gray-50"
+                    onClick={closeEditModal}
+                    className="ml-4 flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    aria-label="Close modal"
+                  >
+                    <i className="bx bx-x text-xl"></i>
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="outfit-400 flex-1 overflow-y-auto px-6 py-5">
+                  {(validationError ||
+                    editedSubject.subjectCode.length > 20) && (
+                    <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[13px] text-red-700">
+                      <i className="bx bx-error-circle text-base"></i>
+                      {validationError || "Code must be 20 characters or less."}
+                    </div>
+                  )}
+
+                  <form
+                    id="subject-edit-form"
+                    onSubmit={(e) => e.preventDefault()}
+                  >
+                    <div className="space-y-5">
+                      <div>
+                        <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                          Subject Name <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <i className="bx bx-book-open absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"></i>
+                          <input
+                            type="text"
+                            placeholder="e.g. Calculus 1"
+                            value={editedSubject.subjectName}
+                            onChange={(e) =>
+                              setEditedSubject({
+                                ...editedSubject,
+                                subjectName: e.target.value,
+                              })
+                            }
+                            className="w-full rounded-xl border border-gray-200 py-2.5 pr-3 pl-9 text-sm transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                          Subject Code <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <i className="bx bx-edit absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"></i>
+
+                          <input
+                            type="text"
+                            placeholder="e.g. MATH123"
+                            value={editedSubject.subjectCode}
+                            onChange={(e) =>
+                              setEditedSubject({
+                                ...editedSubject,
+                                subjectCode: e.target.value,
+                              })
+                            }
+                            className="w-full rounded-xl border border-gray-200 py-2.5 pr-3 pl-9 text-sm transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                          />
+                        </div>
+                        <p className="mt-1 text-[11px] text-gray-400">
+                          Enter the subject code (max 20 characters).
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                            Program <span className="text-red-500">*</span>
+                          </label>
+                          <RegisterDropDownSmall
+                            name="Program"
+                            value={editedSubject.programID}
+                            onChange={(e) =>
+                              setEditedSubject({
+                                ...editedSubject,
+                                programID: e.target.value,
+                              })
+                            }
+                            placeholder="Select Program"
+                            options={programs.map((program) => ({
+                              value: program.programID,
+                              label: getDisplayProgramName(program.programName),
+                            }))}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-1.5 block text-[13px] font-semibold text-gray-700">
+                            Year Level <span className="text-red-500">*</span>
+                          </label>
+                          <RegisterDropDownSmall
+                            name="Year Level"
+                            value={editedSubject.yearLevelID}
+                            onChange={(e) =>
+                              setEditedSubject({
+                                ...editedSubject,
+                                yearLevelID: e.target.value,
+                              })
+                            }
+                            placeholder="Select Year Level"
+                            options={yearLevelOptions.map((yearLevel) => ({
+                              value: yearLevel,
+                              label: `${yearLevel}${yearLevel === "1" ? "st" : yearLevel === "2" ? "nd" : yearLevel === "3" ? "rd" : "th"} Year`,
+                            }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Footer */}
+                <div className="outfit-400 flex items-center justify-between border-t border-gray-100 px-6 py-4">
+                  <button
+                    type="button"
+                    onClick={closeEditModal}
+                    disabled={isEditing}
+                    className="cursor-pointer text-[14px] font-medium text-gray-500 hover:text-gray-700 disabled:opacity-50"
                   >
                     Cancel
                   </button>
+
                   <button
-                    type="submit"
+                    type="button"
                     disabled={isEditing}
                     onClick={handleSaveEdit}
-                    className={`mt-2 cursor-pointer rounded-lg px-4 py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isEditing ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                    className="outfit-500 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-[14px] font-medium text-white shadow-sm transition hover:bg-orange-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {isEditing ? (
-                      <div className="flex items-center justify-center">
-                        <span className="loader-white"></span>
-                      </div>
+                      <>
+                        <i className="bx bx-loader-alt animate-spin text-lg"></i>
+                        Saving...
+                      </>
                     ) : (
-                      "Save Changes"
+                      <>Save Changes</>
                     )}
                   </button>
                 </div>
@@ -1825,62 +1879,36 @@ function SubjectList() {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && subjectToDelete && (
         <>
-          <div className="lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
-            <div className="animate-fade-in-up relative mx-4 w-full max-w-md rounded-lg bg-white shadow-2xl">
-              <div className="border-color flex items-center justify-between border-b px-6 py-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Delete Subject
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setSubjectToDelete(null);
-                  }}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                >
-                  <i className="bx bx-x text-xl"></i>
-                </button>
-              </div>
-
-              <div className="px-6 py-4">
-                <p className="text-sm text-gray-600">
-                  Are you sure you want to delete{" "}
-                  <span className="font-semibold text-gray-900">
-                    {subjectToDelete.subjectCode} -{" "}
-                    {subjectToDelete.subjectName}
-                  </span>
-                  ? This action cannot be undone.
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setSubjectToDelete(null);
-                  }}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteSubject}
-                  disabled={isDeleting}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${isDeleting ? "cursor-not-allowed bg-gray-500" : "bg-red-600 hover:bg-red-700"} disabled:opacity-50`}
-                >
-                  {isDeleting ? (
-                    <div className="flex items-center justify-center">
-                      <span className="loader-white"></span>
-                    </div>
-                  ) : (
-                    "Delete"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
+          <WarningModal
+            isOpen={showDeleteModal}
+            onClose={() => {
+              if (isDeleting) return;
+              setShowDeleteModal(false);
+              setSubjectToDelete(null);
+            }}
+            title="Delete Subject"
+            subtitle="This action cannot be undone."
+            description={
+              <span>
+                Are you sure you want to delete{" "}
+                <span className="font-semibold text-gray-900">
+                  {subjectToDelete.subjectCode} - {subjectToDelete.subjectName}
+                </span>
+                ?
+              </span>
+            }
+            confirmLabel="Delete"
+            confirmIcon={<i className="bx bx-trash text-[18px]" />}
+            onConfirm={handleDeleteSubject}
+            cancelLabel="Cancel"
+            onCancel={() => {
+              if (isDeleting) return;
+              setShowDeleteModal(false);
+              setSubjectToDelete(null);
+            }}
+            isConfirmLoading={isDeleting}
+            isCancelLoading={false}
+          />
         </>
       )}
 

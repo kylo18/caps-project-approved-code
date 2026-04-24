@@ -53,6 +53,7 @@ const UserList = () => {
   const [currentUserRole, setCurrentUserRole] = useState(null);
   const [otherDeansCount, setOtherDeansCount] = useState(0);
   const [roleError, setRoleError] = useState("");
+  const canManageUsers = currentUserRole === 4 || currentUserRole === 5;
 
   // State for bulk action loading states
   const [isApprovingMultiple, setIsApprovingMultiple] = useState(false);
@@ -449,6 +450,7 @@ const UserList = () => {
 
   // Function to handle user selection via checkbox
   const handleCheckboxChange = (userID) => {
+    if (!canManageUsers) return;
     setSelectedUsers((prevSelected) =>
       prevSelected.includes(userID)
         ? prevSelected.filter((id) => id !== userID)
@@ -477,6 +479,11 @@ const UserList = () => {
   // Keep "select all" checkbox in sync with row selections
   useEffect(() => {
     if (!selectAllRef.current) return;
+    if (!canManageUsers) {
+      selectAllRef.current.indeterminate = false;
+      selectAllRef.current.checked = false;
+      return;
+    }
 
     const displayedUsers = getDisplayedUsers();
     const displayedIds = displayedUsers.map((u) => u.userID);
@@ -504,7 +511,15 @@ const UserList = () => {
     statusFilter,
     remarksFilter,
     activeView,
+    canManageUsers,
   ]);
+
+  // Ensure non-Dean roles never keep bulk selections
+  useEffect(() => {
+    if (!canManageUsers && selectedUsers.length > 0) {
+      setSelectedUsers([]);
+    }
+  }, [canManageUsers, selectedUsers.length]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -787,6 +802,10 @@ const UserList = () => {
 
   // Function to handle role update
   const handleRoleUpdate = async (userID, newRoleID) => {
+    if (!canManageUsers) {
+      showToast("Only Dean and Associate Dean can edit a user.", "error");
+      return;
+    }
     const token = sessionStorage.getItem("token");
     setIsUpdatingRole(true);
     setRoleError(""); // Clear any previous errors
@@ -1954,7 +1973,7 @@ const UserList = () => {
                                 return true;
                               });
                             })()}
-                            disabled={isUpdatingRole}
+                            disabled={!canManageUsers || isUpdatingRole}
                             isLoading={isUpdatingRole}
                           />
                         </div>
@@ -2253,40 +2272,46 @@ const UserList = () => {
                 <table className="w-full">
                   <thead className="border-b border-gray-200 bg-white">
                     <tr>
-                      <th className="w-6 px-2 py-2 text-center">
-                        <input
-                          type="checkbox"
-                          ref={selectAllRef}
-                          onChange={(e) => {
-                            const displayedIds = getDisplayedUsers().map(
-                              (u) => u.userID,
-                            );
-
-                            if (e.target.checked) {
-                              setSelectedUsers((prev) => {
-                                const set = new Set(prev);
-                                displayedIds.forEach((id) => set.add(id));
-                                return Array.from(set);
-                              });
-                            } else {
-                              setSelectedUsers((prev) =>
-                                prev.filter((id) => !displayedIds.includes(id)),
+                      {canManageUsers && (
+                        <th className="w-6 px-2 py-2 text-center">
+                          <input
+                            type="checkbox"
+                            ref={selectAllRef}
+                            onChange={(e) => {
+                              if (!canManageUsers) return;
+                              const displayedIds = getDisplayedUsers().map(
+                                (u) => u.userID,
                               );
-                            }
-                          }}
-                          checked={(() => {
-                            const displayedIds = getDisplayedUsers().map(
-                              (u) => u.userID,
-                            );
-                            if (displayedIds.length === 0) return false;
-                            return displayedIds.every((id) =>
-                              selectedUsers.includes(id),
-                            );
-                          })()}
-                          className="mt-1 h-4 w-4 cursor-pointer rounded border-gray-500 text-orange-500"
-                        />
-                      </th>
-                      <th className="py-3 text-left text-[12px] font-medium tracking-wider text-gray-600 uppercase">
+
+                              if (e.target.checked) {
+                                setSelectedUsers((prev) => {
+                                  const set = new Set(prev);
+                                  displayedIds.forEach((id) => set.add(id));
+                                  return Array.from(set);
+                                });
+                              } else {
+                                setSelectedUsers((prev) =>
+                                  prev.filter(
+                                    (id) => !displayedIds.includes(id),
+                                  ),
+                                );
+                              }
+                            }}
+                            checked={(() => {
+                              if (!canManageUsers) return false;
+                              const displayedIds = getDisplayedUsers().map(
+                                (u) => u.userID,
+                              );
+                              if (displayedIds.length === 0) return false;
+                              return displayedIds.every((id) =>
+                                selectedUsers.includes(id),
+                              );
+                            })()}
+                            className="mt-1 h-4 w-4 cursor-pointer rounded border-gray-500 text-orange-500"
+                          />
+                        </th>
+                      )}
+                      <th className={`py-3 text-left text-[12px] font-medium tracking-wider text-gray-600 uppercase ${activeView === "faculty" ? "pl-4" : ""}`}>
                         User Information
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-medium tracking-wider text-gray-600 uppercase">
@@ -2323,19 +2348,21 @@ const UserList = () => {
                           setShowModal(true);
                         }}
                       >
-                        <td
-                          className="w-12 px-4 py-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedUsers.includes(user.userID)}
-                            onChange={() => handleCheckboxChange(user.userID)}
+                        {canManageUsers && (
+                          <td
+                            className="w-12 px-4 py-2"
                             onClick={(e) => e.stopPropagation()}
-                            className="h-4 w-4 cursor-pointer rounded border-gray-500 text-orange-500"
-                          />
-                        </td>
-                        <td className="py-2 whitespace-nowrap">
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedUsers.includes(user.userID)}
+                              onChange={() => handleCheckboxChange(user.userID)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-4 w-4 cursor-pointer rounded border-gray-500 text-orange-500"
+                            />
+                          </td>
+                        )}
+                        <td className={`py-2 whitespace-nowrap ${(user.roleID === 2 || user.roleID === 3) ? "pl-4" : ""}`}>
                           <div className="flex items-center gap-3">
                             <div className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-gray-100">
                               <img
@@ -2495,14 +2522,16 @@ const UserList = () => {
                     className="shrink-0"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.includes(user.userID)}
-                      onChange={() => handleCheckboxChange(user.userID)}
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label={`Select ${user.firstName} ${user.lastName}`}
-                      className="h-4 w-4 cursor-pointer rounded border-gray-400 text-orange-500"
-                    />
+                    {canManageUsers && (
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(user.userID)}
+                        onChange={() => handleCheckboxChange(user.userID)}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Select ${user.firstName} ${user.lastName}`}
+                        className="h-4 w-4 cursor-pointer rounded border-gray-400 text-orange-500"
+                      />
+                    )}
                   </div>
                 </div>
               ))}
@@ -2528,7 +2557,7 @@ const UserList = () => {
       {isDeletingMultiple && <LoadingOverlay show={isDeletingMultiple} />}
 
       {/* Selection Overlay Banner */}
-      {selectedUsers.length > 0 && (
+      {canManageUsers && selectedUsers.length > 0 && (
         <div className="outfit-400 fixed right-0 bottom-5 left-0 z-50 md:left-[276px] lg:left-[220px]">
           <div className="px-6">
             <div className="rounded-xl bg-gray-800 px-5 py-4 shadow-lg">
