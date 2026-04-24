@@ -305,7 +305,7 @@ function SubjectList() {
 
   // Get unique program names for sidebar buttons
   const uniquePrograms = Array.from(
-    new Set(subjects.map((s) => s.programName).filter(Boolean)),
+    new Set(programs.map((p) => p.programName).filter(Boolean)),
   ).sort();
 
   // Group filtered subjects by program

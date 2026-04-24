@@ -63,15 +63,9 @@ const Class = () => {
   const mobileSearchInputRef = useRef(null);
   const joinInputRefs = useRef([]);
 
-  /* Walkthrough — auto-open once per device */
+  /* Walkthrough — auto-open once per device (non-students only) */
   const WALKTHROUGH_KEY = "class_walkthrough_v1_seen";
   const [showWalkthrough, setShowWalkthrough] = useState(false);
-  useEffect(() => {
-    if (!localStorage.getItem(WALKTHROUGH_KEY)) {
-      setShowWalkthrough(true);
-      localStorage.setItem(WALKTHROUGH_KEY, "true");
-    }
-  }, []);
 
   const handleJoinOtpChange = (index, value) => {
     const cleanValue = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
@@ -118,11 +112,17 @@ const Class = () => {
     }
   };
 
-  // Get user role on mount
+  // Get user role on mount; also trigger walkthrough for non-students
   useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem("user"));
     if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
-      setUserRole(user.roleID ?? user.roleId);
+      const role = user.roleID ?? user.roleId;
+      setUserRole(role);
+      // Only show walkthrough for non-student roles
+      if (role !== 1 && !localStorage.getItem(WALKTHROUGH_KEY)) {
+        setShowWalkthrough(true);
+        localStorage.setItem(WALKTHROUGH_KEY, "true");
+      }
     }
   }, []);
 

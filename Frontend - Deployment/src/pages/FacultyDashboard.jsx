@@ -16,7 +16,7 @@ export default function FacultyDashboard() {
   return (
     <>
       {/* ── Welcome Hero ────────────────────────────────────── */}
-      <div className="outfit-400 relative mt-8 flex min-h-[calc(100vh-44px)] flex-col items-center justify-center px-6 text-center lg:mt-0">
+      <div className="outfit-400 relative mt-8 flex min-h-[calc(100vh-44px)] flex-col items-center justify-center text-center lg:mt-0">
         {/* Subtle background blobs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 -left-24 h-80 w-80 rounded-full bg-orange-100/50 blur-3xl" />
@@ -35,7 +35,9 @@ export default function FacultyDashboard() {
             Welcome back! 👋
           </h1>
           <p className="max-w-md text-[15px] leading-relaxed text-gray-500">
-            Explore everything new in <strong className="text-gray-700">CAPS v2.0</strong> — quizzes, classes, reports, and more are now live.
+            Explore everything new in{" "}
+            <strong className="text-gray-700">CAPS v2.0</strong> — quizzes,
+            classes, reports, and more are now live.
           </p>
 
           {/* Changelog button */}
@@ -48,7 +50,8 @@ export default function FacultyDashboard() {
           </button>
 
           <p className="text-[12px] text-gray-400">
-            Use the sidebar to navigate to Subjects, Classes, Sessions, and more.
+            Use the sidebar to navigate to Subjects, Classes, Sessions, and
+            more.
           </p>
         </div>
       </div>
