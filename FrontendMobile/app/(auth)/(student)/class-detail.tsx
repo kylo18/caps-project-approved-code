@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import {
   studentColors,
   studentShadow,
-} from '../../../src/student/ui';
+} from '../../../src/features/student/shared/ui/StudentUI';
 import {
   getClassQuizzes,
   getClassHistory,

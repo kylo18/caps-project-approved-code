@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {   View, Text, FlatList, TouchableOpacity, TextInput, RefreshControl, Animated, Modal, ScrollView } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';

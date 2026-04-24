@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Tabs } from 'expo-router';
-import { StudentTabBar } from '../../../src/student/ui';
+import { StudentTabBar } from '../../../src/features/student/shared/ui/StudentUI';
 
 export default function StudentTabs() {
   return (

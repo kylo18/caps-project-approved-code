@@ -1,4 +1,4 @@
-import RoleProfileScreen from '../../../src/components/RoleProfileScreen';
+import RoleProfileScreen from '../../../src/features/profile/screens/RoleProfileScreen';
 
 export default function FacultyProfileScreen() {
   return <RoleProfileScreen roleLabel="Faculty" />;

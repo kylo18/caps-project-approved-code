@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, TextInput, Alert } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,10 +16,10 @@ import RenderHtml from 'react-native-render-html';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
-import { Skeleton, SkeletonList } from '../../../src/components/Skeleton';
+import { Skeleton, SkeletonList } from '../../../src/features/core/components/Skeleton';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
-import type { AdminToolAction } from '../../../src/components/admin/AdminFloatingTools';
-import PrintExamModal from '../../../src/components/PrintExamModal';
+import type { AdminToolAction } from '../../../src/features/admin/shared/components/AdminFloatingTools';
+import PrintExamModal from '../../../src/features/practice/components/PrintExamModal';
 
 const TABS = [
   { key: 'practice', label: 'Practice' },

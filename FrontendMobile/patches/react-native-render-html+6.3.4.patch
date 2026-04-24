@@ -1,0 +1,290 @@
+diff --git a/node_modules/react-native-render-html/lib/typescript/helpers/getNativePropsForTNode.d.ts b/node_modules/react-native-render-html/lib/typescript/helpers/getNativePropsForTNode.d.ts
+index 122d074..f5e6e7f 100644
+--- a/node_modules/react-native-render-html/lib/typescript/helpers/getNativePropsForTNode.d.ts
++++ b/node_modules/react-native-render-html/lib/typescript/helpers/getNativePropsForTNode.d.ts
+@@ -1,21 +1,5 @@
+-import { TBlock, TPhrasing, TText } from '@native-html/transient-render-engine';
+-import { TextProps, ViewProps } from 'react-native';
+-import { TDefaultRendererProps } from '../shared-types';
+-/**
+- * Extract React Native props for a given {@link TNode}, such as those which
+- * would be passed to `Text`, `View` or `GenericPressable` by `TDefaultRenderer`.
+- *
+- * This helper function is peculiarly useful when one wants a custom renderer
+- * which uses a different native component, for example `Animated.Text` instead
+- * of default `Text`.
+- *
+- * @public
+- *
+- * @example
+- *
+- * ```tsx
+- * import React from 'react';
+- * import { Animated } from 'react-native';
++import { TBlock, TPhrasing, TText } from '@native-html/transient-render-engine'; import { TextProps, ViewProps } from 'react-native';
++import { TDefaultRendererProps } from '../shared-types'; /**  * Extract React Native props for a given {@link TNode}, such as those which  * would be passed to `Text`, `View` or `GenericPressable` by `TDefaultRenderer`.  *  * This helper function is peculiarly useful when one wants a custom renderer  * which uses a different native component, for example `Animated.Text` instead  * of default `Text`.  *  * @public  *  * @example  *  * ```tsx  * import React from 'react';  * import { Animated } from 'react-native';
+  * import { CustomTextualRenderer, getNativePropsForTNode } from 'react-native-render-html';
+  *
+  * const AnimatedSpanRenderer: CustomTextualRenderer = (props) => {
+diff --git a/node_modules/react-native-render-html/src/GenericPressable.tsx b/node_modules/react-native-render-html/src/GenericPressable.tsx
+index 142b588..2058479 100644
+--- a/node_modules/react-native-render-html/src/GenericPressable.tsx
++++ b/node_modules/react-native-render-html/src/GenericPressable.tsx
+@@ -1,10 +1,5 @@
+ import React, { PropsWithChildren } from 'react';
+-import {
+-  Platform,
+-  TouchableHighlight,
+-  TouchableNativeFeedback,
+-  View
+-} from 'react-native';
++import { Platform, TouchableHighlight, TouchableNativeFeedback, View } from 'react-native';
+ import { useSharedProps } from './context/SharedPropsProvider';
+ import { GenericPressableProps } from './shared-types';
+ 
+diff --git a/node_modules/react-native-render-html/src/__tests__/component.render-html.test.tsx b/node_modules/react-native-render-html/src/__tests__/component.render-html.test.tsx
+index ab687bd..bca98ea 100644
+--- a/node_modules/react-native-render-html/src/__tests__/component.render-html.test.tsx
++++ b/node_modules/react-native-render-html/src/__tests__/component.render-html.test.tsx
+@@ -1,16 +1,5 @@
+ import React from 'react';
+-import { act, render, waitFor } from '@testing-library/react-native';
+-import RenderHTML from '../RenderHTML';
+-import ImgTag from '../elements/IMGElement';
+-import {
+-  CustomBlockRenderer,
+-  CustomTextualRenderer
+-} from '../render/render-types';
+-import {
+-  defaultHTMLElementModels,
+-  HTMLContentModel
+-} from '@native-html/transient-render-engine';
+-import { Image, Text } from 'react-native';
++import { act, render, waitFor } from '@testing-library/react-native'; import RenderHTML from '../RenderHTML'; import ImgTag from '../elements/IMGElement'; import {   CustomBlockRenderer, CustomTextualRenderer } from '../render/render-types'; import {   defaultHTMLElementModels, HTMLContentModel } from '@native-html/transient-render-engine'; import { Image, Text } from 'react-native';
+ import { useRendererProps } from '../context/RenderersPropsProvider';
+ import TNodeChildrenRenderer from '../TNodeChildrenRenderer';
+ import OLElement from '../elements/OLElement';
+diff --git a/node_modules/react-native-render-html/src/__tests__/utils.tsx b/node_modules/react-native-render-html/src/__tests__/utils.tsx
+index cd054f6..0ebef4e 100644
+--- a/node_modules/react-native-render-html/src/__tests__/utils.tsx
++++ b/node_modules/react-native-render-html/src/__tests__/utils.tsx
+@@ -1,6 +1,5 @@
+ import React from 'react';
+-import { render as renderTestingLib } from '@testing-library/react-native';
+-import { Text, StyleSheet } from 'react-native';
++import { render as renderTestingLib } from '@testing-library/react-native'; import { Text, StyleSheet } from 'react-native';
+ import type { ReactTestInstance } from 'react-test-renderer';
+ import RenderHTML from '../RenderHTML';
+ import { RenderHTMLProps } from '../shared-types';
+diff --git a/node_modules/react-native-render-html/src/__tests__/w3c.css.box-model.test.tsx b/node_modules/react-native-render-html/src/__tests__/w3c.css.box-model.test.tsx
+index a8b034c..078203a 100644
+--- a/node_modules/react-native-render-html/src/__tests__/w3c.css.box-model.test.tsx
++++ b/node_modules/react-native-render-html/src/__tests__/w3c.css.box-model.test.tsx
+@@ -1,9 +1,7 @@
+ import React from 'react';
+ import RenderHTML from '../RenderHTML';
+ import IMGElement from '../elements/IMGElement';
+-import { render } from '@testing-library/react-native';
+-import { elementHasAncestorOfType } from './utils';
+-import { View, Text } from 'react-native';
++import { render } from '@testing-library/react-native'; import { elementHasAncestorOfType } from './utils'; import { View, Text } from 'react-native';
+ 
+ describe('RenderHTML component should honor formatting context of the DOM tree', () => {
+   it('should wrap text elements into a box formed by a View component', () => {
+diff --git a/node_modules/react-native-render-html/src/context/ListStyleSpecsProvider.tsx b/node_modules/react-native-render-html/src/context/ListStyleSpecsProvider.tsx
+index 822a4b7..b859c4a 100644
+--- a/node_modules/react-native-render-html/src/context/ListStyleSpecsProvider.tsx
++++ b/node_modules/react-native-render-html/src/context/ListStyleSpecsProvider.tsx
+@@ -1,12 +1,5 @@
+ /* eslint-disable react-native/no-inline-styles */
+-import { MarkerBoxProps } from '@jsamr/react-native-li';
+-import { mapObjIndexed } from 'ramda';
+-import React, {
+-  createContext,
+-  PropsWithChildren,
+-  useContext,
+-  useMemo
+-} from 'react';
++import { MarkerBoxProps } from '@jsamr/react-native-li'; import { mapObjIndexed } from 'ramda'; import React, {   createContext, PropsWithChildren, useContext, useMemo } from 'react';
+ import { Text, View } from 'react-native';
+ import defaultListStyleSpecs from '../elements/defaultListStyleSpecs';
+ import { ListStyleSpec, UnitaryListStyleSpec } from '../shared-types';
+diff --git a/node_modules/react-native-render-html/src/elements/IMGElementContentSuccess.tsx b/node_modules/react-native-render-html/src/elements/IMGElementContentSuccess.tsx
+index 6fa6db4..95551a7 100644
+--- a/node_modules/react-native-render-html/src/elements/IMGElementContentSuccess.tsx
++++ b/node_modules/react-native-render-html/src/elements/IMGElementContentSuccess.tsx
+@@ -1,10 +1,5 @@
+ import React, { ReactElement, useCallback } from 'react';
+-import {
+-  Image,
+-  ImageErrorEventData,
+-  ImageStyle,
+-  NativeSyntheticEvent
+-} from 'react-native';
++import { Image, ImageErrorEventData, ImageStyle, NativeSyntheticEvent } from 'react-native';
+ import { IMGElementStateSuccess } from './img-types';
+ 
+ const defaultImageStyle: ImageStyle = { resizeMode: 'cover' };
+diff --git a/node_modules/react-native-render-html/src/elements/__tests__/IMGElement.test.tsx b/node_modules/react-native-render-html/src/elements/__tests__/IMGElement.test.tsx
+index 460380b..998594b 100644
+--- a/node_modules/react-native-render-html/src/elements/__tests__/IMGElement.test.tsx
++++ b/node_modules/react-native-render-html/src/elements/__tests__/IMGElement.test.tsx
+@@ -1,11 +1,5 @@
+-import { WebBlockStyles } from '@native-html/transient-render-engine';
+-import React from 'react';
+-import {
+-  ImageErrorEventData,
+-  ImageProps,
+-  ImageStyle,
+-  NativeSyntheticEvent
+-} from 'react-native';
++import { WebBlockStyles } from '@native-html/transient-render-engine'; import React from 'react';
++import {   ImageErrorEventData, ImageProps, ImageStyle, NativeSyntheticEvent } from 'react-native';
+ import { act, render } from '@testing-library/react-native';
+ import IMGElement from '../IMGElement';
+ import HTMLImgElement from '../IMGElement';
+diff --git a/node_modules/react-native-render-html/src/elements/__tests__/ListElement.test.tsx b/node_modules/react-native-render-html/src/elements/__tests__/ListElement.test.tsx
+index 6c7d96b..fb70b18 100644
+--- a/node_modules/react-native-render-html/src/elements/__tests__/ListElement.test.tsx
++++ b/node_modules/react-native-render-html/src/elements/__tests__/ListElement.test.tsx
+@@ -1,6 +1,4 @@
+-import { MarkedListItem } from '@jsamr/react-native-li';
+-import { TBlock } from '@native-html/transient-render-engine';
+-import React from 'react';
++import { MarkedListItem } from '@jsamr/react-native-li'; import { TBlock } from '@native-html/transient-render-engine'; import React from 'react';
+ import { StyleSheet } from 'react-native';
+ import { render, waitFor } from '@testing-library/react-native';
+ import { perf, wait } from 'react-performance-testing';
+diff --git a/node_modules/react-native-render-html/src/elements/__tests__/useIMGElementState.test.ts b/node_modules/react-native-render-html/src/elements/__tests__/useIMGElementState.test.ts
+index a33cfa2..a2935af 100644
+--- a/node_modules/react-native-render-html/src/elements/__tests__/useIMGElementState.test.ts
++++ b/node_modules/react-native-render-html/src/elements/__tests__/useIMGElementState.test.ts
+@@ -1,8 +1,5 @@
+ import React from 'react';
+-import { renderHook } from '@testing-library/react-hooks';
+-import { perf, wait } from 'react-performance-testing';
+-import useIMGElementState from '../useIMGElementState';
+-import { Image } from 'react-native';
++import { renderHook } from '@testing-library/react-hooks'; import { perf, wait } from 'react-performance-testing'; import useIMGElementState from '../useIMGElementState'; import { Image } from 'react-native';
+ 
+ describe('useIMGElementState', () => {
+   const props = {
+diff --git a/node_modules/react-native-render-html/src/elements/img-types.ts b/node_modules/react-native-render-html/src/elements/img-types.ts
+index 75d9683..0db3b19 100644
+--- a/node_modules/react-native-render-html/src/elements/img-types.ts
++++ b/node_modules/react-native-render-html/src/elements/img-types.ts
+@@ -1,11 +1,4 @@
+-import {
+-  ImageStyle,
+-  ImageURISource,
+-  PressableProps,
+-  StyleProp,
+-  ViewProps,
+-  ViewStyle
+-} from 'react-native';
++import { ImageStyle, ImageURISource, PressableProps, StyleProp, ViewProps, ViewStyle } from 'react-native';
+ import { ImageDimensions } from '../shared-types';
+ import { WebBlockStyles } from '@native-html/transient-render-engine';
+ 
+diff --git a/node_modules/react-native-render-html/src/elements/useImageSpecifiedDimensions.ts b/node_modules/react-native-render-html/src/elements/useImageSpecifiedDimensions.ts
+index 5d6271b..82fe3ae 100644
+--- a/node_modules/react-native-render-html/src/elements/useImageSpecifiedDimensions.ts
++++ b/node_modules/react-native-render-html/src/elements/useImageSpecifiedDimensions.ts
+@@ -1,10 +1,5 @@
+ import { useMemo } from 'react';
+-import {
+-  UseIMGElementStateProps,
+-  IncompleteImageDimensions
+-} from './img-types';
+-import getDimensionsWithAspectRatio from './getDimensionsWithAspectRatio';
+-import { StyleSheet } from 'react-native';
++import {   UseIMGElementStateProps, IncompleteImageDimensions } from './img-types'; import getDimensionsWithAspectRatio from './getDimensionsWithAspectRatio'; import { StyleSheet } from 'react-native';
+ 
+ function normalizeSize(
+   dimension: string | number | null | undefined,
+diff --git a/node_modules/react-native-render-html/src/helpers/getNativePropsForTNode.ts b/node_modules/react-native-render-html/src/helpers/getNativePropsForTNode.ts
+index 113b28c..402d6dc 100644
+--- a/node_modules/react-native-render-html/src/helpers/getNativePropsForTNode.ts
++++ b/node_modules/react-native-render-html/src/helpers/getNativePropsForTNode.ts
+@@ -1,25 +1,6 @@
+-import { TBlock, TPhrasing, TText } from '@native-html/transient-render-engine';
+-import React from 'react';
++import { TBlock, TPhrasing, TText } from '@native-html/transient-render-engine'; import React from 'react';
+ import { TextProps, ViewProps } from 'react-native';
+-import { TDefaultRendererProps } from '../shared-types';
+-
+-const empty: any = {};
+-
+-/**
+- * Extract React Native props for a given {@link TNode}, such as those which
+- * would be passed to `Text`, `View` or `GenericPressable` by `TDefaultRenderer`.
+- *
+- * This helper function is peculiarly useful when one wants a custom renderer
+- * which uses a different native component, for example `Animated.Text` instead
+- * of default `Text`.
+- *
+- * @public
+- *
+- * @example
+- *
+- * ```tsx
+- * import React from 'react';
+- * import { Animated } from 'react-native';
++import { TDefaultRendererProps } from '../shared-types';  const empty: any = {};  /**  * Extract React Native props for a given {@link TNode}, such as those which  * would be passed to `Text`, `View` or `GenericPressable` by `TDefaultRenderer`.  *  * This helper function is peculiarly useful when one wants a custom renderer  * which uses a different native component, for example `Animated.Text` instead  * of default `Text`.  *  * @public  *  * @example  *  * ```tsx  * import React from 'react';  * import { Animated } from 'react-native';
+  * import { CustomTextualRenderer, getNativePropsForTNode } from 'react-native-render-html';
+  *
+  * const AnimatedSpanRenderer: CustomTextualRenderer = (props) => {
+diff --git a/node_modules/react-native-render-html/src/renderBlockContent.tsx b/node_modules/react-native-render-html/src/renderBlockContent.tsx
+index 3894851..ec37e1a 100644
+--- a/node_modules/react-native-render-html/src/renderBlockContent.tsx
++++ b/node_modules/react-native-render-html/src/renderBlockContent.tsx
+@@ -1,8 +1,5 @@
+ import React from 'react';
+-import { TDefaultRendererProps } from './shared-types';
+-import GenericPressable from './GenericPressable';
+-import getNativePropsForTNode from './helpers/getNativePropsForTNode';
+-import { View } from 'react-native';
++import { TDefaultRendererProps } from './shared-types'; import GenericPressable from './GenericPressable'; import getNativePropsForTNode from './helpers/getNativePropsForTNode'; import { View } from 'react-native';
+ import { TBlock } from '@native-html/transient-render-engine';
+ 
+ function renderBlockContent(props: TDefaultRendererProps<TBlock>) {
+diff --git a/node_modules/react-native-render-html/src/renderers/ARenderer.tsx b/node_modules/react-native-render-html/src/renderers/ARenderer.tsx
+index 91a564a..ab8cdf2 100644
+--- a/node_modules/react-native-render-html/src/renderers/ARenderer.tsx
++++ b/node_modules/react-native-render-html/src/renderers/ARenderer.tsx
+@@ -1,8 +1,5 @@
+ import React from 'react';
+-import { InternalMixedRenderer } from '../render/render-types';
+-import { TNode, DocumentContext } from '@native-html/transient-render-engine';
+-import { InternalRendererProps, RenderersProps } from '../shared-types';
+-import { GestureResponderEvent } from 'react-native';
++import { InternalMixedRenderer } from '../render/render-types'; import { TNode, DocumentContext } from '@native-html/transient-render-engine'; import { InternalRendererProps, RenderersProps } from '../shared-types'; import { GestureResponderEvent } from 'react-native';
+ import useNormalizedUrl from '../hooks/useNormalizedUrl';
+ import { useDocumentMetadata } from '../context/DocumentMetadataProvider';
+ import { useRendererProps } from '../context/RenderersPropsProvider';
+diff --git a/node_modules/react-native-render-html/src/renderers/BRRenderer.tsx b/node_modules/react-native-render-html/src/renderers/BRRenderer.tsx
+index ef8c832..d6f13f9 100644
+--- a/node_modules/react-native-render-html/src/renderers/BRRenderer.tsx
++++ b/node_modules/react-native-render-html/src/renderers/BRRenderer.tsx
+@@ -1,5 +1,4 @@
+-import { TNode } from '@native-html/transient-render-engine';
+-import React from 'react';
++import { TNode } from '@native-html/transient-render-engine'; import React from 'react';
+ import { Platform, Text, View } from 'react-native';
+ import { InternalTextContentRenderer } from '../render/render-types';
+ 
+diff --git a/node_modules/react-native-render-html/src/renderers/IMGRenderer.tsx b/node_modules/react-native-render-html/src/renderers/IMGRenderer.tsx
+index 3d9a955..49c5255 100644
+--- a/node_modules/react-native-render-html/src/renderers/IMGRenderer.tsx
++++ b/node_modules/react-native-render-html/src/renderers/IMGRenderer.tsx
+@@ -1,9 +1,5 @@
+ import React, { useMemo } from 'react';
+-import { TBlock } from '@native-html/transient-render-engine';
+-import IMGElement, { IMGElementProps } from '../elements/IMGElement';
+-import { InternalBlockRenderer } from '../render/render-types';
+-import { useComputeMaxWidthForTag } from '../context/SharedPropsProvider';
+-import { ImageStyle, StyleSheet } from 'react-native';
++import { TBlock } from '@native-html/transient-render-engine'; import IMGElement, { IMGElementProps } from '../elements/IMGElement'; import { InternalBlockRenderer } from '../render/render-types'; import { useComputeMaxWidthForTag } from '../context/SharedPropsProvider'; import { ImageStyle, StyleSheet } from 'react-native';
+ import { InternalRendererProps } from '../shared-types';
+ import useNormalizedUrl from '../hooks/useNormalizedUrl';
+ import { useRendererProps } from '../context/RenderersPropsProvider';

@@ -13,7 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
@@ -36,13 +36,13 @@ export default function CombinedPracticeQuestionForm() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChoiceChange = (index, value) => {
+  const handleChoiceChange = (index: number, value: string) => {
     const newChoices = [...choices];
     newChoices[index].choiceText = value;
     setChoices(newChoices);
   };
 
-  const handleCorrectToggle = (index) => {
+  const handleCorrectToggle = (index: number) => {
     const newChoices = choices.map((c, i) => ({ ...c, isCorrect: i === index }));
     setChoices(newChoices);
   };
@@ -66,7 +66,7 @@ export default function CombinedPracticeQuestionForm() {
       }
       showToast('Practice question added', 'success');
       router.back();
-    } catch (error) {
+    } catch (error: any) {
       showToast(error.message || 'Failed to add question', 'error');
     } finally {
       setIsSubmitting(false);

@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
-import RoleProfileScreen from '../../../src/components/RoleProfileScreen';
+import RoleProfileScreen from '../../../src/features/profile/screens/RoleProfileScreen';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 
 export default function DeanProfileScreen() {

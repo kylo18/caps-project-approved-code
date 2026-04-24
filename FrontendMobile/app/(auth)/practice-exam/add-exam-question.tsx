@@ -14,7 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
@@ -38,13 +38,13 @@ export default function CombinedExamQuestionForm() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChoiceChange = (index, field, value) => {
+  const handleChoiceChange = (index: number, field: string, value: string) => {
     const newChoices = [...choices];
-    newChoices[index][field] = value;
+    (newChoices[index] as any)[field] = value;
     setChoices(newChoices);
   };
 
-  const handleCorrectToggle = (index) => {
+  const handleCorrectToggle = (index: number) => {
     const newChoices = choices.map((c, i) => ({ ...c, isCorrect: i === index }));
     setChoices(newChoices);
   };
@@ -83,7 +83,7 @@ export default function CombinedExamQuestionForm() {
 
       showToast('Exam question added', 'success');
       router.back();
-    } catch (error) {
+    } catch (error: any) {
       showToast(error.message || 'Failed to add question', 'error');
     } finally {
       setIsSubmitting(false);

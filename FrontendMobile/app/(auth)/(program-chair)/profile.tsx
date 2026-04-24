@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import RoleProfileScreen from '../../../src/components/RoleProfileScreen';
+import RoleProfileScreen from '../../../src/features/profile/screens/RoleProfileScreen';
 
 export default function ProgramChairProfileScreen() {
   return (

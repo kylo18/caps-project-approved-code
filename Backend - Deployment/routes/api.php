@@ -182,9 +182,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/classes/my-classes', [ClassEnrollmentController::class, 'myClasses']);
     Route::get('/my-classes', [ClassEnrollmentController::class, 'myClasses']);
     Route::post('/classes', [ClassController::class, 'store']);
+    Route::get('/classes/archived', [ClassController::class, 'archived']); // Must be before /{classID}
     Route::get('/classes/{classID}', [ClassController::class, 'show']);
     Route::put('/classes/{classID}', [ClassController::class, 'update']);
     Route::patch('/classes/{classID}/archive', [ClassController::class, 'archive']);
+    Route::patch('/classes/{classID}/unarchive', [ClassController::class, 'unarchive']); // Restore archived class
+    Route::delete('/classes/{classID}', [ClassController::class, 'destroy']); // Permanent delete (archived only)
     Route::patch('/classes/archive/{classID}', [ClassController::class, 'archive']); // Alias for Archive button
 
     // Class Enrollment (Faculty - view enrolled students)
@@ -192,6 +195,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/classes/{classID}/enrollments', [ClassEnrollmentController::class, 'index']);
     // Alias for older / alternate frontends that call /students instead of /enrollments.
     Route::get('/classes/{classID}/students', [ClassEnrollmentController::class, 'index']);
+    // Faculty: remove a student from a class
+    Route::delete('/classes/{classID}/remove-student', [ClassEnrollmentController::class, 'removeStudent']);
+
 
     // Customer Support
     Route::post('/support-tickets', [SupportController::class, 'store']);

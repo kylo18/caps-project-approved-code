@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
-import RoleTabBar from '../../../src/components/RoleTabBar';
-import AdminFloatingTools from '../../../src/components/admin/AdminFloatingTools';
+import RoleTabBar from '../../../src/features/core/components/RoleTabBar';
+import AdminFloatingTools from '../../../src/features/admin/shared/components/AdminFloatingTools';
 import { FloatingToolsProvider, useFloatingToolsState } from '../../../src/contexts/FloatingToolsContext';
 
 function FacultyFloatingTools() {

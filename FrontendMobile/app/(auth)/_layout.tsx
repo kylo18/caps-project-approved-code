@@ -10,7 +10,7 @@ import { useEffect } from 'react';
 import { Redirect, Slot, useRouter } from 'expo-router'; import { View } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useTheme } from '../../src/contexts/ThemeContext';
-import { OfflineBanner } from '../../src/components/OfflineBanner';
+import { OfflineBanner } from '../../src/features/core/components/OfflineBanner';
 
 export default function AuthLayout() {
   const { theme } = useTheme();

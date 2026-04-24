@@ -17,8 +17,8 @@
 //         with choices, navigation footer (Previous/Next/Submit), error banner
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo, useRef } from 'react';
-import {   View, Text, TouchableOpacity, ScrollView, Modal, Dimensions, Alert, useWindowDimensions } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import {   View, Text, TouchableOpacity, ScrollView, Modal, Dimensions, Alert, useWindowDimensions, Image } from 'react-native';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,7 +26,7 @@ import RenderHtml from 'react-native-render-html';
 import apiClient from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
-import QuestionListModal from '../../../src/components/QuestionListModal';
+import QuestionListModal from '../../../src/features/practice/components/QuestionListModal';
 import { addBookmark, removeBookmark } from '../../../src/services/studentBookmarkService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -360,15 +360,42 @@ export default function PracticeExamScreen() {
 
   // Image Modal
   const ImageModal = () => (
-    <Modal visible={!!imageModalUrl} transparent animationType="fade">
-      <TouchableOpacity className="flex-1 bg-black/90 justify-center items-center" activeOpacity={1} onPress={() => setImageModalUrl(null)}>
-        <Text style={{ color: '#fff', textAlign: 'center', marginTop: 100 }}>
-          Image viewer - URL: {imageModalUrl}
-        </Text>
-        <TouchableOpacity className="absolute top-[50px] right-5" onPress={() => setImageModalUrl(null)}>
-          <Ionicons name="close" size={32} color="#fff" />
+    <Modal visible={!!imageModalUrl} transparent animationType="fade" statusBarTranslucent>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center' }}>
+        {/* Close button */}
+        <TouchableOpacity
+          style={{ position: 'absolute', top: insets.top + 12, right: 16, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, padding: 8 }}
+          onPress={() => setImageModalUrl(null)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="close" size={24} color="#fff" />
         </TouchableOpacity>
-      </TouchableOpacity>
+
+        {/* Image */}
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}
+          showsVerticalScrollIndicator={false}
+          maximumZoomScale={3}
+          minimumZoomScale={1}
+        >
+          {imageModalUrl ? (
+            <Image
+              source={{ uri: imageModalUrl }}
+              style={{ width: width - 40, height: height * 0.6 }}
+              resizeMode="contain"
+            />
+          ) : null}
+        </ScrollView>
+
+        {/* Dismiss hint */}
+        <TouchableOpacity
+          style={{ position: 'absolute', bottom: insets.bottom + 20 }}
+          onPress={() => setImageModalUrl(null)}
+          activeOpacity={0.8}
+        >
+          <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13 }}>Tap × to close</Text>
+        </TouchableOpacity>
+      </View>
     </Modal>
   );
 

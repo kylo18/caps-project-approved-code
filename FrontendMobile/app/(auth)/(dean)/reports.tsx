@@ -1,4 +1,4 @@
-import AdminReportsScreen from '../../../src/components/admin/AdminReportsScreen';
+import AdminReportsScreen from '../../../src/features/admin/insights/screens/AdminReportsScreen';
 
 export default function DeanReportsRoute() {
   return <AdminReportsScreen role="dean" />;

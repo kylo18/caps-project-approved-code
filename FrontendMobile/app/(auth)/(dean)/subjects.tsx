@@ -17,7 +17,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, useWindowDimensions, Switch, Alert } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,11 +25,11 @@ import RenderHtml from 'react-native-render-html';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
-import ConfirmModal from '../../../src/components/ConfirmModal';
-import CustomDropdown from '../../../src/components/CustomDropdown';
+import ConfirmModal from '../../../src/features/core/components/ConfirmModal';
+import CustomDropdown from '../../../src/features/core/components/CustomDropdown';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
-import type { AdminToolAction } from '../../../src/components/admin/AdminFloatingTools';
-import PrintExamModal from '../../../src/components/PrintExamModal';
+import type { AdminToolAction } from '../../../src/features/admin/shared/components/AdminFloatingTools';
+import PrintExamModal from '../../../src/features/practice/components/PrintExamModal';
 
 type SubjectItem = {
   subjectID: number;

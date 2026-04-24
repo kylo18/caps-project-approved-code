@@ -11,14 +11,14 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {   View, Text, FlatList, TouchableOpacity, TextInput, RefreshControl, Alert, Animated, Modal, ScrollView } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import UserDetailModal from '../../../src/components/UserDetailModal';
+import UserDetailModal from '../../../src/features/profile/components/UserDetailModal';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 import {
   applyUserActionLocally,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,7 +14,7 @@ import {
   getSubjectVisualVariant,
   studentColors,
   studentShadow,
-} from '../../../src/student/ui';
+} from '../../../src/features/student/shared/ui/StudentUI';
 
 type SearchFilter = 'All' | 'Program' | 'General';
 

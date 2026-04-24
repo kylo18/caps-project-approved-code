@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, Pressable, Text, View } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { getLearningInsights } from '../../../src/services/studentAnalyticsService';
-import { StudentSectionHeader, studentColors, studentShadow } from '../../../src/student/ui';
+import { getLearningInsights } from '../../../src/features/student/insights/services/studentAnalyticsService';
+import { StudentSectionHeader, studentColors, studentShadow } from '../../../src/features/student/shared/ui/StudentUI';
 
 function TimeEntryCard({
   entry,

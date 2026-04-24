@@ -98,6 +98,7 @@ export default function RootLayout() {
       });
 
       unsubscribeResponse = await addNotificationResponseReceivedListener((response) => {
+        if (!response) return;
         const data = response.notification.request.content.data as Record<string, any>;
         const actionUrl =
           (typeof data?.actionUrl === 'string' ? data.actionUrl : null) ||

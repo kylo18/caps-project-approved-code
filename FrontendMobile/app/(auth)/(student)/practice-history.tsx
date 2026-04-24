@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl, StatusBar } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { studentColors, studentShadow } from '../../../src/student/ui';
+import { studentColors, studentShadow } from '../../../src/features/student/shared/ui/StudentUI';
 import {
   getPracticeExamHistory,
   getRank,
-} from '../../../src/services/studentAnalyticsService';
+} from '../../../src/features/student/insights/services/studentAnalyticsService';
 import { useSelector } from 'react-redux';
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */

@@ -34,7 +34,7 @@ import {
   useGoogleAuth,
   signInWithGooglePopup,
 } from '../src/services/googleAuthService';
-import AnimatedCapsLoader from '../src/components/AnimatedCapsLoader';
+import AnimatedCapsLoader from '../src/features/core/components/AnimatedCapsLoader';
 
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -97,7 +97,7 @@ export async function updateFacultyClass(
     isActive?: boolean;
   }
 ) {
-  return apiRequest(`/api/classes/update/${classID}`, {
+  return apiRequest(`/api/classes/${classID}`, {
     method: 'PUT',
     body: payload,
   });
@@ -141,6 +141,19 @@ export async function getArchivedClasses() {
 export async function unarchiveFacultyClass(classID: number | string) {
   return apiRequest(`/api/classes/${classID}/unarchive`, {
     method: 'PATCH',
+  });
+}
+
+export async function createFacultyClass(payload: {
+  className: string;
+  subjectID: number;
+  description?: string | null;
+  schedule?: string | null;
+  isActive?: boolean;
+}) {
+  return apiRequest('/api/classes', {
+    method: 'POST',
+    body: payload,
   });
 }
 

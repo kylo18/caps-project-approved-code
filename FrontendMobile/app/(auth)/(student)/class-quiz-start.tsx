@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { studentColors } from '../../../src/student/ui';
+import { studentColors } from '../../../src/features/student/shared/ui/StudentUI';
 import { getQuizInfo, startQuiz } from '../../../src/services/studentClassService';
 
 export default function ClassQuizStartScreen() {

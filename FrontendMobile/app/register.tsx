@@ -394,7 +394,7 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}
     >
-      <ScrollView contentContainerStyle="flex-grow-1 p-6 pt-[60px]" keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60 }} keyboardShouldPersistTaps="handled">
         <TouchableOpacity onPress={toggleTheme} className="absolute top-12 right-6 z-10 p-2">
           <Ionicons
             name={isDark ? 'sunny' : 'moon'}

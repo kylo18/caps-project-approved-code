@@ -1,23 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSelector } from 'react-redux';
-import NotificationPanel from '../../../src/components/NotificationPanel';
-import HelpCenterModal from '../../../src/components/HelpCenterModal';
+import NotificationPanel from '../../../src/features/notifications/components/NotificationPanel';
+import HelpCenterModal from '../../../src/features/support/components/HelpCenterModal';
 import { showToast } from '../../../src/hooks/useToast';
 import { apiRequest } from '../../../src/services/apiClient';
-import { getDashboardSummary, getPerformanceTrend } from '../../../src/services/studentAnalyticsService';
+import { getDashboardSummary, getPerformanceTrend } from '../../../src/features/student/insights/services/studentAnalyticsService';
 import {
   StudentExamCard,
   StudentHeroDecoration,
   StudentSectionHeader,
   getSubjectVisualVariant,
   studentColors,
-} from '../../../src/student/ui';
+} from '../../../src/features/student/shared/ui/StudentUI';
 
 const { width } = Dimensions.get('window');
 const CAROUSEL_WIDTH = width - 48;
@@ -506,14 +506,7 @@ export default function StudentDashboard() {
         </View>
       </ScrollView>
 
-      {/* SECONDARY MODALS */}
-      <NotificationPanel
-        visible={notificationsVisible}
-        onClose={() => {
-          setNotificationsVisible(false);
-          loadUnreadCount();
-        }}
-      />
+      {/* MODALS */}
       <HelpCenterModal visible={showHelp} onClose={() => setShowHelp(false)} />
     </View>
   );

@@ -219,20 +219,7 @@ export async function addTicketResponse(
     return { success: false };
 }
 
-/**
- * Delete a support ticket
- */
-export async function deleteSupportTicket(ticketID: number): Promise<{ success: boolean }> {
-    try {
-        await apiRequest(`/api/admin/support/tickets/${ticketID}`, {
-            method: 'DELETE',
-        });
-        return { success: true };
-    } catch (error) {
-        console.error('Failed to delete ticket:', error);
-        return { success: false };
-    }
-}
+// Note: Ticket deletion is not supported by the backend.
 
 /**
  * Get next status in the status cycle

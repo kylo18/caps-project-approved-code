@@ -10,8 +10,8 @@ import {
   removeBookmark,
   type BookmarkItem,
 } from '../../../src/services/studentBookmarkService';
-import { studentColors } from '../../../src/student/ui';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import { studentColors } from '../../../src/features/student/shared/ui/StudentUI';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 
 export default function BookmarksScreen() {
   const router = useRouter();

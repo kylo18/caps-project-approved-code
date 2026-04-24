@@ -12,7 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import CapsActivityIndicator from '../../../src/components/CapsActivityIndicator';
+import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
@@ -155,7 +155,7 @@ export default function EditQuestionForm() {
               initialContentHTML={questionText}
               onChange={setQuestionText}
               placeholder="Enter question..."
-              style={{ backgroundColor: colors.inputBg, color: colors.text, flex: 1 }}
+              style={{ backgroundColor: colors.inputBg, color: colors.text, flex: 1 } as any}
               initialHeight={180}
               useContainer
             />
