@@ -17,6 +17,7 @@ import {
   unassignQuizFromClass,
   updateClassQuizDates,
   updateFacultyClass,
+  createFacultyClass,
 } from '../../../services/facultyClassService';
 
 export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?: string }) {
@@ -60,6 +61,11 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
   const [dateForm, setDateForm] = useState({ startDate: '', deadlineDate: '' });
 
   const loadStudents = useCallback(async () => {
+    if (!resolvedClassID) {
+      setClassInfo(null);
+      setStudents([]);
+      return;
+    }
     const data = await getClassStudents(resolvedClassID);
     setClassInfo(data.classInfo);
     setStudents(Array.isArray(data.students) ? data.students : []);
@@ -67,6 +73,10 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
   }, [resolvedClassID]);
 
   const loadAssignedQuizzes = useCallback(async () => {
+    if (!resolvedClassID) {
+      setAssignedQuizzes([]);
+      return;
+    }
     const list = await getAssignedClassQuizzes(resolvedClassID);
     setAssignedQuizzes(Array.isArray(list) ? list : []);
   }, [resolvedClassID]);
@@ -123,6 +133,17 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
     }
   };
 
+  useEffect(() => {
+    if (!resolvedClassID && !loading) {
+      // Add a tiny delay to ensure the screen has fully rendered before opening the modal
+      const timer = setTimeout(() => {
+        openEditModal();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedClassID, loading]);
+
   const openAssignQuizModal = async () => {
     try {
       const list = await getAvailableClassQuizzes(resolvedClassID);
@@ -148,19 +169,28 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
 
     setIsSaving(true);
     try {
-      await updateFacultyClass(resolvedClassID, {
+      const payload = {
         className: editForm.className.trim(),
         subjectID: Number(selectedSubjectID),
         description: editForm.description.trim() || null,
         schedule: editForm.schedule.trim() || null,
         isActive: editForm.isActive,
-      });
-      showToast('Class updated successfully', 'success');
-      setShowEditModal(false);
-      await loadAll();
+      };
+
+      if (resolvedClassID) {
+        await updateFacultyClass(resolvedClassID, payload);
+        showToast('Class updated successfully', 'success');
+        setShowEditModal(false);
+        await loadAll();
+      } else {
+        await createFacultyClass(payload);
+        showToast('Class created successfully', 'success');
+        setShowEditModal(false);
+        router.back(); // Go back to the classes list to see the new class
+      }
     } catch (error) {
-      console.error('Error updating class:', error);
-      showToast('Failed to update class', 'error');
+      console.error('Error saving class:', error);
+      showToast('Failed to save class', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -337,9 +367,9 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
           <View className="flex-row items-center ml-3" style={{ gap: 8 }}>
             <TouchableOpacity
               onPress={openEditModal}
-              disabled={!classInfo}
+              disabled={!classInfo && !!resolvedClassID}
               className={`px-3 py-2 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
-              style={{ opacity: classInfo ? 1 : 0.5 }}
+              style={{ opacity: (!classInfo && !!resolvedClassID) ? 0.5 : 1 }}
               activeOpacity={0.8}
             >
               <Ionicons name="create-outline" size={18} color="#FE6902" />
