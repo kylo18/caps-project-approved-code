@@ -172,6 +172,8 @@ FrontendMobile/App.tsx.bak
 backend-full-final.patch
 .ai/mcp/mcp.json
 backup.sql
+# Local database backups/dumps
+*.sql
 .qoder/rules/StrictRule.md
 .qoder/specs/phase-3-feature-parity.md
 

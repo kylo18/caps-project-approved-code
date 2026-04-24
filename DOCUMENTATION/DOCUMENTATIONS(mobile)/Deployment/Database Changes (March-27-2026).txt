@@ -1,5 +1,3 @@
-NOTES: THIS IS THE DATABASE CHANGES FOR WEEK OF MARCH 23–27, 2026
-
 1. Navigate to the project folder:
 
     cd /home/ubuntu/CAPS/Testing_final
@@ -15,7 +13,7 @@ NOTES: THIS IS THE DATABASE CHANGES FOR WEEK OF MARCH 23–27, 2026
 
 SUMMARY: NEW TABLES FOR PRACTICE EXAM ANSWERS, FAQS, SUPPORT TICKETS, NOTIFICATIONS, ACHIEVEMENTS, AND CONTENT ANALYTICS. ADDITIONAL MIGRATIONS FOR CURRICULUM, REMARKS, STUDENT GRADES, AND SOCIAL LOGIN COLUMNS ARE INCLUDED BELOW.
 
-NOTES: THESE ARE THE NEW TABLES ADDED THIS WEEK.
+NOTES: THIS IS THE DATABASE CHANGES FOR WEEK OF MARCH 23–27, 2026
 
 practice_exam_answers:     // this is the name of the table
     -id                    // this is the name of the fields, follow this format
@@ -166,3 +164,106 @@ users:      // added fields
     -facebook_id
 
 NOTES: THIS WEEK’S CHANGES ARE ALL NEW TABLES. NO EXISTING TABLES WERE ALTERED.
+
+NOTES: THIS IS THE DATABASE CHANGES FOR APRIL 18-24, 2026
+
+SUMMARY: NEW TABLES FOR PUSH NOTIFICATION TOKENS AND FEEDBACK STANDARDIZATION WERE ADDED. NO EXISTING TABLES WERE ALTERED IN THIS SET.
+
+push_tokens:     // this is the name of the table
+    -id
+    -user_id
+    -token
+    -platform
+    -last_used_at
+    -created_at
+    -updated_at
+
+
+NOTES: DATE ADDED - APRIL 23, 2026
+
+user_feedback:
+    -id
+    -user_id
+    -subject
+    -issue_type
+    -message
+    -category
+    -status
+    -created_at
+    -updated_at
+
+issue_types:
+    -id
+    -name
+    -description
+    -is_active
+    -created_at
+    -updated_at
+
+issue_type_variants:
+    -id
+    -issue_type_id
+    -variant
+    -created_at
+    -updated_at
+
+subject_normalization:
+    -id
+    -normalized_name
+    -description
+    -created_at
+    -updated_at
+
+subject_variants:
+    -id
+    -subject_normalization_id
+    -variant
+    -created_at
+    -updated_at
+
+subject_issue_types:
+    -id
+    -subject_normalization_id
+    -issue_type_id
+    -created_at
+    -updated_at
+
+status_normalization:
+    -id
+    -normalized_name
+    -description
+    -is_default
+    -created_at
+    -updated_at
+
+status_variants:
+    -id
+    -status_normalization_id
+    -variant
+    -created_at
+    -updated_at
+
+category_normalization:
+    -id
+    -normalized_name
+    -description
+    -priority
+    -created_at
+    -updated_at
+
+category_variants:
+    -id
+    -category_normalization_id
+    -variant
+    -created_at
+    -updated_at
+
+sub_options:
+    -id
+    -issue_type_id
+    -sub_option
+    -sort_order
+    -created_at
+    -updated_at
+
+NOTES: THIS WEEK'S CHANGES ARE ALL NEW TABLES. NO EXISTING TABLES WERE ALTERED.
