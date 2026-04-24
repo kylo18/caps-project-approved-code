@@ -145,6 +145,10 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
   }, [resolvedClassID, loading]);
 
   const openAssignQuizModal = async () => {
+    if (!resolvedClassID) {
+      showToast('Please save the class first before assigning quizzes.', 'error');
+      return;
+    }
     try {
       const list = await getAvailableClassQuizzes(resolvedClassID);
       setAvailableQuizzes(Array.isArray(list) ? list : []);

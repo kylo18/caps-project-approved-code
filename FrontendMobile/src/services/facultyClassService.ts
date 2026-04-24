@@ -60,6 +60,7 @@ export async function getAssignedClassQuizzes(classID: number | string) {
 }
 
 export async function getAvailableClassQuizzes(classID: number | string) {
+  if (!classID) return [];
   const response = await apiRequest(`/api/classes/${classID}/quizzes/available`);
   return normalizeList(response, 'quizzes');
 }
