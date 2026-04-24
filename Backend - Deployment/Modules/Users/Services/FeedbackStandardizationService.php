@@ -12,7 +12,7 @@ use Modules\Users\Models\CategoryNormalization;
 use Modules\Users\Models\CategoryVariant;
 use Illuminate\Support\Facades\Cache;
 
-class FeedbackNormalizationService
+class FeedbackStandardizationService
 {
     private static ?array $cache = null;
 

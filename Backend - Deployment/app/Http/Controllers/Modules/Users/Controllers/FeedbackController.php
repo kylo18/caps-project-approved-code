@@ -3,7 +3,7 @@
 namespace Modules\Users\Controllers;
 
 use Modules\Users\Models\UserFeedback;
-use Modules\Users\Services\FeedbackNormalizationService;
+use Modules\Users\Services\FeedbackStandardizationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -42,7 +42,7 @@ class FeedbackController
 
         try {
             // Normalize the feedback data before saving
-            $normalizedData = FeedbackNormalizationService::normalizeFeedbackData([
+            $normalizedData = FeedbackStandardizationService::normalizeFeedbackData([
                 'subject' => $request->subject,
                 'issue_type' => $request->issue_type,
                 'message' => $request->message,
@@ -92,19 +92,19 @@ class FeedbackController
 
             // Filter by status if provided
             if ($request->has('status')) {
-                $normalizedStatus = FeedbackNormalizationService::normalizeStatus($request->status);
+                $normalizedStatus = FeedbackStandardizationService::normalizeStatus($request->status);
                 $query->status($normalizedStatus);
             }
 
             // Filter by issue type if provided
             if ($request->has('issue_type')) {
-                $normalizedIssueType = FeedbackNormalizationService::normalizeIssueType($request->issue_type);
+                $normalizedIssueType = FeedbackStandardizationService::normalizeIssueType($request->issue_type);
                 $query->issueType($normalizedIssueType);
             }
 
             // Filter by category if provided
             if ($request->has('category')) {
-                $normalizedCategory = FeedbackNormalizationService::normalizeCategory($request->category);
+                $normalizedCategory = FeedbackStandardizationService::normalizeCategory($request->category);
                 $query->category($normalizedCategory);
             }
 
@@ -113,9 +113,9 @@ class FeedbackController
             return response()->json([
                 'success' => true,
                 'feedback' => $feedback,
-                'available_issue_types' => FeedbackNormalizationService::getAvailableIssueTypes(),
-                'available_statuses' => FeedbackNormalizationService::getAvailableStatuses(),
-                'available_categories' => FeedbackNormalizationService::getAvailableCategories(),
+                'available_issue_types' => FeedbackStandardizationService::getAvailableIssueTypes(),
+                'available_statuses' => FeedbackStandardizationService::getAvailableStatuses(),
+                'available_categories' => FeedbackStandardizationService::getAvailableCategories(),
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -155,12 +155,12 @@ class FeedbackController
 
             // Apply filters
             if ($request->has('status')) {
-                $normalizedStatus = FeedbackNormalizationService::normalizeStatus($request->status);
+                $normalizedStatus = FeedbackStandardizationService::normalizeStatus($request->status);
                 $query->status($normalizedStatus);
             }
 
             if ($request->has('issue_type')) {
-                $normalizedIssueType = FeedbackNormalizationService::normalizeIssueType($request->issue_type);
+                $normalizedIssueType = FeedbackStandardizationService::normalizeIssueType($request->issue_type);
                 $query->issueType($normalizedIssueType);
             }
 
@@ -209,12 +209,12 @@ class FeedbackController
 
             // Apply filters
             if ($request->has('status')) {
-                $normalizedStatus = FeedbackNormalizationService::normalizeStatus($request->status);
+                $normalizedStatus = FeedbackStandardizationService::normalizeStatus($request->status);
                 $query->status($normalizedStatus);
             }
 
             if ($request->has('issue_type')) {
-                $normalizedIssueType = FeedbackNormalizationService::normalizeIssueType($request->issue_type);
+                $normalizedIssueType = FeedbackStandardizationService::normalizeIssueType($request->issue_type);
                 $query->issueType($normalizedIssueType);
             }
 
@@ -288,7 +288,7 @@ class FeedbackController
     public function getIssueTypeDetails(Request $request, string $issueType): JsonResponse
     {
         try {
-            $normalizedIssueType = FeedbackNormalizationService::normalizeIssueType($issueType);
+            $normalizedIssueType = FeedbackStandardizationService::normalizeIssueType($issueType);
             
             $issueTypeModel = Modules\Users\Models\IssueType::where('name', $normalizedIssueType)
                 ->where('is_active', true)
@@ -327,10 +327,10 @@ class FeedbackController
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'subjects' => FeedbackNormalizationService::getAvailableSubjects(),
-                    'issue_types' => FeedbackNormalizationService::getAvailableIssueTypes(),
-                    'statuses' => FeedbackNormalizationService::getAvailableStatuses(),
-                    'categories' => FeedbackNormalizationService::getAvailableCategories(),
+                    'subjects' => FeedbackStandardizationService::getAvailableSubjects(),
+                    'issue_types' => FeedbackStandardizationService::getAvailableIssueTypes(),
+                    'statuses' => FeedbackStandardizationService::getAvailableStatuses(),
+                    'categories' => FeedbackStandardizationService::getAvailableCategories(),
                 ],
             ]);
         } catch (\Exception $e) {
@@ -357,7 +357,7 @@ class FeedbackController
         }
 
         try {
-            FeedbackNormalizationService::clearCache();
+            FeedbackStandardizationService::clearCache();
 
             return response()->json([
                 'success' => true,
