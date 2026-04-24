@@ -128,21 +128,68 @@ class SocialAuthController extends Controller
     {
         $providerId = $provider . '_id';
 
-        // STRICT CHECK: Only allow login if the social ID is already explicitly linked in our database.
+        // FIRST: Try to find user by social ID (already linked)
         $user = User::where($providerId, $oauthUser->getId())->first();
 
         if (!$user) {
-            Log::warning('Social login attempt failed: Account not linked.', [
-                'provider'  => $provider,
-                'email'     => $oauthUser->getEmail(),
+            // SECOND: Try to find user by email (registered but not linked yet)
+            $user = User::where('email', $oauthUser->getEmail())->first();
+
+            if (!$user) {
+                Log::warning('Social login attempt failed: No account found with this email.', [
+                    'provider'  => $provider,
+                    'email'     => $oauthUser->getEmail(),
+                    'social_id' => $oauthUser->getId(),
+                ]);
+
+                return $this->redirectToFrontendError(
+                    'no_account',
+                    'No CAPS account found with this email. Please register first.',
+                    $provider
+                );
+            }
+
+            // THIRD: Check if user is approved/registered
+            $pendingStatusId = \DB::table('statuses')->where('name', 'pending')->first()->id ?? null;
+            $registeredStatusId = \DB::table('statuses')->where('name', 'registered')->first()->id ?? null;
+
+            if ($user->status_id === $pendingStatusId) {
+                Log::warning('Social login blocked: Account is pending approval.', [
+                    'provider' => $provider,
+                    'userID' => $user->userID,
+                    'email' => $oauthUser->getEmail(),
+                ]);
+
+                return $this->redirectToFrontendError(
+                    'account_pending',
+                    'Your account is pending approval. Please wait for administrator verification.',
+                    $provider
+                );
+            }
+
+            if ($user->status_id !== $registeredStatusId) {
+                Log::warning('Social login blocked: Account not approved.', [
+                    'provider' => $provider,
+                    'userID' => $user->userID,
+                    'email' => $oauthUser->getEmail(),
+                ]);
+
+                return $this->redirectToFrontendError(
+                    'account_not_approved',
+                    'Your account is not approved. Please wait for administrator verification.',
+                    $provider
+                );
+            }
+
+            // FOURTH: Auto-link the social account
+            Log::info('Auto-linking social account to approved user.', [
+                'provider' => $provider,
+                'userID' => $user->userID,
+                'email' => $oauthUser->getEmail(),
                 'social_id' => $oauthUser->getId(),
             ]);
 
-            return $this->redirectToFrontendError(
-                'no_account',
-                'This ' . ucfirst($provider) . ' account is not linked to a CAPS account. Please log in normally and link it in your settings.',
-                $provider
-            );
+            $user->update([$providerId => $oauthUser->getId()]);
         }
 
         // STATUS CHECK: Mirror the same checks used in AuthController@login.
