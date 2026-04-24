@@ -327,7 +327,6 @@ class FeedbackController
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'subjects' => FeedbackStandardizationService::getAvailableSubjects(),
                     'issue_types' => FeedbackStandardizationService::getAvailableIssueTypes(),
                     'statuses' => FeedbackStandardizationService::getAvailableStatuses(),
                     'categories' => FeedbackStandardizationService::getAvailableCategories(),
@@ -371,4 +370,43 @@ class FeedbackController
             ], 500);
         }
     }
+    // Get feedback submitted by the authenticated user (GET /feedback/me)
+    public function myFeedback(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $feedback = UserFeedback::where('user_id', $user->userID)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $feedback,
+        ]);
+    }
+
+    /**
+     * Update feedback status (PATCH /feedback/{id}/status)
+     */
+    public function updateStatus(Request $request, $id): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user || !in_array($user->roleID, [4, 5])) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $feedback = UserFeedback::find($id);
+        if (!$feedback) {
+            return response()->json(['success' => false, 'message' => 'Not found.'], 404);
+        }
+
+        $feedback->status = $request->status;
+        $feedback->save();
+
+        return response()->json(['success' => true, 'feedback' => $feedback]);
+    }
+    
 }

@@ -205,6 +205,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Feedback System Routes (All authenticated users)
     Route::post('/feedback', [FeedbackController::class, 'store']);
+    Route::get('/feedback/me', [FeedbackController::class, 'myFeedback']);
+
     Route::get('/feedback/issue-types', [FeedbackController::class, 'getIssueTypesWithSubOptions']);
     Route::get('/feedback/issue-type-details/{issue_type}', [FeedbackController::class, 'getIssueTypeDetails']);
 });
@@ -554,6 +556,9 @@ Route::middleware(['auth:sanctum', 'role:4,5'])->group(function () {
 
     // Feedback System Admin Routes (Dean only)
     Route::get('/feedback/admin', [FeedbackController::class, 'adminIndex']);
+    Route::patch('/feedback/{id}/status', [FeedbackController::class, 'updateStatus']);
+
+
     Route::get('/feedback/normalization-options', [FeedbackController::class, 'getNormalizationOptions']);
     Route::post('/feedback/clear-cache', [FeedbackController::class, 'clearNormalizationCache']);
 });

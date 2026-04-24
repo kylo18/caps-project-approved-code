@@ -3,13 +3,11 @@
 namespace Modules\Users\Services;
 
 use Modules\Users\Models\IssueType;
-use Modules\Users\Models\IssueTypeVariant;
-use Modules\Users\Models\SubjectStandardization;
-use Modules\Users\Models\SubjectVariant;
+//use Modules\Users\Models\IssueTypeVariant;
 use Modules\Users\Models\StatusStandardization;
-use Modules\Users\Models\StatusVariant;
+//use Modules\Users\Models\StatusVariant;
 use Modules\Users\Models\CategoryStandardization;
-use Modules\Users\Models\CategoryVariant;
+//use Modules\Users\Models\CategoryVariant;
 use Illuminate\Support\Facades\Cache;
 
 class FeedbackStandardizationService
@@ -32,11 +30,11 @@ class FeedbackStandardizationService
      */
     private static function loadNormalizationData(): array
     {
-        $cache = self::getCache();
+        /*$cache = self::getCache();
         
         if (!empty($cache)) {
             return $cache;
-        }
+        }*/
 
         $data = [
             'issue_types' => [],
@@ -72,7 +70,8 @@ class FeedbackStandardizationService
         }
 
         // Cache for 1 hour
-        Cache::put(self::CACHE_KEY, $data, 3600);
+        //Cache::put(self::CACHE_KEY, $data, 3600);
+        Cache()->put('feedback_normalization', $data, 3600);
 
         return $data;
     }

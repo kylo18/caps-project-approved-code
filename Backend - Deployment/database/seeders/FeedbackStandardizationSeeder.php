@@ -6,13 +6,10 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Modules\Users\Models\IssueType;
 use Modules\Users\Models\IssueTypeVariant;
-use Modules\Users\Models\SubjectStandardization;
-use Modules\Users\Models\SubjectVariant;
 use Modules\Users\Models\StatusStandardization;
 use Modules\Users\Models\StatusVariant;
 use Modules\Users\Models\CategoryStandardization;
 use Modules\Users\Models\CategoryVariant;
-use Modules\Users\Models\SubjectIssueType;
 
 class FeedbackStandardizationSeeder extends Seeder
 {
@@ -65,32 +62,6 @@ class FeedbackStandardizationSeeder extends Seeder
 
         $other->variants()->createMany([
             ['variant' => 'other'], ['variant' => 'misc'], ['variant' => 'general']
-        ]);
-
-        // Create Subjects
-        $databaseSystems = SubjectStandardization::create(['normalized_name' => 'Database Systems']);
-        $electronics1 = SubjectStandardization::create(['normalized_name' => 'Electronics 1']);
-        $programmingLogic = SubjectStandardization::create(['normalized_name' => 'Programming Logic']);
-        $collegeAlgebra = SubjectStandardization::create(['normalized_name' => 'College Algebra']);
-
-        // Create Subject Variants
-        $databaseSystems->variants()->createMany([
-            ['variant' => 'DB SYSTEMS'], ['variant' => 'DB Sys'], ['variant' => 'database systems'],
-            ['variant' => 'databases'], ['variant' => 'db']
-        ]);
-
-        $electronics1->variants()->createMany([
-            ['variant' => 'Electronics1'], ['variant' => 'Electronics I'], ['variant' => 'electronics 1'],
-            ['variant' => 'elec1']
-        ]);
-
-        $programmingLogic->variants()->createMany([
-            ['variant' => 'Prog'], ['variant' => 'prog logic'], ['variant' => 'coding']
-        ]);
-
-        $collegeAlgebra->variants()->createMany([
-            ['variant' => 'Math1'], ['variant' => 'MATH 1'],
-            ['variant' => 'algebra']
         ]);
 
         // Create Statuses
