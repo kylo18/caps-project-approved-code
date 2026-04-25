@@ -44,7 +44,61 @@ const FAQ_ITEMS = [
   },
 ];
 
+const ISSUE_TYPES = [
+  "Account & Login",
+  //"Exam / Quiz Problem",
+  "Notification Problem",
+  "Technical Issue",
+  //"Performance & Ranking",
+  //"Feature Request",
+  "Other",
+];
 
+const SUBJECT_OPTIONS = {
+  "Technical Issue": [
+    "App not loading",
+    "Page freezes or crashes",
+    "Features not working properly",
+    "Error messages appearing",
+    "Other technical problem",
+  ],
+  "Account & Login": [
+    "Cannot log in to my account",
+    "Forgot password",
+    "Account locked or suspended",
+    "Wrong account information",
+    "Other account issue",
+  ],
+  "Exam / Quiz Problem": [
+    "Cannot submit exam answers",
+    "Exam timer not working",
+    "Wrong questions displayed",
+    "Score not recorded",
+    "Other exam issue",
+  ],
+  "Notification Problem": [
+    "Not receiving notifications",
+    "Receiving duplicate notifications",
+    "Notification content is wrong",
+    "Other notification issue",
+  ],
+  "Performance & Ranking": [
+    "My score is incorrect",
+    "Leaderboard not updating",
+    "Ranking seems wrong",
+    "Other performance issue",
+  ],
+  "Feature Request": [
+    "Suggest a new feature",
+    "Improve existing feature",
+    "Other suggestion",
+  ],
+  "Other": [
+    "General inquiry",
+    "Feedback",
+    "Other concern",
+  ],
+};
 
 const StatusBadge = ({ status }) => {
   const map = {
@@ -142,10 +196,6 @@ export default function SupportPage() {
     setStatusOverrides(cachedOverrides);
   }, []);
 
-  // Issue Types
-  const [issueTypes, setIssueTypes] = useState([]);
-  const [issueTypesLoading, setIssueTypesLoading] = useState(false);
-
   // FAQ state
   const [faqs, setFaqs] = useState([]);
   const [faqLoading, setFaqLoading] = useState(false);
@@ -202,24 +252,6 @@ export default function SupportPage() {
       })
       .finally(() => setFaqLoading(false));
   }, []);
-
-  useEffect(() => {
-    setIssueTypesLoading(true);
-    const token = sessionStorage.getItem("token");
-    fetch(`${apiUrl}/feedback/issue-types`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`API Error: ${r.status}`);
-        return r.json();
-      })
-      .then((data) => {
-        setIssueTypes(data.issue_types || []);
-        //setIssueTypes(data.data || data || []);
-      })
-      .catch((err) => console.error("Issue types fetch error:", err))
-      .finally(() => setIssueTypesLoading(false));
-  }, []); 
 
   // Fetch issue types
   /*useEffect(() => {
@@ -544,12 +576,7 @@ export default function SupportPage() {
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setForm((p) => ({
-      ...p,
-      [name]: value,
-      // reset subject when issue type changes
-      ...(name === "issue_type" ? { subject: "" } : {}),
-    }));
+    setForm((p) => ({ ...p, [name]: value }));
     if (name === "message") setCharMessage(value.length);
     setFieldErrors((p) => ({ ...p, [name]: "" }));
   };
@@ -806,19 +833,16 @@ export default function SupportPage() {
                         ISSUE TYPE <span className="text-orange-500">*</span>
                       </label>
                       <div className="relative">
-                      <select
+                        <select
                           name="issue_type"
                           value={form.issue_type}
                           onChange={handleFormChange}
-                          disabled={issueTypesLoading}
-                          className={`w-full appearance-none rounded-lg border bg-gray-50 px-4 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none disabled:opacity-50 ${fieldErrors.issue_type ? "border-red-400 bg-red-50" : "border-gray-200"}`}
+                          className={`w-full appearance-none rounded-lg border bg-gray-50 px-4 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none ${fieldErrors.issue_type ? "border-red-400 bg-red-50" : "border-gray-200"}`}
                         >
                           <option value="" disabled hidden>
-                            {issueTypesLoading ? "Loading…" : "Select an issue type…"}
+                            Select an issue type…
                           </option>
-                          {issueTypes.map((t) => (
-                            <option key={t.name} value={t.name}>{t.name}</option>
-                          ))}
+                          {ISSUE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                         </select>
                         <i className="bx bx-chevron-down pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-gray-400"></i>
                       </div>
@@ -831,7 +855,7 @@ export default function SupportPage() {
                         SUBJECT <span className="text-orange-500">*</span>
                       </label>
                       <div className="relative">
-                      <select
+                        <select
                           name="subject"
                           value={form.subject}
                           onChange={handleFormChange}
@@ -841,11 +865,9 @@ export default function SupportPage() {
                           <option value="" disabled hidden>
                             {form.issue_type ? "Select a subject…" : "Select an issue type first…"}
                           </option>
-                          {issueTypes
-                            .find((t) => t.name === form.issue_type)
-                            ?.sub_options?.map((s) => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
+                          {SUBJECT_OPTIONS[form.issue_type]?.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
                         </select>
                         <i className="bx bx-chevron-down pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-gray-400"></i>
                       </div>
