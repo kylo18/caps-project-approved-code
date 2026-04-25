@@ -164,7 +164,7 @@ const ChangelogModal = ({ onClose }) => {
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-5 backdrop-blur-sm"
     >
       {/* Modal card */}
-      <div className="relative flex w-full max-w-[560px] max-h-[90vh] animate-[clg-in_0.3s_cubic-bezier(0.34,1.3,0.64,1)] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative flex max-h-[80vh] w-full max-w-[560px] animate-[clg-in_0.3s_cubic-bezier(0.34,1.3,0.64,1)] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl md:max-h-[90vh]">
         {/* Close button */}
         <button
           onClick={onClose}

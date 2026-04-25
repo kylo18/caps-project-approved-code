@@ -23,7 +23,7 @@ const ProgramChairDashboard = () => {
           <div className="absolute -right-24 -bottom-24 h-80 w-80 rounded-full bg-sky-100/50 blur-3xl" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center gap-5">
+        <div className="relative z-10 -mt-50 flex flex-col items-center gap-5 lg:mt-0">
           {/* Badge */}
           <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-semibold tracking-widest text-orange-500 uppercase">
             <i className="bx bx-rocket text-[13px]" />
@@ -46,7 +46,7 @@ const ProgramChairDashboard = () => {
             className="outfit-600 mt-2 flex cursor-pointer items-center gap-2 rounded-2xl bg-orange-500 px-6 py-3 text-[14px] font-bold text-white shadow-lg shadow-orange-200 transition hover:bg-orange-600 hover:shadow-orange-300 active:scale-95"
           >
             <i className="bx bx-news text-[17px]" />
-            See What&apos;s New in v2.0
+            See What&apos;s New
           </button>
 
           <p className="text-[12px] text-gray-400">
