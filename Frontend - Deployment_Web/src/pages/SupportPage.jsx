@@ -862,7 +862,7 @@ export default function SupportPage() {
                           disabled={!form.issue_type}
                           className={`w-full appearance-none rounded-lg border bg-gray-50 px-4 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${fieldErrors.subject ? "border-red-400 bg-red-50" : "border-gray-200"}`}
                         >
-                          <option value="">
+                          <option value="" disabled hidden>
                             {form.issue_type ? "Select a subject…" : "Select an issue type first…"}
                           </option>
                           {SUBJECT_OPTIONS[form.issue_type]?.map((s) => (
