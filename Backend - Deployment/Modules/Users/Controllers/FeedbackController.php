@@ -3,6 +3,7 @@
 namespace Modules\Users\Controllers;
 
 use Modules\Users\Models\UserFeedback;
+use Modules\Users\Models\IssueType;
 use Modules\Users\Services\FeedbackStandardizationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -240,7 +241,7 @@ class FeedbackController
     public function getIssueTypesWithSubOptions(Request $request): JsonResponse
     {
         try {
-            $issueTypes = Modules\Users\Models\IssueType::where('is_active', true)
+            $issueTypes = IssueType::where('is_active', true)
                 ->orderBy('name')
                 ->get()
                 ->map(function ($issueType) {
@@ -270,8 +271,7 @@ class FeedbackController
      */
     private function getSubOptionsForIssueType(string $issueType): array
     {
-        $issueTypeModel = Modules\Users\Models\IssueType::where('name', $issueType)->first();
-        
+        $issueTypeModel = IssueType::where('name', $issueType)->first();
         if (!$issueTypeModel) {
             return [];
         }
