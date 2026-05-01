@@ -15,7 +15,6 @@ import EditProfileModal from '../../../../features/profile/components/EditProfil
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { showToast } from '../../../../hooks/useToast';
 import { unregisterStoredPushToken } from '../../../../services/pushNotificationService';
-import { apiRequest } from '../../../../services/apiClient';
 import {
   getDashboardSummary,
   getLearningInsights,
@@ -380,10 +379,9 @@ export default function StudentInsightsScreen() {
   // ── Fetch all analytics data in parallel on mount ───────────────────────
   useEffect(() => {
     loadInsights();
-    const interval = setInterval(() => {
-      loadInsights({ silent: true });
-    }, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      refreshInFlightRef.current = false;
+    };
   }, []);
 
   async function loadInsights(options?: { silent?: boolean }) {
@@ -393,19 +391,18 @@ export default function StudentInsightsScreen() {
     if (!silent) setLoading(true);
 
     try {
-      const [profileResponse, summaryResponse, insightResponse, trendResponse] = await Promise.all([
-        apiRequest('/api/user/profile').catch(() => ({ data: user })),
+      // Phase 1: load summary + insights + trend in parallel (3 calls)
+      const [summaryResponse, insightResponse, trendResponse] = await Promise.all([
         getDashboardSummary(),
         getLearningInsights(),
         getPerformanceTrend(),
       ]);
 
-      setProfile(profileResponse?.data || profileResponse || user);
       setSummary(summaryResponse?.data || summaryResponse || {});
       setInsights(insightResponse?.data || insightResponse || {});
       setLoadError(summaryResponse?.error || insightResponse?.error || '');
 
-      // Fetch recommendations using the attempt_id from the latest trend entry
+      // Phase 2: once trend resolves, fetch recommendations if attemptId is available
       const latestAttempt = trendResponse?.data?.[0];
       const attemptId = latestAttempt?.attempt_id;
       if (attemptId) {

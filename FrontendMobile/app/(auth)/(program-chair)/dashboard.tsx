@@ -62,7 +62,7 @@ export default function ProgramChairDashboard() {
       setSubjects(Array.isArray(subjectList) ? subjectList : []);
 
       // Fetch users count (faculty and students)
-      const usersRes = await apiRequest('/api/users?limit=10000');
+      const usersRes = await apiRequest('/api/users?limit=10000&status=registered');
       const users = usersRes?.users || usersRes?.data || [];
 
       const facultyCount = Array.isArray(users) ? users.filter((u: any) => [2, 3, 4, 5].includes(u.roleID)).length : 0;

@@ -28,7 +28,9 @@ interface QueuedRequest {
 }
 
 export function cacheKey(method: string, path: string): string {
-  return `${CACHE_PREFIX}${method}:${path}`;
+  // Include full path + query string so different filter params get separate cache entries
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${CACHE_PREFIX}${method}:${normalizedPath}`;
 }
 
 export async function setCachedResponse(

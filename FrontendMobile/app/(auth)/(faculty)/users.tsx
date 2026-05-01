@@ -90,7 +90,17 @@ export default function FacultyUsersScreen() {
     }
 
     try {
-      const data = await apiRequest(`/api/users?limit=${PAGE_SIZE}&page=${currentPage}`);
+      const statusParam = activeStatusFilter === 'active'
+        ? 'status=registered'
+        : activeStatusFilter === 'pending'
+        ? 'status=pending'
+        : activeStatusFilter === 'disapproved'
+        ? 'status=disapproved'
+        : activeStatusFilter === 'inactive'
+        ? 'state=inactive'
+        : '';
+      const query = `/api/users?limit=${PAGE_SIZE}&page=${currentPage}${statusParam ? '&' + statusParam : ''}`;
+      const data = await apiRequest(query);
       const userList: UserItem[] = Array.isArray(data?.users) ? data.users
         : Array.isArray(data?.data) ? data.data : [];
       const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
@@ -106,11 +116,13 @@ export default function FacultyUsersScreen() {
         const studentCount = userList.filter((u: UserItem) => Number(u.roleID) === STUDENT_ROLE).length;
         setStats({ admins: adminCount, students: studentCount });
       } else {
+        const prevCount = users.length;
         setUsers(prev => [...prev, ...userList]);
         if (total !== undefined) {
-          setHasMore(userList.length > 0 && (users.length + userList.length) < total);
+          setHasMore(userList.length > 0 && (prevCount + userList.length) < total);
         } else {
-          setHasMore(userList.length === PAGE_SIZE);
+          // Fix: if we got fewer than PAGE_SIZE (or empty), no more pages exist
+          setHasMore(userList.length >= PAGE_SIZE);
         }
         setPage(prev => prev + 1);
       }

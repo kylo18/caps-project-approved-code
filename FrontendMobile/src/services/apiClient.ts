@@ -63,25 +63,46 @@ async function rawApiRequest(
     }
   }
 
-  const response = await fetch(buildUrl(path), {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const getTimeout = (path: string): number => {
+    if (path.includes('/leaderboard')) return 60000; // 60s for leaderboard
+    if (path.includes('/analytics') || path.includes('/insights')) return 45000; // 45s for analytics
+    return 30000; // 30s default
+  };
+  const timeout = setTimeout(() => controller.abort(), getTimeout(path)); // heavy analytics queries need more time
 
-  const data = await response.json().catch(() => ({}));
+  try {
+    const response = await fetch(buildUrl(path), {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
 
-  if (!response.ok) {
-    if (response.status === 401) {
-      await handleUnauthorized();
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        await handleUnauthorized();
+      }
+      const error: ApiError = new Error(data.message || 'Request failed') as ApiError;
+      error.status = response.status;
+      error.data = data as Record<string, unknown>;
+      throw error;
     }
-    const error: ApiError = new Error(data.message || 'Request failed') as ApiError;
-    error.status = response.status;
-    error.data = data as Record<string, unknown>;
-    throw error;
-  }
 
-  return data;
+    return data;
+  } catch (err) {
+    clearTimeout(timeout);
+    const abortError = err as { name?: string; message?: string };
+    if (abortError.name === 'AbortError' || abortError.message?.includes('aborted')) {
+      const timeoutError = new Error('Request timed out') as ApiError;
+      timeoutError.status = 408;
+      throw timeoutError;
+    }
+    throw err;
+  }
 }
 
 export async function apiRequest(
@@ -96,10 +117,8 @@ export async function apiRequest(
     try {
       const result = await rawApiRequest(path, { method, body, auth });
       if (method === 'GET') {
-        // Cache static-ish data for 24h, dynamic data for 5m
-        const ttl = path.includes('/count') || path.includes('/subjects')
-          ? 24 * 60 * 60 * 1000
-          : 5 * 60 * 1000;
+        // Cache dynamic data for 5 minutes (reduced from 24h)
+        const ttl = 5 * 60 * 1000;
         await setCachedResponse(key, result, ttl);
       }
       return result;

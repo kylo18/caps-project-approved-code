@@ -1,14 +1,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Purpose: Student bottom tab bar with 4 tabs: Dashboard, Classes,
-//          Leaderboard, Insights. Replaces default Expo Router TabBar.
+// StudentTabBar — custom tab bar for student navigation.
+// Exported from StudentUI as-is.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { ReactNode } from 'react';
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { studentColors, studentShadow } from '../studentTheme';
+import { ReactNode, useMemo } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { studentColors, studentShadow } from '../ui/studentTokens';
 
 function getTabIcon(name: string, focused: boolean): keyof typeof Ionicons.glyphMap {
   if (name === 'dashboard') return focused ? 'home' : 'home-outline';
@@ -26,8 +25,8 @@ export function StudentTabBar({ state, descriptors, navigation }: BottomTabBarPr
   const activeRouteName = state.routes[state.index]?.name;
 
   return (
-    <View style={styles.tabBarWrap}>
-      <View style={styles.tabBar}>
+    <View className="absolute left-0 right-0 bottom-0 bg-transparent">
+      <View className="w-full flex-row items-center justify-around bg-white rounded-t-[20px] pt-2.5 pb-2" style={studentShadow}>
         {visibleRoutes.map((route) => {
           const focused = activeRouteName === route.name;
           const options = descriptors[route.key]?.options ?? {};
@@ -38,19 +37,14 @@ export function StudentTabBar({ state, descriptors, navigation }: BottomTabBarPr
             <Pressable
               key={route.key}
               onPress={() => navigation.navigate(route.name)}
-              style={styles.tabBarItem}
+              className="items-center justify-center min-w-[64px] gap-[3px]"
             >
               <Ionicons
                 name={iconName}
                 size={22}
                 color={focused ? studentColors.orange : '#C9C6D8'}
               />
-              <Text
-                style={[
-                  styles.tabBarLabel,
-                  { color: focused ? studentColors.orange : '#C9C6D8' },
-                ]}
-              >
+              <Text className="font-sans text-[11px] font-medium leading-[14px]" style={{ color: focused ? studentColors.orange : '#C9C6D8' }}>
                 {label}
               </Text>
             </Pressable>
@@ -60,37 +54,3 @@ export function StudentTabBar({ state, descriptors, navigation }: BottomTabBarPr
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBarWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-  },
-  tabBar: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    backgroundColor: studentColors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 10,
-    paddingBottom: 8,
-    ...studentShadow,
-  },
-  tabBarItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 64,
-    gap: 3,
-  },
-  tabBarLabel: {
-    fontFamily: 'Rubik',
-    fontSize: 11,
-    fontWeight: '500',
-    lineHeight: 14,
-  },
-});

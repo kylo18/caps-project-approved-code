@@ -3,7 +3,7 @@
 // Exported from StudentUI as-is.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { studentColors } from './studentTokens';
 
 export type StudentFilterSheetProps = {
@@ -29,18 +29,18 @@ export function StudentFilterSheet({
 }: StudentFilterSheetProps) {
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.sheetOverlay} onPress={onClose}>
-        <Pressable style={styles.sheetCard} onPress={(event) => event.stopPropagation()}>
-          <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle}>Leaderboard Filters</Text>
+      <Pressable className="flex-1 justify-end" style={{ backgroundColor: 'rgba(12,9,42,0.35)' }} onPress={onClose}>
+        <Pressable className="bg-white rounded-t-[32px] px-5 pt-3 pb-6" style={{ maxHeight: '80%' }} onPress={(event) => event.stopPropagation()}>
+          <View className="self-center w-11 h-1 rounded-full bg-[#E6E2F4] mb-4" />
+          <Text className="font-sans text-[#0C092A] text-xl font-medium leading-7 mb-2">Leaderboard Filters</Text>
 
-          <Text style={[styles.sheetSectionTitle, { marginTop: 4 }]}>Program</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sheetChipRow}>
+          <Text className="font-sans text-[#0C092A] text-sm font-bold leading-5 mt-3 mb-2.5">Program</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
             <Pressable
               onPress={() => onSelectProgram(null)}
-              style={[styles.sheetChip, selectedProgramID === null ? styles.sheetChipActive : null]}
+              className={`h-[42px] max-w-[180px] justify-center items-center px-3.5 py-2.5 rounded-[999px] border ${selectedProgramID === null ? 'bg-primary border-primary' : 'bg-white border-[#EFEEFC]'}`}
             >
-              <Text style={[styles.sheetChipText, selectedProgramID === null ? styles.sheetChipTextActive : null]}>
+              <Text className={`font-sans text-[13px] leading-5 ${selectedProgramID === null ? 'text-white font-bold' : 'text-[#858494] font-medium'}`}>
                 All Programs
               </Text>
             </Pressable>
@@ -48,12 +48,12 @@ export function StudentFilterSheet({
               <Pressable
                 key={program.programID}
                 onPress={() => onSelectProgram(program.programID)}
-                style={[styles.sheetChip, selectedProgramID === program.programID ? styles.sheetChipActive : null]}
+                className={`h-[42px] max-w-[180px] justify-center items-center px-3.5 py-2.5 rounded-[999px] border ${selectedProgramID === program.programID ? 'bg-primary border-primary' : 'bg-white border-[#EFEEFC]'}`}
               >
                 <Text
                   numberOfLines={1}
                   ellipsizeMode="tail"
-                  style={[styles.sheetChipText, selectedProgramID === program.programID ? styles.sheetChipTextActive : null]}
+                  className={`font-sans text-[13px] leading-5 ${selectedProgramID === program.programID ? 'text-white font-bold' : 'text-[#858494] font-medium'}`}
                 >
                   {program.programName}
                 </Text>
@@ -61,24 +61,24 @@ export function StudentFilterSheet({
             ))}
           </ScrollView>
 
-          <Text style={styles.sheetSectionTitle}>Subject</Text>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetSubjectList}>
+          <Text className="font-sans text-[#0C092A] text-sm font-bold leading-5 mt-3 mb-2.5">Subject</Text>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 20 }}>
             <Pressable
               onPress={() => onSelectSubject(null)}
-              style={[styles.sheetListItem, selectedSubjectID === null ? styles.sheetListItemActive : null]}
+              className={`rounded-[18px] border px-3.5 py-3 ${selectedSubjectID === null ? 'bg-[#FFF1E9] border-[#FFA258]' : 'bg-white border-[#EFEEFC]'}`}
             >
-              <Text style={styles.sheetListTitle}>All Subjects</Text>
+              <Text className="font-sans text-[#0C092A] text-sm font-medium leading-5">All Subjects</Text>
             </Pressable>
             {subjects.map((subject) => (
               <Pressable
                 key={subject.subjectID}
                 onPress={() => onSelectSubject(subject.subjectID)}
-                style={[styles.sheetListItem, selectedSubjectID === subject.subjectID ? styles.sheetListItemActive : null]}
+                className={`rounded-[18px] border px-3.5 py-3 ${selectedSubjectID === subject.subjectID ? 'bg-[#FFF1E9] border-[#FFA258]' : 'bg-white border-[#EFEEFC]'}`}
               >
-                <Text numberOfLines={1} style={styles.sheetListTitle}>
+                <Text numberOfLines={1} className="font-sans text-[#0C092A] text-sm font-medium leading-5">
                   {subject.subjectName}
                 </Text>
-                {subject.subjectCode ? <Text style={styles.sheetListSubtitle}>{subject.subjectCode}</Text> : null}
+                {subject.subjectCode ? <Text className="font-sans text-[#858494] text-xs font-normal leading-[18px] mt-0.5">{subject.subjectCode}</Text> : null}
               </Pressable>
             ))}
           </ScrollView>
@@ -87,107 +87,3 @@ export function StudentFilterSheet({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  sheetOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(12,9,42,0.35)',
-    justifyContent: 'flex-end',
-  },
-  sheetCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 24,
-    maxHeight: '80%',
-  },
-  sheetHandle: {
-    alignSelf: 'center',
-    width: 44,
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: '#E6E2F4',
-    marginBottom: 16,
-  },
-  sheetTitle: {
-    color: '#0C092A',
-    fontFamily: 'Rubik',
-    fontSize: 20,
-    fontWeight: '500',
-    lineHeight: 28,
-    marginBottom: 8,
-  },
-  sheetSectionTitle: {
-    color: '#0C092A',
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 20,
-    marginBottom: 10,
-    marginTop: 12,
-  },
-  sheetChipRow: {
-    gap: 10,
-    paddingBottom: 4,
-  },
-  sheetChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#EFEEFC',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    height: 42,
-    justifyContent: 'center',
-    alignItems: 'center',
-    maxWidth: 180,
-  },
-  sheetChipActive: {
-    backgroundColor: '#FF6E00',
-    borderColor: '#FF6E00',
-  },
-  sheetChipText: {
-    color: '#858494',
-    fontFamily: 'Rubik',
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-  sheetChipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  sheetSubjectList: {
-    gap: 10,
-    paddingBottom: 20,
-  },
-  sheetListItem: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#EFEEFC',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  sheetListItemActive: {
-    backgroundColor: '#FFF1E9',
-    borderColor: '#FFA258',
-  },
-  sheetListTitle: {
-    color: '#0C092A',
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-  sheetListSubtitle: {
-    color: '#858494',
-    fontFamily: 'Rubik',
-    fontSize: 12,
-    fontWeight: '400',
-    lineHeight: 18,
-    marginTop: 2,
-  },
-});

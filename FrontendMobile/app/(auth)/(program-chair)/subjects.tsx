@@ -16,7 +16,6 @@ import RenderHtml from 'react-native-render-html';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
-import { Skeleton, SkeletonList } from '../../../src/features/core/components/Skeleton';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 import type { AdminToolAction } from '../../../src/features/admin/shared/components/AdminFloatingTools';
 import PrintExamModal from '../../../src/features/practice/components/PrintExamModal';
@@ -330,23 +329,11 @@ export default function ProgramChairSubjectsScreen() {
 
   useScreenFloatingTools(fabActions);
 
-  // Render loading skeleton
+  // Render loading state
   if (isLoading) {
     return (
-      <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
-        <View className={`px-4 py-3 ${isDark ? 'bg-gray-900' : 'bg-white'} border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`} style={{ paddingTop: insets.top + 12 }}>
-          <View className="flex-row items-center">
-            <Skeleton variant="text" className="w-40 h-6" />
-          </View>
-        </View>
-        <View className="px-4 py-4">
-          <View className="flex-row mb-4">
-            {[1, 2, 3, 4].map(i => (
-              <Skeleton key={i} variant="button" className="mr-2" />
-            ))}
-          </View>
-          <SkeletonList count={4} />
-        </View>
+      <View className={`flex-1 justify-center items-center ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+        <CapsActivityIndicator size="large" color="#FE6902" />
       </View>
     );
   }

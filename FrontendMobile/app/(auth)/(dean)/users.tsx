@@ -100,7 +100,17 @@ export default function AdminUsersScreen() {
     }
 
     try {
-      const data = await apiRequest(`/api/users?limit=${PAGE_SIZE}&page=${currentPage}`);
+      const statusParam = activeStatusFilter === 'active'
+        ? 'status=registered'
+        : activeStatusFilter === 'pending'
+        ? 'status=pending'
+        : activeStatusFilter === 'disapproved'
+        ? 'status=disapproved'
+        : activeStatusFilter === 'inactive'
+        ? 'state=inactive'
+        : '';
+      const query = `/api/users?limit=${PAGE_SIZE}&page=${currentPage}${statusParam ? '&' + statusParam : ''}`;
+      const data = await apiRequest(query);
       const userList: UserItem[] = Array.isArray(data?.users) ? data.users
         : Array.isArray(data?.data) ? data.data : [];
       const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
@@ -110,17 +120,23 @@ export default function AdminUsersScreen() {
         if (total !== undefined) {
           setHasMore(userList.length < total);
         } else {
-          setHasMore(userList.length === PAGE_SIZE);
+          // Fix: if we got fewer than PAGE_SIZE (or empty), no more pages exist
+          setHasMore(userList.length >= PAGE_SIZE);
         }
         const adminCount = userList.filter((u: UserItem) => ADMIN_ROLES.includes(Number(u.roleID))).length;
         const studentCount = userList.filter((u: UserItem) => Number(u.roleID) === STUDENT_ROLE).length;
         setStats({ admins: adminCount, students: studentCount });
       } else {
-        setUsers(prev => [...prev, ...userList]);
+        setUsers(prev => {
+          const existing = new Set(prev.map(u => u.userID));
+          const newUnique = userList.filter(u => !existing.has(u.userID));
+          return [...prev, ...newUnique];
+        });
         if (total !== undefined) {
-          setHasMore(userList.length > 0 && (users.length + userList.length) < total);
+          const prevCount = users.length;
+          setHasMore(userList.length > 0 && (prevCount + userList.length) < total);
         } else {
-          setHasMore(userList.length === PAGE_SIZE);
+          setHasMore(userList.length >= PAGE_SIZE);
         }
         setPage(prev => prev + 1);
       }
@@ -373,16 +389,6 @@ export default function AdminUsersScreen() {
       </TouchableOpacity>
     );
   }, [colors.text, colors.textSecondary, colors.card, colors.blue, colors.green, colors.red, colors.orange, selectedUserIDs, selectionMode]);
-
-  const renderSkeleton = () => (
-    <View className="flex-row items-center rounded-2xl p-3 gap-3 mb-2.5" style={{ backgroundColor: colors.card, elevation: 2 }}>
-      <View className="w-12 h-12 rounded-full" style={{ backgroundColor: isDark ? '#374151' : '#e5e7eb' }} />
-      <View className="flex-1">
-        <View className="h-3 rounded-md" style={{ backgroundColor: isDark ? '#374151' : '#e5e7eb', width: '60%' }} />
-        <View className="h-3 rounded-md mt-1.5" style={{ backgroundColor: isDark ? '#374151' : '#e5e7eb', width: '40%' }} />
-      </View>
-    </View>
-  );
 
   const pendingCount = users.filter((u: any) => canApproveUser(u)).length;
 

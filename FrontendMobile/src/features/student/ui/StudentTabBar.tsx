@@ -3,55 +3,48 @@
 // Exported from StudentUI as-is.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { studentColors, studentShadow } from '../ui/studentTokens';
 
-type StudentTabBarProps = {
-  state: any;
-  descriptors: any;
-  navigation: any;
-};
-
-function getTabIcon(name: string, focused: boolean) {
+function getTabIcon(name: string, focused: boolean): keyof typeof Ionicons.glyphMap {
   if (name === 'dashboard') return focused ? 'home' : 'home-outline';
   if (name === 'classes') return focused ? 'school' : 'school-outline';
   if (name === 'leaderboard') return focused ? 'trophy' : 'trophy-outline';
   return focused ? 'analytics' : 'analytics-outline';
 }
 
-const studentShadow = Platform.select({
-  android: { elevation: 5 },
-  default: {
-    shadowColor: '#062B2D',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-  },
-});
+export function StudentTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const visibleRoutes = useMemo(() => {
+    const visibleTabNames = new Set(['dashboard', 'classes', 'leaderboard', 'insights']);
+    return state.routes.filter((route) => visibleTabNames.has(route.name));
+  }, [state.routes]);
 
-export function StudentTabBar({ state, descriptors, navigation }: StudentTabBarProps) {
-  const routes = state.routes;
-  const visibleTabNames = new Set(['dashboard', 'classes', 'leaderboard', 'insights']);
   const activeRouteName = state.routes[state.index]?.name;
-  const visibleRoutes = routes.filter((route: any) => visibleTabNames.has(route.name));
 
   return (
-    <View style={styles.tabBarWrap}>
-      <View style={styles.tabBar}>
-        {visibleRoutes.map((route: any) => {
+    <View className="absolute left-0 right-0 bottom-0 bg-transparent">
+      <View className="w-full flex-row items-center justify-around bg-white rounded-t-[20px] pt-2.5 pb-2" style={studentShadow}>
+        {visibleRoutes.map((route) => {
           const focused = activeRouteName === route.name;
           const options = descriptors[route.key]?.options ?? {};
           const iconName = getTabIcon(route.name, focused);
-          const label = options.title ?? options.headerTitle ?? route.name;
+          const label = String(options.title ?? options.headerTitle ?? route.name);
 
           return (
             <Pressable
               key={route.key}
               onPress={() => navigation.navigate(route.name)}
-              style={styles.tabBarItem}
+              className="items-center justify-center min-w-[64px] gap-[3px]"
             >
-              <Ionicons name={iconName as keyof typeof Ionicons.glyphMap} size={22} color={focused ? '#FF6E00' : '#C9C6D8'} />
-              <Text style={[styles.tabBarLabel, { color: focused ? '#FF6E00' : '#C9C6D8' }]}>
+              <Ionicons
+                name={iconName}
+                size={22}
+                color={focused ? studentColors.orange : '#C9C6D8'}
+              />
+              <Text className="font-sans text-[11px] font-medium leading-[14px]" style={{ color: focused ? studentColors.orange : '#C9C6D8' }}>
                 {label}
               </Text>
             </Pressable>
@@ -61,37 +54,3 @@ export function StudentTabBar({ state, descriptors, navigation }: StudentTabBarP
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBarWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-  },
-  tabBar: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 10,
-    paddingBottom: 8,
-    ...studentShadow,
-  },
-  tabBarItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 64,
-    gap: 3,
-  },
-  tabBarLabel: {
-    fontFamily: 'Rubik',
-    fontSize: 11,
-    fontWeight: '500',
-    lineHeight: 14,
-  },
-});

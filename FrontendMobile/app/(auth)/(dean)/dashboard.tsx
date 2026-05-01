@@ -25,7 +25,6 @@ import MobileHeader from '../../../src/features/core/components/MobileHeader';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
-type DashboardSubject = { subjectID: number; [key: string]: any };
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -44,45 +43,14 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const [uRes, sRes] = await Promise.allSettled([
-        apiRequest('/api/users?limit=10000'),
-        apiRequest('/api/subjects'),
-      ]);
-
-      const userPayload = uRes.status === 'fulfilled' ? uRes.value : null;
-      const users = Array.isArray(userPayload?.users) ? userPayload.users :
-        Array.isArray(userPayload?.data) ? userPayload.data : [];
-      const activeUsers = users.filter((u: any) => u.status === 'registered' && u.isActive).length;
-
-      const subjectPayload = sRes.status === 'fulfilled' ? sRes.value : null;
-      const subjects = Array.isArray(subjectPayload?.subjects) ? subjectPayload.subjects :
-        Array.isArray(subjectPayload?.data) ? subjectPayload.data :
-        Array.isArray(subjectPayload) ? subjectPayload : [];
-
-      const questionResponses = await Promise.allSettled(
-        subjects.map((subject: DashboardSubject) => apiRequest(`/api/subjects/${subject.subjectID}/questions`))
-      );
-
-      const approvedCount = questionResponses.reduce((count, response) => {
-        if (response.status !== 'fulfilled') {
-          return count;
-        }
-
-        const questions = Array.isArray(response.value?.data) ? response.value.data :
-          Array.isArray(response.value?.questions) ? response.value.questions :
-            Array.isArray(response.value) ? response.value : [];
-
-        return count + questions.filter((q: any) => {
-          const status = String(q?.status_name || q?.status || '').toLowerCase();
-          const statusId = Number(q?.status_id);
-          return statusId === 2 || status === 'approved';
-        }).length;
-      }, 0);
-
-      setStats({ questions: approvedCount, users: activeUsers, subjects: subjects.length });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-      showToast('Failed to load statistics', 'error');
+      const statsRes = await apiRequest('/api/dashboard/stats');
+      setStats({
+        users: statsRes?.data?.users ?? 0,
+        subjects: statsRes?.data?.subjects ?? 0,
+        questions: statsRes?.data?.questions ?? 0,
+      });
+    } catch {
+      setStats({ users: 0, subjects: 0, questions: 0 });
     } finally {
       setIsLoading(false);
     }

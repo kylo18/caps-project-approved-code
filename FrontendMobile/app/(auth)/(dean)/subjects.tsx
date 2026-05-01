@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, useWindowDimensions, Switch, Alert } from 'react-native';
+import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, useWindowDimensions, Switch, Alert, FlatList } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -101,10 +101,13 @@ export default function AdminSubjectsScreen() {
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<SubjectItem | null>(null);
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
+  const [questionsPage, setQuestionsPage] = useState(1);
+  const [questionsHasMore, setQuestionsHasMore] = useState(true);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1);
+  const [cursor, setCursor] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<QuestionItem | null>(null);
@@ -165,36 +168,31 @@ export default function AdminSubjectsScreen() {
   // Fetch questions when subject changes
   useEffect(() => {
     if (selectedSubject) {
-      fetchQuestions();
+      fetchQuestions(true);
     }
   }, [selectedSubject]);
 
   const fetchSubjects = async (reset = false) => {
-    const currentPage = reset ? 1 : page;
-
     if (reset) {
       setIsLoading(true);
-      setPage(1);
+      setSubjects([]);
+      setCursor(null);
       setHasMore(true);
     } else {
       setIsLoadingMore(true);
     }
 
     try {
-      const data = await apiRequest(`/api/subjects?limit=20&page=${currentPage}`);
+      const url = cursor && !reset ? `/api/subjects?cursor=${cursor}` : '/api/subjects';
+      const data = await apiRequest(url);
       const list = Array.isArray(data?.subjects) ? data.subjects :
         Array.isArray(data?.data) ? data.data :
           Array.isArray(data) ? data : [];
       const normalizedSubjects = list.map(normalizeSubject);
-      const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
 
       if (reset) {
         setSubjects(normalizedSubjects);
-        if (total !== undefined) {
-          setHasMore(normalizedSubjects.length < total);
-        } else {
-          setHasMore(normalizedSubjects.length === 20);
-        }
+        setHasMore(data.hasMore === true);
         if (normalizedSubjects.length === 0) {
           return;
         }
@@ -203,22 +201,19 @@ export default function AdminSubjectsScreen() {
           setSelectedSubject(updatedSelection || null);
         }
       } else {
-        setSubjects(prev => [...prev, ...normalizedSubjects]);
-        if (total !== undefined) {
-          setHasMore((subjects.length + normalizedSubjects.length) < total);
-        } else {
-          setHasMore(normalizedSubjects.length === 20);
-        }
-        setPage(prev => prev + 1);
+        setSubjects(prev => {
+          const existing = new Set(prev.map((s: SubjectItem) => s.subjectID));
+          const newUnique = normalizedSubjects.filter((s: SubjectItem) => !existing.has(s.subjectID));
+          return [...prev, ...newUnique];
+        });
+        setHasMore(data.hasMore === true);
+        setCursor(data.cursor);
       }
     } catch (error) {
       showToast('Unable to load subjects', 'error');
     } finally {
-      if (reset) {
-        setIsLoading(false);
-      } else {
-        setIsLoadingMore(false);
-      }
+      setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -227,17 +222,39 @@ export default function AdminSubjectsScreen() {
     fetchSubjects(false);
   };
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = async (reset = false) => {
     if (!selectedSubject) return;
+    const currentPage = reset ? 1 : questionsPage;
+    setIsLoadingQuestions(true);
     try {
-      const data = await apiRequest(`/api/subjects/${selectedSubject.subjectID}/questions`);
+      const data = await apiRequest(
+        `/api/subjects/${selectedSubject.subjectID}/questions?page=${currentPage}&limit=20`
+      );
       const items = Array.isArray(data?.questions) ? data.questions :
         Array.isArray(data?.data) ? data.data :
           Array.isArray(data) ? data : [];
-      setQuestions(items.map(normalizeQuestion));
+      const total = data?.total;
+      const totalPages = data?.total_pages;
+
+      if (reset) {
+        setQuestions(items.map(normalizeQuestion));
+        setQuestionsPage(1);
+        setQuestionsHasMore(totalPages ? currentPage < totalPages : items.length === 20);
+      } else {
+        setQuestions(prev => [...prev, ...items.map(normalizeQuestion)]);
+        setQuestionsPage(prev => prev + 1);
+        setQuestionsHasMore(totalPages ? currentPage < totalPages : items.length === 20);
+      }
     } catch (error) {
       showToast('Unable to load questions', 'error');
+    } finally {
+      setIsLoadingQuestions(false);
     }
+  };
+
+  const handleLoadMoreQuestions = () => {
+    if (!questionsHasMore || isLoadingQuestions || !selectedSubject) return;
+    fetchQuestions(false);
   };
 
   const fetchPrograms = async () => {
@@ -615,7 +632,7 @@ export default function AdminSubjectsScreen() {
         <View className="flex-1 justify-center items-center">
           <CapsActivityIndicator size="large" color="#FE6902" />
           <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            Loading questions...
+            Loading subjects...
           </Text>
         </View>
       </View>
@@ -635,6 +652,7 @@ export default function AdminSubjectsScreen() {
               onPress={() => {
                 if (selectedSubject) {
                   setSelectedSubject(null);
+                  setQuestions([]);
                   setSearchQuery('');
                   return;
                 }
@@ -661,24 +679,79 @@ export default function AdminSubjectsScreen() {
         </View>
       </View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 96 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={onRefresh}
-            tintColor="#FE6900"
-          />
-        }
-      >
-        {!selectedSubject ? (
-          <View className="px-4 py-4">
-            <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Subject List ({subjects.length})
-            </Text>
-            {subjects.length === 0 ? (
+      {!selectedSubject ? (
+        <View className="flex-1 px-4 py-4">
+          <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            Subject List ({subjects.length})
+          </Text>
+          <FlatList
+            data={subjects}
+            keyExtractor={(subject) => subject.subjectID?.toString() || Math.random().toString()}
+            renderItem={({ item: subject }) => (
+              <TouchableOpacity
+                onPress={() => setSelectedSubject(subject)}
+                className={`rounded-2xl p-4 mb-3 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+                activeOpacity={0.7}
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1 pr-3">
+                    <View className="flex-row items-center">
+                      <Text className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        {subject.subjectName}
+                      </Text>
+                      {!!subject.is_enabled_for_exam_questions && (
+                        <View className="ml-2 w-2 h-2 rounded-full bg-green-400" />
+                      )}
+                    </View>
+                    {!!subject.subjectCode && (
+                      <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {subject.subjectCode}
+                      </Text>
+                    )}
+                  </View>
+                  <View className="flex-row items-center" style={{ gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => openEditSubject(subject)}
+                      className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-orange-50'}`}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="create-outline" size={18} color="#FE6902" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteSubject(subject)}
+                      className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-red-50'}`}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                    </TouchableOpacity>
+                    <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={{ paddingBottom: 120 }}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={15}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.9}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={onRefresh}
+                tintColor="#FE6900"
+              />
+            }
+            ListFooterComponent={
+              isLoadingMore ? (
+                <View className="py-4 items-center">
+                  <CapsActivityIndicator size="small" color="#FE6902" />
+                  <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more...</Text>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
               <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
                 <Ionicons name="book-outline" size={64} color="#FE6902" />
                 <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Subjects Yet</Text>
@@ -686,112 +759,164 @@ export default function AdminSubjectsScreen() {
                   Add a subject to start reviewing its questions.
                 </Text>
               </View>
-            ) : (
-              subjects.map((subject) => (
-                <TouchableOpacity
-                  key={subject.subjectID}
-                  onPress={() => setSelectedSubject(subject)}
-                  className={`rounded-2xl p-4 mb-3 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-                  activeOpacity={0.7}
-                >
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-1 pr-3">
-                      <View className="flex-row items-center">
-                        <Text className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                          {subject.subjectName}
-                        </Text>
-                        {!!subject.is_enabled_for_exam_questions && (
-                          <View className="ml-2 w-2 h-2 rounded-full bg-green-400" />
-                        )}
-                      </View>
-                      {!!subject.subjectCode && (
-                        <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {subject.subjectCode}
-                        </Text>
-                      )}
-                    </View>
-                    <View className="flex-row items-center" style={{ gap: 10 }}>
-                      <TouchableOpacity
-                        onPress={() => openEditSubject(subject)}
-                        className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-orange-50'}`}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="create-outline" size={18} color="#FE6902" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteSubject(subject)}
-                        className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-red-50'}`}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                      </TouchableOpacity>
-                      <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
-            {isLoadingMore && (
-              <View className="py-4 items-center">
-                <CapsActivityIndicator size="small" color="#FE6902" />
-                <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more...</Text>
-              </View>
-            )}
-          </View>
-        ) : (
-          <>
-        <View className="px-4 mb-3">
-          <View className={`
-            flex-row items-center px-3 py-2 rounded-xl
-            ${isDark ? 'bg-gray-800' : 'bg-white'}
-          `}>
-            <Ionicons name="search" size={20} className={isDark ? 'text-gray-400' : 'text-gray-400'} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search questions..."
-              placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-              className={`flex-1 ml-2 ${isDark ? 'text-white' : 'text-gray-900'}`}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} className={isDark ? 'text-gray-400' : 'text-gray-400'} />
-              </TouchableOpacity>
-            )}
-          </View>
+            }
+          />
         </View>
+      ) : (
+        <View className="flex-1">
+          {/* Search bar */}
+          <View className="px-4 py-3">
+            <View className={`
+              flex-row items-center px-3 py-2 rounded-xl
+              ${isDark ? 'bg-gray-800' : 'bg-white'}
+            `}>
+              <Ionicons name="search" size={20} className={isDark ? 'text-gray-400' : 'text-gray-400'} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search questions..."
+                placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                className={`flex-1 ml-2 ${isDark ? 'text-white' : 'text-gray-900'}`}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={20} className={isDark ? 'text-gray-400' : 'text-gray-400'} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
 
           <View className="px-4">
             <View className="flex-row justify-between items-center mb-3">
               <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 Questions ({filteredQuestions.length})
               </Text>
-              <View className="flex-row items-center gap-2">
-                <TouchableOpacity
-                  onPress={() => router.push({
-                    pathname: '/(auth)/practice-exam/duplicate-question',
-                    params: { subjectID: selectedSubject?.subjectID }
-                  })}
-                  className={`px-3 py-1.5 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'}`}
-                >
-                  <Text className={`text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                    Duplicate
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                onPress={() => router.push({
+                  pathname: '/(auth)/practice-exam/duplicate-question',
+                  params: { subjectID: selectedSubject?.subjectID }
+                })}
+                className={`px-3 py-1.5 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+              >
+                <Text className={`text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>Duplicate</Text>
+              </TouchableOpacity>
             </View>
+          </View>
 
-            {filteredQuestions.length === 0 ? (
-              <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+          <FlatList
+            data={filteredQuestions}
+            keyExtractor={(q, idx) => q.questionID?.toString() || idx.toString()}
+            renderItem={({ item: q, index: idx }) => (
+              <TouchableOpacity
+                onPress={() => openDetail(q)}
+                className={`rounded-2xl p-4 mx-4 mb-3 ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                activeOpacity={0.7}
+              >
+                <View className="flex-row justify-between items-start mb-2">
+                  <View className="flex-row items-center gap-2">
+                    <View className={`w-8 h-8 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                      <Text className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        Q{idx + 1}
+                      </Text>
+                    </View>
+                    <View className={`px-2 py-1 rounded-lg ${getStatusColor(q.status)}`}>
+                      <Text className="text-white text-xs font-semibold uppercase">
+                        {q.status || 'pending'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {q.choices?.length || 4} choices
+                  </Text>
+                </View>
+
+                <View style={{ marginBottom: 12, maxHeight: 56, overflow: 'hidden' }}>
+                  <RenderHtml
+                    contentWidth={windowWidth - 96}
+                    source={{ html: q.questionText || '<p>No question text</p>' }}
+                    tagsStyles={{
+                      p: { color: isDark ? '#fff' : '#111827', fontSize: 15, lineHeight: 20, marginBottom: 4 },
+                      li: { color: isDark ? '#fff' : '#111827', fontSize: 14, lineHeight: 18 },
+                      strong: { color: isDark ? '#fff' : '#111827', fontWeight: '700' },
+                      u: { textDecorationLine: 'underline' },
+                      a: { color: '#FE6902' },
+                    }}
+                  />
+                </View>
+
+                {q.topic && (
+                  <View className="flex-row items-center gap-2 mb-3">
+                    <Ionicons name="pricetag" size={14} className={isDark ? 'text-gray-400' : 'text-gray-400'} />
+                    <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {getDisplayText(q.topic)}
+                    </Text>
+                  </View>
+                )}
+
+                <View className="flex-row justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <TouchableOpacity
+                    onPress={() => handleToggleStatus(q, q.status === 'approved' ? 'pending' : 'approved')}
+                    className="flex-row items-center gap-1"
+                  >
+                    <Ionicons
+                      name={q.status === 'approved' ? 'checkmark-circle' : 'time'}
+                      size={18}
+                      color={q.status === 'approved' ? '#10B981' : '#F59E0B'}
+                    />
+                    <Text className={`text-xs font-medium ${q.status === 'approved' ? 'text-green-500' : 'text-yellow-500'}`}>
+                      {q.status === 'approved' ? 'Approved' : 'Pending'}
+                    </Text>
+                  </TouchableOpacity>
+                  <View className="flex-row items-center gap-2">
+                    <TouchableOpacity
+                      onPress={() => router.push({
+                        pathname: '/(auth)/practice-exam/edit-question',
+                        params: { questionID: q.questionID }
+                      })}
+                      className="p-2"
+                    >
+                      <Ionicons name="create-outline" size={20} color="#FE6902" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => confirmDelete(q)}
+                      className="p-2"
+                    >
+                      <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={{ paddingBottom: 120 }}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={15}
+            onEndReached={handleLoadMoreQuestions}
+            onEndReachedThreshold={0.9}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={onRefresh}
+                tintColor="#FE6900"
+              />
+            }
+            ListFooterComponent={
+              isLoadingQuestions ? (
+                <View className="py-6 items-center">
+                  <CapsActivityIndicator size="small" color="#FE6902" />
+                  <Text className="text-xs mt-2" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more...</Text>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
+              <View className={`rounded-3xl p-8 items-center mx-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
                 <Ionicons name="help-circle-outline" size={64} color="#FE6902" />
                 <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                   {searchQuery ? 'No Results Found' : 'No Questions Yet'}
                 </Text>
                 <Text className={`text-sm mt-2 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {searchQuery
-                    ? 'Try adjusting your search terms.'
-                    : `Add questions for ${selectedSubject?.subjectName}.`
-                  }
+                  {searchQuery ? 'Try adjusting your search terms.' : `Add questions for ${selectedSubject?.subjectName}.`}
                 </Text>
                 {!searchQuery && (
                   <TouchableOpacity
@@ -805,100 +930,10 @@ export default function AdminSubjectsScreen() {
                   </TouchableOpacity>
                 )}
               </View>
-            ) : (
-              filteredQuestions.map((q, idx) => (
-                <TouchableOpacity
-                  key={q.questionID || idx}
-                  onPress={() => openDetail(q)}
-                  className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-gray-800' : 'bg-white'}`}
-                  activeOpacity={0.7}
-                >
-                  <View className="flex-row justify-between items-start mb-2">
-                    <View className="flex-row items-center gap-2">
-                      <View className={`w-8 h-8 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                        <Text className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                          Q{idx + 1}
-                        </Text>
-                      </View>
-                      <View className={`px-2 py-1 rounded-lg ${getStatusColor(q.status)}`}>
-                        <Text className="text-white text-xs font-semibold uppercase">
-                          {q.status || 'pending'}
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="flex-row items-center gap-2">
-                      <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {q.choices?.length || 4} choices
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={{ marginBottom: 12, maxHeight: 56, overflow: 'hidden' }}>
-                    <RenderHtml
-                      contentWidth={windowWidth - 64}
-                      source={{ html: q.questionText || '<p>No question text</p>' }}
-                      tagsStyles={{
-                        p: { color: isDark ? '#fff' : '#111827', fontSize: 15, lineHeight: 20, marginBottom: 4 },
-                        li: { color: isDark ? '#fff' : '#111827', fontSize: 14, lineHeight: 18 },
-                        strong: { color: isDark ? '#fff' : '#111827', fontWeight: '700' },
-                        u: { textDecorationLine: 'underline' },
-                        a: { color: '#FE6902' },
-                      }}
-                    />
-                  </View>
-
-                  {q.topic && (
-                    <View className="flex-row items-center gap-2 mb-3">
-                      <Ionicons name="pricetag" size={14} className={isDark ? 'text-gray-400' : 'text-gray-400'} />
-                        <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {getDisplayText(q.topic)}
-                      </Text>
-                    </View>
-                  )}
-
-                  <View className="flex-row justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
-                    <View className="flex-row items-center gap-3">
-                      <TouchableOpacity
-                        onPress={() => handleToggleStatus(q, q.status === 'approved' ? 'pending' : 'approved')}
-                        className="flex-row items-center gap-1"
-                      >
-                        <Ionicons
-                          name={q.status === 'approved' ? 'checkmark-circle' : 'time'}
-                          size={18}
-                          color={q.status === 'approved' ? '#10B981' : '#F59E0B'}
-                        />
-                        <Text className={`text-xs font-medium ${q.status === 'approved' ? 'text-green-500' : 'text-yellow-500'}`}>
-                          {q.status === 'approved' ? 'Approved' : 'Pending'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                    <View className="flex-row items-center gap-2">
-                      <TouchableOpacity
-                        onPress={() => router.push({
-                          pathname: '/(auth)/practice-exam/edit-question',
-                          params: { questionID: q.questionID }
-                        })}
-                        className="p-2"
-                      >
-                        <Ionicons name="create-outline" size={20} color="#FE6902" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => confirmDelete(q)}
-                        className="p-2"
-                      >
-                        <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
-          </View>
-          </>
-        )}
-      </ScrollView>
-
-
+            }
+          />
+        </View>
+      )}
 
       <PrintExamModal visible={showPrintModal} onClose={() => setShowPrintModal(false)} />
 

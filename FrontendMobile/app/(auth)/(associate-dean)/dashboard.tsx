@@ -60,7 +60,7 @@ export default function AssoDeanDashboard() {
     try {
       const [subjectsRes, usersRes] = await Promise.all([
         apiRequest('/api/subjects'),
-        apiRequest('/api/users?limit=10000'),
+        apiRequest('/api/users?limit=10000&status=registered'),
       ]);
 
       const subjectList = subjectsRes?.data || subjectsRes || [];

@@ -21,7 +21,7 @@ export { StudentHeroDecoration } from './StudentDecorations';
 
 // ── Re-exported utilities that live here (not split) ─────────────────────────
 
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
 
 // ── SegmentedControl (kept inline — small, self-contained) ────────────────────
 
@@ -29,7 +29,7 @@ type StudentSegmentedControlProps<T extends string> = {
   value: T;
   options: { label: string; value: T }[];
   onChange: (value: T) => void;
-  style?: object;
+  style?: StyleProp<ViewStyle>;
 };
 
 export function StudentSegmentedControl<T extends string>({
@@ -39,16 +39,16 @@ export function StudentSegmentedControl<T extends string>({
   style,
 }: StudentSegmentedControlProps<T>) {
   return (
-    <View style={[styles.segmentedControl, style]}>
+    <View className="flex-row bg-[#EB6B00] rounded-3xl p-1 gap-1" style={style}>
       {options.map((option) => {
         const active = option.value === value;
         return (
           <Pressable
             key={option.value}
             onPress={() => onChange(option.value)}
-            style={[styles.segmentButton, active ? styles.segmentButtonActive : null]}
+            className={`flex-1 rounded-[20px] py-2 px-3 items-center justify-center ${active ? 'bg-[#FFC48D]' : ''}`}
           >
-            <Text style={[styles.segmentButtonText, active ? styles.segmentButtonTextActive : null]}>
+            <Text className={`font-sans text-sm leading-5 ${active ? 'text-[#EB6B00] font-bold' : 'text-white/90 font-medium'}`}>
               {option.label}
             </Text>
           </Pressable>
@@ -70,36 +70,3 @@ export function formatWeeklyCountdown(periodEndsAt?: string | null) {
   const minutes = totalMinutes % 60;
   return `${days.toString().padStart(2, '0')}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;
 }
-
-// ── Styles (only for SegmentedControl) ────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  segmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: '#EB6B00',
-    borderRadius: 24,
-    padding: 4,
-    gap: 4,
-  },
-  segmentButton: {
-    flex: 1,
-    borderRadius: 20,
-    paddingVertical: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  segmentButtonActive: {
-    backgroundColor: '#FFC48D',
-  },
-  segmentButtonText: {
-    color: 'rgba(255,255,255,0.88)',
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-  segmentButtonTextActive: {
-    color: '#EB6B00',
-    fontWeight: '700',
-  },
-});

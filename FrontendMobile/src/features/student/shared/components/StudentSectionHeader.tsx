@@ -1,9 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Purpose: Section header with optional action button for student screens.
+// StudentSectionHeader — row with title and optional action label/press.
+// Exported from StudentUI as-is.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { studentColors } from '../studentTheme';
+import { Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
+import { studentColors } from '../ui/studentTokens';
 
 export type StudentSectionHeaderProps = {
   title: string;
@@ -21,34 +22,13 @@ export function StudentSectionHeader({
   style,
 }: StudentSectionHeaderProps) {
   return (
-    <View style={[styles.sectionHeader, style]}>
-      <Text style={styles.sectionHeaderTitle}>{title}</Text>
+    <View className="flex-row items-center justify-between" style={style}>
+      <Text className="font-sans text-[#0C092A] text-xl font-medium leading-7">{title}</Text>
       {actionLabel ? (
         <Pressable hitSlop={8} onPress={onActionPress}>
-          <Text style={[styles.sectionHeaderAction, { color: actionColor }]}>{actionLabel}</Text>
+          <Text className="font-sans text-sm font-medium leading-5" style={{ color: actionColor }}>{actionLabel}</Text>
         </Pressable>
       ) : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionHeaderTitle: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 20,
-    fontWeight: '500',
-    lineHeight: 28,
-  },
-  sectionHeaderAction: {
-    fontFamily: 'Rubik',
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-});

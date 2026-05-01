@@ -279,6 +279,7 @@ export default function LoginScreen() {
     textSecondary: isDark ? '#9ca3af' : '#6b7280',
     border: isDark ? '#374151' : '#d1d5db',
     inputBg: isDark ? '#000' : '#fff',
+    primary: '#FE6902', // Brand orange — use this for focused/active states
   };
 
   const hasUser = (val: string, focused: boolean) => val.length > 0 || focused;
@@ -291,7 +292,7 @@ export default function LoginScreen() {
           <AnimatedCapsLoader
             size="lg"
             color="#FFFFFF"
-            accentColor="#FE6902"
+            accentColor={colors.primary}
             subtitle="Preparing your CAPS experience..."
           />
         </View>
@@ -352,7 +353,7 @@ export default function LoginScreen() {
               <View className="mt-2 mb-3">
                 {/* User Code */}
                 <View className="mb-3 mt-2">
-                  <View className="relative border rounded-xl min-h-[46px] justify-center py-0" style={{ backgroundColor: colors.inputBg, borderColor: isUserCodeFocused ? '#FE6902' : colors.border }}>
+                  <View className="relative border rounded-xl min-h-[46px] justify-center py-0" style={{ backgroundColor: colors.inputBg, borderColor: isUserCodeFocused ? colors.primary : colors.border }}>
                     <TextInput className="px-4 py-2 text-sm" style={{ color: colors.text, height: 46 }} value={userCode} onChangeText={setUserCode} onFocus={() => setIsUserCodeFocused(true)} onBlur={() => setIsUserCodeFocused(false)} placeholder="" autoCapitalize="none" autoCorrect={false} />
                     <Text className="absolute z-10 px-1 text-sm" style={{
                       backgroundColor: colors.inputBg,
@@ -360,7 +361,7 @@ export default function LoginScreen() {
                       fontSize: hasUser(userCode, isUserCodeFocused) ? 10 : 14,
                       left: hasUser(userCode, isUserCodeFocused) ? 8 : 16,
                       paddingHorizontal: 4,
-                      color: isUserCodeFocused ? '#FE6902' : colors.textSecondary,
+                      color: isUserCodeFocused ? colors.primary : colors.textSecondary,
                     }}>
                       Instructor Code/Student ID Number
                     </Text>
@@ -369,7 +370,7 @@ export default function LoginScreen() {
 
                 {/* Password */}
                 <View className="mb-3">
-                  <View className="relative border rounded-xl min-h-[46px] justify-center py-0" style={{ backgroundColor: colors.inputBg, borderColor: isPasswordFocused ? '#FE6902' : colors.border }}>
+                  <View className="relative border rounded-xl min-h-[46px] justify-center py-0" style={{ backgroundColor: colors.inputBg, borderColor: isPasswordFocused ? colors.primary : colors.border }}>
                     <TextInput className="px-4 py-2 pr-12 text-sm" style={{ color: colors.text, height: 46 }} value={password} onChangeText={setPassword} onFocus={() => setIsPasswordFocused(true)} onBlur={() => setIsPasswordFocused(false)} placeholder="" secureTextEntry={!showPassword} autoCapitalize="none" autoComplete="current-password" />
                     <Text className="absolute z-10 px-1 text-sm" style={{
                       backgroundColor: colors.inputBg,
@@ -377,7 +378,7 @@ export default function LoginScreen() {
                       fontSize: hasUser(password, isPasswordFocused) ? 10 : 14,
                       left: hasUser(password, isPasswordFocused) ? 8 : 16,
                       paddingHorizontal: 4,
-                      color: isPasswordFocused ? '#FE6902' : colors.textSecondary,
+                      color: isPasswordFocused ? colors.primary : colors.textSecondary,
                     }}>
                       Password
                     </Text>
@@ -387,7 +388,7 @@ export default function LoginScreen() {
                       activeOpacity={0.7}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                      <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye-outline'} size={22} color={showPassword ? '#FE6902' : colors.textSecondary} />
+                      <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye-outline'} size={22} color={showPassword ? colors.primary : colors.textSecondary} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -400,14 +401,14 @@ export default function LoginScreen() {
                   onPress={() => setRememberMe((v) => !v)}
                   activeOpacity={0.8}
                 >
-                  <View className="w-[18px] h-[18px] rounded border-2 items-center justify-center" style={{ borderColor: '#FE6902', backgroundColor: rememberMe ? '#FE6902' : 'transparent' }}>
+                  <View className="w-[18px] h-[18px] rounded border-2 items-center justify-center" style={{ borderColor: colors.primary, backgroundColor: rememberMe ? colors.primary : 'transparent' }}>
                     {rememberMe && <Ionicons name="checkmark" size={14} color="#fff" />}
                   </View>
                   <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Remember me</Text>
                 </TouchableOpacity>
 
                 {/* Login Button */}
-                <TouchableOpacity className="flex-row items-center justify-center py-3 rounded-xl mt-3 mb-2" style={{ backgroundColor: '#FE6902', opacity: isLoading ? 0.6 : 1 }} onPress={handleLogin} disabled={isLoading} activeOpacity={0.9}>
+                <TouchableOpacity className="flex-row items-center justify-center py-3 rounded-xl mt-3 mb-2" style={{ backgroundColor: colors.primary }} onPress={handleLogin} disabled={isLoading} activeOpacity={0.9}>
                   {isLoading ? (
                     <AnimatedCapsLoader size="sm" color="#FFFFFF" accentColor="#FFD2B2" />
                   ) : <Text className="text-white text-base font-bold">LOG IN</Text>}

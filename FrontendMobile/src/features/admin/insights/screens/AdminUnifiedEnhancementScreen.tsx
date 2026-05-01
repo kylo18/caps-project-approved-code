@@ -14,7 +14,7 @@ import { useTheme } from '../../../../contexts/ThemeContext';
 import { apiRequest } from '../../../../services/apiClient';
 import { showToast } from '../../../../hooks/useToast';
 import { useScreenFloatingTools } from '../../shared/hooks/useScreenFloatingTools';
-import { Skeleton, SkeletonCard, SkeletonStatsGrid } from '../../../../features/core/components/Skeleton';
+import CapsActivityIndicator from '../../../../features/core/components/CapsActivityIndicator';
 import {
     getAllAnalytics,
     type DashboardSummary,
@@ -392,18 +392,8 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     // ── Loading state ────────────────────────────────────────────────────────
     if (loading) {
         return (
-            <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
-                <MobileHeader title="Enhancement & Analytics" />
-                <ScrollView
-                    className="flex-1"
-                    contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 16 }}
-                    showsVerticalScrollIndicator={false}
-                >
-                    <SkeletonStatsGrid />
-                    <SkeletonCard />
-                    <SkeletonCard />
-                    <SkeletonCard />
-                </ScrollView>
+            <View className={`flex-1 justify-center items-center ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+                <CapsActivityIndicator size="large" color="#FE6902" />
             </View>
         );
     }

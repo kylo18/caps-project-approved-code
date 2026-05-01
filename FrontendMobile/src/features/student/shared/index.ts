@@ -12,7 +12,6 @@ export {
   getSubjectVisualVariant,
   formatWeeklyCountdown,
   IconVariant,
-  studentStyles,
 } from './studentTheme';
 
 // Components

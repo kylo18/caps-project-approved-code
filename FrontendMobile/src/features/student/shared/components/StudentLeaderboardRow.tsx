@@ -4,8 +4,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
-import { studentColors, studentShadow } from '../studentTheme';
+import { Text, View } from 'react-native';
+import { studentColors, studentShadow } from '../ui/studentTokens';
 import { StudentAvatar } from './StudentAvatar';
 
 export interface LeaderboardEntry {
@@ -46,139 +46,44 @@ export function StudentLeaderboardRow({
 
   return (
     <View
-      style={[
-        styles.leaderboardRow,
-        emphasize ? styles.leaderboardRowEmphasis : null,
-      ]}
+      className={`flex-row items-center gap-3 rounded-[20px] border-2 px-3 py-2.5 ${emphasize ? 'bg-[#FFF1E9]' : 'bg-white'}`}
+      style={{ borderColor: studentColors.border, ...studentShadow }}
     >
       {/* Rank */}
-      <View style={styles.leaderboardRank}>
-        <View
-          style={[
-            styles.rankBubble,
-            {
-              backgroundColor: emphasize
-                ? studentColors.surfaceSoft
-                : studentColors.pale,
-            },
-          ]}
-        >
-          <Text style={styles.rankBubbleText}>{rank}</Text>
+      <View className="w-[26px] items-center">
+        <View className={`w-6 h-6 rounded-full items-center justify-center ${emphasize ? 'bg-[#FFF1E9]' : 'bg-[#F8F6FF]'}`}>
+          <Text className="font-sans text-xs font-medium" style={{ color: studentColors.textSoft }}>
+            {rank}
+          </Text>
         </View>
       </View>
 
       {/* Avatar */}
-      <StudentAvatar
-        label={entry?.name ?? 'ST'}
-        size={48}
-        index={rank}
-      />
+      <StudentAvatar label={entry?.name ?? 'ST'} size={48} index={rank} />
 
       {/* Name + subtitle */}
-      <View style={styles.leaderboardContent}>
-        <Text numberOfLines={1} style={styles.leaderboardName}>
+      <View className="flex-1 gap-0.5">
+        <Text numberOfLines={1} className="font-sans text-base font-medium leading-6" style={{ color: studentColors.text }}>
           {entry?.name ?? 'Student'}
         </Text>
-        <Text numberOfLines={1} style={styles.leaderboardMeta}>
+        <Text numberOfLines={1} className="font-sans text-xs font-normal leading-[18px]" style={{ color: studentColors.textSoft }}>
           {subtitle}
         </Text>
       </View>
 
       {/* Medal or score */}
       {showMedal ? (
-        <View style={[styles.medalBadge, { backgroundColor: `${medalColor}33` }]}>
-          <Ionicons
-            name={medalIcon as keyof typeof Ionicons.glyphMap}
-            size={18}
-            color={medalColor}
-          />
+        <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: `${medalColor}33` }}>
+          <Ionicons name={medalIcon as keyof typeof Ionicons.glyphMap} size={18} color={medalColor} />
         </View>
       ) : (
-        <View style={styles.leaderboardTrailing}>
-          <Text style={styles.leaderboardTrailingValue}>
+        <View className="items-end">
+          <Text className="font-sans text-base font-bold leading-5" style={{ color: studentColors.text }}>
             {trailingLabel ?? `${Math.round(entry?.points ?? entry?.score ?? 0)}`}
           </Text>
-          <Text style={styles.leaderboardTrailingText}>PTS</Text>
+          <Text className="font-sans text-[10px] font-medium leading-3 tracking-[1.6px]" style={{ color: studentColors.textSoft }}>PTS</Text>
         </View>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  leaderboardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: studentColors.white,
-    borderWidth: 2,
-    borderColor: studentColors.border,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    ...studentShadow,
-  },
-  leaderboardRowEmphasis: {
-    backgroundColor: studentColors.surfaceSoft,
-  },
-  leaderboardRank: {
-    width: 26,
-    alignItems: 'center',
-  },
-  rankBubble: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rankBubbleText: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  leaderboardContent: {
-    flex: 1,
-    gap: 2,
-  },
-  leaderboardName: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 16,
-    fontWeight: '500',
-    lineHeight: 24,
-  },
-  leaderboardMeta: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 12,
-    fontWeight: '400',
-    lineHeight: 18,
-  },
-  medalBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  leaderboardTrailing: {
-    alignItems: 'flex-end',
-  },
-  leaderboardTrailingValue: {
-    color: studentColors.text,
-    fontFamily: 'Rubik',
-    fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  leaderboardTrailingText: {
-    color: studentColors.textSoft,
-    fontFamily: 'Rubik',
-    fontSize: 10,
-    fontWeight: '500',
-    lineHeight: 12,
-    letterSpacing: 1.6,
-  },
-});

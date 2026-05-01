@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, View, Text, StyleSheet } from 'react-native';
+import { Animated, Easing, View, Text } from 'react-native';
 
 const LETTERS = ['C', 'A', 'P', 'S'];
 
@@ -41,8 +41,8 @@ export default function AnimatedCapsLoader({
   }, [masterValue]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.lettersRow}>
+    <View className="items-center">
+      <View className="flex-row items-center">
         {LETTERS.map((letter, index) => {
           const isAccent = letter === 'C' || letter === 'S';
           const letterColor = isAccent ? accentColor : color;
@@ -88,16 +88,10 @@ export default function AnimatedCapsLoader({
         })}
       </View>
       {subtitle && (
-        <Text style={[styles.subtitle, { fontSize: dims.subtitleSize, color }]}>
+        <Text className="mt-1.5 font-medium tracking-widest" style={{ fontSize: dims.subtitleSize, color }}>
           {subtitle}
         </Text>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { alignItems: 'center' },
-  lettersRow: { flexDirection: 'row', alignItems: 'center' },
-  subtitle: { marginTop: 6, fontWeight: '500', letterSpacing: 1 },
-});

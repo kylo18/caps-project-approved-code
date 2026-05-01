@@ -76,7 +76,7 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
 
     const fetchOtherDeansCount = async () => {
         try {
-            const data = await apiRequest('/api/users?limit=10000');
+            const data = await apiRequest('/api/users?limit=10000&status=registered');
             const list = Array.isArray(data?.users) ? data.users : Array.isArray(data?.data) ? data.data : [];
             const count = list.filter((u: any) => u.roleID === 4 && u.userID !== currentUser?.userID).length;
             setOtherDeansCount(count);
