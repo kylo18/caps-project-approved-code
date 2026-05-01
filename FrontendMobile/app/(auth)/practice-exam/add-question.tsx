@@ -103,8 +103,10 @@ export default function AddQuestionForm() {
 
       showToast('Question added successfully', 'success');
       router.back();
-    } catch (error: any) {
-      const message = error?.data?.message || error?.message || 'Failed to add question';
+    } catch (error: unknown) {
+      const message = error instanceof Error && 'data' in error
+        ? (error as { data?: { message?: string } }).data?.message || error.message || 'Failed to add question'
+        : 'Failed to add question';
       showToast(message, 'error');
     } finally {
       setIsSubmitting(false);

@@ -34,7 +34,10 @@ import PrintExamModal from '../../../src/features/practice/components/PrintExamM
 type SubjectItem = {
   subjectID: number;
   subjectName: string;
-  [key: string]: any;
+  subjectCode?: string;
+  programID?: number | string;
+  yearLevelID?: number | string;
+  [key: string]: unknown;
 };
 
 type QuestionItem = {
@@ -101,6 +104,9 @@ export default function AdminSubjectsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<QuestionItem | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -163,27 +169,62 @@ export default function AdminSubjectsScreen() {
     }
   }, [selectedSubject]);
 
-  const fetchSubjects = async () => {
+  const fetchSubjects = async (reset = false) => {
+    const currentPage = reset ? 1 : page;
+
+    if (reset) {
+      setIsLoading(true);
+      setPage(1);
+      setHasMore(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+
     try {
-      const data = await apiRequest('/api/subjects');
+      const data = await apiRequest(`/api/subjects?limit=20&page=${currentPage}`);
       const list = Array.isArray(data?.subjects) ? data.subjects :
         Array.isArray(data?.data) ? data.data :
           Array.isArray(data) ? data : [];
       const normalizedSubjects = list.map(normalizeSubject);
-      setSubjects(normalizedSubjects);
-      if (normalizedSubjects.length === 0) {
-        return;
-      }
+      const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
 
-      if (selectedSubject) {
-        const updatedSelection = normalizedSubjects.find((subject: SubjectItem) => subject.subjectID === selectedSubject.subjectID);
-        setSelectedSubject(updatedSelection || null);
+      if (reset) {
+        setSubjects(normalizedSubjects);
+        if (total !== undefined) {
+          setHasMore(normalizedSubjects.length < total);
+        } else {
+          setHasMore(normalizedSubjects.length === 20);
+        }
+        if (normalizedSubjects.length === 0) {
+          return;
+        }
+        if (selectedSubject) {
+          const updatedSelection = normalizedSubjects.find((subject: SubjectItem) => subject.subjectID === selectedSubject.subjectID);
+          setSelectedSubject(updatedSelection || null);
+        }
+      } else {
+        setSubjects(prev => [...prev, ...normalizedSubjects]);
+        if (total !== undefined) {
+          setHasMore((subjects.length + normalizedSubjects.length) < total);
+        } else {
+          setHasMore(normalizedSubjects.length === 20);
+        }
+        setPage(prev => prev + 1);
       }
     } catch (error) {
       showToast('Unable to load subjects', 'error');
     } finally {
-      setIsLoading(false);
+      if (reset) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
     }
+  };
+
+  const handleLoadMore = () => {
+    if (!hasMore || isLoadingMore || isLoading || !!selectedSubject) return;
+    fetchSubjects(false);
   };
 
   const fetchQuestions = async () => {
@@ -236,10 +277,10 @@ export default function AdminSubjectsScreen() {
 
   const openEditSubject = (subject: SubjectItem) => {
     setEditingSubject(subject);
-    setSubjectCode((subject as any).subjectCode || '');
+    setSubjectCode(subject.subjectCode || '');
     setSubjectName(subject.subjectName || '');
-    setProgramID(String((subject as any).programID || ''));
-    setYearLevelID(String((subject as any).yearLevelID || ''));
+    setProgramID(String(subject.programID || ''));
+    setYearLevelID(String(subject.yearLevelID || ''));
     fetchPrograms();
     fetchYearLevels();
     setShowSubjectModal(true);
@@ -285,8 +326,10 @@ export default function AdminSubjectsScreen() {
       }
       setShowSubjectModal(false);
       await fetchSubjects();
-    } catch (error: any) {
-      const message = error?.data?.message || error?.message || 'Failed to save subject';
+    } catch (error: unknown) {
+      const message = error instanceof Error && 'data' in error
+        ? (error as { data?: { message?: string } }).data?.message || 'Failed to save subject'
+        : 'Failed to save subject';
       showToast(message, 'error');
     } finally {
       setIsSavingSubject(false);
@@ -454,7 +497,7 @@ export default function AdminSubjectsScreen() {
 
   const onRefresh = async () => {
     setIsRefreshing(true);
-    await fetchSubjects();
+    await fetchSubjects(true);
     if (selectedSubject) await fetchQuestions();
     setIsRefreshing(false);
   };
@@ -596,7 +639,7 @@ export default function AdminSubjectsScreen() {
                   return;
                 }
                 if (router.canGoBack()) router.back();
-                else router.replace('/(auth)/(dean)/dashboard' as any);
+                else router.replace('/(auth)/(dean)/dashboard');
               }}
               className="p-2 -ml-2 mr-2"
             >
@@ -661,9 +704,9 @@ export default function AdminSubjectsScreen() {
                           <View className="ml-2 w-2 h-2 rounded-full bg-green-400" />
                         )}
                       </View>
-                      {!!(subject as any).subjectCode && (
+                      {!!subject.subjectCode && (
                         <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {(subject as any).subjectCode}
+                          {subject.subjectCode}
                         </Text>
                       )}
                     </View>
@@ -687,6 +730,12 @@ export default function AdminSubjectsScreen() {
                   </View>
                 </TouchableOpacity>
               ))
+            )}
+            {isLoadingMore && (
+              <View className="py-4 items-center">
+                <CapsActivityIndicator size="small" color="#FE6902" />
+                <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more...</Text>
+              </View>
             )}
           </View>
         ) : (

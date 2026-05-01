@@ -12,7 +12,7 @@ import {
 } from './cacheService';
 import { showToast } from '../hooks/useToast';
 
-const API_URL = Constants.expoConfig?.extra?.API_URL || 'http://100.91.44.24:8000';
+const API_URL = Constants.expoConfig?.extra?.API_URL;
 
 /* ── Global unauthorized handler ─────────────────────────────────────────── */
 let onUnauthorizedCallback: (() => void) | null = null;
@@ -22,13 +22,14 @@ export function registerUnauthorizedCallback(callback: () => void) {
 }
 
 async function handleUnauthorized() {
-  // Always clear storage first
-  await SecureStore.deleteItemAsync('token').catch(() => {});
-  await SecureStore.deleteItemAsync('user').catch(() => {});
-  await SecureStore.deleteItemAsync('pushToken').catch(() => {});
-  await SecureStore.deleteItemAsync('rememberMe').catch(() => {});
-  await SecureStore.deleteItemAsync('biometricEnabled').catch(() => {});
-
+  try {
+    // Lazy import to break the require cycle:
+    // logoutUser → pushNotificationService → apiClient → logoutUser
+    const { logoutUser } = await import('../utils/logoutUser');
+    await logoutUser();
+  } catch {
+    // Best-effort: ignore import failures
+  }
   // Notify the app layer (Redux logout + navigation)
   if (onUnauthorizedCallback) {
     onUnauthorizedCallback();
@@ -41,9 +42,14 @@ function buildUrl(path: string) {
   return `${baseUrl}${normalizedPath}`;
 }
 
+interface ApiError extends Error {
+  status: number;
+  data: Record<string, unknown>;
+}
+
 async function rawApiRequest(
   path: string,
-  { method = 'GET', body, auth = true }: { method?: string; body?: any; auth?: boolean } = {}
+  { method = 'GET', body, auth = true }: { method?: string; body?: unknown; auth?: boolean } = {}
 ) {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -69,9 +75,9 @@ async function rawApiRequest(
     if (response.status === 401) {
       await handleUnauthorized();
     }
-    const error: any = new Error(data.message || 'Request failed');
+    const error: ApiError = new Error(data.message || 'Request failed') as ApiError;
     error.status = response.status;
-    error.data = data;
+    error.data = data as Record<string, unknown>;
     throw error;
   }
 
@@ -80,7 +86,7 @@ async function rawApiRequest(
 
 export async function apiRequest(
   path: string,
-  { method = 'GET', body, auth = true }: { method?: string; body?: any; auth?: boolean } = {}
+  { method = 'GET', body, auth = true }: { method?: string; body?: unknown; auth?: boolean } = {}
 ) {
   const net = await NetInfo.fetch();
   const isOnline = net.isConnected ?? true;
@@ -97,9 +103,10 @@ export async function apiRequest(
         await setCachedResponse(key, result, ttl);
       }
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string; status?: number };
       // If the error looks like a network failure, try cache fallback for GET
-      if (method === 'GET' && (error.message?.includes('Network') || error.status >= 500)) {
+      if (method === 'GET' && (err.message?.includes('Network') || (err.status ?? 0) >= 500)) {
         const cached = await getCachedResponse(key);
         if (cached !== null) {
           showToast('Showing cached data — server unreachable.', 'info');
@@ -153,43 +160,4 @@ export async function syncOfflineQueue(): Promise<void> {
   }
 }
 
-export { clearCache };
-
-// Keep axios client for backwards compatibility
-import axios from 'axios';
-
-const axiosClient = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-  timeout: 30000,
-});
-
-axiosClient.interceptors.request.use(
-  async (config) => {
-    try {
-      const token = await SecureStore.getItemAsync('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      console.error('Error reading token:', error);
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-axiosClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      await handleUnauthorized();
-    }
-    return Promise.reject(error);
-  }
-);
-
-export default axiosClient;
+// Re-export aliases used elsewhere in the codebase

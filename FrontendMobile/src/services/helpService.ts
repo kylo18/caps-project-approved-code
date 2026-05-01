@@ -27,9 +27,24 @@ export interface AdminAnnouncementPayload {
     targetRoles?: number[];
 }
 
-function normalizeFaqItem(item: any, fallbackCategory = 'General'): FAQ {
+interface FaqApiItem {
+    id?: number;
+    faqID?: number;
+    faq_id?: number;
+    question?: string;
+    q?: string;
+    answer?: string;
+    a?: string;
+    category?: string;
+    category_name?: string;
+    order?: number;
+    displayOrder?: number;
+    display_order?: number;
+}
+
+function normalizeFaqItem(item: FaqApiItem, fallbackCategory = 'General'): FAQ {
     return {
-        id: item.id || item.faqID || item.faq_id,
+        id: item.id ?? item.faqID ?? item.faq_id ?? 0,
         question: item.question || item.q || '',
         answer: item.answer || item.a || '',
         category: item.category || item.category_name || fallbackCategory,
@@ -37,9 +52,9 @@ function normalizeFaqItem(item: any, fallbackCategory = 'General'): FAQ {
     };
 }
 
-function normalizeFaqList(payload: any): FAQ[] {
+function normalizeFaqList(payload: Record<string, unknown> | unknown[]): FAQ[] {
     if (Array.isArray(payload)) {
-        return payload.map((item) => normalizeFaqItem(item));
+        return payload.map((item) => normalizeFaqItem(item as FaqApiItem));
     }
 
     if (payload && typeof payload === 'object') {
@@ -48,15 +63,20 @@ function normalizeFaqList(payload: any): FAQ[] {
                 return [];
             }
 
-            return items.map((item) => normalizeFaqItem(item, category));
+            return items.map((item) => normalizeFaqItem(item as FaqApiItem, category));
         });
     }
 
     return [];
 }
 
-function getRequestErrorMessage(error: any, fallbackMessage: string): string {
-    const data = error?.data || error?.response?.data;
+interface RequestError {
+    data?: { message?: string; errors?: Record<string, unknown> };
+    message?: string;
+}
+
+function getRequestErrorMessage(error: RequestError, fallbackMessage: string): string {
+    const data = error?.data;
     const validationErrors = data?.errors;
 
     if (validationErrors && typeof validationErrors === 'object') {
@@ -194,11 +214,11 @@ export async function submitSupportRequest(
 
             return { success: true, message: 'Announcement posted successfully' };
         }
-    } catch (error: any) {
-        console.error('Failed to submit support request:', error);
+    } catch (error: unknown) {
+        const err = error as RequestError;
         return {
             success: false,
-            message: getRequestErrorMessage(error, 'Failed to submit request. Please try again.'),
+            message: getRequestErrorMessage(err, 'Failed to submit request. Please try again.'),
         };
     }
 }
@@ -212,7 +232,10 @@ export async function getHelpCategories(): Promise<{ data: string[] }> {
         const items = response?.data || response || [];
 
         if (Array.isArray(items) && items.length > 0) {
-            return { data: items.map((c: any) => c.name || c.subject || c.category || c) };
+            return { data: items.map((c: unknown) => {
+              const cat = c as Record<string, unknown>;
+              return String(cat.name || cat.subject || cat.category || '');
+            }) };
         }
 
         // Default categories

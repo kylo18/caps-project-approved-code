@@ -191,7 +191,7 @@ export default function ProgramChairDashboard() {
             <TouchableOpacity
               key={idx}
               activeOpacity={0.7}
-              onPress={() => stat.route && router.push(stat.route as any)}
+              onPress={() => stat.route && router.push(stat.route as string)}
               className={`rounded-2xl p-3 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
               style={{ width: CARD_WIDTH }}
             >

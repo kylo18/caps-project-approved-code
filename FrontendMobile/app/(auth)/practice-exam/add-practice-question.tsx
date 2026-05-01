@@ -66,8 +66,8 @@ export default function CombinedPracticeQuestionForm() {
       }
       showToast('Practice question added', 'success');
       router.back();
-    } catch (error: any) {
-      showToast(error.message || 'Failed to add question', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to add question', 'error');
     } finally {
       setIsSubmitting(false);
     }

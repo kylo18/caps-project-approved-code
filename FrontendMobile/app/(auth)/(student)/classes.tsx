@@ -9,7 +9,7 @@ import {
   StudentHeroDecoration,
   studentColors,
   studentShadow,
-} from '../../../src/features/student/shared/ui/StudentUI';
+} from '../../../src/features/student/ui/StudentUI';
 import {
   getMyClasses,
   getMyTeachers,
@@ -144,8 +144,8 @@ export default function StudentClassesScreen() {
       } else {
         setJoinError(response?.message || response?.data?.message || 'Failed to join class');
       }
-    } catch (error: any) {
-      setJoinError(error?.message || 'Invalid class code or network error');
+    } catch (error: unknown) {
+      setJoinError(error instanceof Error ? error.message : 'Invalid class code or network error');
     } finally {
       setJoining(false);
     }

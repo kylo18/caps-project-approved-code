@@ -1,5 +1,6 @@
 import { apiRequest } from './apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Class } from '../types';
 
 const MY_CLASSES_CACHE_KEY = 'my_classes_cache';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -40,7 +41,7 @@ export async function invalidateMyClassesCache() {
 // ── Enrollment & Discovery ─────────────────────────────────────────────────
 
 export async function getMyClasses() {
-  const cached = await getCached<any[]>(MY_CLASSES_CACHE_KEY);
+  const cached = await getCached<Class[]>(MY_CLASSES_CACHE_KEY);
   if (cached) return { data: cached, fromCache: true };
 
   const response = await apiRequest('/api/my-classes');
@@ -85,7 +86,7 @@ export async function startQuiz(classPersonalQuizID: number | string) {
   return response?.data || response || {};
 }
 
-export async function submitQuiz(classPersonalQuizID: number | string, payload: any) {
+export async function submitQuiz(classPersonalQuizID: number | string, payload: object) {
   const response = await apiRequest(`/api/quizzes/${classPersonalQuizID}/submit`, {
     method: 'POST',
     body: payload,

@@ -69,8 +69,8 @@ export default function DuplicateQuestionForm() {
       await apiRequest(`/api/questions/${questionID}/duplicate`, { method: 'POST' });
       showToast('Question duplicated successfully', 'success');
       if (router.canGoBack()) router.back();
-    } catch (error: any) {
-      showToast(error?.message || 'Failed to duplicate question', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to duplicate question', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -100,7 +100,7 @@ export default function DuplicateQuestionForm() {
   return (
     <View className="flex-1" style={{ backgroundColor: colors.bg }}>
       <View className="flex-row items-center justify-between px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/(dean)/dashboard' as any)} className="p-2">
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/(dean)/dashboard')} className="p-2">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text className="text-xl font-bold" style={{ color: colors.text }}>Duplicate Question</Text>

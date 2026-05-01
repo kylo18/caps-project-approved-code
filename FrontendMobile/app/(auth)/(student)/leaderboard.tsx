@@ -24,7 +24,7 @@ import {
   formatWeeklyCountdown,
   studentColors,
   studentShadow,
-} from '../../../src/features/student/shared/ui/StudentUI';
+} from '../../../src/features/student/ui/StudentUI';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Period selector options — toggles between Weekly reset leaderboard and

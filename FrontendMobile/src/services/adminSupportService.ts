@@ -70,17 +70,65 @@ const API_TO_UI_STATUS = {
 /**
  * Normalize ticket data from API response
  */
-function normalizeTicket(item: any): SupportTicket {
+interface TicketApiResponse {
+    ticketID?: number;
+    id?: number;
+    ticket_id?: number;
+    studentID?: number;
+    student_id?: number;
+    user_id?: number;
+    student?: { firstName?: string; lastName?: string; email?: string };
+    studentName?: string;
+    student_name?: string;
+    studentEmail?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    subject?: string;
+    message?: string;
+    description?: string;
+    status?: string;
+    priority?: string;
+    created_at?: string;
+    createdAt?: string;
+    updated_at?: string;
+    updatedAt?: string;
+    resolved_at?: string;
+    resolvedAt?: string;
+    admin_response?: string;
+    adminResponse?: string;
+    userCode?: string;
+    user_code?: string;
+    program?: string;
+    programName?: string;
+    responses?: TicketResponseApiRaw[];
+}
+
+interface TicketResponseApiRaw {
+    responseID?: number;
+    id?: number;
+    ticketID?: number;
+    ticket_id?: number;
+    adminID?: number;
+    admin_id?: number;
+    adminName?: string;
+    admin_name?: string;
+    message?: string;
+    created_at?: string;
+    createdAt?: string;
+}
+
+function normalizeTicket(item: TicketApiResponse): SupportTicket {
     const student = item.student || {};
     return {
-        ticketID: item.ticketID || item.id || item.ticket_id,
-        studentID: item.studentID || item.student_id || item.user_id,
+        ticketID: item.ticketID ?? item.id ?? item.ticket_id ?? 0,
+        studentID: item.studentID ?? item.student_id ?? item.user_id ?? 0,
         studentName: item.studentName || item.student_name || `${student.firstName || item.firstName || ''} ${student.lastName || item.lastName || ''}`.trim(),
         studentEmail: item.studentEmail || student.email || item.email,
         subject: item.subject || 'No Subject',
         message: item.message || item.description || '',
         status: API_TO_UI_STATUS[item.status as keyof typeof API_TO_UI_STATUS] || 'pending',
-        priority: item.priority || 'medium',
+        priority: (item.priority || 'medium') as 'low' | 'medium' | 'high',
         created_at: item.created_at || item.createdAt || '',
         updated_at: item.updated_at || item.updatedAt,
         resolved_at: item.resolved_at || item.resolvedAt,
@@ -126,7 +174,7 @@ export async function getSupportTicketById(ticketID: number): Promise<{ data: Su
             ...normalizeTicket(item),
             userCode: item.userCode || item.user_code,
             program: item.program || item.programName,
-            responses: (item.responses || []).map((r: any) => ({
+            responses: (item.responses || []).map((r: TicketResponseApiRaw) => ({
                 responseID: r.responseID || r.id,
                 ticketID: r.ticketID || ticketID,
                 adminID: r.adminID || r.admin_id,
@@ -180,7 +228,7 @@ export async function updateSupportTicket(
     payload: UpdateTicketPayload
 ): Promise<{ success: boolean; data?: SupportTicket }> {
     try {
-        const body: any = {};
+        const body: Record<string, string> = {};
 
         if (payload.status) {
             body.status = STATUS_MAP[payload.status] || payload.status;

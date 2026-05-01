@@ -3,8 +3,8 @@ import { Pressable, ScrollView, Text, View, Clipboard } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as SecureStore from 'expo-secure-store';
 import { logout } from '../../../store/slices/authSlice';
+import { logoutUser } from '../../../utils/logoutUser';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { unregisterStoredPushToken } from '../../../services/pushNotificationService';
 import MobileHeader from '../../../features/core/components/MobileHeader';
@@ -49,15 +49,9 @@ export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps)
   );
 
   const handleLogout = async () => {
-    try {
-      await unregisterStoredPushToken();
-      await SecureStore.deleteItemAsync('token');
-      await SecureStore.deleteItemAsync('user');
-      dispatch(logout());
-      router.replace('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    await logoutUser();
+    dispatch(logout());
+    router.replace('/');
   };
 
   const handleCopy = (text: string, label: string) => {
@@ -227,7 +221,7 @@ export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps)
                 const route = roleId === 4
                   ? '/(auth)/(dean)/create-announcement'
                   : '/(auth)/(associate-dean)/create-announcement';
-                router.push(route as any);
+                router.push(route);
                 return;
               }
               setShowHelp(true);

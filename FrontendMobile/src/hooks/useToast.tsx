@@ -51,7 +51,7 @@ const ToastComponent = ({ type, message }: { type: string; message: string }) =>
       className="flex-row items-center py-3 px-4 rounded-xl mx-4 my-2"
       style={{ backgroundColor: toastConfig.bg, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 4 }}
     >
-      <Ionicons name={toastConfig.icon as any} size={24} color={toastConfig.iconColor} />
+      <Ionicons name={toastConfig.icon as keyof typeof Ionicons.glyphMap} size={24} color={toastConfig.iconColor} />
       <Text className="text-sm font-semibold ml-3 flex-1" style={{ color: toastConfig.textColor }}>
         {message}
       </Text>

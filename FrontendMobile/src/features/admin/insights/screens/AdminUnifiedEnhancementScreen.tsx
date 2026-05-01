@@ -104,7 +104,7 @@ function initials(name: string) {
 function EmptyState({ icon, title, subtitle, isDark }: { icon: string; title: string; subtitle?: string; isDark: boolean }) {
     return (
         <View className="items-center py-8">
-            <Ionicons name={icon as any} size={40} color={isDark ? '#374151' : '#D1D5DB'} />
+            <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={40} color={isDark ? '#374151' : '#D1D5DB'} />
             <Text className="mt-3 text-[14px] font-semibold" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
                 {title}
             </Text>
@@ -364,14 +364,14 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                     key: 'unified-support',
                     icon: 'headset-outline' as const,
                     label: 'Support',
-                    onPress: () => router.push(`${roleBaseRoute}/support` as any),
+                    onPress: () => router.push(`${roleBaseRoute}/support` as string),
                     backgroundColor: '#EF4444',
                 }
                 : {
                     key: 'unified-export',
                     icon: 'print-outline' as const,
                     label: 'Export',
-                    onPress: () => router.push(`${roleBaseRoute}/subjects` as any),
+                    onPress: () => router.push(`${roleBaseRoute}/subjects` as string),
                     backgroundColor: '#8B5CF6',
                 };
 
@@ -380,7 +380,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                 key: 'unified-insights',
                 icon: 'grid-outline' as const,
                 label: 'Insights Hub',
-                onPress: () => router.push(`${roleBaseRoute}/insights` as any),
+                onPress: () => router.push(`${roleBaseRoute}/insights` as string),
                 backgroundColor: '#3B82F6',
             },
             roleTail,

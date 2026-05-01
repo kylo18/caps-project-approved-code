@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../../../../src/store/slices/authSlice';
+import { logoutUser } from '../../../../src/utils/logoutUser';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
-import * as SecureStore from 'expo-secure-store';
 import NotificationPanel from '../../../features/notifications/components/NotificationPanel';
 import EditProfileModal from '../../../features/profile/components/EditProfileModal';
 import ConfirmModal from '../../../features/core/components/ConfirmModal';
@@ -39,14 +39,9 @@ export default function Header({ title, isStudentPage = false }: { title: string
   const avatarColor = avatarPalette[(user?.userID || 0) % avatarPalette.length];
 
   const handleLogout = async () => {
-    try {
-      await SecureStore.deleteItemAsync('token');
-      await SecureStore.deleteItemAsync('user');
-      dispatch(logout());
-      router.replace('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    await logoutUser();
+    dispatch(logout());
+    router.replace('/');
   };
 
   const colors = {

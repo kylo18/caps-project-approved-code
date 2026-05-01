@@ -1,3 +1,10 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Faculty tab-based navigation layout.
+//
+// Role guard: handled in parent AuthLayout via usePathname().
+//             Role mismatches redirect via getDashboardRoute().
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import RoleTabBar from '../../../src/features/core/components/RoleTabBar';

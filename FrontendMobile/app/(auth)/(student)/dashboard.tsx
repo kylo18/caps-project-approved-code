@@ -17,7 +17,7 @@ import {
   StudentSectionHeader,
   getSubjectVisualVariant,
   studentColors,
-} from '../../../src/features/student/shared/ui/StudentUI';
+} from '../../../src/features/student/ui/StudentUI';
 
 const { width } = Dimensions.get('window');
 const CAROUSEL_WIDTH = width - 48;
@@ -153,9 +153,9 @@ export default function StudentDashboard() {
       setSummary(summaryResponse?.data ?? null);
       setTrend(Array.isArray(trendResponse?.data) ? trendResponse.data : []);
       setFetchError('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load student dashboard:', error);
-      setFetchError(error?.message || 'Unable to load live exams.');
+      setFetchError(error instanceof Error ? error.message : 'Unable to load live exams.');
     } finally {
       setLoading(false);
     }
@@ -199,8 +199,8 @@ export default function StudentDashboard() {
           durationMinutes: data.durationMinutes?.toString() || '60',
         },
       });
-    } catch (error: any) {
-      showToast(error?.message || 'Unable to load exam. Please try again.', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Unable to load exam. Please try again.', 'error');
     } finally {
       setLoadingExam(false);
     }
@@ -359,7 +359,7 @@ export default function StudentDashboard() {
                       className="w-12 h-12 rounded-full items-center justify-center"
                       style={{ backgroundColor: studentColors.white }}
                     >
-                      <Ionicons name={slide.icon as any} size={20} color={studentColors.orange} />
+                      <Ionicons name={slide.icon as keyof typeof Ionicons.glyphMap} size={20} color={studentColors.orange} />
                     </View>
                   </View>
 

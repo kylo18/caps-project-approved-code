@@ -251,7 +251,7 @@ export default function FacultyDashboard() {
             <TouchableOpacity
               key={idx}
               className={`w-[48%] rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
-              onPress={() => router.push(action.route as any)}
+              onPress={() => router.push(action.route as string)}
               activeOpacity={0.7}
             >
               <View

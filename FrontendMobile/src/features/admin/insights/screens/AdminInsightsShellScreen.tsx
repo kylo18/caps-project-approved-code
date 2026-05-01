@@ -260,7 +260,7 @@ export default function AdminInsightsShellScreen({ role }: Props) {
         key: `insight-${card.key}`,
         icon: card.icon,
         label: card.title,
-        onPress: () => router.push(card.route as any),
+        onPress: () => router.push(card.route as string),
         backgroundColor: card.color,
       })),
     [content.cards, router]
@@ -292,7 +292,7 @@ export default function AdminInsightsShellScreen({ role }: Props) {
               key={card.key}
               card={card}
               isDark={isDark}
-              onPress={() => router.push(card.route as any)}
+              onPress={() => router.push(card.route as string)}
             />
           ))}
         </View>

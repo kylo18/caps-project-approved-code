@@ -51,7 +51,7 @@ export interface NotificationListResponse {
 /**
  * Map notification type to Expo Router action URL
  */
-export function resolveNotificationActionUrl(type: string, data?: any): string | null {
+export function resolveNotificationActionUrl(type: string, data?: Record<string, unknown>): string | null {
     switch (type) {
         case 'achievement':
         case 'milestone':
@@ -121,15 +121,34 @@ export function getNotificationColor(type: string): string {
 /**
  * Normalize notification data from API response
  */
-function normalizeNotification(item: any): Notification {
+interface NotificationApiItem {
+    notificationID?: number;
+    id?: number;
+    notification_id?: number;
+    userID?: number;
+    user_id?: number;
+    type?: string;
+    title?: string;
+    message?: string;
+    isRead?: boolean;
+    is_read?: boolean;
+    read?: boolean;
+    actionUrl?: string;
+    action_url?: string;
+    data?: Record<string, unknown>;
+    created_at?: string;
+    createdAt?: string;
+}
+
+function normalizeNotification(item: NotificationApiItem): Notification {
     return {
-        notificationID: item.notificationID || item.id || item.notification_id,
-        userID: item.userID || item.user_id,
-        type: item.type || 'general',
+        notificationID: item.notificationID ?? item.id ?? item.notification_id ?? 0,
+        userID: item.userID ?? item.user_id ?? 0,
+        type: (item.type || 'general') as NotificationType,
         title: item.title || item.message?.slice(0, 50) || 'Notification',
         message: item.message || '',
         isRead: Boolean(item.isRead ?? item.is_read ?? item.read),
-        actionUrl: item.actionUrl || item.action_url || resolveNotificationActionUrl(item.type, item.data),
+        actionUrl: (item.actionUrl || item.action_url || (item.type ? resolveNotificationActionUrl(item.type, item.data) : undefined)) ?? undefined,
         created_at: item.created_at || item.createdAt || '',
     };
 }

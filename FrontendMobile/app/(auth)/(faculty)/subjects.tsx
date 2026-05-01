@@ -33,6 +33,9 @@ export default function FacultySubjectsScreen() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [availableSubjects, setAvailableSubjects] = useState<any[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
@@ -47,22 +50,57 @@ export default function FacultySubjectsScreen() {
     }
   }, [selectedSubject]);
 
-  const fetchSubjects = async () => {
-    setIsLoading(true);
+  const fetchSubjects = async (reset = false) => {
+    const currentPage = reset ? 1 : page;
+
+    if (reset) {
+      setIsLoading(true);
+      setPage(1);
+      setHasMore(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+
     try {
-      const data = await apiRequest('/api/faculty/my-subjects');
+      const data = await apiRequest(`/api/faculty/my-subjects?limit=20&page=${currentPage}`);
       const list = Array.isArray(data?.data) ? data.data : Array.isArray(data?.subjects) ? data.subjects : Array.isArray(data) ? data : [];
-      setSubjects(list);
-      if (selectedSubject) {
-        const updatedSelection = list.find((subject: any) => subject.subjectID === selectedSubject.subjectID);
-        setSelectedSubject(updatedSelection || null);
+      const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
+
+      if (reset) {
+        setSubjects(list);
+        if (total !== undefined) {
+          setHasMore(list.length < total);
+        } else {
+          setHasMore(list.length === 20);
+        }
+        if (selectedSubject) {
+          const updatedSelection = list.find((subject: any) => subject.subjectID === selectedSubject.subjectID);
+          setSelectedSubject(updatedSelection || null);
+        }
+      } else {
+        setSubjects(prev => [...prev, ...list]);
+        if (total !== undefined) {
+          setHasMore((subjects.length + list.length) < total);
+        } else {
+          setHasMore(list.length === 20);
+        }
+        setPage(prev => prev + 1);
       }
     } catch (error) {
       console.error('Error fetching subjects:', error);
       showToast('Unable to load subjects', 'error');
     } finally {
-      setIsLoading(false);
+      if (reset) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
     }
+  };
+
+  const handleLoadMore = () => {
+    if (!hasMore || isLoadingMore || isLoading || !!selectedSubject) return;
+    fetchSubjects(false);
   };
 
   const fetchQuestions = async () => {
@@ -155,7 +193,7 @@ export default function FacultySubjectsScreen() {
 
   const onRefresh = async () => {
     setIsRefreshing(true);
-    await fetchSubjects();
+    await fetchSubjects(true);
     setIsRefreshing(false);
   };
 
@@ -222,7 +260,7 @@ export default function FacultySubjectsScreen() {
                   return;
                 }
                 if (router.canGoBack()) router.back();
-                else router.replace('/(auth)/(faculty)/dashboard' as any);
+                else router.replace('/(auth)/(faculty)/dashboard');
               }}
               className="p-2 -ml-2 mr-2"
             >
@@ -298,6 +336,12 @@ export default function FacultySubjectsScreen() {
                   </View>
                 </TouchableOpacity>
               ))
+            )}
+            {isLoadingMore && (
+              <View className="py-4 items-center">
+                <CapsActivityIndicator size="small" color="#FE6902" />
+                <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more...</Text>
+              </View>
             )}
           </View>
         ) : (

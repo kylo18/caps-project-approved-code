@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import apiClient from '../src/services/apiClient';
+import { apiRequest } from '../src/services/apiClient';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { showToast } from '../src/hooks/useToast';
 
@@ -134,25 +134,30 @@ export default function RegisterScreen() {
 
     setIsRegistering(true);
     try {
-      await apiClient.post('/api/register', {
-        userCode,
-        firstName,
-        lastName,
-        email,
-        password,
-        roleID,
-        campusID,
-        programID,
+      await apiRequest('/api/register', {
+        method: 'POST',
+        body: {
+          userCode,
+          firstName,
+          lastName,
+          email,
+          password,
+          roleID,
+          campusID,
+          programID,
+        },
       });
 
       setMessage('Registration successful! Your account is pending approval.');
       showToast('Registration successful!', 'success');
 
       setTimeout(() => {
-        router.replace('/' as any);
+        router.replace('/');
       }, 3000);
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Registration failed. Please try again.';
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error && 'data' in error
+        ? (error as { data?: { message?: string } }).data?.message || 'Registration failed. Please try again.'
+        : 'Registration failed. Please try again.';
       setErrors({ general: errorMsg });
       showToast(errorMsg, 'error');
     } finally {

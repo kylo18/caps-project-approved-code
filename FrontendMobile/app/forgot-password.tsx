@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import apiClient from '../src/services/apiClient';
+import { apiRequest } from '../src/services/apiClient';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { showToast } from '../src/hooks/useToast';
 
@@ -34,11 +34,13 @@ export default function ForgotPasswordScreen() {
 
     setIsLoading(true);
     try {
-      await apiClient.post('/api/forgot-password', { email });
+      await apiRequest('/api/forgot-password', { method: 'POST', body: { email } });
       setIsSent(true);
       showToast('Password reset link sent to your email', 'success');
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Failed to send reset link';
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error && 'data' in error
+        ? (error as { data?: { message?: string } }).data?.message || 'Failed to send reset link'
+        : 'Failed to send reset link';
       showToast(errorMsg, 'error');
     } finally {
       setIsLoading(false);
@@ -71,7 +73,7 @@ export default function ForgotPasswordScreen() {
 
             <TouchableOpacity
               className="w-full bg-[#FE6902] py-4 rounded-lg items-center"
-              onPress={() => router.replace('/' as any)}
+              onPress={() => router.replace('/')}
             >
               <Text className="text-white text-base font-semibold">Back to Login</Text>
             </TouchableOpacity>

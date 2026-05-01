@@ -70,8 +70,8 @@ export default function PracticeExamResults() {
       const results = data?.results || [];
       setExamResults(results);
       setTotalItems(results.length);
-    } catch (error: any) {
-      setFetchError(error.message || 'Failed to load exam result');
+    } catch (error: unknown) {
+      setFetchError(error instanceof Error ? error.message : 'Failed to load exam result');
     } finally {
       setLoading(false);
     }

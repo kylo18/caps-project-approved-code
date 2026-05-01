@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput, Alert, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../../src/services/apiClient';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
@@ -50,10 +50,10 @@ export default function PrintExamModal({ visible, onClose }: { visible: boolean;
               ? data
               : [];
       setSubjects(subjectList);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Unable to load subjects for print/export:', error);
       setSubjects([]);
-      setLoadError(error?.message || 'Unable to load subjects right now.');
+      setLoadError(error instanceof Error ? error.message : 'Unable to load subjects right now.');
       showToast('Failed to load subjects', 'error');
     } finally {
       setIsLoading(false);
@@ -135,8 +135,8 @@ export default function PrintExamModal({ visible, onClose }: { visible: boolean;
 
       showToast('Exam generated successfully', 'success');
       onClose();
-    } catch (error: any) {
-      showToast(error.message || 'Failed to generate exam', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to generate exam', 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -173,7 +173,7 @@ export default function PrintExamModal({ visible, onClose }: { visible: boolean;
     orange: '#FE6902',
   };
 
-  const inputStyle = {
+  const inputStyle: TextStyle = {
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 10,
@@ -184,7 +184,7 @@ export default function PrintExamModal({ visible, onClose }: { visible: boolean;
     fontSize: 14,
     minWidth: 60,
     textAlign: 'center',
-  } as any;
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -267,7 +267,7 @@ export default function PrintExamModal({ visible, onClose }: { visible: boolean;
                     <View className="mb-4">
                       <Text className="text-sm font-semibold mb-2" style={{ color: colors.textSecondary }}>Total Items</Text>
                       <TextInput
-                      style={[inputStyle, { textAlign: 'left', minWidth: '100%' } as any]}
+                      style={[inputStyle, { textAlign: 'left', minWidth: '100%' as const }]}
                       keyboardType="numeric"
                       value={totalItems}
                       onChangeText={setTotalItems}

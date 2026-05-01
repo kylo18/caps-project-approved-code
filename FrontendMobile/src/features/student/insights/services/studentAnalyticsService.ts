@@ -53,8 +53,7 @@ export async function getPerformanceTrend() {
       taken_at: item?.created_at || null,
       subject_id: item?.subjectID || null,
       result_id: item?.resultID || null,
-      // NOTE: attempt_id is not available from this endpoint — it uses practice_exam_results,
-      // not the exam_attempts table used by the analytics sprint endpoints.
+      attempt_id: item?.attempt_id || null,
     })) : [];
 
     return { data: mapped };
@@ -160,8 +159,11 @@ export async function getRecommendations(attemptId: number | string) {
     const response = await apiRequest(`/api/analytics/recommendations/${attemptId}`);
     const data = response?.data || response || {};
     return { data: Array.isArray(data.recommendations) ? data.recommendations : [] };
-  } catch (error: any) {
-    const message = getAnalyticsErrorMessage(error, 'Unable to load recommendations.');
+  } catch (error: unknown) {
+    const message = getAnalyticsErrorMessage(
+      error instanceof Error ? error : new Error(String(error)),
+      'Unable to load recommendations.'
+    );
     console.error('Failed to get recommendations:', message, error);
     return { data: [], error: message };
   }

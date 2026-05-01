@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import apiClient from '../src/services/apiClient';
+import { apiRequest } from '../src/services/apiClient';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { showToast } from '../src/hooks/useToast';
 
@@ -42,18 +42,23 @@ export default function ResetPasswordScreen() {
 
     setIsLoading(true);
     try {
-      await apiClient.post('/api/reset-password', {
-        token: token as string,
-        password,
-        password_confirmation: confirmPassword,
+      await apiRequest('/api/reset-password', {
+        method: 'POST',
+        body: {
+          token: token as string,
+          password,
+          password_confirmation: confirmPassword,
+        },
       });
 
       showToast('Password reset successful!', 'success');
       setTimeout(() => {
-        router.replace('/' as any);
+        router.replace('/');
       }, 2000);
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Failed to reset password';
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error && 'data' in error
+        ? (error as { data?: { message?: string } }).data?.message || 'Failed to reset password'
+        : 'Failed to reset password';
       showToast(errorMsg, 'error');
     } finally {
       setIsLoading(false);

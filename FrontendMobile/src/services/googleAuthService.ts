@@ -4,8 +4,10 @@
 
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import { User } from '../types';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://100.91.44.24:8000';
+const API_URL = Constants.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL || '';
 const REDIRECT_URL = 'caps://auth/google/callback';
 
 function extractSocialToken(url: string): string | null {
@@ -41,7 +43,7 @@ function extractSocialError(url: string): { code: string; message: string } | nu
 export async function signInWithGoogleMobile(): Promise<{
   success: boolean;
   token?: string;
-  user?: any;
+  user?: User;
   error?: string;
 }> {
   if (Platform.OS === 'web') {
@@ -75,10 +77,10 @@ export async function signInWithGoogleMobile(): Promise<{
     }
 
     return { success: true, token };
-  } catch (error: any) {
+  } catch (error) {
     return {
       success: false,
-      error: error?.message || 'An unexpected error occurred during Google sign in',
+      error: error instanceof Error ? error.message : 'An unexpected error occurred during Google sign in',
     };
   }
 }
@@ -90,7 +92,7 @@ export async function signInWithGoogleMobile(): Promise<{
 export async function signInWithGooglePopup(): Promise<{
   success: boolean;
   token?: string;
-  user?: any;
+  user?: User;
   error?: string;
 }> {
   if (Platform.OS !== 'web') {
@@ -141,8 +143,8 @@ export async function signInWithGooglePopup(): Promise<{
         resolve({ success: false, error: 'Sign in timed out' });
       }, 120000);
     });
-  } catch (error: any) {
-    return { success: false, error: error?.message || 'Popup sign-in failed' };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Popup sign-in failed' };
   }
 }
 
@@ -153,7 +155,7 @@ export async function signInWithGooglePopup(): Promise<{
  */
 export function useGoogleAuth() {
   return {
-    request: { url: '' } as any, // always truthy so the button stays enabled
+    request: { url: '' } as { url: string },
     signInWithGoogle: signInWithGoogleMobile,
   };
 }

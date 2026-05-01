@@ -22,8 +22,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../../../store/slices/authSlice';
+import { logoutUser } from '../../../utils/logoutUser';
 import { useTheme } from '../../../contexts/ThemeContext';
-import * as SecureStore from 'expo-secure-store';
 import { unregisterStoredPushToken } from '../../../services/pushNotificationService';
 import NotificationPanel from '../../../features/notifications/components/NotificationPanel';
 import EditProfileModal from '../../../features/profile/components/EditProfileModal';
@@ -62,15 +62,9 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
     const avatarColor = AVATAR_COLORS[(user?.userID || 0) % AVATAR_COLORS.length];
 
     const handleLogout = async () => {
-        try {
-            await unregisterStoredPushToken();
-            await SecureStore.deleteItemAsync('token');
-            await SecureStore.deleteItemAsync('user');
-            dispatch(logout());
-            router.replace('/');
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
+        await logoutUser();
+        dispatch(logout());
+        router.replace('/');
     };
 
     return (

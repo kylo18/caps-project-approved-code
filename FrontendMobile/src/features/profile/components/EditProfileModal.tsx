@@ -4,7 +4,7 @@ import { useTheme } from '../../../../src/contexts/ThemeContext';
 import { showToast } from '../../../../src/hooks/useToast';
 import { useDispatch } from 'react-redux';
 import { updateUser } from '../../../../src/store/slices/authSlice';
-import apiClient from '../../../services/apiClient';
+import { apiRequest } from '../../../../src/services/apiClient';
 import CapsActivityIndicator from '../../../features/core/components/CapsActivityIndicator';
 
 interface EditProfileModalProps {
@@ -63,17 +63,23 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
 
     setIsSubmitting(true);
     try {
-      await apiClient.post('/api/user/update-profile', {
-        firstName,
-        lastName,
-        email,
+      await apiRequest('/api/user/update-profile', {
+        method: 'POST',
+        body: {
+          firstName,
+          lastName,
+          email,
+        },
       });
 
       if (wantsPasswordChange) {
-        await apiClient.post('/api/change-password', {
-          password: currentPassword,
-          new_password: newPassword,
-          new_password_confirmation: confirmNewPassword,
+        await apiRequest('/api/change-password', {
+          method: 'POST',
+          body: {
+            password: currentPassword,
+            new_password: newPassword,
+            new_password_confirmation: confirmNewPassword,
+          },
         });
       }
 
@@ -83,15 +89,17 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
         'success'
       );
       onClose();
-    } catch (error: any) {
-      const validationErrors = error?.response?.data?.errors;
+    } catch (error: unknown) {
+      const validationErrors = error instanceof Error && 'data' in error
+        ? (error as { data?: { errors?: Record<string, unknown> } }).data?.errors
+        : undefined;
       const firstValidationError =
         validationErrors && typeof validationErrors === 'object'
           ? Object.values(validationErrors).find((value: any) => Array.isArray(value) ? value[0] : value)
           : null;
       const errorMsg =
         (Array.isArray(firstValidationError) ? firstValidationError[0] : firstValidationError) ||
-        error.response?.data?.message ||
+        error.data?.message ||
         'Failed to update profile';
       showToast(errorMsg, 'error');
     } finally {

@@ -1,18 +1,19 @@
 import { apiRequest } from './apiClient';
 
-function normalizeList(response: any, key?: string) {
-  if (key && Array.isArray(response?.[key])) return response[key];
-  if (key && Array.isArray(response?.data?.[key])) return response.data[key];
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response)) return response;
+function normalizeList(response: Record<string, unknown>, key?: string): unknown[] {
+  if (key && Array.isArray(response[key])) return response[key] as unknown[];
+  if (key && Array.isArray((response.data as Record<string, unknown>)?.[key])) return (response.data as Record<string, unknown>)?.[key] as unknown[];
+  if (Array.isArray(response.data)) return response.data as unknown[];
+  if (Array.isArray(response)) return response as unknown[];
   return [];
 }
 
-function getServiceErrorMessage(error: any, fallback: string) {
-  return error?.data?.message || error?.response?.data?.message || error?.message || fallback;
+function getServiceErrorMessage(error: unknown, fallback: string) {
+  const err = error as { data?: { message?: string }; response?: { data?: { message?: string } }; message?: string };
+  return err?.data?.message || err?.response?.data?.message || err?.message || fallback;
 }
 
-function matchesMessage(error: any, text: string) {
+function matchesMessage(error: unknown, text: string) {
   return getServiceErrorMessage(error, '').toLowerCase().includes(text.toLowerCase());
 }
 
@@ -30,11 +31,12 @@ export async function getClassStudents(classID: number | string) {
       emptyReason: null,
       message: '',
     };
-  } catch (error: any) {
-    const notFound = matchesMessage(error, 'class not found');
+  } catch (error: unknown) {
+    const err = error as { data?: { message?: string }; message?: string };
+    const notFound = matchesMessage(err, 'class not found');
     const message = notFound
       ? 'Class not found.'
-      : getServiceErrorMessage(error, 'Unable to load class students.');
+      : getServiceErrorMessage(err, 'Unable to load class students.');
 
     console.error('Unable to load class students:', message, error);
 
@@ -121,11 +123,12 @@ export async function getArchivedClasses() {
       emptyReason: classes.length === 0 ? 'empty' : null,
       message: response?.message || '',
     };
-  } catch (error: any) {
-    const notFound = matchesMessage(error, 'class not found');
+  } catch (error: unknown) {
+    const err = error as { data?: { message?: string }; message?: string };
+    const notFound = matchesMessage(err, 'class not found');
     const message = notFound
       ? 'No archived classes'
-      : getServiceErrorMessage(error, 'Unable to load archived classes.');
+      : getServiceErrorMessage(err, 'Unable to load archived classes.');
 
     console.error('Unable to load archived classes:', message, error);
 

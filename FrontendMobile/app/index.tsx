@@ -15,11 +15,13 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import apiClient, { apiRequest } from '../src/services/apiClient';
+import { apiRequest } from '../src/services/apiClient';
 import * as SecureStore from 'expo-secure-store';
 import NetInfo from '@react-native-community/netinfo';
+import Constants from 'expo-constants';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../src/store/slices/authSlice';
+import { getDashboardRoute } from '../src/utils/roleValidation';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { showToast } from '../src/hooks/useToast';
 import {
@@ -141,8 +143,8 @@ export default function LoginScreen() {
     }
     setIsLoading(true);
     try {
-      const response = await apiClient.post('/api/login', { userCode, password });
-      const { token, user } = response.data;
+      const response = await apiRequest('/api/login', { method: 'POST', body: { userCode, password } });
+      const { token, user } = response;
       await SecureStore.setItemAsync('token', token);
       await SecureStore.setItemAsync('user', JSON.stringify(user));
       await SecureStore.setItemAsync('rememberMe', rememberMe ? 'true' : 'false');
@@ -180,7 +182,7 @@ export default function LoginScreen() {
       routeBasedOnRole(user.roleID ?? user.roleId);
     } catch (err: any) {
       console.error('Login error:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Something went wrong.';
+      const errorMsg = err.data?.message || err.message || 'Something went wrong.';
       setError(errorMsg);
       showToast(errorMsg, 'error');
     } finally {
@@ -209,8 +211,8 @@ export default function LoginScreen() {
         let user = result.user;
         if (!user) {
           await SecureStore.setItemAsync('token', result.token);
-          const profileRes = await apiClient.get('/api/user/profile');
-          user = profileRes.data;
+          const profileRes = await apiRequest('/api/user/profile');
+          user = profileRes;
         }
 
         await SecureStore.setItemAsync('token', result.token);
@@ -222,13 +224,13 @@ export default function LoginScreen() {
           await registerPushTokenWithBackend(pushResult.token);
         }
 
-        dispatch(setCredentials({ user, token: result.token }));
-        routeBasedOnRole(user.roleID ?? user.roleId);
+        dispatch(setCredentials({ user: user!, token: result.token }));
+        routeBasedOnRole(user!.roleID ?? user!.roleId);
         return;
       }
 
       // Facebook: use backend OAuth redirect via web browser
-      const API_URL = 'http://100.91.44.24:8000';
+      const API_URL = Constants.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL;
       const result = await WebBrowser.openAuthSessionAsync(
         `${API_URL}/api/auth/${provider}/redirect`,
         'caps://auth/callback'
@@ -240,8 +242,8 @@ export default function LoginScreen() {
           return;
         }
         await SecureStore.setItemAsync('token', token);
-        const response = await apiClient.get('/api/user/profile');
-        const user = response.data;
+        const response = await apiRequest('/api/user/profile');
+        const user = response;
         await SecureStore.setItemAsync('user', JSON.stringify(user));
         await SecureStore.setItemAsync('rememberMe', 'true');
         const pushResult = await registerForPushNotificationsAsync();
@@ -251,8 +253,8 @@ export default function LoginScreen() {
         dispatch(setCredentials({ user, token }));
         routeBasedOnRole(user.roleID ?? user.roleId);
       }
-    } catch (error: any) {
-      showToast(error?.message || 'OAuth login failed', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'OAuth login failed', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -267,14 +269,8 @@ export default function LoginScreen() {
   };
 
   const routeBasedOnRole = (roleID: number) => {
-    switch (roleID) {
-      case 1: router.replace('/(auth)/(student)/dashboard'); break;
-      case 2: router.replace('/(auth)/(faculty)/dashboard'); break;
-      case 3: router.replace('/(auth)/(program-chair)/dashboard'); break;
-      case 4: router.replace('/(auth)/(dean)/dashboard'); break;
-      case 5: router.replace('/(auth)/(associate-dean)/dashboard'); break;
-      default: router.replace('/(auth)/dashboard');
-    }
+    const route = getDashboardRoute(roleID);
+    router.replace(route);
   };
 
   const colors = {
@@ -328,7 +324,7 @@ export default function LoginScreen() {
 
               <View className="flex-row items-center">
                 <Text className="text-white/80 text-xs mr-2">{"Don't have an account?"}</Text>
-                <TouchableOpacity onPress={() => router.push('/register' as any)} className="px-3.5 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} activeOpacity={0.7}>
+                <TouchableOpacity onPress={() => router.push('/register')} className="px-3.5 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} activeOpacity={0.7}>
                   <Text className="text-white text-sm font-medium">Sign up</Text>
                 </TouchableOpacity>
               </View>
@@ -337,10 +333,10 @@ export default function LoginScreen() {
             {/* CAPS Title - exactly 2 lines, fits mobile */}
             <View className="items-center mt-4 gap-1 w-full">
               <Text className="text-white text-2xl font-black text-center tracking-wide leading-8 text-shadow text-shadow-sm" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                <Text className="text-[#FE6902] text-3xl font-black tracking-wider">C</Text>OMPREHENSIVE <Text className="text-[#FE6902] text-3xl font-black tracking-wider">A</Text>SSESSMENT
+                <Text className="text-primary text-3xl font-black tracking-wider">C</Text>OMPREHENSIVE <Text className="text-primary text-3xl font-black tracking-wider">A</Text>SSESSMENT
               </Text>
               <Text className="text-white text-2xl font-black text-center tracking-wide leading-8" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                AND <Text className="text-[#FE6902] text-3xl font-black tracking-wider">P</Text>REPARATION <Text className="text-[#FE6902] text-3xl font-black tracking-wider">S</Text>YSTEM
+                AND <Text className="text-primary text-3xl font-black tracking-wider">P</Text>REPARATION <Text className="text-primary text-3xl font-black tracking-wider">S</Text>YSTEM
               </Text>
             </View>
           </View>
@@ -418,8 +414,8 @@ export default function LoginScreen() {
                 </TouchableOpacity>
 
                 {/* Forgot */}
-                <TouchableOpacity onPress={() => router.push('/forgot-password' as any)} activeOpacity={0.7}>
-                  <Text className="text-[#FE6902] text-sm text-center mt-2 mb-3">Forgot your password?</Text>
+                <TouchableOpacity onPress={() => router.push('/forgot-password')} activeOpacity={0.7}>
+                  <Text className="text-primary text-sm text-center mt-2 mb-3">Forgot your password?</Text>
                 </TouchableOpacity>
 
                 {/* Or divider */}
@@ -449,7 +445,7 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              <Text className="text-center text-gray-500 text-xs mt-2">Developed by <Text className="text-[#FE6902]">Team Caps</Text></Text>
+              <Text className="text-center text-gray-500 text-xs mt-2">Developed by <Text className="text-primary">Team Caps</Text></Text>
             </View>
           </View>
         </ScrollView>

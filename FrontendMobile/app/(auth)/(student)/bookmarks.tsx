@@ -10,7 +10,7 @@ import {
   removeBookmark,
   type BookmarkItem,
 } from '../../../src/services/studentBookmarkService';
-import { studentColors } from '../../../src/features/student/shared/ui/StudentUI';
+import { studentColors } from '../../../src/features/student/ui/StudentUI';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 
 export default function BookmarksScreen() {

@@ -54,11 +54,16 @@ export default {
       ]
     ],
     extra: {
-      API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://100.91.44.24:8000',
-      AI_SERVICE_URL: process.env.EXPO_PUBLIC_AI_SERVICE_URL || 'http://100.91.44.24:8001',
+      API_URL: process.env.EXPO_PUBLIC_API_URL,
+      AI_SERVICE_URL: process.env.EXPO_PUBLIC_AI_SERVICE_URL,
       router: {
         origin: false
       }
     }
   }
 };
+
+// Fail immediately on startup if required env vars are missing
+if (!process.env.EXPO_PUBLIC_API_URL || !process.env.EXPO_PUBLIC_AI_SERVICE_URL) {
+  throw new Error('EXPO_PUBLIC_API_URL and EXPO_PUBLIC_AI_SERVICE_URL are required. Set them in .env');
+}

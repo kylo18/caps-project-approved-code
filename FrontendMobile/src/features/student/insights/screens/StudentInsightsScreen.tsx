@@ -6,8 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
-import * as SecureStore from 'expo-secure-store';
-import { apiRequest } from '../../../../services/apiClient';
+import { logout } from '../../../../store/slices/authSlice';
+import { logoutUser } from '../../../../utils/logoutUser';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import ConfirmModal from '../../../../features/core/components/ConfirmModal';
@@ -15,7 +15,7 @@ import EditProfileModal from '../../../../features/profile/components/EditProfil
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { showToast } from '../../../../hooks/useToast';
 import { unregisterStoredPushToken } from '../../../../services/pushNotificationService';
-import { logout } from '../../../../store/slices/authSlice';
+import { apiRequest } from '../../../../services/apiClient';
 import {
   getDashboardSummary,
   getLearningInsights,
@@ -443,15 +443,9 @@ export default function StudentInsightsScreen() {
   };
 
   const handleLogout = async () => {
-    try {
-      await unregisterStoredPushToken();
-      await SecureStore.deleteItemAsync('token');
-      await SecureStore.deleteItemAsync('user');
-      dispatch(logout());
-      router.replace('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    await logoutUser();
+    dispatch(logout());
+    router.replace('/');
   };
 
   // ── Derived values ──────────────────────────────────────────────────────
@@ -706,86 +700,91 @@ export default function StudentInsightsScreen() {
             ) : null}
           </View>
 
-          {/* ── Recommendations ─────────────────────────────────────────── */}
-          {recommendationsError ? (
-            <View
-              className="rounded-[20px] border-2 p-4 mt-1 mb-2 bg-white"
-              style={{ borderColor: studentColors.border, ...studentShadow }}
-            >
-              <View className="flex-row items-center gap-2 mb-2">
-                <Ionicons name="alert-circle-outline" size={20} color={studentColors.textSoft} />
-                <Text
-                  style={{
-                    color: studentColors.text,
-                    fontFamily: 'Rubik',
-                    fontSize: 16,
-                    fontWeight: '600',
-                    lineHeight: 22,
-                  }}
+          {/* ── Recommendations (Hidden until UX is polished) ─────────── */}
+          {/* TODO: Re-enable after improving recommendation text (topic names instead of IDs) */}
+          {false && (
+            <>
+              {recommendationsError ? (
+                <View
+                  className="rounded-[20px] border-2 p-4 mt-1 mb-2 bg-white"
+                  style={{ borderColor: studentColors.border, ...studentShadow }}
                 >
-                  Recommended For You
-                </Text>
-              </View>
-              <Text
-                style={{
-                  color: studentColors.textSoft,
-                  fontFamily: 'Rubik',
-                  fontSize: 13,
-                  fontWeight: '400',
-                  lineHeight: 20,
-                }}
-              >
-                Unable to load recommendations. Pull down to retry.
-              </Text>
-            </View>
-          ) : recommendations.length > 0 ? (
-            <View
-              className="rounded-[20px] border-2 p-4 mt-1 mb-2 bg-white"
-              style={{ borderColor: studentColors.border, ...studentShadow }}
-            >
-              <View className="flex-row items-center gap-2 mb-3">
-                <Ionicons name="bulb-outline" size={20} color={studentColors.orange} />
-                <Text
-                  style={{
-                    color: studentColors.text,
-                    fontFamily: 'Rubik',
-                    fontSize: 16,
-                    fontWeight: '600',
-                    lineHeight: 22,
-                  }}
-                >
-                  Recommended For You
-                </Text>
-              </View>
-              <View className="gap-2">
-                {recommendations.slice(0, 2).map((rec: any, i: number) => (
-                  <View
-                    key={i}
-                    className="flex-row items-center gap-2.5 rounded-xl px-3 py-2.5"
-                    style={{ backgroundColor: studentColors.surfaceSoft }}
-                  >
-                    <Ionicons
-                      name={i === 0 ? 'flame-outline' : 'book-outline'}
-                      size={18}
-                      color={studentColors.orange}
-                    />
+                  <View className="flex-row items-center gap-2 mb-2">
+                    <Ionicons name="alert-circle-outline" size={20} color={studentColors.textSoft} />
                     <Text
-                      className="flex-1"
                       style={{
                         color: studentColors.text,
                         fontFamily: 'Rubik',
-                        fontSize: 14,
-                        fontWeight: '500',
-                        lineHeight: 20,
+                        fontSize: 16,
+                        fontWeight: '600',
+                        lineHeight: 22,
                       }}
                     >
-                      {rec.recommendation ?? rec.text ?? rec.message ?? JSON.stringify(rec)}
+                      Recommended For You
                     </Text>
                   </View>
-                ))}
-              </View>
-            </View>
-          ) : null}
+                  <Text
+                    style={{
+                      color: studentColors.textSoft,
+                      fontFamily: 'Rubik',
+                      fontSize: 13,
+                      fontWeight: '400',
+                      lineHeight: 20,
+                    }}
+                  >
+                    Unable to load recommendations. Pull down to retry.
+                  </Text>
+                </View>
+              ) : recommendations.length > 0 ? (
+                <View
+                  className="rounded-[20px] border-2 p-4 mt-1 mb-2 bg-white"
+                  style={{ borderColor: studentColors.border, ...studentShadow }}
+                >
+                  <View className="flex-row items-center gap-2 mb-3">
+                    <Ionicons name="bulb-outline" size={20} color={studentColors.orange} />
+                    <Text
+                      style={{
+                        color: studentColors.text,
+                        fontFamily: 'Rubik',
+                        fontSize: 16,
+                        fontWeight: '600',
+                        lineHeight: 22,
+                      }}
+                    >
+                      Recommended For You
+                    </Text>
+                  </View>
+                  <View className="gap-2">
+                    {recommendations.slice(0, 2).map((rec: any, i: number) => (
+                      <View
+                        key={i}
+                        className="flex-row items-center gap-2.5 rounded-xl px-3 py-2.5"
+                        style={{ backgroundColor: studentColors.surfaceSoft }}
+                      >
+                        <Ionicons
+                          name={i === 0 ? 'flame-outline' : 'book-outline'}
+                          size={18}
+                          color={studentColors.orange}
+                        />
+                        <Text
+                          className="flex-1"
+                          style={{
+                            color: studentColors.text,
+                            fontFamily: 'Rubik',
+                            fontSize: 14,
+                            fontWeight: '500',
+                            lineHeight: 20,
+                          }}
+                        >
+                          {rec.recommendation ?? rec.text ?? rec.message ?? JSON.stringify(rec)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+            </>
+          )}
 
           {/* ── Student Insight ──────────────────────────────────────────── */}
           <StudentSectionHeader
@@ -869,11 +868,11 @@ export default function StudentInsightsScreen() {
                 ].map((item, idx, arr) => (
                   <Pressable
                     key={item.label}
-                    onPress={() => router.push({ pathname: item.path as any, params: { origin: 'profile' } })}
+                    onPress={() => router.push({ pathname: item.path, params: { origin: 'profile' } })}
                     className={`flex-row items-center px-4 py-4 ${idx !== arr.length - 1 ? 'border-b border-[#EFEEFC]' : ''}`}
                     style={({ pressed }) => ({ backgroundColor: pressed ? '#F8F6FF' : '#FFFFFF' })}
                   >
-                    <Ionicons name={item.icon as any} size={20} color={item.color} />
+                    <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={20} color={item.color} />
                     <Text className="flex-1 ml-3 text-[#0C092A] font-medium" style={{ fontFamily: 'Rubik', fontSize: 15 }}>
                       {item.label}
                     </Text>

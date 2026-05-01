@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { getDashboardSummary, getLearningInsights } from '../../../src/features/student/insights/services/studentAnalyticsService';
-import { StudentSectionHeader, studentColors, studentShadow } from '../../../src/features/student/shared/ui/StudentUI';
+import { StudentSectionHeader, studentColors, studentShadow } from '../../../src/features/student/ui/StudentUI';
 
 function TopicCard({
   topic,

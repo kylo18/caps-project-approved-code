@@ -76,7 +76,7 @@ export default function ClassesScreen({
       icon: 'add-outline',
       label: 'Create Class',
       onPress: () => router.push({
-        pathname: `/(auth)${rolePath}/class-detail` as any,
+        pathname: `/(auth)${rolePath}/class-detail` as string,
         params: { t: Date.now() }
       }),
     },
@@ -84,7 +84,7 @@ export default function ClassesScreen({
       key: 'archived',
       icon: 'archive-outline',
       label: 'Archived',
-      onPress: () => router.push(`/(auth)${rolePath}/archived-classes` as any),
+      onPress: () => router.push(`/(auth)${rolePath}/archived-classes` as string),
     },
   ]);
 
@@ -186,7 +186,7 @@ export default function ClassesScreen({
                 activeOpacity={0.8}
                 onPress={() =>
                   router.push({
-                    pathname: `/(auth)${rolePath}/class-detail` as any,
+                    pathname: `/(auth)${rolePath}/class-detail` as string,
                     params: {
                       classID: String(item.classID || item.id),
                       className: item.className || 'Class',

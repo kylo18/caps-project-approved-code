@@ -1,10 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { Subject } from '../../types';
 
 interface UIState {
   isLoading: boolean;
   isSidebarExpanded: boolean;
   isMobile: boolean;
-  selectedSubject: any | null;
+  selectedSubject: Subject | null;
   showPrintModal: boolean;
   showSubjectModal: boolean;
 }
@@ -31,7 +32,7 @@ const uiSlice = createSlice({
     setMobile: (state, action: PayloadAction<boolean>) => {
       state.isMobile = action.payload;
     },
-    setSelectedSubject: (state, action: PayloadAction<any | null>) => {
+    setSelectedSubject: (state, action: PayloadAction<Subject | null>) => {
       state.selectedSubject = action.payload;
     },
     setShowPrintModal: (state, action: PayloadAction<boolean>) => {

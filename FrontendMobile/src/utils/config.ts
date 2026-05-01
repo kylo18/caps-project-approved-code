@@ -1,17 +1,20 @@
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 
-const DEFAULT_API_URL = Constants.expoConfig?.extra?.API_URL || 'http://100.91.44.24:8000';
-const DEFAULT_AI_URL = Constants.expoConfig?.extra?.AI_SERVICE_URL || 'http://100.91.44.24:8001';
+const API_URL = Constants.expoConfig?.extra?.API_URL;
+if (!API_URL) throw new Error('EXPO_PUBLIC_API_URL is required. Set it in .env');
+
+const AI_SERVICE_URL = Constants.expoConfig?.extra?.AI_SERVICE_URL;
+if (!AI_SERVICE_URL) throw new Error('EXPO_PUBLIC_AI_SERVICE_URL is required. Set it in .env');
 
 export async function getApiUrl(): Promise<string> {
   const savedUrl = await SecureStore.getItemAsync('apiBaseUrl');
-  return savedUrl || DEFAULT_API_URL;
+  return savedUrl || API_URL;
 }
 
 export async function getAiServiceUrl(): Promise<string> {
   const savedUrl = await SecureStore.getItemAsync('aiServiceUrl');
-  return savedUrl || DEFAULT_AI_URL;
+  return savedUrl || AI_SERVICE_URL;
 }
 
 export async function setApiBaseUrl(url: string): Promise<void> {
@@ -29,8 +32,8 @@ export async function clearApiConfig(): Promise<void> {
 
 export function getDebugInfo() {
   return {
-    apiUrl: DEFAULT_API_URL,
-    aiUrl: DEFAULT_AI_URL,
+    apiUrl: API_URL,
+    aiUrl: AI_SERVICE_URL,
     platform: 'react-native',
   };
 }

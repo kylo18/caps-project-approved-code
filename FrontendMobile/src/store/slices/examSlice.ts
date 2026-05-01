@@ -1,14 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-
-interface ExamState {
-  currentExam: any | null;
-  examQuestions: any[];
-  examStartTime: number | null;
-  examState: 'idle' | 'in-progress' | 'completed';
-  answers: Record<string, any>;
-  bookmarks: number[];
-  currentQuestionIndex: number;
-}
+import { Exam, Question, ExamState } from '../../types';
 
 const initialState: ExamState = {
   currentExam: null,
@@ -24,11 +15,11 @@ const examSlice = createSlice({
   name: 'exam',
   initialState,
   reducers: {
-    setExam: (state, action: PayloadAction<any>) => {
+    setExam: (state, action: PayloadAction<Exam | null>) => {
       state.currentExam = action.payload;
       state.examState = 'idle';
     },
-    setExamQuestions: (state, action: PayloadAction<any[]>) => {
+    setExamQuestions: (state, action: PayloadAction<Question[]>) => {
       state.examQuestions = action.payload;
     },
     startExam: (state) => {
@@ -50,7 +41,7 @@ const examSlice = createSlice({
       state.bookmarks = [];
       state.currentQuestionIndex = 0;
     },
-    setAnswer: (state, action: PayloadAction<{ questionId: string; answer: any }>) => {
+    setAnswer: (state, action: PayloadAction<{ questionId: string; answer: string | number | string[] }>) => {
       state.answers[action.payload.questionId] = action.payload.answer;
     },
     toggleBookmark: (state, action: PayloadAction<number>) => {

@@ -96,7 +96,7 @@ export default function EditQuestionForm() {
 
       showToast('Question updated', 'success');
       if (router.canGoBack()) router.back();
-    } catch (error: any) {
+    } catch (error: unknown) {
       showToast('Failed to update question', 'error');
     } finally {
       setIsSubmitting(false);
@@ -121,7 +121,7 @@ export default function EditQuestionForm() {
   return (
     <View className="flex-1" style={{ backgroundColor: colors.bg }}>
       <View className="flex-row items-center justify-between px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/(dean)/dashboard' as any)} className="p-2">
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/(dean)/dashboard')} className="p-2">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text className="text-xl font-bold" style={{ color: colors.text }}>Edit Question</Text>
@@ -155,7 +155,7 @@ export default function EditQuestionForm() {
               initialContentHTML={questionText}
               onChange={setQuestionText}
               placeholder="Enter question..."
-              style={{ backgroundColor: colors.inputBg, color: colors.text, flex: 1 } as any}
+              style={{ backgroundColor: colors.inputBg, color: colors.text, flex: 1 }}
               initialHeight={180}
               useContainer
             />

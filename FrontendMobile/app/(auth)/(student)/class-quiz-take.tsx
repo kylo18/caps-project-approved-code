@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { studentColors } from '../../../src/features/student/shared/ui/StudentUI';
+import { studentColors } from '../../../src/features/student/ui/StudentUI';
 import { submitQuiz } from '../../../src/services/studentClassService';
 
 interface Question {
@@ -150,8 +150,8 @@ export default function ClassQuizTakeScreen() {
         Alert.alert('Submitted', 'Your quiz has been submitted successfully.');
         router.replace('/(auth)/(student)/classes');
       }
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to submit quiz. Please try again.');
+    } catch (error: unknown) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to submit quiz. Please try again.');
       setSubmitting(false);
     }
   };

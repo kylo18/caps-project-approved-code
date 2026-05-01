@@ -28,6 +28,9 @@ import PrintExamModal from '../../../src/features/practice/components/PrintExamM
 interface Subject {
   subjectID: number;
   subjectName: string;
+  subjectCode?: string;
+  programID?: number | string;
+  yearLevelID?: number | string;
 }
 
 interface Question {
@@ -48,6 +51,9 @@ export default function AssoDeanSubjectsScreen() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [subjectCode, setSubjectCode] = useState('');
@@ -67,21 +73,56 @@ export default function AssoDeanSubjectsScreen() {
     if (selectedSubject) fetchQuestions();
   }, [selectedSubject]);
 
-  const fetchSubjects = async () => {
-    setIsLoading(true);
+  const fetchSubjects = async (reset = false) => {
+    const currentPage = reset ? 1 : page;
+
+    if (reset) {
+      setIsLoading(true);
+      setPage(1);
+      setHasMore(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+
     try {
-      const data = await apiRequest('/api/subjects');
+      const data = await apiRequest(`/api/subjects?limit=20&page=${currentPage}`);
       const list: Subject[] = Array.isArray(data?.subjects) ? data.subjects : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-      setSubjects(list);
-      if (selectedSubject) {
-        const updatedSelection = list.find((subject) => subject.subjectID === selectedSubject.subjectID);
-        setSelectedSubject(updatedSelection || null);
+      const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
+
+      if (reset) {
+        setSubjects(list);
+        if (total !== undefined) {
+          setHasMore(list.length < total);
+        } else {
+          setHasMore(list.length === 20);
+        }
+        if (selectedSubject) {
+          const updatedSelection = list.find((subject) => subject.subjectID === selectedSubject.subjectID);
+          setSelectedSubject(updatedSelection || null);
+        }
+      } else {
+        setSubjects(prev => [...prev, ...list]);
+        if (total !== undefined) {
+          setHasMore((subjects.length + list.length) < total);
+        } else {
+          setHasMore(list.length === 20);
+        }
+        setPage(prev => prev + 1);
       }
     } catch (error) {
       showToast('Unable to load subjects', 'error');
     } finally {
-      setIsLoading(false);
+      if (reset) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
     }
+  };
+
+  const handleLoadMore = () => {
+    if (!hasMore || isLoadingMore || isLoading || !!selectedSubject) return;
+    fetchSubjects(false);
   };
 
   const fetchQuestions = async () => {
@@ -132,10 +173,10 @@ export default function AssoDeanSubjectsScreen() {
 
   const openEditSubject = (subject: Subject) => {
     setEditingSubject(subject);
-    setSubjectCode((subject as any).subjectCode || '');
+    setSubjectCode(subject.subjectCode || '');
     setSubjectName(subject.subjectName || '');
-    setProgramID(String((subject as any).programID || ''));
-    setYearLevelID(String((subject as any).yearLevelID || ''));
+    setProgramID(String(subject.programID || ''));
+    setYearLevelID(String(subject.yearLevelID || ''));
     fetchPrograms();
     fetchYearLevels();
     setShowSubjectModal(true);
@@ -181,8 +222,10 @@ export default function AssoDeanSubjectsScreen() {
       }
       setShowSubjectModal(false);
       await fetchSubjects();
-    } catch (error: any) {
-      const message = error?.data?.message || error?.message || 'Failed to save subject';
+    } catch (error: unknown) {
+      const message = error instanceof Error && 'data' in error
+        ? (error as { data?: { message?: string } }).data?.message || 'Failed to save subject'
+        : 'Failed to save subject';
       showToast(message, 'error');
     } finally {
       setIsSavingSubject(false);
@@ -242,7 +285,7 @@ export default function AssoDeanSubjectsScreen() {
 
   const onRefresh = async () => {
     setIsRefreshing(true);
-    await fetchSubjects();
+    await fetchSubjects(true);
     setIsRefreshing(false);
   };
 
@@ -309,7 +352,7 @@ export default function AssoDeanSubjectsScreen() {
               setSelectedSubject(null);
               return;
             }
-            if (router.canGoBack()) router.back(); else router.replace('/(auth)/(associate-dean)/dashboard' as any);
+            if (router.canGoBack()) router.back(); else router.replace('/(auth)/(associate-dean)/dashboard');
           }} className="p-2 -ml-2 mr-2">
             <Ionicons name="arrow-back" size={24} className={isDark ? 'text-white' : 'text-gray-900'} />
           </TouchableOpacity>
@@ -345,8 +388,8 @@ export default function AssoDeanSubjectsScreen() {
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1 pr-3">
                       <Text className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{subject.subjectName}</Text>
-                      {!!(subject as any).subjectCode && (
-                        <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{(subject as any).subjectCode}</Text>
+                      {!!subject.subjectCode && (
+                        <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{subject.subjectCode}</Text>
                       )}
                     </View>
                     <View className="flex-row items-center" style={{ gap: 10 }}>
@@ -369,6 +412,12 @@ export default function AssoDeanSubjectsScreen() {
                   </View>
                 </TouchableOpacity>
               ))
+            )}
+            {isLoadingMore && (
+              <View className="py-4 items-center">
+                <CapsActivityIndicator size="small" color="#FE6902" />
+                <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more...</Text>
+              </View>
             )}
           </View>
         ) : (

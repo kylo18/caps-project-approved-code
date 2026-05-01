@@ -80,8 +80,8 @@ export default function RoleAnnouncementScreen({ roleLabel }: RoleAnnouncementSc
 
       showToast('Announcement created successfully.', 'success');
       router.back();
-    } catch (error: any) {
-      showToast(error?.message || 'Failed to create announcement.', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to create announcement.', 'error');
     } finally {
       setSubmitting(false);
     }

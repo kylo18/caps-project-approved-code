@@ -139,8 +139,11 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
             });
             showToast('Role updated successfully', 'success');
             onUserUpdated();
-        } catch (error: any) {
-            showToast(error?.data?.message || 'Failed to update role', 'error');
+        } catch (error: unknown) {
+            const msg = error instanceof Error && 'data' in error
+              ? (error as { data?: { message?: string } }).data?.message || 'Failed to update role'
+              : 'Failed to update role';
+            showToast(msg, 'error');
         } finally {
             setIsUpdatingRole(false);
             setShowRoleDropdown(false);
@@ -172,8 +175,11 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
                             );
                             onUserUpdated();
                             onClose();
-                        } catch (error: any) {
-                            showToast(error?.data?.message || `Failed to ${action} user`, 'error');
+                        } catch (error: unknown) {
+                            const msg = error instanceof Error && 'data' in error
+                              ? (error as { data?: { message?: string } }).data?.message || `Failed to ${action} user`
+                              : `Failed to ${action} user`;
+                            showToast(msg, 'error');
                         } finally {
                             setIsActing(false);
                         }

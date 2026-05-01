@@ -14,7 +14,7 @@ import {
   getSubjectVisualVariant,
   studentColors,
   studentShadow,
-} from '../../../src/features/student/shared/ui/StudentUI';
+} from '../../../src/features/student/ui/StudentUI';
 
 type SearchFilter = 'All' | 'Program' | 'General';
 
@@ -65,8 +65,8 @@ export default function StudentSearchScreen() {
           durationMinutes: data.durationMinutes?.toString() || '60',
         },
       });
-    } catch (error: any) {
-      showToast(error?.message || 'Unable to load exam', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Unable to load exam', 'error');
     } finally {
       setLoadingExam(false);
     }

@@ -4,7 +4,7 @@ import CapsActivityIndicator from '../../../src/features/core/components/CapsAct
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { studentColors, studentShadow } from '../../../src/features/student/shared/ui/StudentUI';
+import { studentColors, studentShadow } from '../../../src/features/student/ui/StudentUI';
 import {
   getPracticeExamHistory,
   getRank,
@@ -92,7 +92,7 @@ function HistoryCard({
 
         <View className="items-end">
           <View className="flex-row items-center gap-1.5">
-            <Ionicons name={meta.icon as any} size={16} color={meta.color} />
+            <Ionicons name={meta.icon as keyof typeof Ionicons.glyphMap} size={16} color={meta.color} />
             <Text
               style={{
                 color: meta.color,
@@ -357,11 +357,11 @@ export default function PracticeHistoryScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
             {[
-              { key: 'all', label: 'All', count: history.length },
-              { key: 'passed', label: 'Passed', count: passedCount },
-              { key: 'failed', label: 'Failed', count: failedCount },
+              { key: 'all' as const, label: 'All', count: history.length },
+              { key: 'passed' as const, label: 'Passed', count: passedCount },
+              { key: 'failed' as const, label: 'Failed', count: failedCount },
             ].map((f) => {
-              const active = filter === (f.key as any);
+              const active = filter === f.key;
               return (
                 <Pressable
                   key={f.key}
@@ -369,7 +369,7 @@ export default function PracticeHistoryScreen() {
                   style={{
                     backgroundColor: active ? studentColors.orange : studentColors.surfaceSoft,
                   }}
-                  onPress={() => setFilter(f.key as any)}
+                  onPress={() => setFilter(f.key)}
                 >
                   <Text
                     style={{

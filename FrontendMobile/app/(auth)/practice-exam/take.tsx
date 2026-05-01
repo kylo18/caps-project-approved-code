@@ -23,7 +23,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RenderHtml from 'react-native-render-html';
-import apiClient from '../../../src/services/apiClient';
+import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import QuestionListModal from '../../../src/features/practice/components/QuestionListModal';
@@ -58,6 +58,7 @@ export default function PracticeExamScreen() {
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [questions, setQuestions] = useState<any[]>([]);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -78,15 +79,19 @@ export default function PracticeExamScreen() {
   const fetchExamQuestions = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/api/practice-exam/generate/${subjectID}`);
-      if (response.data && response.data.questions) {
-        setQuestions(response.data.questions);
+      const data = await apiRequest(`/api/practice-exam/generate/${subjectID}`);
+      if (data && data.questions) {
+        setQuestions(data.questions);
+        if (data.attempt_id) {
+          setAttemptId(String(data.attempt_id));
+          await AsyncStorage.setItem(`${examKey}_attempt_id`, String(data.attempt_id));
+        }
       } else {
         setError('No questions available for this subject.');
       }
     } catch (err: any) {
       console.error('Failed to fetch exam questions:', err);
-      const msg = err.response?.data?.message || 'Failed to load exam questions.';
+      const msg = err.data?.message || 'Failed to load exam questions.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -127,9 +132,11 @@ export default function PracticeExamScreen() {
       const savedAnswers = await AsyncStorage.getItem(`${examKey}_answers`);
       const savedBookmarks = await AsyncStorage.getItem(`${examKey}_bookmarks`);
       const savedTimer = await AsyncStorage.getItem(`${examKey}_timer`);
+      const savedAttemptId = await AsyncStorage.getItem(`${examKey}_attempt_id`);
 
       if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
       if (savedBookmarks) setBookmarkedQuestions(JSON.parse(savedBookmarks));
+      if (savedAttemptId) setAttemptId(savedAttemptId);
       if (enableTimer && savedTimer) {
         const savedSeconds = parseInt(savedTimer);
         if (savedSeconds > 0) setSecondsLeft(savedSeconds);
@@ -171,6 +178,7 @@ export default function PracticeExamScreen() {
       await AsyncStorage.removeItem(`${examKey}_answers`);
       await AsyncStorage.removeItem(`${examKey}_bookmarks`);
       await AsyncStorage.removeItem(`${examKey}_timer`);
+      await AsyncStorage.removeItem(`${examKey}_attempt_id`);
       // NOTE: global bookmarks (student_bookmarks) are intentionally NOT cleared
       // so students can review them later.
     } catch (error) {
@@ -252,18 +260,22 @@ export default function PracticeExamScreen() {
 
     setIsSubmitting(true);
     try {
-      const response = await apiClient.post('/api/practice-exam/submit', {
-        subjectID,
-        answers: questions.map((q) => ({
-          questionID: q.questionID,
-          selectedChoiceID: answers[q.questionID] ? parseInt(answers[q.questionID]) : null,
-        })),
+      const data = await apiRequest('/api/practice-exam/submit', {
+        method: 'POST',
+        body: {
+          attempt_id: attemptId ? parseInt(attemptId) : null,
+          subjectID,
+          answers: questions.map((q) => ({
+            questionID: q.questionID,
+            selectedChoiceID: answers[q.questionID] ? parseInt(answers[q.questionID]) : null,
+          })),
+        },
       });
 
       await clearExamData();
 
-      const score = response.data.score;
-      const resultId = response.data.resultId;
+      const score = data.score;
+      const resultId = data.resultId;
       router.replace({
         pathname: '/(auth)/practice-exam/results',
         params: {
@@ -278,7 +290,7 @@ export default function PracticeExamScreen() {
       });
     } catch (err: any) {
       console.error('Submit error:', err);
-      showToast(err.response?.data?.message || 'Failed to submit exam. Please try again.', 'error');
+      showToast(err.data?.message || 'Failed to submit exam. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }

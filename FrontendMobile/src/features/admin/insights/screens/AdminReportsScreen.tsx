@@ -429,7 +429,7 @@ export default function AdminReportsScreen({ role }: Props) {
             key: 'reports-support',
             icon: 'headset-outline' as const,
             label: 'Support',
-            onPress: () => router.push(`${roleBaseRoute}/support` as any),
+            onPress: () => router.push(`${roleBaseRoute}/support` as string),
             backgroundColor: '#EF4444',
           }
         : role === 'associate-dean'
@@ -437,7 +437,7 @@ export default function AdminReportsScreen({ role }: Props) {
               key: 'reports-enhancement',
               icon: 'trending-up-outline' as const,
               label: 'Enhancement',
-              onPress: () => router.push(`${roleBaseRoute}/enhancement` as any),
+              onPress: () => router.push(`${roleBaseRoute}/enhancement` as string),
               backgroundColor: '#10B981',
             }
           : role === 'program-chair'
@@ -445,14 +445,14 @@ export default function AdminReportsScreen({ role }: Props) {
                 key: 'reports-export',
                 icon: 'print-outline' as const,
                 label: 'Export',
-                onPress: () => router.push(`${roleBaseRoute}/subjects` as any),
+                onPress: () => router.push(`${roleBaseRoute}/subjects` as string),
                 backgroundColor: '#8B5CF6',
               }
             : {
                 key: 'reports-classes',
                 icon: 'layers-outline' as const,
                 label: 'Classes',
-                onPress: () => router.push(`${roleBaseRoute}/classes` as any),
+                onPress: () => router.push(`${roleBaseRoute}/classes` as string),
                 backgroundColor: '#10B981',
               };
 
@@ -461,7 +461,7 @@ export default function AdminReportsScreen({ role }: Props) {
         key: 'reports-insights',
         icon: 'grid-outline' as const,
         label: 'Insights',
-        onPress: () => router.push(`${roleBaseRoute}/insights` as any),
+        onPress: () => router.push(`${roleBaseRoute}/insights` as string),
         backgroundColor: '#3B82F6',
       },
       {
@@ -489,7 +489,7 @@ export default function AdminReportsScreen({ role }: Props) {
         key: 'reports-home',
         icon: 'home-outline' as const,
         label: 'Dashboard',
-        onPress: () => router.push(`${roleBaseRoute}/dashboard` as any),
+        onPress: () => router.push(`${roleBaseRoute}/dashboard` as string),
         backgroundColor: '#6366F1',
       },
       tailAction,

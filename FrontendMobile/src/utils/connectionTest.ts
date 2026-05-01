@@ -1,4 +1,4 @@
-import apiClient from '../services/apiClient';
+import { apiRequest } from '../services/apiClient';
 
 interface ConnectionStatus {
   status: 'connected' | 'disconnected';
@@ -10,7 +10,7 @@ export async function testConnection(): Promise<ConnectionStatus> {
   const startTime = Date.now();
   
   try {
-    const response = await apiClient.get('/api/health');
+    const response = await apiRequest('/api/health');
     const responseTime = `${Date.now() - startTime}ms`;
     
     return {
@@ -18,10 +18,10 @@ export async function testConnection(): Promise<ConnectionStatus> {
       message: 'Backend is reachable',
       responseTime,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       status: 'disconnected',
-      message: error.message || 'Unable to connect to backend',
+      message: error instanceof Error ? error.message : 'Unable to connect to backend',
     };
   }
 }

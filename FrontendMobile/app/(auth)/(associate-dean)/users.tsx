@@ -27,11 +27,23 @@ import {
   isActiveUser,
   isInactiveUser,
   matchesUserStatusFilter,
+  UserStatusFilter,
 } from '../../../src/utils/userManagement';
 
 const avatarPalette = ['#FFE17B', '#FFD4EA', '#D9DCFF', '#D6F4D2', '#FFD0B1'];
 const ADMIN_ROLES = [2, 3, 4, 5];
 const STUDENT_ROLE = 1;
+const PAGE_SIZE = 20;
+
+interface UserItem {
+  userID: number | string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  roleID?: number | string;
+  roleName?: string;
+  [key: string]: any;
+}
 
 export default function AssociateDeanUsersScreen() {
   const router = useRouter();
@@ -39,62 +51,102 @@ export default function AssociateDeanUsersScreen() {
   const isDark = theme === 'dark';
   const insets = useSafeAreaInsets();
 
-  const [users, setUsers] = useState<any[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
+  // Pagination state
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserItem[]>([]);
   const [stats, setStats] = useState({ admins: 0, students: 0 });
   const [searchQuery, setSearchQuery] = useState('');
   const [activeRoleFilter, setActiveRoleFilter] = useState('all');
-  const [activeStatusFilter, setActiveStatusFilter] = useState('all');
+  const [activeStatusFilter, setActiveStatusFilter] = useState<UserStatusFilter>('all');
   const [programFilter, setProgramFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
   const [campusFilter, setCampusFilter] = useState('all');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedUserIDs, setSelectedUserIDs] = useState<Set<number>>(new Set());
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedUserIDs, setSelectedUserIDs] = useState<Set<number | string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
-  const [detailUser, setDetailUser] = useState<any | null>(null);
+  const [detailUser, setDetailUser] = useState<UserItem | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [isBulkActing, setIsBulkActing] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(true);
   }, []);
 
   useEffect(() => {
     applyFilters();
   }, [searchQuery, activeRoleFilter, activeStatusFilter, programFilter, yearFilter, campusFilter, users]);
 
-  const fetchUsers = async () => {
-    setIsLoading(true);
+  const fetchUsers = async (reset = false) => {
+    const currentPage = reset ? 1 : page;
+
+    if (reset) {
+      setIsLoading(true);
+      setPage(1);
+      setHasMore(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+
     try {
-      const data = await apiRequest('/api/users?limit=10000');
-      const userList = Array.isArray(data?.users) ? data.users : Array.isArray(data?.data) ? data.data : [];
-      setUsers(userList);
-      const adminCount = userList.filter((u: any) => ADMIN_ROLES.includes(Number(u.roleID))).length;
-      const studentCount = userList.filter((u: any) => Number(u.roleID) === STUDENT_ROLE).length;
-      setStats({ admins: adminCount, students: studentCount });
+      const data = await apiRequest(`/api/users?limit=${PAGE_SIZE}&page=${currentPage}`);
+      const userList: UserItem[] = Array.isArray(data?.users) ? data.users
+        : Array.isArray(data?.data) ? data.data : [];
+      const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
+
+      if (reset) {
+        setUsers([...new Map(userList.map(u => [u.userID, u])).values()]);
+        if (total !== undefined) {
+          setHasMore(userList.length < total);
+        } else {
+          setHasMore(userList.length === PAGE_SIZE);
+        }
+        const adminCount = userList.filter((u: UserItem) => ADMIN_ROLES.includes(Number(u.roleID))).length;
+        const studentCount = userList.filter((u: UserItem) => Number(u.roleID) === STUDENT_ROLE).length;
+        setStats({ admins: adminCount, students: studentCount });
+      } else {
+        setUsers(prev => [...prev, ...userList]);
+        if (total !== undefined) {
+          setHasMore(userList.length > 0 && (users.length + userList.length) < total);
+        } else {
+          setHasMore(userList.length === PAGE_SIZE);
+        }
+        setPage(prev => prev + 1);
+      }
     } catch (error) {
       showToast('Unable to load users', 'error');
     } finally {
-      setIsLoading(false);
+      if (reset) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
     }
+  };
+
+  const handleLoadMore = () => {
+    if (!hasMore || isLoadingMore || isLoading) return;
+    fetchUsers(false);
   };
 
   const applyFilters = useCallback(() => {
     Animated.timing(fadeAnim, { toValue: 0.6, duration: 100, useNativeDriver: true }).start(() => {
       let filtered = [...users];
-      if (activeRoleFilter === 'admin') filtered = filtered.filter((u: any) => ADMIN_ROLES.includes(Number(u.roleID)));
-      else if (activeRoleFilter === 'student') filtered = filtered.filter((u: any) => Number(u.roleID) === STUDENT_ROLE);
-      if (activeStatusFilter !== 'all') filtered = filtered.filter((u: any) => matchesUserStatusFilter(u, activeStatusFilter as any));
-      if (programFilter !== 'all') filtered = filtered.filter((u: any) => String(u.programID) === programFilter);
-      if (yearFilter !== 'all') filtered = filtered.filter((u: any) => String(u.yearLevel) === yearFilter);
-      if (campusFilter !== 'all') filtered = filtered.filter((u: any) => String(u.campusID) === campusFilter);
+      if (activeRoleFilter === 'admin') filtered = filtered.filter((u: UserItem) => ADMIN_ROLES.includes(Number(u.roleID)));
+      else if (activeRoleFilter === 'student') filtered = filtered.filter((u: UserItem) => Number(u.roleID) === STUDENT_ROLE);
+      if (activeStatusFilter !== 'all') filtered = filtered.filter((u: UserItem) => matchesUserStatusFilter(u, activeStatusFilter));
+      if (programFilter !== 'all') filtered = filtered.filter((u: UserItem) => String(u.programID) === programFilter);
+      if (yearFilter !== 'all') filtered = filtered.filter((u: UserItem) => String(u.yearLevel) === yearFilter);
+      if (campusFilter !== 'all') filtered = filtered.filter((u: UserItem) => String(u.campusID) === campusFilter);
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        filtered = filtered.filter((u: any) =>
+        filtered = filtered.filter((u: UserItem) =>
           u.firstName?.toLowerCase().includes(q) || u.lastName?.toLowerCase().includes(q) ||
           u.email?.toLowerCase().includes(q) || u.userCode?.toLowerCase().includes(q)
         );
@@ -147,8 +199,10 @@ export default function AssociateDeanUsersScreen() {
                 canApproveUser(u) ? applyUserActionLocally(u, 'approve') : u
               ));
               showToast(`${pendingUsers.length} user(s) approved`, 'success');
-            } catch (error: any) {
-              showToast(error.response?.data?.message || 'Failed to approve users', 'error');
+            } catch (error: unknown) {
+              const msg = (error as { response?: { data?: { message?: string } }; data?: { message?: string }; message?: string })
+                .response?.data?.message || (error as { data?: { message?: string }; message?: string }).data?.message || 'Failed to approve users';
+              showToast(msg, 'error');
             } finally {
               setIsLoading(false);
             }
@@ -160,7 +214,7 @@ export default function AssociateDeanUsersScreen() {
 
   const onRefresh = async () => {
     setIsRefreshing(true);
-    await fetchUsers();
+    await fetchUsers(true);
     setIsRefreshing(false);
   };
 
@@ -209,8 +263,9 @@ export default function AssociateDeanUsersScreen() {
               }));
               showToast(`${ids.length} user(s) ${action === 'approve' ? 'approved' : action + 'd'}`, 'success');
               deselectAll();
-            } catch (error: any) {
-              showToast(error?.data?.message || `Failed to ${action} users`, 'error');
+            } catch (error: unknown) {
+              const msg = (error as { data?: { message?: string }; message?: string }).data?.message || `Failed to ${action} users`;
+              showToast(msg, 'error');
             } finally {
               setIsBulkActing(false);
             }
@@ -338,7 +393,7 @@ export default function AssociateDeanUsersScreen() {
   return (
     <View className="flex-1" style={{ backgroundColor: colors.bg, paddingBottom: insets.bottom + 12 }}>
       <View className="flex-row items-center px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border, paddingTop: insets.top + 8 }}>
-        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/(associate-dean)/dashboard' as any); }} className="p-2 mr-3"><Ionicons name="arrow-back" size={24} color={colors.text} /></TouchableOpacity>
+        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/(associate-dean)/dashboard'); }} className="p-2 mr-3"><Ionicons name="arrow-back" size={24} color={colors.text} /></TouchableOpacity>
         <Text className="text-xl font-bold flex-1" style={{ color: colors.text }}>User Management</Text>
         {pendingCount > 0 && (
           <TouchableOpacity className="flex-row items-center px-2.5 py-1.5 rounded-2xl gap-1" style={{ backgroundColor: colors.green }} onPress={handleApproveAll} activeOpacity={0.7}>
@@ -362,6 +417,16 @@ export default function AssociateDeanUsersScreen() {
             maxToRenderPerBatch={10}
             windowSize={5}
             initialNumToRender={15}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              isLoadingMore ? (
+                <View className="py-4 items-center">
+                  <CapsActivityIndicator size="small" color={colors.orange} />
+                  <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Loading more...</Text>
+                </View>
+              ) : null
+            }
             ListHeaderComponent={
               <Animated.View style={{ opacity: fadeAnim }}>
                 <View className="flex-row gap-3 mb-3">
@@ -397,11 +462,11 @@ export default function AssociateDeanUsersScreen() {
 
                 <View className="flex-row gap-1 mb-2 flex-wrap">
                   {[
-                    { key: 'all', label: 'All' },
-                    { key: 'pending', label: 'Pending' },
-                    { key: 'active', label: 'Active' },
-                    { key: 'inactive', label: 'Inactive' },
-                    { key: 'disapproved', label: 'Disapproved' },
+                    { key: 'all' as UserStatusFilter, label: 'All' },
+                    { key: 'pending' as UserStatusFilter, label: 'Pending' },
+                    { key: 'active' as UserStatusFilter, label: 'Active' },
+                    { key: 'inactive' as UserStatusFilter, label: 'Inactive' },
+                    { key: 'disapproved' as UserStatusFilter, label: 'Disapproved' },
                   ].map((f) => (
                     <TouchableOpacity key={f.key} className="px-2.5 py-[5px] rounded-[14px]" style={activeStatusFilter === f.key ? { backgroundColor: f.key === 'pending' ? colors.blue : f.key === 'active' ? colors.green : f.key === 'inactive' ? colors.red : colors.orange } : undefined} onPress={() => setActiveStatusFilter(f.key)} activeOpacity={0.7}>
                       <Text className="text-[11px] font-semibold" style={{ color: activeStatusFilter === f.key ? '#fff' : colors.textSecondary }}>{f.label}</Text>

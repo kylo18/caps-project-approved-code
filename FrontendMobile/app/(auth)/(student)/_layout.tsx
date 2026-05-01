@@ -1,16 +1,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Purpose: Student tab-based navigation layout. Renders a custom tab bar
-//          (StudentTabBar) with four top-level screens for the student role.
+// Student tab-based navigation layout. Renders a custom tab bar
+// (StudentTabBar) with four top-level screens for the student role.
 //
 // Tabs:
 //   - dashboard  → Home (student dashboard/overview)
 //   - classes    → Classes (enrolled classes & quizzes)
 //   - leaderboard→ Leaderboard (student rankings/achievements)
 //   - insights   → Profile (analytics/personal progress)
+//
+// Role guard: handled in parent AuthLayout via usePathname().
+//             Role mismatches redirect via getDashboardRoute().
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Tabs } from 'expo-router';
-import { StudentTabBar } from '../../../src/features/student/shared/ui/StudentUI';
+import { StudentTabBar } from '../../../src/features/student/ui/StudentUI';
 
 export default function StudentTabs() {
   return (
@@ -47,48 +50,14 @@ export default function StudentTabs() {
         }}
       />
       {/* Hidden routes (accessible via deep links / router.push) */}
-      <Tabs.Screen
-        name="search"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="bookmarks"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="frequently-mistaken"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="practice-history"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="strong-areas"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="weak-areas"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="time-per-topic"
-        options={{
-          href: null,
-        }}
-      />
+      <Tabs.Screen name="search" options={{ href: null }} />
+      <Tabs.Screen name="bookmarks" options={{ href: null }} />
+      <Tabs.Screen name="frequently-mistaken" options={{ href: null }} />
+      <Tabs.Screen name="practice-history" options={{ href: null }} />
+      <Tabs.Screen name="strong-areas" options={{ href: null }} />
+      <Tabs.Screen name="weak-areas" options={{ href: null }} />
+      <Tabs.Screen name="time-per-topic" options={{ href: null }} />
+      <Tabs.Screen name="class-detail" options={{ href: null }} />
     </Tabs>
   );
 }

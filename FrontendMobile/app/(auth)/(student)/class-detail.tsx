@@ -8,7 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import {
   studentColors,
   studentShadow,
-} from '../../../src/features/student/shared/ui/StudentUI';
+} from '../../../src/features/student/ui/StudentUI';
 import {
   getClassQuizzes,
   getClassHistory,
@@ -88,8 +88,8 @@ export default function ClassDetailScreen() {
               await unenroll(classId);
               await invalidateMyClassesCache();
               router.back();
-            } catch (error: any) {
-              Alert.alert('Error', error?.message || 'Failed to leave class');
+            } catch (error: unknown) {
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to leave class');
             } finally {
               setLeaving(false);
             }

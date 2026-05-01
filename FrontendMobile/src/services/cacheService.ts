@@ -14,7 +14,7 @@ const CACHE_PREFIX = 'cache:';
 const OFFLINE_QUEUE_KEY = 'offline_queue';
 
 interface CachedItem {
-  data: any;
+  data: unknown;
   expiresAt: number;
 }
 
@@ -22,7 +22,7 @@ interface QueuedRequest {
   id: string;
   path: string;
   method: string;
-  body?: any;
+  body?: unknown;
   auth: boolean;
   timestamp: number;
 }
@@ -33,7 +33,7 @@ export function cacheKey(method: string, path: string): string {
 
 export async function setCachedResponse(
   key: string,
-  data: any,
+  data: unknown,
   ttlMs: number = 5 * 60 * 1000 // default 5 minutes
 ): Promise<void> {
   try {
@@ -44,7 +44,7 @@ export async function setCachedResponse(
   }
 }
 
-export async function getCachedResponse(key: string): Promise<any | null> {
+export async function getCachedResponse(key: string): Promise<unknown | null> {
   try {
     const raw = await AsyncStorage.getItem(key);
     if (!raw) return null;

@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { studentColors } from '../../../src/features/student/shared/ui/StudentUI';
+import { studentColors } from '../../../src/features/student/ui/StudentUI';
 import { getQuizInfo, startQuiz } from '../../../src/services/studentClassService';
 
 export default function ClassQuizStartScreen() {
@@ -60,8 +60,8 @@ export default function ClassQuizStartScreen() {
           startedAt,
         },
       });
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to start quiz');
+    } catch (error: unknown) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to start quiz');
     } finally {
       setStarting(false);
     }
