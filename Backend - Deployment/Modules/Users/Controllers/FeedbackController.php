@@ -42,22 +42,13 @@ class FeedbackController
         }
 
         try {
-            // Normalize the feedback data before saving
-            $normalizedData = FeedbackStandardizationService::normalizeFeedbackData([
-                'subject' => $request->subject,
-                'issue_type' => $request->issue_type,
-                'message' => $request->message,
-                'category' => $request->category,
-                'status' => 'New',
-            ]);
-
             $feedback = UserFeedback::create([
                 'user_id' => $user->userID,
-                'subject' => $normalizedData['subject'],
-                'issue_type' => $normalizedData['issue_type'],
-                'message' => $normalizedData['message'],
-                'category' => $normalizedData['category'],
-                'status' => $normalizedData['status'],
+                'subject' => trim($request->subject),
+                'issue_type' => trim($request->issue_type),
+                'message' => trim($request->message),
+                'category' => $request->category ? trim($request->category) : null,
+                'status' => 'New',
             ]);
 
             return response()->json([
@@ -241,9 +232,22 @@ class FeedbackController
     public function getIssueTypesWithSubOptions(Request $request): JsonResponse
     {
         try {
+            $preferredOrder = [
+                'Account & Login',
+                'Exam / Quiz Problem',
+                'Technical Issue',
+                'Performance & Ranking',
+                'Notification Problem',
+                'Feature Request',
+                'Other Issue',
+            ];
+
             $issueTypes = IssueType::where('is_active', true)
-                ->orderBy('name')
                 ->get()
+                ->sortBy(function ($issueType) use ($preferredOrder) {
+                    $index = array_search($issueType->name, $preferredOrder);
+                    return $index === false ? 999 : $index;
+                })
                 ->map(function ($issueType) {
                     return [
                         'name' => $issueType->name,
@@ -251,6 +255,7 @@ class FeedbackController
                         'sub_options' => $this->getSubOptionsForIssueType($issueType->name),
                     ];
                 })
+                ->values()
                 ->toArray();
 
             return response()->json([

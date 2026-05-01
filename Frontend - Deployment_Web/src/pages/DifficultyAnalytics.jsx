@@ -198,9 +198,9 @@ const DifficultyAnalytics = () => {
   };
 
   return (
-    <div className="bg-[#F5F3EF] min-h-screen overflow-x-hidden font-sans">
+    <div className="bg-[#F5F3EF] min-h-screen overflow-x-hidden max-w-full font-sans">
       {/* Page header: back button, title, and current trend badge */}
-      <div className="bg-white border-b border-[#EAE8E2] p-4 pt-[60px] sm:p-4 sm:pt-4 sm:px-7 flex flex-wrap items-center gap-4">
+      <div className="bg-white border-b border-[#EAE8E2] p-4 sm:p-4 sm:px-7 flex flex-wrap items-center gap-4">
         <button
           onClick={() => navigate("/student-dashboard")}
           className="w-9 h-9 rounded-xl border border-[#EAE8E2] bg-[#F5F3EF] flex items-center justify-center"
@@ -232,8 +232,8 @@ const DifficultyAnalytics = () => {
       {/* Main page content container */}
       <div className="px-4 pb-24 sm:px-7">
         {/* Summary panel: average score, exam metadata, and band chart */}
-          <div className="mb-5 overflow-hidden mt-5 rounded-[14px] border border-[#EAE8E2] bg-white">
-          <div className={`grid gap-0 ${isMobile ? "grid-cols-1" : "grid-cols-[auto_1px_1fr]"} p-5 sm:px-6`}>
+        <div className="mb-5 overflow-hidden mt-5 rounded-[14px] border border-[#EAE8E2] bg-white">
+          <div className={`grid gap-0 ${isMobile ? "grid-cols-1" : "grid-cols-[1fr_1fr]"} p-5 sm:px-6`}>
             <div className={`flex flex-col justify-center ${isMobile ? "pb-5" : "pr-7"}`}>
               <div className="text-[10px] font-bold uppercase tracking-[0.9px] text-[#9B9790] mb-2">Your average score</div>
               <div className="text-[56px] font-extrabold leading-none text-[#1A1814]">
@@ -279,7 +279,7 @@ const DifficultyAnalytics = () => {
               )}
             </div>
 
-            {!isMobile && <div className="mx-6 w-px bg-[#EAE8E2]" />}
+            
 
             <div className={`flex flex-col justify-between gap-4 min-w-0 ${isMobile ? "pt-5 border-t border-[#EAE8E2]" : "pt-1"}`}>
               <div className="text-[10px] font-bold uppercase tracking-[0.9px] text-[#9B9790]">Score by difficulty</div>

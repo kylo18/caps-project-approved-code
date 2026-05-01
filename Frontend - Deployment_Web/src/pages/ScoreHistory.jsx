@@ -81,10 +81,13 @@ const ScoreHistory = () => {
   const tableGrid = isMobile ? "1fr" : "1fr 120px 100px 100px 110px";
 
   return (
-    <div style={{ background: "#F5F3EF", minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ 
+      background: "#F5F3EF", minHeight: "100vh", 
+      fontFamily: "'Segoe UI', system-ui, sans-serif", 
+      overflowX: "hidden", maxWidth: "100vw" }}>
 
       {/* ── TOP BAR ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #EAE8E2", padding: isMobile ? "16px 16px" : "16px 28px", paddingTop: isMobile ? "60px" : "16px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid #EAE8E2", padding: isMobile ? "16px 16px" : "16px 28px", marginTop: isMobile ? "60px" : "0", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <button onClick={() => navigate("/student-dashboard")}
           style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid #EAE8E2", background: "#F5F3EF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5C5955" strokeWidth="1.8"><polyline points="10,3 5,8 10,13"/></svg>
@@ -98,7 +101,7 @@ const ScoreHistory = () => {
       <div style={{ padding: isMobile ? "16px 16px 100px" : "24px 28px", paddingBottom: 100 }}>
 
         {/* ── STAT CARDS ── */}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
           {[
             { label: "Total Exams",  value: loading ? "—" : history.length,                                                                accent: "#FF6014" },
             { label: "Avg. Score",   value: loading ? "—" : avgScore != null ? `${avgScore}%` : "—",                                       accent: "#22A56D" },

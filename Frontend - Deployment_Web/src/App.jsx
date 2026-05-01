@@ -68,6 +68,9 @@ import StudentEnhancement from "./pages/StudentEnhancement"; // adjust path if n
 //new added: this is for admin student enhancement page
 import AdminStudentEnhancement from "./pages/AdminStudentEnhancement";
 
+//new added: this is for students analytics
+import AnalyticsPage from "./pages/AnalyticsPage";
+
 function App() {
   return (
     <Router>
@@ -195,7 +198,7 @@ function App() {
           <Route path="dashboard" element={<StudentDashboard />} />
         </Route>
 
-        {/* Analytics Routes */}
+        {/* Analytics Routes 
         <Route
           path="/analytics/achievements"
           element={<ProtectedRoute element={<Layout />} />}
@@ -219,6 +222,31 @@ function App() {
           element={<ProtectedRoute element={<Layout />} />}
         >
           <Route index element={<DifficultyAnalytics />} />
+        </Route>  */}
+        
+        <Route
+          path="/analytics/achievements"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AnalyticsPage />} />
+        </Route>
+        <Route
+          path="/analytics/leaderboards"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AnalyticsPage />} />
+        </Route>
+        <Route
+          path="/analytics/content-analytics"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AnalyticsPage />} />
+        </Route>
+        <Route
+          path="/analytics/difficult-analytics"
+          element={<ProtectedRoute element={<Layout />} />}
+        >
+          <Route index element={<AnalyticsPage />} />
         </Route>
 
         {/* Faculty Routes */}

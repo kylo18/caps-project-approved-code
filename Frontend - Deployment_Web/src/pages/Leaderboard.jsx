@@ -440,7 +440,9 @@ const Leaderboard = () => {
     <div style={{
       background: "#fff",
       minHeight: "100vh",
-      width: "100%", 
+      width: "100%",
+      maxWidth: "100vw",
+      overflowX: "hidden",
       display: "flex", 
       flexDirection: "column",
       fontFamily: "'Segoe UI', system-ui, sans-serif",

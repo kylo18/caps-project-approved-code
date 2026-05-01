@@ -580,7 +580,9 @@ const Sidebar = ({
   };
   const adminItems = [{ icon: "bx-group", label: "Users", path: "/users" }];
   const classes = [{ icon: "bx-book-bookmark", label: "Subjects" }];
-  const analyticsMenuItems = [  //this is for achievements, leaderboards, content analytics, difficult analytics in sidebar
+  
+  //this is for achievements, leaderboards, content analytics, difficult analytics in the student sidebar
+  const analyticsMenuItems = [  
     { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
     { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart"},
     { label: "My Content", path: "/analytics/content-analytics", icon: "bx bx-file" },
@@ -638,9 +640,15 @@ const Sidebar = ({
       );
     }
 
+    // Analytics routes — each item lights up based on current route
+    // (AnalyticsPage updates the route via scroll spy as user scrolls)
+    if (path.startsWith("/analytics/")) {
+      return location.pathname === path;
+    }
+
     return location.pathname === path;
   };
-
+  
   const handleMenuClick = () => {
     setIsSubjectFocused(false);
     setIsSubjectExpanded(false);
@@ -712,7 +720,7 @@ const Sidebar = ({
                               <Link
                                 key={moreItem.label}
                                 to={moreItem.path}
-                                onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                                onClick={() => { setShowMoreDrawer(false); }}
                                 className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${
                                   isActive(moreItem.path)
                                     ? "bg-orange-50 text-orange-600"
@@ -754,7 +762,7 @@ const Sidebar = ({
                                 className="flex items-center gap-3 rounded-xl px-3 py-2 text-gray-600 transition-colors hover:bg-gray-100"
                               >
                                 <i className="bx bx-bar-chart-square text-[18px]"></i>
-                                <span className="outfit-500 text-[13px]">Enhancement</span>
+                                <span className="outfit-500 text-[13px]">Progress</span>
                               </Link>
                             )}
                             <button
@@ -764,6 +772,19 @@ const Sidebar = ({
                               <img src={PrintIcon} alt="Export" className="h-[18px] w-[18px] object-contain" />
                               <span className="outfit-500 text-[13px]">Export</span>
                             </button>
+                            {parsedRoleId === 3 && (
+                              <Link
+                                to="/admin/enhancement"
+                                onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
+                                className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${
+                                  isActive("/admin/enhancement") ? "bg-orange-50 text-orange-600" : "text-gray-600"
+                                }`}
+                              >
+                                <i className="bx bx-bar-chart-square text-[18px]"></i>
+                                <span className="outfit-500 text-[13px]">Progress</span>
+                              </Link>
+                            )}
+
                             {(parsedRoleId === 4 || parsedRoleId === 5) && (
                               <Link
                                 to="/reports"
@@ -1142,7 +1163,7 @@ const Sidebar = ({
                             <Link
                               key={item.label}
                               to={item.path}
-                              onClick={() => { setShowAnalyticsPopup(false); handleMenuClick(); }}
+                              onClick={() => { handleMenuClick(); }}
                               className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-100 ${
                                 isActive(item.path) ? "bg-orange-50 text-orange-600" : "text-gray-600"
                               }`}
@@ -1253,14 +1274,14 @@ const Sidebar = ({
                       <i className={`bx bx-bar-chart-square ${isUsersPage ? "text-[20px]" : "text-[20px]"} flex-shrink-0 ${activeMenu === "Enhancement" ? "text-orange-500" : "text-gray-600"}`}></i>
                       {!isUsersPage && (
                         <span className={`outfit-500 text-[15px] whitespace-nowrap ${activeMenu === "Enhancement" ? "text-black" : "text-gray-600"}`}>
-                          Enhancement
+                          Progress
                         </span>
                       )}
                     </div>
                   </button>
                   {isUsersPage && (
                     <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
-                      Enhancement
+                      Progress
                     </span>
                   )}
                 </div>
@@ -1496,6 +1517,31 @@ const Sidebar = ({
                   </div>
                 </li>
               )}
+
+              {/* Enhancement link - program chair */}
+              <li className="group relative">
+                <span className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${isActive("/admin/enhancement") ? "bg-orange-500" : "bg-transparent"}`}></span>
+                <div className="px-3">
+                  <button
+                    onClick={() => { setActiveMenu("Enhancement"); navigate("/admin/enhancement"); }}
+                    className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"} ${activeMenu === "Enhancement" ? "bg-gray-100 text-orange-600" : ""}`}
+                  >
+                    <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-[10px]"}`}>
+                      <i className={`bx bx-bar-chart-square text-[20px] flex-shrink-0 ${activeMenu === "Enhancement" ? "text-orange-500" : "text-gray-600"}`}></i>
+                      {!isUsersPage && (
+                        <span className={`outfit-500 text-[15px] whitespace-nowrap ${activeMenu === "Enhancement" ? "text-black" : "text-gray-600"}`}>
+                          Progress
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                  {isUsersPage && (
+                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                      Progress 
+                    </span>
+                  )}
+                </div>
+              </li>
 
 
 
