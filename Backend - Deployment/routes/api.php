@@ -346,7 +346,10 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/admin/analytics/improvement-percentage', [AdminAnalyticsController::class, 'getImprovementPercentage']);
     Route::get('/admin/analytics/topic-mastery', [AdminAnalyticsController::class, 'getTopicMastery']);
     Route::get('/admin/analytics/content', [AdminAnalyticsController::class, 'getContentAnalytics']);
-    
+
+    // Dashboard quick stats (role 2-5)
+    Route::get('/dashboard/stats', [AdminAnalyticsController::class, 'getDashboardStats']);
+
     // Role-Based Analytics Endpoints
     Route::get('/admin/analytics/all', [AdminAnalyticsController::class, 'getAllAnalytics']); // Dean/Associate Dean
     Route::get('/admin/analytics/program/{programId}', [AdminAnalyticsController::class, 'getProgramAnalytics']); // Program Chair

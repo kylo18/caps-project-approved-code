@@ -233,15 +233,25 @@ class QuestionController extends Controller
             });
         }
 
+        $perPage = min((int) request()->input('limit', 20), 50);
+        $page = max((int) request()->input('page', 1), 1);
+        $total = (clone $query)->count();
+
         $questions = $query->orderBy('created_at', 'desc')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
             ->get()
             ->map(fn($q) => $this->formatQuestion($q));
 
         return response()->json([
             'message' => 'Questions retrieved successfully.',
             'subject' => $subject->subjectName,
-            'total_questions' => $questions->count(),
+            'questions' => $questions,
             'data' => $questions,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'total_pages' => ceil($total / $perPage),
             'last_updated' => $questions->max('updated_at')
         ]);
     }

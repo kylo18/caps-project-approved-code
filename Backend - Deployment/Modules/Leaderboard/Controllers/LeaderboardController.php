@@ -126,149 +126,135 @@ class LeaderboardController extends Controller
         try {
             $period = $this->normalizePeriod($request->query('period', 'all_time'));
             [$periodStart, $periodEnd] = $this->getPeriodBounds($period);
-            $limit = (int) $request->query('limit', 50);
+            $limit = (int) $request->query('limit', 20); // Default to 20 for mobile
             $viewer = $this->resolveViewer($request);
-            
-            // Get all programs and subjects for dropdown filters
+            $viewerId = $viewer ? (int) $viewer->userID : null;
+
+            // Get programs and subjects - limit subjects to prevent memory issues with 1M+ records
             $programs = DB::table('programs')
                 ->select('programID', 'programName')
                 ->orderBy('programName')
                 ->get();
-                
-            $subjects = DB::table('subjects')
-                ->select('subjectID', 'subjectName', 'subjectCode')
-                ->orderBy('subjectName')
+
+            // Only fetch subjects that have practice exam results (and limit to 1000 for dropdown)
+            $subjects = DB::table('practice_exam_results')
+                ->distinct()
+                ->select('practice_exam_results.subjectID', 'subjects.subjectName', 'subjects.subjectCode')
+                ->join('subjects', 'practice_exam_results.subjectID', '=', 'subjects.subjectID')
+                ->orderBy('subjects.subjectName')
+                ->limit(1000)
                 ->get();
-            
-            // Build query for practice exam results with filters
-            $resultsQuery = DB::table('practice_exam_results')
-                ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
-                ->where('users.roleID', 1); // Only students
-                
-            // Apply program filter
+
+            // Build base query - only select needed columns to reduce memory
+            $resultsQuery = DB::table('practice_exam_results as per')
+                ->join('users as u', 'per.userID', '=', 'u.userID')
+                ->where('u.roleID', 1)
+                ->select([
+                    'per.userID',
+                    DB::raw('MAX(per.percentage) as highestPercentage'),
+                    DB::raw('MAX(per.earnedPoints) as highestScore'),
+                    DB::raw('COUNT(*) as attempts'),
+                ]);
+
             if ($programFilter) {
-                $resultsQuery->where('users.programID', $programFilter);
+                $resultsQuery->where('u.programID', $programFilter);
             }
-            
-            // Apply subject filter
+
             if ($subjectFilter) {
-                $resultsQuery->where('practice_exam_results.subjectID', $subjectFilter);
+                $resultsQuery->where('per.subjectID', $subjectFilter);
             }
 
             if ($periodStart && $periodEnd) {
-                $resultsQuery->whereBetween('practice_exam_results.created_at', [$periodStart, $periodEnd]);
+                $resultsQuery->whereBetween('per.created_at', [$periodStart, $periodEnd]);
             }
-            
-            // Get all matching results
+
+            // Aggregate by user first (this is the expensive part)
+            $resultsQuery->groupBy('per.userID');
+
+            // Order and limit AFTER aggregation — rank by POINTS (earnedPoints), not percentage
             $results = $resultsQuery
-                ->select(
-                    'practice_exam_results.resultID',
-                    'practice_exam_results.userID',
-                    'practice_exam_results.subjectID',
-                    'practice_exam_results.percentage',
-                    'practice_exam_results.earnedPoints',
-                    'practice_exam_results.created_at'
-                )
+                ->orderByDesc('highestScore')
+                ->orderByDesc('highestPercentage')
+                ->limit($limit)
                 ->get();
-            
-            // Get user details for all users in results
-            $userIds = $results->pluck('userID')->unique()->toArray();
-            
-            $users = DB::table('users')
-                ->leftJoin('programs', 'users.programID', '=', 'programs.programID')
-                ->leftJoin('students', 'users.userCode', '=', 'students.userCode')
-                ->whereIn('users.userID', $userIds)
+
+            // If no results, return early
+            if ($results->isEmpty()) {
+                return response()->json([
+                    'data' => [],
+                    'leaderboard' => [],
+                    'programs' => $programs->map(fn($p) => ['programID' => $p->programID, 'programName' => $p->programName]),
+                    'subjects' => $subjects->map(fn($s) => ['subjectID' => $s->subjectID, 'subjectName' => $s->subjectName, 'subjectCode' => $s->subjectCode]),
+                    'viewer' => null,
+                    'meta' => [
+                        'total' => 0,
+                        'period' => $period,
+                        'periodStartsAt' => $periodStart ? $periodStart->toIso8601String() : null,
+                        'periodEndsAt' => $periodEnd ? $periodEnd->toIso8601String() : null,
+                        'programFilter' => $programFilter,
+                        'subjectFilter' => $subjectFilter,
+                        'generated_from' => 'database'
+                    ]
+                ]);
+            }
+
+            // Get user IDs from top results
+            $userIds = $results->pluck('userID')->toArray();
+
+            // Single query to get all user details for top users
+            $users = DB::table('users as u')
+                ->leftJoin('programs as p', 'u.programID', '=', 'p.programID')
+                ->leftJoin('students as s', 'u.userCode', '=', 's.userCode')
+                ->whereIn('u.userID', $userIds)
                 ->select(
-                    'users.userID',
-                    'users.firstName',
-                    'users.lastName',
-                    'users.userCode',
-                    'programs.programName as program',
-                    'programs.programID',
-                    'students.yearLevel as year',
-                    'students.yearLevel as yearLevel'
+                    'u.userID',
+                    'u.firstName',
+                    'u.lastName',
+                    'u.userCode',
+                    'p.programName as program',
+                    'p.programID',
+                    's.yearLevel as year',
+                    's.yearLevel as yearLevel'
                 )
                 ->get()
                 ->keyBy('userID');
-            
-            // Get subject details if needed
-            $subjectIds = $results->pluck('subjectID')->unique()->toArray();
-            $subjectsData = DB::table('subjects')
-                ->whereIn('subjectID', $subjectIds)
-                ->select('subjectID', 'subjectName', 'subjectCode')
-                ->get()
-                ->keyBy('subjectID');
-            
-            // Group by user and calculate stats
-            $userStats = [];
-            foreach ($results as $result) {
-                $userId = $result->userID;
-                
-                if (!isset($userStats[$userId])) {
-                    $userStats[$userId] = [
-                        'userID' => $userId,
-                        'highestPercentage' => 0,
-                        'highestScore' => 0,
-                        'attempts' => 0,
-                        'subjectIDs' => [],
-                        'bestSubjectID' => null,
-                        'bestResultID' => null,
-                        'bestCreatedAt' => null,
-                    ];
-                }
-                
-                $userStats[$userId]['attempts']++;
-                $userStats[$userId]['subjectIDs'][] = $result->subjectID;
-                
-                $replaceBestResult =
-                    $result->percentage > $userStats[$userId]['highestPercentage'] ||
-                    (
-                        (float) $result->percentage === (float) $userStats[$userId]['highestPercentage'] &&
-                        (int) $result->earnedPoints > (int) $userStats[$userId]['highestScore']
-                    ) ||
-                    (
-                        (float) $result->percentage === (float) $userStats[$userId]['highestPercentage'] &&
-                        (int) $result->earnedPoints === (int) $userStats[$userId]['highestScore'] &&
-                        $userStats[$userId]['bestCreatedAt'] !== null &&
-                        Carbon::parse($result->created_at)->lt(Carbon::parse($userStats[$userId]['bestCreatedAt']))
-                    );
 
-                if ($replaceBestResult || $userStats[$userId]['bestCreatedAt'] === null) {
-                    $userStats[$userId]['highestPercentage'] = $result->percentage;
-                    $userStats[$userId]['highestScore'] = $result->earnedPoints;
-                    $userStats[$userId]['bestSubjectID'] = $result->subjectID;
-                    $userStats[$userId]['bestResultID'] = $result->resultID;
-                    $userStats[$userId]['bestCreatedAt'] = $result->created_at;
+            // Get best result info for tie-breaking in one query (only for top users)
+            $bestResultsRaw = DB::table('practice_exam_results')
+                ->whereIn('userID', $userIds)
+                ->select('userID', 'subjectID', 'percentage', 'earnedPoints', 'resultID', 'created_at')
+                ->get()
+                ->groupBy('userID');
+
+            $bestResults = [];
+            foreach ($bestResultsRaw as $userId => $userResults) {
+                $best = $userResults->sortBy('created_at')->first();
+                if ($best) {
+                    $bestResults[$userId] = $best;
                 }
             }
-            
-            // Sort by highest percentage, then score, then earliest winning attempt
-            uasort($userStats, function($a, $b) {
-                $percentageComparison = $b['highestPercentage'] <=> $a['highestPercentage'];
-                if ($percentageComparison !== 0) {
-                    return $percentageComparison;
-                }
 
-                $scoreComparison = $b['highestScore'] <=> $a['highestScore'];
-                if ($scoreComparison !== 0) {
-                    return $scoreComparison;
-                }
-
-                return strtotime((string) $a['bestCreatedAt']) <=> strtotime((string) $b['bestCreatedAt']);
-            });
-            
+            // Build ranked users array
             $rankedUsers = [];
             $rank = 1;
-            foreach ($userStats as $userId => $stats) {
+            $viewerInTop = false;
+
+            foreach ($results as $result) {
+                $userId = $result->userID;
                 $user = $users[$userId] ?? null;
-                
+
                 if (!$user) {
                     continue;
                 }
-                
-                $subjectId = $subjectFilter ?: $stats['bestSubjectID'] ?: ($stats['subjectIDs'][0] ?? null);
-                $subject = $subjectId ? ($subjectsData[$subjectId] ?? null) : null;
-                
+
+                // Track if viewer is in top results
+                if ($userId === $viewerId) {
+                    $viewerInTop = true;
+                }
+
+                $bestResult = $bestResults[$userId] ?? null;
+                $subjectId = $subjectFilter ?: ($bestResult ? $bestResult->subjectID : null);
+
                 $rankedUsers[] = [
                     'rank' => $rank++,
                     'userID' => $userId,
@@ -282,51 +268,136 @@ class LeaderboardController extends Controller
                     'course' => $user->program,
                     'year' => $user->year,
                     'yearLevel' => $user->yearLevel,
-                    'subject' => $subject ? $subject->subjectName : null,
-                    'subjectCode' => $subject ? $subject->subjectCode : null,
                     'subjectID' => $subjectId,
-                    'score' => (int) $stats['highestScore'],
-                    'highestScore' => (int) $stats['highestScore'],
-                    'highestPercentage' => round($stats['highestPercentage'], 2),
-                    'attempts' => $stats['attempts'],
-                    'points' => (int) $stats['highestScore'],
-                    'resultID' => $stats['bestResultID'],
-                    'createdAt' => $stats['bestCreatedAt'],
+                    'score' => (int) $result->highestScore,
+                    'highestScore' => (int) $result->highestScore,
+                    'highestPercentage' => round($result->highestPercentage, 2),
+                    'attempts' => (int) $result->attempts,
+                    'points' => (int) $result->highestScore,
+                    'resultID' => $bestResult ? $bestResult->resultID : null,
+                    'createdAt' => $bestResult ? $bestResult->created_at : null,
                 ];
             }
 
-            $leaderboard = array_slice($rankedUsers, 0, $limit);
-            $viewerSummary = $this->buildViewerSummary($viewer, $rankedUsers, $period, $periodEnd);
-            
-            // Transform programs for mobile dropdown
-            $programsList = $programs->map(function($program) {
-                return [
-                    'programID' => $program->programID,
-                    'programName' => $program->programName,
-                ];
-            });
-            
-            // Transform subjects for mobile dropdown
-            $subjectsList = $subjects->map(function($subject) {
-                return [
-                    'subjectID' => $subject->subjectID,
-                    'subjectName' => $subject->subjectName,
-                    'subjectCode' => $subject->subjectCode,
-                ];
-            });
-            
+            // Build viewer summary (simplified - only calculate if needed)
+            $viewerSummary = null;
+            if ($viewer && (int) ($viewer->roleID ?? 0) === 1) {
+                $totalCandidates = count($rankedUsers);
+
+                if ($viewerInTop) {
+                    // Viewer is in top 10 - their data is already in rankedUsers
+                    $viewerEntry = collect($rankedUsers)->firstWhere('userID', $viewerId);
+                    if ($viewerEntry) {
+                        $viewerSummary = [
+                            'userID' => $viewerId,
+                            'rank' => $viewerEntry['rank'],
+                            'name' => $viewerEntry['name'],
+                            'score' => $viewerEntry['score'],
+                            'highestPercentage' => $viewerEntry['highestPercentage'],
+                            'attempts' => $viewerEntry['attempts'],
+                            'program' => $viewerEntry['program'],
+                            'subject' => null,
+                            'totalCandidates' => $totalCandidates,
+                            'betterThanPercentage' => $totalCandidates > 0 ? round((($totalCandidates - $viewerEntry['rank']) / $totalCandidates) * 100) : 0,
+                            'percentile' => $totalCandidates > 0 ? round((($totalCandidates - $viewerEntry['rank']) / $totalCandidates) * 100) : 0,
+                            'period' => $period,
+                            'periodEndsAt' => $periodEnd ? $periodEnd->toIso8601String() : null,
+                        ];
+                    }
+                } else {
+                    // Quick check if viewer has any results at all (lightweight query)
+                    $viewerExists = DB::table('practice_exam_results')
+                        ->where('userID', $viewerId)
+                        ->exists();
+
+                    if ($viewerExists) {
+                        // Get viewer's own aggregated stats
+                        $viewerStats = DB::table('practice_exam_results as per')
+                            ->join('users as u', 'per.userID', '=', 'u.userID')
+                            ->where('per.userID', $viewerId)
+                            ->where('u.roleID', 1)
+                            ->select([
+                                DB::raw('MAX(per.percentage) as highestPercentage'),
+                                DB::raw('MAX(per.earnedPoints) as highestScore'),
+                                DB::raw('COUNT(*) as attempts'),
+                            ])
+                            ->first();
+
+                        if ($viewerStats && $viewerStats->highestPercentage !== null) {
+                            // Count total unique students who have taken practice exams
+                            $totalCount = DB::table('practice_exam_results')
+                                ->distinct('userID')
+                                ->count('userID');
+
+                            // Count users with better points (rank by points first)
+                            $betterCount = DB::table('practice_exam_results as per')
+                                ->join('users as u', 'per.userID', '=', 'u.userID')
+                                ->where('u.roleID', 1)
+                                ->groupBy('per.userID')
+                                ->selectRaw('per.userID')
+                                ->havingRaw('MAX(per.earnedPoints) > ?', [$viewerStats->highestScore])
+                                ->get()
+                                ->count();
+
+                            // Count users with same points but higher percentage (for tie-breaking)
+                            $sameScoreHigherPoints = DB::table('practice_exam_results as per')
+                                ->join('users as u', 'per.userID', '=', 'u.userID')
+                                ->where('u.roleID', 1)
+                                ->groupBy('per.userID')
+                                ->selectRaw('per.userID')
+                                ->havingRaw('MAX(per.earnedPoints) = ? AND MAX(per.percentage) > ?', [$viewerStats->highestScore, $viewerStats->highestPercentage])
+                                ->get()
+                                ->count();
+
+                            $userRank = $betterCount + $sameScoreHigherPoints + 1;
+                            // Calculate percentile (never negative - 0 means you're at the bottom)
+                            $calculatedPercentile = $totalCount > 0 ? round((($totalCount - $userRank) / $totalCount) * 100) : 0;
+                            $betterThanPercentage = max(0, $calculatedPercentile); // Never show negative
+
+                            $viewerSummary = [
+                                'userID' => $viewerId,
+                                'rank' => $userRank,
+                                'name' => trim(($viewer->firstName ?? '') . ' ' . ($viewer->lastName ?? '')),
+                                'score' => (int) $viewerStats->highestScore,
+                                'highestPercentage' => round($viewerStats->highestPercentage, 2),
+                                'attempts' => (int) $viewerStats->attempts,
+                                'program' => null,
+                                'subject' => null,
+                                'totalCandidates' => $totalCount,
+                                'betterThanPercentage' => $betterThanPercentage,
+                                'percentile' => $betterThanPercentage,
+                                'period' => $period,
+                                'periodEndsAt' => $periodEnd ? $periodEnd->toIso8601String() : null,
+                            ];
+                        }
+                    } else {
+                        // Viewer has no results at all
+                        $totalCount = DB::table('practice_exam_results')->distinct('userID')->count('userID');
+                        $viewerSummary = [
+                            'userID' => $viewerId,
+                            'totalCandidates' => $totalCount,
+                            'betterThanPercentage' => 0,
+                            'percentile' => 0,
+                            'period' => $period,
+                            'periodEndsAt' => $periodEnd ? $periodEnd->toIso8601String() : null,
+                        ];
+                    }
+                }
+            }
+
             return response()->json([
-                'leaderboard' => $leaderboard,
-                'programs' => $programsList,
-                'subjects' => $subjectsList,
+                'data' => $rankedUsers,
+                'leaderboard' => $rankedUsers,
+                'programs' => $programs->map(fn($p) => ['programID' => $p->programID, 'programName' => $p->programName]),
+                'subjects' => $subjects->map(fn($s) => ['subjectID' => $s->subjectID, 'subjectName' => $s->subjectName, 'subjectCode' => $s->subjectCode]),
                 'viewer' => $viewerSummary,
                 'meta' => [
                     'total' => count($rankedUsers),
-                    'programFilter' => $programFilter,
-                    'subjectFilter' => $subjectFilter,
                     'period' => $period,
                     'periodStartsAt' => $periodStart ? $periodStart->toIso8601String() : null,
                     'periodEndsAt' => $periodEnd ? $periodEnd->toIso8601String() : null,
+                    'programFilter' => $programFilter,
+                    'subjectFilter' => $subjectFilter,
                     'generated_from' => 'database'
                 ]
             ]);
@@ -336,12 +407,18 @@ class LeaderboardController extends Controller
             ]);
             return response()->json([
                 'error' => 'Server error: ' . $e->getMessage(),
+                'data' => [],
                 'leaderboard' => [],
                 'programs' => [],
                 'subjects' => [],
                 'viewer' => null,
                 'meta' => [
-                    'period' => $this->normalizePeriod($request->query('period', 'all_time')),
+                    'total' => 0,
+                    'period' => $period,
+                    'periodStartsAt' => null,
+                    'periodEndsAt' => null,
+                    'programFilter' => $programFilter,
+                    'subjectFilter' => $subjectFilter,
                 ]
             ], 500);
         }
@@ -381,14 +458,15 @@ class LeaderboardController extends Controller
         }
 
         try {
-            $accessToken = PersonalAccessToken::findToken($token);
+            // Find token by plain text (tokens are stored in plain text in this setup)
+            $accessToken = PersonalAccessToken::where('token', $token)->first();
             return $accessToken?->tokenable;
         } catch (\Throwable $e) {
             return null;
         }
     }
 
-    protected function buildViewerSummary(?object $viewer, array $rankedUsers, string $period, ?Carbon $periodEnd): ?array
+    protected function buildViewerSummary(?object $viewer, array $rankedUsers, string $period, ?Carbon $periodEnd, ?object $resultsQuery): ?array
     {
         if (!$viewer || (int) ($viewer->roleID ?? 0) !== 1) {
             return null;
@@ -396,7 +474,88 @@ class LeaderboardController extends Controller
 
         $totalCandidates = count($rankedUsers);
         $viewerEntry = collect($rankedUsers)->firstWhere('userID', (int) $viewer->userID);
-        if (!$viewerEntry) {
+
+        // If user is in top 10, use their entry data
+        if ($viewerEntry) {
+            $rank = (int) $viewerEntry['rank'];
+            $betterThanPercentage = $totalCandidates > 0
+                ? round((($totalCandidates - $rank) / $totalCandidates) * 100)
+                : 0;
+
+            return [
+                'userID' => (int) $viewer->userID,
+                'rank' => $rank,
+                'name' => $viewerEntry['name'],
+                'score' => $viewerEntry['score'],
+                'highestPercentage' => $viewerEntry['highestPercentage'],
+                'attempts' => $viewerEntry['attempts'],
+                'program' => $viewerEntry['program'],
+                'subject' => $viewerEntry['subject'],
+                'totalCandidates' => $totalCandidates,
+                'betterThanPercentage' => $betterThanPercentage,
+                'percentile' => $betterThanPercentage,
+                'period' => $period,
+                'periodEndsAt' => $periodEnd ? $periodEnd->toIso8601String() : null,
+            ];
+        }
+
+        // User is NOT in top 10 - query their aggregated stats
+        $userRank = null;
+        $userScore = null;
+        $userPercentage = null;
+        $userAttempts = null;
+
+        if ($resultsQuery) {
+            try {
+                // Get user's aggregated stats
+                $userStats = (clone $resultsQuery)
+                    ->where('practice_exam_results.userID', $viewer->userID)
+                    ->select([
+                        DB::raw('MAX(practice_exam_results.percentage) as highestPercentage'),
+                        DB::raw('MAX(practice_exam_results.earnedPoints) as highestScore'),
+                        DB::raw('COUNT(*) as attempts'),
+                    ])
+                    ->first();
+
+                if ($userStats && $userStats->highestPercentage !== null) {
+                    $userScore = (int) $userStats->highestScore;
+                    $userPercentage = round($userStats->highestPercentage, 2);
+                    $userAttempts = (int) $userStats->attempts;
+
+                    // Count all unique users who have taken exams (for percentile calculation)
+                    $allUserCount = DB::table('practice_exam_results')
+                        ->select(DB::raw('COUNT(DISTINCT userID) as count'))
+                        ->first();
+
+                    $totalCandidates = $allUserCount ? (int)$allUserCount->count : 0;
+
+                    // Get count of users ranked above this user (rank by points first)
+                    $usersAbove = DB::table('practice_exam_results')
+                        ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                        ->select('practice_exam_results.userID')
+                        ->where('users.roleID', 1)
+                        ->groupBy('practice_exam_results.userID')
+                        ->havingRaw('MAX(earnedPoints) > ?', [$userStats->highestScore])
+                        ->get()
+                        ->count();
+
+                    $usersSameScore = DB::table('practice_exam_results')
+                        ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                        ->select('practice_exam_results.userID')
+                        ->where('users.roleID', 1)
+                        ->groupBy('practice_exam_results.userID')
+                        ->havingRaw('MAX(earnedPoints) = ? AND MAX(percentage) > ?', [$userStats->highestScore, $userStats->highestPercentage])
+                        ->get()
+                        ->count();
+
+                    $userRank = $usersAbove + $usersSameScore + 1;
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Error getting user rank: ' . $e->getMessage());
+            }
+        }
+
+        if (!$userRank) {
             return [
                 'userID' => (int) $viewer->userID,
                 'rank' => null,
@@ -408,20 +567,19 @@ class LeaderboardController extends Controller
             ];
         }
 
-        $rank = (int) $viewerEntry['rank'];
         $betterThanPercentage = $totalCandidates > 0
-            ? round((($totalCandidates - $rank) / $totalCandidates) * 100)
+            ? round((($totalCandidates - $userRank) / $totalCandidates) * 100)
             : 0;
 
         return [
             'userID' => (int) $viewer->userID,
-            'rank' => $rank,
-            'name' => $viewerEntry['name'],
-            'score' => $viewerEntry['score'],
-            'highestPercentage' => $viewerEntry['highestPercentage'],
-            'attempts' => $viewerEntry['attempts'],
-            'program' => $viewerEntry['program'],
-            'subject' => $viewerEntry['subject'],
+            'rank' => $userRank,
+            'name' => trim(($viewer->firstName ?? '') . ' ' . ($viewer->lastName ?? '')),
+            'score' => $userScore,
+            'highestPercentage' => $userPercentage,
+            'attempts' => $userAttempts,
+            'program' => null,
+            'subject' => null,
             'totalCandidates' => $totalCandidates,
             'betterThanPercentage' => $betterThanPercentage,
             'percentile' => $betterThanPercentage,

@@ -104,10 +104,16 @@ class AnalyticsController extends Controller
             $difficulties = ['easy', 'moderate', 'hard'];
 
             foreach ($difficulties as $diff) {
+                $diffId = match ($diff) {
+                    'easy' => 1,
+                    'moderate' => 2,
+                    'hard' => 3,
+                    default => 2,
+                };
                 $diffTotal   = ExamResult::where('attempt_id', $attemptId)
-                                         ->where('difficulty', $diff)->count();
+                                         ->where('difficulty_id', $diffId)->count();
                 $diffCorrect = ExamResult::where('attempt_id', $attemptId)
-                                         ->where('difficulty', $diff)
+                                         ->where('difficulty_id', $diffId)
                                          ->where('is_correct', true)->count();
 
                 $diffScore = $diffTotal > 0
@@ -536,14 +542,14 @@ class AnalyticsController extends Controller
     {
         try {
             $difficultyBands = ExamResult::selectRaw(
-                    'difficulty, COUNT(*) as total, SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct'
+                    'difficulty_id, COUNT(*) as total, SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct'
                 )
                 ->join('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
                 ->where('exam_attempts.user_id', auth()->id())
-                ->groupBy('difficulty')
+                ->groupBy('difficulty_id')
                 ->get()
                 ->map(fn($item) => [
-                    'level' => ucfirst($item->difficulty),
+                    'level' => match ((int) $item->difficulty_id) { 1 => 'Easy', 2 => 'Moderate', 3 => 'Hard', default => 'Moderate' },
                     'score' => $item->total > 0 ? round(($item->correct / $item->total) * 100, 2) : 0,
                     'total' => (int) $item->total,
                     'correct' => (int) $item->correct,
@@ -551,12 +557,12 @@ class AnalyticsController extends Controller
 
             $topicBreakdown = ExamResult::selectRaw(
                     'exam_results.topic_id, coverages.name as topicName, '
-                    . 'SUM(CASE WHEN difficulty = "easy" THEN 1 ELSE 0 END) as easy_total, '
-                    . 'SUM(CASE WHEN difficulty = "easy" AND is_correct = 1 THEN 1 ELSE 0 END) as easy_correct, '
-                    . 'SUM(CASE WHEN difficulty = "moderate" THEN 1 ELSE 0 END) as moderate_total, '
-                    . 'SUM(CASE WHEN difficulty = "moderate" AND is_correct = 1 THEN 1 ELSE 0 END) as moderate_correct, '
-                    . 'SUM(CASE WHEN difficulty = "hard" THEN 1 ELSE 0 END) as hard_total, '
-                    . 'SUM(CASE WHEN difficulty = "hard" AND is_correct = 1 THEN 1 ELSE 0 END) as hard_correct, '
+                    . 'SUM(CASE WHEN difficulty_id = 1 THEN 1 ELSE 0 END) as easy_total, '
+                    . 'SUM(CASE WHEN difficulty_id = 1 AND is_correct = 1 THEN 1 ELSE 0 END) as easy_correct, '
+                    . 'SUM(CASE WHEN difficulty_id = 2 THEN 1 ELSE 0 END) as moderate_total, '
+                    . 'SUM(CASE WHEN difficulty_id = 2 AND is_correct = 1 THEN 1 ELSE 0 END) as moderate_correct, '
+                    . 'SUM(CASE WHEN difficulty_id = 3 THEN 1 ELSE 0 END) as hard_total, '
+                    . 'SUM(CASE WHEN difficulty_id = 3 AND is_correct = 1 THEN 1 ELSE 0 END) as hard_correct, '
                     . 'COUNT(*) as total_questions, '
                     . 'SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as total_correct, '
                     . 'COALESCE(AVG(exam_attempts.attempt_number), 0) as avg_attempts'

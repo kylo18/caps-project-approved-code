@@ -750,13 +750,13 @@ class PracticeExamController extends Controller
 
             // Map question data for exam_results table (analytics pipeline)
             if ($attemptId && $question->coverage) {
-                $difficultyName = $question->difficulty ? $question->difficulty->name : 'moderate';
+                $difficultyId = $question->difficulty_id ?? 2; // 2 = moderate default
                 $examResultsData[] = [
                     'attempt_id' => $attemptId,
                     'question_id' => $question->questionID,
                     'topic_id' => $question->coverage->id,
                     'subject_id' => $question->subjectID,
-                    'difficulty' => $difficultyName,
+                    'difficulty_id' => $difficultyId,
                     'is_correct' => $isCorrect,
                     'is_skipped' => is_null($answer['selectedChoiceID'] ?? null),
                     'created_at' => now(),
@@ -777,6 +777,7 @@ class PracticeExamController extends Controller
 
         // ── Save to practice_exam_results (existing behavior) ──
         $examResult = PracticeExamResult::create([
+            'attempt_id' => $attemptId,
             'userID' => $user->userID,
             'subjectID' => $validated['subjectID'],
             'totalPoints' => $totalPoints,

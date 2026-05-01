@@ -300,6 +300,7 @@ class StudentAnalyticsController extends Controller
                 ->where('practice_exam_results.userID', $user->userID)
                 ->select(
                     'practice_exam_results.resultID',
+                    'practice_exam_results.attempt_id',
                     'practice_exam_results.subjectID',
                     'practice_exam_results.percentage',
                     'practice_exam_results.totalPoints',

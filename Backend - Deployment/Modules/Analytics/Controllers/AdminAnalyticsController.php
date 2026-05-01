@@ -85,6 +85,74 @@ class AdminAnalyticsController extends Controller
     }
 
     /**
+     * Get dashboard statistics for Dean/Associate Dean.
+     * Returns active user count, subject count, and approved question count.
+     * Single endpoint to replace the N+1 dashboard fetch pattern.
+     *
+     * GET /api/dashboard/stats
+     * Auth: role 2, 3, 4, 5
+     */
+    public function getDashboardStats(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            $usersQuery = DB::table('users')->where('isActive', true);
+            $subjectsQuery = DB::table('subjects');
+
+            // Role-based scope (Dean=4 sees all, Program Chair=3 sees own program only)
+            if ($user->roleID === 5) {
+                if ($user->campusID) {
+                    $usersQuery->where('campusID', $user->campusID);
+                }
+            } elseif ($user->roleID === 3) {
+                if ($user->campusID && $user->programID) {
+                    $usersQuery->where('campusID', $user->campusID)->where('programID', $user->programID);
+                    $subjectsQuery->where(function ($q) use ($user) {
+                        $q->where('programID', $user->programID)->orWhere('programID', 6);
+                    });
+                }
+            }
+            // Dean (roleID 4) — no extra filters, sees all campus data
+
+            $activeUsers = (clone $usersQuery)->whereIn('roleID', [1, 2, 3, 4, 5])->count();
+            $totalSubjects = (clone $subjectsQuery)->count();
+
+            // Count approved questions scoped to the same subject filters.
+            // Uses a subquery to avoid loading 1M+ subjectIDs into PHP memory.
+            $approvedQuestions = DB::table('questions')
+                ->where('status_id', 2)
+                ->where(function ($q) use ($user, $subjectsQuery) {
+                    if ($user->roleID === 3 && $user->campusID && $user->programID) {
+                        $q->whereIn('subjectID', function ($sub) use ($user) {
+                            $sub->select('subjectID')
+                                ->from('subjects')
+                                ->where('programID', $user->programID)
+                                ->orWhere('programID', 6);
+                        });
+                    }
+                    // Dean (roleID 4) — no extra filter, counts all approved questions
+                })
+                ->count();
+
+            return response()->json([
+                'message' => 'Dashboard stats retrieved successfully',
+                'data' => [
+                    'users' => $activeUsers,
+                    'subjects' => $totalSubjects,
+                    'questions' => $approvedQuestions,
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Dashboard stats error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error retrieving stats',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get average score per subject for admin dashboard.
      * 
      * Groups exam results by subject and calculates mean percentage.

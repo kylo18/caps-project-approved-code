@@ -88,10 +88,14 @@ class SubjectController extends Controller
                 ], 403);
             }
 
-            // Get subjects based on role
+            // Cursor-based pagination for efficient loading of large datasets
+            $perPage = min((int)$request->input('limit', 20), 100);
+            $cursor = $request->input('cursor'); // null for first page
+
+            // Get paginated subjects with JOINs
             $query = DB::table('subjects as s')
-                ->join('programs as p', 'p.programID', '=', 's.programID')
-                ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
+                ->leftJoin('programs as p', 'p.programID', '=', 's.programID')
+                ->leftJoin('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
                 ->select(
                     's.subjectID',
                     's.subjectCode',
@@ -100,30 +104,34 @@ class SubjectController extends Controller
                     'p.programName',
                     's.yearLevelID',
                     'yl.name as yearLevel'
-                );
-
-            // Program Chair: show only their program subjects + general subjects
-            if ($user->roleID === 3) {
-                $query->where(function ($q) use ($user) {
-                    $q->where('s.programID', $user->programID)
-                        ->orWhere('s.programID', 6); // General subjects
+                )
+                ->when($user->roleID === 3, function ($q) use ($user) {
+                    $q->where(function ($q2) use ($user) {
+                        $q2->where('s.programID', $user->programID)
+                            ->orWhere('s.programID', 6);
+                    });
                 });
+
+            // Apply cursor (keyset pagination) for efficient scrolling
+            if ($cursor !== null) {
+                $query->where('s.subjectID', '>', (int)$cursor);
             }
 
-            $subjects = $query->orderBy('s.subjectID')->get();
+            $subjects = $query->orderBy('s.subjectID')->limit($perPage)->get();
 
             if ($subjects->isEmpty()) {
                 return response()->json([
-                    'success' => false,
+                    'success' => true,
                     'message' => 'No subjects found',
-                    'subjects' => []
-                ], 404);
+                    'subjects' => [],
+                    'hasMore' => false,
+                ], 200);
             }
 
-            // Format the subjects
+            // Format subjects
             $formattedSubjects = $subjects->map(function ($subject) {
-                $programName = $subject->programName;
-                if (strpos($programName, 'BS-') === 0) {
+                $programName = $subject->programName ?? 'N/A';
+                if ($programName !== 'N/A' && strpos($programName, 'BS-') === 0) {
                     $programName = substr($programName, 3);
                 }
 
@@ -134,14 +142,20 @@ class SubjectController extends Controller
                     'programID' => $subject->programID,
                     'programName' => $programName,
                     'yearLevelID' => $subject->yearLevelID,
-                    'yearLevel' => $subject->yearLevel
+                    'yearLevel' => $subject->yearLevel ?? 'N/A',
                 ];
             });
+
+            // Get next cursor from last item
+            $lastSubject = $subjects->last();
+            $nextCursor = $lastSubject ? $lastSubject->subjectID : null;
 
             return response()->json([
                 'success' => true,
                 'message' => 'Subjects retrieved successfully',
-                'subjects' => $formattedSubjects
+                'subjects' => $formattedSubjects,
+                'cursor' => $nextCursor,
+                'hasMore' => $subjects->count() === $perPage,
             ], 200);
 
         } catch (\Exception $e) {

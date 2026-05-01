@@ -620,16 +620,16 @@ class UserController extends Controller
         $state = strtolower(trim((string) $request->input('state', '')));
         $status = strtolower(trim((string) $request->input('status', '')));
 
+        // If state or status is explicitly provided, use that filter
         if (in_array($state, ['active', 'inactive', 'all'], true) || $status === 'registered') {
             return;
         }
 
-        // By default, hide only registered users that have been deactivated.
-        // Pending and disapproved accounts remain visible for approval workflows.
+        // Default: show only active registered users
         $query->where(function ($q) {
             $q->where('isActive', true)
-              ->orWhereHas('status', function ($statusQuery) {
-                  $statusQuery->where('name', '!=', 'registered');
+              ->whereHas('status', function ($statusQuery) {
+                  $statusQuery->where('name', 'registered');
               });
         });
     }
@@ -705,8 +705,8 @@ class UserController extends Controller
 
     private function paginateResults($query, Request $request)
     {
-        $perPage = $request->input('limit', 50);
-        $page = $request->input('page', 1);
+        $perPage = min((int)$request->input('limit', 20), 100); // Default 20, max 100
+        $page = max((int)$request->input('page', 1), 1);
         $total = $query->count();
 
         $users = $query->orderBy('userID', 'desc')

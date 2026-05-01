@@ -14,6 +14,7 @@ class PracticeExamResult extends Model
     protected $primaryKey = 'resultID';
 
     protected $fillable = [
+        'attempt_id',
         'userID',
         'subjectID',
         'totalPoints',

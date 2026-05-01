@@ -32,12 +32,36 @@ class PracticeExamLeaderboardController extends Controller
                 return response()->json(['success' => false, 'message' => 'Subject not found.'], 404);
             }
 
-            // Get all results for this subject with user and student information
-            $results = PracticeExamResult::with(['user.program'])
-                ->where('subjectID', $subjectID)
+            // Use database-level aggregation with GROUP BY and LIMIT
+            $limit = (int) $request->query('limit', 50);
+            $limitWithBuffer = $limit * 3;
+
+            // Get aggregated stats per user using database
+            $aggregated = DB::table('practice_exam_results')
+                ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                ->leftJoin('programs', 'users.programID', '=', 'programs.programID')
+                ->leftJoin('students', 'users.userCode', '=', 'students.userCode')
+                ->where('practice_exam_results.subjectID', $subjectID)
+                ->select([
+                    'practice_exam_results.userID',
+                    'users.userCode',
+                    'users.firstName',
+                    'users.lastName',
+                    'programs.programName as program',
+                    'users.programID',
+                    'students.yearLevel',
+                ])
+                ->selectRaw('MAX(practice_exam_results.percentage) as highestPercentage')
+                ->selectRaw('MAX(practice_exam_results.earnedPoints) as highestScore')
+                ->selectRaw('MAX(practice_exam_results.totalPoints) as totalPoints')
+                ->selectRaw('COUNT(*) as attempts')
+                ->groupBy('practice_exam_results.userID', 'users.userCode', 'users.firstName', 'users.lastName', 'programs.programName', 'users.programID', 'students.yearLevel')
+                ->orderByDesc('highestScore')
+                ->orderByDesc('highestPercentage')
+                ->limit($limitWithBuffer)
                 ->get();
 
-            if ($results->isEmpty()) {
+            if ($aggregated->isEmpty()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'No practice exam results found for this subject.',
@@ -48,50 +72,37 @@ class PracticeExamLeaderboardController extends Controller
                 ], 200);
             }
 
-            // Get all userCodes from results
-            $userCodes = $results->pluck('user.userCode')->filter()->unique()->toArray();
-
-            // Get student information (year level) for these users
-            $students = Student::whereIn('userCode', $userCodes)
+            // For tie-breaking, fetch the earliest best result per user
+            $userIds = $aggregated->pluck('userID')->toArray();
+            $topPercentages = $aggregated->pluck('highestPercentage')->toArray();
+            $bestResults = DB::table('practice_exam_results')
+                ->whereIn('userID', $userIds)
+                ->whereIn('percentage', $topPercentages)
+                ->select('userID', 'subjectID', 'resultID', 'created_at')
                 ->get()
-                ->keyBy('userCode');
+                ->groupBy('userID');
 
-            // Group by user and calculate highest score and attempts
-            $leaderboardData = $results->groupBy('userID')->map(function($records, $userID) use ($students) {
-                $user = $records->first()->user;
-                if (!$user) {
-                    return null;
-                }
-
-                // Find highest score (by percentage, then by earnedPoints)
-                $highestResult = $records->sortByDesc(function($record) {
-                    return [$record->percentage, $record->earnedPoints];
-                })->first();
-
-                // Get student info for year level
-                $student = $students->get($user->userCode);
+            // Build leaderboard data
+            $rank = 1;
+            $leaderboardData = $aggregated->map(function($row) use (&$rank, $bestResults) {
+                $bestResult = $bestResults->get($row->userID)?->sortBy('created_at')->first();
 
                 return [
-                    'userID' => $userID,
-                    'studentID' => $user->userCode,
-                    'name' => trim($user->firstName . ' ' . $user->lastName),
-                    'firstName' => $user->firstName,
-                    'lastName' => $user->lastName,
-                    'course' => $user->program ? $user->program->programName : 'N/A',
-                    'programID' => $user->programID,
-                    'year' => $student ? $student->yearLevel : null,
-                    'yearLevel' => $student ? $student->yearLevel : null,
-                    'highestScore' => $highestResult->earnedPoints,
-                    'totalPoints' => $highestResult->totalPoints,
-                    'highestPercentage' => round($highestResult->percentage, 2),
-                    'attempts' => $records->count(),
-                    'lastAttemptDate' => $records->max('created_at'),
+                    'userID' => $row->userID,
+                    'studentID' => $row->userCode,
+                    'name' => trim($row->firstName . ' ' . $row->lastName),
+                    'firstName' => $row->firstName,
+                    'lastName' => $row->lastName,
+                    'course' => $row->program ?? 'N/A',
+                    'programID' => $row->programID,
+                    'year' => $row->yearLevel,
+                    'yearLevel' => $row->yearLevel,
+                    'highestScore' => $row->highestScore,
+                    'totalPoints' => $row->totalPoints,
+                    'highestPercentage' => round($row->highestPercentage, 2),
+                    'attempts' => $row->attempts,
+                    'lastAttemptDate' => $bestResult ? $bestResult->created_at : null,
                 ];
-            })->filter()->values();
-
-            // Sort by highest percentage (descending), then by highest score, then by attempts
-            $leaderboardData = $leaderboardData->sortByDesc(function($item) {
-                return [$item['highestPercentage'], $item['highestScore'], $item['attempts']];
             })->values();
 
             // Get subject information
@@ -150,20 +161,44 @@ class PracticeExamLeaderboardController extends Controller
             // Calculate date 7 days ago
             $sevenDaysAgo = now()->subDays(7)->startOfDay();
 
-            // Build query for results within the last 7 days
-            $query = PracticeExamResult::with(['user.program'])
-                ->where('subjectID', $subjectID)
-                ->where('created_at', '>=', $sevenDaysAgo);
+            // Build optimized query with database-level aggregation
+            $limit = (int) $request->query('limit', 50);
+            $limitWithBuffer = $limit * 3;
+
+            // Use subquery to get latest attempt per user, then join for stats
+            $aggregated = DB::table('practice_exam_results')
+                ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                ->leftJoin('programs', 'users.programID', '=', 'programs.programID')
+                ->leftJoin('students', 'users.userCode', '=', 'students.userCode')
+                ->where('practice_exam_results.subjectID', $subjectID)
+                ->where('practice_exam_results.created_at', '>=', $sevenDaysAgo);
 
             // Students can only see their own results
             if ($user->roleID == 1) {
-                $query->where('userID', $user->userID);
+                $aggregated->where('practice_exam_results.userID', $user->userID);
             }
-            // Faculty and admins can see all results
 
-            $results = $query->orderBy('created_at', 'desc')->get();
+            $aggregated = $aggregated
+                ->select([
+                    'practice_exam_results.userID',
+                    'users.userCode',
+                    'users.firstName',
+                    'users.lastName',
+                    'programs.programName as program',
+                    'users.programID',
+                    'students.yearLevel',
+                ])
+                ->selectRaw('MAX(practice_exam_results.percentage) as highestPercentage')
+                ->selectRaw('MAX(practice_exam_results.earnedPoints) as highestScore')
+                ->selectRaw('MAX(practice_exam_results.totalPoints) as totalPoints')
+                ->selectRaw('COUNT(*) as attempts')
+                ->selectRaw('MAX(practice_exam_results.created_at) as lastAttemptDate')
+                ->groupBy('practice_exam_results.userID', 'users.userCode', 'users.firstName', 'users.lastName', 'programs.programName', 'users.programID', 'students.yearLevel')
+                ->orderByDesc('lastAttemptDate')
+                ->limit($limitWithBuffer)
+                ->get();
 
-            if ($results->isEmpty()) {
+            if ($aggregated->isEmpty()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'No recent practice exam takers found for this subject.',
@@ -178,56 +213,25 @@ class PracticeExamLeaderboardController extends Controller
                 ], 200);
             }
 
-            // Get all userCodes from results
-            $userCodes = $results->pluck('user.userCode')->filter()->unique()->toArray();
-
-            // Get student information (year level) for these users
-            $students = Student::whereIn('userCode', $userCodes)
-                ->get()
-                ->keyBy('userCode');
-
-            // Group by user and get their latest attempt and highest score
-            $recentTakers = $results->groupBy('userID')->map(function($records, $userID) use ($students) {
-                $user = $records->first()->user;
-                if (!$user) {
-                    return null;
-                }
-
-                // Get most recent attempt
-                $mostRecent = $records->sortByDesc('created_at')->first();
-
-                // Find highest score among all attempts
-                $highestResult = $records->sortByDesc(function($record) {
-                    return [$record->percentage, $record->earnedPoints];
-                })->first();
-
-                // Get student info for year level
-                $student = $students->get($user->userCode);
-
+            // Build recent takers data
+            $recentTakers = $aggregated->map(function($row) {
                 return [
-                    'userID' => $userID,
-                    'studentID' => $user->userCode,
-                    'name' => trim($user->firstName . ' ' . $user->lastName),
-                    'firstName' => $user->firstName,
-                    'lastName' => $user->lastName,
-                    'course' => $user->program ? $user->program->programName : 'N/A',
-                    'programID' => $user->programID,
-                    'year' => $student ? $student->yearLevel : null,
-                    'yearLevel' => $student ? $student->yearLevel : null,
-                    'highestScore' => $highestResult->earnedPoints,
-                    'totalPoints' => $highestResult->totalPoints,
-                    'highestPercentage' => round($highestResult->percentage, 2),
-                    'attempts' => $records->count(),
-                    'lastAttemptDate' => $mostRecent->created_at,
-                    'lastAttemptScore' => $mostRecent->earnedPoints,
-                    'lastAttemptPercentage' => round($mostRecent->percentage, 2),
-                    'daysAgo' => now()->diffInDays($mostRecent->created_at),
+                    'userID' => $row->userID,
+                    'studentID' => $row->userCode,
+                    'name' => trim($row->firstName . ' ' . $row->lastName),
+                    'firstName' => $row->firstName,
+                    'lastName' => $row->lastName,
+                    'course' => $row->program ?? 'N/A',
+                    'programID' => $row->programID,
+                    'year' => $row->yearLevel,
+                    'yearLevel' => $row->yearLevel,
+                    'highestScore' => $row->highestScore,
+                    'totalPoints' => $row->totalPoints,
+                    'highestPercentage' => round($row->highestPercentage, 2),
+                    'attempts' => $row->attempts,
+                    'lastAttemptDate' => $row->lastAttemptDate,
+                    'daysAgo' => $row->lastAttemptDate ? now()->diffInDays($row->lastAttemptDate) : null,
                 ];
-            })->filter()->values();
-
-            // Sort by most recent attempt (descending)
-            $recentTakers = $recentTakers->sortByDesc(function($item) {
-                return $item['lastAttemptDate'];
             })->values();
 
             // Get subject information
@@ -279,11 +283,37 @@ class PracticeExamLeaderboardController extends Controller
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
             }
 
-            // Get all results with user and student information
-            $results = PracticeExamResult::with(['user.program', 'subject'])
+            // Use database-level aggregation with GROUP BY and LIMIT
+            $limit = (int) $request->query('limit', 50);
+            $limitWithBuffer = $limit * 3;
+
+            $aggregated = DB::table('practice_exam_results')
+                ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                ->leftJoin('programs', 'users.programID', '=', 'programs.programID')
+                ->leftJoin('students', 'users.userCode', '=', 'students.userCode')
+                ->where('users.roleID', 1)
+                ->select([
+                    'practice_exam_results.userID',
+                    'users.userCode',
+                    'users.firstName',
+                    'users.lastName',
+                    'programs.programName as program',
+                    'users.programID',
+                    'students.yearLevel',
+                ])
+                ->selectRaw('AVG(practice_exam_results.percentage) as averagePercentage')
+                ->selectRaw('MAX(practice_exam_results.percentage) as highestPercentage')
+                ->selectRaw('MAX(practice_exam_results.earnedPoints) as highestScore')
+                ->selectRaw('COUNT(*) as totalAttempts')
+                ->selectRaw('COUNT(DISTINCT practice_exam_results.subjectID) as subjectsCount')
+                ->groupBy('practice_exam_results.userID', 'users.userCode', 'users.firstName', 'users.lastName', 'programs.programName', 'users.programID', 'students.yearLevel')
+                ->orderByDesc('averagePercentage')
+                ->orderByDesc('highestPercentage')
+                ->orderByDesc('totalAttempts')
+                ->limit($limitWithBuffer)
                 ->get();
 
-            if ($results->isEmpty()) {
+            if ($aggregated->isEmpty()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'No practice exam results found.',
@@ -291,56 +321,36 @@ class PracticeExamLeaderboardController extends Controller
                 ], 200);
             }
 
-            // Get all userCodes from results
-            $userCodes = $results->pluck('user.userCode')->filter()->unique()->toArray();
-
-            // Get student information (year level) for these users
-            $students = Student::whereIn('userCode', $userCodes)
+            // For tie-breaking, fetch the most recent attempt per user
+            $userIds = $aggregated->pluck('userID')->toArray();
+            $lastAttempts = DB::table('practice_exam_results')
+                ->whereIn('userID', $userIds)
+                ->select('userID', 'created_at')
                 ->get()
-                ->keyBy('userCode');
+                ->groupBy('userID');
 
-            // Group by user and calculate overall statistics
-            $leaderboardData = $results->groupBy('userID')->map(function($records, $userID) use ($students) {
-                $user = $records->first()->user;
-                if (!$user) {
-                    return null;
-                }
-
-                // Calculate overall average percentage
-                $averagePercentage = $records->avg('percentage');
-                $totalAttempts = $records->count();
-                $subjectsCount = $records->pluck('subjectID')->unique()->count();
-
-                // Find highest score across all subjects
-                $highestResult = $records->sortByDesc(function($record) {
-                    return [$record->percentage, $record->earnedPoints];
-                })->first();
-
-                // Get student info for year level
-                $student = $students->get($user->userCode);
+            // Build leaderboard data
+            $leaderboardData = $aggregated->map(function($row) use ($lastAttempts) {
+                $userLastAttempts = $lastAttempts->get($row->userID);
+                $lastAttempt = $userLastAttempts ? $userLastAttempts->sortByDesc('created_at')->first() : null;
 
                 return [
-                    'userID' => $userID,
-                    'studentID' => $user->userCode,
-                    'name' => trim($user->firstName . ' ' . $user->lastName),
-                    'firstName' => $user->firstName,
-                    'lastName' => $user->lastName,
-                    'course' => $user->program ? $user->program->programName : 'N/A',
-                    'program' => $user->program ? $user->program->programName : 'N/A',
-                    'programID' => $user->programID,
-                    'year' => $student ? $student->yearLevel : null,
-                    'yearLevel' => $student ? $student->yearLevel : null,
-                    'averagePercentage' => round($averagePercentage, 2),
-                    'highestPercentage' => round($highestResult->percentage, 2),
-                    'totalAttempts' => $totalAttempts,
-                    'subjectsCount' => $subjectsCount,
-                    'lastAttemptDate' => $records->max('created_at'),
+                    'userID' => $row->userID,
+                    'studentID' => $row->userCode,
+                    'name' => trim($row->firstName . ' ' . $row->lastName),
+                    'firstName' => $row->firstName,
+                    'lastName' => $row->lastName,
+                    'course' => $row->program ?? 'N/A',
+                    'program' => $row->program ?? 'N/A',
+                    'programID' => $row->programID,
+                    'year' => $row->yearLevel,
+                    'yearLevel' => $row->yearLevel,
+                    'averagePercentage' => round($row->averagePercentage, 2),
+                    'highestPercentage' => round($row->highestPercentage, 2),
+                    'totalAttempts' => $row->totalAttempts,
+                    'subjectsCount' => $row->subjectsCount,
+                    'lastAttemptDate' => $lastAttempt ? $lastAttempt->created_at : null,
                 ];
-            })->filter()->values();
-
-            // Sort by average percentage (descending)
-            $leaderboardData = $leaderboardData->sortByDesc(function($item) {
-                return [$item['averagePercentage'], $item['highestPercentage'], $item['totalAttempts']];
             })->values();
 
             return response()->json([
@@ -384,19 +394,44 @@ class PracticeExamLeaderboardController extends Controller
             // Calculate date 7 days ago
             $sevenDaysAgo = now()->subDays(7)->startOfDay();
 
-            // Build query for results within the last 7 days
-            $query = PracticeExamResult::with(['user.program', 'subject'])
-                ->where('created_at', '>=', $sevenDaysAgo);
+            // Use database-level aggregation with GROUP BY and LIMIT
+            $limit = (int) $request->query('limit', 50);
+            $limitWithBuffer = $limit * 3;
+
+            $aggregated = DB::table('practice_exam_results')
+                ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                ->leftJoin('programs', 'users.programID', '=', 'programs.programID')
+                ->leftJoin('students', 'users.userCode', '=', 'students.userCode')
+                ->where('practice_exam_results.created_at', '>=', $sevenDaysAgo);
 
             // Students can only see their own results
             if ($user->roleID == 1) {
-                $query->where('userID', $user->userID);
+                $aggregated->where('practice_exam_results.userID', $user->userID);
             }
-            // Faculty and admins can see all results
 
-            $results = $query->orderBy('created_at', 'desc')->get();
+            $aggregated = $aggregated
+                ->select([
+                    'practice_exam_results.userID',
+                    'users.userCode',
+                    'users.firstName',
+                    'users.lastName',
+                    'programs.programName as program',
+                    'users.programID',
+                    'students.yearLevel',
+                ])
+                ->selectRaw('AVG(practice_exam_results.percentage) as averagePercentage')
+                ->selectRaw('MAX(practice_exam_results.percentage) as highestPercentage')
+                ->selectRaw('MAX(practice_exam_results.earnedPoints) as highestScore')
+                ->selectRaw('MAX(practice_exam_results.totalPoints) as totalPoints')
+                ->selectRaw('COUNT(*) as totalAttempts')
+                ->selectRaw('COUNT(DISTINCT practice_exam_results.subjectID) as subjectsCount')
+                ->selectRaw('MAX(practice_exam_results.created_at) as lastAttemptDate')
+                ->groupBy('practice_exam_results.userID', 'users.userCode', 'users.firstName', 'users.lastName', 'programs.programName', 'users.programID', 'students.yearLevel')
+                ->orderByDesc('lastAttemptDate')
+                ->limit($limitWithBuffer)
+                ->get();
 
-            if ($results->isEmpty()) {
+            if ($aggregated->isEmpty()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'No recent practice exam takers found.',
@@ -408,75 +443,47 @@ class PracticeExamLeaderboardController extends Controller
                 ], 200);
             }
 
-            // Get all userCodes from results
-            $userCodes = $results->pluck('user.userCode')->filter()->unique()->toArray();
-
-            // Get student information (year level) for these users
-            $students = Student::whereIn('userCode', $userCodes)
+            // Get subject info for the last attempt
+            $userIds = $aggregated->pluck('userID')->toArray();
+            $lastAttemptSubject = DB::table('practice_exam_results')
+                ->join('subjects', 'practice_exam_results.subjectID', '=', 'subjects.subjectID')
+                ->whereIn('practice_exam_results.userID', $userIds)
+                ->where('practice_exam_results.created_at', '>=', $sevenDaysAgo)
+                ->select('practice_exam_results.userID', 'subjects.subjectID', 'subjects.subjectCode', 'subjects.subjectName', 'practice_exam_results.earnedPoints', 'practice_exam_results.percentage', 'practice_exam_results.created_at')
                 ->get()
-                ->keyBy('userCode');
+                ->groupBy('practice_exam_results.userID');
 
-            // Group by user and get their latest attempt and statistics
-            $recentTakers = $results->groupBy('userID')->map(function($records, $userID) use ($students) {
-                $user = $records->first()->user;
-                if (!$user) {
-                    return null;
-                }
-
-                // Get most recent attempt across all subjects
-                $mostRecent = $records->sortByDesc('created_at')->first();
-
-                // Find highest score across all attempts
-                $highestResult = $records->sortByDesc(function($record) {
-                    return [$record->percentage, $record->earnedPoints];
-                })->first();
-
-                // Calculate statistics
-                $averagePercentage = $records->avg('percentage');
-                $subjectsCount = $records->pluck('subjectID')->unique()->count();
-                $subjects = $records->pluck('subject')->filter()->unique('subjectID')->map(function($subject) {
-                    return [
-                        'subjectID' => $subject->subjectID,
-                        'subjectCode' => $subject->subjectCode,
-                        'subjectName' => $subject->subjectName,
-                    ];
-                })->values();
-
-                // Get student info for year level
-                $student = $students->get($user->userCode);
+            // Build recent takers data
+            $recentTakers = $aggregated->map(function($row) use ($lastAttemptSubject) {
+                $userLastSubject = $lastAttemptSubject->get($row->userID);
+                $lastSubject = $userLastSubject ? $userLastSubject->sortByDesc('created_at')->first() : null;
 
                 return [
-                    'userID' => $userID,
-                    'studentID' => $user->userCode,
-                    'name' => trim($user->firstName . ' ' . $user->lastName),
-                    'firstName' => $user->firstName,
-                    'lastName' => $user->lastName,
-                    'course' => $user->program ? $user->program->programName : 'N/A',
-                    'programID' => $user->programID,
-                    'year' => $student ? $student->yearLevel : null,
-                    'yearLevel' => $student ? $student->yearLevel : null,
-                    'averagePercentage' => round($averagePercentage, 2),
-                    'highestScore' => $highestResult->earnedPoints,
-                    'totalPoints' => $highestResult->totalPoints,
-                    'highestPercentage' => round($highestResult->percentage, 2),
-                    'totalAttempts' => $records->count(),
-                    'subjectsCount' => $subjectsCount,
-                    'subjects' => $subjects,
-                    'lastAttemptDate' => $mostRecent->created_at,
-                    'lastAttemptSubject' => $mostRecent->subject ? [
-                        'subjectID' => $mostRecent->subject->subjectID,
-                        'subjectCode' => $mostRecent->subject->subjectCode,
-                        'subjectName' => $mostRecent->subject->subjectName,
+                    'userID' => $row->userID,
+                    'studentID' => $row->userCode,
+                    'name' => trim($row->firstName . ' ' . $row->lastName),
+                    'firstName' => $row->firstName,
+                    'lastName' => $row->lastName,
+                    'course' => $row->program ?? 'N/A',
+                    'programID' => $row->programID,
+                    'year' => $row->yearLevel,
+                    'yearLevel' => $row->yearLevel,
+                    'averagePercentage' => round($row->averagePercentage, 2),
+                    'highestScore' => $row->highestScore,
+                    'totalPoints' => $row->totalPoints,
+                    'highestPercentage' => round($row->highestPercentage, 2),
+                    'totalAttempts' => $row->totalAttempts,
+                    'subjectsCount' => $row->subjectsCount,
+                    'lastAttemptDate' => $row->lastAttemptDate,
+                    'lastAttemptSubject' => $lastSubject ? [
+                        'subjectID' => $lastSubject->subjectID,
+                        'subjectCode' => $lastSubject->subjectCode,
+                        'subjectName' => $lastSubject->subjectName,
                     ] : null,
-                    'lastAttemptScore' => $mostRecent->earnedPoints,
-                    'lastAttemptPercentage' => round($mostRecent->percentage, 2),
-                    'daysAgo' => now()->diffInDays($mostRecent->created_at),
+                    'lastAttemptScore' => $lastSubject ? $lastSubject->earnedPoints : null,
+                    'lastAttemptPercentage' => $lastSubject ? round($lastSubject->percentage, 2) : null,
+                    'daysAgo' => $row->lastAttemptDate ? now()->diffInDays($row->lastAttemptDate) : null,
                 ];
-            })->filter()->values();
-
-            // Sort by most recent attempt (descending)
-            $recentTakers = $recentTakers->sortByDesc(function($item) {
-                return $item['lastAttemptDate'];
             })->values();
 
             return response()->json([
