@@ -193,6 +193,8 @@ class PracticeExamLeaderboardController extends Controller
                 ->selectRaw('MAX(practice_exam_results.totalPoints) as totalPoints')
                 ->selectRaw('COUNT(*) as attempts')
                 ->selectRaw('MAX(practice_exam_results.created_at) as lastAttemptDate')
+                ->selectRaw('(SELECT earnedPoints FROM practice_exam_results AS latest WHERE latest.userID = practice_exam_results.userID AND latest.subjectID = practice_exam_results.subjectID ORDER BY created_at DESC LIMIT 1) as lastAttemptScore')
+                ->selectRaw('(SELECT percentage FROM practice_exam_results AS latest WHERE latest.userID = practice_exam_results.userID AND latest.subjectID = practice_exam_results.subjectID ORDER BY created_at DESC LIMIT 1) as lastAttemptPercentage')
                 ->groupBy('practice_exam_results.userID', 'users.userCode', 'users.firstName', 'users.lastName', 'programs.programName', 'users.programID', 'students.yearLevel')
                 ->orderByDesc('lastAttemptDate')
                 ->limit($limitWithBuffer)
@@ -230,6 +232,8 @@ class PracticeExamLeaderboardController extends Controller
                     'highestPercentage' => round($row->highestPercentage, 2),
                     'attempts' => $row->attempts,
                     'lastAttemptDate' => $row->lastAttemptDate,
+                    'lastAttemptScore' => $row->lastAttemptScore,
+                    'lastAttemptPercentage' => $row->lastAttemptPercentage !== null ? round($row->lastAttemptPercentage, 2) : null,
                     'daysAgo' => $row->lastAttemptDate ? now()->diffInDays($row->lastAttemptDate) : null,
                 ];
             })->values();
