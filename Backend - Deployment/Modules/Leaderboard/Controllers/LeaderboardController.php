@@ -89,6 +89,7 @@ class LeaderboardController extends Controller
                 $data[] = [
                     'rank' => $rank++,
                     'student_id' => $studentId,
+                    'userID' => (int) $studentId,
                     'firstName' => $user->firstName ?? null,
                     'lastName' => $user->lastName ?? null,
                     'name' => $user ? trim(($user->firstName ?? '') . ' ' . ($user->lastName ?? '')) : 'Unknown Student',
@@ -99,11 +100,13 @@ class LeaderboardController extends Controller
                     'yearLevel' => $user->yearLevel ?? null,
                     'score' => (int) floor($composite / 10000000000.0),
                     'totalExams' => (int) ($examCounts[$studentId] ?? 0),
+                    'attempts' => (int) ($examCounts[$studentId] ?? 0),
                 ];
             }
 
             return response()->json([
                 'data' => $data,
+                'leaderboard' => $data,
                 'meta' => [
                     'scope' => $scope,
                     'id' => $id,
@@ -675,6 +678,7 @@ class LeaderboardController extends Controller
             return [
                 'rank' => $rank++,
                 'student_id' => $row->student_id,
+                'userID' => $row->student_id,
                 'firstName' => $row->firstName,
                 'lastName' => $row->lastName,
                 'name' => trim(($row->firstName ?? '') . ' ' . ($row->lastName ?? '')),
@@ -682,11 +686,13 @@ class LeaderboardController extends Controller
                 'program' => $row->program,
                 'score' => (int) $row->score,
                 'totalExams' => (int) $row->totalExams,
+                'attempts' => (int) $row->totalExams,
             ];
         });
 
         return response()->json([
             'data' => $data,
+            'leaderboard' => $data,
             'meta' => [
                 'scope' => $scope,
                 'id' => $id,
