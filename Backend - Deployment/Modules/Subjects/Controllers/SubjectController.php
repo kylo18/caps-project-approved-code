@@ -46,6 +46,7 @@ class SubjectController extends Controller
                     'subjectCode' => $request->subjectCode,
                     'subjectName' => $request->subjectName,
                     'yearLevelID' => $request->yearLevelID,
+                    'is_enabled_for_exam_questions' => true,
                 ]);
                 return response()->json([
                     'message' => 'Subject created successfully.',
@@ -99,6 +100,22 @@ class SubjectController extends Controller
                     'yl.name as yearLevel'
                 );
 
+            // Add subquery to get last question added date by any faculty (roleID 2) for this subject
+            // This applies to all roles (1,2,3,4,5)
+            $query->addSelect(DB::raw("(
+                SELECT MAX(q.created_at) 
+                FROM questions q
+                INNER JOIN users u ON q.userID = u.userID
+                WHERE q.subjectID = s.subjectID 
+                AND u.roleID = 2
+            ) as lastQuestionAdded"));
+
+            // Instructors (Faculty): show only subjects assigned to them
+            if ($user->roleID === 2) {
+                $query->join('faculty_subjects as fs', 's.subjectID', '=', 'fs.subjectID')
+                      ->where('fs.facultyID', $user->userID);
+            }
+
             // Program Chair: show only their program subjects + general subjects
             if ($user->roleID === 3) {
                 $query->where(function ($q) use ($user) {
@@ -106,6 +123,8 @@ class SubjectController extends Controller
                       ->orWhere('s.programID', 6); // General subjects
                 });
             }
+
+            // Dean (4) and Associate Dean (5): see all subjects (no additional filter needed)
 
             $subjects = $query->orderBy('s.subjectID')->get();
 
@@ -119,8 +138,8 @@ class SubjectController extends Controller
 
             // Format the subjects
             $formattedSubjects = $subjects->map(function ($subject) {
-                $programName = $subject->programName;
-                if (strpos($programName, 'BS-') === 0) {
+                $programName = $subject->programName ?? '';
+                if ($programName !== '' && strpos($programName, 'BS-') === 0) {
                     $programName = substr($programName, 3);
                 }
 
@@ -131,7 +150,10 @@ class SubjectController extends Controller
                     'programID' => $subject->programID,
                     'programName' => $programName,
                     'yearLevelID' => $subject->yearLevelID,
-                    'yearLevel' => $subject->yearLevel
+                    'yearLevel' => $subject->yearLevel,
+                    'lastQuestionAdded' => $subject->lastQuestionAdded 
+                        ? \Carbon\Carbon::parse($subject->lastQuestionAdded)->toDateTimeString() 
+                        : null,
                 ];
             });
 
@@ -148,6 +170,110 @@ class SubjectController extends Controller
                 'success' => false,
                 'message' => 'An error occurred while retrieving subjects',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Retrieve all subjects without role-based restrictions,
+     * except that user with userID = 1 is not allowed to access this.
+     */
+    public function allSubjects(Request $request)
+    {
+        try {
+            // The auth:sanctum middleware should have already authenticated the user
+            $user = Auth::user();
+
+            if (!$user) {
+                Log::warning('Unauthorized access attempt to allSubjects', [
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'has_token' => $request->bearerToken() ? 'yes' : 'no',
+                    'has_session' => $request->hasSession() ? 'yes' : 'no',
+                    'auth_guard' => Auth::getDefaultDriver(),
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Please log in again.',
+                ], 401);
+            }
+
+            if ((int) $user->userID === 1) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden. This endpoint is not available for this user.',
+                ], 403);
+            }
+
+            $subjects = DB::table('subjects as s')
+                ->leftJoin('programs as p', 'p.programID', '=', 's.programID')
+                ->leftJoin('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
+                ->select(
+                    's.subjectID',
+                    's.subjectCode',
+                    's.subjectName',
+                    's.programID',
+                    'p.programName',
+                    's.yearLevelID',
+                    'yl.name as yearLevel'
+                )
+                ->addSelect(DB::raw("(
+                    SELECT MAX(q.created_at) 
+                    FROM questions q
+                    INNER JOIN users u ON q.userID = u.userID
+                    WHERE q.subjectID = s.subjectID 
+                    AND u.roleID = 2
+                ) as lastQuestionAdded"))
+                ->orderBy('s.subjectID')
+                ->get();
+
+            if ($subjects->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No subjects found',
+                    'subjects' => [],
+                ], 404);
+            }
+
+            $formattedSubjects = $subjects->map(function ($subject) {
+                $programName = $subject->programName ?? '';
+                if ($programName !== '' && strpos($programName, 'BS-') === 0) {
+                    $programName = substr($programName, 3);
+                }
+
+                return [
+                    'subjectID' => $subject->subjectID ?? null,
+                    'subjectCode' => $subject->subjectCode ?? '',
+                    'subjectName' => $subject->subjectName ?? '',
+                    'programID' => $subject->programID ?? null,
+                    'programName' => $programName,
+                    'yearLevelID' => $subject->yearLevelID ?? null,
+                    'yearLevel' => $subject->yearLevel ?? '',
+                    'lastQuestionAdded' => $subject->lastQuestionAdded 
+                        ? \Carbon\Carbon::parse($subject->lastQuestionAdded)->toDateTimeString() 
+                        : null,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'All subjects retrieved successfully',
+                'subjects' => $formattedSubjects,
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Error retrieving all subjects', [
+                'user_id' => optional(Auth::user())->userID,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving all subjects',
+                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -396,7 +522,7 @@ class SubjectController extends Controller
         }
 
         // Fetch program-specific and general education subjects with practice exam settings
-        $subjects = Subject::with(['program', 'yearLevel'])
+        $subjects = Subject::with(['program', 'yearLevel', 'practiceExamSetting'])
             ->where(function ($query) use ($user) {
                 $query->where('programID', $user->programID)
                     ->orwhere('programID', 6) // General subjects
@@ -408,7 +534,23 @@ class SubjectController extends Controller
             ->select('subjectID', 'subjectName', 'subjectCode', 'programID', 'yearLevelID')
             ->get();
 
-        $formattedSubjects = $subjects->map(function ($subject) {
+        // Get last question added dates for all subjects
+        $subjectIDs = $subjects->pluck('subjectID')->toArray();
+        $lastQuestionDates = DB::table('questions as q')
+            ->join('users as u', 'q.userID', '=', 'u.userID')
+            ->whereIn('q.subjectID', $subjectIDs)
+            ->where('u.roleID', 2) // Only faculty questions
+            ->select('q.subjectID', DB::raw('MAX(q.created_at) as lastQuestionAdded'))
+            ->groupBy('q.subjectID')
+            ->pluck('lastQuestionAdded', 'subjectID');
+
+        $formattedSubjects = $subjects->map(function ($subject) use ($lastQuestionDates) {
+            $setting = $subject->practiceExamSetting;
+            $questionCount = $setting ? (int) $setting->total_items : null;
+            $durationMinutes = ($setting && $setting->enableTimer && $setting->duration_minutes !== null)
+                ? (int) $setting->duration_minutes
+                : null;
+
             return [
                 'subjectID' => $subject->subjectID,
                 'subjectName' => $subject->subjectName,
@@ -417,6 +559,11 @@ class SubjectController extends Controller
                 'programName' => $subject->program ? $subject->program->programName : null,
                 'yearLevelID' => $subject->yearLevelID,
                 'yearLevel' => $subject->yearLevel ? $subject->yearLevel->name : null,
+                'lastQuestionAdded' => isset($lastQuestionDates[$subject->subjectID]) && $lastQuestionDates[$subject->subjectID]
+                    ? \Carbon\Carbon::parse($lastQuestionDates[$subject->subjectID])->toDateTimeString()
+                    : null,
+                'questionCount' => $questionCount,
+                'durationMinutes' => $durationMinutes,
             ];
         });
 
@@ -424,5 +571,85 @@ class SubjectController extends Controller
             'message' => 'Subjects available for practice exam.',
             'data' => $formattedSubjects
         ], 200);
+    }
+
+    /**
+     * Enable exam questions (purpose_id 3) for a subject. Only accessible by the Dean (roleID 4).
+     */
+    public function enableExamQuestions($subjectID)
+    {
+        $user = Auth::user();
+        if (!$user || $user->roleID !== 4) {
+            return response()->json(['success' => false, 'message' => 'Forbidden. Only the Dean can enable exam questions.'], 403);
+        }
+        $subject = Subject::find($subjectID);
+        if (!$subject) {
+            return response()->json(['success' => false, 'message' => 'Subject not found.'], 404);
+        }
+        $subject->is_enabled_for_exam_questions = true;
+        $subject->save();
+        return response()->json(['success' => true, 'message' => 'Exam questions enabled for this subject.', 'subjectID' => $subjectID]);
+    }
+
+    /**
+     * Disable exam questions (purpose_id 3) for a subject. Only accessible by the Dean (roleID 4).
+     */
+    public function disableExamQuestions($subjectID)
+    {
+        $user = Auth::user();
+        if (!$user || $user->roleID !== 4) {
+            return response()->json(['success' => false, 'message' => 'Forbidden. Only the Dean can disable exam questions.'], 403);
+        }
+        $subject = Subject::find($subjectID);
+        if (!$subject) {
+            return response()->json(['success' => false, 'message' => 'Subject not found.'], 404);
+        }
+        $subject->is_enabled_for_exam_questions = false;
+        $subject->save();
+        return response()->json(['success' => true, 'message' => 'Exam questions disabled for this subject.', 'subjectID' => $subjectID]);
+    }
+
+    /**
+     * Get the exam questions status for a subject. Accessible by all authenticated users.
+     */
+    public function getExamQuestionsStatus($subjectID)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            $subject = Subject::find($subjectID);
+            if (!$subject) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Subject not found.'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Exam questions status retrieved successfully.',
+                'data' => [
+                    'subjectID' => $subject->subjectID,
+                    'subjectCode' => $subject->subjectCode,
+                    'subjectName' => $subject->subjectName,
+                    'is_enabled_for_exam_questions' => (bool) $subject->is_enabled_for_exam_questions
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error retrieving exam questions status: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving exam questions status.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

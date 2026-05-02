@@ -1,0 +1,991 @@
+openapi: 3.0.3
+info:
+  title: CAPS API
+  description: |
+    HTTP API for the CAPS application (Laravel + Sanctum).
+    See `docs/API.md` for narrative documentation, role matrices, and routing notes.
+
+    **Base path:** Laravel registers `routes/api.php` under `/api` by default.
+
+    **Duplicate routes:** `GET /quiz-results` and `GET /quiz-results/{id}` are registered for both
+    faculty (roles 2–5) and students (role 1); Laravel matches the faculty registration first.
+  version: 2.0.0
+
+servers:
+  - url: /api
+    description: API prefix (typical Laravel default)
+
+tags:
+  - name: Public
+  - name: Authenticated
+  - name: FacultyStaff
+    description: roles 2,3,4,5 + TokenExpirationMiddleware
+  - name: Student
+    description: role 1
+  - name: ProgramChair
+    description: role 3 only
+  - name: ChairDean
+    description: roles 3,4,5
+  - name: Dean
+    description: roles 4,5
+  - name: StaticFiles
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum personal access token
+
+security:
+  - bearerAuth: []
+
+paths:
+  /register:
+    post:
+      tags: [Public]
+      summary: Register user
+      security: []
+  /login:
+    post:
+      tags: [Public]
+      summary: Login
+      security: []
+  /roles:
+    get:
+      tags: [Public]
+      summary: List available roles
+      security: []
+  /forgot-password:
+    post:
+      tags: [Public]
+      summary: Request password reset email
+      security: []
+  /reset-password:
+    post:
+      tags: [Public]
+      summary: Reset password with token
+      security: []
+  /app-version:
+    get:
+      tags: [Public]
+      summary: Application version
+      security: []
+
+  /change-password:
+    post:
+      tags: [Authenticated]
+      summary: Change password
+  /logout:
+    post:
+      tags: [Authenticated]
+      summary: Logout
+  /user/profile:
+    get:
+      tags: [Authenticated]
+      summary: Current user profile
+  /user/update-profile:
+    post:
+      tags: [Authenticated]
+      summary: Update profile
+  /subjects/all:
+    get:
+      tags: [Authenticated]
+      summary: All subjects
+  /practice-exam/results/{subjectID}:
+    get:
+      tags: [Authenticated]
+      summary: Practice exam results by subject
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /results/all-students:
+    get:
+      tags: [Authenticated]
+      summary: All students exam results
+  /practice-exam/leaderboard/{subjectID}:
+    get:
+      tags: [Authenticated]
+      summary: Practice exam subject leaderboard
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /practice-exam/recent-takers/{subjectID}:
+    get:
+      tags: [Authenticated]
+      summary: Recent practice exam takers
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /practice-exam/overall-leaderboard:
+    get:
+      tags: [Authenticated]
+      summary: Overall practice exam leaderboard
+  /practice-exam/overall-recent-takers:
+    get:
+      tags: [Authenticated]
+      summary: Overall recent takers
+  /classes/{classID}/quizzes:
+    get:
+      tags: [Authenticated]
+      summary: Quizzes for class
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+  /classes/index:
+    get:
+      tags: [Authenticated]
+      summary: List classes
+
+  /users:
+    get:
+      tags: [FacultyStaff]
+      summary: List users
+  /users/{userID}/approve:
+    patch:
+      tags: [FacultyStaff]
+      summary: Approve user
+      parameters:
+        - name: userID
+          in: path
+          required: true
+          schema: { type: integer }
+  /users/{userID}/disapprove:
+    patch:
+      tags: [FacultyStaff]
+      summary: Disapprove user
+      parameters:
+        - name: userID
+          in: path
+          required: true
+          schema: { type: integer }
+  /users/approve-multiple:
+    post:
+      tags: [FacultyStaff]
+      summary: Approve multiple users
+  /users/activate-multiple:
+    post:
+      tags: [FacultyStaff]
+      summary: Activate multiple users
+  /users/deactivate-multiple:
+    post:
+      tags: [FacultyStaff]
+      summary: Deactivate multiple users
+  /users/{id}/deactivate:
+    patch:
+      tags: [FacultyStaff]
+      summary: Deactivate user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+  /users/{id}/activate:
+    patch:
+      tags: [FacultyStaff]
+      summary: Activate user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /questions/choices:
+    post:
+      tags: [FacultyStaff]
+      summary: Store choice (bank question)
+  /questions/{questionID}/choices:
+    get:
+      tags: [FacultyStaff]
+      summary: List choices for question
+      parameters:
+        - name: questionID
+          in: path
+          required: true
+          schema: { type: integer }
+  /choices/update:
+    post:
+      tags: [FacultyStaff]
+      summary: Update choices (bulk)
+
+  /subjects:
+    get:
+      tags: [FacultyStaff]
+      summary: List subjects (faculty index)
+  /faculty/assign-subject:
+    post:
+      tags: [FacultyStaff]
+      summary: Assign subject to faculty
+  /faculty/my-subjects:
+    get:
+      tags: [FacultyStaff]
+      summary: My assigned subjects
+  /faculty/availableSubjects:
+    get:
+      tags: [FacultyStaff]
+      summary: Available subjects to assign
+  /remove-assigned-subject/{subjectID}:
+    delete:
+      tags: [FacultyStaff]
+      summary: Remove assigned subject
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /year-levels:
+    get:
+      tags: [FacultyStaff]
+      summary: List year levels
+
+  /questions/add:
+    post:
+      tags: [FacultyStaff]
+      summary: Create bank question
+  /subjects/{subjectID}/questions:
+    get:
+      tags: [FacultyStaff]
+      summary: List questions for subject
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /questions/update/{questionID}:
+    post:
+      tags: [FacultyStaff]
+      summary: Update bank question
+      parameters:
+        - name: questionID
+          in: path
+          required: true
+          schema: { type: integer }
+  /questions/delete/{questionID}:
+    delete:
+      tags: [FacultyStaff]
+      summary: Delete bank question
+      parameters:
+        - name: questionID
+          in: path
+          required: true
+          schema: { type: integer }
+  /faculty/my-questions/{subjectID}:
+    get:
+      tags: [FacultyStaff]
+      summary: My questions for subject
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /questions/{questionID}/duplicate:
+    post:
+      tags: [FacultyStaff]
+      summary: Duplicate question
+      parameters:
+        - name: questionID
+          in: path
+          required: true
+          schema: { type: integer }
+  /questions/count:
+    get:
+      tags: [FacultyStaff]
+      summary: Question counts
+
+  /generate-printable-exam/{subjectID}:
+    post:
+      tags: [FacultyStaff]
+      summary: Generate printable exam PDF
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /personal-quiz/{personalQuizID}/questions:
+    get:
+      tags: [FacultyStaff]
+      summary: Personal quiz questions for print
+      parameters:
+        - name: personalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /generate-personal-quiz-pdf:
+    post:
+      tags: [FacultyStaff]
+      summary: Generate personal quiz PDF
+  /practice-exam/preview/{subjectID}:
+    get:
+      tags: [FacultyStaff]
+      summary: Preview practice exam
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /generate-single-subject-personal-preview:
+    post:
+      tags: [FacultyStaff]
+      summary: Single-subject personal preview
+
+  /programs:
+    get:
+      tags: [FacultyStaff]
+      summary: List programs
+
+  /personal-quizzes:
+    post:
+      tags: [FacultyStaff]
+      summary: Create personal quiz
+    get:
+      tags: [FacultyStaff]
+      summary: List personal quizzes
+  /personal-quizzes/archived:
+    get:
+      tags: [FacultyStaff]
+      summary: Archived personal quizzes
+  /update-personal-quizzes/{personalQuizID}:
+    put:
+      tags: [FacultyStaff]
+      summary: Update personal quiz
+      parameters:
+        - name: personalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /personal-quizzes/{personalQuizID}/archive:
+    patch:
+      tags: [FacultyStaff]
+      summary: Archive personal quiz
+      parameters:
+        - name: personalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /personal-quizzes/{personalQuizID}/unarchive:
+    patch:
+      tags: [FacultyStaff]
+      summary: Unarchive personal quiz
+      parameters:
+        - name: personalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /personal-quizzes/{personalQuizID}:
+    delete:
+      tags: [FacultyStaff]
+      summary: Delete personal quiz
+      parameters:
+        - name: personalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /personal-quiz/{personalQuizID}/leaderboard:
+    get:
+      tags: [FacultyStaff]
+      summary: Personal quiz leaderboard
+      parameters:
+        - name: personalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /personal-quiz/{personalQuizID}/recent-takers:
+    get:
+      tags: [FacultyStaff]
+      summary: Personal quiz recent takers
+      parameters:
+        - name: personalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /personal-quiz-questions/{personalQuizID}:
+    get:
+      tags: [FacultyStaff]
+      summary: List personal quiz questions
+      parameters:
+        - name: personalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /personal-quiz-questions:
+    post:
+      tags: [FacultyStaff]
+      summary: Create personal quiz question
+  /personal-quiz-questions/import:
+    post:
+      tags: [FacultyStaff]
+      summary: Import personal quiz questions
+  /personal-quiz-questions/{personalQuizQuestionID}:
+    post:
+      tags: [FacultyStaff]
+      summary: Update personal quiz question
+      parameters:
+        - name: personalQuizQuestionID
+          in: path
+          required: true
+          schema: { type: integer }
+    delete:
+      tags: [FacultyStaff]
+      summary: Delete personal quiz question
+      parameters:
+        - name: personalQuizQuestionID
+          in: path
+          required: true
+          schema: { type: integer }
+  /personal-quiz-questions/{personalQuizQuestionID}/duplicate:
+    post:
+      tags: [FacultyStaff]
+      summary: Duplicate personal quiz question
+      parameters:
+        - name: personalQuizQuestionID
+          in: path
+          required: true
+          schema: { type: integer }
+  /personal-quiz-choices/{personalQuizQuestionID}:
+    get:
+      tags: [FacultyStaff]
+      summary: List choices for personal quiz question
+      parameters:
+        - name: personalQuizQuestionID
+          in: path
+          required: true
+          schema: { type: integer }
+  /personal-quiz-choices:
+    post:
+      tags: [FacultyStaff]
+      summary: Store personal quiz choice
+    put:
+      tags: [FacultyStaff]
+      summary: Update personal quiz choices
+  /personal-quiz-choices/update:
+    post:
+      tags: [FacultyStaff]
+      summary: Update choices (alias)
+  /personal-quiz-choices/{personalQuizChoiceID}:
+    delete:
+      tags: [FacultyStaff]
+      summary: Delete personal quiz choice
+      parameters:
+        - name: personalQuizChoiceID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /class-quizzes/{classPersonalQuizID}/settings:
+    get:
+      tags: [FacultyStaff]
+      summary: Get class quiz settings
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+    post:
+      tags: [FacultyStaff]
+      summary: Create class quiz settings
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+    put:
+      tags: [FacultyStaff]
+      summary: Update class quiz settings
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+    delete:
+      tags: [FacultyStaff]
+      summary: Delete class quiz settings
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /personal-exam-settings:
+    post:
+      tags: [FacultyStaff]
+      summary: Store personal exam settings
+  /personal-exam-settings/{subjectID}:
+    get:
+      tags: [FacultyStaff]
+      summary: Show personal exam settings
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /my-students:
+    get:
+      tags: [FacultyStaff]
+      summary: Students under teacher
+  /subjects/{subjectID}/exam-questions-status:
+    get:
+      tags: [FacultyStaff]
+      summary: Exam questions status
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /classes:
+    post:
+      tags: [FacultyStaff]
+      summary: Create class
+  /classes/archived:
+    get:
+      tags: [FacultyStaff]
+      summary: Archived classes
+  /classes/show/{classID}:
+    get:
+      tags: [FacultyStaff]
+      summary: Show class
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+  /classes/update/{classID}:
+    put:
+      tags: [FacultyStaff]
+      summary: Update class
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+  /classes/archive/{classID}:
+    patch:
+      tags: [FacultyStaff]
+      summary: Archive class
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+  /classes/{classID}/unarchive:
+    patch:
+      tags: [FacultyStaff]
+      summary: Unarchive class
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+  /classes/destroy/{classID}:
+    delete:
+      tags: [FacultyStaff]
+      summary: Delete class
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /classes/{classID}/students:
+    get:
+      tags: [FacultyStaff]
+      summary: Class roster
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+  /classes/{classID}/remove-student:
+    delete:
+      tags: [FacultyStaff]
+      summary: Remove student from class
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /classes/{classID}/quizzes/available:
+    get:
+      tags: [FacultyStaff]
+      summary: Available quizzes to assign
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+  /classes/quizzes:
+    post:
+      tags: [FacultyStaff]
+      summary: Assign quiz to class
+  /classes/quizzes/{classPersonalQuizID}:
+    put:
+      tags: [FacultyStaff]
+      summary: Update class quiz assignment
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+    delete:
+      tags: [FacultyStaff]
+      summary: Remove class quiz assignment
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /classes/quizzes/{classPersonalQuizID}/dates:
+    patch:
+      tags: [FacultyStaff]
+      summary: Update class quiz dates
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /personal-quizzes/{personalQuizID}/classes:
+    get:
+      tags: [FacultyStaff]
+      summary: Classes for quiz
+      parameters:
+        - name: personalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /personal-quizzes/{personalQuizID}/assign-classes:
+    post:
+      tags: [FacultyStaff]
+      summary: Assign quiz to multiple classes
+      parameters:
+        - name: personalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /quiz-results:
+    get:
+      tags: [FacultyStaff, Student]
+      summary: Quiz results index (role depends on route match; see API.md)
+  /quiz-results/{id}:
+    get:
+      tags: [FacultyStaff, Student]
+      summary: Quiz result detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+    put:
+      tags: [FacultyStaff]
+      summary: Update quiz result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+    delete:
+      tags: [FacultyStaff]
+      summary: Delete quiz result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /classes/{classID}/quiz-results:
+    get:
+      tags: [FacultyStaff]
+      summary: Class quiz results
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+  /quizzes/{classPersonalQuizID}/results:
+    get:
+      tags: [FacultyStaff]
+      summary: Results for class quiz
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /quizzes/{classPersonalQuizID}/non-takers:
+    get:
+      tags: [FacultyStaff]
+      summary: Students who did not take quiz
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /quiz-sessions/faculty-sessions:
+    get:
+      tags: [FacultyStaff]
+      summary: Faculty quiz sessions
+
+  /student/practice-subjects:
+    get:
+      tags: [Student]
+      summary: Student program subjects
+  /practice-exam/generate/{subjectID}:
+    get:
+      tags: [Student]
+      summary: Generate student practice exam
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /practice-exam/submit:
+    post:
+      tags: [Student]
+      summary: Submit practice exam
+  /practice-exam/history:
+    get:
+      tags: [Student]
+      summary: Practice exam history
+  /enroll-teacher:
+    post:
+      tags: [Student]
+      summary: Enroll with teacher
+  /my-teachers:
+    get:
+      tags: [Student]
+      summary: My teachers
+  /personal-exam/generate/{subjectID}/{teacherID}:
+    post:
+      tags: [Student]
+      summary: Generate personal exam
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: teacherID
+          in: path
+          required: true
+          schema: { type: integer }
+  /personal-exam/submit:
+    post:
+      tags: [Student]
+      summary: Submit personal exam
+  /classes/my-classes:
+    get:
+      tags: [Student]
+      summary: My classes
+  /classes/join-by-code:
+    post:
+      tags: [Student]
+      summary: Join class by code
+  /classes/join/{token}:
+    get:
+      tags: [Student]
+      summary: Join class by link token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+  /classes/{classID}/unenroll:
+    delete:
+      tags: [Student]
+      summary: Unenroll from class
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+  /classes/{classID}/quizzes/student:
+    get:
+      tags: [Student]
+      summary: Student-visible quizzes
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+  /quizzes/{classPersonalQuizID}/info:
+    get:
+      tags: [Student]
+      summary: Quiz info
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /quizzes/{classPersonalQuizID}/start:
+    post:
+      tags: [Student]
+      summary: Start quiz
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /quizzes/{classPersonalQuizID}/submit:
+    post:
+      tags: [Student]
+      summary: Submit quiz
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /classes/{classID}/quiz-history:
+    get:
+      tags: [Student]
+      summary: Quiz history for class
+      parameters:
+        - name: classID
+          in: path
+          required: true
+          schema: { type: integer }
+  /quizzes/{classPersonalQuizID}/history:
+    get:
+      tags: [Student]
+      summary: Quiz history
+      parameters:
+        - name: classPersonalQuizID
+          in: path
+          required: true
+          schema: { type: integer }
+  /quiz-sessions:
+    get:
+      tags: [Student]
+      summary: Student quiz sessions
+
+  /program/{subjectID}:
+    get:
+      tags: [ProgramChair]
+      summary: Questions by program for subject
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /questions/{questionID}/status:
+    patch:
+      tags: [ChairDean]
+      summary: Approve/disapprove question
+      parameters:
+        - name: questionID
+          in: path
+          required: true
+          schema: { type: integer }
+  /practice-settings/{subjectID}:
+    get:
+      tags: [ChairDean]
+      summary: Practice exam settings
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /practice-settings:
+    post:
+      tags: [ChairDean]
+      summary: Store practice settings
+  /generate-multi-subject-exam:
+    post:
+      tags: [ChairDean]
+      summary: Multi-subject exam PDF
+  /users/{userID}/role:
+    patch:
+      tags: [ChairDean]
+      summary: Change user role
+      parameters:
+        - name: userID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /add-subjects:
+    post:
+      tags: [Dean]
+      summary: Create subject
+  /subjects/{subjectID}/delete:
+    delete:
+      tags: [Dean]
+      summary: Delete subject
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /subjects/{subjectID}/update:
+    put:
+      tags: [Dean]
+      summary: Update subject
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /users/{userID}:
+    delete:
+      tags: [Dean]
+      summary: Delete user
+      parameters:
+        - name: userID
+          in: path
+          required: true
+          schema: { type: integer }
+  /users/delete-multiple:
+    post:
+      tags: [Dean]
+      summary: Delete multiple users
+  /subjects/{subjectID}/enable-exam-questions:
+    patch:
+      tags: [Dean]
+      summary: Enable exam questions for subject
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+  /subjects/{subjectID}/disable-exam-questions:
+    patch:
+      tags: [Dean]
+      summary: Disable exam questions for subject
+      parameters:
+        - name: subjectID
+          in: path
+          required: true
+          schema: { type: integer }
+
+  /storage/question_images/{filename}:
+    get:
+      tags: [StaticFiles]
+      summary: Serve question image (CORS)
+      security: []
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema: { type: string }
+  /storage/choices/{filename}:
+    get:
+      tags: [StaticFiles]
+      summary: Serve choice image (CORS)
+      security: []
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema: { type: string }

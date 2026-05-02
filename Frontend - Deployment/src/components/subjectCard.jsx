@@ -1,20 +1,136 @@
 import { useState, useEffect, useRef } from "react";
 import SubPhoto from "../assets/gottfield.jpg";
-import PracticeExamConfig from "./practiceExamConfig";
+import { Textfit } from "react-textfit";
+import PracticeExamConfig from "./SubjectSettingsDean";
 import { useNavigate } from "react-router-dom";
-import Toast from "./Toast";
-import useToast from "../hooks/useToast";
+import RegisterDropDownSmall from "./registerDropDownSmall";
+import ConfirmModal from "./confirmModal";
+import PrintExamModal from "./PrintExamModal";
 
 // Component to display subject information and tabs for admin/faculty view
 const SubjectCard = ({
   subjectName,
   subjectID,
+  subjectCode,
   location,
   activeIndex,
   setActiveIndex,
   isLoading,
   onFetchQuestions,
+  programName,
+  yearLevel,
+  programID,
+  yearLevelID,
+  refreshSubjects,
+  setSelectedSubject,
+  showToast,
+  searchQuery,
+  setSearchQuery,
+  isExamQuestionsEnabled,
+  setIsExamQuestionsEnabled,
+  practiceExamSettings,
+  setPracticeExamSettings,
 }) => {
+  const mobileTabRefs = useRef([]);
+  const [mobileIndicatorStyle, setMobileIndicatorStyle] = useState({
+    left: 0,
+    width: 0,
+  });
+
+  useEffect(() => {
+    const updateMobileIndicatorPosition = () => {
+      const el = mobileTabRefs.current[activeIndex];
+      if (el) {
+        setMobileIndicatorStyle({
+          left: el.offsetLeft,
+          width: el.offsetWidth,
+        });
+      }
+    };
+
+    // Update position immediately
+    updateMobileIndicatorPosition();
+
+    // Add resize listener
+    const handleResize = () => {
+      setIsResizing(true);
+      updateMobileIndicatorPosition();
+
+      // Clear existing timeout
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+
+      // Set timeout to re-enable animations after resize stops
+      resizeTimeoutRef.current = setTimeout(() => {
+        setIsResizing(false);
+      }, 150); // Small delay to ensure resize has stopped
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+    };
+  }, [activeIndex]);
+
+  const tabletTabRefs = useRef([]);
+  const [tabletIndicatorStyle, setTabletIndicatorStyle] = useState({
+    left: 0,
+    width: 0,
+  });
+
+  useEffect(() => {
+    const updateTabletIndicatorPosition = () => {
+      const el = tabletTabRefs.current[activeIndex];
+      if (el) {
+        setTabletIndicatorStyle({
+          left: el.offsetLeft,
+          width: el.offsetWidth,
+        });
+      }
+    };
+
+    // Update position immediately
+    updateTabletIndicatorPosition();
+
+    // Add resize listener
+    const handleResize = () => {
+      setIsResizing(true);
+      updateTabletIndicatorPosition();
+
+      // Clear existing timeout
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+
+      // Set timeout to re-enable animations after resize stops
+      resizeTimeoutRef.current = setTimeout(() => {
+        setIsResizing(false);
+      }, 150); // Small delay to ensure resize has stopped
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+    };
+  }, [activeIndex]);
+
+  const tabs = [
+    { label: "Practice Exam", index: 0 },
+    { label: "Qualifying Exam", index: 1 },
+    { label: "Pending", index: 4 },
+  ];
+
   // State for tab indicator animation
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   // State for practice exam configuration modal
@@ -26,26 +142,231 @@ const SubjectCard = ({
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
   const navigate = useNavigate();
-  const { toast, showToast } = useToast();
 
-  // Function to refresh questions list
-  const handleRefresh = () => {
-    onFetchQuestions();
+  // Dropdown for edit/remove
+  const [showActionDropdown, setShowActionDropdown] = useState(false);
+  const [showActionDropdownDesk, setShowActionDropdownDesk] = useState(false);
+  const [showActionDropdownTablet, setShowActionDropdownTablet] =
+    useState(false);
+
+  const actionDropdownRef = useRef(null);
+  const actionButtonRef = useRef(null);
+
+  // Edit subject modal state
+  const [editingSubject, setEditingSubject] = useState(false);
+  const editModalRef = useRef(null); // Add this ref for the edit modal
+  const [editedSubject, setEditedSubject] = useState({
+    subjectCode: "",
+    subjectName: "",
+    subjectID: "",
+    programID: "",
+    yearLevelID: "",
+  });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [validationError, setValidationError] = useState("");
+  const [programs, setPrograms] = useState([]);
+  const yearLevelOptions = ["1", "2", "3", "4"];
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [subjectToDelete, setSubjectToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        actionDropdownRef.current &&
+        !actionDropdownRef.current.contains(event.target) &&
+        !actionButtonRef.current.contains(event.target)
+      ) {
+        setShowActionDropdown(false);
+        setShowActionDropdownDesk(false);
+        setShowActionDropdownTablet(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    right: 0,
+  });
+
+  useEffect(() => {
+    function updatePosition() {
+      if (actionButtonRef.current && showActionDropdownTablet) {
+        const buttonRect = actionButtonRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: buttonRect.bottom + window.scrollY,
+          left: buttonRect.left + window.scrollX,
+        });
+      }
+    }
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    return () => window.removeEventListener("resize", updatePosition);
+  }, [showActionDropdownTablet]);
+
+  // Fetch programs and year levels
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      const token = sessionStorage.getItem("token");
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/programs`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        const data = await res.json();
+        if (res.ok) setPrograms(data.data);
+      } catch (err) {
+        console.error("Error fetching programs:", err);
+      }
+    };
+    fetchPrograms();
+  }, []);
+
+  // Edit button handler
+  const handleEdit = () => {
+    setShowActionDropdown(false);
+    setShowActionDropdownDesk(false);
+    setShowActionDropdownTablet(false);
+    setEditingSubject(true);
+    setEditedSubject({
+      subjectCode,
+      subjectName,
+      subjectID,
+      programID: programID || "",
+      yearLevelID: yearLevelID || "",
+    });
+  };
+
+  // Save edit handler
+  const handleSaveEdit = async () => {
+    const token = sessionStorage.getItem("token");
+    setIsEditing(true);
+    try {
+      const updateData = {
+        subjectCode: editedSubject.subjectCode,
+        subjectName: editedSubject.subjectName,
+        programID: editedSubject.programID,
+        yearLevelID: String(editedSubject.yearLevelID),
+      };
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/subjects/${subjectID}/update`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(updateData),
+        },
+      );
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server returned non-JSON response");
+      }
+      const result = await response.json();
+      if (response.ok) {
+        showToast(result.message || "Subject updated successfully", "success");
+        if (refreshSubjects) refreshSubjects();
+        window.dispatchEvent(new Event("refreshSubjectsList"));
+        if (onFetchQuestions) onFetchQuestions();
+        if (setSelectedSubject) setSelectedSubject(null);
+        setEditingSubject(false);
+      } else {
+        switch (response.status) {
+          case 401:
+            showToast(
+              "You are not authenticated. Please log in again.",
+              "error",
+            );
+            break;
+          case 403:
+            showToast("You are not authorized to modify subjects.", "error");
+            break;
+          case 404:
+            showToast("Subject not found.", "error");
+            break;
+          case 409:
+            showToast(
+              result.message || "A subject with these details already exists.",
+              "error",
+            );
+            break;
+          case 500:
+            showToast(
+              "An error occurred while updating the subject. Please try again.",
+              "error",
+            );
+            break;
+          default:
+            showToast(result.message || "Failed to update subject.", "error");
+        }
+      }
+    } catch (error) {
+      showToast(
+        "An unexpected error occurred while connecting to the server.",
+        "error",
+      );
+    } finally {
+      setIsEditing(false);
+    }
   };
 
   // Effect to update tab indicator position
   useEffect(() => {
-    if (tabRefs.current[activeIndex]) {
-      const activeTab = tabRefs.current[activeIndex];
-      setIndicatorStyle({
-        left: activeTab.offsetLeft,
-        width: activeTab.offsetWidth,
-      });
-    }
+    const updateIndicatorPosition = () => {
+      if (tabRefs.current[activeIndex]) {
+        const activeTab = tabRefs.current[activeIndex];
+        setIndicatorStyle({
+          left: activeTab.offsetLeft,
+          width: activeTab.offsetWidth,
+        });
+      }
+    };
+
+    // Update position immediately
+    updateIndicatorPosition();
+
+    // Add resize listener
+    const handleResize = () => {
+      setIsResizing(true);
+      updateIndicatorPosition();
+
+      // Clear existing timeout
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+
+      // Set timeout to re-enable animations after resize stops
+      resizeTimeoutRef.current = setTimeout(() => {
+        setIsResizing(false);
+      }, 150); // Small delay to ensure resize has stopped
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+    };
   }, [activeIndex]);
 
   // Function to open practice exam configuration
   const handleAssignClick = () => {
+    setShowActionDropdown(false);
+    setShowActionDropdownDesk(false);
+    setShowActionDropdownTablet(false);
     setIsFormOpen(true);
   };
 
@@ -72,185 +393,552 @@ const SubjectCard = ({
     showToast("Exam successfully configured!", "success");
   };
 
-  // Function to fetch and preview practice exam questions
-  const handlePreviewClick = async () => {
+  // Delete subject handler
+  const handleDeleteSubject = async (subjectID) => {
+    const token = sessionStorage.getItem("token");
+    setIsDeleting(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/practice-exam/preview/${subjectID}`,
+        `${import.meta.env.VITE_API_BASE_URL}/subjects/${subjectID}/delete`,
         {
-          method: "GET",
+          method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         },
       );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch preview questions");
+      if (response.ok) {
+        if (setSelectedSubject) setSelectedSubject(null);
+        if (refreshSubjects) refreshSubjects();
+        window.dispatchEvent(new Event("refreshSubjectsList"));
+        showToast("Subject deleted successfully", "success");
+      } else {
+        showToast("Failed to delete subject", "error");
       }
-
-      const examData = await response.json();
-
-      // Navigate to practice exam with preview flag
-      navigate("/practice-exam", {
-        state: {
-          subjectID,
-          examData: {
-            ...examData,
-            subjectName,
-            isPreview: true,
-          },
-        },
-      });
     } catch (error) {
-      console.error("Error fetching preview questions:", error);
-      showToast("Failed to load preview questions. Please try again.", "error");
+      showToast("Error deleting subject", "error");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  const SkeletonLoader = () => (
-    <div className="relative z-51 -mt-3 h-37 overflow-hidden rounded-sm border border-gray-300 bg-white px-4 pt-4 shadow-sm sm:h-40">
-      <div className="flex animate-pulse items-center space-x-4">
-        <div className="skeleton shimmer h-16 w-16 rounded-md"></div>
-        <div className="flex-1">
-          <div className="skeleton shimmer mb-2 h-8 w-1/2"></div>
-          <div className="skeleton shimmer h-4 w-2/8 rounded"></div>
-        </div>
-      </div>
-    </div>
-  );
+  const [, setTabIndicatorUpdate] = useState(0);
+
+  useEffect(() => {
+    setTabIndicatorUpdate((n) => n + 1);
+  }, [activeIndex, subjectName]); // subjectName in case the tab bar changes width
+
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeTimeoutRef = useRef(null);
+
+  // Prevent background scrolling when modals are open
+  useEffect(() => {
+    if (showDropdown || editingSubject || showDeleteModal || isFormOpen) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+
+    // Cleanup function to restore scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [showDropdown, editingSubject, showDeleteModal, isFormOpen]);
+
+  // Close dropdown when any modal is open
+  useEffect(() => {
+    if (editingSubject || showDeleteModal || isFormOpen) {
+      setShowDropdown(false);
+    }
+  }, [editingSubject, showDeleteModal, isFormOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+    };
+  }, []);
+
+  // Add this useEffect to close edit modal on outside click for min-[448px]
+  useEffect(() => {
+    if (!editingSubject) return;
+    function handleClickOutside(event) {
+      if (window.innerWidth <= 448) {
+        if (
+          editModalRef.current &&
+          !editModalRef.current.contains(event.target)
+        ) {
+          setEditingSubject(false);
+          setValidationError("");
+        }
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [editingSubject]);
+
+  const [showPreview, setShowPreview] = useState(false);
+  const [isWorksheetModalOpen, setIsWorksheetModalOpen] = useState(false);
+  const [worksheetSubject, setWorksheetSubject] = useState(null);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   return (
     <div>
-      {isLoading ? (
-        <SkeletonLoader />
-      ) : (
-        <div className="relative z-51 -mt-3 h-37 overflow-hidden rounded-sm border border-gray-300 bg-white px-4 pt-4 shadow-sm sm:h-40">
-          <div className="flex">
-            <button
-              onClick={handleRefresh}
-              className="absolute top-12 right-2 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-xl hover:bg-gray-200 sm:absolute lg:top-2 lg:right-2"
-            >
-              <i className="bx bx-refresh-ccw text-gray-500"></i>
-            </button>
-
-            <button
-              ref={buttonRef}
-              className="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-sm border border-gray-400 text-2xl hover:bg-gray-200 sm:absolute lg:hidden"
-              onClick={() => setShowDropdown((prev) => !prev)}
-            >
-              <i className="bx bx-dots-horizontal-rounded text-gray-500"></i>
-            </button>
-
-            {showDropdown && (
-              <div
-                ref={dropdownRef}
-                className="open-sans border-color absolute right-2 z-50 mt-8 w-40 origin-top-right rounded-md border bg-white p-1 shadow-sm"
+      {isLoading ? null : (
+        <>
+          {/* Top search bar (desktop only) */}
+          <div className="outfit-500 relative mx-auto -mt-1 mb-5 hidden w-full max-w-[1250px] px-2 text-[14px] lg:block">
+            <i className="bx bx-search absolute top-1/2 left-5 -translate-y-1/2 text-lg text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search questions..."
+              className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+              value={searchQuery || ""}
+              maxLength={50}
+              onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
+            />
+            {searchQuery && setSearchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute top-1/2 right-4 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
+                aria-label="Clear search"
               >
-                <button
-                  onClick={handleAssignClick}
-                  className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition hover:bg-gray-200"
-                >
-                  <i className="bx bx-cog text-[18px]" />
-                  Configure
-                </button>
-                <button
-                  onClick={() => alert("Feature under development")}
-                  className="mt-2 flex w-full cursor-pointer items-center gap-2 rounded-sm px-4 py-2 text-left text-sm transition hover:bg-gray-200"
-                >
-                  <i className="bx bx-eye-alt text-[18px]" />
-                  Preview
-                </button>
-              </div>
+                <i className="bx bx-x text-xl" />
+              </button>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center">
-            <img
-              src={SubPhoto}
-              alt="Subject"
-              className="mr-5 size-16 rounded-md border border-gray-300 object-cover"
-            />
-            <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
-              <h1 className="line-clamp-2 text-[15px] font-bold break-words sm:line-clamp-1 md:text-[18px]">
-                {subjectName}
-              </h1>
-              <div className="mt-1 flex gap-2 text-gray-500">
-                <i className="bx bx-buildings text-lg"></i>
-                <p className="text-sm font-semibold">
-                  Jose Rizal Memorial State University
-                </p>
+          {/* Mobile & Tablet */}
+          <div className="border-color relative z-48 mt-2 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:block sm:rounded-t-md sm:pt-4 md:hidden">
+            <div className="flex flex-wrap items-start justify-between sm:hidden">
+              <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
+                <h1 className="outfit-700 mt-2 ml-2 text-[18px] font-bold break-words">
+                  {subjectName}
+                </h1>
+                <div className="outfit-400 mt-2 ml-2 flex gap-1 text-gray-500">
+                  <i className="bx bx-book mt-[1px] text-lg"></i>
+                  <p className="text-[14px]">{subjectCode}</p>
+                  <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
+                    •
+                  </span>
+                  <p className="text-[14px]">
+                    {programName === "GE" ? "General " : programName || "-"}
+                  </p>
+                  <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
+                    •
+                  </span>
+                  <p className="text-[14px]">{yearLevel || "-"}</p>
+                </div>
               </div>
+              <img
+                src={SubPhoto}
+                alt="Subject"
+                className="border-color mt-1 size-20 rounded-md border object-cover"
+              />
+            </div>
+
+            <div className="hidden flex-wrap items-center sm:flex">
+              <img
+                src={SubPhoto}
+                alt="Subject"
+                className="border-color mr-5 size-18 rounded-md border object-cover"
+              />
+              <div className="flex max-w-[calc(100%-125px)] flex-col flex-wrap">
+                <h1 className="outfit-700 text-[15px] font-bold break-words md:text-[18px]">
+                  {subjectName}
+                </h1>
+                <div className="outfit-400 mt-1 flex gap-1 text-gray-500">
+                  <i className="bx bx-book mt-[1px] text-lg"></i>
+
+                  <p className="text-[14px]">{subjectCode}</p>
+                  <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
+                    •
+                  </span>
+                  <p className="text-[14px]">
+                    {programName === "GE"
+                      ? "General Subject"
+                      : programName || "-"}
+                  </p>
+                  <span className="mx-1 mt-[1.5px] align-middle leading-none text-gray-400">
+                    •
+                  </span>
+                  <p className="text-[14px]">{yearLevel || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Button row for Tablet and Mobile (Configure, Preview, Worksheet, Menu) */}
+            <div className="outfit-500 mt-7 flex w-full flex-row items-center justify-start gap-2 font-semibold md:hidden">
+              <button
+                onClick={() =>
+                  alert("Exam preview will be available in a future update.")
+                }
+                className="border-color mb-6 flex cursor-pointer items-center gap-1 rounded-xl border bg-white px-4 py-2 text-gray-700 transition hover:bg-gray-100"
+              >
+                <i className="bx bx-eye text-lg"></i>
+                <span className="text-[14px]">Preview</span>
+              </button>
+              <button
+                onClick={handleAssignClick}
+                className="border-color mb-6 flex items-center justify-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100"
+              >
+                <i className="bx bx-cog text-lg"></i>
+                <span>Settings</span>
+              </button>
+              <button
+                className="border-color mb-6 hidden items-center justify-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100 min-[500px]:flex"
+                onClick={() => {
+                  setWorksheetSubject({
+                    subjectID,
+                    subjectName,
+                    subjectCode,
+                    programName,
+                    yearLevel,
+                  });
+                  setIsWorksheetModalOpen(true);
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-download-icon lucide-download"
+                >
+                  <path d="M12 15V3" />
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <path d="m7 10 5 5 5-5" />
+                </svg>
+                <span className="text-[14px]">Worksheet</span>
+              </button>
+
+              {/* Mobile search toggle */}
+              <button
+                type="button"
+                onClick={() => setShowMobileSearch((prev) => !prev)}
+                className="border-color mb-6 flex cursor-pointer items-center justify-center rounded-xl border bg-white px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100"
+              >
+                <i
+                  className={`bx ${showMobileSearch ? "bx-x" : "bx-search"} text-2xl`}
+                ></i>
+              </button>
+
+              <button
+                ref={actionButtonRef}
+                onClick={() => setShowDropdown((prev) => !prev)}
+                className="border-color mb-6 flex cursor-pointer items-center justify-center rounded-xl border px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 md:hidden"
+              >
+                <i className="bx bx-dots-vertical-rounded text-2xl"></i>
+              </button>
             </div>
           </div>
 
-          <div className="mt-8 flex w-full items-center md:flex-row lg:justify-between">
-            <div className="relative ml-0 flex w-full justify-center sm:mt-[13px] sm:ml-10 sm:justify-start md:mt-[13px] md:ml-8 lg:-mt-[5px] lg:ml-10">
-              <ul className="relative hidden flex-wrap justify-center gap-9 text-sm font-semibold text-gray-600 md:flex">
-                {[
-                  "Practice Questions",
-                  "Qualifying Exam Questions",
-                  "Statistics",
-                  "Tagged",
-                  "Pending",
-                ].map((item, index) => (
-                  <li
-                    key={index}
-                    ref={(el) => (tabRefs.current[index] = el)}
-                    className={`cursor-pointer hover:text-orange-500 ${
-                      activeIndex === index ? "text-orange-500" : ""
-                    }`}
-                    onClick={() => setActiveIndex(index)}
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="relative mx-auto flex justify-center md:hidden">
-                <select
-                  className="mx-auto bg-white p-2 text-sm text-gray-600 outline-none md:w-auto"
-                  value={activeIndex}
-                  onChange={(e) => setActiveIndex(Number(e.target.value))}
+          {/* Tablet Tabs Bar (below card) */}
+          <div className="outfit-400 border-color relative z-48 -mt-2 mb-2 h-[50px] overflow-visible border bg-gray-50 pt-2 sm:mx-0 sm:block sm:rounded-b-md md:hidden">
+            <ul className="mt-[6px] flex h-full w-full justify-between text-center">
+              {tabs.map((tab) => (
+                <li
+                  key={tab.index}
+                  ref={(el) => (tabletTabRefs.current[tab.index] = el)}
+                  className={`relative flex-1 cursor-pointer text-[13px] transition-colors duration-200 ${
+                    activeIndex === tab.index
+                      ? "text-orange-500"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                  onClick={() => setActiveIndex(tab.index)}
                 >
-                  {[
-                    "Practice Questions",
-                    "Qualifying Exam Questions",
-                    "Statistics",
-                    "Tagged",
-                    "Pending",
-                  ].map((item, index) => (
-                    <option key={index} value={index}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  {tab.label}
+                </li>
+              ))}
+            </ul>
 
-              <div
-                className="absolute bottom-[-14px] h-[3px] bg-orange-500 transition-all duration-300 md:bottom-[-14px] md:ml-0"
-                style={{
-                  left: `${indicatorStyle.left}px`,
-                  width: `${indicatorStyle.width}px`,
-                }}
-              ></div>
+            {/* Tablet indicator line */}
+            <span
+              className={`absolute bottom-0 h-1 bg-orange-500 ${
+                activeIndex === 0 ? "rounded-bl-md" : ""
+              } ${activeIndex === 4 ? "rounded-br-md" : ""} ${
+                isResizing ? "" : "transition-all duration-300"
+              }`}
+              style={{
+                left: tabletIndicatorStyle.left,
+                width: tabletIndicatorStyle.width,
+              }}
+            />
+          </div>
+
+          {/* Mobile & Tablet search bar (shown when toggled) */}
+          {showMobileSearch && (
+            <div className="outfit-500 relative mx-auto mt-4 mb-2 w-full max-w-[1250px] px-4 text-[14px] md:hidden">
+              <i className="bx bx-search absolute top-1/2 left-7 -translate-y-1/2 text-lg text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search questions..."
+                autoFocus
+                inputMode="search"
+                className="w-full rounded-full border border-gray-200 bg-white py-2 pr-10 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+                value={searchQuery || ""}
+                maxLength={50}
+                onChange={(e) =>
+                  setSearchQuery && setSearchQuery(e.target.value)
+                }
+              />
+            </div>
+          )}
+
+          {/* Desktop */}
+          <div className="border-color relative z-48 mx-auto -mt-3 hidden max-w-[1200px] overflow-visible border-b bg-white px-6 pt-6 pb-0 md:block">
+            {/* Card header/content */}
+            <div className="flex w-full flex-col items-center pb-4 md:flex-row md:flex-nowrap md:items-center">
+              <div className="relative ml-2 flex flex-col items-center md:mr-5">
+                <img
+                  src={SubPhoto}
+                  alt="Subject"
+                  className="border-color size-21 rounded-md border object-cover"
+                />
+              </div>
+              <div className="outfit-400 flex max-w-full min-w-0 flex-col flex-wrap md:max-w-[calc(100%-200px)]">
+                <div className="outfit-700 line-clamp-2">
+                  <Textfit
+                    mode="multi"
+                    min={14}
+                    max={20}
+                    style={{
+                      fontWeight: 600,
+                      lineHeight: "1.2",
+                      fontFamily: "Outfit, sans-serif",
+                    }}
+                  >
+                    <span className="text-[18px]">{subjectName}</span>
+                  </Textfit>
+                </div>
+                <div className="mt-2 flex gap-1 text-gray-500">
+                  <i className="bx bx-book mt-[1px] text-[16px]"></i>
+                  <p className="outfit-400 text-[14px]">{subjectCode}</p>
+                  <span className="mx-1 mt-[2px] align-middle leading-none text-gray-400">
+                    •
+                  </span>
+                  <i className="bx bx-cog mt-[1px] text-[16px]"></i>
+                  <p className="outfit-400 text-[14px]">
+                    {programName === "GE"
+                      ? "General Subject"
+                      : programName || "-"}
+                  </p>
+                  <span className="mx-1 mt-[2px] align-middle leading-none text-gray-400">
+                    •
+                  </span>
+                  <i className="bx bx-people-diversity mt-[1px] text-[16px]"></i>
+                  <p className="outfit-400 text-[14px]">{yearLevel || "-"}</p>
+                </div>
+              </div>
             </div>
 
-            <div className="fixed right-5 bottom-5 z-51 mt-4 flex gap-3 md:relative md:right-0 md:mt-3">
+            {/* Desktop Button Row */}
+            <div className="outfit mb-0 flex w-full flex-row items-center justify-end gap-2 pb-1 font-semibold">
+              {/* Right: Actions dropdown beside Configure, then Preview */}
+              <div className="flex flex-row items-center gap-2">
+                <div className="relative">
+                  <button
+                    ref={actionButtonRef}
+                    onClick={() => setShowActionDropdownDesk((prev) => !prev)}
+                    className="border-color flex cursor-pointer items-center justify-center rounded-xl border bg-white px-2 py-2 text-gray-700 transition hover:bg-gray-100"
+                  >
+                    <i className="bx bx-dots-vertical-rounded text-2xl"></i>
+                  </button>
+                  {showActionDropdownDesk && (
+                    <div
+                      ref={actionDropdownRef}
+                      className="border-color animate-fadein absolute right-0 z-50 mt-2 w-40 origin-top-right rounded-md border bg-white p-1 text-gray-700 shadow-lg"
+                    >
+                      <button
+                        onClick={() => {
+                          setWorksheetSubject({
+                            subjectID,
+                            subjectName,
+                            subjectCode,
+                            programName,
+                            yearLevel,
+                          });
+                          setIsWorksheetModalOpen(true);
+                          setShowActionDropdownDesk(false);
+                        }}
+                        className="mb-1 flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.25"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="lucide lucide-download-icon lucide-download"
+                        >
+                          <path d="M12 15V3" />
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <path d="m7 10 5 5 5-5" />
+                        </svg>
+                        Worksheet
+                      </button>
+                      <button
+                        onClick={handleEdit}
+                        className="mb-1 flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm hover:bg-gray-100"
+                      >
+                        <i className="bx bx-edit-alt text-base"></i>
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSubjectToDelete({
+                            subjectID,
+                            subjectName,
+                            subjectCode,
+                          });
+                          setShowActionDropdownDesk(false);
+                          setShowDeleteModal(true);
+                        }}
+                        className="mb-1 flex w-full cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
+                      >
+                        <i className="bx bx-trash text-base"></i>
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleAssignClick}
+                  className="outfit-500 flex cursor-pointer items-center gap-2 rounded-xl border border-b-4 border-orange-300 bg-orange-100 px-4 py-2 text-orange-600 transition-all duration-100 hover:bg-orange-200 hover:text-orange-500 active:translate-y-[2px] active:border-b-2"
+                >
+                  <i className="bx bxs-cog text-xl"></i>
+                  <span className="text-[14px]">Settings</span>
+                </button>
+                <button
+                  onClick={() =>
+                    alert("Exam preview will be available in a future update.")
+                  }
+                  className="outfit-500 flex cursor-pointer items-center gap-2 rounded-xl border border-b-4 border-orange-600 bg-orange-500 px-4 py-2 text-white transition-all duration-100 hover:bg-orange-600 active:translate-y-[2px] active:border-b-2"
+                >
+                  <i className="bx bx-eye-big text-xl"></i>
+                  <span className="outfit text-[14px] font-semibold">
+                    Preview
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Desktop Tabs Bar (bottom-left of SubjectCard, flush with bottom border) */}
+            <div className="outfit-500 -mt-4 flex w-full justify-start">
+              <div className="relative">
+                {tabs.map((tab, index) => {
+                  const isActive = activeIndex === tab.index;
+                  return (
+                    <button
+                      key={tab.index}
+                      ref={(el) => (tabRefs.current[tab.index] = el)}
+                      onClick={() => setActiveIndex(tab.index)}
+                      className={
+                        "relative mr-3 cursor-pointer px-2 pb-2 text-[14px]" +
+                        (isActive
+                          ? " border-b-3 border-orange-500 text-orange-500"
+                          : " text-gray-500 hover:text-gray-700")
+                      }
+                      style={{
+                        marginRight: index !== tabs.length - 1 ? "0.5rem" : 0,
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {showDropdown && (
+        <div
+          ref={dropdownRef}
+          className="outfit lightbox-bg fixed inset-0 z-100 flex items-end justify-center md:hidden"
+          onClick={() => setShowDropdown(false)}
+        >
+          <div
+            className="animate-fade-in-up w-full rounded-t-2xl bg-white shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3">
+              <h2 className="text-[16px] font-semibold sm:text-[14px]">
+                Select an option
+              </h2>
+            </div>
+            <div className="bg-color h-[0.5px] w-full" />
+            <div className="flex flex-col py-2 text-[16px] sm:text-[14px]">
               <button
-                onClick={handleAssignClick}
-                className="hidden cursor-pointer items-center gap-2 rounded-md border border-orange-400 bg-orange-100 px-4 py-2 text-orange-600 hover:bg-orange-200 lg:flex"
+                onClick={() => {
+                  setWorksheetSubject({
+                    subjectID,
+                    subjectName,
+                    subjectCode,
+                    programName,
+                    yearLevel,
+                  });
+                  setIsWorksheetModalOpen(true);
+                }}
+                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100 sm:hidden"
               >
-                <i className="bx bx-cog text-lg"></i>
-                <span className="text-[14px]">Configure</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-download-icon lucide-download"
+                >
+                  <path d="M12 15V3" />
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <path d="m7 10 5 5 5-5" />
+                </svg>
+                Worksheet
               </button>
               <button
-                onClick={() => alert("Feature under development")}
-                className="hidden cursor-pointer items-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 lg:flex"
+                onClick={handleEdit}
+                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-gray-700 hover:bg-gray-100"
               >
-                <i className="bx bx-eye-big text-xl"></i>
-                <span className="text-[14px]">Preview</span>
+                <i className="bx bx-edit-alt text-xl"></i>
+                Edit
+              </button>
+              <button
+                onClick={() => {
+                  setSubjectToDelete({
+                    subjectID,
+                    subjectName,
+                    subjectCode,
+                  });
+                  setShowDropdown(false);
+                  setShowDeleteModal(true);
+                }}
+                className="flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-left text-red-500 hover:bg-gray-100"
+              >
+                <i className="bx bx-trash text-xl"></i>
+                Remove
               </button>
             </div>
           </div>
@@ -263,10 +951,215 @@ const SubjectCard = ({
           setIsFormOpen={setIsFormOpen}
           subjectID={subjectID}
           onSuccess={handleFormSuccess}
+          isExamQuestionsEnabled={isExamQuestionsEnabled}
+          setIsExamQuestionsEnabled={setIsExamQuestionsEnabled}
+          practiceExamSettings={practiceExamSettings}
+          setPracticeExamSettings={setPracticeExamSettings}
         />
       )}
 
-      <Toast message={toast.message} type={toast.type} show={toast.show} />
+      {editingSubject && (
+        <div
+          ref={editModalRef} // Attach the ref here
+          className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center"
+        >
+          <div className="animate-fade-in-up relative max-h-[90vh] w-full max-w-md rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-5 min-[448px]:rounded-md">
+            <div className="border-color flex items-center justify-between border-b px-4 py-2">
+              <h2 className="text-[16px] font-semibold text-black">
+                Edit Subject
+              </h2>
+              <button
+                onClick={() => {
+                  setEditingSubject(false);
+                  setValidationError("");
+                }}
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-700 transition duration-100 hover:bg-gray-100 hover:text-gray-900"
+              >
+                <i className="bx bx-x text-lg"></i>
+              </button>
+            </div>
+            <div className="px-5 py-4">
+              <div className="mb-4 text-start">
+                <div className="mb-4">
+                  <span className="block text-[14px] text-gray-700">
+                    Subject Name
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Name"
+                      value={editedSubject.subjectName}
+                      onChange={(e) =>
+                        setEditedSubject((prev) => ({
+                          ...prev,
+                          subjectName: e.target.value,
+                        }))
+                      }
+                      className="peer border-color mt-1 w-full rounded-xl border px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="mb-4 text-start">
+                <div className="mb-4">
+                  <span className="block text-[14px] text-gray-700">
+                    Subject Code
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Code"
+                      value={editedSubject.subjectCode}
+                      onChange={(e) =>
+                        setEditedSubject((prev) => ({
+                          ...prev,
+                          subjectCode: e.target.value,
+                        }))
+                      }
+                      className="peer border-color mt-1 w-full rounded-xl border px-4 py-[7px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
+                    />
+                  </div>
+                  <div className="mt-1 text-start text-[11px] text-gray-400">
+                    Enter the subject code of the subject you want to edit (e.g
+                    MATH123)
+                  </div>
+                </div>
+              </div>
+              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <div className="mb-2 flex items-start gap-1">
+                    <span className="block text-[14px] text-gray-700">
+                      Program
+                    </span>
+                  </div>
+                  <RegisterDropDownSmall
+                    name="Program"
+                    value={editedSubject.programID}
+                    onChange={(e) =>
+                      setEditedSubject((prev) => ({
+                        ...prev,
+                        programID: e.target.value,
+                      }))
+                    }
+                    placeholder="Select Program"
+                    options={programs.map((program) => ({
+                      value: program.programID,
+                      label: program.programName,
+                    }))}
+                  />
+                  <div className="text-start text-[11px] text-gray-400">
+                    Enter the program of the subject you want to edit
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="mb-2 flex items-start gap-1">
+                    <span className="block text-[14px] text-gray-700">
+                      Year Level
+                    </span>
+                  </div>
+                  <RegisterDropDownSmall
+                    name="Year Level"
+                    value={editedSubject.yearLevelID}
+                    onChange={(e) =>
+                      setEditedSubject((prev) => ({
+                        ...prev,
+                        yearLevelID: e.target.value,
+                      }))
+                    }
+                    placeholder={`${editedSubject.yearLevelID}${Number(editedSubject.yearLevelID) === 1 ? "st" : Number(editedSubject.yearLevelID) === 2 ? "nd" : Number(editedSubject.yearLevelID) === 3 ? "rd" : "th"} Year`}
+                    options={yearLevelOptions.map((yearLevel) => ({
+                      value: yearLevel,
+                      label: `${yearLevel}${Number(yearLevel) === 1 ? "st" : Number(yearLevel) === 2 ? "nd" : Number(yearLevel) === 3 ? "rd" : "th"} Year`,
+                    }))}
+                  />
+                  <div className="text-start text-[11px] text-gray-400">
+                    Enter the year level of the subject
+                  </div>
+                </div>
+              </div>
+              <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
+              {validationError && (
+                <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                  {validationError}
+                </div>
+              )}
+              {editedSubject.subjectCode.length > 20 && (
+                <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
+                  Code must be 20 characters or less.
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="submit"
+                  disabled={isEditing}
+                  onClick={async () => {
+                    const isNameValid = editedSubject.subjectName.trim() !== "";
+                    const isCodeValid =
+                      editedSubject.subjectCode.trim() !== "" &&
+                      editedSubject.subjectCode.length <= 20;
+                    const isProgramValid = editedSubject.programID !== "";
+                    const isYearLevelValid = editedSubject.yearLevelID !== "";
+                    if (
+                      !isNameValid ||
+                      !isCodeValid ||
+                      !isProgramValid ||
+                      !isYearLevelValid
+                    ) {
+                      setValidationError("Please fill in all required fields");
+                      return;
+                    }
+                    setValidationError("");
+                    await handleSaveEdit();
+                  }}
+                  className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${isEditing ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                >
+                  {isEditing ? (
+                    <div className="flex items-center justify-center">
+                      <span className="loader-white"></span>
+                    </div>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && subjectToDelete && (
+        <ConfirmModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={async () => {
+            await handleDeleteSubject(subjectToDelete.subjectID);
+            setShowDeleteModal(false);
+            setSubjectToDelete(null);
+          }}
+          message={
+            <>
+              Are you sure you want to remove{" "}
+              <span className="font-bold text-red-500">
+                {subjectToDelete.subjectName} ({subjectToDelete.subjectCode})
+              </span>
+              ? Removing this subject will also wipe out its contents.
+            </>
+          }
+          isLoading={isDeleting}
+          showCountdown={true}
+          countdownSeconds={6}
+          shiftHintText={undefined}
+        />
+      )}
+
+      {isWorksheetModalOpen && (
+        <PrintExamModal
+          isOpen={isWorksheetModalOpen}
+          onClose={() => setIsWorksheetModalOpen(false)}
+          initialSubject={worksheetSubject}
+        />
+      )}
     </div>
   );
 };

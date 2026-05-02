@@ -1,39 +1,24 @@
-import { useRef } from "react";
-
-// Displays a Search Bar
-const SearchQuery = ({
-  searchQuery,
-  setSearchQuery,
-  placeholder = "Search questions...",
-}) => {
-  const inputRef = useRef(null);
-
+// Reusable Search Bar styled like the one in Class.jsx
+const SearchQuery = ({ searchQuery, setSearchQuery, placeholder }) => {
   return (
-    <div className="border-color flex w-full cursor-pointer items-center rounded-md border bg-white px-2 text-gray-700 shadow-sm">
-      {/* Search Icon */}
-      <i className="bx bx-search text-[20px] text-gray-500"></i>
-
-      {/* Search Input */}
-      <div className="flex flex-1 items-center">
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder={placeholder}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full flex-1 rounded-md p-2 text-[13px] text-gray-700 outline-none"
-          autoFocus
-        />
-
-        {/* Close Icon */}
+    <div className="outfit-500 relative text-[14px]">
+      <i className="bx bx-search absolute top-0.5 left-3 text-lg text-gray-500"></i>
+      <input
+        type="text"
+        placeholder={placeholder}
+        className="-mt-2 w-full rounded-full border border-gray-200 bg-white py-2 pr-4 pl-10 text-sm text-gray-900 transition-all focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      {searchQuery && (
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setSearchQuery(""); // Reset search query when close is clicked
-          }}
-          className="ml-2 text-gray-500 hover:text-gray-700"
-        ></button>
-      </div>
+          type="button"
+          onClick={() => setSearchQuery("")}
+          className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700"
+        >
+          <i className="bx bx-x text-xl"></i>
+        </button>
+      )}
     </div>
   );
 };

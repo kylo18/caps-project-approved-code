@@ -144,7 +144,7 @@ const CombinedExamQuestionForm = ({ subjectID, onComplete, onCancel }) => {
 
     // Directly proceed with submission
     setIsLoading(true);
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     try {
       // First, submit the question
@@ -231,7 +231,7 @@ const CombinedExamQuestionForm = ({ subjectID, onComplete, onCancel }) => {
         <div className="scrollbar-hide animate-fade-in-up flex max-h-[95vh] overflow-y-auto p-3">
           <div className="flex-1">
             {/* Header */}
-            <div className="font-inter border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
+            <div className="outfit border-color relative mx-auto mt-2 max-w-3xl rounded-t-md border bg-white py-2 pl-4 text-[14px] font-medium text-gray-600 shadow-lg">
               <div className="flex items-center justify-between pr-4">
                 <span>ADD EXAM QUESTION</span>
                 <button
@@ -528,7 +528,6 @@ const CombinedExamQuestionForm = ({ subjectID, onComplete, onCancel }) => {
                   <i className="bx bx-help-circle text-[18px]"></i>
                 </button>
 
-                {/* Tooltip */}
                 {showTip && (
                   <div className="absolute bottom-7 left-35 z-10 w-[200px] rounded-md bg-gray-700 p-2 text-[12px] text-white shadow-md">
                     Enter a score between 1 and 100 for this question.

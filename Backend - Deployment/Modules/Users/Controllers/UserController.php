@@ -368,6 +368,50 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Delete a specific user (Only Dean and Associate Dean).
+     */
+    public function deleteUser($id)
+    {
+        $authUser = Auth::user();
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can delete users'], 403);
+        }
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+        $user->delete();
+        return response()->json(['message' => 'User deleted successfully'], 200);
+    }
+
+    /**
+     * Delete multiple users (Only Dean and Associate Dean).
+     */
+    public function deleteMultipleUsers(Request $request)
+    {
+        $authUser = Auth::user();
+        if (!in_array($authUser->roleID, [4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can delete users'], 403);
+        }
+        $validated = $request->validate([
+            'userIDs' => 'required|array',
+            'userIDs.*' => 'integer|exists:users,userID'
+        ]);
+        $deleted = [];
+        foreach ($validated['userIDs'] as $userID) {
+            $user = User::find($userID);
+            if ($user) {
+                $user->delete();
+                $deleted[] = $userID;
+            }
+        }
+        return response()->json([
+            'message' => 'Selected users deleted successfully.',
+            'deleted_users' => $deleted
+        ], 200);
+    }
+
     // Private helper methods
 
     private function authorizeDeanAccess()

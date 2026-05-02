@@ -5,7 +5,7 @@ const useAutoLogoutOnClose = () => {
 
   useEffect(() => {
     const handleUnload = () => {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
 
       if (token) {
         const logoutData = JSON.stringify({ token });
@@ -14,8 +14,9 @@ const useAutoLogoutOnClose = () => {
         const blob = new Blob([logoutData], { type: "application/json" });
         navigator.sendBeacon(`${apiUrl}/logout`, blob);
 
-        // Clean up localStorage
-        localStorage.removeItem("token");
+        // Clean up sessionStorage
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("user");
       }
     };
 

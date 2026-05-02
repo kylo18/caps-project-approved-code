@@ -25,9 +25,7 @@ return new class extends Migration {
             $table->foreign('campusID')->references('campusID')->on('campuses')->onDelete('cascade');
             $table->foreign('status_id')->references('id')->on('statuses')->onDelete('cascade');
             // Foreign key to Programs Table
-            $table->foreignId('programID')
-            ->constrained('programs', 'programID')
-            ->onDelete('cascade');
+            $table->foreignId('programID')->constrained('programs', 'programID')->onDelete('cascade');
         });
     }
 

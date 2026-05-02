@@ -8,6 +8,7 @@ const CustomDropdown = ({
   onChange,
   options,
   placeholder,
+  classname,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState("bottom"); // "bottom" or "top"
@@ -55,7 +56,7 @@ const CustomDropdown = ({
           ref={buttonRef}
           type="button"
           onClick={handleOpenDropdown}
-          className="relative flex w-full min-w-[83px] cursor-pointer items-center border-b border-gray-300 bg-white px-3 py-2 transition-all duration-100 hover:border-gray-500 focus:border-b-2 focus:border-orange-500"
+          className={`relative flex w-40 ${classname} cursor-pointer items-center border-b border-gray-300 bg-white px-3 py-2 transition-all duration-100 hover:border-gray-500 focus:border-b-2 focus:border-orange-500`}
         >
           <span className={`truncate ${!value ? "text-gray-400" : ""}`}>
             {options.find((opt) => opt.value === value)?.label || placeholder}
@@ -69,7 +70,7 @@ const CustomDropdown = ({
         {/* Dropdown Options */}
         {isOpen && (
           <ul
-            className={`absolute z-10 w-full rounded-sm border border-gray-300 bg-white shadow-md ${dropdownPosition === "bottom" ? "top-full mt-1" : "bottom-full mb-1"}`}
+            className={`animate-dropdown animate-fadein border-color absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-md border bg-white p-1 shadow-sm ${dropdownPosition === "bottom" ? "top-full mt-1" : "bottom-full mb-1"}`}
           >
             {options.map((option) => (
               <li
@@ -78,7 +79,11 @@ const CustomDropdown = ({
                   onChange({ target: { name, value: option.value } });
                   setIsOpen(false);
                 }}
-                className="cursor-pointer px-3 py-2 text-[14px] transition hover:bg-orange-500 hover:text-white"
+                className={`cursor-pointer rounded-sm px-3 py-[10px] text-[14px] text-black transition hover:bg-gray-200 ${
+                  value === option.value || value === option.value + "_desc"
+                    ? "text-orange-500"
+                    : ""
+                }`}
               >
                 {option.label}
               </li>

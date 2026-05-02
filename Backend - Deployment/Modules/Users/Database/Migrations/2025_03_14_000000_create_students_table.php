@@ -19,12 +19,6 @@ return new class extends Migration {
             $table->string('block', 10);
             $table->timestamps();
 
-            // Foreign key to users table
-            $table->foreign('userCode')
-                ->references('userCode')
-                ->on('users')
-                ->onDelete('cascade');
-
             // Foreign key to programs table
             $table->foreign('programID')
                 ->references('programID')
