@@ -54,6 +54,9 @@ export default {
       ]
     ],
     extra: {
+      eas: {
+        projectId: "caps-83e76"
+      },
       API_URL: process.env.EXPO_PUBLIC_API_URL,
       AI_SERVICE_URL: process.env.EXPO_PUBLIC_AI_SERVICE_URL,
       router: {

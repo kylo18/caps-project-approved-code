@@ -80,6 +80,11 @@ export default function AssociateDeanUsersScreen() {
   }, []);
 
   useEffect(() => {
+    // Re-fetch users when status filter changes to load fresh data from server
+    fetchUsers(true);
+  }, [activeStatusFilter]);
+
+  useEffect(() => {
     applyFilters();
   }, [searchQuery, activeRoleFilter, activeStatusFilter, programFilter, yearFilter, campusFilter, users]);
 

@@ -149,9 +149,16 @@ export default function LoginScreen() {
       await SecureStore.setItemAsync('user', JSON.stringify(user));
       await SecureStore.setItemAsync('rememberMe', rememberMe ? 'true' : 'false');
 
-      const pushResult = await registerForPushNotificationsAsync();
-      if (pushResult.token) {
-        await registerPushTokenWithBackend(pushResult.token);
+      // Push notifications — fail silently so login still works
+      try {
+        const pushResult = await registerForPushNotificationsAsync();
+        if (pushResult.token) {
+          await registerPushTokenWithBackend(pushResult.token);
+        }
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : 'Push notification setup failed';
+        console.warn('Push notification error:', errMsg);
+        showToast(`Push notifications: ${errMsg}`, 'info');
       }
 
       // Prompt to enable biometric auth on first successful login with Remember Me

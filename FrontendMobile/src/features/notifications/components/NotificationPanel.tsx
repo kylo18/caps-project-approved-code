@@ -51,7 +51,7 @@ export default function NotificationPanel({ visible, onClose }: { visible: boole
 
   const markAllAsRead = async () => {
     try {
-      await apiRequest('/api/notifications/read-all', { method: 'DELETE' });
+      await apiRequest('/api/notifications/mark-all-read', { method: 'POST' });
       setNotifications((prev: any[]) => prev.map((n: any) => ({ ...n, isRead: true })));
     } catch (error) {
       console.error('Failed to mark all as read:', error);

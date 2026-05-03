@@ -24,6 +24,7 @@ import { logout } from '../src/store/slices/authSlice';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
 import { toastConfig } from '../src/hooks/useToast';
 import { syncOfflineQueue, registerUnauthorizedCallback } from '../src/services/apiClient';
+import { cleanupOrphanedExamKeys } from '../src/services/cacheService';
 import {
   addNotificationReceivedListener,
   addNotificationResponseReceivedListener,
@@ -49,6 +50,13 @@ export default function RootLayout() {
       router.replace('/');
     });
   }, [router]);
+
+  // Clean up orphaned exam keys from crashed/abandoned sessions on every app start
+  useEffect(() => {
+    cleanupOrphanedExamKeys().catch(() => {
+      // Best-effort — non-critical
+    });
+  }, []);
 
   const [fontsLoaded] = useFonts({
     Rubik: require('../assets/fonts/Rubik-Variable.ttf'),

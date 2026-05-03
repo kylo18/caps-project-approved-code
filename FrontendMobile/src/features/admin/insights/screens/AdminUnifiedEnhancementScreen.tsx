@@ -288,6 +288,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     // ── Derived data ─────────────────────────────────────────────────────────
 
     const hasExamData = (summary?.total_exams ?? 0) > 0;
+    const hasCurrentMonthData = (improvement?.current_month_avg ?? 0) > 0;
 
     const metrics = useMemo(() => {
         if (!summary) return [];
@@ -506,6 +507,13 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                                     icon="trending-up-outline"
                                     title="No trend data yet"
                                     subtitle="Student exam results will appear here once practice exams are taken."
+                                    isDark={isDark}
+                                />
+                            ) : !hasCurrentMonthData ? (
+                                <EmptyState
+                                    icon="trending-up-outline"
+                                    title="No exams this month"
+                                    subtitle="Student exam results for the current month will appear here once practice exams are taken."
                                     isDark={isDark}
                                 />
                             ) : (

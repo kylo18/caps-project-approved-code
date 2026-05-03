@@ -84,7 +84,8 @@ export default function PracticeExamScreen() {
         setQuestions(data.questions);
         if (data.attempt_id) {
           setAttemptId(String(data.attempt_id));
-          await AsyncStorage.setItem(`${examKey}_attempt_id`, String(data.attempt_id));
+          // Wrap with timestamp so cleanupOrphanedExamKeys() can evict stale entries
+          await AsyncStorage.setItem(`${examKey}_attempt_id`, JSON.stringify({ data: String(data.attempt_id), timestamp: Date.now() }));
         }
       } else {
         setError('No questions available for this subject.');
@@ -134,12 +135,39 @@ export default function PracticeExamScreen() {
       const savedTimer = await AsyncStorage.getItem(`${examKey}_timer`);
       const savedAttemptId = await AsyncStorage.getItem(`${examKey}_attempt_id`);
 
-      if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
-      if (savedBookmarks) setBookmarkedQuestions(JSON.parse(savedBookmarks));
-      if (savedAttemptId) setAttemptId(savedAttemptId);
-      if (enableTimer && savedTimer) {
-        const savedSeconds = parseInt(savedTimer);
-        if (savedSeconds > 0) setSecondsLeft(savedSeconds);
+      // Support both old flat format and new { data, timestamp } format
+      const unwrap = <T,>(raw: string | null): T | null => {
+        if (!raw) return null;
+        try {
+          const parsed = JSON.parse(raw);
+          // New wrapped format
+          if (parsed && typeof parsed === 'object' && 'data' in parsed) {
+            return parsed.data as T;
+          }
+          // Legacy flat format
+          return parsed as T;
+        } catch {
+          return null;
+        }
+      };
+
+      const answers_ = unwrap<Record<string, string>>(savedAnswers);
+      const bookmarks_ = unwrap<string[]>(savedBookmarks);
+      const timer_ = unwrap<string>(savedTimer);
+
+      if (answers_) setAnswers(answers_);
+      if (bookmarks_) setBookmarkedQuestions(bookmarks_);
+      if (savedAttemptId) {
+        try {
+          const parsed = JSON.parse(savedAttemptId);
+          setAttemptId(parsed && typeof parsed === 'object' && 'data' in parsed ? parsed.data : savedAttemptId);
+        } catch {
+          setAttemptId(savedAttemptId);
+        }
+      }
+      if (enableTimer && timer_) {
+        const savedSeconds = parseInt(timer_);
+        if (!isNaN(savedSeconds) && savedSeconds > 0) setSecondsLeft(savedSeconds);
       }
     } catch (error) {
       console.error('Failed to load exam state:', error);
@@ -163,10 +191,11 @@ export default function PracticeExamScreen() {
 
   const saveState = async () => {
     try {
-      await AsyncStorage.setItem(`${examKey}_answers`, JSON.stringify(answers));
-      await AsyncStorage.setItem(`${examKey}_bookmarks`, JSON.stringify(bookmarkedQuestions));
+      // Wrap in { data, timestamp } so cleanupOrphanedExamKeys() can detect stale keys
+      await AsyncStorage.setItem(`${examKey}_answers`, JSON.stringify({ data: answers, timestamp: Date.now() }));
+      await AsyncStorage.setItem(`${examKey}_bookmarks`, JSON.stringify({ data: bookmarkedQuestions, timestamp: Date.now() }));
       if (enableTimer && secondsLeft !== null) {
-        await AsyncStorage.setItem(`${examKey}_timer`, secondsLeft.toString());
+        await AsyncStorage.setItem(`${examKey}_timer`, JSON.stringify({ data: secondsLeft.toString(), timestamp: Date.now() }));
       }
     } catch (error) {
       console.error('Failed to save exam state:', error);

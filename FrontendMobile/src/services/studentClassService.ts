@@ -30,7 +30,8 @@ async function setCache<T>(key: string, data: T) {
     const entry: CacheEntry<T> = { data, timestamp: Date.now() };
     await AsyncStorage.setItem(key, JSON.stringify(entry));
   } catch {
-    // silent fail
+    // silent fail — StorageManager in cacheService.ts prevents unbounded growth
+    // for other managed keys; my_classes_cache is small so direct write is fine
   }
 }
 
