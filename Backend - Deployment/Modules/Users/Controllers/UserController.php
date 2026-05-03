@@ -621,7 +621,9 @@ class UserController extends Controller
         $status = strtolower(trim((string) $request->input('status', '')));
 
         // If state or status is explicitly provided, use that filter
-        if (in_array($state, ['active', 'inactive', 'all'], true) || $status === 'registered') {
+        // Also return early for non-default statuses so they bypass the default registered-only filter
+        if (in_array($state, ['active', 'inactive', 'all'], true)
+            || in_array($status, ['pending', 'registered', 'disapproved'], true)) {
             return;
         }
 
