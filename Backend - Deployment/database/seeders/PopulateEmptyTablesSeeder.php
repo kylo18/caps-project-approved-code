@@ -129,25 +129,26 @@ class PopulateEmptyTablesSeeder extends Seeder
             return;
         }
 
-        $students = DB::table('users')->where('roleID', 1)->limit(10)->get();
-        if ($students->isEmpty()) return;
+        $students = DB::table('students')->limit(10)->get();
+        $subjects = DB::table('subjects')->limit(5)->get();
+
+        if ($students->isEmpty() || $subjects->isEmpty()) return;
 
         $rows = [];
         foreach ($students as $s) {
-            $rows[] = [
-                'userCode'     => $s->userCode ?? 'SEED-' . $s->userID,
-                'lastName'     => $s->lastName ?? 'Seed',
-                'firstName'    => $s->firstName ?? 'Student',
-                'middleName'   => '',
-                'yearLevel'    => '1',
-                'subjectCode'  => 'MATH101',
-                'subjectDesc'  => 'Mathematics',
-                'genAve'       => rand(75, 95) . '.00',
-                'reEx'         => null,
-                'finalGrade'   => rand(75, 95) . '.00',
-                'created_at'   => now(),
-                'updated_at'   => now(),
-            ];
+            foreach ($subjects as $subj) {
+                $rows[] = [
+                    'user_id'       => null,
+                    'student_id'    => $s->id,
+                    'subject_id'    => $subj->subjectID,
+                    'subjectDesc'  => $subj->subjectName ?? $subj->subjectCode ?? 'N/A',
+                    'genAve'        => rand(75, 95) + 0.00,
+                    'reEx'          => null,
+                    'finalGrade'    => rand(75, 95) + 0.00,
+                    'created_at'   => now(),
+                    'updated_at'   => now(),
+                ];
+            }
         }
 
         DB::table('student_grades')->insert($rows);
