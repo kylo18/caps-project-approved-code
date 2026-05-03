@@ -20,6 +20,7 @@ import {
   getLearningInsights,
   getPerformanceTrend,
   getRecommendations,
+  computeTrend,
 } from '../services/studentAnalyticsService';
 import {
   StudentAvatar,
@@ -353,6 +354,7 @@ export default function StudentInsightsScreen() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showTrendModal, setShowTrendModal] = useState(false);
+  const [trendData, setTrendData] = useState<any[]>([]);
 
   // Stat explanation modal
   const [showStatModal, setShowStatModal] = useState(false);
@@ -364,6 +366,12 @@ export default function StudentInsightsScreen() {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [recommendationsError, setRecommendationsError] = useState(false);
   const [loadError, setLoadError] = useState('');
+
+  // Compute trend locally from sequential exam comparisons
+  const localTrend = useMemo(() => {
+    if (!trendData || trendData.length < 2) return 'stable';
+    return computeTrend(trendData);
+  }, [trendData]);
 
   const openStatModal = (title: string, description: string) => {
     setStatModalTitle(title);
@@ -401,6 +409,7 @@ export default function StudentInsightsScreen() {
       setSummary(summaryResponse?.data || summaryResponse || {});
       setInsights(insightResponse?.data || insightResponse || {});
       setLoadError(summaryResponse?.error || insightResponse?.error || '');
+      setTrendData(trendResponse?.data || []);
 
       // Phase 2: once trend resolves, fetch recommendations if attemptId is available
       const latestAttempt = trendResponse?.data?.[0];
@@ -604,7 +613,7 @@ export default function StudentInsightsScreen() {
             </View>
 
             <View className="mt-3">
-              <TrendBadge trend={summary?.trend} onPress={() => setShowTrendModal(true)} />
+              <TrendBadge trend={localTrend} onPress={() => setShowTrendModal(true)} />
             </View>
           </View>
         </LinearGradient>
@@ -1067,19 +1076,19 @@ export default function StudentInsightsScreen() {
                   icon: 'trending-up' as const,
                   color: studentColors.success,
                   label: 'Improving',
-                  desc: 'Your recent exam scores are going up compared to your earlier attempts. Keep the momentum going!',
+                  desc: 'Your recent exam scores are higher than your previous exam. Each score is compared to the one right before it.',
                 },
                 {
                   icon: 'remove' as const,
                   color: '#F59E0B',
                   label: 'Stable',
-                  desc: 'Your scores are consistent across recent exams — neither rising nor falling significantly.',
+                  desc: 'Your scores are neither consistently higher nor lower than your previous exams — no clear upward or downward pattern.',
                 },
                 {
                   icon: 'trending-down' as const,
                   color: '#EF4444',
                   label: 'Declining',
-                  desc: 'Your recent scores are lower than your earlier results. Try reviewing weak topics and retaking practice exams.',
+                  desc: 'Your recent exam scores are lower than your previous exam. Review your weak topics and try more practice exams.',
                 },
               ].map((item, idx, arr) => (
                 <View
@@ -1125,8 +1134,31 @@ export default function StudentInsightsScreen() {
               ))}
 
               <Pressable
+                onPress={() => {
+                  setShowTrendModal(false);
+                  router.push({
+                    pathname: '/(auth)/practice-exam/exam-trend-chart',
+                    params: { data: JSON.stringify(trendData || []) },
+                  });
+                }}
+                className="mt-3 rounded-[14px] py-3 items-center"
+                style={{ backgroundColor: `${studentColors.orange}18`, borderWidth: 1, borderColor: studentColors.orange }}
+              >
+                <Text
+                  style={{
+                    color: studentColors.orange,
+                    fontFamily: 'Rubik',
+                    fontSize: 15,
+                    fontWeight: '600',
+                  }}
+                >
+                  View Exam Trend Chart
+                </Text>
+              </Pressable>
+
+              <Pressable
                 onPress={() => setShowTrendModal(false)}
-                className="mt-5 rounded-[14px] py-3 items-center"
+                className="mt-3 rounded-[14px] py-3 items-center"
                 style={{ backgroundColor: studentColors.orange }}
               >
                 <Text

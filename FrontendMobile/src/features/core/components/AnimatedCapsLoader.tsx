@@ -29,8 +29,8 @@ export default function AnimatedCapsLoader({
     const animation = Animated.loop(
       Animated.timing(masterValue, {
         toValue: 1,
-        duration: 1600,
-        easing: Easing.linear, // Linear ensures the wave interpolation flows smoothly
+        duration: 2000,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
         useNativeDriver: true,
       })
     );
@@ -47,10 +47,10 @@ export default function AnimatedCapsLoader({
           const isAccent = letter === 'C' || letter === 'S';
           const letterColor = isAccent ? accentColor : color;
 
-          // We create a wave that spans 0.36 of the total duration for each letter
+          // We create a wave that spans 0.30 of the total duration for each letter
           const start = index * 0.12;
-          const peak = start + 0.12;
-          const end = peak + 0.12;
+          const peak = start + 0.15;
+          const end = start + 0.30;
 
           // If start is 0, we must drop the leading 0 from the input array to avoid duplicate keys in the range
           const inputRange = start === 0 ? [0, peak, end, 1] : [0, start, peak, end, 1];

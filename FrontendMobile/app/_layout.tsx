@@ -21,6 +21,7 @@ import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { store } from '../src/store';
 import { logout } from '../src/store/slices/authSlice';
+import { useSystemNavigationMode } from '../src/hooks/useSystemNavigationMode';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
 import { toastConfig } from '../src/hooks/useToast';
 import { syncOfflineQueue, registerUnauthorizedCallback } from '../src/services/apiClient';
@@ -43,6 +44,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 export default function RootLayout() {
   const router = useRouter();
+  const isThreeButtonMode = useSystemNavigationMode();
 
   useEffect(() => {
     registerUnauthorizedCallback(() => {
@@ -144,7 +146,7 @@ export default function RootLayout() {
               <Stack.Screen name="reset-password" />
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             </Stack>
-            <StatusBar style="auto" />
+            <StatusBar hidden={isThreeButtonMode} style="light" translucent />
             <Toast config={toastConfig} />
           </ThemeProvider>
         </Provider>

@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, RefreshControl, Alert, Animated, Modal, ScrollView } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
+import { SkeletonList } from '../../../src/features/core/components/Skeleton';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
@@ -72,6 +73,8 @@ export default function AssociateDeanUsersScreen() {
   const [detailUser, setDetailUser] = useState<UserItem | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [isBulkActing, setIsBulkActing] = useState(false);
+  const [programOptions, setProgramOptions] = useState<{id: string; label: string}[]>([]);
+  const [campusOptions, setCampusOptions] = useState<{id: string; label: string}[]>([]);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -87,6 +90,38 @@ export default function AssociateDeanUsersScreen() {
   useEffect(() => {
     applyFilters();
   }, [searchQuery, activeRoleFilter, activeStatusFilter, programFilter, yearFilter, campusFilter, users]);
+
+  useEffect(() => {
+    const loadMeta = async () => {
+      try {
+        const [progRes, campRes] = await Promise.allSettled([
+          apiRequest("/api/programs"),
+          apiRequest("/api/campuses"),
+        ]);
+        if (progRes.status === "fulfilled") {
+          const raw = progRes.value;
+          const list = Array.isArray(raw?.programs) ? raw.programs
+            : Array.isArray(raw?.data) ? raw.data
+            : Array.isArray(raw) ? raw : [];
+          setProgramOptions(list.map((p: any) => ({
+            id: String(p.programID ?? p.id),
+            label: p.programName ?? p.name ?? "",
+          })).filter((o: any) => o.label));
+        }
+        if (campRes.status === "fulfilled") {
+          const raw = campRes.value;
+          const list = Array.isArray(raw?.campuses) ? raw.campuses
+            : Array.isArray(raw?.data) ? raw.data
+            : Array.isArray(raw) ? raw : [];
+          setCampusOptions(list.map((c: any) => ({
+            id: String(c.campusID ?? c.id),
+            label: c.campusName ?? c.name ?? "",
+          })).filter((o: any) => o.label));
+        }
+      } catch { /* non-critical */ }
+    };
+    loadMeta();
+  }, []);
 
   const fetchUsers = async (reset = false) => {
     const currentPage = reset ? 1 : page;
@@ -312,9 +347,7 @@ export default function AssociateDeanUsersScreen() {
     purple: '#8B5CF6',
   };
 
-  const programs = [...new Map(users.map((u: any) => [String(u.programID), getUserProgramLabel(u)] as [string, string]).filter(([, label]) => Boolean(label))).entries()].map(([id, label]) => ({ id, label }));
   const years = [...new Set(users.map((u: any) => getUserYearLevelValue(u)).filter(Boolean))].sort((a: any, b: any) => Number(a) - Number(b));
-  const campuses = [...new Map(users.map((u: any) => [String(u.campusID), getUserCampusLabel(u)] as [string, string]).filter(([, label]) => Boolean(label))).entries()].map(([id, label]) => ({ id, label }));
 
   const renderUser = useCallback(({ item }: { item: any }) => {
     const isSelected = selectedUserIDs.has(item.userID);
@@ -409,7 +442,7 @@ export default function AssociateDeanUsersScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 justify-center items-center"><CapsActivityIndicator size="large" color={colors.orange} /></View>
+        <View className="flex-1 px-4 pt-4"><SkeletonList count={5} /></View>
       ) : (
         <>
           <FlatList
@@ -482,10 +515,10 @@ export default function AssociateDeanUsersScreen() {
                 {showAdvancedFilters && (
                   <View className="mb-3">
                     <View className="flex-row gap-1">
-                      <FilterDropdown label="Program" value={programFilter} onValueChange={setProgramFilter} options={[{ id: 'all', label: 'All Programs' }, ...programs]} colors={colors} />
+                      <FilterDropdown label="Program" value={programFilter} onValueChange={setProgramFilter} options={[{ id: 'all', label: 'All Programs' }, ...programOptions]} colors={colors} />
                       <FilterDropdown label="Year" value={yearFilter} onValueChange={setYearFilter} options={[{ id: 'all', label: 'All Years' }, ...years.map(y => ({ id: String(y), label: `Year ${y}` }))]} colors={colors} />
                     </View>
-                    <FilterDropdown label="Campus" value={campusFilter} onValueChange={setCampusFilter} options={[{ id: 'all', label: 'All Campuses' }, ...campuses]} colors={colors} />
+                    <FilterDropdown label="Campus" value={campusFilter} onValueChange={setCampusFilter} options={[{ id: 'all', label: 'All Campuses' }, ...campusOptions]} colors={colors} />
                   </View>
                 )}
               </Animated.View>

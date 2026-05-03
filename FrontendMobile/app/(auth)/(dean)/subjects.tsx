@@ -618,7 +618,15 @@ export default function AdminSubjectsScreen() {
       onPress: () => setShowPrintModal(true),
       backgroundColor: '#8B5CF6',
     },
-  ], [selectedSubject, router, openAddSubject, setShowPrintModal]);
+    {
+      key: 'configure-subject',
+      icon: 'settings-outline',
+      label: 'Configure Subject',
+      onPress: () => openSettingsModal(),
+      disabled: false,
+      backgroundColor: '#6366F1',
+    },
+  ], [selectedSubject, router, openAddSubject, setShowPrintModal, openSettingsModal]);
 
   useScreenFloatingTools(fabActions);
 
@@ -666,15 +674,6 @@ export default function AdminSubjectsScreen() {
             <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
               {selectedSubject?.subjectName || 'Subjects'}
             </Text>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <TouchableOpacity
-              onPress={() => openSettingsModal()}
-              className={`flex-row items-center px-3 py-2 rounded-xl ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}
-            >
-              <Ionicons name="settings-outline" size={18} color={isDark ? '#fff' : '#374151'} />
-              <Text className={`font-semibold ml-1 ${isDark ? 'text-white' : 'text-gray-700'}`}>Settings</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -918,17 +917,6 @@ export default function AdminSubjectsScreen() {
                 <Text className={`text-sm mt-2 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                   {searchQuery ? 'Try adjusting your search terms.' : `Add questions for ${selectedSubject?.subjectName}.`}
                 </Text>
-                {!searchQuery && (
-                  <TouchableOpacity
-                    onPress={() => router.push({
-                      pathname: '/(auth)/practice-exam/add-question',
-                      params: { subjectID: selectedSubject?.subjectID }
-                    })}
-                    className="mt-4 bg-primary px-4 py-2 rounded-xl"
-                  >
-                    <Text className="text-white font-semibold">Add First Question</Text>
-                  </TouchableOpacity>
-                )}
               </View>
             }
           />

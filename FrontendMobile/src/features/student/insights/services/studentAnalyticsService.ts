@@ -63,6 +63,26 @@ export async function getPerformanceTrend() {
   }
 }
 
+export function computeTrend(examResults: { score_percentage: number; taken_at?: string | null }[]): 'improving' | 'declining' | 'stable' {
+  const valid = examResults
+    .filter((e) => typeof e.score_percentage === 'number' && !isNaN(e.score_percentage))
+    .sort((a, b) => (a.taken_at || '').localeCompare(b.taken_at || ''));
+
+  if (valid.length < 2) return 'stable';
+
+  let improving = 0;
+  let declining = 0;
+
+  for (let i = 1; i < valid.length; i++) {
+    if (valid[i].score_percentage > valid[i - 1].score_percentage) improving++;
+    else if (valid[i].score_percentage < valid[i - 1].score_percentage) declining++;
+  }
+
+  if (improving > declining) return 'improving';
+  if (declining > improving) return 'declining';
+  return 'stable';
+}
+
 export async function getLearningInsights() {
   try {
     const response = await apiRequest('/api/student/analytics/insights');

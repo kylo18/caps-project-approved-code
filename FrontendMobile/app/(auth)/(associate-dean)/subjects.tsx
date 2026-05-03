@@ -315,6 +315,14 @@ export default function AssoDeanSubjectsScreen() {
       onPress: () => setShowPrintModal(true),
       backgroundColor: '#8B5CF6',
     },
+    {
+      key: 'configure-subject',
+      icon: 'settings-outline',
+      label: 'Configure Subject',
+      onPress: () => {},
+      disabled: true,
+      backgroundColor: '#6366F1',
+    },
   ], [selectedSubject, router, openAddSubject, setShowPrintModal]);
 
   useScreenFloatingTools(fabActions);
