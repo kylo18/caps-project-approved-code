@@ -30,12 +30,12 @@ class UserController extends Controller
     {
         try {
             $user = Auth::user();
-            
+
             // Check if user is authenticated
             if (!$user) {
                 return response()->json(['message' => 'Unauthenticated'], 401);
             }
-            
+
             // Check if user has appropriate role
             if (!in_array($user->roleID, [2, 3, 4, 5])) {
                 return response()->json(['message' => 'Unauthorized: Insufficient permissions'], 403);
@@ -49,10 +49,10 @@ class UserController extends Controller
                     ], 403);
                 }
             }
-            
+
             $query = $this->buildUserQuery($request);
             $pagination = $this->paginateResults($query, $request);
-            
+
             return response()->json([
                 'users' => $pagination['users'],
                 'total' => $pagination['total'],
@@ -110,7 +110,7 @@ class UserController extends Controller
             $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
         }
 
-        $profile = [
+        return response()->json([
             'userCode' => $user->userCode,
             'email' => $user->email,
             'firstName' => $user->firstName,
@@ -119,18 +119,7 @@ class UserController extends Controller
             'fullName' => $user->firstName . ' ' . $user->lastName,
             'remarks' => $remarks,
             'curriculum' => $curriculum,
-        ];
-
-        if ($user->roleID == 1 && $user->student) {
-            $profile['yearLevel'] = $user->student->yearLevel;
-            $profile['student_profile'] = [
-                'year_level' => $user->student->yearLevel,
-                'block' => $user->student->block,
-                'programID' => $user->student->programID,
-            ];
-        }
-
-        return response()->json($profile, 200);
+        ], 200);
     }
 
     /**
@@ -166,7 +155,7 @@ class UserController extends Controller
     {
         $this->authorizeDeanAccess();
         $validated = $this->validateUserIDs($request);
-        
+
         $activatedUsers = $this->processMultipleUsers($validated['userIDs'], true);
 
         return response()->json([
@@ -182,7 +171,7 @@ class UserController extends Controller
     {
         $this->authorizeDeanAccess();
         $validated = $this->validateUserIDs($request);
-        
+
         $deactivatedUsers = $this->processMultipleUsers($validated['userIDs'], false);
 
         return response()->json([
@@ -225,7 +214,7 @@ class UserController extends Controller
             if (!$this->canApproveUserInScope($authUser, $user)) {
                 return response()->json([
                     'message' => 'You cannot approve users outside your assigned scope. ' .
-                                $this->getScopeRestrictionMessage($authUser)
+                        $this->getScopeRestrictionMessage($authUser)
                 ], 403);
             }
 
@@ -293,7 +282,7 @@ class UserController extends Controller
      */
     private function getAllowedApprovalRoles($roleID)
     {
-        return match($roleID) {
+        return match ($roleID) {
             4 => [1, 2, 3, 4, 5], // Dean can approve all
             5 => [1, 2, 3],      // Associate Dean can approve Program Chair, Instructor, and Student
             3 => [1, 2],         // Program Chair can approve Instructor and Student
@@ -310,7 +299,7 @@ class UserController extends Controller
     public function disapproveUser(Request $request, $userID)
     {
         $authUser = Auth::user();
-        
+
         // Only Dean (4) and Associate Dean (5) can disapprove
         if (!in_array($authUser->roleID, [4, 5])) {
             return response()->json(['message' => 'Unauthorized: Only Dean or Associate Dean can disapprove users.'], 403);
@@ -367,7 +356,7 @@ class UserController extends Controller
     {
         try {
             $authUser = Auth::user();
-            
+
             // Only Dean, Associate Dean, Program Chair, and Faculty can bulk approve
             if (!in_array($authUser->roleID, [2, 3, 4, 5])) {
                 return response()->json([
@@ -378,7 +367,7 @@ class UserController extends Controller
             $validated = $this->validateUserIDs($request);
             $statusIds = $this->getStatusIds();
             $approverInfo = $this->getApproverInfo($authUser);
-            
+
             $results = $this->processMultipleApprovalsWithScope(
                 $validated['userIDs'],
                 $statusIds,
@@ -571,12 +560,14 @@ class UserController extends Controller
     private function authorizeDeanAccess()
     {
         $authUser = Auth::user();
-        abort_unless($authUser && in_array($authUser->roleID, [4, 5]), 403, 'Unauthorized: Only the Dean or Associate Dean can perform this action');
+        if (!in_array($authUser->roleID, [3, 4, 5])) {
+            return response()->json(['message' => 'Unauthorized: Only the Dean or Associate Dean can perform this action'], 403);
+        }
     }
 
     private function buildUserQuery(Request $request)
     {
-        $query = User::with(['role', 'campus', 'program', 'status', 'student']);
+        $query = User::with(['role', 'campus', 'program', 'status']);
         $user = Auth::user();
 
         // Apply role-based filters
@@ -592,7 +583,7 @@ class UserController extends Controller
             // Program Chair can only view users from their campus and program
             if ($user->campusID && $user->programID) {
                 $query->where('campusID', $user->campusID)
-                      ->where('programID', $user->programID);
+                    ->where('programID', $user->programID);
             } else {
                 Log::warning("Program Chair {$user->userID} has missing campus or program assignment");
                 $query->where('campusID', 0); // This will return no results
@@ -601,8 +592,8 @@ class UserController extends Controller
             // Faculty can only view students from their campus and program
             if ($user->campusID && $user->programID) {
                 $query->where('campusID', $user->campusID)
-                      ->where('programID', $user->programID)
-                      ->where('roleID', 1); // Only show students (roleID 1)
+                    ->where('programID', $user->programID)
+                    ->where('roleID', 1); // Only show students (roleID 1)
             } else {
                 Log::warning("Faculty {$user->userID} has missing campus or program assignment");
                 $query->where('campusID', 0); // This will return no results
@@ -610,91 +601,50 @@ class UserController extends Controller
         }
         // Dean (roleID 4) can view all users, so no additional filters needed
 
-        $this->applyDefaultStateVisibility($query, $request);
         $this->applySearchFilters($query, $request);
         return $query;
-    }
-
-    private function applyDefaultStateVisibility($query, Request $request)
-    {
-        $state = strtolower(trim((string) $request->input('state', '')));
-        $status = strtolower(trim((string) $request->input('status', '')));
-
-        // If state or status is explicitly provided, use that filter
-        // Also return early for non-default statuses so they bypass the default registered-only filter
-        if (in_array($state, ['active', 'inactive', 'all'], true)
-            || in_array($status, ['pending', 'registered', 'disapproved'], true)) {
-            return;
-        }
-
-        // Default: show only active registered users
-        $query->where(function ($q) {
-            $q->where('isActive', true)
-              ->whereHas('status', function ($statusQuery) {
-                  $statusQuery->where('name', 'registered');
-              });
-        });
     }
 
     private function applySearchFilters($query, Request $request)
     {
         $filters = [
-            'search' => function($q, $value) {
-                $q->where(function($q) use ($value) {
+            'search' => function ($q, $value) {
+                $q->where(function ($q) use ($value) {
                     $q->where('firstName', 'like', "%{$value}%")
-                      ->orWhere('lastName', 'like', "%{$value}%")
-                      ->orWhere('email', 'like', "%{$value}%")
-                      ->orWhere('userCode', 'like', "%{$value}%");
+                        ->orWhere('lastName', 'like', "%{$value}%")
+                        ->orWhere('email', 'like', "%{$value}%")
+                        ->orWhere('userCode', 'like', "%{$value}%");
                 });
             },
-            'status' => function($q, $value) {
+            'status' => function ($q, $value) {
                 if ($value && $value !== 'all') {
-                    $q->whereHas('status', function($q) use ($value) {
+                    $q->whereHas('status', function ($q) use ($value) {
                         $q->where('name', $value);
                     });
                 }
             },
-            'campus' => function($q, $value) {
-                $q->whereHas('campus', function($q) use ($value) {
+            'campus' => function ($q, $value) {
+                $q->whereHas('campus', function ($q) use ($value) {
                     $q->where('campusName', $value);
                 });
             },
-            'role' => function($q, $value) {
-                $q->whereHas('role', function($q) use ($value) {
+            'role' => function ($q, $value) {
+                $q->whereHas('role', function ($q) use ($value) {
                     $q->where('roleName', $value);
                 });
             },
-            'position' => function($q, $value) {
-                $q->whereHas('role', function($q) use ($value) {
+            'position' => function ($q, $value) {
+                $q->whereHas('role', function ($q) use ($value) {
                     $q->where('roleName', $value);
                 });
             },
-            'program' => function($q, $value) {
-                $q->whereHas('program', function($q) use ($value) {
+            'program' => function ($q, $value) {
+                $q->whereHas('program', function ($q) use ($value) {
                     $q->where('programName', $value);
                 });
             },
-            'state' => function($q, $value) {
-                $normalizedValue = strtolower(trim((string) $value));
-
-                if ($normalizedValue === 'all' || $normalizedValue === '') {
-                    return;
-                }
-
-                if ($normalizedValue === 'active') {
-                    $q->where('isActive', true)
-                      ->whereHas('status', function ($statusQuery) {
-                          $statusQuery->where('name', 'registered');
-                      });
-                    return;
-                }
-
-                if ($normalizedValue === 'inactive') {
-                    $q->where('isActive', false)
-                      ->whereHas('status', function ($statusQuery) {
-                          $statusQuery->where('name', 'registered');
-                      });
-                }
+            'state' => function ($q, $value) {
+                $q->where('isActive', $value === 'Active');
             }
         ];
 
@@ -707,62 +657,56 @@ class UserController extends Controller
 
     private function paginateResults($query, Request $request)
     {
-        $perPage = min((int)$request->input('limit', 20), 100); // Default 20, max 100
-        $page = max((int)$request->input('page', 1), 1);
+        $perPage = min((int) $request->input('limit', 20), 100); // Default 20, max 100
+        $page = max((int) $request->input('page', 1), 1);
         $total = $query->count();
 
         $users = $query->orderBy('userID', 'desc')
-                      ->skip(($page - 1) * $perPage)
-                      ->take($perPage)
-                      ->get()
-                      ->map(function ($user) {
-                          // Fetch remarks and curriculum for students
-                          $remarks = null;
-                          $curriculum = null;
-                          if ($user->roleID == 1) {
-                              $remarksRow = \DB::table('student_remarks')
-                                  ->join('remarks', 'student_remarks.remarksID', '=', 'remarks.id')
-                                  ->where('student_remarks.userID', $user->userID)
-                                  ->select('remarks.remarksType')
-                                  ->first();
-                              $remarks = $remarksRow ? $remarksRow->remarksType : null;
-                              $curriculumRow = \DB::table('student_curricula')
-                                  ->join('curriculum', 'student_curricula.curriculumID', '=', 'curriculum.id')
-                                  ->where('student_curricula.userID', $user->userID)
-                                  ->select('curriculum.curriculumType')
-                                  ->first();
-                              $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
-                          }
-                          return [
-                              'userID' => $user->userID,
-                              'userCode' => $user->userCode,
-                              'firstName' => $user->firstName,
-                              'lastName' => $user->lastName,
-                              'email' => $user->email,
-                              'roleID' => $user->roleID,
-                              'campusID' => $user->campusID,
-                              'programID' => $user->programID,
-                              'role' => $user->role ? $user->role->roleName : 'Unknown',
-                              'campus' => $user->campus ? $user->campus->campusName : 'Unknown',
-                              'program' => $user->program ? $user->program->programName : 'Not Assigned',
-                              'isActive' => $user->isActive,
-                              'status_id' => $user->status_id,
-                              'status' => $user->status ? $user->status->name : 'Unknown',
-                              'remarks' => $remarks,
-                              'curriculum' => $curriculum,
-                              'yearLevel' => $user->student ? $user->student->yearLevel : null,
-                              'student_profile' => $user->student ? [
-                                  'year_level' => $user->student->yearLevel,
-                                  'block' => $user->student->block,
-                                  'programID' => $user->student->programID,
-                              ] : null,
-                          ];
-                      });
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->get()
+            ->map(function ($user) {
+                // Fetch remarks and curriculum for students
+                $remarks = null;
+                $curriculum = null;
+                if ($user->roleID == 1) {
+                    $remarksRow = \DB::table('student_remarks')
+                        ->join('remarks', 'student_remarks.remarksID', '=', 'remarks.id')
+                        ->where('student_remarks.userID', $user->userID)
+                        ->select('remarks.remarksType')
+                        ->first();
+                    $remarks = $remarksRow ? $remarksRow->remarksType : null;
+                    $curriculumRow = \DB::table('student_curricula')
+                        ->join('curriculum', 'student_curricula.curriculumID', '=', 'curriculum.id')
+                        ->where('student_curricula.userID', $user->userID)
+                        ->select('curriculum.curriculumType')
+                        ->first();
+                    $curriculum = $curriculumRow ? $curriculumRow->curriculumType : null;
+                }
+                return [
+                    'userID' => $user->userID,
+                    'userCode' => $user->userCode,
+                    'firstName' => $user->firstName,
+                    'lastName' => $user->lastName,
+                    'email' => $user->email,
+                    'roleID' => $user->roleID,
+                    'campusID' => $user->campusID,
+                    'programID' => $user->programID,
+                    'role' => $user->role ? $user->role->roleName : 'Unknown',
+                    'campus' => $user->campus ? $user->campus->campusName : 'Unknown',
+                    'program' => $user->program ? $user->program->programName : 'Not Assigned',
+                    'isActive' => $user->isActive,
+                    'status_id' => $user->status_id,
+                    'status' => $user->status ? $user->status->name : 'Unknown',
+                    'remarks' => $remarks,
+                    'curriculum' => $curriculum,
+                ];
+            });
 
         return [
             'users' => $users,
             'total' => $total,
-            'page' => (int)$page,
+            'page' => (int) $page,
             'totalPages' => ceil($total / $perPage)
         ];
     }
@@ -856,7 +800,7 @@ class UserController extends Controller
 
         foreach ($userIDs as $userID) {
             $user = User::find($userID);
-            
+
             // Check if user exists and is pending
             if (!$user || $user->status_id !== $statusIds['pending']) {
                 $skipped[] = [
@@ -970,7 +914,7 @@ class UserController extends Controller
 
     private function getAllowedRoleChanges($roleID)
     {
-        return match($roleID) {
+        return match ($roleID) {
             4 => [1, 2, 3, 4, 5], // Dean can change all roles
             5 => [1, 2, 3],      // Associate Dean can change Program Chair, Instructor, and Student
             3 => [1, 2],         // Program Chair can change Instructor and Student
@@ -981,7 +925,7 @@ class UserController extends Controller
     private function getApproverDisplayName($user)
     {
         $approverName = $user->firstName . ' ' . $user->lastName;
-        
+
         // Add role and program information
         $roleNames = [
             1 => 'Student',
@@ -990,20 +934,20 @@ class UserController extends Controller
             4 => 'Dean',
             5 => 'Associate Dean'
         ];
-        
+
         $roleName = $roleNames[$user->roleID] ?? 'Administrator';
-        
+
         // For Program Chair and Instructor, include program name
         if (in_array($user->roleID, [2, 3]) && $user->program) {
             $programName = $user->program->programName ?? '';
             return "{$approverName} - {$programName} {$roleName}";
         }
-        
+
         // For Dean and Associate Dean, just show role
         if (in_array($user->roleID, [4, 5])) {
             return $roleName;
         }
-        
+
         return $approverName;
     }
 
@@ -1020,13 +964,13 @@ class UserController extends Controller
             4 => 'Dean',
             5 => 'Associate Dean'
         ];
-        
+
         $roleName = $roleNames[$user->roleID] ?? 'Administrator';
-        
+
         $displayName = $user->firstName . ' ' . $user->lastName;
         $campusName = $user->campus ? $user->campus->campusName : 'N/A';
         $programName = $user->program ? $user->program->programName : 'N/A';
-        
+
         $info = [
             'approver_id' => $user->userID,
             'approver_name' => $displayName,
@@ -1036,7 +980,7 @@ class UserController extends Controller
             'display_name' => $displayName . ' (' . $roleName . ')',
             'scope' => $this->getApproverScope($user)
         ];
-        
+
         // Build detailed display name with scope information
         if ($user->roleID === 4) {
             $info['display_name'] = $displayName . ' - Dean (Full Authority)';
@@ -1047,7 +991,7 @@ class UserController extends Controller
         } elseif ($user->roleID === 2) {
             $info['display_name'] = $displayName . ' - Faculty (' . $programName . ')';
         }
-        
+
         return $info;
     }
 
@@ -1091,14 +1035,14 @@ class UserController extends Controller
         // Program Chair can ONLY approve users within their assigned program
         if ($authUser->roleID === 3) {
             return $targetUser->programID === $authUser->programID &&
-                   $targetUser->campusID === $authUser->campusID;
+                $targetUser->campusID === $authUser->campusID;
         }
 
         // Faculty can ONLY approve students (roleID 1) in their program
         if ($authUser->roleID === 2) {
             return $targetUser->roleID === 1 && // Only students
-                   $targetUser->programID === $authUser->programID &&
-                   $targetUser->campusID === $authUser->campusID;
+                $targetUser->programID === $authUser->programID &&
+                $targetUser->campusID === $authUser->campusID;
         }
 
         return false;

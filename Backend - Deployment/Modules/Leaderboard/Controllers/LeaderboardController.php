@@ -38,13 +38,17 @@ class LeaderboardController extends Controller
         }
         
         // For 'global' scope without filters, use mobile leaderboard format (for mobile app)
-        // For other scopes ('exam', 'class'), use original Redis-based logic
+        // For other scopes ('exam', 'class', 'program'), use original Redis-based logic
         if ($scope === 'global') {
             return $this->getMobileLeaderboard($request, null, null);
         }
         
-        // Otherwise, use original scope-based logic for exam/class scopes
-        $id = $request->query($scope === 'exam' ? 'exam_id' : 'class_id');
+        // Otherwise, use original scope-based logic for exam/class/program scopes
+        if ($scope === 'program') {
+            $id = $request->query('program_id');
+        } else {
+            $id = $request->query($scope === 'exam' ? 'exam_id' : 'class_id');
+        }
         $limit = (int) $request->query('limit', 10);
 
         $key = $this->leaderboard->buildKey($scope, $id);
@@ -669,6 +673,8 @@ class LeaderboardController extends Controller
         } elseif ($scope === 'class') {
             $query->join('class_enrollments', 'exam_analytics.user_id', '=', 'class_enrollments.studentID')
                   ->where('class_enrollments.classID', $id);
+        } elseif ($scope === 'program') {
+            $query->where('users.programID', $id);
         }
 
         $results = $query->get();

@@ -21,6 +21,7 @@ class LeaderboardService
     /**
      * Composite score formula: (score * 1,000,000) + (9,999,999,999 - finished_at_unix)
      * Ensures higher score wins, and ties go to the earlier finisher.
+     * Note: score is now in points (earnedPoints) instead of percentage.
      */
     public function computeComposite(float $score, Carbon $finishedAt): float
     {

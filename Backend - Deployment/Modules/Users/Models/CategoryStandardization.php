@@ -26,6 +26,6 @@ class CategoryStandardization extends Model
      */
     public function variants(): HasMany
     {
-        return $this->hasMany(CategoryVariant::class);
+        return $this->hasMany(CategoryVariant::class, 'category_normalization_id');
     }
 }

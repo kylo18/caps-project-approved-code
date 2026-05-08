@@ -43,6 +43,7 @@ class RebuildLeaderboard extends Command
         $this->rebuildGlobal();
         $this->rebuildPerExam();
         $this->rebuildPerClass();
+        $this->rebuildPerProgram();
 
         $duration = round(microtime(true) - $start, 2);
         $this->info("Leaderboard rebuild completed in {$duration} seconds.");
@@ -155,6 +156,43 @@ class RebuildLeaderboard extends Command
                 } catch (\Exception $e) {
                     $this->error("Failed rebuild for class #{$classId}: " . $e->getMessage());
                     \Illuminate\Support\Facades\Log::error("Leaderboard Rebuild Error (Class #{$classId}): " . $e->getMessage());
+                }
+            }
+        }
+    }
+
+    protected function rebuildPerProgram()
+    {
+        $this->info('Rebuilding per-program leaderboards...');
+
+        $programs = DB::table('programs')
+            ->distinct()
+            ->pluck('programID');
+
+        foreach ($programs as $programId) {
+            $key = $this->leaderboard->buildKey('program', $programId);
+            $tmpKey = "{$key}:tmp";
+
+            $results = DB::table('exam_analytics')
+                ->join('users', 'exam_analytics.user_id', '=', 'users.userID')
+                ->where('users.programID', $programId)
+                ->select('exam_analytics.user_id')
+                ->selectRaw('MAX((overall_score * 10000000000) + (9999999999 - UNIX_TIMESTAMP(NOW()))) as best_composite')
+                ->groupBy('exam_analytics.user_id')
+                ->get();
+
+            if ($results->isNotEmpty()) {
+                try {
+                    Redis::del($tmpKey);
+                    foreach ($results as $row) {
+                        Redis::zadd($tmpKey, $row->best_composite, $row->user_id);
+                    }
+                    Redis::expire($tmpKey, 2592000); // 30 days TTL
+                    Redis::rename($tmpKey, $key);
+                    $this->line("Rebuilt program #{$programId}");
+                } catch (\Exception $e) {
+                    $this->error("Failed rebuild for program #{$programId}: " . $e->getMessage());
+                    \Illuminate\Support\Facades\Log::error("Leaderboard Rebuild Error (Program #{$programId}): " . $e->getMessage());
                 }
             }
         }

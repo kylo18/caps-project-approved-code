@@ -26,6 +26,6 @@ class StatusStandardization extends Model
      */
     public function variants(): HasMany
     {
-        return $this->hasMany(StatusVariant::class);
+        return $this->hasMany(StatusVariant::class, 'status_normalization_id');
     }
 }

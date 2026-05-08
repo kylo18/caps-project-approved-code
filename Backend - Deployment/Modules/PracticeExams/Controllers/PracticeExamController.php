@@ -821,6 +821,16 @@ class PracticeExamController extends Controller
 
         // Update leaderboard with exam result
         Leaderboard::updateOrCreateRecord($user->userID, $validated['subjectID'], round($percentage, 2));
+        
+        // Trigger real-time Redis leaderboard update
+        event(new \App\Events\ExamResultUpdated(
+            $user->userID,
+            $earnedPoints, // Use points instead of percentage for ranking
+            now(),
+            'global',
+            null,
+            $user->programID
+        ));
 
         return response()->json([
             'message' => 'Exam submitted successfully.',
