@@ -167,20 +167,6 @@ const ContentAnalytics = () => {
         top:          0,
         zIndex:       10,
       }}>
-        <button
-          onClick={() => navigate("/student-dashboard")}
-          style={{
-            width: 34, height: 34, borderRadius: 9,
-            border: "1px solid #EAE8E2", background: "#F5F3EF",
-            cursor: "pointer", display: "flex",
-            alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5C5955" strokeWidth="1.8">
-            <polyline points="10,3 5,8 10,13"/>
-          </svg>
-        </button>
 
         <div style={{ flex: 1, minWidth: 0 }}>
 

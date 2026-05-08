@@ -201,14 +201,7 @@ const DifficultyAnalytics = () => {
     <div className="bg-[#F5F3EF] min-h-screen overflow-x-hidden max-w-full font-sans">
       {/* Page header: back button, title, and current trend badge */}
       <div className="bg-white border-b border-[#EAE8E2] p-4 sm:p-4 sm:px-7 flex flex-wrap items-center gap-4">
-        <button
-          onClick={() => navigate("/student-dashboard")}
-          className="w-9 h-9 rounded-xl border border-[#EAE8E2] bg-[#F5F3EF] flex items-center justify-center"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5C5955" strokeWidth="1.8">
-            <polyline points="10,3 5,8 10,13" />
-          </svg>
-        </button>
+      
         <div>
           <div className="text-base font-bold text-[#1A1814]">Learning Difficulty</div>
           <div className="text-xs text-[#9B9790]">Your personal Easy / Moderate / Hard breakdown · Real exam data</div>

@@ -88,10 +88,7 @@ const ScoreHistory = () => {
 
       {/* ── TOP BAR ── */}
       <div style={{ background: "#fff", borderBottom: "1px solid #EAE8E2", padding: isMobile ? "16px 16px" : "16px 28px", marginTop: isMobile ? "60px" : "0", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <button onClick={() => navigate("/student-dashboard")}
-          style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid #EAE8E2", background: "#F5F3EF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5C5955" strokeWidth="1.8"><polyline points="10,3 5,8 10,13"/></svg>
-        </button>
+        
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, color: "#1A1814", letterSpacing: -0.4 }}>My Achievements</div>
           <div style={{ fontSize: 12, color: "#9B9790" }}>All your past exam scores over time</div>
@@ -119,7 +116,9 @@ const ScoreHistory = () => {
         {/* ── TREND CHART ── */}
         <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #EAE8E2", marginBottom: 22, overflow: "hidden" }}>
           <div style={{ padding: "14px 20px 12px", borderBottom: "1px solid #F0EDE8", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1814" }}>Score Trend Over Time</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1814" }}>
+              Score Trend Over Time
+            </span>
             <div style={{ display: "flex", gap: 6 }}>
               {[{ id: "all", label: "All" }, { id: "pass", label: "Passed" }, { id: "fail", label: "Failed" }].map(f => (
                 <button key={f.id} onClick={() => setFilter(f.id)}
@@ -146,16 +145,18 @@ const ScoreHistory = () => {
                     const h = Math.round((monthAvgs[i] / maxScore) * (chartH - 30));
                     return (
                       <div key={m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: sc(monthAvgs[i]) }}>{monthAvgs[i]}%</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: sc(monthAvgs[i]) }}>{monthAvgs[i]}%</div>
                         <div style={{ width: "100%", height: h, background: sc(monthAvgs[i]), borderRadius: "6px 6px 0 0", minHeight: 4, opacity: 0.85, transition: "height 0.5s ease" }}/>
-                        <div style={{ fontSize: 10, color: "#9B9790", textAlign: "center", whiteSpace: "nowrap" }}>{m}</div>
+                        <div style={{ fontSize: 12, color: "#9B9790", textAlign: "center", whiteSpace: "nowrap" }}>{m}</div>
                       </div>
                     );
                   })}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
                   <div style={{ width: 20, height: 2, background: "#22A56D", borderRadius: 2 }}/>
-                  <span style={{ fontSize: 11, color: "#9B9790" }}>Pass threshold: 75%</span>
+                  <span style={{ fontSize: 12, color: "#9B9790" }}>
+                    Pass threshold: 75%
+                  </span>
                   {improvement != null && (
                     <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: improvement >= 0 ? "#22A56D" : "#E55012" }}>
                       {improvement >= 0 ? "↑" : "↓"} {Math.abs(improvement)}% overall improvement

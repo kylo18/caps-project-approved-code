@@ -243,6 +243,11 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
       setIsRegistering(false);
     }
   };
+  
+  const handleGoogleLogin = () => {
+    const frontendUrl = window.location.origin;
+    window.location.href = `${apiUrl}/auth/google/redirect?frontend_url=${encodeURIComponent(frontendUrl)}`;
+  };
 
   if (!isOpen) return null;
 
@@ -559,7 +564,8 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
           </div>
 
           <button
-            onClick={() => alert("Google Sign-In is coming soon.")}
+            //onClick={() => alert("Google Sign-In is coming soon.")}
+            onClick={handleGoogleLogin}
             type="button"
             className="outfit-400 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 py-2.5 text-sm text-gray-700 transition hover:bg-gray-100"
           >
@@ -583,7 +589,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
             <span
               onClick={() => {
                 onClose();
-                onSwitchToLogin?.();
+                //onSwitchToLogin?.();
               }}
               className="cursor-pointer font-medium text-orange-500 hover:underline"
             >

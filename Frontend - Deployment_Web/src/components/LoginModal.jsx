@@ -106,6 +106,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwit
       window.location.href = `${apiUrl}/auth/google/redirect?frontend_url=${encodeURIComponent(frontendUrl)}`;
     };
 
+    if (!isOpen) return null;
+
     return (
       <>
         {/* Backdrop */}

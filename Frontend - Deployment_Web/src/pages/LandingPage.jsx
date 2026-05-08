@@ -13,6 +13,7 @@ import RegisterModal from "../components/RegisterModal";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import ResetPasswordModal from "../components/ResetPasswordModal";
 import AppVersion from "../components/appVersion";
+import DownloadModal from "../components/DownloadModal";
 
 import {
   clearDeferredInstallPrompt,
@@ -20,6 +21,7 @@ import {
 } from "../pwaDeferredInstall.js";
 
 function LandingPage() {
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -123,7 +125,8 @@ function LandingPage() {
         <ul className="outfit-500 absolute top-4 right-4 z-50 hidden items-center gap-4 text-[14px] text-gray-700 md:top-5 md:right-8 md:flex md:gap-6 md:text-[16px] 2xl:right-16">
           <li>
             <a
-              onClick={() => alert("Application is coming soon")}
+              //onClick={() => alert("Application is coming soon")}
+              onClick={() => setIsDownloadOpen(true)}
               className="cursor-pointer hover:text-gray-900"
             >
               Download
@@ -190,7 +193,8 @@ function LandingPage() {
             <nav className="flex flex-col gap-6">
               <a
                 onClick={() => {
-                  alert("Application is coming soon");
+                  //alert("Application is coming soon");
+                  setIsDownloadOpen(true);
                   setIsSidebarOpen(false);
                 }}
                 className="cusror-pointer text-[14px] font-medium text-gray-700 hover:text-gray-900"
@@ -663,7 +667,7 @@ function LandingPage() {
           </div>
         </footer>
       </div>
-
+      
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
@@ -704,6 +708,10 @@ function LandingPage() {
           window.history.replaceState({}, "", window.location.pathname);
           setIsLoginOpen(true);
         }}
+      />
+      <DownloadModal
+        isOpen={isDownloadOpen}
+        onClose={() => setIsDownloadOpen(false)}
       />
     </>
   );

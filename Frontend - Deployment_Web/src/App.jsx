@@ -75,7 +75,9 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Login />} />
+        {/*<Route path="/" element={<Login />} />*/}
+        <Route path="/" element={<LandingPage />} />
+        
         <Route path="/testLogin" element={<TestLogin />} />
 
         <Route path="/register" element={<Register />} />
@@ -87,7 +89,7 @@ function App() {
         <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
 
         {/* Public Landing Page */}
-        <Route path="/landing" element={<LandingPage />} />
+        {/**<Route path="/landing" element={<LandingPage />} />*/}
 
         {/* Libraries - Personal quizzes */}
         <Route
