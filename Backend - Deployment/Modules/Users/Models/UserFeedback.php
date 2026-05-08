@@ -9,6 +9,7 @@ class UserFeedback extends Model
 {
     protected $fillable = [
         'user_id',
+        'class_id',
         'subject',
         'issue_type',
         'message',
@@ -27,6 +28,14 @@ class UserFeedback extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class,'user_id','userID');
+    }
+
+    /**
+     * Get the class associated with the feedback.
+     */
+    public function class(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\PersonalClasses\Models\ClassModel::class, 'class_id', 'classID');
     }
 
     /**

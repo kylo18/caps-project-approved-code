@@ -22,6 +22,7 @@ class FeedbackController
             'issue_type' => 'required|string',
             'message' => 'required|string',
             'category' => 'nullable|string',
+            'class_id' => 'nullable|exists:classes,classID',
         ]);
 
         if ($validator->fails()) {
@@ -44,6 +45,7 @@ class FeedbackController
         try {
             $feedback = UserFeedback::create([
                 'user_id' => $user->userID,
+                'class_id' => $request->class_id,
                 'subject' => trim($request->subject),
                 'issue_type' => trim($request->issue_type),
                 'message' => trim($request->message),
@@ -199,17 +201,9 @@ class FeedbackController
             $classIds = \Modules\PersonalClasses\Models\ClassModel::where('facultyID', $facultyId)
                 ->pluck('classID');
 
-            // Step 2: Get all student IDs enrolled in those classes
-            $studentIds = \Modules\PersonalClasses\Models\ClassEnrollment::whereIn('classID', $classIds)
-                ->pluck('studentID')
-                ->unique();
-
-            // Step 3: Get feedback from those students only
-            $query = UserFeedback::with('user')
-                ->whereIn('user_id', $studentIds)
-                ->whereHas('user', function ($q) {
-                    $q->where('roleID', 1); // Students only
-                });
+            // Step 2: Get feedback linked specifically to those classes
+            $query = UserFeedback::with(['user', 'class'])
+                ->whereIn('class_id', $classIds);
 
             if ($request->has('status')) {
                 $normalizedStatus = FeedbackStandardizationService::normalizeStatus($request->status);
@@ -228,7 +222,6 @@ class FeedbackController
                 'feedback' => $feedback,
                 'faculty_id' => $facultyId,
                 'class_count' => $classIds->count(),
-                'student_count' => $studentIds->count(),
             ]);
         } catch (\Exception $e) {
             return response()->json([
