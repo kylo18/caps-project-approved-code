@@ -174,12 +174,13 @@ class FeedbackController
 
     /**
      * Get feedback for Faculty (GET /feedback/faculty/:id)
+     * Returns feedback from students enrolled in the faculty's classes.
      */
     public function facultyIndex(Request $request, $facultyId): JsonResponse
     {
         $user = Auth::user();
 
-        if (!$user || $user->roleID !== 2) { // Only Faculty
+        if (!$user || $user->roleID !== 2) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized. Only Faculty can access faculty feedback.',
@@ -189,17 +190,27 @@ class FeedbackController
         if ($user->userID != $facultyId) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. You can only access feedback for yourself.',
+                'message' => 'Unauthorized. You can only access feedback for your own students.',
             ], 403);
         }
 
         try {
+            // Step 1: Get all class IDs that belong to this faculty
+            $classIds = \Modules\PersonalClasses\Models\ClassModel::where('facultyID', $facultyId)
+                ->pluck('classID');
+
+            // Step 2: Get all student IDs enrolled in those classes
+            $studentIds = \Modules\PersonalClasses\Models\ClassEnrollment::whereIn('classID', $classIds)
+                ->pluck('studentID')
+                ->unique();
+
+            // Step 3: Get feedback from those students only
             $query = UserFeedback::with('user')
-                ->whereHas('user', function($q) use ($facultyId) {
-                    $q->where('userID', $facultyId);
+                ->whereIn('user_id', $studentIds)
+                ->whereHas('user', function ($q) {
+                    $q->where('roleID', 1); // Students only
                 });
 
-            // Apply filters
             if ($request->has('status')) {
                 $normalizedStatus = FeedbackStandardizationService::normalizeStatus($request->status);
                 $query->status($normalizedStatus);
@@ -216,6 +227,8 @@ class FeedbackController
                 'success' => true,
                 'feedback' => $feedback,
                 'faculty_id' => $facultyId,
+                'class_count' => $classIds->count(),
+                'student_count' => $studentIds->count(),
             ]);
         } catch (\Exception $e) {
             return response()->json([

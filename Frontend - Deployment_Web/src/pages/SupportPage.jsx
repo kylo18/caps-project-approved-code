@@ -175,6 +175,7 @@ export default function SupportPage() {
   const isProgramChair = currentRoleId === 3;
   const isFaculty = currentRoleId === 2;
   const canViewAllReports = [2, 3, 4, 5].includes(currentRoleId);
+  const currentProgramId = Number(currentUser?.programID ?? currentUser?.program?.programID ?? 0);
 
   const currentProgram = normalizeProgram(
     currentUser?.program?.programName ??
@@ -322,21 +323,23 @@ export default function SupportPage() {
       .finally(() => setAllReportsLoading(false));
   }, [activeTab, canViewAllReports, statusOverrides]);
 
-  const currentProgramId = Number(currentUser?.programID ?? currentUser?.program?.programID ?? 0);
   const filteredAllReports = allReports.filter((ticket) => {
     if (isDeanOrAssocDean) return true;
-
+  
+    // For faculty: backend already filtered by enrolled students, just show all returned
+    if (isFaculty) return true;
+  
     if (!isProgramChair) return false;
-
+  
     // Only show student (roleID 1) reports
     const reportRoleId = Number(ticket?.user?.roleID ?? ticket?.user?.roleId ?? 0);
     if (reportRoleId !== 1) return false;
-
+  
     // Match by programID — most reliable
     const reportProgramId = Number(
       ticket?.user?.programID ?? ticket?.user?.program?.programID ?? 0
     );
-
+  
     return currentProgramId > 0 && reportProgramId === currentProgramId;
   });
 
@@ -618,11 +621,14 @@ export default function SupportPage() {
                   </span>
                   <div>
                     <h2 className="text-[18px] font-bold text-gray-800">Help Center</h2>
-                    <p className="text-[12px] text-gray-500 mt-0.5">Everything you need to succeed in CAPS</p>
+                    <p className="text-[12px] text-gray-500 mt-0.5">
+                      Everything you need to succeed in CAPS
+                    </p>
                   </div>
                 </div>
               </div>
               {/* <div className="grid h-full grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(340px,1fr)]"> */}
+              
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(340px,1fr)]">
                 {/* LEFT — FAQ */}
                 {/* <div className="flex h-full flex-col gap-4"> */}
@@ -733,13 +739,19 @@ export default function SupportPage() {
                     <i className="bx bx-receipt text-[22px] text-orange-600"></i>
                   </span>
                   <div>
-                    <h2 className="text-[18px] font-bold text-gray-800">My Tickets</h2>
-                    <p className="text-[12px] text-gray-500 mt-0.5">Submit and track your support requests</p>
+                    <h2 className="text-[18px] font-bold text-gray-800">
+                      My Tickets
+                    </h2>
+                    <p className="text-[12px] text-gray-500 mt-0.5">
+                      Submit and track your support requests
+                    </p>
                   </div>
                 </div>
                 <div className="rounded-xl bg-orange-50 border border-orange-100 px-5 py-3 text-center">
                   <p className="text-[22px] font-bold text-orange-600">{tickets.length}</p>
-                  <p className="text-[11px] text-gray-500">Tickets</p>
+                  <p className="text-[11px] text-gray-500">
+                    Tickets
+                  </p>
                 </div>
               </div>
               {/* <div className="grid h-full grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)]"> */}
@@ -764,8 +776,13 @@ export default function SupportPage() {
                         <i className="bx bx-check text-[18px] text-green-600"></i>
                       </div>
                       <div>
-                        <p className="text-[13px] font-semibold text-green-800">Your report was submitted successfully.</p>
-                        <p className="text-[12px] text-green-700">Your message has been suggested to the admin. Track it under <strong>My Tickets</strong>.</p>
+                        <p className="text-[13px] font-semibold text-green-800">
+                          Your report was submitted successfully.
+                        </p>
+                        <p className="text-[12px] text-green-700">
+                          Your message has been suggested to the admin. Track it under 
+                          <strong>My Tickets</strong>.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -776,7 +793,9 @@ export default function SupportPage() {
                         <i className="bx bx-x text-[18px] text-red-600"></i>
                       </div>
                       <div>
-                        <p className="text-[13px] font-semibold text-red-800">Something went wrong.</p>
+                        <p className="text-[13px] font-semibold text-red-800">
+                          Something went wrong.
+                        </p>
                         <p className="text-[12px] text-red-700">{submitError || "Please check your connection and try again."}</p>
                       </div>
                     </div>
@@ -820,7 +839,11 @@ export default function SupportPage() {
                           value={form.subject}
                           onChange={handleFormChange}
                           disabled={!form.issue_type}
-                          className={`w-full appearance-none rounded-lg border bg-gray-50 px-4 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${fieldErrors.subject ? "border-red-400 bg-red-50" : "border-gray-200"}`}
+                          className={
+                            `w-full appearance-none rounded-lg border bg-gray-50 px-4 py-2 
+                            text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none 
+                            disabled:cursor-not-allowed disabled:opacity-50 ${fieldErrors.subject ? 
+                            "border-red-400 bg-red-50" : "border-gray-200"}`}
                         >
                           <option value="" disabled hidden>
                             {form.issue_type ? "Select a subject…" : "Select an issue type first…"}
@@ -968,7 +991,9 @@ export default function SupportPage() {
                         </span>
                       </div>
                       <h2 className="text-[18px] font-bold text-gray-800">All Reports Overview</h2>
-                      <p className="text-[12px] text-gray-500 mt-0.5">Full visibility across all programs, faculty, and students</p>
+                      <p className="text-[12px] text-gray-500 mt-0.5">
+                        Full visibility across all programs, faculty, and students
+                      </p>
                     </div>
                   </div>
                   {/* <div className="hidden sm:flex items-center gap-6 text-center"> */}
