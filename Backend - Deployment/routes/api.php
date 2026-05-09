@@ -80,7 +80,7 @@ Route::get('/auth/facebook', [SocialAuthController::class, 'redirectToFacebook']
 Route::get('/leaderboard', [LeaderboardController::class, 'index']);
 
 // Temporary route to clear cache
-Route::get('/clear-cache', function() {
+Route::get('/clear-cache', function () {
     \Illuminate\Support\Facades\Artisan::call('cache:clear');
     \Illuminate\Support\Facades\Artisan::call('config:clear');
     \Illuminate\Support\Facades\Artisan::call('view:clear');
@@ -91,7 +91,7 @@ Route::get('/clear-cache', function() {
 });
 
 // Test route to verify Redis is working
-Route::get('/test-redis', function() {
+Route::get('/test-redis', function () {
     try {
         \Illuminate\Support\Facades\Redis::set('test', 'Hello Redis from Docker!');
         $value = \Illuminate\Support\Facades\Redis::get('test');
@@ -138,7 +138,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user/profile', [UserController::class, 'getProfile']);
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
 
-// --- FROM HEAD ---
+    // --- FROM HEAD ---
     // Student Analytics Routes (Role 1 only)
     Route::middleware(['role:1'])->group(function () {
         Route::get('/student/analytics/summary', [StudentAnalyticsController::class, 'getSummary']);
@@ -228,6 +228,7 @@ Route::middleware(['auth:sanctum', 'role:2'])->group(function () {
 Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4,5'])->group(function () {
     // User management
     Route::get('/users', [UserController::class, 'index']);
+    Route::get('/admin/pending-users-count', [UserController::class, 'getPendingUsersCount']);
     Route::patch('/users/{userID}/approve', [UserController::class, 'approveUser']);
     Route::patch('/users/{userID}/disapprove', [UserController::class, 'disapproveUser']);
     Route::post('/users/approve-multiple', [UserController::class, 'approveMultipleUsers']);
@@ -522,7 +523,7 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
 */
 Route::middleware(['auth:sanctum', 'role:3'])->group(function () {
     Route::get('/program/{subjectID}', [QuestionController::class, 'indexQuestionsByProgram']);
-    
+
     // Feedback System Routes (Program Chair)
     Route::get('/feedback/program/{id}', [FeedbackController::class, 'programIndex']);
 });
@@ -594,4 +595,4 @@ Route::get('storage/choices/{filename}', function ($filename) {
     }
     return response()->file($path);
 })->middleware('image.cors');
- 
+

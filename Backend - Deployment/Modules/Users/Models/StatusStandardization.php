@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StatusStandardization extends Model
 {
-    protected $table = 'status_normalization';
-    
+    protected $table = 'status_standardizations';
+
     protected $fillable = [
         'normalized_name',
         'description',

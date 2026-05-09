@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CategoryStandardization extends Model
 {
-    protected $table = 'category_normalization';
-    
+    protected $table = 'category_standardizations';
+
     protected $fillable = [
         'normalized_name',
         'description',

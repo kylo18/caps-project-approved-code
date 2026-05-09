@@ -231,8 +231,8 @@ class PrintController extends Controller
             }
             $totalSubjectPercentage = collect($validated['subjects'])->sum('percentage');
             $totalDifficultyPercentage = $validated['difficulty_distribution']['easy'] +
-                                       $validated['difficulty_distribution']['moderate'] +
-                                       $validated['difficulty_distribution']['hard'];
+                $validated['difficulty_distribution']['moderate'] +
+                $validated['difficulty_distribution']['hard'];
             try {
                 if ($totalSubjectPercentage !== 100) {
                     throw new \Exception("Subject percentages sum to {$totalSubjectPercentage}%, expected 100%");
@@ -274,8 +274,8 @@ class PrintController extends Controller
                     try {
                         $baseQuery = Question::with(['choices', 'difficulty', 'status', 'purpose'])
                             ->where('subjectID', $subjectData['subjectID'])
-                            ->where('purpose_id', $purpose->id)
-                            ->whereHas('status', function($query) {
+                            //->where('purpose_id', $purpose->id)
+                            ->whereHas('status', function ($query) {
                                 $query->where('name', 'approved');
                             });
                         // Role-based filtering
@@ -379,9 +379,11 @@ class PrintController extends Controller
                                 ]
                             ], 422);
                         }
-                        if ($easyQuestions->count() < $numEasy || 
-                            $moderateQuestions->count() < $numModerate || 
-                            $hardQuestions->count() < $numHard) {
+                        if (
+                            $easyQuestions->count() < $numEasy ||
+                            $moderateQuestions->count() < $numModerate ||
+                            $hardQuestions->count() < $numHard
+                        ) {
                             throw new \Exception("Insufficient questions of required difficulty levels");
                         }
                         $selectedQuestions = collect()
@@ -472,7 +474,7 @@ class PrintController extends Controller
                 'totalItems' => count($allQuestionsFlat),
                 'requestedItems' => $totalItems,
                 'purpose' => $validated['purpose'],
-                'examTitle' => match($validated['purpose']) {
+                'examTitle' => match ($validated['purpose']) {
                     'examQuestions' => 'Qualifying Examination',
                     'practiceQuestions' => 'Practice Examination',
                     'personalQuestions' => 'Quiz',
@@ -548,7 +550,7 @@ class PrintController extends Controller
                 ->where('subjectID', $validated['subjectID'])
                 ->where('purpose_id', $purpose->id)
                 ->where('userID', $user->userID)
-                ->whereHas('status', function($query) {
+                ->whereHas('status', function ($query) {
                     $query->where('name', 'approved');
                 });
             $allQuestions = $baseQuery->get();
@@ -639,7 +641,7 @@ class PrintController extends Controller
                 'trace' => $e->getTraceAsString(),
                 'request' => $request->all()
             ]);
-            return response()->json([   
+            return response()->json([
                 'status' => 'error',
                 'message' => 'System Error',
                 'details' => 'An unexpected error occurred while processing your request.',

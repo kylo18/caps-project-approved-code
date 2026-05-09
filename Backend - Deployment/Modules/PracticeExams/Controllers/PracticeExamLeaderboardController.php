@@ -84,7 +84,7 @@ class PracticeExamLeaderboardController extends Controller
 
             // Build leaderboard data
             $rank = 1;
-            $leaderboardData = $aggregated->map(function($row) use (&$rank, $bestResults) {
+            $leaderboardData = $aggregated->map(function ($row) use (&$rank, $bestResults) {
                 $bestResult = $bestResults->get($row->userID)?->sortBy('created_at')->first();
 
                 return [
@@ -195,7 +195,8 @@ class PracticeExamLeaderboardController extends Controller
                 ->selectRaw('MAX(practice_exam_results.created_at) as lastAttemptDate')
                 ->selectRaw('(SELECT earnedPoints FROM practice_exam_results AS latest WHERE latest.userID = practice_exam_results.userID AND latest.subjectID = practice_exam_results.subjectID ORDER BY created_at DESC LIMIT 1) as lastAttemptScore')
                 ->selectRaw('(SELECT percentage FROM practice_exam_results AS latest WHERE latest.userID = practice_exam_results.userID AND latest.subjectID = practice_exam_results.subjectID ORDER BY created_at DESC LIMIT 1) as lastAttemptPercentage')
-                ->groupBy('practice_exam_results.userID', 'users.userCode', 'users.firstName', 'users.lastName', 'programs.programName', 'users.programID', 'students.yearLevel')
+
+                ->groupBy('practice_exam_results.userID', 'practice_exam_results.subjectID', 'users.userCode', 'users.firstName', 'users.lastName', 'programs.programName', 'users.programID', 'students.yearLevel')
                 ->orderByDesc('lastAttemptDate')
                 ->limit($limitWithBuffer)
                 ->get();
@@ -216,7 +217,7 @@ class PracticeExamLeaderboardController extends Controller
             }
 
             // Build recent takers data
-            $recentTakers = $aggregated->map(function($row) {
+            $recentTakers = $aggregated->map(function ($row) {
                 return [
                     'userID' => $row->userID,
                     'studentID' => $row->userCode,
@@ -334,7 +335,7 @@ class PracticeExamLeaderboardController extends Controller
                 ->groupBy('userID');
 
             // Build leaderboard data
-            $leaderboardData = $aggregated->map(function($row) use ($lastAttempts) {
+            $leaderboardData = $aggregated->map(function ($row) use ($lastAttempts) {
                 $userLastAttempts = $lastAttempts->get($row->userID);
                 $lastAttempt = $userLastAttempts ? $userLastAttempts->sortByDesc('created_at')->first() : null;
 
@@ -458,7 +459,7 @@ class PracticeExamLeaderboardController extends Controller
                 ->groupBy('practice_exam_results.userID');
 
             // Build recent takers data
-            $recentTakers = $aggregated->map(function($row) use ($lastAttemptSubject) {
+            $recentTakers = $aggregated->map(function ($row) use ($lastAttemptSubject) {
                 $userLastSubject = $lastAttemptSubject->get($row->userID);
                 $lastSubject = $userLastSubject ? $userLastSubject->sortByDesc('created_at')->first() : null;
 

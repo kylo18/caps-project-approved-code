@@ -554,6 +554,70 @@ class UserController extends Controller
             'deleted_users' => $deleted
         ], 200);
     }
+    /**
+     * Get count of pending users (Only Admins can access this).
+     */
+    public function getPendingUsersCount(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            // Check if user is authenticated
+            if (!$user) {
+                return response()->json(['message' => 'Unauthenticated'], 401);
+            }
+
+            // Check if user has appropriate role (Faculty, Program Chair, Dean, Associate Dean)
+            if (!in_array($user->roleID, [2, 3, 4, 5])) {
+                return response()->json(['message' => 'Unauthorized: Insufficient permissions'], 403);
+            }
+
+            // Get pending status ID
+            $pendingStatusId = DB::table('statuses')->where('name', 'pending')->first()?->id;
+
+            if (!$pendingStatusId) {
+                return response()->json(['count' => 0], 200);
+            }
+
+            // Build query based on role
+            $query = User::where('status_id', $pendingStatusId);
+
+            // Faculty can see pending users from their own campus/program
+            if ($user->roleID === 2) {
+                if ($user->campusID && $user->programID) {
+                    $query->whereHas('student', function ($q) use ($user) {
+                        $q->where('programID', $user->programID);
+                    })->orWhere(function ($q) use ($user) {
+                        $q->where('roleID', 1)
+                            ->where('programID', $user->programID);
+                    });
+                } else {
+                    return response()->json(['count' => 0], 200);
+                }
+            }
+            // Program Chair can see pending users from their program
+            else if ($user->roleID === 3) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('programID', $user->programID)
+                        ->orWhereHas('student', function ($subQ) use ($user) {
+                            $subQ->where('programID', $user->programID);
+                        });
+                });
+            }
+            // Associate Dean and Dean can see all pending users from their campus
+            else if ($user->roleID === 5) {
+                $query->where('campusID', $user->campusID);
+            }
+            // Dean can see all pending users
+
+            $count = $query->count();
+
+            return response()->json(['count' => $count], 200);
+        } catch (\Exception $e) {
+            Log::error("Error fetching pending users count: " . $e->getMessage());
+            return response()->json(['count' => 0], 200);
+        }
+    }
 
     // Private helper methods
 
