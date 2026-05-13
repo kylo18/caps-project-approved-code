@@ -497,6 +497,7 @@ export default function StudentDashboard() {
                     title={subject.subjectName}
                     subtitle={`${subject.subjectCode || 'GEN'} • ${subject.questionCount || 10} quizzes`}
                     iconVariant={getSubjectVisualVariant(subject.subjectName)}
+                    subjectCode={subject.subjectCode}
                     onPress={() => handleSubjectPress(subject)}
                   />
                 ))

@@ -1,10 +1,26 @@
+// Maps subject code prefix to a contextually appropriate Ionicons icon
+export function getSubjectIcon(subjectCode?: string | null): string {
+  const code = (subjectCode ?? '').toUpperCase();
+
+  if (code.startsWith('MATH')) return 'calculator-outline';
+  if (code.startsWith('ENG')) return 'language-outline';
+  if (code.startsWith('SCI') || code.startsWith('BIO') || code.startsWith('CHEM') || code.startsWith('PHYS')) return 'flask-outline';
+  if (code.startsWith('HIST')) return 'time-outline';
+  if (code.startsWith('ART')) return 'brush-outline';
+  if (code.startsWith('MUS')) return 'musical-notes-outline';
+  if (code.startsWith('PE') || code.startsWith('P.E')) return 'fitness-outline';
+  if (code.startsWith('CS') || code.startsWith('IT')) return 'code-slash-outline';
+
+  return 'book-outline';
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Purpose: Exam card component for student subject list items.
 //          Displays subject name, subtitle, and themed icon.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { getSubjectVisualVariant, IconVariant } from '../studentTheme';
 import { studentColors, studentShadow } from '../ui/studentTokens';
 
@@ -14,42 +30,14 @@ export type StudentExamCardProps = {
   onPress?: () => void;
   iconVariant?: IconVariant;
   highlight?: boolean;
+  subjectCode?: string | null;
 };
 
-function StudentLogoBars() {
+function SubjectTile({ iconVariant, iconName }: { iconVariant: IconVariant | undefined; iconName: string }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6 }}>
-      <View style={{ width: 6, height: 18, borderRadius: 999, backgroundColor: studentColors.blue }} />
-      <View style={{ width: 6, height: 26, borderRadius: 999, backgroundColor: studentColors.orange }} />
-      <View style={{ width: 6, height: 34, borderRadius: 999, backgroundColor: studentColors.blue }} />
-    </View>
-  );
-}
-
-function StudentFormulaIcon() {
-  return <Text style={{ color: studentColors.orange, fontFamily: 'Rubik', fontSize: 22, fontWeight: '700' }}>ƒx</Text>;
-}
-
-function StudentGridIcon() {
-  return (
-    <View style={{ width: 22, height: 22, flexDirection: 'row', flexWrap: 'wrap', gap: 3, justifyContent: 'center', alignItems: 'center' }}>
-      {Array.from({ length: 6 }).map((_, index) => (
-        <View key={index} style={{ width: 5, height: 5, borderRadius: 999, backgroundColor: studentColors.pinkSoft }} />
-      ))}
-    </View>
-  );
-}
-
-function SubjectTile({ iconVariant }: { iconVariant: IconVariant | undefined }) {
-  const variant = iconVariant ?? 'bars';
-  const tileColor = variant === 'grid' ? studentColors.pinkSoft : studentColors.blue;
-
-  return (
-    <View className="w-16 h-16 rounded-[20px] overflow-hidden justify-center items-center" style={{ backgroundColor: tileColor }}>
-      <View className="w-12 h-16 bg-white rounded-lg justify-center items-center">
-        {variant === 'formula' ? <StudentFormulaIcon /> : null}
-        {variant === 'grid' ? <StudentGridIcon /> : null}
-        {variant === 'bars' ? <StudentLogoBars /> : null}
+    <View className="w-16 h-16 rounded-[20px] overflow-hidden justify-center items-center" style={{ backgroundColor: studentColors.blue }}>
+      <View className="w-12 h-12 rounded-[14px] bg-white justify-center items-center">
+        <Ionicons name={iconName as keyof typeof Ionicons.glyphMap} size={26} color={studentColors.orange} />
       </View>
     </View>
   );
@@ -61,7 +49,10 @@ export function StudentExamCard({
   onPress,
   iconVariant,
   highlight = false,
+  subjectCode,
 }: StudentExamCardProps) {
+  const iconName = subjectCode ? getSubjectIcon(subjectCode) : 'book-outline';
+
   return (
     <Pressable
       onPress={onPress}
@@ -75,7 +66,7 @@ export function StudentExamCard({
         highlight ? { backgroundColor: studentColors.surfaceSoft } : { backgroundColor: studentColors.white },
       ]}
     >
-      <SubjectTile iconVariant={iconVariant ?? getSubjectVisualVariant(title)} />
+      <SubjectTile iconVariant={iconVariant ?? getSubjectVisualVariant(title)} iconName={iconName} />
       <View className="flex-1 gap-1.5">
         <Text numberOfLines={1} className="font-sans text-[15px] font-medium" style={{ color: studentColors.text }}>{title}</Text>
         <Text numberOfLines={1} className="font-sans text-xs" style={{ color: studentColors.textSoft }}>{subtitle}</Text>

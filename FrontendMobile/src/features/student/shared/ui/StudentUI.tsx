@@ -10,7 +10,7 @@ export { studentColors, studentRadii, studentShadow, avatarPalette } from './stu
 // ── Components ────────────────────────────────────────────────────────────────
 export { StudentAvatar } from './StudentAvatar';
 export { StudentSectionHeader } from './StudentSectionHeader';
-export { StudentExamCard, getSubjectVisualVariant } from './StudentCard';
+export { StudentExamCard, getSubjectVisualVariant, getSubjectIcon } from './StudentCard';
 export {
   StudentLeaderboardRow,
   StudentLeaderboardPodium,

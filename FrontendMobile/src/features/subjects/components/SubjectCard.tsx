@@ -2,6 +2,34 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
 
+// Maps subject code prefix or program name to a contextually appropriate Ionicons icon
+const getSubjectIcon = (subjectCode?: string, programName?: string): string => {
+  const code = (subjectCode || '').toUpperCase();
+  const program = (programName || '').toUpperCase();
+
+  if (code.startsWith('MATH')) return 'calculator-outline';
+  if (code.startsWith('ENG')) return 'language-outline';
+  if (
+    code.startsWith('SCI') ||
+    code.startsWith('BIO') ||
+    code.startsWith('CHEM') ||
+    code.startsWith('PHYS')
+  )
+    return 'flask-outline';
+  if (code.startsWith('HIST')) return 'time-outline';
+  if (code.startsWith('ART')) return 'brush-outline';
+  if (code.startsWith('MUS')) return 'musical-notes-outline';
+  if (code.startsWith('PE') || code.startsWith('P.E')) return 'fitness-outline';
+  if (code.startsWith('CS') || code.startsWith('IT')) return 'code-slash-outline';
+
+  if (program.includes('ENGINEERING')) return 'construct-outline';
+  if (program.includes('NURSING') || program.includes('MEDICINE'))
+    return 'medkit-outline';
+  if (program.includes('BUSINESS')) return 'briefcase-outline';
+
+  return 'book-outline';
+};
+
 export default function SubjectCard({ subject, onPress, onDelete }: { subject?: any; onPress?: () => void; onDelete?: () => void }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -22,7 +50,7 @@ export default function SubjectCard({ subject, onPress, onDelete }: { subject?: 
       activeOpacity={0.7}
     >
       <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: '#FEF3C7' }}>
-        <Ionicons name="book" size={24} color={colors.orange} />
+        <Ionicons name={getSubjectIcon(subject?.subjectCode, subject?.programName)} size={24} color={colors.orange} />
       </View>
       <View className="flex-1">
         <Text className="text-base font-bold" numberOfLines={1} style={{ color: colors.text }}>{subject?.subjectName || 'Unknown Subject'}</Text>

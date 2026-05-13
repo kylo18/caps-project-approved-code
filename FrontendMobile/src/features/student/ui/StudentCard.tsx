@@ -1,49 +1,30 @@
+// Maps subject code prefix to a contextually appropriate Ionicons icon
+export function getSubjectIcon(subjectCode?: string | null): string {
+  const code = (subjectCode ?? '').toUpperCase();
+  if (code.startsWith('MATH')) return 'calculator-outline';
+  if (code.startsWith('ENG')) return 'language-outline';
+  if (code.startsWith('SCI') || code.startsWith('BIO') || code.startsWith('CHEM') || code.startsWith('PHYS')) return 'flask-outline';
+  if (code.startsWith('HIST')) return 'time-outline';
+  if (code.startsWith('ART')) return 'brush-outline';
+  if (code.startsWith('MUS')) return 'musical-notes-outline';
+  if (code.startsWith('PE') || code.startsWith('P.E')) return 'fitness-outline';
+  if (code.startsWith('CS') || code.startsWith('IT')) return 'code-slash-outline';
+  return 'book-outline';
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // StudentExamCard — card component for exam/subject items in a list.
 // Uses pure NativeWind styling (no mixed className + StyleSheet in the public surface).
-// Internal tile icon helpers (StudentLogoBars, StudentGridIcon, StudentFormulaIcon)
-// use StyleSheet because they are purely decorative and never mix with className.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-// ── Internal tile icon helpers (pure StyleSheet — no className mixing) ─────────
-
-function StudentLogoBars() {
+function SubjectTile({ iconVariant, iconName }: { iconVariant: StudentExamCardProps['iconVariant']; iconName: string }) {
   return (
-    <View style={styles.miniBars}>
-      <View style={[styles.miniBarBase, { height: 18 }]} />
-      <View style={[styles.miniBarAccent, { height: 26 }]} />
-      <View style={[styles.miniBarBase, { height: 34 }]} />
-    </View>
-  );
-}
-
-function StudentFormulaIcon() {
-  return <Text style={styles.fxText}>ƒx</Text>;
-}
-
-function StudentGridIcon() {
-  return (
-    <View style={styles.gridIcon}>
-      {Array.from({ length: 6 }).map((_, index) => (
-        <View key={index} style={styles.gridDot} />
-      ))}
-    </View>
-  );
-}
-
-function SubjectTile({ iconVariant }: { iconVariant: StudentExamCardProps['iconVariant'] }) {
-  const variant = iconVariant ?? 'bars';
-  const tileColor = variant === 'grid' ? 'bg-[#FFC2CD]' : 'bg-[#C4D0FB]';
-
-  return (
-    <View className={`w-16 h-16 rounded-[20px] overflow-hidden justify-center items-center ${tileColor}`}>
-      <View className="w-12 h-16 bg-white rounded-lg justify-center items-center">
-        {variant === 'formula' ? <StudentFormulaIcon /> : null}
-        {variant === 'grid' ? <StudentGridIcon /> : null}
-        {variant === 'bars' ? <StudentLogoBars /> : null}
+    <View className="w-16 h-16 rounded-[20px] overflow-hidden justify-center items-center bg-[#C4D0FB]">
+      <View className="w-12 h-12 rounded-[14px] bg-white justify-center items-center">
+        <Ionicons name={iconName as keyof typeof Ionicons.glyphMap} size={26} color="#FF6E00" />
       </View>
     </View>
   );
@@ -57,6 +38,7 @@ export type StudentExamCardProps = {
   onPress?: () => void;
   iconVariant?: 'bars' | 'formula' | 'grid';
   highlight?: boolean;
+  subjectCode?: string | null;
 };
 
 export function StudentExamCard({
@@ -65,7 +47,9 @@ export function StudentExamCard({
   onPress,
   iconVariant,
   highlight = false,
+  subjectCode,
 }: StudentExamCardProps) {
+  const iconName = subjectCode ? getSubjectIcon(subjectCode) : 'book-outline';
   const bg = highlight ? 'bg-[#FFF1E9]' : 'bg-white';
   const border = 'border-2 border-[#EFEEFC]';
 
@@ -74,7 +58,7 @@ export function StudentExamCard({
       onPress={onPress}
       className={`flex-row items-center rounded-[20px] px-2 py-2 shadow-sm ${bg} ${border}`}
     >
-      <SubjectTile iconVariant={iconVariant} />
+      <SubjectTile iconVariant={iconVariant} iconName={iconName} />
       <View className="flex-1 gap-1.5">
         <Text numberOfLines={1} className="text-base font-medium text-[#0C092A]">
           {title}

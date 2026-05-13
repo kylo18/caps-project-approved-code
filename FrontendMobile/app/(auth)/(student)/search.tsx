@@ -12,6 +12,7 @@ import {
   StudentHeroDecoration,
   StudentSectionHeader,
   getSubjectVisualVariant,
+  getSubjectIcon,
   studentColors,
   studentShadow,
 } from '../../../src/features/student/ui/StudentUI';
@@ -213,6 +214,7 @@ export default function StudentSearchScreen() {
                     title={subject.subjectName}
                     subtitle={`${subject.subjectCode || 'GEN'} • ${subject.questionCount || 10} quizzes`}
                     iconVariant={getSubjectVisualVariant(subject.subjectName)}
+                    subjectCode={subject.subjectCode}
                     onPress={() => handleSubjectPress(subject)}
                   />
                 ))
