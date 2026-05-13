@@ -445,7 +445,7 @@ export default function StudentDashboard() {
                   }}
                 >
                   <CapsActivityIndicator size="large" color={studentColors.orange} />
-                  <Text style={{ color: studentColors.textSoft }}>Loading live exams...</Text>
+                  <Text style={{ color: studentColors.textSoft }}>Loading Subjects...</Text>
                 </View>
               ) : loadingExam ? (
                 <View
@@ -495,7 +495,7 @@ export default function StudentDashboard() {
                   <StudentExamCard
                     key={subject.subjectID}
                     title={subject.subjectName}
-                    subtitle={`${subject.subjectCode || 'GEN'} • ${subject.questionCount || 10} quizzes`}
+                    subtitle={subject.subjectCode || 'GEN'}
                     iconVariant={getSubjectVisualVariant(subject.subjectName)}
                     subjectCode={subject.subjectCode}
                     onPress={() => handleSubjectPress(subject)}

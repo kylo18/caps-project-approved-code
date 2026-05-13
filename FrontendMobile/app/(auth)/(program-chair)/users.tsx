@@ -7,7 +7,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, RefreshControl, Alert, Animated, Modal, ScrollView } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
-import { SkeletonList } from '../../../src/features/core/components/Skeleton';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
@@ -452,7 +451,9 @@ export default function ProgramChairUsersScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 px-4 pt-4"><SkeletonList count={5} /></View>
+        <View className="flex-1 justify-center items-center">
+          <CapsActivityIndicator size="large" color={colors.orange} />
+        </View>
       ) : (
         <>
           <FlatList

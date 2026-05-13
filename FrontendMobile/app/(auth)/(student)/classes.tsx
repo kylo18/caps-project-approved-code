@@ -161,6 +161,9 @@ export default function StudentClassesScreen() {
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: studentColors.surface }}>
         <StatusBar style="light" />
         <CapsActivityIndicator size="large" color={studentColors.orange} />
+        <Text className="mt-4 text-sm" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>
+          Loading Classes...
+        </Text>
       </View>
     );
   }

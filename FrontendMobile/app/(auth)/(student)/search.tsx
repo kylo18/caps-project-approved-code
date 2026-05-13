@@ -212,7 +212,7 @@ export default function StudentSearchScreen() {
                   <StudentExamCard
                     key={subject.subjectID}
                     title={subject.subjectName}
-                    subtitle={`${subject.subjectCode || 'GEN'} • ${subject.questionCount || 10} quizzes`}
+                    subtitle={subject.subjectCode || 'GEN'}
                     iconVariant={getSubjectVisualVariant(subject.subjectName)}
                     subjectCode={subject.subjectCode}
                     onPress={() => handleSubjectPress(subject)}

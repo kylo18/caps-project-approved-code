@@ -1,17 +1,20 @@
-// Maps subject code prefix to a contextually appropriate Ionicons icon
+// Rotating icon pool — visually varied, subject-agnostic, consistent per subjectCode
+const ICON_POOL = [
+  'book-outline',
+  'library-outline',
+  'school-outline',
+  'albums-outline',
+  'documents-outline',
+  'grid-outline',
+  'layers-outline',
+  'layers',
+];
+
+// Returns a stable icon per subjectCode — same code always → same icon
 export function getSubjectIcon(subjectCode?: string | null): string {
-  const code = (subjectCode ?? '').toUpperCase();
-
-  if (code.startsWith('MATH')) return 'calculator-outline';
-  if (code.startsWith('ENG')) return 'language-outline';
-  if (code.startsWith('SCI') || code.startsWith('BIO') || code.startsWith('CHEM') || code.startsWith('PHYS')) return 'flask-outline';
-  if (code.startsWith('HIST')) return 'time-outline';
-  if (code.startsWith('ART')) return 'brush-outline';
-  if (code.startsWith('MUS')) return 'musical-notes-outline';
-  if (code.startsWith('PE') || code.startsWith('P.E')) return 'fitness-outline';
-  if (code.startsWith('CS') || code.startsWith('IT')) return 'code-slash-outline';
-
-  return 'book-outline';
+  const code = subjectCode ?? '';
+  const index = code.split('').reduce((sum, c) => sum + c.charCodeAt(0), 0) % ICON_POOL.length;
+  return ICON_POOL[index];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

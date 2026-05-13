@@ -3,31 +3,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
 
 // Maps subject code prefix or program name to a contextually appropriate Ionicons icon
-const getSubjectIcon = (subjectCode?: string, programName?: string): string => {
-  const code = (subjectCode || '').toUpperCase();
-  const program = (programName || '').toUpperCase();
+// Rotating icon pool — visually varied, subject-agnostic, consistent per subjectCode
+const ICON_POOL = [
+  'book-outline',
+  'library-outline',
+  'school-outline',
+  'albums-outline',
+  'documents-outline',
+  'grid-outline',
+  'layers-outline',
+  'layers',
+];
 
-  if (code.startsWith('MATH')) return 'calculator-outline';
-  if (code.startsWith('ENG')) return 'language-outline';
-  if (
-    code.startsWith('SCI') ||
-    code.startsWith('BIO') ||
-    code.startsWith('CHEM') ||
-    code.startsWith('PHYS')
-  )
-    return 'flask-outline';
-  if (code.startsWith('HIST')) return 'time-outline';
-  if (code.startsWith('ART')) return 'brush-outline';
-  if (code.startsWith('MUS')) return 'musical-notes-outline';
-  if (code.startsWith('PE') || code.startsWith('P.E')) return 'fitness-outline';
-  if (code.startsWith('CS') || code.startsWith('IT')) return 'code-slash-outline';
-
-  if (program.includes('ENGINEERING')) return 'construct-outline';
-  if (program.includes('NURSING') || program.includes('MEDICINE'))
-    return 'medkit-outline';
-  if (program.includes('BUSINESS')) return 'briefcase-outline';
-
-  return 'book-outline';
+const getSubjectIcon = (subjectCode?: string | null): string => {
+  const code = subjectCode ?? '';
+  const index = code.split('').reduce((sum, c) => sum + c.charCodeAt(0), 0) % ICON_POOL.length;
+  return ICON_POOL[index];
 };
 
 export default function SubjectCard({ subject, onPress, onDelete }: { subject?: any; onPress?: () => void; onDelete?: () => void }) {
@@ -50,11 +41,11 @@ export default function SubjectCard({ subject, onPress, onDelete }: { subject?: 
       activeOpacity={0.7}
     >
       <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: '#FEF3C7' }}>
-        <Ionicons name={getSubjectIcon(subject?.subjectCode, subject?.programName)} size={24} color={colors.orange} />
+        <Ionicons name={getSubjectIcon(subject?.subjectCode)} size={24} color={colors.orange} />
       </View>
       <View className="flex-1">
         <Text className="text-base font-bold" numberOfLines={1} style={{ color: colors.text }}>{subject?.subjectName || 'Unknown Subject'}</Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>{subject?.subjectCode || 'GEN'} • {subject?.questionCount || 0} questions</Text>
+        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>{subject?.subjectCode || 'GEN'}</Text>
       </View>
       <TouchableOpacity className="p-1.5" onPress={onDelete} activeOpacity={0.7}>
         <Ionicons name="trash" size={20} color={colors.red} />

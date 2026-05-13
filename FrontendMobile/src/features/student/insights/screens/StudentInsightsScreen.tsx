@@ -195,23 +195,6 @@ function InsightCard({
   );
 }
 
-function InsightSkeletonCard() {
-  return (
-    <View
-      className="rounded-[22px] border-2 px-4 py-3.5 bg-white"
-      style={{ borderColor: studentColors.border, ...studentShadow }}
-    >
-      <View className="flex-row items-center gap-3.5">
-        <View className="w-12 h-12 rounded-[16px]" style={{ backgroundColor: studentColors.surfaceSoft }} />
-        <View className="flex-1">
-          <View className="h-4 rounded-full w-32" style={{ backgroundColor: studentColors.surfaceSoft }} />
-          <View className="h-3 rounded-full w-44 mt-2" style={{ backgroundColor: studentColors.surfaceSoft }} />
-        </View>
-      </View>
-    </View>
-  );
-}
-
 function TopicCard({
   topic,
   index,
@@ -485,21 +468,12 @@ export default function StudentInsightsScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-white">
-        <StatusBar style="light" />
-        <View className="px-6 pb-[42px]" style={{ paddingTop: insets.top + 12, backgroundColor: studentColors.orange }}>
-          <View className="h-8 w-28 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
-          <View className="rounded-[28px] p-4 mt-5" style={{ backgroundColor: 'rgba(255,255,255,0.16)', ...studentShadow }}>
-            <View className="h-7 w-40 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.24)' }} />
-            <View className="h-4 w-28 rounded-full mt-3" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
-            <View className="h-4 w-56 rounded-full mt-4" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
-          </View>
-        </View>
-        <View className="px-5 pt-6 gap-3">
-          <InsightSkeletonCard />
-          <InsightSkeletonCard />
-          <InsightSkeletonCard />
-        </View>
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: studentColors.white }}>
+        <StatusBar style="dark" />
+        <CapsActivityIndicator size="large" color={studentColors.orange} />
+        <Text className="mt-4 text-sm" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>
+          Loading Profile...
+        </Text>
       </View>
     );
   }

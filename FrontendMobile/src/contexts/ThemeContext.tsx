@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { useColorScheme } from 'react-native';
 
 type Theme = 'light' | 'dark';
 
@@ -12,7 +11,6 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemColorScheme = useColorScheme();
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
@@ -24,9 +22,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const savedTheme = await SecureStore.getItemAsync('theme');
       if (savedTheme) {
         setTheme(savedTheme as Theme);
-      } else if (systemColorScheme === 'dark') {
-        setTheme('dark');
       }
+      // Default is already 'light' from the useState above — no system override
     } catch (error) {
       console.error('Failed to load theme:', error);
     }
