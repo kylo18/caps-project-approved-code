@@ -15,9 +15,12 @@ import CapsActivityIndicator from '../../../features/core/components/CapsActivit
 import {
     applyUserActionLocally,
     canApproveUser,
+    canDisapproveUser,
+    canReapproveUser,
     getUserStatusLabel,
     getUserYearLevelLabel,
     isActiveUser,
+    isDisapprovedUser,
     isInactiveUser,
 } from '../../../utils/userManagement';
 
@@ -110,6 +113,8 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
     const canChangeRole = availableRoles.length > 0;
     const statusLabel = getUserStatusLabel(user);
     const showApproveAction = canApproveUser(user);
+    const showDisapproveAction = canDisapproveUser(user);
+    const showReapproveAction = canReapproveUser(user);
     const showDeactivateAction = isActiveUser(user);
     const showActivateAction = isInactiveUser(user);
     const programLabel =
@@ -150,7 +155,7 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
         }
     };
 
-    const handleAction = async (action: 'approve' | 'activate' | 'deactivate') => {
+    const handleAction = async (action: 'approve' | 'activate' | 'deactivate' | 'disapprove' | 'reapprove') => {
         const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
         Alert.alert(
             `${actionLabel} User`,
@@ -159,7 +164,7 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: actionLabel,
-                    style: action === 'deactivate' ? 'destructive' : 'default',
+                    style: (action === 'deactivate' || action === 'disapprove') ? 'destructive' : 'default',
                     onPress: async () => {
                         setIsActing(true);
                         try {
@@ -170,7 +175,11 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
                                     ? 'User approved and activated'
                                     : action === 'activate'
                                         ? 'User activated'
-                                        : 'User deactivated',
+                                        : action === 'deactivate'
+                                            ? 'User deactivated'
+                                            : action === 'disapprove'
+                                                ? 'User disapproved'
+                                                : 'User moved back to pending',
                                 'success'
                             );
                             onUserUpdated();
@@ -287,6 +296,30 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
                                     >
                                         <Ionicons name="checkmark" size={20} color="#fff" />
                                         <Text className="text-white text-sm font-bold">Approve</Text>
+                                    </TouchableOpacity>
+                                )}
+                                {showDisapproveAction && (
+                                    <TouchableOpacity
+                                        className="flex-row items-center gap-2 px-4 py-2.5 rounded-xl"
+                                        style={{ backgroundColor: colors.red }}
+                                        onPress={() => handleAction('disapprove')}
+                                        activeOpacity={0.8}
+                                        disabled={isActing}
+                                    >
+                                        <Ionicons name="close" size={20} color="#fff" />
+                                        <Text className="text-white text-sm font-bold">Disapprove</Text>
+                                    </TouchableOpacity>
+                                )}
+                                {showReapproveAction && (
+                                    <TouchableOpacity
+                                        className="flex-row items-center gap-2 px-4 py-2.5 rounded-xl"
+                                        style={{ backgroundColor: colors.purple }}
+                                        onPress={() => handleAction('reapprove')}
+                                        activeOpacity={0.8}
+                                        disabled={isActing}
+                                    >
+                                        <Ionicons name="refresh" size={20} color="#fff" />
+                                        <Text className="text-white text-sm font-bold">Re-approve</Text>
                                     </TouchableOpacity>
                                 )}
                                 {showDeactivateAction && (

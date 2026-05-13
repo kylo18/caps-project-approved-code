@@ -23,6 +23,8 @@ import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTool
 import {
   applyUserActionLocally,
   canApproveUser,
+  canDisapproveUser,
+  canReapproveUser,
   getUserCampusLabel,
   getUserProgramLabel,
   getUserStatusLabel,
@@ -30,6 +32,7 @@ import {
   getUserYearLevelLabel,
   getUserYearLevelValue,
   isActiveUser,
+  isDisapprovedUser,
   isInactiveUser,
   matchesUserStatusFilter,
   UserStatusFilter,
@@ -219,9 +222,14 @@ export default function AdminUsersScreen() {
   const handleAction = async (userID: number | string, action: string) => {
     try {
       await apiRequest(`/api/users/${userID}/${action}`, { method: 'PATCH' });
-      setUsers(prev => prev.map((u: any) => (u.userID === userID ? applyUserActionLocally(u, action as 'approve' | 'activate' | 'deactivate') : u)));
+      setUsers(prev => prev.map((u: any) => (u.userID === userID ? applyUserActionLocally(u, action as 'approve' | 'activate' | 'deactivate' | 'disapprove' | 'reapprove') : u)));
       showToast(
-        action === 'approve' ? 'User approved and activated' : action === 'activate' ? 'User activated' : 'User deactivated',
+        action === 'approve' ? 'User approved and activated'
+          : action === 'activate' ? 'User activated'
+          : action === 'deactivate' ? 'User deactivated'
+          : action === 'disapprove' ? 'User disapproved'
+          : action === 'reapprove' ? 'User moved back to pending'
+          : `User ${action}d`,
         'success'
       );
     } catch (error) {
@@ -232,7 +240,7 @@ export default function AdminUsersScreen() {
   const confirmAction = (user: any, action: string) => {
     Alert.alert(`${action.charAt(0).toUpperCase() + action.slice(1)} User`, `${action.charAt(0).toUpperCase() + action.slice(1)} ${user.firstName} ${user.lastName}?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: action.charAt(0).toUpperCase() + action.slice(1), style: action === 'deactivate' ? 'destructive' : 'default', onPress: () => handleAction(user.userID, action) },
+      { text: action.charAt(0).toUpperCase() + action.slice(1), style: (action === 'deactivate' || action === 'disapprove') ? 'destructive' : 'default', onPress: () => handleAction(user.userID, action) },
     ]);
   };
 
@@ -302,7 +310,7 @@ export default function AdminUsersScreen() {
     setSelectionMode(false);
   };
 
-  const handleBulkAction = async (action: 'approve' | 'activate' | 'deactivate') => {
+  const handleBulkAction = async (action: 'approve' | 'activate' | 'deactivate' | 'disapprove' | 'reapprove') => {
     const ids = Array.from(selectedUserIDs);
     if (ids.length === 0) return;
     const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
@@ -313,7 +321,7 @@ export default function AdminUsersScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: actionLabel,
-          style: action === 'deactivate' ? 'destructive' : 'default',
+          style: (action === 'deactivate' || action === 'disapprove') ? 'destructive' : 'default',
           onPress: async () => {
             setIsBulkActing(true);
             try {
@@ -322,7 +330,7 @@ export default function AdminUsersScreen() {
                 if (!selectedUserIDs.has(u.userID)) return u;
                 return applyUserActionLocally(u, action);
               }));
-              showToast(`${ids.length} user(s) ${action === 'approve' ? 'approved' : action + 'd'}`, 'success');
+              showToast(`${ids.length} user(s) ${action === 'approve' ? 'approved' : action === 'disapprove' ? 'disapproved' : action === 'reapprove' ? 'moved back to pending' : action + 'd'}`, 'success');
               deselectAll();
             } catch (error: unknown) {
               showToast(error instanceof Error && 'data' in error
@@ -414,6 +422,12 @@ export default function AdminUsersScreen() {
           <View className="gap-1">
             {canApproveUser(item) && (
               <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.green }} onPress={() => confirmAction(item, 'approve')}><Ionicons name="checkmark" size={18} color="#fff" /></TouchableOpacity>
+            )}
+            {canDisapproveUser(item) && (
+              <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.red }} onPress={() => confirmAction(item, 'disapprove')}><Ionicons name="close" size={18} color="#fff" /></TouchableOpacity>
+            )}
+            {canReapproveUser(item) && (
+              <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.purple }} onPress={() => confirmAction(item, 'reapprove')}><Ionicons name="refresh" size={18} color="#fff" /></TouchableOpacity>
             )}
             {isActiveUser(item) && (
               <TouchableOpacity className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: colors.red }} onPress={() => confirmAction(item, 'deactivate')}><Ionicons name="close" size={18} color="#fff" /></TouchableOpacity>
@@ -570,6 +584,16 @@ export default function AdminUsersScreen() {
                 <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 py-2 rounded-[10px]" style={{ backgroundColor: colors.red }} onPress={() => handleBulkAction('deactivate')} disabled={isBulkActing} activeOpacity={0.8}>
                   <Ionicons name="pause" size={18} color="#fff" />
                   <Text className="text-white text-xs font-semibold">Deactivate</Text>
+                </TouchableOpacity>
+              </View>
+              <View className="flex-row gap-2 justify-between mt-2">
+                <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 py-2 rounded-[10px]" style={{ backgroundColor: colors.red }} onPress={() => handleBulkAction('disapprove')} disabled={isBulkActing} activeOpacity={0.8}>
+                  <Ionicons name="close" size={18} color="#fff" />
+                  <Text className="text-white text-xs font-semibold">Disapprove</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 py-2 rounded-[10px]" style={{ backgroundColor: colors.purple }} onPress={() => handleBulkAction('reapprove')} disabled={isBulkActing} activeOpacity={0.8}>
+                  <Ionicons name="refresh" size={18} color="#fff" />
+                  <Text className="text-white text-xs font-semibold">Re-approve</Text>
                 </TouchableOpacity>
               </View>
               {isBulkActing && <CapsActivityIndicator className="mt-2" size="small" color={colors.orange} />}

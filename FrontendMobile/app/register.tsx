@@ -77,8 +77,8 @@ export default function RegisterScreen() {
     if (!userCode || !userCode.trim()) newErrors.userCode = 'User code is required';
     if (!email || !email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!email.includes('@')) {
-      newErrors.email = 'Email must contain @ symbol';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
     if (Object.keys(newErrors).length > 0) setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -187,7 +187,7 @@ export default function RegisterScreen() {
       <View className="mb-5">
         <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>First Name *</Text>
         <TextInput
-          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 dark:bg-gray-800 dark:border-gray-600 ${errors.firstName ? 'border-red-500' : ''}`}
+          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 ${errors.firstName ? 'border-red-500' : ''}`}
           value={firstName}
           onChangeText={setFirstName}
           placeholder="Enter first name"
@@ -201,7 +201,7 @@ export default function RegisterScreen() {
       <View className="mb-5">
         <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Last Name *</Text>
         <TextInput
-          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 dark:bg-gray-800 dark:border-gray-600 ${errors.lastName ? 'border-red-500' : ''}`}
+          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 ${errors.lastName ? 'border-red-500' : ''}`}
           value={lastName}
           onChangeText={setLastName}
           placeholder="Enter last name"
@@ -224,7 +224,7 @@ export default function RegisterScreen() {
       <View className="mb-5">
         <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>User Code *</Text>
         <TextInput
-          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 dark:bg-gray-800 dark:border-gray-600 ${errors.userCode ? 'border-red-500' : ''}`}
+          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 ${errors.userCode ? 'border-red-500' : ''}`}
           value={userCode}
           onChangeText={setUserCode}
           placeholder="Enter user code"
@@ -239,7 +239,7 @@ export default function RegisterScreen() {
       <View className="mb-5">
         <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Email Address *</Text>
         <TextInput
-          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 dark:bg-gray-800 dark:border-gray-600 ${errors.email ? 'border-red-500' : ''}`}
+          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 ${errors.email ? 'border-red-500' : ''}`}
           value={email}
           onChangeText={setEmail}
           placeholder="Enter email address"
@@ -263,11 +263,11 @@ export default function RegisterScreen() {
 
       <View className="mb-5">
         <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Position *</Text>
-        <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px] dark:bg-gray-800 dark:border-gray-600`}>
+        <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px]`}>
           {roles.map((role) => (
             <TouchableOpacity
               key={role.id}
-              className={`flex-row justify-between items-center p-3 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-600 ${roleID === role.id ? 'bg-amber-100' : ''}`}
+              className={`flex-row justify-between items-center p-3 border-b border-gray-200 ${roleID === role.id ? 'bg-amber-100' : ''}`}
               onPress={() => setRoleID(role.id)}
             >
               <Text className={`text-sm text-gray-900 flex-1 ${isDark ? 'text-white' : ''}`}>
@@ -284,11 +284,11 @@ export default function RegisterScreen() {
 
       <View className="mb-5">
         <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Campus *</Text>
-        <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px] dark:bg-gray-800 dark:border-gray-600`}>
+        <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px]`}>
           {campuses.map((campus) => (
             <TouchableOpacity
               key={campus.id}
-              className={`flex-row justify-between items-center p-3 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-600 ${campusID === campus.id ? 'bg-amber-100' : ''}`}
+              className={`flex-row justify-between items-center p-3 border-b border-gray-200 ${campusID === campus.id ? 'bg-amber-100' : ''}`}
               onPress={() => {
                 setCampusID(campus.id);
                 setProgramID('');
@@ -309,11 +309,11 @@ export default function RegisterScreen() {
       {campusID && (
         <View className="mb-5">
           <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Program *</Text>
-          <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px] dark:bg-gray-800 dark:border-gray-600`}>
+          <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px]`}>
             {getFilteredPrograms().map((program) => (
               <TouchableOpacity
                 key={program.id}
-                className={`flex-row justify-between items-center p-3 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-600 ${programID === program.id ? 'bg-amber-100' : ''}`}
+                className={`flex-row justify-between items-center p-3 border-b border-gray-200 ${programID === program.id ? 'bg-amber-100' : ''}`}
                 onPress={() => setProgramID(program.id)}
               >
                 <Text
@@ -343,7 +343,7 @@ export default function RegisterScreen() {
 
       <View className="mb-5">
         <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Password *</Text>
-        <View className={`flex-row items-center bg-white border border-gray-300 rounded-lg px-4 dark:bg-gray-800 dark:border-gray-600`}>
+        <View className={`flex-row items-center bg-white border border-gray-300 rounded-lg px-4`}>
           <TextInput
             className={`flex-1 py-3 text-base text-gray-900 ${isDark ? 'text-white' : ''}`}
             value={password}
@@ -369,7 +369,7 @@ export default function RegisterScreen() {
 
       <View className="mb-5">
         <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Confirm Password *</Text>
-        <View className={`flex-row items-center bg-white border border-gray-300 rounded-lg px-4 dark:bg-gray-800 dark:border-gray-600`}>
+        <View className={`flex-row items-center bg-white border border-gray-300 rounded-lg px-4`}>
           <TextInput
             className={`flex-1 py-3 text-base text-gray-900 ${isDark ? 'text-white' : ''}`}
             value={confirmPassword}
@@ -432,7 +432,7 @@ export default function RegisterScreen() {
         <View className="flex-row gap-3 mt-6 items-center">
           {currentStep > 1 && (
             <TouchableOpacity
-              className={`px-6 py-3.5 rounded-lg bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-600`}
+              className={`px-6 py-3.5 rounded-lg bg-white border border-gray-300`}
               onPress={() => setCurrentStep((prev) => prev - 1)}
               activeOpacity={0.7}
             >

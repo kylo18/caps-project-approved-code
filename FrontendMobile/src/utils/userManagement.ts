@@ -43,6 +43,14 @@ export function canApproveUser(user: UserLike) {
   return isPendingUser(user);
 }
 
+export function canDisapproveUser(user: UserLike) {
+  return isPendingUser(user);
+}
+
+export function canReapproveUser(user: UserLike) {
+  return isDisapprovedUser(user);
+}
+
 export function getUserStatusFilterKey(user: UserLike): Exclude<UserStatusFilter, 'all'> {
   if (isPendingUser(user)) return 'pending';
   if (isDisapprovedUser(user)) return 'disapproved';
@@ -99,9 +107,17 @@ export function getUserYearLevelLabel(user: UserLike) {
   );
 }
 
-export function applyUserActionLocally<T extends UserLike>(user: T, action: 'approve' | 'activate' | 'deactivate') {
+export function applyUserActionLocally<T extends UserLike>(user: T, action: 'approve' | 'activate' | 'deactivate' | 'disapprove' | 'reapprove') {
   if (action === 'approve') {
     return { ...user, status: 'registered', isActive: true };
+  }
+
+  if (action === 'reapprove') {
+    return { ...user, status: 'pending', isActive: false };
+  }
+
+  if (action === 'disapprove') {
+    return { ...user, status: 'disapproved', isActive: false };
   }
 
   if (action === 'activate') {
