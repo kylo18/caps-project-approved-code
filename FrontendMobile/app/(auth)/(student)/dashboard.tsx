@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
+import DailyMotivationModal from '../../../src/features/student/shared/components/DailyMotivationModal';
+import { fetchMotivationQuote, type MotivationQuote } from '../../../src/features/student/insights/services/motivationQuoteService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,6 +64,10 @@ export default function StudentDashboard() {
   const [loadingExam, setLoadingExam] = useState(false);
   const [fetchError, setFetchError] = useState('');
 
+  // ── Motivation modal state ──────────────────────────────────────────────
+  const [showMotivation, setShowMotivation] = useState(false);
+  const [motivationQuote, setMotivationQuote] = useState<MotivationQuote | null>(null);
+
   // ── Carousel / notification state ────────────────────────────────────────
   const [activeSlide, setActiveSlide] = useState(0);
   const [notificationsVisible, setNotificationsVisible] = useState(false);
@@ -116,6 +123,44 @@ export default function StudentDashboard() {
     loadDashboard();
     loadUnreadCount();
   }, []);
+
+  useEffect(() => {
+    checkMotivation();
+  }, []);
+
+  async function checkMotivation() {
+    try {
+      const [enabledStr, dismissedStr] = await Promise.all([
+        AsyncStorage.getItem('student_motivation_enabled'),
+        AsyncStorage.getItem('student_dismissed_today'),
+      ]);
+
+      // Reset dismissed flag on cold start so modal reappears
+      await AsyncStorage.setItem('student_dismissed_today', 'false');
+
+      // Pre-fetch quote so it's ready
+      const quote = await fetchMotivationQuote();
+      setMotivationQuote(quote);
+
+      if (enabledStr === 'false') return;
+      if (dismissedStr === 'true') return;
+
+      setShowMotivation(true);
+    } catch (error) {
+      console.warn('[Motivation] Failed to show modal:', error);
+    }
+  }
+
+  const handleDismissMotivation = (suppressToday: boolean) => {
+    if (suppressToday) {
+      AsyncStorage.setItem('student_dismissed_today', 'true').catch(() => {});
+    }
+    setShowMotivation(false);
+  };
+
+  const handleShowMotivation = () => {
+    if (motivationQuote) setShowMotivation(true);
+  };
 
   useEffect(() => {
     if (slides.length <= 1) {
@@ -261,6 +306,15 @@ export default function StudentDashboard() {
                 onPress={() => setShowHelp(true)}
               >
                 <Ionicons name="help-circle-outline" size={20} color={studentColors.white} />
+              </Pressable>
+
+              {/* Motivation quote */}
+              <Pressable
+                className="w-11 h-11 rounded-full items-center justify-center"
+                style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
+                onPress={handleShowMotivation}
+              >
+                <Ionicons name="sparkles" size={20} color={studentColors.white} />
               </Pressable>
 
               {/* Notifications with unread badge */}
@@ -508,6 +562,11 @@ export default function StudentDashboard() {
       </ScrollView>
 
       {/* MODALS */}
+      <DailyMotivationModal
+        visible={showMotivation}
+        quote={motivationQuote}
+        onDismiss={handleDismissMotivation}
+      />
       <HelpCenterModal visible={showHelp} onClose={() => setShowHelp(false)} />
     </View>
   );

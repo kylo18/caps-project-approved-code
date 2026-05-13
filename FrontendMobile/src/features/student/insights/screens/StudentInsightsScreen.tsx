@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Modal, Pressable, RefreshControl, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import CapsActivityIndicator from '../../../../features/core/components/CapsActivityIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -338,6 +339,7 @@ export default function StudentInsightsScreen() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const [trendData, setTrendData] = useState<any[]>([]);
+  const [motivationEnabled, setMotivationEnabled] = useState(true);
 
   // Stat explanation modal
   const [showStatModal, setShowStatModal] = useState(false);
@@ -370,6 +372,10 @@ export default function StudentInsightsScreen() {
   // ── Fetch all analytics data in parallel on mount ───────────────────────
   useEffect(() => {
     loadInsights();
+    // Load motivation toggle preference
+    AsyncStorage.getItem('student_motivation_enabled').then((val) => {
+      if (val === 'false') setMotivationEnabled(false);
+    });
     return () => {
       refreshInFlightRef.current = false;
     };
@@ -905,10 +911,27 @@ export default function StudentInsightsScreen() {
                 onPress={() => { setShowProfileMenu(false); toggleTheme(); }}
               >
                 <Ionicons name={theme === 'dark' ? 'sunny' : 'moon'} size={20} color="#fff" />
-                <Text className="text-[15px] font-medium text-white">
+                <Text className="flex-1 text-[15px] font-medium text-white">
                   {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                 </Text>
               </Pressable>
+
+              <View className="flex-row items-center gap-3 py-3">
+                <Ionicons name="sparkles" size={20} color="#fff" />
+                <Text className="flex-1 text-[15px] font-medium text-white">Daily Motivation</Text>
+                <Switch
+                  value={motivationEnabled}
+                  onValueChange={async (val) => {
+                    setMotivationEnabled(val);
+                    await AsyncStorage.setItem('student_motivation_enabled', val ? 'true' : 'false');
+                    if (!val) {
+                      await AsyncStorage.setItem('student_dismissed_today', 'true');
+                    }
+                  }}
+                  trackColor={{ false: 'rgba(255,255,255,0.3)', true: 'rgba(255,255,255,0.6)' }}
+                  thumbColor={motivationEnabled ? '#fff' : 'rgba(255,255,255,0.5)'}
+                />
+              </View>
 
               <Pressable
                 className="flex-row items-center gap-3 py-3 mt-2 pt-4 border-t border-white/25"

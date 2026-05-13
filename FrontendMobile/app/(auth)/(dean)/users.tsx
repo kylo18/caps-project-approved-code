@@ -96,7 +96,14 @@ export default function AdminUsersScreen() {
 
   useEffect(() => {
     applyFilters();
-  }, [searchQuery, activeRoleFilter, activeStatusFilter, programFilter, yearFilter, campusFilter, users]);
+  }, [searchQuery, activeRoleFilter, programFilter, yearFilter, campusFilter, users]);
+
+  // Separate effect to re-apply filters after a fresh fetch completes
+  useEffect(() => {
+    if (!isLoading) {
+      applyFilters();
+    }
+  }, [isLoading, users.length]);
 
   useEffect(() => {
     const loadMeta = async () => {

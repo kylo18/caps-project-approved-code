@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useMemo } from 'react';
-import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, TextInput, Alert } from 'react-native';
+import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, TextInput, Alert, FlatList } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,6 +41,10 @@ export default function ProgramChairSubjectsScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [activeTab, setActiveTab] = useState('practice');
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+  const [questionsPage, setQuestionsPage] = useState(1);
+  const [questionsHasMore, setQuestionsHasMore] = useState(true);
+  const [isLoadingMoreQuestions, setIsLoadingMoreQuestions] = useState(false);
 
   // Subject management modals
   const [showSubjectModal, setShowSubjectModal] = useState(false);
@@ -59,8 +63,12 @@ export default function ProgramChairSubjectsScreen() {
   }, []);
 
   useEffect(() => {
-    if (selectedSubject) fetchQuestions();
-  }, [selectedSubject, activeTab]);
+    // Reset questions page and refetch when a new subject is selected
+    setQuestionsPage(1);
+    setQuestionsHasMore(true);
+    setActiveTab('practice');
+    if (selectedSubject) fetchQuestions(true);
+  }, [selectedSubject?.subjectID]);
 
   const fetchSubjects = async (reset = false) => {
     const currentPage = reset ? 1 : page;
@@ -114,15 +122,52 @@ export default function ProgramChairSubjectsScreen() {
     fetchSubjects(false);
   };
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = async (reset = false) => {
     if (!selectedSubject) return;
+    const currentPage = reset ? 1 : questionsPage;
+
+    if (reset) {
+      setIsLoadingQuestions(true);
+      setQuestionsPage(1);
+      setQuestionsHasMore(true);
+    } else {
+      setIsLoadingMoreQuestions(true);
+    }
+
     try {
-      const data = await apiRequest(`/api/subjects/${selectedSubject.subjectID}/questions`);
-      const allQuestions = Array.isArray(data?.questions) ? data.questions : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-      setQuestions(allQuestions);
+      const data = await apiRequest(`/api/subjects/${selectedSubject.subjectID}/questions?page=${currentPage}&limit=20`);
+      const list = Array.isArray(data?.questions) ? data.questions : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
+
+      if (reset) {
+        setQuestions(list);
+        setQuestionsHasMore(total !== undefined ? list.length < total : list.length >= 20);
+      } else {
+        setQuestions(prev => {
+          const existing = new Set(prev.map(q => q.questionID));
+          const newUnique = list.filter(q => !existing.has(q.questionID));
+          return [...prev, ...newUnique];
+        });
+        setQuestionsHasMore((prevCount: number) => {
+          const newTotal = total !== undefined ? (prevCount + list.length) < total : list.length >= 20;
+          return newTotal;
+        });
+        setQuestionsPage(prev => prev + 1);
+      }
     } catch (error) {
       console.error('Error fetching questions:', error);
+    } finally {
+      if (reset) {
+        setIsLoadingQuestions(false);
+      } else {
+        setIsLoadingMoreQuestions(false);
+      }
     }
+  };
+
+  const handleLoadMoreQuestions = () => {
+    if (!questionsHasMore || isLoadingMoreQuestions || isLoadingQuestions) return;
+    fetchQuestions(false);
   };
 
   const fetchPrograms = async () => {
@@ -149,12 +194,12 @@ export default function ProgramChairSubjectsScreen() {
     }
   };
 
-  const filteredQuestions = questions.filter((q: any) => {
+  const filteredQuestions = useMemo(() => questions.filter((q: any) => {
     if (activeTab === 'pending') return q.status_id === 1 || q.status === 'pending';
     if (activeTab === 'practice') return (q.purpose_id === 2 || q.purpose === 'practice') && (q.status_id !== 1 && q.status !== 'pending');
     if (activeTab === 'exam') return (q.purpose_id === 1 || q.purpose === 'exam') && (q.status_id !== 1 && q.status !== 'pending');
     return true;
-  });
+  }), [questions, activeTab]);
 
   const handleApproveQuestion = (questionID: number) => {
     Alert.alert(
@@ -468,7 +513,12 @@ export default function ProgramChairSubjectsScreen() {
               </Text>
             </View>
 
-            {filteredQuestions.length === 0 ? (
+            {isLoadingQuestions ? (
+              <View className="py-16 items-center">
+                <CapsActivityIndicator size="large" color="#FE6902" />
+                <Text className="text-sm mt-3" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading questions...</Text>
+              </View>
+            ) : filteredQuestions.length === 0 ? (
               <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
                 <Ionicons name="help-circle-outline" size={64} color="#FE6902" />
                 <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Questions Yet</Text>
@@ -477,7 +527,10 @@ export default function ProgramChairSubjectsScreen() {
                 </Text>
               </View>
             ) : (
-              filteredQuestions.map((q, idx) => (
+              <FlatList
+                data={filteredQuestions}
+                keyExtractor={(q) => String(q.questionID ?? q.id ?? Math.random())}
+                renderItem={({ item: q, index: idx }) => (
                 <View
                   key={q.questionID || idx}
                   className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-gray-800' : 'bg-white'}`}
@@ -485,8 +538,8 @@ export default function ProgramChairSubjectsScreen() {
                   <View className="flex-row justify-between items-center mb-2">
                     <Text className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Q{idx + 1}</Text>
                     <View className="flex-row items-center gap-2">
-                      <View className={`px-2 py-1 rounded-lg ${q.status === 'approved' ? 'bg-green-500' : 'bg-yellow-500'}`}>
-                        <Text className="text-white text-xs font-semibold">{q.status === 'approved' ? 'Approved' : 'Pending'}</Text>
+                      <View className={`px-2 py-1 rounded-lg ${q.status === 'approved' || q.status_id === 2 ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                        <Text className="text-white text-xs font-semibold">{q.status === 'approved' || q.status_id === 2 ? 'Approved' : 'Pending'}</Text>
                       </View>
                       {(q.status === 'pending' || q.status_id === 1) && (
                         <TouchableOpacity
@@ -531,7 +584,21 @@ export default function ProgramChairSubjectsScreen() {
                     <Ionicons name="chevron-forward" size={18} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
                   </View>
                 </View>
-              ))
+                )}
+                onEndReached={handleLoadMoreQuestions}
+                onEndReachedThreshold={0.5}
+                initialNumToRender={10}
+                maxToRenderPerBatch={8}
+                windowSize={5}
+                removeClippedSubviews={true}
+                ListFooterComponent={
+                  isLoadingMoreQuestions ? (
+                    <View className="py-4 items-center">
+                      <CapsActivityIndicator size="small" color="#FE6902" />
+                    </View>
+                  ) : null
+                }
+              />
             )}
           </View>
           </>
