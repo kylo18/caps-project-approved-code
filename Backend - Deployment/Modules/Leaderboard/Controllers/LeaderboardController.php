@@ -318,11 +318,14 @@ class LeaderboardController extends Controller
                         ->exists();
 
                     if ($viewerExists) {
-                        // Get viewer's own aggregated stats
+                        // Get viewer's own aggregated stats with program info
+                        $viewerProgram = DB::table('users as u')
+                            ->leftJoin('programs as p', 'u.programID', '=', 'p.programID')
+                            ->where('u.userID', $viewerId)
+                            ->value('p.programName');
+
                         $viewerStats = DB::table('practice_exam_results as per')
-                            ->join('users as u', 'per.userID', '=', 'u.userID')
                             ->where('per.userID', $viewerId)
-                            ->where('u.roleID', 1)
                             ->select([
                                 DB::raw('MAX(per.percentage) as highestPercentage'),
                                 DB::raw('MAX(per.earnedPoints) as highestScore'),
@@ -368,7 +371,7 @@ class LeaderboardController extends Controller
                                 'score' => (int) $viewerStats->highestScore,
                                 'highestPercentage' => round($viewerStats->highestPercentage, 2),
                                 'attempts' => (int) $viewerStats->attempts,
-                                'program' => null,
+                                'program' => $viewerProgram ?? null,
                                 'subject' => null,
                                 'totalCandidates' => $totalCount,
                                 'betterThanPercentage' => $betterThanPercentage,
@@ -387,6 +390,7 @@ class LeaderboardController extends Controller
                             'percentile' => 0,
                             'period' => $period,
                             'periodEndsAt' => $periodEnd ? $periodEnd->toIso8601String() : null,
+                            'program' => $viewer->program ?? null,
                         ];
                     }
                 }
@@ -585,7 +589,7 @@ class LeaderboardController extends Controller
             'score' => $userScore,
             'highestPercentage' => $userPercentage,
             'attempts' => $userAttempts,
-            'program' => null,
+            'program' => $viewer->program ?? null,
             'subject' => null,
             'totalCandidates' => $totalCandidates,
             'betterThanPercentage' => $betterThanPercentage,

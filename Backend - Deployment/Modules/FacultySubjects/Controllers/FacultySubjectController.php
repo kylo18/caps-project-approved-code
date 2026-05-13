@@ -192,10 +192,18 @@ class FacultySubjectController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function mySubjects()
+    public function mySubjects(Request $request)
     {
         try {
             $user = $this->checkUserRole();
+
+            $perPage = min((int) $request->input('limit', 20), 100);
+            $page    = max((int) $request->input('page', 1), 1);
+            $offset  = ($page - 1) * $perPage;
+
+            $total = DB::table('faculty_subjects')
+                ->where('facultyID', $user->userID)
+                ->count();
 
             $subjects = DB::table('subjects as s')
                 ->join('faculty_subjects as fs', 's.subjectID', '=', 'fs.subjectID')
@@ -212,15 +220,9 @@ class FacultySubjectController extends Controller
                     'yl.name as yearLevel'
                 )
                 ->orderBy('s.subjectID')
+                ->offset($offset)
+                ->limit($perPage)
                 ->get();
-
-            if ($subjects->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No subjects assigned',
-                    'subjects' => []
-                ], 404);
-            }
 
             $formattedSubjects = $subjects->map(function ($subject) {
                 $programName = $subject->programName;
@@ -242,12 +244,16 @@ class FacultySubjectController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Subjects retrieved successfully',
-                'subjects' => $formattedSubjects
+                'subjects' => $formattedSubjects,
+                'total' => $total,
+                'page' => $page,
+                'per_page' => $perPage,
+                'has_more' => ($offset + $subjects->count()) < $total,
             ], 200);
 
         } catch (\Exception $e) {
             Log::error('Error retrieving faculty subjects: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving subjects',
@@ -343,6 +349,17 @@ class FacultySubjectController extends Controller
         try {
             $user = $this->checkUserRole();
             $userProgramID = $user->programID;
+            $page = max(1, (int) $request->get('page', 1));
+            $perPage = min(50, max(5, (int) $request->get('limit', 20)));
+            $offset = ($page - 1) * $perPage;
+
+            // Count total first
+            $total = DB::table('subjects as s')
+                ->where(function ($query) use ($userProgramID) {
+                    $query->where('s.programID', $userProgramID)
+                          ->orWhere('s.programID', 6);
+                })
+                ->count();
 
             $subjects = DB::table('subjects as s')
                 ->join('programs as p', 'p.programID', '=', 's.programID')
@@ -366,14 +383,22 @@ class FacultySubjectController extends Controller
                           ->orWhere('s.programID', 6); // Include general subjects
                 })
                 ->orderBy('s.subjectID')
+                ->offset($offset)
+                ->limit($perPage)
                 ->get();
 
             if ($subjects->isEmpty()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No subjects available for your program',
-                    'subjects' => []
-                ], 404);
+                    'subjects' => [],
+                    'pagination' => [
+                        'total' => $total,
+                        'page' => $page,
+                        'limit' => $perPage,
+                        'hasMore' => false,
+                    ]
+                ], 200);
             }
 
             $formattedSubjects = $subjects->map(function ($subject) {
@@ -397,12 +422,18 @@ class FacultySubjectController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Available subjects retrieved successfully',
-                'subjects' => $formattedSubjects
+                'subjects' => $formattedSubjects,
+                'pagination' => [
+                    'total' => $total,
+                    'page' => $page,
+                    'limit' => $perPage,
+                    'hasMore' => ($offset + $subjects->count()) < $total,
+                ]
             ], 200);
 
         } catch (\Exception $e) {
             Log::error('Error retrieving available subjects: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving available subjects',
