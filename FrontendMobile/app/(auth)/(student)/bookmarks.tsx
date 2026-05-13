@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,6 +15,7 @@ import CapsActivityIndicator from '../../../src/features/core/components/CapsAct
 
 export default function BookmarksScreen() {
   const router = useRouter();
+  const { origin } = useLocalSearchParams<{ origin?: string }>();
   const insets = useSafeAreaInsets();
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -61,7 +62,10 @@ export default function BookmarksScreen() {
         style={{ paddingTop: insets.top + 16 }}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => {
+            const backRoute = origin === 'profile' ? '/(auth)/(student)/insights' : '/(auth)/(student)/dashboard';
+            router.replace(backRoute);
+          }}
           className="mr-3 h-10 w-10 items-center justify-center rounded-full"
           style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
         >

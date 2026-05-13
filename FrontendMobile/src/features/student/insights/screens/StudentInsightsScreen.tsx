@@ -509,15 +509,7 @@ export default function StudentInsightsScreen() {
               <Ionicons name="settings-outline" size={18} color="rgba(255,255,255,0.88)" />
             </Pressable>
 
-            <Pressable
-              onPress={() => setShowEditProfile(true)}
-              hitSlop={10}
-              className="w-9 h-9 rounded-full items-center justify-center"
-              style={{ backgroundColor: 'rgba(255,255,255,0.14)' }}
-            >
-              <Ionicons name="create-outline" size={18} color="rgba(255,255,255,0.88)" />
-            </Pressable>
-          </View>
+                      </View>
 
           {/* ── Identity ─────────────────────────────────────────────────── */}
           <View className="items-center">
@@ -902,7 +894,7 @@ export default function StudentInsightsScreen() {
 
               <Pressable
                 className="flex-row items-center gap-3 py-3"
-                onPress={() => { setShowProfileMenu(false); router.push('/(auth)/(student)/bookmarks'); }}
+                onPress={() => { setShowProfileMenu(false); router.push('/(auth)/(student)/bookmarks?origin=profile'); }}
               >
                 <Ionicons name="bookmark" size={20} color="#fff" />
                 <Text className="text-[15px] font-medium text-white">My Bookmarks</Text>
