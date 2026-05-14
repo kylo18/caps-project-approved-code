@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../src/contexts/ThemeContext';
-import { studentColors, studentShadow } from '../../../src/features/student/ui/StudentUI';
+import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 
 type ExamEntry = {
   label: string;
@@ -23,7 +24,10 @@ function formatDate(iso: string) {
 }
 
 export default function ExamTrendChartScreen() {
-  const { isDark } = useTheme();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const themeColors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { data } = useLocalSearchParams<{ data?: string }>();
@@ -74,12 +78,12 @@ export default function ExamTrendChartScreen() {
   const uniqueSubjects = subjects.length > 1;
 
   const colors = {
-    bg: isDark ? '#000' : '#f3f4f6',
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    orange: studentColors.orange,
+    bg: themeColors.page,
+    card: themeColors.card,
+    text: themeColors.text,
+    textSecondary: themeColors.textSoft,
+    border: themeColors.border,
+    orange: themeColors.orange,
   };
 
   return (
@@ -147,7 +151,7 @@ export default function ExamTrendChartScreen() {
         {hasEnoughData ? (
           <View
             className="rounded-3xl p-4 border"
-            style={{ backgroundColor: colors.card, borderColor: colors.border }}
+            style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}
           >
             <Text className="text-base font-bold mb-1" style={{ color: colors.text }}>
               Score Trend
@@ -201,7 +205,7 @@ export default function ExamTrendChartScreen() {
 
             {/* Pass threshold note */}
             <View className="flex-row items-center mt-3">
-              <View className="w-3 h-px flex-1" style={{ backgroundColor: studentColors.success }} />
+              <View className="w-3 h-px flex-1" style={{ backgroundColor: themeColors.success }} />
               <Text className="text-xs px-2" style={{ color: colors.textSecondary }}>
                 75% = passing threshold
               </Text>
@@ -210,7 +214,7 @@ export default function ExamTrendChartScreen() {
         ) : (
           <View
             className="rounded-3xl p-8 items-center border"
-            style={{ backgroundColor: colors.card, borderColor: colors.border }}
+            style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}
           >
             <Ionicons name="stats-chart-outline" size={56} color={colors.textSecondary} />
             <Text className="text-lg font-bold mt-4" style={{ color: colors.text }}>
@@ -234,7 +238,7 @@ export default function ExamTrendChartScreen() {
               const score = entry.score_percentage;
               const scoreColor =
                 score >= 75
-                  ? studentColors.success
+                  ? themeColors.success
                   : score >= 50
                   ? '#F59E0B'
                   : '#EF4444';

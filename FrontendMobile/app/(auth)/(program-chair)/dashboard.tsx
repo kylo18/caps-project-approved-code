@@ -23,6 +23,7 @@ import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import MobileHeader from '../../../src/features/core/components/MobileHeader';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
+import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 56) / 3;
@@ -31,6 +32,8 @@ export default function ProgramChairDashboard() {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const auth = useSelector((state: any) => state.auth);
   const user = auth?.user;
 
@@ -118,9 +121,16 @@ export default function ProgramChairDashboard() {
   const statCards = [
     { icon: 'people' as const, value: stats.totalStudents, label: 'Students', color: '#3B82F6', route: '/(auth)/(program-chair)/users?filter=student' },
     { icon: 'person' as const, value: stats.totalFaculty, label: 'Faculty', color: '#8B5CF6', route: '/(auth)/(program-chair)/users?filter=admin' },
-    { icon: 'book' as const, value: stats.totalSubjects, label: 'Subjects', color: '#FE6902', route: '/(auth)/(program-chair)/subjects' },
+    { icon: 'book' as const, value: stats.totalSubjects, label: 'Subjects', color: colors.orange, route: '/(auth)/(program-chair)/subjects' },
     { icon: 'clipboard' as const, value: stats.activeQuizzes, label: 'Quizzes', color: '#10B981', route: '/(auth)/(program-chair)/subjects' },
   ];
+
+  const cardStyle = {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderWidth: 1,
+    ...shadow,
+  };
 
   useScreenFloatingTools([
     {
@@ -151,11 +161,11 @@ export default function ProgramChairDashboard() {
 
   if (isLoading) {
     return (
-      <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+      <View className="flex-1" style={{ backgroundColor: colors.page }}>
         <MobileHeader title="Program Chair" />
         <View className="flex-1 justify-center items-center">
-          <CapsActivityIndicator size="large" color="#FE6902" />
-          <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <CapsActivityIndicator size="large" color={colors.orange} />
+          <Text className="mt-3" style={{ color: colors.textSoft }}>
             Loading dashboard...
           </Text>
         </View>
@@ -164,7 +174,7 @@ export default function ProgramChairDashboard() {
   }
 
   return (
-    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+    <View className="flex-1" style={{ backgroundColor: colors.page }}>
       <MobileHeader title="Program Chair" />
 
       <ScrollView
@@ -172,15 +182,15 @@ export default function ProgramChairDashboard() {
         contentContainerStyle={{ paddingBottom: 112, gap: 16 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#FE6902" />
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.orange} />
         }
       >
         {/* Greeting Section */}
         <View className="mb-2">
-          <Text className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <Text className="text-sm" style={{ color: colors.textSoft }}>
             {getGreeting()},
           </Text>
-          <Text className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <Text className="text-2xl font-bold" style={{ color: colors.text }}>
             {firstName} {lastName}
           </Text>
         </View>
@@ -193,7 +203,7 @@ export default function ProgramChairDashboard() {
               activeOpacity={0.7}
               onPress={() => stat.route && router.push(stat.route as string)}
               className={`rounded-2xl p-3 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
-              style={{ width: CARD_WIDTH }}
+              style={[{ width: CARD_WIDTH }, cardStyle]}
             >
               <View
                 className="w-10 h-10 rounded-full items-center justify-center mb-2"
@@ -201,10 +211,10 @@ export default function ProgramChairDashboard() {
               >
                 <Ionicons name={stat.icon} size={20} color={stat.color} />
               </View>
-              <Text className={`text-xl font-extrabold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              <Text className="text-xl font-extrabold" style={{ color: colors.text }}>
                 {stat.value}
               </Text>
-              <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
                 {stat.label}
               </Text>
             </TouchableOpacity>
@@ -212,25 +222,25 @@ export default function ProgramChairDashboard() {
         </View>
 
         {/* Performance Overview */}
-        <Text className={`text-base font-bold mt-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <Text className="text-base font-bold mt-2" style={{ color: colors.text }}>
           Program Performance
         </Text>
-        <View className={`rounded-2xl p-5 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+        <View className={`rounded-2xl p-5 ${isDark ? 'bg-gray-900' : 'bg-white'}`} style={cardStyle}>
           <View className="flex-row justify-around mb-5">
             <View className="items-center">
-              <Text className={`text-3xl font-extrabold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              <Text className="text-3xl font-extrabold" style={{ color: colors.text }}>
                 {stats.avgScore}%
               </Text>
-              <Text className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <Text className="text-sm mt-1" style={{ color: colors.textSoft }}>
                 Avg Score
               </Text>
             </View>
-            <View className={`w-px ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`} />
+            <View className="w-px" style={{ backgroundColor: colors.border }} />
             <View className="items-center">
               <Text className="text-3xl font-extrabold text-green-500">
                 {stats.passRate}%
               </Text>
-              <Text className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <Text className="text-sm mt-1" style={{ color: colors.textSoft }}>
                 Pass Rate
               </Text>
             </View>
@@ -239,30 +249,30 @@ export default function ProgramChairDashboard() {
           <View className="gap-3">
             <View>
               <View className="flex-row justify-between mb-1">
-                <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                <Text className="text-xs" style={{ color: colors.textSoft }}>
                   Average Score
                 </Text>
-                <Text className={`text-xs font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                <Text className="text-xs font-semibold" style={{ color: colors.text }}>
                   {stats.avgScore}%
                 </Text>
               </View>
-              <View className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
                 <View
                   className="h-full rounded-full"
-                  style={{ width: `${stats.avgScore}%`, backgroundColor: '#FE6902' }}
+                  style={{ width: `${stats.avgScore}%`, backgroundColor: colors.orange }}
                 />
               </View>
             </View>
             <View>
               <View className="flex-row justify-between mb-1">
-                <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                <Text className="text-xs" style={{ color: colors.textSoft }}>
                   Pass Rate
                 </Text>
-                <Text className={`text-xs font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                <Text className="text-xs font-semibold" style={{ color: colors.text }}>
                   {stats.passRate}%
                 </Text>
               </View>
-              <View className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
                 <View
                   className="h-full rounded-full"
                   style={{ width: `${stats.passRate}%`, backgroundColor: '#10B981' }}
@@ -273,73 +283,77 @@ export default function ProgramChairDashboard() {
         </View>
 
         {/* Quick Actions */}
-        <Text className={`text-base font-bold mt-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <Text className="text-base font-bold mt-2" style={{ color: colors.text }}>
           Quick Actions
         </Text>
         <View className="flex-row flex-wrap gap-3">
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            style={cardStyle}
             onPress={() => router.push('/(auth)/(program-chair)/reports')}
             activeOpacity={0.7}
           >
-            <Ionicons name="library" size={28} color="#FE6902" />
-            <Text className={`font-semibold mt-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <Ionicons name="library" size={28} color={colors.orange} />
+            <Text className="font-semibold mt-3" style={{ color: colors.text }}>
               Manage Subjects
             </Text>
-            <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
               Review curriculum
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            style={cardStyle}
             onPress={() => router.push('/(auth)/(program-chair)/users')}
             activeOpacity={0.7}
           >
             <Ionicons name="people" size={28} color="#3B82F6" />
-            <Text className={`font-semibold mt-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <Text className="font-semibold mt-3" style={{ color: colors.text }}>
               User Management
             </Text>
-            <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
               Manage students & faculty
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            style={cardStyle}
             onPress={() => router.push('/(auth)/(program-chair)/classes')}
             activeOpacity={0.7}
           >
             <Ionicons name="layers" size={28} color="#10B981" />
-            <Text className={`font-semibold mt-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <Text className="font-semibold mt-3" style={{ color: colors.text }}>
               Manage Classes
             </Text>
-            <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
               Match the web class flow
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            style={cardStyle}
             onPress={() => router.push('/(auth)/(program-chair)/subjects')}
             activeOpacity={0.7}
           >
             <Ionicons name="document-text" size={28} color="#8B5CF6" />
-            <Text className={`font-semibold mt-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <Text className="font-semibold mt-3" style={{ color: colors.text }}>
               Generate Reports
             </Text>
-            <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
               Export analytics
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Subject Overview */}
-        <Text className={`text-base font-bold mt-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <Text className="text-base font-bold mt-2" style={{ color: colors.text }}>
           Subject Overview
         </Text>
 
         {subjects.length === 0 ? (
-          <View className={`rounded-2xl p-8 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
-            <Ionicons name="book-outline" size={48} color={isDark ? '#6B7280' : '#9CA3AF'} />
-            <Text className={`mt-3 font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <View className={`rounded-2xl p-8 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`} style={cardStyle}>
+            <Ionicons name="book-outline" size={48} color={colors.mutedIcon} />
+            <Text className="mt-3 font-semibold" style={{ color: colors.textSoft }}>
               No subjects found
             </Text>
           </View>
@@ -349,18 +363,19 @@ export default function ProgramChairDashboard() {
               <TouchableOpacity
                 key={subject.subjectID || idx}
                 className={`flex-row items-center rounded-xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                style={cardStyle}
                 onPress={() => router.push('/(auth)/(program-chair)/subjects')}
                 activeOpacity={0.7}
               >
-                <View className="w-10 h-10 rounded-xl items-center justify-center bg-blue-100">
+                <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: '#3B82F618' }}>
                   <Ionicons name="book" size={20} color="#3B82F6" />
                 </View>
                 <View className="flex-1 ml-3">
-                  <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  <Text className="font-semibold" style={{ color: colors.text }}>
                     {subject.subjectName || subject.name}
                   </Text>
                   {subject.subjectCode && (
-                    <Text className={`text-xs mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <Text className="text-xs mt-0.5" style={{ color: colors.textSoft }}>
                       {subject.subjectCode}
                     </Text>
                   )}
@@ -368,22 +383,23 @@ export default function ProgramChairDashboard() {
                 <View className="flex-row items-center gap-3 mr-2">
                   <View className="flex-row items-center gap-1">
                     <Ionicons name="people" size={14} color="#3B82F6" />
-                    <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <Text className="text-xs" style={{ color: colors.textSoft }}>
                       24
                     </Text>
                   </View>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={isDark ? '#6B7280' : '#9CA3AF'} />
+                <Ionicons name="chevron-forward" size={20} color={colors.mutedIcon} />
               </TouchableOpacity>
             ))}
 
             {subjects.length > 5 && (
               <TouchableOpacity
                 className={`flex-row items-center justify-center p-4 rounded-xl ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                style={cardStyle}
                 onPress={() => router.push('/(auth)/(program-chair)/subjects')}
               >
-                <Text className="text-primary font-semibold">View All Subjects</Text>
-                <Ionicons name="arrow-forward" size={16} color="#FE6902" className="ml-2" />
+                <Text className="font-semibold" style={{ color: colors.orange }}>View All Subjects</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.orange} className="ml-2" />
               </TouchableOpacity>
             )}
           </>

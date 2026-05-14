@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
 import { showToast } from '../../../../src/hooks/useToast';
 import { useDispatch } from 'react-redux';
@@ -90,8 +91,9 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
       );
       onClose();
     } catch (error: unknown) {
+      const apiError = error as { data?: { errors?: Record<string, unknown>; message?: string } };
       const validationErrors = error instanceof Error && 'data' in error
-        ? (error as { data?: { errors?: Record<string, unknown> } }).data?.errors
+        ? apiError.data?.errors
         : undefined;
       const firstValidationError =
         validationErrors && typeof validationErrors === 'object'
@@ -99,7 +101,7 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
           : null;
       const errorMsg =
         (Array.isArray(firstValidationError) ? firstValidationError[0] : firstValidationError) ||
-        error.data?.message ||
+        apiError.data?.message ||
         'Failed to update profile';
       showToast(errorMsg, 'error');
     } finally {
@@ -108,25 +110,39 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
   };
 
   const colors = {
-    bg: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    inputBg: isDark ? '#111827' : '#fff',
+    bg: isDark ? '#141414' : '#FFFFFF',
+    card: isDark ? '#1A1A1A' : '#F7F8FA',
+    text: isDark ? '#F5F5F5' : '#111827',
+    textSecondary: isDark ? '#A3A3A3' : '#6B7280',
+    border: isDark ? '#2A2A2A' : '#E5E7EB',
+    inputBg: isDark ? '#242424' : '#FFFFFF',
+    accent: isDark ? '#FF8C00' : '#FE6902',
   };
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View className="flex-1 bg-black/60 justify-end">
-        <View className="rounded-t-3xl p-5" style={{ backgroundColor: colors.bg, maxHeight: '80%' }}>
+      <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.62)' }}>
+        <View className="rounded-t-[28px] border px-5 pt-3 pb-5" style={{ backgroundColor: colors.bg, borderColor: colors.border, maxHeight: '84%' }}>
+          <View className="items-center pb-3">
+            <View className="h-1 w-12 rounded-full" style={{ backgroundColor: colors.border }} />
+          </View>
+
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-xl font-bold" style={{ color: colors.text }}>Edit Profile</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text className="text-2xl" style={{ color: colors.textSecondary }}>✕</Text>
+            <View>
+              <Text className="text-xl font-bold" style={{ color: colors.text }}>Edit Profile</Text>
+              <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Keep your account details current.</Text>
+            </View>
+            <TouchableOpacity
+              onPress={onClose}
+              className="h-9 w-9 rounded-full items-center justify-center"
+              style={{ backgroundColor: colors.card }}
+            >
+              <Ionicons name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
+            <View className="rounded-2xl border p-4 mb-4" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
             <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>First Name</Text>
             <TextInput
               className="text-base px-3 py-3 rounded-xl border mb-3"
@@ -152,8 +168,11 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
               keyboardType="email-address"
               autoCapitalize="none"
             />
+            </View>
 
-            <Text className="text-base font-bold mt-5 mb-1" style={{ color: colors.text }}>Change Password (Optional)</Text>
+            <View className="rounded-2xl border p-4" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+            <Text className="text-base font-bold mb-1" style={{ color: colors.text }}>Change Password</Text>
+            <Text className="text-xs mb-4" style={{ color: colors.textSecondary }}>Optional, but recommended when you share a device.</Text>
 
             <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>Current Password</Text>
             <TextInput
@@ -190,10 +209,11 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
               placeholder="Re-enter new password"
               placeholderTextColor={colors.textSecondary}
             />
+            </View>
 
             <TouchableOpacity
-              className="py-3.5 rounded-xl items-center mt-4"
-              style={{ backgroundColor: '#FE6902', opacity: isSubmitting ? 0.6 : 1 }}
+              className="py-3.5 rounded-2xl items-center mt-4"
+              style={{ backgroundColor: colors.accent, opacity: isSubmitting ? 0.6 : 1 }}
               onPress={handleSave}
               disabled={isSubmitting}
               activeOpacity={0.8}

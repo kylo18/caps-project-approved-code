@@ -40,7 +40,7 @@ export default function FacultySubjectsScreen() {
   const [isAssigning, setIsAssigning] = useState(false);
 
   useEffect(() => {
-    fetchSubjects();
+    fetchSubjects(true);
   }, []);
 
   useEffect(() => {
@@ -89,11 +89,8 @@ export default function FacultySubjectsScreen() {
       console.error('Error fetching subjects:', error);
       showToast('Unable to load subjects', 'error');
     } finally {
-      if (reset) {
-        setIsLoading(false);
-      } else {
-        setIsLoadingMore(false);
-      }
+      setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -132,7 +129,7 @@ export default function FacultySubjectsScreen() {
       });
       showToast('Subject assigned successfully', 'success');
       setShowAssignModal(false);
-      await fetchSubjects();
+      await fetchSubjects(true);
     } catch (error) {
       showToast('Failed to assign subject', 'error');
     } finally {
@@ -157,7 +154,7 @@ export default function FacultySubjectsScreen() {
                 setSelectedSubject(null);
                 setQuestions([]);
               }
-              await fetchSubjects();
+              await fetchSubjects(true);
             } catch (error) {
               showToast('Failed to remove subject', 'error');
             }

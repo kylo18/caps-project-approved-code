@@ -6,7 +6,8 @@
 import { useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { studentColors, studentShadow } from '../ui/studentTokens';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getStudentColors, getStudentShadow } from './studentTokens';
 import { StudentAvatar } from './StudentAvatar';
 
 type LeaderboardRowProps = {
@@ -24,6 +25,10 @@ function StudentLeaderboardRow({
   emphasize = false,
   trailingLabel,
 }: LeaderboardRowProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const studentColors = getStudentColors(isDark);
+  const studentShadow = getStudentShadow(isDark);
   const rank = Number(entry?.rank ?? 0);
   const medalColor =
     rank === 1 ? studentColors.gold
@@ -34,11 +39,15 @@ function StudentLeaderboardRow({
 
   return (
     <View
-      className={`flex-row items-center gap-3 rounded-[20px] border-2 px-3 py-2.5 ${emphasize ? 'bg-[#FFF1E9]' : 'bg-white'}`}
-      style={{ borderColor: studentColors.border, ...studentShadow }}
+      className="flex-row items-center gap-3 rounded-[20px] border-2 px-3 py-2.5"
+      style={{
+        backgroundColor: emphasize ? studentColors.statsCard : studentColors.card,
+        borderColor: studentColors.border,
+        ...studentShadow,
+      }}
     >
       <View className="w-[26px] items-center">
-        <View className={`w-6 h-6 rounded-full items-center justify-center ${emphasize ? 'bg-[#FFF1E9]' : 'bg-[#F8F6FF]'}`}>
+        <View className="w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: emphasize ? studentColors.orangeSoft : studentColors.pale }}>
           <Text className="font-sans text-xs font-medium" style={{ color: studentColors.textSoft }}>{rank}</Text>
         </View>
       </View>
@@ -70,6 +79,10 @@ function StudentLeaderboardRow({
 type PodiumProps = { topThree: any[] };
 
 function StudentLeaderboardPodium({ topThree }: PodiumProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const studentColors = getStudentColors(isDark);
+  const studentShadow = getStudentShadow(isDark);
   const ordered = useMemo(
     () => [
       { place: 2, entry: topThree[1], height: 92, width: 58, avatarSize: 54, avatarColor: '#F7D6F3', barColor: '#BFC0C8', topColor: '#D7D8DE' },

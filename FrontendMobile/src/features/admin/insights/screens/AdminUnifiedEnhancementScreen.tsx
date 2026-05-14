@@ -5,9 +5,11 @@ import {
     ScrollView,
     Text,
     TextInput,
+    useWindowDimensions,
     View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import MobileHeader from '../../../../features/core/components/MobileHeader';
 import { useTheme } from '../../../../contexts/ThemeContext';
@@ -202,6 +204,87 @@ function PassFailRing({ passed, failed, size = 90 }: { passed: number; failed: n
                         Pass
                     </Text>
                 </View>
+            </View>
+        </View>
+    );
+}
+
+function ProgressLineChart({
+    points,
+    periodType,
+    isDark,
+}: {
+    points: ProgressPoint[];
+    periodType: string;
+    isDark: boolean;
+}) {
+    const { width } = useWindowDimensions();
+    const chartWidth = Math.min(width - 64, 360);
+    const chartHeight = 132;
+    const paddingX = 18;
+    const paddingY = 18;
+    const usableWidth = chartWidth - paddingX * 2;
+    const usableHeight = chartHeight - paddingY * 2;
+    const ordered = points.filter((point) => point.exam_count > 0).slice(-6);
+    const maxScore = Math.max(100, ...ordered.map((point) => point.avg_score));
+    const minScore = Math.min(0, ...ordered.map((point) => point.avg_score));
+    const range = Math.max(1, maxScore - minScore);
+
+    const plotted = ordered.map((point, index) => {
+        const x = paddingX + (ordered.length === 1 ? usableWidth / 2 : (index / (ordered.length - 1)) * usableWidth);
+        const y = paddingY + usableHeight - ((point.avg_score - minScore) / range) * usableHeight;
+        return { ...point, x, y };
+    });
+
+    const polyline = plotted.map((point) => `${point.x},${point.y}`).join(' ');
+    const lineColor = '#FE6902';
+    const gridColor = isDark ? '#1F2937' : '#E5E7EB';
+
+    return (
+        <View
+            className="rounded-[22px] px-3 py-3"
+            style={{ backgroundColor: isDark ? '#0F172A' : '#FFF7ED' }}
+        >
+            <View className="flex-row items-center justify-between mb-2">
+                <View>
+                    <Text className="text-[13px] font-bold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                        Average Score Trend
+                    </Text>
+                    <Text className="text-[11px] mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                        {ordered.length} recent {periodType === 'month' ? 'months' : 'periods'}
+                    </Text>
+                </View>
+                <Text className="text-[18px] font-extrabold" style={{ color: lineColor }}>
+                    {fmtPct(ordered[ordered.length - 1]?.avg_score ?? 0)}
+                </Text>
+            </View>
+
+            <Svg width={chartWidth} height={chartHeight}>
+                {[0.25, 0.5, 0.75].map((ratio) => (
+                    <Line
+                        key={ratio}
+                        x1={paddingX}
+                        x2={chartWidth - paddingX}
+                        y1={paddingY + usableHeight * ratio}
+                        y2={paddingY + usableHeight * ratio}
+                        stroke={gridColor}
+                        strokeWidth={1}
+                    />
+                ))}
+                {plotted.length > 1 ? (
+                    <Polyline points={polyline} fill="none" stroke={lineColor} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+                ) : null}
+                {plotted.map((point) => (
+                    <Circle key={point.period} cx={point.x} cy={point.y} r={4} fill={lineColor} />
+                ))}
+            </Svg>
+
+            <View className="flex-row justify-between -mt-1">
+                {plotted.map((point) => (
+                    <Text key={point.period} className="text-[10px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                        {formatPeriod(point.period, periodType)}
+                    </Text>
+                ))}
             </View>
         </View>
     );
@@ -993,6 +1076,11 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                                 />
                             ) : (
                                 <View className="gap-3">
+                                    <ProgressLineChart
+                                        points={progress}
+                                        periodType={progressPeriod}
+                                        isDark={isDark}
+                                    />
                                     {recentProgress.map((point, index) => (
                                         <View key={index} className="flex-row items-center justify-between">
                                             <View className="flex-1 mr-3">

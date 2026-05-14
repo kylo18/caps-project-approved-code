@@ -24,11 +24,14 @@ import { showToast } from '../../../src/hooks/useToast';
 import MobileHeader from '../../../src/features/core/components/MobileHeader';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 
 export default function FacultyDashboard() {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const auth = useSelector((state: any) => state.auth);
   const user = auth?.user;
 
@@ -101,11 +104,18 @@ export default function FacultyDashboard() {
   };
 
   const quickActions = [
-    { icon: 'layers' as const, label: 'My Classes', route: '/(auth)/(faculty)/classes', color: '#FE6902' },
+    { icon: 'layers' as const, label: 'My Classes', route: '/(auth)/(faculty)/classes', color: colors.orange },
     { icon: 'people' as const, label: 'Students', route: '/(auth)/(faculty)/users', color: '#3B82F6' },
     { icon: 'create' as const, label: 'Create Quiz', route: '/(auth)/practice-exam/add-question', color: '#10B981' },
     { icon: 'stats-chart' as const, label: 'Reports', route: '/(auth)/(faculty)/reports', color: '#8B5CF6' },
   ];
+
+  const cardStyle = {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderWidth: 1,
+    ...shadow,
+  };
 
   useScreenFloatingTools([
     {
@@ -136,11 +146,11 @@ export default function FacultyDashboard() {
 
   if (isLoading) {
     return (
-      <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`} style={{ paddingBottom: insets.bottom + 12 }}>
+      <View className="flex-1" style={{ backgroundColor: colors.page, paddingBottom: insets.bottom + 12 }}>
         <MobileHeader title="Faculty Dashboard" />
         <View className="flex-1 justify-center items-center">
-          <CapsActivityIndicator size="large" color="#FE6902" />
-          <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <CapsActivityIndicator size="large" color={colors.orange} />
+          <Text className="mt-3" style={{ color: colors.textSoft }}>
             Loading dashboard...
           </Text>
         </View>
@@ -149,7 +159,7 @@ export default function FacultyDashboard() {
   }
 
   return (
-    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`} style={{ paddingBottom: insets.bottom + 12 }}>
+    <View className="flex-1" style={{ backgroundColor: colors.page, paddingBottom: insets.bottom + 12 }}>
       <MobileHeader title="Faculty Dashboard" />
 
       <ScrollView
@@ -157,15 +167,15 @@ export default function FacultyDashboard() {
         contentContainerStyle={{ paddingBottom: 112, gap: 16 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#FE6902" />
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.orange} />
         }
       >
         {/* Greeting Section */}
         <View className="mb-2">
-          <Text className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <Text className="text-sm" style={{ color: colors.textSoft }}>
             {getGreeting()},
           </Text>
-          <Text className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <Text className="text-2xl font-bold" style={{ color: colors.text }}>
             {firstName} {lastName}
           </Text>
         </View>
@@ -176,14 +186,15 @@ export default function FacultyDashboard() {
             activeOpacity={0.7}
             onPress={() => router.push('/(auth)/(faculty)/users?filter=student')}
             className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            style={cardStyle}
           >
-            <View className="w-12 h-12 rounded-2xl items-center justify-center bg-orange-100 mb-2">
-              <Ionicons name="people" size={24} color="#FE6902" />
+            <View className="w-12 h-12 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: `${colors.orange}18` }}>
+              <Ionicons name="people" size={24} color={colors.orange} />
             </View>
-            <Text className={`text-2xl font-extrabold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
               {stats.totalStudents}
             </Text>
-            <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
               Students
             </Text>
           </TouchableOpacity>
@@ -191,14 +202,15 @@ export default function FacultyDashboard() {
             activeOpacity={0.7}
             onPress={() => router.push('/(auth)/(faculty)/subjects')}
             className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            style={cardStyle}
           >
-            <View className="w-12 h-12 rounded-2xl items-center justify-center bg-blue-100 mb-2">
+            <View className="w-12 h-12 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: '#3B82F618' }}>
               <Ionicons name="book" size={24} color="#3B82F6" />
             </View>
-            <Text className={`text-2xl font-extrabold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
               {subjects.length}
             </Text>
-            <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
               Subjects
             </Text>
           </TouchableOpacity>
@@ -206,44 +218,45 @@ export default function FacultyDashboard() {
             activeOpacity={0.7}
             onPress={() => router.push('/(auth)/(faculty)/subjects')}
             className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            style={cardStyle}
           >
-            <View className="w-12 h-12 rounded-2xl items-center justify-center bg-green-100 mb-2">
+            <View className="w-12 h-12 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: '#10B98118' }}>
               <Ionicons name="clipboard" size={24} color="#10B981" />
             </View>
-            <Text className={`text-2xl font-extrabold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
               {stats.totalQuizzes}
             </Text>
-            <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
               Quizzes
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Average Score Card */}
-        <View className={`rounded-2xl p-5 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+        <View className={`rounded-2xl p-5 ${isDark ? 'bg-gray-900' : 'bg-white'}`} style={cardStyle}>
           <View className="flex-row justify-between items-center mb-3">
             <View>
-              <Text className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <Text className="text-sm" style={{ color: colors.textSoft }}>
                 Class Average
               </Text>
-              <Text className={`text-3xl font-extrabold mt-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              <Text className="text-3xl font-extrabold mt-1" style={{ color: colors.text }}>
                 {stats.avgScore}%
               </Text>
             </View>
             <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: '#FE690220' }}>
-              <Ionicons name="trending-up" size={28} color="#FE6902" />
+              <Ionicons name="trending-up" size={28} color={colors.orange} />
             </View>
           </View>
-          <View className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
             <View
               className="h-full rounded-full"
-              style={{ width: `${stats.avgScore}%`, backgroundColor: '#FE6902' }}
+              style={{ width: `${stats.avgScore}%`, backgroundColor: colors.orange }}
             />
           </View>
         </View>
 
         {/* Quick Actions */}
-        <Text className={`text-base font-bold mt-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <Text className="text-base font-bold mt-2" style={{ color: colors.text }}>
           Quick Actions
         </Text>
         <View className="flex-row flex-wrap gap-3">
@@ -251,6 +264,7 @@ export default function FacultyDashboard() {
             <TouchableOpacity
               key={idx}
               className={`w-[48%] rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+              style={cardStyle}
               onPress={() => router.push(action.route as string)}
               activeOpacity={0.7}
             >
@@ -260,7 +274,7 @@ export default function FacultyDashboard() {
               >
                 <Ionicons name={action.icon} size={24} color={action.color} />
               </View>
-              <Text className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              <Text className="text-sm font-semibold" style={{ color: colors.text }}>
                 {action.label}
               </Text>
             </TouchableOpacity>
@@ -268,14 +282,14 @@ export default function FacultyDashboard() {
         </View>
 
         {/* Assigned Subjects */}
-        <Text className={`text-base font-bold mt-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <Text className="text-base font-bold mt-2" style={{ color: colors.text }}>
           My Subjects
         </Text>
 
         {subjects.length === 0 ? (
-          <View className={`rounded-2xl p-8 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
-            <Ionicons name="book-outline" size={48} color={isDark ? '#6B7280' : '#9CA3AF'} />
-            <Text className={`mt-3 font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <View className={`rounded-2xl p-8 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`} style={cardStyle}>
+            <Ionicons name="book-outline" size={48} color={colors.mutedIcon} />
+            <Text className="mt-3 font-semibold" style={{ color: colors.textSoft }}>
               No subjects assigned yet
             </Text>
           </View>
@@ -285,33 +299,35 @@ export default function FacultyDashboard() {
               <TouchableOpacity
                 key={subject.subjectID || idx}
                 className={`flex-row items-center rounded-xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                style={cardStyle}
                 onPress={() => router.push('/(auth)/(faculty)/subjects')}
                 activeOpacity={0.7}
               >
-                <View className="w-10 h-10 rounded-xl items-center justify-center bg-orange-100">
-                  <Ionicons name="book" size={20} color="#FE6902" />
+                <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: `${colors.orange}18` }}>
+                  <Ionicons name="book" size={20} color={colors.orange} />
                 </View>
                 <View className="flex-1 ml-3">
-                  <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  <Text className="font-semibold" style={{ color: colors.text }}>
                     {subject.subjectName || subject.name}
                   </Text>
                   {subject.subjectCode && (
-                    <Text className={`text-xs mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <Text className="text-xs mt-0.5" style={{ color: colors.textSoft }}>
                       {subject.subjectCode}
                     </Text>
                   )}
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={isDark ? '#6B7280' : '#9CA3AF'} />
+                <Ionicons name="chevron-forward" size={20} color={colors.mutedIcon} />
               </TouchableOpacity>
             ))}
 
             {subjects.length > 4 && (
               <TouchableOpacity
                 className={`flex-row items-center justify-center p-4 rounded-xl ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                style={cardStyle}
                 onPress={() => router.push('/(auth)/(faculty)/subjects')}
               >
-                <Text className="text-primary font-semibold">View All Subjects</Text>
-                <Ionicons name="arrow-forward" size={16} color="#FE6902" className="ml-2" />
+                <Text className="font-semibold" style={{ color: colors.orange }}>View All Subjects</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.orange} className="ml-2" />
               </TouchableOpacity>
             )}
           </>

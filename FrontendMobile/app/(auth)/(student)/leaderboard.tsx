@@ -4,6 +4,7 @@ import CapsActivityIndicator from '../../../src/features/core/components/CapsAct
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import { useTheme } from '../../../src/contexts/ThemeContext';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Services & UI components shared across student screens
@@ -22,8 +23,8 @@ import {
   StudentLeaderboardRow,
   StudentSegmentedControl,
   formatWeeklyCountdown,
-  studentColors,
-  studentShadow,
+  getStudentColors,
+  getStudentShadow,
 } from '../../../src/features/student/ui/StudentUI';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -41,6 +42,10 @@ const buildEntrySubtitle = (entry: Partial<StudentLeaderboardEntry>) =>
 
 export default function LeaderboardScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
 
   // ── State ────────────────────────────────────────────────────────────────
   const [period, setPeriod] = useState<LeaderboardPeriod>('weekly');
@@ -150,7 +155,7 @@ export default function LeaderboardScreen() {
       : 'Take a practice exam to appear on the all-time leaderboard.';
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1" style={{ backgroundColor: colors.page }}>
       <StatusBar style="light" />
 
       {/* ───────────────────────────────────────────────────────────────────
@@ -180,7 +185,7 @@ export default function LeaderboardScreen() {
             ORANGE HERO HEADER
             Displays the screen title and the Weekly / All Time toggle.
             ───────────────────────────────────────────────────────────────── */}
-        <View className="px-6 pb-[18px] gap-[18px]" style={{ backgroundColor: studentColors.orange, paddingTop: insets.top + 16 }}>
+        <View className="px-6 pb-[18px] gap-[18px]" style={{ backgroundColor: isDark ? colors.headerWarm : colors.header, paddingTop: insets.top + 16 }}>
           <StudentHeroDecoration />
           <Text className="text-white text-[28px] font-medium leading-[36px] text-center" style={{ fontFamily: 'Rubik' }}>Leaderboard</Text>
           <StudentSegmentedControl value={period} options={PERIOD_OPTIONS} onChange={setPeriod} />
@@ -191,26 +196,26 @@ export default function LeaderboardScreen() {
             White card with rounded top corners that slides over the orange
             hero. Contains loading, error, empty state, and the two views.
             ───────────────────────────────────────────────────────────────── */}
-        <View style={{ backgroundColor: studentColors.orange }}>
-          <View className="bg-white px-6 pt-[22px] pb-7 min-h-[620px] rounded-t-[34px] -mt-2.5">
+        <View style={{ backgroundColor: isDark ? colors.page : colors.header }}>
+          <View className="px-6 pt-[22px] pb-7 min-h-[620px] rounded-t-[34px] -mt-2.5" style={{ backgroundColor: colors.card }}>
             {loading ? (
-              <View className="items-center justify-center gap-2.5 rounded-3xl bg-white border-2 py-[30px] px-5" style={{ borderColor: studentColors.border, ...studentShadow }}>
-                <CapsActivityIndicator size="large" color={studentColors.orange} />
-                <Text className="text-sm font-normal leading-5 text-center" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>Loading leaderboard...</Text>
+              <View className="items-center justify-center gap-2.5 rounded-3xl border-2 py-[30px] px-5" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
+                <CapsActivityIndicator size="large" color={colors.orange} />
+                <Text className="text-sm font-normal leading-5 text-center" style={{ color: colors.textSoft, fontFamily: 'Rubik' }}>Loading leaderboard...</Text>
               </View>
             ) : error ? (
-              <View className="items-center justify-center gap-2.5 rounded-3xl bg-white border-2 py-[30px] px-5" style={{ borderColor: studentColors.border, ...studentShadow }}>
-                <Ionicons name="cloud-offline-outline" size={32} color={studentColors.orange} />
-                <Text className="text-sm font-normal leading-5 text-center" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>{error}</Text>
-                <Pressable className="rounded-full px-4 py-2.5" style={{ backgroundColor: studentColors.orange }} onPress={loadLeaderboard}>
+              <View className="items-center justify-center gap-2.5 rounded-3xl border-2 py-[30px] px-5" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
+                <Ionicons name="cloud-offline-outline" size={32} color={colors.orange} />
+                <Text className="text-sm font-normal leading-5 text-center" style={{ color: colors.textSoft, fontFamily: 'Rubik' }}>{error}</Text>
+                <Pressable className="rounded-full px-4 py-2.5" style={{ backgroundColor: colors.orange }} onPress={loadLeaderboard}>
                   <Text className="text-sm font-bold text-white" style={{ fontFamily: 'Rubik' }}>Retry</Text>
                 </Pressable>
               </View>
             ) : entries.length === 0 ? (
-              <View className="items-center justify-center gap-2.5 rounded-3xl bg-white border-2 py-[30px] px-5" style={{ borderColor: studentColors.border, ...studentShadow }}>
-                <Ionicons name="trophy-outline" size={32} color={studentColors.orange} />
-                <Text className="text-lg font-medium leading-6" style={{ color: studentColors.text, fontFamily: 'Rubik' }}>No rankings yet</Text>
-                <Text className="text-sm font-normal leading-5 text-center" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>
+              <View className="items-center justify-center gap-2.5 rounded-3xl border-2 py-[30px] px-5" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
+                <Ionicons name="trophy-outline" size={32} color={colors.orange} />
+                <Text className="text-lg font-medium leading-6" style={{ color: colors.text, fontFamily: 'Rubik' }}>No rankings yet</Text>
+                <Text className="text-sm font-normal leading-5 text-center" style={{ color: colors.textSoft, fontFamily: 'Rubik' }}>
                   {selectedProgramID || selectedSubjectID
                     ? 'No entries match your selected filters.'
                     : 'Complete a practice exam to populate the leaderboard.'}
@@ -218,7 +223,7 @@ export default function LeaderboardScreen() {
                 {(selectedProgramID || selectedSubjectID) ? (
                   <Pressable
                     className="rounded-full px-4 py-2.5"
-                    style={{ backgroundColor: studentColors.orange }}
+                    style={{ backgroundColor: colors.orange }}
                     onPress={() => {
                       setSelectedProgramID(null);
                       setSelectedSubjectID(null);
@@ -241,11 +246,11 @@ export default function LeaderboardScreen() {
               // ─────────────────────────────────────────────────────────────
               <>
                 {/* "Your Rank" card — displays viewer's current weekly rank */}
-                <View className="rounded-[22px] bg-[#FFD7C4] px-4 py-3.5 flex-row items-center gap-3 mb-4">
-                  <View className="min-w-[46px] h-[34px] rounded-[17px] bg-white items-center justify-center">
-                    <Text className="text-base font-bold leading-5" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{viewer?.rank != null ? `#${viewer.rank}` : '--'}</Text>
+                <View className="rounded-[22px] px-4 py-3.5 flex-row items-center gap-3 mb-4" style={{ backgroundColor: colors.statsCard }}>
+                  <View className="min-w-[46px] h-[34px] rounded-[17px] items-center justify-center" style={{ backgroundColor: colors.card }}>
+                    <Text className="text-base font-bold leading-5" style={{ color: colors.orange, fontFamily: 'Rubik' }}>{viewer?.rank != null ? `#${viewer.rank}` : '--'}</Text>
                   </View>
-                  <Text className="flex-1 text-sm font-medium leading-5" style={{ color: '#8A4A2F', fontFamily: 'Rubik' }}>{weeklyComparisonCopy}</Text>
+                  <Text className="flex-1 text-sm font-medium leading-5" style={{ color: isDark ? colors.text : '#8A4A2F', fontFamily: 'Rubik' }}>{weeklyComparisonCopy}</Text>
                   {viewer?.rank != null && (
                     <Pressable
                       onPress={() =>
@@ -255,23 +260,24 @@ export default function LeaderboardScreen() {
                           subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || undefined,
                         })
                       }
-                      className="p-1.5 rounded-full bg-white"
+                      className="p-1.5 rounded-full"
+                      style={{ backgroundColor: colors.card }}
                       hitSlop={8}
                     >
-                      <Ionicons name="share-outline" size={22} color={studentColors.orange} />
+                      <Ionicons name="share-outline" size={22} color={colors.orange} />
                     </Pressable>
                   )}
                 </View>
 
                 {/* Utility row: open filter sheet + weekly countdown chip */}
                 <View className="flex-row items-center justify-between gap-3 mb-3">
-                  <Pressable className="flex-row items-center gap-1 rounded-full border bg-white px-3.5 py-2.5" style={{ borderColor: studentColors.border }} onPress={() => setFilterVisible(true)}>
-                    <Text className="text-[13px] font-medium leading-[18px]" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>Filters</Text>
-                    <Ionicons name="chevron-down" size={16} color={studentColors.orange} />
+                  <Pressable className="flex-row items-center gap-1 rounded-full border px-3.5 py-2.5" style={{ backgroundColor: colors.card, borderColor: colors.border }} onPress={() => setFilterVisible(true)}>
+                    <Text className="text-[13px] font-medium leading-[18px]" style={{ color: colors.orange, fontFamily: 'Rubik' }}>Filters</Text>
+                    <Ionicons name="chevron-down" size={16} color={colors.orange} />
                   </Pressable>
 
-                  <View className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2.5" style={{ backgroundColor: studentColors.orange }}>
-                    <Ionicons name="time-outline" size={14} color={studentColors.white} />
+                  <View className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2.5" style={{ backgroundColor: colors.orange }}>
+                    <Ionicons name="time-outline" size={14} color={colors.white} />
                     <Text className="text-xs font-medium leading-4 text-white" style={{ fontFamily: 'Rubik' }}>{formatWeeklyCountdown(viewer?.periodEndsAt ?? response?.meta.periodEndsAt)}</Text>
                   </View>
                 </View>
@@ -280,13 +286,13 @@ export default function LeaderboardScreen() {
                 {selectedProgram || selectedSubject ? (
                   <View className="flex-row flex-wrap gap-2 mb-4">
                     {selectedProgram ? (
-                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: studentColors.surfaceSoft }}>
-                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{selectedProgram.programName}</Text>
+                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: colors.cardSoft }}>
+                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: colors.orange, fontFamily: 'Rubik' }}>{selectedProgram.programName}</Text>
                       </View>
                     ) : null}
                     {selectedSubject ? (
-                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: studentColors.surfaceSoft }}>
-                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{selectedSubject.subjectCode || selectedSubject.subjectName}</Text>
+                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: colors.cardSoft }}>
+                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: colors.orange, fontFamily: 'Rubik' }}>{selectedSubject.subjectCode || selectedSubject.subjectName}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -294,7 +300,7 @@ export default function LeaderboardScreen() {
 
                 {/* Podium: displays ranks 1, 2, 3 with gold/silver/bronze bars */}
                 {topThree.length >= 3 ? (
-                  <View className="rounded-[30px] px-[18px] pt-[18px] pb-3.5 mb-[18px]" style={{ backgroundColor: studentColors.orange, ...studentShadow }}>
+                  <View className="rounded-[30px] px-[18px] pt-[18px] pb-3.5 mb-[18px]" style={{ backgroundColor: isDark ? colors.statsCard : colors.orange, ...shadow }}>
                     <StudentLeaderboardPodium topThree={topThree} />
                   </View>
                 ) : null}
@@ -332,11 +338,11 @@ export default function LeaderboardScreen() {
               // ─────────────────────────────────────────────────────────────
               <>
                 {/* "Your Rank" card — displays viewer's current all-time rank */}
-                <View className="rounded-[22px] bg-[#FFD7C4] px-4 py-3.5 flex-row items-center gap-3 mb-4">
-                  <View className="min-w-[46px] h-[34px] rounded-[17px] bg-white items-center justify-center">
-                    <Text className="text-base font-bold leading-5" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{viewer?.rank != null ? `#${viewer.rank}` : '--'}</Text>
+                <View className="rounded-[22px] px-4 py-3.5 flex-row items-center gap-3 mb-4" style={{ backgroundColor: colors.statsCard }}>
+                  <View className="min-w-[46px] h-[34px] rounded-[17px] items-center justify-center" style={{ backgroundColor: colors.card }}>
+                    <Text className="text-base font-bold leading-5" style={{ color: colors.orange, fontFamily: 'Rubik' }}>{viewer?.rank != null ? `#${viewer.rank}` : '--'}</Text>
                   </View>
-                  <Text className="flex-1 text-sm font-medium leading-5" style={{ color: '#8A4A2F', fontFamily: 'Rubik' }}>{allTimeComparisonCopy}</Text>
+                  <Text className="flex-1 text-sm font-medium leading-5" style={{ color: isDark ? colors.text : '#8A4A2F', fontFamily: 'Rubik' }}>{allTimeComparisonCopy}</Text>
                   {viewer?.rank != null && (
                     <Pressable
                       onPress={() =>
@@ -346,25 +352,26 @@ export default function LeaderboardScreen() {
                           subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || undefined,
                         })
                       }
-                      className="p-1.5 rounded-full bg-white"
+                      className="p-1.5 rounded-full"
+                      style={{ backgroundColor: colors.card }}
                       hitSlop={8}
                     >
-                      <Ionicons name="share-outline" size={22} color={studentColors.orange} />
+                      <Ionicons name="share-outline" size={22} color={colors.orange} />
                     </Pressable>
                   )}
                 </View>
 
                 <View className="flex-row items-center justify-between gap-3 mb-3">
                   <View>
-                    <Text className="text-[22px] font-medium leading-[30px]" style={{ color: studentColors.text, fontFamily: 'Rubik' }}>All-Time Rankings</Text>
-                    <Text className="text-[13px] font-normal leading-[18px] mt-0.5" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>
+                    <Text className="text-[22px] font-medium leading-[30px]" style={{ color: colors.text, fontFamily: 'Rubik' }}>All-Time Rankings</Text>
+                    <Text className="text-[13px] font-normal leading-[18px] mt-0.5" style={{ color: colors.textSoft, fontFamily: 'Rubik' }}>
                       {response?.meta.total ?? entries.length} students ranked across CAPS
                     </Text>
                   </View>
 
-                  <Pressable className="flex-row items-center gap-1 rounded-full border bg-white px-3.5 py-2.5" style={{ borderColor: studentColors.border }} onPress={() => setFilterVisible(true)}>
-                    <Text className="text-[13px] font-medium leading-[18px]" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>Filters</Text>
-                    <Ionicons name="chevron-down" size={16} color={studentColors.orange} />
+                  <Pressable className="flex-row items-center gap-1 rounded-full border px-3.5 py-2.5" style={{ backgroundColor: colors.card, borderColor: colors.border }} onPress={() => setFilterVisible(true)}>
+                    <Text className="text-[13px] font-medium leading-[18px]" style={{ color: colors.orange, fontFamily: 'Rubik' }}>Filters</Text>
+                    <Ionicons name="chevron-down" size={16} color={colors.orange} />
                   </Pressable>
                 </View>
 
@@ -372,13 +379,13 @@ export default function LeaderboardScreen() {
                 {selectedProgram || selectedSubject ? (
                   <View className="flex-row flex-wrap gap-2 mb-4">
                     {selectedProgram ? (
-                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: studentColors.surfaceSoft }}>
-                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{selectedProgram.programName}</Text>
+                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: colors.cardSoft }}>
+                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: colors.orange, fontFamily: 'Rubik' }}>{selectedProgram.programName}</Text>
                       </View>
                     ) : null}
                     {selectedSubject ? (
-                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: studentColors.surfaceSoft }}>
-                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>{selectedSubject.subjectCode || selectedSubject.subjectName}</Text>
+                      <View className="rounded-full px-3.5 py-3 h-11 max-w-[160px] shrink justify-center items-center" style={{ backgroundColor: colors.cardSoft }}>
+                        <Text numberOfLines={1} ellipsizeMode="tail" className="text-[13px] font-medium" style={{ color: colors.orange, fontFamily: 'Rubik' }}>{selectedSubject.subjectCode || selectedSubject.subjectName}</Text>
                       </View>
                     ) : null}
                   </View>

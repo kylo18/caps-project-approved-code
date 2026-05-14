@@ -5,18 +5,23 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTheme } from '../../../src/contexts/ThemeContext';
 import {
   getBookmarks,
   removeBookmark,
   type BookmarkItem,
 } from '../../../src/services/studentBookmarkService';
-import { studentColors } from '../../../src/features/student/ui/StudentUI';
+import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 
 export default function BookmarksScreen() {
   const router = useRouter();
   const { origin } = useLocalSearchParams<{ origin?: string }>();
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +58,7 @@ export default function BookmarksScreen() {
   };
 
   return (
-    <View className="flex-1" style={{ backgroundColor: studentColors.orange }}>
+    <View className="flex-1" style={{ backgroundColor: isDark ? colors.headerWarm : colors.orange }}>
       <StatusBar style="light" />
 
       {/* Header */}
@@ -76,27 +81,27 @@ export default function BookmarksScreen() {
 
       {/* White sheet */}
       <View
-        className="flex-1 rounded-t-[32px] bg-white px-5 pt-6"
-        style={{ paddingBottom: insets.bottom + 20 }}
+        className="flex-1 rounded-t-[32px] px-5 pt-6"
+        style={{ paddingBottom: insets.bottom + 20, backgroundColor: colors.card }}
       >
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <CapsActivityIndicator size="large" color={studentColors.orange} />
-            <Text className="mt-4 text-base text-gray-400">Loading bookmarks...</Text>
+            <CapsActivityIndicator size="large" color={colors.orange} />
+            <Text className="mt-4 text-base" style={{ color: colors.textSoft }}>Loading bookmarks...</Text>
           </View>
         ) : bookmarks.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
-            <Ionicons name="bookmark-outline" size={56} color={studentColors.border} />
-            <Text className="mt-4 text-center text-lg font-semibold text-gray-800">
+            <Ionicons name="bookmark-outline" size={56} color={colors.border} />
+            <Text className="mt-4 text-center text-lg font-semibold" style={{ color: colors.text }}>
               No Bookmarks Yet
             </Text>
-            <Text className="mt-2 text-center text-sm text-gray-400">
+            <Text className="mt-2 text-center text-sm" style={{ color: colors.textSoft }}>
               Bookmark questions during practice exams to review them here.
             </Text>
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text className="mb-4 text-sm text-gray-400">
+            <Text className="mb-4 text-sm" style={{ color: colors.textSoft }}>
               {bookmarks.length} bookmarked question{bookmarks.length !== 1 ? 's' : ''}
             </Text>
             {bookmarks.map((item) => {
@@ -108,12 +113,13 @@ export default function BookmarksScreen() {
                     setExpandedId(isExpanded ? null : item.questionID)
                   }
                   className="mb-3 rounded-2xl border p-4"
-                  style={{ borderColor: studentColors.border }}
+                  style={{ backgroundColor: colors.cardSoft, borderColor: colors.border, ...shadow }}
                 >
                   <View className="flex-row items-start justify-between">
                     <View className="flex-1 pr-2">
                       <Text
-                        className="text-sm font-semibold text-gray-800"
+                        className="text-sm font-semibold"
+                        style={{ color: colors.text }}
                         numberOfLines={isExpanded ? undefined : 2}
                       >
                         {item.questionText || 'Untitled Question'}
@@ -124,13 +130,13 @@ export default function BookmarksScreen() {
                             <View
                               key={choice.choiceID || `${item.questionID}-${index}`}
                               className="rounded-xl border px-3 py-2"
-                              style={{ borderColor: studentColors.border, backgroundColor: studentColors.surfaceSoft }}
+                              style={{ borderColor: colors.border, backgroundColor: colors.card }}
                             >
                               <View className="flex-row items-start">
-                                <Text className="mr-2 text-sm font-semibold text-gray-700">
+                                <Text className="mr-2 text-sm font-semibold" style={{ color: colors.text }}>
                                   {String.fromCharCode(65 + index)}.
                                 </Text>
-                                <Text className="flex-1 text-sm text-gray-700">
+                                <Text className="flex-1 text-sm" style={{ color: colors.text }}>
                                   {choice.choiceText || 'No choice text'}
                                 </Text>
                               </View>
@@ -140,18 +146,18 @@ export default function BookmarksScreen() {
                       ) : null}
                       <View
                         className="mt-2 self-start rounded-full px-2.5 py-1"
-                        style={{ backgroundColor: studentColors.surface }}
+                        style={{ backgroundColor: colors.orangeSoft }}
                       >
                         <Text
                           className="text-xs font-medium"
-                          style={{ color: studentColors.orange }}
+                          style={{ color: colors.orange }}
                         >
                           {item.subjectName || 'Unknown Subject'}
                         </Text>
                         {item.origin ? (
                           <Text
                             className="text-[11px] mt-1"
-                            style={{ color: studentColors.textSoft }}
+                            style={{ color: colors.textSoft }}
                           >
                             From: {item.origin}
                           </Text>
@@ -161,7 +167,7 @@ export default function BookmarksScreen() {
                     <Pressable
                       onPress={() => handleRemove(item.questionID)}
                       className="h-8 w-8 items-center justify-center rounded-full"
-                      style={{ backgroundColor: studentColors.pink }}
+                      style={{ backgroundColor: colors.pink }}
                     >
                       <Ionicons name="trash-outline" size={16} color="#EF4444" />
                     </Pressable>

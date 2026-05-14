@@ -24,12 +24,25 @@ export function getSubjectIcon(subjectCode?: string | null): string {
 
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getStudentColors, getStudentShadow } from './studentTokens';
 
-function SubjectTile({ iconVariant, iconName }: { iconVariant: StudentExamCardProps['iconVariant']; iconName: string }) {
+function SubjectTile({
+  iconVariant,
+  iconName,
+  colors,
+}: {
+  iconVariant: StudentExamCardProps['iconVariant'];
+  iconName: string;
+  colors: ReturnType<typeof getStudentColors>;
+}) {
   return (
-    <View className="w-16 h-16 rounded-[20px] overflow-hidden justify-center items-center bg-[#C4D0FB]">
-      <View className="w-12 h-12 rounded-[14px] bg-white justify-center items-center">
-        <Ionicons name={iconName as keyof typeof Ionicons.glyphMap} size={26} color="#FF6E00" />
+    <View
+      className="w-16 h-16 rounded-[20px] overflow-hidden justify-center items-center"
+      style={{ backgroundColor: colors.blue }}
+    >
+      <View className="w-12 h-12 rounded-[14px] justify-center items-center" style={{ backgroundColor: colors.card }}>
+        <Ionicons name={iconName as keyof typeof Ionicons.glyphMap} size={26} color={colors.orange} />
       </View>
     </View>
   );
@@ -54,25 +67,35 @@ export function StudentExamCard({
   highlight = false,
   subjectCode,
 }: StudentExamCardProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const iconName = subjectCode ? getSubjectIcon(subjectCode) : 'book-outline';
-  const bg = highlight ? 'bg-[#FFF1E9]' : 'bg-white';
-  const border = 'border-2 border-[#EFEEFC]';
 
   return (
     <Pressable
       onPress={onPress}
-      className={`flex-row items-center rounded-[20px] px-2 py-2 shadow-sm ${bg} ${border}`}
+      className="flex-row items-center rounded-[20px] px-2 py-2 border-2"
+      style={[
+        {
+          backgroundColor: highlight ? colors.statsCard : colors.card,
+          borderColor: colors.border,
+          gap: 16,
+        },
+        shadow,
+      ]}
     >
-      <SubjectTile iconVariant={iconVariant} iconName={iconName} />
+      <SubjectTile iconVariant={iconVariant} iconName={iconName} colors={colors} />
       <View className="flex-1 gap-1.5">
-        <Text numberOfLines={1} className="text-base font-medium text-[#0C092A]">
+        <Text numberOfLines={1} className="text-base font-medium" style={{ color: colors.text }}>
           {title}
         </Text>
-        <Text numberOfLines={1} className="text-xs text-[#858494]">
+        <Text numberOfLines={1} className="text-xs" style={{ color: colors.textSoft }}>
           {subtitle}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#FF6E00" />
+      <Ionicons name="chevron-forward" size={18} color={colors.orange} />
     </Pressable>
   );
 }

@@ -29,6 +29,7 @@ import { showToast } from '../../../src/hooks/useToast';
 import QuestionListModal from '../../../src/features/practice/components/QuestionListModal';
 import { addBookmark, removeBookmark } from '../../../src/services/studentBookmarkService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 
 const { width, height } = Dimensions.get('window');
 
@@ -37,6 +38,8 @@ export default function PracticeExamScreen() {
   const params = useLocalSearchParams();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const themeColors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const { width: windowWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -337,14 +340,15 @@ export default function PracticeExamScreen() {
   };
 
   const colors = {
-    bg: isDark ? '#000' : '#f3f4f6',
-    card: isDark ? '#111' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    optionBg: isDark ? '#1f2937' : '#f9fafb',
-    selectedBg: isDark ? '#1c1917' : '#fff7ed',
-    selectedBorder: '#FE6902',
+    bg: themeColors.page,
+    card: themeColors.card,
+    text: themeColors.text,
+    textSecondary: themeColors.textSoft,
+    border: themeColors.border,
+    optionBg: themeColors.cardSoft,
+    selectedBg: isDark ? themeColors.statsCard : themeColors.orangeSoft,
+    selectedBorder: themeColors.orange,
+    orange: themeColors.orange,
   };
 
   const questionTagsStyles = useMemo(() => ({
@@ -352,15 +356,15 @@ export default function PracticeExamScreen() {
     li: { color: colors.text, fontSize: 15, lineHeight: 22 },
     strong: { color: colors.text, fontWeight: '700' as const },
     u: { textDecorationLine: 'underline' as const },
-    a: { color: '#FE6902' },
+    a: { color: colors.orange },
   }), [colors.text]);
 
   // Timer Modal
   const TimerModal = () => (
     <Modal visible={showTimerModal} transparent animationType="fade">
       <View className="flex-1 bg-black/50 justify-center items-center">
-        <View className="rounded-[20px] p-6 items-center" style={{ width: width * 0.85, backgroundColor: colors.card }}>
-          <Ionicons name="alarm" size={48} color="#FE6902" style={{ marginBottom: 16 }} />
+        <View className="rounded-[20px] p-6 items-center border" style={{ width: width * 0.85, backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
+          <Ionicons name="alarm" size={48} color={colors.orange} style={{ marginBottom: 16 }} />
           <Text className="text-xl font-bold mb-2" style={{ color: colors.text }}>
             {secondsLeft === 0 ? 'Time is Up!' : 'Submit Exam?'}
           </Text>
@@ -382,8 +386,8 @@ export default function PracticeExamScreen() {
             </View>
           </View>
           <TouchableOpacity
-            className="w-full bg-[#FE6902] py-3.5 rounded-xl items-center"
-            style={{ opacity: isSubmitting ? 0.6 : 1 }}
+            className="w-full py-3.5 rounded-xl items-center"
+            style={{ backgroundColor: colors.orange, opacity: isSubmitting ? 0.6 : 1 }}
             onPress={() => handleSubmit(true)}
             disabled={isSubmitting}
             activeOpacity={0.8}
@@ -444,7 +448,7 @@ export default function PracticeExamScreen() {
     <View className="flex-1" style={{ backgroundColor: colors.bg, paddingBottom: insets.bottom + 12 }}>
       {loading || !currentQuestion ? (
         <View className="flex-1 justify-center items-center">
-          <CapsActivityIndicator size="large" color="#FE6902" />
+          <CapsActivityIndicator size="large" color={colors.orange} />
           <Text className="text-base mt-4" style={{ color: colors.text }}>
             {loading ? 'Loading exam questions...' : 'No questions available.'}
           </Text>
@@ -456,15 +460,15 @@ export default function PracticeExamScreen() {
             <View className="flex-1">
               <Text className="text-base font-bold mb-1.5" style={{ color: colors.text }} numberOfLines={1}>{subjectName}</Text>
               <View className="flex-row gap-2">
-                <View className="bg-amber-100 px-2.5 py-1 rounded-xl">
-                  <Text className="text-[#FE6902] text-xs font-semibold">{answeredCount}/{questionCount}</Text>
+                <View className="px-2.5 py-1 rounded-xl" style={{ backgroundColor: themeColors.orangeSoft }}>
+                  <Text className="text-xs font-semibold" style={{ color: colors.orange }}>{answeredCount}/{questionCount}</Text>
                 </View>
                 {enableTimer && (
-                  <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl" style={{ backgroundColor: secondsLeft !== null && secondsLeft <= 300 ? '#FEE2E2' : '#FEF3C7' }}>
+                  <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl" style={{ backgroundColor: secondsLeft !== null && secondsLeft <= 300 ? (isDark ? '#351316' : '#FEE2E2') : themeColors.orangeSoft }}>
                     {secondsLeft !== null ? (
                       <>
-                        <Ionicons name="time" size={14} color={secondsLeft <= 300 ? '#EF4444' : '#FE6902'} />
-                        <Text className="text-xs font-semibold" style={{ color: secondsLeft <= 300 ? '#EF4444' : '#FE6902' }}>
+                        <Ionicons name="time" size={14} color={secondsLeft <= 300 ? '#EF4444' : colors.orange} />
+                        <Text className="text-xs font-semibold" style={{ color: secondsLeft <= 300 ? '#EF4444' : colors.orange }}>
                           {(() => {
                             const t = formatTime(secondsLeft);
                             return `${t.hours}:${t.minutes}:${t.seconds}`;
@@ -472,12 +476,12 @@ export default function PracticeExamScreen() {
                         </Text>
                       </>
                     ) : (
-                      <Text className="text-xs font-semibold text-[#FE6902]">00:00:00</Text>
+                      <Text className="text-xs font-semibold" style={{ color: colors.orange }}>00:00:00</Text>
                     )}
                   </View>
                 )}
                 {!enableTimer && (
-                  <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-100">
+                  <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl" style={{ backgroundColor: isDark ? 'rgba(16,185,129,0.14)' : '#D1FAE5' }}>
                     <Ionicons name="infinite" size={14} color="#10B981" />
                     <Text className="text-emerald-500 text-xs font-semibold">Unlimited</Text>
                   </View>
@@ -493,16 +497,16 @@ export default function PracticeExamScreen() {
 
           {/* Progress Bar */}
           <View className="h-1.5 mx-4 mt-2 rounded-[3px]" style={{ backgroundColor: colors.border }}>
-            <View className="h-full bg-[#FE6902] rounded-[3px]" style={{ width: `${progressPercent}%` }} />
+            <View className="h-full rounded-[3px]" style={{ width: `${progressPercent}%`, backgroundColor: colors.orange }} />
           </View>
           <Text className="text-xs text-right mx-4 mt-1 mb-2" style={{ color: colors.textSecondary }}>{Math.round(progressPercent)}% Answered</Text>
 
           {/* Question Content */}
           <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-            <View className="rounded-2xl p-5" style={{ backgroundColor: colors.card, elevation: 2 }}>
+            <View className="rounded-2xl p-5 border" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
               {/* Question Header */}
               <View className="flex-row items-center mb-4">
-                <View className="w-9 h-9 rounded-full bg-[#FE6902] justify-center items-center mr-3">
+                <View className="w-9 h-9 rounded-full justify-center items-center mr-3" style={{ backgroundColor: colors.orange }}>
                   <Text className="text-white text-base font-bold">{currentQuestionIndex + 1}</Text>
                 </View>
                 <Text className="flex-1 text-sm font-semibold" style={{ color: colors.text }}>Question {currentQuestionIndex + 1} of {totalItems}</Text>
@@ -531,7 +535,7 @@ export default function PracticeExamScreen() {
               {/* Question Image */}
               {currentQuestion.questionImage && (
                 <TouchableOpacity onPress={() => setImageModalUrl(currentQuestion.questionImage)} activeOpacity={0.8} className="mb-4">
-                  <Text className="text-sm font-medium text-[#FE6902]">Tap to view question image</Text>
+                  <Text className="text-sm font-medium" style={{ color: colors.orange }}>Tap to view question image</Text>
                 </TouchableOpacity>
               )}
 
@@ -563,7 +567,7 @@ export default function PracticeExamScreen() {
                       </Text>
                       {choice.choiceImage && (
                         <TouchableOpacity onPress={() => setImageModalUrl(choice.choiceImage)} activeOpacity={0.8}>
-                          <Text className="text-xs font-medium text-[#FE6902]">View image</Text>
+                          <Text className="text-xs font-medium" style={{ color: colors.orange }}>View image</Text>
                         </TouchableOpacity>
                       )}
                     </TouchableOpacity>
@@ -596,7 +600,8 @@ export default function PracticeExamScreen() {
 
             {!isLastQuestion ? (
               <TouchableOpacity
-                className="flex-row items-center justify-center py-3 px-5 rounded-xl min-w-[120px] bg-[#FE6902]"
+                className="flex-row items-center justify-center py-3 px-5 rounded-xl min-w-[120px]"
+                style={{ backgroundColor: colors.orange }}
                 onPress={() => handleNavigate('next')}
                 activeOpacity={0.8}
               >
@@ -605,8 +610,8 @@ export default function PracticeExamScreen() {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                className="flex-row items-center justify-center py-3 px-5 rounded-xl min-w-[120px] bg-[#FE6902]"
-                style={{ opacity: isSubmitting || (!allAnswered && !answers[currentQuestion.questionID]) ? 0.5 : 1 }}
+                className="flex-row items-center justify-center py-3 px-5 rounded-xl min-w-[120px]"
+                style={{ backgroundColor: colors.orange, opacity: isSubmitting || (!allAnswered && !answers[currentQuestion.questionID]) ? 0.5 : 1 }}
                 onPress={() => {
                   if (!answers[currentQuestion.questionID]) {
                     setError('Please answer this question before submitting.');

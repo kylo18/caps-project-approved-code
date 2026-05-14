@@ -7,7 +7,8 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { studentColors, studentShadow } from '../ui/studentTokens';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getStudentColors, getStudentShadow } from './studentTokens';
 
 function getTabIcon(name: string, focused: boolean): keyof typeof Ionicons.glyphMap {
   if (name === 'dashboard') return focused ? 'home' : 'home-outline';
@@ -17,6 +18,10 @@ function getTabIcon(name: string, focused: boolean): keyof typeof Ionicons.glyph
 }
 
 export function StudentTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const visibleRoutes = useMemo(() => {
     const visibleTabNames = new Set(['dashboard', 'classes', 'leaderboard', 'insights']);
     return state.routes.filter((route) => visibleTabNames.has(route.name));
@@ -26,7 +31,17 @@ export function StudentTabBar({ state, descriptors, navigation }: BottomTabBarPr
 
   return (
     <View className="absolute left-0 right-0 bottom-0 bg-transparent">
-      <View className="w-full flex-row items-center justify-around bg-white rounded-t-[20px] pt-2.5 pb-2" style={studentShadow}>
+      <View
+        className="w-full flex-row items-center justify-around rounded-t-[20px] pt-2.5 pb-2"
+        style={[
+          {
+            backgroundColor: colors.tab,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+          },
+          shadow,
+        ]}
+      >
         {visibleRoutes.map((route) => {
           const focused = activeRouteName === route.name;
           const options = descriptors[route.key]?.options ?? {};
@@ -42,9 +57,9 @@ export function StudentTabBar({ state, descriptors, navigation }: BottomTabBarPr
               <Ionicons
                 name={iconName}
                 size={22}
-                color={focused ? studentColors.orange : '#C9C6D8'}
+                color={focused ? colors.orange : colors.mutedIcon}
               />
-              <Text className="font-sans text-[11px] font-medium leading-[14px]" style={{ color: focused ? studentColors.orange : '#C9C6D8' }}>
+              <Text className="font-sans text-[11px] font-medium leading-[14px]" style={{ color: focused ? colors.orange : colors.mutedIcon }}>
                 {label}
               </Text>
             </Pressable>

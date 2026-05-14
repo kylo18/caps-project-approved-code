@@ -27,9 +27,10 @@ import {
   StudentAvatar,
   StudentHeroDecoration,
   StudentSectionHeader,
+  getStudentColors,
+  getStudentShadow,
   studentColors,
-  studentShadow,
-} from '../../shared/ui/StudentUI';
+} from '../../ui/StudentUI';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -64,22 +65,25 @@ function StatPill({
   color?: string;
   onPress?: () => void;
 }) {
+  const { theme } = useTheme();
+  const colors = getStudentColors(theme === 'dark');
+
   const content = (
     <View
       className="flex-row items-center rounded-xl px-2.5 py-1.5 border"
       style={{
-        backgroundColor: studentColors.surfaceSoft,
-        borderColor: studentColors.border,
+        backgroundColor: colors.cardSoft,
+        borderColor: colors.border,
         borderTopWidth: 2,
-        borderTopColor: color ?? studentColors.orange,
+        borderTopColor: color ?? colors.orange,
         gap: 6,
       }}
     >
-      <Ionicons name={icon} size={16} color={color ?? studentColors.orange} />
+      <Ionicons name={icon} size={16} color={color ?? colors.orange} />
       <View>
         <Text
           style={{
-            color: studentColors.textSoft,
+            color: colors.textSoft,
             fontFamily: 'Rubik',
             fontSize: 9,
             fontWeight: '500',
@@ -91,7 +95,7 @@ function StatPill({
         </Text>
         <Text
           style={{
-            color: studentColors.text,
+            color: colors.text,
             fontFamily: 'Rubik',
             fontSize: 13,
             fontWeight: '700',
@@ -152,11 +156,16 @@ function InsightCard({
   color: string;
   onPress: () => void;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
+
   return (
     <Pressable
       onPress={onPress}
-      className="rounded-[22px] border-2 px-4 py-3.5 bg-white"
-      style={{ borderColor: studentColors.border, ...studentShadow }}
+      className="rounded-[22px] border-2 px-4 py-3.5"
+      style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}
     >
       <View className="flex-row items-center gap-3.5">
         <View
@@ -168,7 +177,7 @@ function InsightCard({
         <View className="flex-1">
           <Text
             style={{
-              color: studentColors.text,
+              color: colors.text,
               fontFamily: 'Rubik',
               fontSize: 15,
               fontWeight: '600',
@@ -180,7 +189,7 @@ function InsightCard({
           <Text
             className="mt-0.5"
             style={{
-              color: studentColors.textSoft,
+              color: colors.textSoft,
               fontFamily: 'Rubik',
               fontSize: 12,
               fontWeight: '400',
@@ -190,7 +199,7 @@ function InsightCard({
             {description}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={studentColors.textSoft} />
+        <Ionicons name="chevron-forward" size={18} color={colors.textSoft} />
       </View>
     </Pressable>
   );
@@ -209,17 +218,21 @@ function TopicCard({
   mode: 'card' | 'list';
   isStrong?: boolean;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const barColor = isStrong ? studentColors.success : '#EF4444';
   const leftColor = isStrong ? studentColors.success : '#EF4444';
 
   if (mode === 'list') {
     return (
-      <View className="flex-row items-center justify-between py-2 px-3 rounded-xl" style={{ backgroundColor: studentColors.surfaceSoft }}>
+      <View className="flex-row items-center justify-between py-2 px-3 rounded-xl" style={{ backgroundColor: colors.cardSoft }}>
         <Text
           numberOfLines={1}
           className="flex-1"
           style={{
-            color: studentColors.text,
+            color: colors.text,
             fontFamily: 'Rubik',
             fontSize: 14,
             fontWeight: '500',
@@ -245,25 +258,25 @@ function TopicCard({
 
   return (
     <View
-      className="rounded-[22px] border-2 px-3 py-2.5 bg-white"
-      style={{ borderColor: studentColors.border, ...studentShadow }}
+      className="rounded-[22px] border-2 px-3 py-2.5"
+      style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}
     >
       <View className="flex-row items-center gap-3.5">
         <View
           className="w-14 h-14 rounded-[18px] items-center justify-center"
-          style={{ backgroundColor: isStrong ? '#E8F5E9' : studentColors.surfaceSoft }}
+          style={{ backgroundColor: isStrong ? (isDark ? 'rgba(74,222,128,0.12)' : '#E8F5E9') : colors.cardSoft }}
         >
           <Ionicons
             name={isStrong ? 'checkmark-circle-outline' : index % 2 === 0 ? 'calculator-outline' : 'book-outline'}
             size={22}
-            color={isStrong ? studentColors.success : studentColors.orange}
+            color={isStrong ? colors.success : colors.orange}
           />
         </View>
         <View className="flex-1">
           <Text
             numberOfLines={2}
             style={{
-              color: studentColors.text,
+              color: colors.text,
               fontFamily: 'Rubik',
               fontSize: 16,
               fontWeight: '500',
@@ -275,7 +288,7 @@ function TopicCard({
           <Text
             className="mt-1"
             style={{
-              color: studentColors.textSoft,
+              color: colors.textSoft,
               fontFamily: 'Rubik',
               fontSize: 12,
               fontWeight: '400',
@@ -286,7 +299,7 @@ function TopicCard({
           </Text>
         </View>
       </View>
-      <View className="h-1.5 rounded-full overflow-hidden mt-3" style={{ backgroundColor: studentColors.surfaceSoft }}>
+      <View className="h-1.5 rounded-full overflow-hidden mt-3" style={{ backgroundColor: colors.cardSoft }}>
         <View className="h-full rounded-full" style={{ width: `${Math.round(rate * 100)}%`, backgroundColor: barColor }} />
       </View>
     </View>
@@ -294,16 +307,21 @@ function TopicCard({
 }
 
 function EmptyState({ icon, message }: { icon: any; message: string }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
+
   return (
     <View
-      className="items-center justify-center gap-2.5 rounded-3xl border-2 py-7 px-5 bg-white"
-      style={{ borderColor: studentColors.border, ...studentShadow }}
+      className="items-center justify-center gap-2.5 rounded-3xl border-2 py-7 px-5"
+      style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}
     >
-      <Ionicons name={icon} size={30} color={studentColors.orange} />
+      <Ionicons name={icon} size={30} color={colors.orange} />
       <Text
         className="text-center"
         style={{
-          color: studentColors.textSoft,
+          color: colors.textSoft,
           fontFamily: 'Rubik',
           fontSize: 14,
           fontWeight: '400',
@@ -324,6 +342,9 @@ export default function StudentInsightsScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const auth = useSelector((state: any) => state.auth);
   const user = auth?.user;
   const refreshInFlightRef = useRef(false);
@@ -474,10 +495,10 @@ export default function StudentInsightsScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: studentColors.white }}>
-        <StatusBar style="dark" />
-        <CapsActivityIndicator size="large" color={studentColors.orange} />
-        <Text className="mt-4 text-sm" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.page }}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <CapsActivityIndicator size="large" color={colors.orange} />
+        <Text className="mt-4 text-sm" style={{ color: colors.textSoft, fontFamily: 'Rubik' }}>
           Loading Profile...
         </Text>
       </View>
@@ -485,18 +506,18 @@ export default function StudentInsightsScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1" style={{ backgroundColor: colors.page }}>
       <StatusBar style="light" />
 
       <ScrollView
         bounces={false}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={studentColors.orange} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.orange} />}
       >
         {/* ── Orange Hero Header ─────────────────────────────────────────── */}
         <LinearGradient
-          colors={['#FF8C3A', '#FE6902', '#E55D00']}
+          colors={isDark ? ['#1A1008', '#0F0F0F'] : ['#FFB15C', '#FE6902']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           className="px-6 pb-[48px]"
@@ -524,7 +545,7 @@ export default function StudentInsightsScreen() {
             <Text
               className="mt-4"
               style={{
-                color: studentColors.white,
+                color: colors.white,
                 fontFamily: 'Rubik',
                 fontSize: 22,
                 fontWeight: '600',
@@ -595,17 +616,17 @@ export default function StudentInsightsScreen() {
 
 
         {/* ── White Content Sheet ────────────────────────────────────────── */}
-        <View className="bg-white rounded-t-[34px] -mt-7 px-6 pt-6 pb-7 min-h-[620px]">
+        <View className="rounded-t-[34px] -mt-7 px-6 pt-6 pb-7 min-h-[620px]" style={{ backgroundColor: colors.card }}>
           {loadError ? (
             <View
-              className="rounded-[20px] border px-4 py-3 mb-4 bg-white"
-              style={{ borderColor: '#F59E0B', ...studentShadow }}
+              className="rounded-[20px] border px-4 py-3 mb-4"
+              style={{ backgroundColor: colors.card, borderColor: '#F59E0B', ...shadow }}
             >
               <View className="flex-row items-center gap-2">
                 <Ionicons name="warning-outline" size={18} color="#F59E0B" />
                 <Text
                   style={{
-                    color: studentColors.text,
+                    color: colors.text,
                     fontFamily: 'Rubik',
                     fontSize: 14,
                     fontWeight: '600',
@@ -618,7 +639,7 @@ export default function StudentInsightsScreen() {
               <Text
                 className="mt-1"
                 style={{
-                  color: studentColors.textSoft,
+                  color: colors.textSoft,
                   fontFamily: 'Rubik',
                   fontSize: 12,
                   fontWeight: '400',
@@ -653,7 +674,7 @@ export default function StudentInsightsScreen() {
                 icon="trophy-outline"
                 label="BEST SCORE"
                 value={`${Math.round(summary?.best_score ?? 0)}%`}
-                color={studentColors.gold}
+                  color={colors.gold}
                 onPress={() => openStatModal('Best Score', 'Your highest score achieved on any single exam.')}
               />
             </View>
@@ -671,7 +692,7 @@ export default function StudentInsightsScreen() {
                   icon="star-outline"
                   label="TOP SUBJECT"
                   value={summary.strongest_subject}
-                  color={studentColors.success}
+                  color={colors.success}
                   onPress={() => openStatModal('Top Subject', 'The subject where you currently have the highest performance.')}
                 />
               </View>
@@ -684,14 +705,14 @@ export default function StudentInsightsScreen() {
             <>
               {recommendationsError ? (
                 <View
-                  className="rounded-[20px] border-2 p-4 mt-1 mb-2 bg-white"
-                  style={{ borderColor: studentColors.border, ...studentShadow }}
+                  className="rounded-[20px] border-2 p-4 mt-1 mb-2"
+                  style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}
                 >
                   <View className="flex-row items-center gap-2 mb-2">
-                    <Ionicons name="alert-circle-outline" size={20} color={studentColors.textSoft} />
+                    <Ionicons name="alert-circle-outline" size={20} color={colors.textSoft} />
                     <Text
                       style={{
-                        color: studentColors.text,
+                        color: colors.text,
                         fontFamily: 'Rubik',
                         fontSize: 16,
                         fontWeight: '600',
@@ -703,7 +724,7 @@ export default function StudentInsightsScreen() {
                   </View>
                   <Text
                     style={{
-                      color: studentColors.textSoft,
+                      color: colors.textSoft,
                       fontFamily: 'Rubik',
                       fontSize: 13,
                       fontWeight: '400',
@@ -715,14 +736,14 @@ export default function StudentInsightsScreen() {
                 </View>
               ) : recommendations.length > 0 ? (
                 <View
-                  className="rounded-[20px] border-2 p-4 mt-1 mb-2 bg-white"
-                  style={{ borderColor: studentColors.border, ...studentShadow }}
+                  className="rounded-[20px] border-2 p-4 mt-1 mb-2"
+                  style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}
                 >
                   <View className="flex-row items-center gap-2 mb-3">
-                    <Ionicons name="bulb-outline" size={20} color={studentColors.orange} />
+                    <Ionicons name="bulb-outline" size={20} color={colors.orange} />
                     <Text
                       style={{
-                        color: studentColors.text,
+                        color: colors.text,
                         fontFamily: 'Rubik',
                         fontSize: 16,
                         fontWeight: '600',
@@ -737,17 +758,17 @@ export default function StudentInsightsScreen() {
                       <View
                         key={i}
                         className="flex-row items-center gap-2.5 rounded-xl px-3 py-2.5"
-                        style={{ backgroundColor: studentColors.surfaceSoft }}
+                        style={{ backgroundColor: colors.cardSoft }}
                       >
                         <Ionicons
                           name={i === 0 ? 'flame-outline' : 'book-outline'}
                           size={18}
-                          color={studentColors.orange}
+                          color={colors.orange}
                         />
                         <Text
                           className="flex-1"
                           style={{
-                            color: studentColors.text,
+                            color: colors.text,
                             fontFamily: 'Rubik',
                             fontSize: 14,
                             fontWeight: '500',
@@ -836,7 +857,7 @@ export default function StudentInsightsScreen() {
                 />
               </>
             ) : (
-              <View className="rounded-2xl overflow-hidden bg-white border border-[#EFEEFC]" style={studentShadow}>
+              <View className="rounded-2xl overflow-hidden border" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
                 {[
                   { icon: "time-outline", label: "Recent Performance", color: "#3B82F6", path: '/(auth)/(student)/practice-history' },
                   { icon: "alert-circle-outline", label: "Frequent Mistakes", color: "#EF4444", path: '/(auth)/(student)/frequently-mistaken' },
@@ -848,13 +869,16 @@ export default function StudentInsightsScreen() {
                     key={item.label}
                     onPress={() => router.push({ pathname: item.path, params: { origin: 'profile' } })}
                     className={`flex-row items-center px-4 py-4 ${idx !== arr.length - 1 ? 'border-b border-[#EFEEFC]' : ''}`}
-                    style={({ pressed }) => ({ backgroundColor: pressed ? '#F8F6FF' : '#FFFFFF' })}
+                    style={({ pressed }) => ({
+                      backgroundColor: pressed ? colors.cardSoft : colors.card,
+                      borderBottomColor: colors.border,
+                    })}
                   >
                     <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={20} color={item.color} />
-                    <Text className="flex-1 ml-3 text-[#0C092A] font-medium" style={{ fontFamily: 'Rubik', fontSize: 15 }}>
+                    <Text className="flex-1 ml-3 font-medium" style={{ color: colors.text, fontFamily: 'Rubik', fontSize: 15 }}>
                       {item.label}
                     </Text>
-                    <Ionicons name="chevron-forward" size={18} color="#858494" />
+                    <Ionicons name="chevron-forward" size={18} color={colors.textSoft} />
                   </Pressable>
                 ))}
               </View>
@@ -867,13 +891,13 @@ export default function StudentInsightsScreen() {
       <Modal visible={showProfileMenu} transparent animationType="fade">
         <Pressable
           className="flex-1 justify-start pt-[60px]"
-          style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
+          style={{ backgroundColor: colors.overlay }}
           onPress={() => setShowProfileMenu(false)}
         >
           <Pressable onPress={(e) => e.stopPropagation()}>
             <View
               className="mx-4 rounded-2xl p-4"
-              style={{ backgroundColor: studentColors.orange }}
+              style={{ backgroundColor: isDark ? colors.card : colors.orange, borderWidth: isDark ? 1 : 0, borderColor: colors.border }}
             >
               <View className="flex-row items-center gap-3 mb-4 pb-4 border-b border-white/25">
                 <View
@@ -966,25 +990,25 @@ export default function StudentInsightsScreen() {
       <Modal visible={showStatModal} transparent animationType="fade">
         <Pressable
           className="flex-1 justify-center items-center px-6"
-          style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+          style={{ backgroundColor: colors.overlay }}
           onPress={() => setShowStatModal(false)}
         >
           <Pressable onPress={(e) => e.stopPropagation()}>
             <View
               className="rounded-[28px] p-6 w-full max-w-[340px]"
-              style={{ backgroundColor: studentColors.white, ...studentShadow }}
+              style={{ backgroundColor: colors.card, ...shadow }}
             >
               <View className="flex-row items-center gap-3 mb-3">
                 <View
                   className="w-10 h-10 rounded-full items-center justify-center"
-                  style={{ backgroundColor: `${studentColors.orange}18` }}
+                  style={{ backgroundColor: `${colors.orange}18` }}
                 >
-                  <Ionicons name="information-circle-outline" size={20} color={studentColors.orange} />
+                  <Ionicons name="information-circle-outline" size={20} color={colors.orange} />
                 </View>
                 <Text
                   className="flex-1"
                   style={{
-                    color: studentColors.text,
+                    color: colors.text,
                     fontFamily: 'Rubik',
                     fontSize: 17,
                     fontWeight: '600',
@@ -996,7 +1020,7 @@ export default function StudentInsightsScreen() {
               </View>
               <Text
                 style={{
-                  color: studentColors.textSoft,
+                  color: colors.textSoft,
                   fontFamily: 'Rubik',
                   fontSize: 14,
                   fontWeight: '400',
@@ -1008,11 +1032,11 @@ export default function StudentInsightsScreen() {
               <Pressable
                 onPress={() => setShowStatModal(false)}
                 className="mt-5 rounded-[14px] py-3 items-center"
-                style={{ backgroundColor: studentColors.orange }}
+                style={{ backgroundColor: colors.orange }}
               >
                 <Text
                   style={{
-                    color: studentColors.white,
+                    color: colors.white,
                     fontFamily: 'Rubik',
                     fontSize: 15,
                     fontWeight: '600',
@@ -1030,25 +1054,25 @@ export default function StudentInsightsScreen() {
       <Modal visible={showTrendModal} transparent animationType="fade">
         <Pressable
           className="flex-1 justify-center items-center px-6"
-          style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+          style={{ backgroundColor: colors.overlay }}
           onPress={() => setShowTrendModal(false)}
         >
           <Pressable onPress={(e) => e.stopPropagation()}>
             <View
               className="rounded-[28px] p-6 w-full max-w-[340px]"
-              style={{ backgroundColor: studentColors.white, ...studentShadow }}
+              style={{ backgroundColor: colors.card, ...shadow }}
             >
               {/* Header */}
               <View className="flex-row items-center gap-3 mb-4">
                 <View
                   className="w-10 h-10 rounded-full items-center justify-center"
-                  style={{ backgroundColor: `${studentColors.orange}18` }}
+                  style={{ backgroundColor: `${colors.orange}18` }}
                 >
-                  <Ionicons name="trending-up" size={20} color={studentColors.orange} />
+                  <Ionicons name="trending-up" size={20} color={colors.orange} />
                 </View>
                 <Text
                   style={{
-                    color: studentColors.text,
+                    color: colors.text,
                     fontFamily: 'Rubik',
                     fontSize: 17,
                     fontWeight: '600',
@@ -1063,7 +1087,7 @@ export default function StudentInsightsScreen() {
               {[
                 {
                   icon: 'trending-up' as const,
-                  color: studentColors.success,
+                  color: colors.success,
                   label: 'Improving',
                   desc: 'Your recent exam scores are higher than your previous exam. Each score is compared to the one right before it.',
                 },
@@ -1085,7 +1109,7 @@ export default function StudentInsightsScreen() {
                   className="flex-row gap-3 py-3"
                   style={{
                     borderBottomWidth: idx !== arr.length - 1 ? 1 : 0,
-                    borderBottomColor: studentColors.border,
+                    borderBottomColor: colors.border,
                   }}
                 >
                   <View
@@ -1108,7 +1132,7 @@ export default function StudentInsightsScreen() {
                     </Text>
                     <Text
                       style={{
-                        color: studentColors.textSoft,
+                        color: colors.textSoft,
                         fontFamily: 'Rubik',
                         fontSize: 12,
                         fontWeight: '400',
@@ -1131,11 +1155,11 @@ export default function StudentInsightsScreen() {
                   });
                 }}
                 className="mt-3 rounded-[14px] py-3 items-center"
-                style={{ backgroundColor: `${studentColors.orange}18`, borderWidth: 1, borderColor: studentColors.orange }}
+                style={{ backgroundColor: `${colors.orange}18`, borderWidth: 1, borderColor: colors.orange }}
               >
                 <Text
                   style={{
-                    color: studentColors.orange,
+                    color: colors.orange,
                     fontFamily: 'Rubik',
                     fontSize: 15,
                     fontWeight: '600',
@@ -1148,11 +1172,11 @@ export default function StudentInsightsScreen() {
               <Pressable
                 onPress={() => setShowTrendModal(false)}
                 className="mt-3 rounded-[14px] py-3 items-center"
-                style={{ backgroundColor: studentColors.orange }}
+                style={{ backgroundColor: colors.orange }}
               >
                 <Text
                   style={{
-                    color: studentColors.white,
+                    color: colors.white,
                     fontFamily: 'Rubik',
                     fontSize: 15,
                     fontWeight: '600',

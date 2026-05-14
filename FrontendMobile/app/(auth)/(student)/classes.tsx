@@ -5,10 +5,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../../../src/contexts/ThemeContext';
 import {
   StudentHeroDecoration,
-  studentColors,
-  studentShadow,
+  getStudentColors,
+  getStudentShadow,
 } from '../../../src/features/student/ui/StudentUI';
 import {
   getMyClasses,
@@ -53,6 +54,10 @@ interface Teacher {
 export default function StudentClassesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
 
   const [classes, setClasses] = useState<EnrolledClass[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -158,10 +163,10 @@ export default function StudentClassesScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: studentColors.surface }}>
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.page }}>
         <StatusBar style="light" />
-        <CapsActivityIndicator size="large" color={studentColors.orange} />
-        <Text className="mt-4 text-sm" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>
+        <CapsActivityIndicator size="large" color={colors.orange} />
+        <Text className="mt-4 text-sm" style={{ color: colors.textSoft, fontFamily: 'Rubik' }}>
           Loading Classes...
         </Text>
       </View>
@@ -169,17 +174,17 @@ export default function StudentClassesScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1" style={{ backgroundColor: colors.page }}>
       <StatusBar style="light" />
 
       <ScrollView
         bounces={false}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={studentColors.orange} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.orange} />}
       >
         {/* ── Orange Hero Header ─────────────────────────────────────────── */}
-        <View className="px-6 pb-[42px]" style={{ paddingTop: insets.top + 12, backgroundColor: studentColors.orange }}>
+        <View className="px-6 pb-[42px]" style={{ paddingTop: insets.top + 12, backgroundColor: isDark ? colors.headerWarm : colors.header }}>
           <StudentHeroDecoration />
 
           <View className="mb-[18px] flex-row items-center justify-between">
@@ -206,7 +211,7 @@ export default function StudentClassesScreen() {
             <Pressable
               onPress={() => setShowJoinModal(true)}
               className="flex-row items-center rounded-full px-3 py-2"
-              style={{ backgroundColor: 'rgba(255,255,255,0.2)', gap: 6 }}
+              style={{ backgroundColor: isDark ? 'rgba(255,140,0,0.16)' : 'rgba(255,255,255,0.2)', gap: 6 }}
             >
               <Ionicons name="add" size={18} color="#fff" />
               <Text
@@ -224,13 +229,13 @@ export default function StudentClassesScreen() {
         </View>
 
         {/* ── White Content Sheet ────────────────────────────────────────── */}
-        <View className="bg-white rounded-t-[34px] -mt-7 px-6 pt-6 pb-7 min-h-[500px]">
+        <View className="rounded-t-[34px] -mt-7 px-6 pt-6 pb-7 min-h-[500px]" style={{ backgroundColor: colors.card }}>
           {/* ── My Classes ──────────────────────────────────────────────── */}
           <View className="flex-row items-center gap-2 mb-4">
-            <Ionicons name="school-outline" size={20} color={studentColors.orange} />
+            <Ionicons name="school-outline" size={20} color={colors.orange} />
             <Text
               style={{
-                color: studentColors.text,
+                color: colors.text,
                 fontFamily: 'Rubik',
                 fontSize: 16,
                 fontWeight: '600',
@@ -241,7 +246,7 @@ export default function StudentClassesScreen() {
             </Text>
             <Text
               style={{
-                color: studentColors.textSoft,
+                color: colors.textSoft,
                 fontFamily: 'Rubik',
                 fontSize: 13,
                 fontWeight: '400',
@@ -254,14 +259,14 @@ export default function StudentClassesScreen() {
           <View className="gap-3">
             {classes.length === 0 ? (
               <View
-                className="items-center justify-center gap-2.5 rounded-3xl border-2 py-8 px-5 bg-white"
-                style={{ borderColor: studentColors.border, ...studentShadow }}
+                className="items-center justify-center gap-2.5 rounded-3xl border-2 py-8 px-5"
+                style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}
               >
-                <Ionicons name="school-outline" size={32} color={studentColors.orange} />
+                <Ionicons name="school-outline" size={32} color={colors.orange} />
                 <Text
                   className="text-center"
                   style={{
-                    color: studentColors.textSoft,
+                    color: colors.textSoft,
                     fontFamily: 'Rubik',
                     fontSize: 14,
                     fontWeight: '400',
@@ -273,7 +278,7 @@ export default function StudentClassesScreen() {
                 <Text
                   className="text-center"
                   style={{
-                    color: studentColors.textSoft,
+                    color: colors.textSoft,
                     fontFamily: 'Rubik',
                     fontSize: 12,
                     fontWeight: '400',
@@ -287,8 +292,8 @@ export default function StudentClassesScreen() {
               classes.map((cls) => (
                 <Pressable
                   key={cls.enrollmentID}
-                  className="rounded-[22px] border-2 px-4 py-3.5 bg-white"
-                  style={{ borderColor: studentColors.border, ...studentShadow }}
+                  className="rounded-[22px] border-2 px-4 py-3.5"
+                  style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}
                   onPress={() => {
                     router.push({
                       pathname: '/(auth)/(student)/class-detail',
@@ -299,15 +304,15 @@ export default function StudentClassesScreen() {
                   <View className="flex-row items-center gap-3.5">
                     <View
                       className="w-14 h-14 rounded-[18px] items-center justify-center"
-                      style={{ backgroundColor: studentColors.surfaceSoft }}
+                      style={{ backgroundColor: colors.cardSoft }}
                     >
-                      <Ionicons name="school" size={24} color={studentColors.orange} />
+                      <Ionicons name="school" size={24} color={colors.orange} />
                     </View>
                     <View className="flex-1">
                       <Text
                         numberOfLines={1}
                         style={{
-                          color: studentColors.text,
+                          color: colors.text,
                           fontFamily: 'Rubik',
                           fontSize: 16,
                           fontWeight: '600',
@@ -318,7 +323,7 @@ export default function StudentClassesScreen() {
                       </Text>
                       <Text
                         style={{
-                          color: studentColors.textSoft,
+                          color: colors.textSoft,
                           fontFamily: 'Rubik',
                           fontSize: 12,
                           fontWeight: '400',
@@ -331,7 +336,7 @@ export default function StudentClassesScreen() {
                       {cls.schedule ? (
                         <Text
                           style={{
-                            color: studentColors.textSoft,
+                            color: colors.textSoft,
                             fontFamily: 'Rubik',
                             fontSize: 11,
                             fontWeight: '400',
@@ -343,7 +348,7 @@ export default function StudentClassesScreen() {
                         </Text>
                       ) : null}
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color={studentColors.orange} />
+                    <Ionicons name="chevron-forward" size={18} color={colors.orange} />
                   </View>
                 </Pressable>
               ))
@@ -354,10 +359,10 @@ export default function StudentClassesScreen() {
           {sessions.length > 0 && (
             <>
               <View className="flex-row items-center gap-2 mt-7 mb-4">
-                <Ionicons name="calendar-outline" size={20} color={studentColors.orange} />
+                <Ionicons name="calendar-outline" size={20} color={colors.orange} />
                 <Text
                   style={{
-                    color: studentColors.text,
+                    color: colors.text,
                     fontFamily: 'Rubik',
                     fontSize: 16,
                     fontWeight: '600',
@@ -371,10 +376,10 @@ export default function StudentClassesScreen() {
                 {['ongoing', 'upcoming', 'completed', 'missed'].map((status) => {
                   const count = sessions.filter((s) => s.status === status || s.sessionStatus === status).length;
                   if (count === 0) return null;
-                  const colors: Record<string, string> = {
-                    ongoing: studentColors.orange,
+                  const statusColors: Record<string, string> = {
+                    ongoing: colors.orange,
                     upcoming: '#F59E0B',
-                    completed: studentColors.success,
+                    completed: colors.success,
                     missed: '#EF4444',
                   };
                   const icons: Record<string, any> = {
@@ -387,10 +392,10 @@ export default function StudentClassesScreen() {
                     <View
                       key={status}
                       className="flex-row items-center rounded-2xl px-3 py-2 border-2"
-                      style={{ backgroundColor: studentColors.surfaceSoft, borderColor: studentColors.border, gap: 6 }}
+                      style={{ backgroundColor: colors.cardSoft, borderColor: colors.border, gap: 6 }}
                     >
-                      <Ionicons name={icons[status]} size={16} color={colors[status]} />
-                      <Text style={{ color: studentColors.text, fontFamily: 'Rubik', fontSize: 13, fontWeight: '600' }}>
+                      <Ionicons name={icons[status]} size={16} color={statusColors[status]} />
+                      <Text style={{ color: colors.text, fontFamily: 'Rubik', fontSize: 13, fontWeight: '600' }}>
                         {count} {status}
                       </Text>
                     </View>
@@ -404,10 +409,10 @@ export default function StudentClassesScreen() {
           {results.length > 0 && (
             <>
               <View className="flex-row items-center gap-2 mt-7 mb-4">
-                <Ionicons name="trophy-outline" size={20} color={studentColors.orange} />
+                <Ionicons name="trophy-outline" size={20} color={colors.orange} />
                 <Text
                   style={{
-                    color: studentColors.text,
+                    color: colors.text,
                     fontFamily: 'Rubik',
                     fontSize: 16,
                     fontWeight: '600',
@@ -421,15 +426,15 @@ export default function StudentClassesScreen() {
                 {results.map((result: any, index: number) => {
                   const accuracy = result.accuracy ?? result.score ?? 0;
                   const meta = accuracy >= 70
-                    ? { icon: 'checkmark-circle' as const, color: studentColors.success }
+                    ? { icon: 'checkmark-circle' as const, color: colors.success }
                     : accuracy >= 50
                       ? { icon: 'alert-circle' as const, color: '#856404' }
                       : { icon: 'close-circle' as const, color: '#EF4444' };
                   return (
                     <Pressable
                       key={`${result.resultID || result.attemptID || index}-${index}`}
-                      className="rounded-[22px] border-2 px-4 py-3 bg-white"
-                      style={{ borderColor: studentColors.border, ...studentShadow }}
+                      className="rounded-[22px] border-2 px-4 py-3"
+                      style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}
                       onPress={() => {
                         router.push({
                           pathname: '/(auth)/(student)/class-quiz-result',
@@ -445,7 +450,7 @@ export default function StudentClassesScreen() {
                           <Text
                             numberOfLines={1}
                             style={{
-                              color: studentColors.text,
+                              color: colors.text,
                               fontFamily: 'Rubik',
                               fontSize: 14,
                               fontWeight: '500',
@@ -456,7 +461,7 @@ export default function StudentClassesScreen() {
                           </Text>
                           <Text
                             style={{
-                              color: studentColors.textSoft,
+                              color: colors.textSoft,
                               fontFamily: 'Rubik',
                               fontSize: 11,
                               fontWeight: '400',
@@ -492,10 +497,10 @@ export default function StudentClassesScreen() {
           {teachers.length > 0 && (
             <>
               <View className="flex-row items-center gap-2 mt-7 mb-4">
-                <Ionicons name="people-outline" size={20} color={studentColors.orange} />
+                <Ionicons name="people-outline" size={20} color={colors.orange} />
                 <Text
                   style={{
-                    color: studentColors.text,
+                    color: colors.text,
                     fontFamily: 'Rubik',
                     fontSize: 16,
                     fontWeight: '600',
@@ -514,8 +519,8 @@ export default function StudentClassesScreen() {
                   return (
                     <View
                       key={teacher.userID || teacher.teacherID || index}
-                      className="items-center rounded-2xl border-2 px-4 py-3 bg-white"
-                      style={{ borderColor: studentColors.border, ...studentShadow, minWidth: 100 }}
+                      className="items-center rounded-2xl border-2 px-4 py-3"
+                      style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow, minWidth: 100 }}
                     >
                       <View
                         className="w-12 h-12 rounded-full items-center justify-center mb-2"
@@ -523,7 +528,7 @@ export default function StudentClassesScreen() {
                       >
                         <Text
                           style={{
-                            color: studentColors.text,
+                            color: colors.text,
                             fontFamily: 'Rubik',
                             fontSize: 16,
                             fontWeight: '700',
@@ -535,7 +540,7 @@ export default function StudentClassesScreen() {
                       <Text
                         numberOfLines={1}
                         style={{
-                          color: studentColors.text,
+                          color: colors.text,
                           fontFamily: 'Rubik',
                           fontSize: 12,
                           fontWeight: '500',
@@ -557,7 +562,7 @@ export default function StudentClassesScreen() {
       <Modal visible={showJoinModal} transparent animationType="slide">
         <Pressable
           className="flex-1 justify-end"
-          style={{ backgroundColor: 'rgba(12,9,42,0.35)' }}
+          style={{ backgroundColor: colors.overlay }}
           onPress={() => {
             setShowJoinModal(false);
             setJoinCode('');
@@ -566,14 +571,14 @@ export default function StudentClassesScreen() {
         >
           <Pressable onPress={(e) => e.stopPropagation()}>
             <View
-              className="rounded-t-[32px] px-6 pt-5 pb-8 bg-white"
-              style={{ paddingBottom: insets.bottom + 24 }}
+              className="rounded-t-[32px] px-6 pt-5 pb-8"
+              style={{ paddingBottom: insets.bottom + 24, backgroundColor: colors.card }}
             >
-              <View className="self-center w-12 h-1.5 rounded-full bg-gray-200 mb-6" />
+              <View className="self-center w-12 h-1.5 rounded-full mb-6" style={{ backgroundColor: colors.border }} />
 
               <Text
                 style={{
-                  color: studentColors.text,
+                  color: colors.text,
                   fontFamily: 'Rubik',
                   fontSize: 20,
                   fontWeight: '500',
@@ -585,7 +590,7 @@ export default function StudentClassesScreen() {
               </Text>
               <Text
                 style={{
-                  color: studentColors.textSoft,
+                  color: colors.textSoft,
                   fontFamily: 'Rubik',
                   fontSize: 14,
                   fontWeight: '400',
@@ -607,11 +612,12 @@ export default function StudentClassesScreen() {
                 maxLength={10}
                 className="rounded-2xl border-2 px-4 py-3.5 text-base"
                 style={{
-                  borderColor: joinError ? '#EF4444' : studentColors.border,
-                  backgroundColor: studentColors.surfaceSoft,
+                  borderColor: joinError ? '#EF4444' : colors.border,
+                  backgroundColor: colors.cardSoft,
                   fontFamily: 'Rubik',
-                  color: studentColors.text,
+                  color: colors.text,
                 }}
+                placeholderTextColor={colors.textSoft}
               />
               {joinError ? (
                 <Text className="mt-2 text-sm" style={{ color: '#EF4444', fontFamily: 'Rubik' }}>
@@ -623,7 +629,7 @@ export default function StudentClassesScreen() {
                 onPress={handleJoin}
                 disabled={joining}
                 className="rounded-2xl py-4 mt-5 items-center"
-                style={{ backgroundColor: studentColors.orange, opacity: joining ? 0.7 : 1 }}
+                style={{ backgroundColor: colors.orange, opacity: joining ? 0.7 : 1 }}
               >
                 {joining ? (
                   <CapsActivityIndicator color="#fff" />

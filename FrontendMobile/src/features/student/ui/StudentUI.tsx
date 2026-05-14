@@ -5,7 +5,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Design tokens ────────────────────────────────────────────────────────────
-export { studentColors, studentRadii, studentShadow, avatarPalette } from './studentTokens';
+export {
+  studentColors,
+  studentLightColors,
+  studentDarkColors,
+  studentRadii,
+  studentShadow,
+  avatarPalette,
+  getStudentColors,
+  getStudentShadow,
+} from './studentTokens';
+export type { StudentThemeColors } from './studentTokens';
 
 // ── Components ────────────────────────────────────────────────────────────────
 export { StudentAvatar } from './StudentAvatar';
@@ -22,6 +32,8 @@ export { StudentHeroDecoration } from './StudentDecorations';
 // ── Re-exported utilities that live here (not split) ─────────────────────────
 
 import { Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getStudentColors } from './studentTokens';
 
 // ── SegmentedControl (kept inline — small, self-contained) ────────────────────
 
@@ -38,17 +50,27 @@ export function StudentSegmentedControl<T extends string>({
   onChange,
   style,
 }: StudentSegmentedControlProps<T>) {
+  const { theme } = useTheme();
+  const colors = getStudentColors(theme === 'dark');
+
   return (
-    <View className="flex-row bg-[#EB6B00] rounded-3xl p-1 gap-1" style={style}>
+    <View
+      className="flex-row rounded-3xl p-1 gap-1"
+      style={[{ backgroundColor: colors.cardSoft }, style]}
+    >
       {options.map((option) => {
         const active = option.value === value;
         return (
           <Pressable
             key={option.value}
             onPress={() => onChange(option.value)}
-            className={`flex-1 rounded-[20px] py-2 px-3 items-center justify-center ${active ? 'bg-[#FFC48D]' : ''}`}
+            className="flex-1 rounded-[20px] py-2 px-3 items-center justify-center"
+            style={{ backgroundColor: active ? colors.orange : 'transparent' }}
           >
-            <Text className={`font-sans text-sm leading-5 ${active ? 'text-[#EB6B00] font-bold' : 'text-white/90 font-medium'}`}>
+            <Text
+              className={`font-sans text-sm leading-5 ${active ? 'font-bold' : 'font-medium'}`}
+              style={{ color: active ? '#FFFFFF' : colors.textSoft }}
+            >
               {option.label}
             </Text>
           </Pressable>

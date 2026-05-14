@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, Pressable, Text, View } from 'react-native';
+import { Animated, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { studentColors } from '../../ui/StudentUI';
-import type { MotivationQuote } from '../services/motivationQuoteService';
+import { useTheme } from '../../../../contexts/ThemeContext';
+import { getStudentColors, getStudentShadow } from '../../ui/StudentUI';
+import type { MotivationQuote } from '../../insights/services/motivationQuoteService';
 
 interface DailyMotivationModalProps {
   visible: boolean;
@@ -13,6 +14,10 @@ interface DailyMotivationModalProps {
 export default function DailyMotivationModal({ visible, quote, onDismiss }: DailyMotivationModalProps) {
   const [suppressToday, setSuppressToday] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
 
   useEffect(() => {
     if (visible) {
@@ -33,16 +38,19 @@ export default function DailyMotivationModal({ visible, quote, onDismiss }: Dail
     <Modal visible={visible} transparent animationType="fade">
       <Pressable
         className="flex-1 justify-center items-center p-6"
-        style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+        style={{ backgroundColor: colors.overlay }}
         onPress={() => {}}
       >
-        {!showSuccess ? (
-          <View className="w-full max-w-[340px] rounded-2xl px-6 py-5" style={{ backgroundColor: '#ffffff' }}>
+        <View
+          className="w-full max-w-[340px] rounded-[28px] px-6 py-6 border"
+          style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}
+        >
+          {!showSuccess ? (
             <QuoteScreen quote={quote} suppressToday={suppressToday} setSuppressToday={setSuppressToday} onGo={handleDismiss} />
-          </View>
-        ) : (
-          <SuccessScreen onDone={handleSuccessDismiss} />
-        )}
+          ) : (
+            <SuccessScreen onDone={handleSuccessDismiss} />
+          )}
+        </View>
       </Pressable>
     </Modal>
   );
@@ -57,40 +65,55 @@ function QuoteScreen({ quote, suppressToday, setSuppressToday, onGo }: {
   setSuppressToday: (v: boolean) => void;
   onGo: () => void;
 }) {
+  const { theme } = useTheme();
+  const colors = getStudentColors(theme === 'dark');
+
   return (
     <>
-      <Text className="text-center text-[15px] leading-5 mb-3 px-2" style={{ color: studentColors.text, fontFamily: 'Rubik' }} numberOfLines={4}>
+      <View className="self-center w-12 h-12 rounded-full items-center justify-center mb-4" style={{ backgroundColor: `${colors.orange}18` }}>
+        <Ionicons name="sparkles" size={20} color={colors.orange} />
+      </View>
+      <Text className="text-center text-[18px] leading-6 mb-3 px-1 font-semibold" style={{ color: colors.text, fontFamily: 'Rubik' }} numberOfLines={5}>
         "{quote?.quote || 'Loading...'}"
       </Text>
       {quote?.author && quote.author !== 'Unknown' && (
-        <Text className="text-center text-xs mb-5" style={{ color: studentColors.textSoft, fontFamily: 'Rubik', fontStyle: 'italic' }}>
-          — {quote.author}
+        <Text className="text-center text-xs mb-5" style={{ color: colors.textSoft, fontFamily: 'Rubik' }}>
+          {quote.author}
         </Text>
       )}
 
-      <Pressable
-        className="w-full items-center rounded-full py-3.5"
-        style={{ backgroundColor: studentColors.orange }}
+      <TouchableOpacity
+        className="w-full items-center justify-center rounded-2xl"
+        style={{
+          minHeight: 48,
+          backgroundColor: colors.orange,
+          borderWidth: 1,
+          borderColor: colors.orange,
+        }}
         onPress={onGo}
-        activeOpacity={0.8}
+        activeOpacity={0.86}
       >
-        <Text className="text-white font-bold text-[15px]" style={{ fontFamily: 'Rubik' }}>
-          Let's Go! 🚀
+        <Text style={{ color: '#FFFFFF', fontFamily: 'Rubik', fontSize: 15, fontWeight: '700' }}>
+          Start Learning
         </Text>
-      </Pressable>
+      </TouchableOpacity>
 
-      <Pressable className="flex-row items-center justify-center gap-2 mt-4" onPress={() => setSuppressToday(!suppressToday)} activeOpacity={0.7}>
+      <Pressable
+        className="flex-row items-center justify-center gap-2 mt-4"
+        onPress={() => setSuppressToday(!suppressToday)}
+        style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+      >
         <View
           className="w-5 h-5 rounded items-center justify-center"
           style={{
-            backgroundColor: suppressToday ? studentColors.orange : 'transparent',
+            backgroundColor: suppressToday ? colors.orange : 'transparent',
             borderWidth: 1.5,
-            borderColor: suppressToday ? studentColors.orange : studentColors.textSoft,
+            borderColor: suppressToday ? colors.orange : colors.textSoft,
           }}
         >
           {suppressToday && <Ionicons name="checkmark" size={12} color="#fff" />}
         </View>
-        <Text className="text-[13px]" style={{ color: studentColors.textSoft, fontFamily: 'Rubik' }}>
+        <Text className="text-[13px]" style={{ color: colors.textSoft, fontFamily: 'Rubik' }}>
           Don't show again today
         </Text>
       </Pressable>
@@ -103,6 +126,8 @@ function QuoteScreen({ quote, suppressToday, setSuppressToday, onGo }: {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SuccessScreen({ onDone }: { onDone: () => void }) {
+  const { theme } = useTheme();
+  const colors = getStudentColors(theme === 'dark');
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
   const subtitleTranslateY = useRef(new Animated.Value(10)).current;
 
@@ -121,20 +146,23 @@ function SuccessScreen({ onDone }: { onDone: () => void }) {
 
   return (
     <View className="items-center justify-center" style={{ minHeight: 260, width: '100%' }}>
-      <Text className="text-[38px] font-extrabold text-center mb-3" style={{ color: studentColors.orange, fontFamily: 'Rubik' }}>
-        Good Luck! 🍀
+      <View className="w-14 h-14 rounded-full items-center justify-center mb-4" style={{ backgroundColor: `${colors.orange}18` }}>
+        <Ionicons name="checkmark-circle" size={28} color={colors.orange} />
+      </View>
+      <Text className="text-[32px] font-extrabold text-center mb-3" style={{ color: colors.text, fontFamily: 'Rubik' }}>
+        You are ready
       </Text>
 
       <Animated.Text
         className="text-[16px] font-semibold text-center px-4"
         style={{
-          color: studentColors.orange,
+          color: colors.textSoft,
           fontFamily: 'Rubik',
           opacity: subtitleOpacity,
           transform: [{ translateY: subtitleTranslateY }],
         }}
       >
-        You've got this! Now go ace that exam!
+        Keep the pace steady and trust your practice.
       </Animated.Text>
     </View>
   );

@@ -18,7 +18,7 @@ type RoleProfileScreenProps = {
   roleLabel: string;
 };
 
-const AVATAR_COLORS = ['#FE6902', '#10B981', '#3B82F6', '#8B5CF6', '#EF4444', '#14B8A6'];
+const AVATAR_COLORS = ['#FE6902', '#10B981', '#3B82F6', '#7C3AED', '#EF4444', '#14B8A6'];
 
 export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps) {
   const router = useRouter();
@@ -60,11 +60,13 @@ export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps)
     showToast(`${label} copied to clipboard`, 'success');
   };
 
-  const cardBg = isDark ? '#111827' : '#FFFFFF';
-  const pageBg = isDark ? '#000000' : '#F3F4F6';
-  const text = isDark ? '#F9FAFB' : '#111827';
-  const muted = isDark ? '#9CA3AF' : '#6B7280';
-  const border = isDark ? '#1F2937' : '#E5E7EB';
+  const accent = isDark ? '#FF8C00' : '#FE6902';
+  const cardBg = isDark ? '#1A1A1A' : '#FFFFFF';
+  const cardSoft = isDark ? '#242424' : '#F7F8FA';
+  const pageBg = isDark ? '#0F0F0F' : '#F7F8FA';
+  const text = isDark ? '#F5F5F5' : '#111827';
+  const muted = isDark ? '#A3A3A3' : '#6B7280';
+  const border = isDark ? '#2A2A2A' : '#E5E7EB';
 
   return (
     <View style={{ flex: 1, backgroundColor: pageBg }}>
@@ -78,9 +80,11 @@ export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps)
         <View
           style={{
             backgroundColor: cardBg,
-            borderRadius: 24,
+            borderRadius: 22,
             padding: 20,
             gap: 16,
+            borderWidth: 1,
+            borderColor: border,
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
@@ -105,7 +109,7 @@ export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps)
                   width: 28,
                   height: 28,
                   borderRadius: 14,
-                  backgroundColor: '#FE6902',
+                  backgroundColor: accent,
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderWidth: 2,
@@ -118,7 +122,7 @@ export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps)
 
             <View style={{ flex: 1 }}>
               <Text style={{ color: text, fontSize: 22, fontWeight: '800' }}>{fullName}</Text>
-              <Text style={{ color: '#FE6902', fontSize: 14, fontWeight: '700', marginTop: 4 }}>
+              <Text style={{ color: accent, fontSize: 14, fontWeight: '700', marginTop: 4 }}>
                 {roleLabel}
               </Text>
               <Text style={{ color: muted, fontSize: 13, marginTop: 4 }} numberOfLines={1}>
@@ -158,7 +162,7 @@ export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps)
                       borderRadius: 16,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: isDark ? '#1F2937' : '#F3F4F6',
+                      backgroundColor: cardSoft,
                     }}
                   >
                     <Ionicons name="copy-outline" size={16} color={muted} />
@@ -173,9 +177,11 @@ export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps)
         <View
           style={{
             backgroundColor: cardBg,
-            borderRadius: 24,
+            borderRadius: 22,
             padding: 20,
             gap: 4,
+            borderWidth: 1,
+            borderColor: border,
           }}
         >
           <Text style={{ color: text, fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Preferences</Text>
@@ -194,9 +200,11 @@ export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps)
         <View
           style={{
             backgroundColor: cardBg,
-            borderRadius: 24,
+            borderRadius: 22,
             padding: 20,
             gap: 4,
+            borderWidth: 1,
+            borderColor: border,
           }}
         >
           <Text style={{ color: text, fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Account</Text>

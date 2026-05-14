@@ -56,6 +56,22 @@ export default function RegisterScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
+  const colors = {
+    page: isDark ? '#0F0F0F' : '#F7F8FA',
+    card: isDark ? '#171717' : '#FFFFFF',
+    cardSoft: isDark ? '#242424' : '#F9FAFB',
+    text: isDark ? '#F5F5F5' : '#111827',
+    muted: isDark ? '#A3A3A3' : '#6B7280',
+    border: isDark ? '#2A2A2A' : '#E5E7EB',
+    accent: isDark ? '#FF8C00' : '#FE6902',
+    accentSoft: isDark ? 'rgba(255,140,0,0.16)' : 'rgba(254,105,2,0.10)',
+    error: '#EF4444',
+  };
+  const inputStyle = {
+    backgroundColor: colors.cardSoft,
+    borderColor: colors.border,
+    color: colors.text,
+  };
 
   const getFilteredPrograms = () => {
     if (campusID === '2' || campusID === '3') {
@@ -171,7 +187,7 @@ export default function RegisterScreen() {
         <View
           key={step}
           className="w-8 h-1 rounded-sm"
-          style={{ backgroundColor: step <= currentStep ? '#FE6902' : isDark ? '#374151' : '#d1d5db' }}
+          style={{ backgroundColor: step <= currentStep ? colors.accent : colors.border }}
         />
       ))}
     </View>
@@ -179,19 +195,20 @@ export default function RegisterScreen() {
 
   const renderStep1 = () => (
     <View className="mb-6">
-      <Text className={`text-2xl font-bold text-gray-900 mb-2 ${isDark ? 'text-white' : ''}`}>Personal Information</Text>
-      <Text className={`text-sm text-gray-500 mb-6 ${isDark ? 'text-gray-400' : ''}`}>
+      <Text className="text-2xl font-bold mb-2" style={{ color: colors.text }}>Personal Information</Text>
+      <Text className="text-sm mb-6" style={{ color: colors.muted }}>
         Enter your full name
       </Text>
 
       <View className="mb-5">
-        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>First Name *</Text>
+        <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>First Name *</Text>
         <TextInput
-          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 ${errors.firstName ? 'border-red-500' : ''}`}
+          className="border rounded-xl px-4 py-3 text-base"
+          style={[inputStyle, errors.firstName ? { borderColor: colors.error } : null]}
           value={firstName}
           onChangeText={setFirstName}
           placeholder="Enter first name"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.muted}
         />
         {errors.firstName && (
           <Text className="text-red-500 text-xs mt-1">{errors.firstName}</Text>
@@ -199,13 +216,14 @@ export default function RegisterScreen() {
       </View>
 
       <View className="mb-5">
-        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Last Name *</Text>
+        <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>Last Name *</Text>
         <TextInput
-          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 ${errors.lastName ? 'border-red-500' : ''}`}
+          className="border rounded-xl px-4 py-3 text-base"
+          style={[inputStyle, errors.lastName ? { borderColor: colors.error } : null]}
           value={lastName}
           onChangeText={setLastName}
           placeholder="Enter last name"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.muted}
         />
         {errors.lastName && (
           <Text className="text-red-500 text-xs mt-1">{errors.lastName}</Text>
@@ -216,19 +234,20 @@ export default function RegisterScreen() {
 
   const renderStep2 = () => (
     <View className="mb-6">
-      <Text className={`text-2xl font-bold text-gray-900 mb-2 ${isDark ? 'text-white' : ''}`}>Account Details</Text>
-      <Text className={`text-sm text-gray-500 mb-6 ${isDark ? 'text-gray-400' : ''}`}>
+      <Text className="text-2xl font-bold mb-2" style={{ color: colors.text }}>Account Details</Text>
+      <Text className="text-sm mb-6" style={{ color: colors.muted }}>
         Set up your login credentials
       </Text>
 
       <View className="mb-5">
-        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>User Code *</Text>
+        <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>User Code *</Text>
         <TextInput
-          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 ${errors.userCode ? 'border-red-500' : ''}`}
+          className="border rounded-xl px-4 py-3 text-base"
+          style={[inputStyle, errors.userCode ? { borderColor: colors.error } : null]}
           value={userCode}
           onChangeText={setUserCode}
           placeholder="Enter user code"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.muted}
           autoCapitalize="none"
         />
         {errors.userCode && (
@@ -237,13 +256,14 @@ export default function RegisterScreen() {
       </View>
 
       <View className="mb-5">
-        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Email Address *</Text>
+        <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>Email Address *</Text>
         <TextInput
-          className={`bg-white border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-900 ${errors.email ? 'border-red-500' : ''}`}
+          className="border rounded-xl px-4 py-3 text-base"
+          style={[inputStyle, errors.email ? { borderColor: colors.error } : null]}
           value={email}
           onChangeText={setEmail}
           placeholder="Enter email address"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.muted}
           keyboardType="email-address"
           autoCapitalize="none"
         />
@@ -256,25 +276,26 @@ export default function RegisterScreen() {
 
   const renderStep3 = () => (
     <View className="mb-6">
-      <Text className={`text-2xl font-bold text-gray-900 mb-2 ${isDark ? 'text-white' : ''}`}>Academic Information</Text>
-      <Text className={`text-sm text-gray-500 mb-6 ${isDark ? 'text-gray-400' : ''}`}>
+      <Text className="text-2xl font-bold mb-2" style={{ color: colors.text }}>Academic Information</Text>
+      <Text className="text-sm mb-6" style={{ color: colors.muted }}>
         Select your role and institution details
       </Text>
 
       <View className="mb-5">
-        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Position *</Text>
-        <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px]`}>
+        <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>Position *</Text>
+        <View className="border rounded-2xl max-h-[200px] overflow-hidden" style={{ backgroundColor: colors.cardSoft, borderColor: colors.border }}>
           {roles.map((role) => (
             <TouchableOpacity
               key={role.id}
-              className={`flex-row justify-between items-center p-3 border-b border-gray-200 ${roleID === role.id ? 'bg-amber-100' : ''}`}
+              className="flex-row justify-between items-center p-3 border-b"
+              style={{ backgroundColor: roleID === role.id ? colors.accentSoft : 'transparent', borderBottomColor: colors.border }}
               onPress={() => setRoleID(role.id)}
             >
-              <Text className={`text-sm text-gray-900 flex-1 ${isDark ? 'text-white' : ''}`}>
+              <Text className="text-sm flex-1" style={{ color: colors.text }}>
                 {role.name}
               </Text>
               {roleID === role.id && (
-                <Ionicons name="checkmark" size={20} color="#FE6902" />
+                <Ionicons name="checkmark" size={20} color={colors.accent} />
               )}
             </TouchableOpacity>
           ))}
@@ -283,22 +304,23 @@ export default function RegisterScreen() {
       </View>
 
       <View className="mb-5">
-        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Campus *</Text>
-        <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px]`}>
+        <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>Campus *</Text>
+        <View className="border rounded-2xl max-h-[200px] overflow-hidden" style={{ backgroundColor: colors.cardSoft, borderColor: colors.border }}>
           {campuses.map((campus) => (
             <TouchableOpacity
               key={campus.id}
-              className={`flex-row justify-between items-center p-3 border-b border-gray-200 ${campusID === campus.id ? 'bg-amber-100' : ''}`}
+              className="flex-row justify-between items-center p-3 border-b"
+              style={{ backgroundColor: campusID === campus.id ? colors.accentSoft : 'transparent', borderBottomColor: colors.border }}
               onPress={() => {
                 setCampusID(campus.id);
                 setProgramID('');
               }}
             >
-              <Text className={`text-sm text-gray-900 flex-1 ${isDark ? 'text-white' : ''}`}>
+              <Text className="text-sm flex-1" style={{ color: colors.text }}>
                 {campus.name}
               </Text>
               {campusID === campus.id && (
-                <Ionicons name="checkmark" size={20} color="#FE6902" />
+                <Ionicons name="checkmark" size={20} color={colors.accent} />
               )}
             </TouchableOpacity>
           ))}
@@ -308,22 +330,24 @@ export default function RegisterScreen() {
 
       {campusID && (
         <View className="mb-5">
-          <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Program *</Text>
-          <View className={`border border-gray-300 rounded-lg bg-white max-h-[200px]`}>
+          <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>Program *</Text>
+          <View className="border rounded-2xl max-h-[200px] overflow-hidden" style={{ backgroundColor: colors.cardSoft, borderColor: colors.border }}>
             {getFilteredPrograms().map((program) => (
               <TouchableOpacity
                 key={program.id}
-                className={`flex-row justify-between items-center p-3 border-b border-gray-200 ${programID === program.id ? 'bg-amber-100' : ''}`}
+                className="flex-row justify-between items-center p-3 border-b"
+                style={{ backgroundColor: programID === program.id ? colors.accentSoft : 'transparent', borderBottomColor: colors.border }}
                 onPress={() => setProgramID(program.id)}
               >
                 <Text
-                  className={`text-sm text-gray-900 flex-1 ${isDark ? 'text-white' : ''}`}
+                  className="text-sm flex-1"
+                  style={{ color: colors.text }}
                   numberOfLines={2}
                 >
                   {program.name}
                 </Text>
                 {programID === program.id && (
-                  <Ionicons name="checkmark" size={20} color="#FE6902" />
+                  <Ionicons name="checkmark" size={20} color={colors.accent} />
                 )}
               </TouchableOpacity>
             ))}
@@ -336,20 +360,21 @@ export default function RegisterScreen() {
 
   const renderStep4 = () => (
     <View className="mb-6">
-      <Text className={`text-2xl font-bold text-gray-900 mb-2 ${isDark ? 'text-white' : ''}`}>Set Password</Text>
-      <Text className={`text-sm text-gray-500 mb-6 ${isDark ? 'text-gray-400' : ''}`}>
+      <Text className="text-2xl font-bold mb-2" style={{ color: colors.text }}>Set Password</Text>
+      <Text className="text-sm mb-6" style={{ color: colors.muted }}>
         Create a secure password
       </Text>
 
       <View className="mb-5">
-        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Password *</Text>
-        <View className={`flex-row items-center bg-white border border-gray-300 rounded-lg px-4`}>
+        <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>Password *</Text>
+        <View className="flex-row items-center border rounded-xl px-4" style={inputStyle}>
           <TextInput
-            className={`flex-1 py-3 text-base text-gray-900 ${isDark ? 'text-white' : ''}`}
+            className="flex-1 py-3 text-base"
+            style={{ color: colors.text }}
             value={password}
             onChangeText={setPassword}
             placeholder="Enter password"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.muted}
             secureTextEntry={!passwordVisible}
             autoCapitalize="none"
           />
@@ -357,25 +382,26 @@ export default function RegisterScreen() {
             <Ionicons
               name={passwordVisible ? 'eye-off' : 'eye'}
               size={20}
-              color="#666"
+              color={colors.muted}
             />
           </TouchableOpacity>
         </View>
         {errors.password && <Text className="text-red-500 text-xs mt-1">{errors.password}</Text>}
-        <Text className={`text-xs text-gray-500 mt-1 ${isDark ? 'text-gray-400' : ''}`}>
+        <Text className="text-xs mt-1" style={{ color: colors.muted }}>
           Must be at least 8 characters
         </Text>
       </View>
 
       <View className="mb-5">
-        <Text className={`text-sm font-semibold text-gray-700 mb-2 ${isDark ? 'text-white' : ''}`}>Confirm Password *</Text>
-        <View className={`flex-row items-center bg-white border border-gray-300 rounded-lg px-4`}>
+        <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>Confirm Password *</Text>
+        <View className="flex-row items-center border rounded-xl px-4" style={inputStyle}>
           <TextInput
-            className={`flex-1 py-3 text-base text-gray-900 ${isDark ? 'text-white' : ''}`}
+            className="flex-1 py-3 text-base"
+            style={{ color: colors.text }}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             placeholder="Confirm password"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.muted}
             secureTextEntry={!confirmPasswordVisible}
             autoCapitalize="none"
           />
@@ -383,7 +409,7 @@ export default function RegisterScreen() {
             <Ionicons
               name={confirmPasswordVisible ? 'eye-off' : 'eye'}
               size={20}
-              color="#666"
+              color={colors.muted}
             />
           </TouchableOpacity>
         </View>
@@ -397,58 +423,66 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}
+      className="flex-1"
+      style={{ backgroundColor: colors.page }}
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60 }} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity onPress={toggleTheme} className="absolute top-12 right-6 z-10 p-2">
+        <TouchableOpacity onPress={toggleTheme} className="absolute top-12 right-6 z-10 p-2 rounded-full" style={{ backgroundColor: colors.card }} activeOpacity={0.8}>
           <Ionicons
             name={isDark ? 'sunny' : 'moon'}
             size={24}
-            color={isDark ? '#fff' : '#000'}
+            color={colors.text}
           />
         </TouchableOpacity>
 
         <View className="items-center mb-8">
-          <Text className="text-[40px] font-bold text-[#FE6902]">CAPS</Text>
-          <Text className={`text-base text-gray-500 mt-2 ${isDark ? 'text-gray-400' : ''}`}>
+          <Text className="text-[40px] font-bold" style={{ color: colors.accent }}>CAPS</Text>
+          <Text className="text-base mt-2" style={{ color: colors.muted }}>
             Create your account
           </Text>
         </View>
 
-        {renderStepIndicator()}
+        <View className="rounded-[28px] border px-5 pt-5 pb-6" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+          {renderStepIndicator()}
 
-        {currentStep === 1 && renderStep1()}
-        {currentStep === 2 && renderStep2()}
-        {currentStep === 3 && renderStep3()}
-        {currentStep === 4 && renderStep4()}
+          {currentStep === 1 && renderStep1()}
+          {currentStep === 2 && renderStep2()}
+          {currentStep === 3 && renderStep3()}
+          {currentStep === 4 && renderStep4()}
 
-        {message && (
-          <View className="flex-row items-center bg-green-100 p-4 rounded-lg gap-3 mb-4">
+          {errors.general ? (
+            <Text className="text-sm text-center mb-3" style={{ color: colors.error }}>{errors.general}</Text>
+          ) : null}
+
+          {message && (
+          <View className="flex-row items-center p-4 rounded-2xl gap-3 mb-4" style={{ backgroundColor: isDark ? 'rgba(16,185,129,0.14)' : '#D1FAE5' }}>
             <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-            <Text className="flex-1 text-green-800 text-sm font-medium">{message}</Text>
+            <Text className="flex-1 text-sm font-medium" style={{ color: isDark ? '#A7F3D0' : '#065F46' }}>{message}</Text>
           </View>
-        )}
+          )}
 
-        <View className="flex-row gap-3 mt-6 items-center">
+          <View className="flex-row gap-3 mt-6 items-center">
           {currentStep > 1 && (
             <TouchableOpacity
-              className={`px-6 py-3.5 rounded-lg bg-white border border-gray-300`}
+              className="px-6 py-3.5 rounded-xl border"
+              style={{ backgroundColor: colors.cardSoft, borderColor: colors.border }}
               onPress={() => setCurrentStep((prev) => prev - 1)}
               activeOpacity={0.7}
             >
-              <Text className={`text-base font-semibold text-gray-700 ${isDark ? 'text-white' : ''}`}>
+              <Text className="text-base font-semibold" style={{ color: colors.text }}>
                 Previous
               </Text>
             </TouchableOpacity>
           )}
 
           {currentStep < 4 ? (
-            <TouchableOpacity className="flex-1 bg-[#FE6902] py-3.5 rounded-lg items-center justify-center min-h-12" onPress={handleNextStep} activeOpacity={0.8}>
+            <TouchableOpacity className="flex-1 py-3.5 rounded-xl items-center justify-center min-h-12" style={{ backgroundColor: colors.accent }} onPress={handleNextStep} activeOpacity={0.8}>
               <Text className="text-white text-base font-semibold">Next</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              className={`flex-1 bg-[#FE6902] py-3.5 rounded-lg items-center justify-center min-h-12 ${isRegistering ? 'bg-gray-400' : ''}`}
+              className="flex-1 py-3.5 rounded-xl items-center justify-center min-h-12"
+              style={{ backgroundColor: isRegistering ? colors.border : colors.accent }}
               onPress={handleSubmit}
               disabled={isRegistering}
               activeOpacity={isRegistering ? 1 : 0.8}
@@ -458,14 +492,15 @@ export default function RegisterScreen() {
               </Text>
             </TouchableOpacity>
           )}
+          </View>
         </View>
 
         <View className="flex-row justify-center mt-6 gap-2">
-          <Text className={`text-sm text-gray-500 ${isDark ? 'text-gray-400' : ''}`}>
+          <Text className="text-sm" style={{ color: colors.muted }}>
             Already have an account?
           </Text>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text className="text-sm font-semibold text-[#FE6902]">Login</Text>
+            <Text className="text-sm font-semibold" style={{ color: colors.accent }}>Login</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

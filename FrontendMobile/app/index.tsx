@@ -62,7 +62,7 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
 
-  const { request, signInWithGoogle } = useGoogleAuth();
+  const { signInWithGoogle } = useGoogleAuth();
 
   const router = useRouter();
   const dispatch = useDispatch();
@@ -281,19 +281,22 @@ export default function LoginScreen() {
   };
 
   const colors = {
-    bg: isDark ? '#000' : '#ffffff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#d1d5db',
-    inputBg: isDark ? '#000' : '#fff',
-    primary: '#FE6902', // Brand orange — use this for focused/active states
+    page: isDark ? '#0F0F0F' : '#F7F8FA',
+    hero: isDark ? '#1A1008' : '#242424',
+    bg: isDark ? '#141414' : '#FFFFFF',
+    text: isDark ? '#F5F5F5' : '#111827',
+    textSecondary: isDark ? '#A3A3A3' : '#6B7280',
+    border: isDark ? '#2A2A2A' : '#DADDE5',
+    inputBg: isDark ? '#1F1F1F' : '#F9FAFB',
+    primary: isDark ? '#FF8C00' : '#FE6902',
+    softPrimary: isDark ? 'rgba(255,140,0,0.16)' : 'rgba(254,105,2,0.10)',
   };
 
   const hasUser = (val: string, focused: boolean) => val.length > 0 || focused;
 
   if (isRestoringSession) {
     return (
-      <View className="flex-1 bg-[#242424]">
+      <View className="flex-1" style={{ backgroundColor: colors.hero }}>
         <Image source={loginBg} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
         <View className="flex-1 justify-center items-center bg-black/55 p-6">
           <AnimatedCapsLoader
@@ -308,7 +311,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#242424]">
+    <View className="flex-1" style={{ backgroundColor: colors.page }}>
       {/* Login Background Image */}
       <Image source={loginBg} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
 
@@ -318,14 +321,14 @@ export default function LoginScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingBottom: 0 }} keyboardShouldPersistTaps="handled" bounces={false}>
 
           {/* ===== HEADER - h-60 (240px) with gradient ===== */}
-          <View className="h-60 px-4 pt-11 pb-12" style={{ backgroundColor: isDark ? '#000' : '#242424' }}>
+          <View className="h-60 px-4 pt-11 pb-12" style={{ backgroundColor: colors.hero }}>
             {/* Top bar */}
             <View className="flex-row justify-between items-center px-4">
               <View className="flex-row items-center">
                 {/* Actual logos from original project */}
                 <Image source={univLogo} className="w-8 h-8 mr-2" />
                 <Image source={collegeLogo} className="w-8 h-8 mr-2" />
-                <TouchableOpacity onPress={toggleTheme} className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} activeOpacity={0.7}>
+                <TouchableOpacity onPress={toggleTheme} className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }} activeOpacity={0.7}>
                   <Ionicons name={isDark ? 'sunny' : 'moon'} size={14} color={isDark ? '#FBBF24' : '#fff'} />
                 </TouchableOpacity>
               </View>
@@ -341,16 +344,16 @@ export default function LoginScreen() {
             {/* CAPS Title - exactly 2 lines, fits mobile */}
             <View className="items-center mt-4 gap-1 w-full">
               <Text className="text-white text-2xl font-black text-center tracking-wide leading-8 text-shadow text-shadow-sm" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                <Text className="text-primary text-3xl font-black tracking-wider">C</Text>OMPREHENSIVE <Text className="text-primary text-3xl font-black tracking-wider">A</Text>SSESSMENT
+                <Text className="text-3xl font-black tracking-wider" style={{ color: colors.primary }}>C</Text>OMPREHENSIVE <Text className="text-3xl font-black tracking-wider" style={{ color: colors.primary }}>A</Text>SSESSMENT
               </Text>
               <Text className="text-white text-2xl font-black text-center tracking-wide leading-8" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                AND <Text className="text-primary text-3xl font-black tracking-wider">P</Text>REPARATION <Text className="text-primary text-3xl font-black tracking-wider">S</Text>YSTEM
+                AND <Text className="text-3xl font-black tracking-wider" style={{ color: colors.primary }}>P</Text>REPARATION <Text className="text-3xl font-black tracking-wider" style={{ color: colors.primary }}>S</Text>YSTEM
               </Text>
             </View>
           </View>
 
           {/* ===== CURVE + LOGIN CARD ===== */}
-          <View className="flex-1" style={{ backgroundColor: isDark ? '#000' : '#242424' }}>
+          <View className="flex-1" style={{ backgroundColor: colors.hero }}>
             <View className="flex-1 px-6 pt-7 pb-6 rounded-[34px] -mt-5" style={{ backgroundColor: colors.bg }}>
               <Text className="text-center text-xl font-black tracking-wide mb-1.5 leading-7" style={{ color: colors.text }}>LOG IN ACCOUNT</Text>
               <Text className="text-center text-sm leading-5 mb-2.5" style={{ color: colors.textSecondary }}>
@@ -423,20 +426,20 @@ export default function LoginScreen() {
 
                 {/* Forgot */}
                 <TouchableOpacity onPress={() => router.push('/forgot-password')} activeOpacity={0.7}>
-                  <Text className="text-primary text-sm text-center mt-2 mb-3">Forgot your password?</Text>
+                  <Text className="text-sm text-center mt-2 mb-3" style={{ color: colors.primary }}>Forgot your password?</Text>
                 </TouchableOpacity>
 
                 {/* Or divider */}
-                <View className="items-center mb-4"><Text className="text-gray-500 text-xs">or continue with</Text></View>
+                <View className="items-center mb-4"><Text className="text-xs" style={{ color: colors.textSecondary }}>or continue with</Text></View>
 
                 {/* OAuth */}
                 <View className="flex-row gap-3 mb-6">
                   <TouchableOpacity
                     className="flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-xl border"
-                    style={{ borderColor: colors.border, backgroundColor: colors.inputBg, opacity: (!request && Platform.OS !== 'web') || isLoading ? 0.5 : 1 }}
+                    style={{ borderColor: colors.border, backgroundColor: colors.inputBg }}
                     onPress={() => handleOAuthLogin('google')}
                     activeOpacity={0.7}
-                    disabled={(!request && Platform.OS !== 'web') || isLoading}
+                    disabled={isLoading}
                   >
                     <Ionicons name="logo-google" size={18} color={colors.text} />
                     <Text className="text-sm font-medium" style={{ color: colors.text }}>Google</Text>
@@ -453,7 +456,7 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              <Text className="text-center text-gray-500 text-xs mt-2">Developed by <Text className="text-primary">Team Caps</Text></Text>
+              <Text className="text-center text-xs mt-2" style={{ color: colors.textSecondary }}>Developed by <Text style={{ color: colors.primary }}>Team Caps</Text></Text>
             </View>
           </View>
         </ScrollView>

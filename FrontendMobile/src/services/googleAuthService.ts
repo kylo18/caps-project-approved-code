@@ -3,12 +3,22 @@
 // Web:    opens a popup to the backend redirect and listens for postMessage with the token.
 
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { User } from '../types';
 
 const API_URL = Constants.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL || '';
-const REDIRECT_URL = 'caps://auth/google/callback';
+const REDIRECT_PATH = '/auth/google/callback';
+
+WebBrowser.maybeCompleteAuthSession();
+
+function getGoogleRedirectUrl() {
+  return Linking.createURL(REDIRECT_PATH, {
+    scheme: 'caps',
+    isTripleSlashed: true,
+  });
+}
 
 function extractSocialToken(url: string): string | null {
   try {
@@ -38,7 +48,7 @@ function extractSocialError(url: string): { code: string; message: string } | nu
 /**
  * Mobile Google sign-in via backend OAuth redirect.
  * Opens the browser, lets the user authenticate with Google, and the backend
- * redirects back to caps://auth/google/callback?social_token=...
+ * redirects back to the generated caps:///auth/google/callback?social_token=...
  */
 export async function signInWithGoogleMobile(): Promise<{
   success: boolean;
@@ -54,10 +64,11 @@ export async function signInWithGoogleMobile(): Promise<{
   }
 
   try {
+    const redirectUrl = getGoogleRedirectUrl();
     const authUrl =
-      `${API_URL}/api/auth/google/redirect?frontend_url=${encodeURIComponent(REDIRECT_URL)}`;
+      `${API_URL}/api/auth/google/redirect?frontend_url=${encodeURIComponent(redirectUrl)}`;
 
-    const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT_URL);
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
 
     if (result.type !== 'success') {
       return {

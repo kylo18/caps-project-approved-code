@@ -9,21 +9,33 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSelector } from 'react-redux';
+import { LinearGradient } from 'expo-linear-gradient';
 import NotificationPanel from '../../../src/features/notifications/components/NotificationPanel';
 import HelpCenterModal from '../../../src/features/support/components/HelpCenterModal';
 import { showToast } from '../../../src/hooks/useToast';
 import { apiRequest } from '../../../src/services/apiClient';
+import { useTheme } from '../../../src/contexts/ThemeContext';
 import { getDashboardSummary, getPerformanceTrend } from '../../../src/features/student/insights/services/studentAnalyticsService';
 import {
   StudentExamCard,
   StudentHeroDecoration,
   StudentSectionHeader,
   getSubjectVisualVariant,
-  studentColors,
+  getStudentColors,
+  getStudentShadow,
 } from '../../../src/features/student/ui/StudentUI';
 
 const { width } = Dimensions.get('window');
 const CAROUSEL_WIDTH = width - 48;
+let hasShownMotivationThisSession = false;
+
+const getLocalDateKey = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -53,6 +65,10 @@ const formatShortDate = (value?: string | null) => {
 export default function StudentDashboard() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const auth = useSelector((state: any) => state.auth);
   const user = auth?.user;
 
@@ -130,21 +146,21 @@ export default function StudentDashboard() {
 
   async function checkMotivation() {
     try {
-      const [enabledStr, dismissedStr] = await Promise.all([
+      const todayKey = getLocalDateKey();
+      const [enabledStr, suppressedDate] = await Promise.all([
         AsyncStorage.getItem('student_motivation_enabled'),
-        AsyncStorage.getItem('student_dismissed_today'),
+        AsyncStorage.getItem('student_motivation_suppressed_date'),
       ]);
-
-      // Reset dismissed flag on cold start so modal reappears
-      await AsyncStorage.setItem('student_dismissed_today', 'false');
 
       // Pre-fetch quote so it's ready
       const quote = await fetchMotivationQuote();
       setMotivationQuote(quote);
 
       if (enabledStr === 'false') return;
-      if (dismissedStr === 'true') return;
+      if (suppressedDate === todayKey) return;
+      if (hasShownMotivationThisSession) return;
 
+      hasShownMotivationThisSession = true;
       setShowMotivation(true);
     } catch (error) {
       console.warn('[Motivation] Failed to show modal:', error);
@@ -153,7 +169,7 @@ export default function StudentDashboard() {
 
   const handleDismissMotivation = (suppressToday: boolean) => {
     if (suppressToday) {
-      AsyncStorage.setItem('student_dismissed_today', 'true').catch(() => {});
+      AsyncStorage.setItem('student_motivation_suppressed_date', getLocalDateKey()).catch(() => {});
     }
     setShowMotivation(false);
   };
@@ -259,7 +275,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: studentColors.surface }}>
+    <View className="flex-1" style={{ backgroundColor: colors.page }}>
       <StatusBar style="light" />
 
       {/* NOTIFICATIONS PANEL */}
@@ -279,18 +295,35 @@ export default function StudentDashboard() {
         contentContainerStyle={{ paddingBottom: 120 }}
       >
         {/* ORANGE HERO HEADER */}
-        <View
+        <LinearGradient
+          colors={isDark ? ['#1A1008', '#0F0F0F'] : ['#FFB15C', '#FE6902']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           className="px-6 pb-20"
-          style={{ backgroundColor: studentColors.orange, paddingTop: insets.top + 14 }}
+          style={{ paddingTop: insets.top + 14 }}
         >
           <StudentHeroDecoration />
+          {isDark ? (
+            <View
+              pointerEvents="none"
+              className="absolute rounded-full"
+              style={{
+                width: 220,
+                height: 220,
+                top: -72,
+                right: -60,
+                backgroundColor: colors.glow,
+                opacity: 0.7,
+              }}
+            />
+          ) : null}
 
           {/* HERO TOP ROW - Greeting + action buttons */}
           <View className="flex-row items-start justify-between mb-5">
             <View>
               <View className="flex-row items-center gap-2 mb-1">
-                <Ionicons name="sunny-outline" size={15} color="#FFD7BC" />
-                <Text className="text-[11px] font-medium text-[#FFD7BC] tracking-[1.76px]">
+                <Ionicons name="sunny-outline" size={15} color={colors.headerTextSoft} />
+                <Text className="text-[11px] font-medium tracking-[1.76px]" style={{ color: colors.headerTextSoft }}>
                   {getGreeting()}
                 </Text>
               </View>
@@ -305,7 +338,7 @@ export default function StudentDashboard() {
                 style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
                 onPress={() => setShowHelp(true)}
               >
-                <Ionicons name="help-circle-outline" size={20} color={studentColors.white} />
+                <Ionicons name="help-circle-outline" size={20} color={colors.white} />
               </Pressable>
 
               {/* Motivation quote */}
@@ -314,7 +347,7 @@ export default function StudentDashboard() {
                 style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
                 onPress={handleShowMotivation}
               >
-                <Ionicons name="sparkles" size={20} color={studentColors.white} />
+                <Ionicons name="sparkles" size={20} color={colors.white} />
               </Pressable>
 
               {/* Notifications with unread badge */}
@@ -323,7 +356,7 @@ export default function StudentDashboard() {
                 style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
                 onPress={() => setNotificationsVisible(true)}
               >
-                <Ionicons name="notifications-outline" size={20} color={studentColors.white} />
+                <Ionicons name="notifications-outline" size={20} color={colors.white} />
                 {unreadCount > 0 ? (
                   <View
                     className="absolute items-center justify-center rounded-full"
@@ -359,16 +392,16 @@ export default function StudentDashboard() {
               }
             }}
             className="flex-row items-center justify-between rounded-3xl px-5 py-[18px] mb-[18px]"
-            style={{ backgroundColor: studentColors.pink }}
+            style={{ backgroundColor: colors.examCard, borderWidth: isDark ? 1 : 0, borderColor: colors.border }}
           >
             <View className="flex-1 pr-4">
-              <Text className="text-xs font-medium text-[#C36969] tracking-[1.44px] mb-[6px]">
+              <Text className="text-xs font-medium tracking-[1.44px] mb-[6px]" style={{ color: isDark ? colors.pinkSoft : '#C36969' }}>
                 RECENT EXAM
               </Text>
-              <Text numberOfLines={2} className="text-[17px] font-medium text-[#611212] mb-1">
+              <Text numberOfLines={2} className="text-[17px] font-medium mb-1" style={{ color: colors.examText }}>
                 {recentExam?.label || 'No exams taken yet'}
               </Text>
-              <Text className="text-xs text-[#8A4F4F]">
+              <Text className="text-xs" style={{ color: isDark ? colors.textSoft : '#8A4F4F' }}>
                 {formatShortDate(recentExam?.taken_at)}
               </Text>
             </View>
@@ -377,8 +410,8 @@ export default function StudentDashboard() {
               className="w-[58px] h-[58px] rounded-full items-center justify-center"
               style={{
                 borderWidth: 3,
-                borderColor: 'rgba(255,255,255,0.6)',
-                backgroundColor: '#FF8F9D'
+                borderColor: isDark ? 'rgba(255,107,138,0.26)' : 'rgba(255,255,255,0.6)',
+                backgroundColor: isDark ? 'rgba(255,107,138,0.22)' : '#FF8F9D'
               }}
             >
               <Text className="text-[13px] font-bold text-white">{recentExamScore}</Text>
@@ -388,7 +421,7 @@ export default function StudentDashboard() {
           {/* FEATURED INSIGHTS CAROUSEL */}
           <View
             className="rounded-[28px] pt-[18px] pb-3 overflow-hidden"
-            style={{ backgroundColor: '#F29A34' }}
+            style={{ backgroundColor: colors.statsCard, borderWidth: isDark ? 1 : 0, borderColor: colors.border, ...shadow }}
           >
             <ScrollView
               ref={carouselRef}
@@ -401,35 +434,32 @@ export default function StudentDashboard() {
               {slides.map((slide) => (
                 <View key={slide.key} style={{ width: CAROUSEL_WIDTH }} className="px-[26px] items-center">
                   <View className="w-[120px] h-[76px] mb-2 items-center justify-center">
+                    <View className="absolute rounded-full" style={{ width: 74, height: 74, backgroundColor: colors.glow, left: 16 }} />
                     <View
                       className="absolute rounded-full"
-                      style={{ width: 74, height: 74, backgroundColor: 'rgba(255,255,255,0.14)', left: 16 }}
-                    />
-                    <View
-                      className="absolute rounded-full"
-                      style={{ width: 46, height: 46, backgroundColor: 'rgba(255,255,255,0.16)', right: 18, bottom: 2 }}
+                      style={{ width: 46, height: 46, backgroundColor: isDark ? 'rgba(255,140,0,0.16)' : 'rgba(254,105,2,0.10)', right: 18, bottom: 2 }}
                     />
                     <View
                       className="w-12 h-12 rounded-full items-center justify-center"
-                      style={{ backgroundColor: studentColors.white }}
+                      style={{ backgroundColor: colors.card }}
                     >
-                      <Ionicons name={slide.icon as keyof typeof Ionicons.glyphMap} size={20} color={studentColors.orange} />
+                      <Ionicons name={slide.icon as keyof typeof Ionicons.glyphMap} size={20} color={colors.orange} />
                     </View>
                   </View>
 
-                  <Text className="text-xs font-medium text-white/84 tracking-[1.68px] mb-[6px] text-center">
+                  <Text className="text-xs font-medium tracking-[1.68px] mb-[6px] text-center" style={{ color: isDark ? colors.headerTextSoft : '#A55300' }}>
                     {slide.eyebrow}
                   </Text>
-                  <Text className="text-xl font-medium text-white text-center mb-[6px]">
+                  <Text className="text-xl font-medium text-center mb-[6px]" style={{ color: colors.text }}>
                     {slide.title}
                   </Text>
-                  <Text className="text-[13px] text-white/92 text-center mb-4">
+                  <Text className="text-[13px] text-center mb-4" style={{ color: colors.textSoft }}>
                     {slide.detail}
                   </Text>
 
                   <Pressable
                     className="flex-row items-center gap-2 rounded-full px-4 py-[11px]"
-                    style={{ backgroundColor: studentColors.white }}
+                    style={{ backgroundColor: colors.cardSoft }}
                     onPress={() => {
                       if (slide.key === 'featured') {
                         router.push('/(auth)/(student)/frequently-mistaken');
@@ -438,8 +468,8 @@ export default function StudentDashboard() {
                       }
                     }}
                   >
-                    <Ionicons name="arrow-forward-circle-outline" size={18} color={studentColors.orange} />
-                    <Text className="text-sm font-bold" style={{ color: studentColors.orange }}>
+                    <Ionicons name="arrow-forward-circle-outline" size={18} color={colors.orange} />
+                    <Text className="text-sm font-bold" style={{ color: colors.orange }}>
                       {slide.actionLabel}
                     </Text>
                   </Pressable>
@@ -455,20 +485,20 @@ export default function StudentDashboard() {
                   style={{
                     width: index === activeSlide ? 20 : 7,
                     height: 7,
-                    backgroundColor: index === activeSlide ? studentColors.white : 'rgba(255,255,255,0.42)',
+                    backgroundColor: index === activeSlide ? colors.orange : colors.border,
                   }}
                 />
               ))}
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* WHITE CONTENT SHEET */}
-        <View style={{ backgroundColor: studentColors.orange }}>
+        <View style={{ backgroundColor: isDark ? colors.page : colors.header }}>
           <View
             className="px-6 pt-6 pb-6"
             style={{
-              backgroundColor: studentColors.white,
+              backgroundColor: colors.card,
               borderTopLeftRadius: 34,
               borderTopRightRadius: 34,
               marginTop: -32,
@@ -482,7 +512,7 @@ export default function StudentDashboard() {
             />
             <Text
               className="text-sm mt-1"
-              style={{ color: studentColors.textSoft }}
+              style={{ color: colors.textSoft }}
             >
               Continue practicing from your available subjects.
             </Text>
@@ -494,39 +524,39 @@ export default function StudentDashboard() {
                   className="items-center justify-center rounded-3xl py-7 px-5 gap-3"
                   style={{
                     borderWidth: 2,
-                    borderColor: studentColors.border,
-                    backgroundColor: studentColors.white,
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
                   }}
                 >
-                  <CapsActivityIndicator size="large" color={studentColors.orange} />
-                  <Text style={{ color: studentColors.textSoft }}>Loading Subjects...</Text>
+                  <CapsActivityIndicator size="large" color={colors.orange} />
+                  <Text style={{ color: colors.textSoft }}>Loading Subjects...</Text>
                 </View>
               ) : loadingExam ? (
                 <View
                   className="items-center justify-center rounded-3xl py-7 px-5 gap-3"
                   style={{
                     borderWidth: 2,
-                    borderColor: studentColors.border,
-                    backgroundColor: studentColors.white,
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
                   }}
                 >
-                  <CapsActivityIndicator size="large" color={studentColors.orange} />
-                  <Text style={{ color: studentColors.textSoft }}>Preparing your practice exam...</Text>
+                  <CapsActivityIndicator size="large" color={colors.orange} />
+                  <Text style={{ color: colors.textSoft }}>Preparing your practice exam...</Text>
                 </View>
               ) : fetchError ? (
                 <View
                   className="items-center justify-center rounded-3xl py-7 px-5 gap-3"
                   style={{
                     borderWidth: 2,
-                    borderColor: studentColors.border,
-                    backgroundColor: studentColors.white,
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
                   }}
                 >
-                  <Ionicons name="cloud-offline-outline" size={32} color={studentColors.orange} />
-                  <Text style={{ color: studentColors.textSoft }}>{fetchError}</Text>
+                  <Ionicons name="cloud-offline-outline" size={32} color={colors.orange} />
+                  <Text style={{ color: colors.textSoft }}>{fetchError}</Text>
                   <Pressable
                     className="rounded-full px-4 py-2"
-                    style={{ backgroundColor: studentColors.orange }}
+                    style={{ backgroundColor: colors.orange }}
                     onPress={loadDashboard}
                   >
                     <Text className="text-sm font-bold text-white">Retry</Text>
@@ -537,12 +567,12 @@ export default function StudentDashboard() {
                   className="items-center justify-center rounded-3xl py-7 px-5 gap-3"
                   style={{
                     borderWidth: 2,
-                    borderColor: studentColors.border,
-                    backgroundColor: studentColors.white,
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
                   }}
                 >
-                  <Ionicons name="library-outline" size={32} color={studentColors.orange} />
-                  <Text style={{ color: studentColors.textSoft }}>No practice subjects are available yet.</Text>
+                  <Ionicons name="library-outline" size={32} color={colors.orange} />
+                  <Text style={{ color: colors.textSoft }}>No practice subjects are available yet.</Text>
                 </View>
               ) : (
                 subjects.slice(0, 8).map((subject) => (

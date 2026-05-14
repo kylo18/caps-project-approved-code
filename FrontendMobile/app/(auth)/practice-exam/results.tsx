@@ -22,12 +22,15 @@ import RenderHtml from 'react-native-render-html';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { shareExamResult } from '../../../src/services/shareService';
+import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 
 export default function PracticeExamResults() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const themeColors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const { width: windowWidth } = useWindowDimensions();
 
   const resultId = params.resultId as string;
@@ -78,19 +81,20 @@ export default function PracticeExamResults() {
   };
 
   const colors = {
-    bg: isDark ? '#000' : '#f3f4f6',
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    orange: '#FE6902',
+    bg: themeColors.page,
+    card: themeColors.card,
+    cardSoft: themeColors.cardSoft,
+    text: themeColors.text,
+    textSecondary: themeColors.textSoft,
+    border: themeColors.border,
+    orange: themeColors.orange,
     green: '#10B981',
     greenBg: isDark ? '#064E3B' : '#D1FAE5',
     greenBorder: isDark ? '#065F46' : '#A7F3D0',
     red: '#EF4444',
     redBg: isDark ? '#7F1D1D' : '#FEE2E2',
     redBorder: isDark ? '#991B1B' : '#FECACA',
-    orangeBg: isDark ? '#7C2D12' : '#FFF7ED',
+    orangeBg: isDark ? themeColors.statsCard : themeColors.orangeSoft,
     orangeBorder: isDark ? '#9A3412' : '#FFEDD5',
   };
 
@@ -145,7 +149,7 @@ export default function PracticeExamResults() {
       <View className="flex-1 justify-center items-center px-5" style={{ backgroundColor: colors.bg }}>
         <Ionicons name="alert-circle" size={48} color={colors.red} />
         <Text className="text-base font-semibold mt-3 mb-5 text-center" style={{ color: colors.red }}>{fetchError}</Text>
-        <TouchableOpacity className="bg-[#FE6902] px-6 py-3.5 rounded-xl" onPress={() => router.replace('/(auth)/(student)/dashboard')} activeOpacity={0.8}>
+        <TouchableOpacity className="px-6 py-3.5 rounded-xl" style={{ backgroundColor: colors.orange }} onPress={() => router.replace('/(auth)/(student)/dashboard')} activeOpacity={0.8}>
           <Text className="text-white text-base font-bold">Back to Dashboard</Text>
         </TouchableOpacity>
       </View>
@@ -156,7 +160,7 @@ export default function PracticeExamResults() {
     <View className="flex-1" style={{ backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* Score Header */}
-        <View className="items-center p-8 rounded-[20px] mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+        <View className="items-center p-8 rounded-[20px] mb-4 border" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
           <View className="w-[120px] h-[120px] rounded-full border-[6px] justify-center items-center mb-4" style={{ borderColor: scoreColor }}>
             <Text className="text-4xl font-black" style={{ color: scoreColor }}>{percentage}%</Text>
           </View>
@@ -168,15 +172,15 @@ export default function PracticeExamResults() {
         </View>
 
         {/* Score Details Card */}
-        <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+        <View className="rounded-2xl p-5 mb-4 border" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
           <Text className="text-lg font-bold mb-4" style={{ color: colors.text }}>Score Summary</Text>
 
-          <View className="rounded-xl p-4 mb-2 items-center" style={{ backgroundColor: isDark ? '#111827' : '#f9fafb' }}>
+          <View className="rounded-xl p-4 mb-2 items-center" style={{ backgroundColor: colors.cardSoft }}>
             <Text className="text-[32px] font-extrabold" style={{ color: colors.orange }}>{earnedPoints}/{totalPoints}</Text>
             <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Total Score</Text>
           </View>
 
-          <View className="rounded-xl p-4 mb-2 items-center" style={{ backgroundColor: isDark ? '#111827' : '#f9fafb' }}>
+          <View className="rounded-xl p-4 mb-2 items-center" style={{ backgroundColor: colors.cardSoft }}>
             <Text className="text-[32px] font-extrabold" style={{ color: colors.text }}>{percentage}%</Text>
             <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Percentage</Text>
           </View>
@@ -210,9 +214,9 @@ export default function PracticeExamResults() {
         </View>
 
         {/* Performance Breakdown */}
-        <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+        <View className="rounded-2xl p-5 mb-4 border" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
           <Text className="text-lg font-bold mb-4" style={{ color: colors.text }}>Performance</Text>
-          <View className="h-3 bg-gray-200 rounded-md mb-3">
+          <View className="h-3 rounded-md mb-3" style={{ backgroundColor: colors.cardSoft }}>
             <View className="h-full rounded-md" style={{ width: `${percentage}%`, backgroundColor: scoreColor }} />
           </View>
           <View className="flex-row justify-between">
@@ -223,7 +227,7 @@ export default function PracticeExamResults() {
 
         {/* Question Review Section */}
         {examResults.length > 0 && (
-          <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+          <View className="rounded-2xl p-5 mb-4 border" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
             <Text className="text-lg font-bold mb-4" style={{ color: colors.text }}>Question Review</Text>
 
             {/* Tabs */}
@@ -234,7 +238,7 @@ export default function PracticeExamResults() {
                 onPress={() => setActiveTab('all')}
                 activeOpacity={0.7}
               >
-                <Text className="text-[13px] font-medium text-center" style={activeTab === 'all' ? { color: colors.orange, fontWeight: '700' } : undefined}>All Questions</Text>
+                <Text className="text-[13px] font-medium text-center" style={{ color: activeTab === 'all' ? colors.orange : colors.textSecondary, fontWeight: activeTab === 'all' ? '700' : '500' }}>All Questions</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-1 py-2 rounded-lg items-center"
@@ -242,7 +246,7 @@ export default function PracticeExamResults() {
                 onPress={() => setActiveTab('correct')}
                 activeOpacity={0.7}
               >
-                <Text className="text-[13px] font-medium text-center" style={activeTab === 'correct' ? { color: colors.green, fontWeight: '700' } : undefined}>Correct ({correctCount})</Text>
+                <Text className="text-[13px] font-medium text-center" style={{ color: activeTab === 'correct' ? colors.green : colors.textSecondary, fontWeight: activeTab === 'correct' ? '700' : '500' }}>Correct ({correctCount})</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-1 py-2 rounded-lg items-center"
@@ -250,7 +254,7 @@ export default function PracticeExamResults() {
                 onPress={() => setActiveTab('incorrect')}
                 activeOpacity={0.7}
               >
-                <Text className="text-[13px] font-medium text-center" style={activeTab === 'incorrect' ? { color: colors.red, fontWeight: '700' } : undefined}>Incorrect ({incorrectCount})</Text>
+                <Text className="text-[13px] font-medium text-center" style={{ color: activeTab === 'incorrect' ? colors.red : colors.textSecondary, fontWeight: activeTab === 'incorrect' ? '700' : '500' }}>Incorrect ({incorrectCount})</Text>
               </TouchableOpacity>
             </View>
 
@@ -381,8 +385,8 @@ export default function PracticeExamResults() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl"
-            style={{ elevation: 4 }}
+            className="flex-row items-center justify-center py-3.5 rounded-xl"
+            style={{ backgroundColor: colors.orange, elevation: 4 }}
             onPress={() => router.replace({
               pathname: '/(auth)/practice-exam/info',
               params: { subjectName, totalItems: String(totalItems), totalPoints: String(totalPoints), enableTimer: 'true', durationMinutes: '60' }

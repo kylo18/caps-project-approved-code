@@ -13,12 +13,15 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 
 export default function PracticeExamInfo() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const themeColors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const insets = useSafeAreaInsets();
 
   const subjectID = params.subjectID as string;
@@ -36,12 +39,13 @@ export default function PracticeExamInfo() {
   };
 
   const colors = {
-    bg: isDark ? '#000' : '#f9fafb',
-    card: isDark ? '#111' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    sectionBg: isDark ? '#1f2937' : '#f9fafb',
+    bg: themeColors.page,
+    card: themeColors.card,
+    text: themeColors.text,
+    textSecondary: themeColors.textSoft,
+    border: themeColors.border,
+    sectionBg: themeColors.cardSoft,
+    orange: themeColors.orange,
   };
 
   const formatDuration = () => {
@@ -73,10 +77,10 @@ export default function PracticeExamInfo() {
         </View>
 
         {/* Exam Details Card */}
-        <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+        <View className="rounded-2xl p-5 mb-4 border" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
           <View className="items-center mb-4">
-            <View className="w-16 h-16 rounded-full justify-center items-center" style={{ backgroundColor: '#FEF3C7' }}>
-              <Ionicons name="book" size={32} color="#FE6902" />
+            <View className="w-16 h-16 rounded-full justify-center items-center" style={{ backgroundColor: themeColors.orangeSoft }}>
+              <Ionicons name="book" size={32} color={colors.orange} />
             </View>
           </View>
 
@@ -85,27 +89,27 @@ export default function PracticeExamInfo() {
           {/* Exam Details Grid */}
           <View className="rounded-xl p-4" style={{ backgroundColor: colors.sectionBg }}>
             <View className="flex-row items-center py-2">
-              <Ionicons name="help-circle" size={20} color="#FE6902" />
+              <Ionicons name="help-circle" size={20} color={colors.orange} />
               <View className="ml-3 flex-1">
                 <Text className="text-xs mb-0.5" style={{ color: colors.textSecondary }}>Total Items</Text>
                 <Text className="text-lg font-bold" style={{ color: colors.text }}>{totalItems}</Text>
               </View>
             </View>
 
-            <View className="h-px my-2" style={{ backgroundColor: '#e5e7eb' }} />
+            <View className="h-px my-2" style={{ backgroundColor: colors.border }} />
 
             <View className="flex-row items-center py-2">
-              <Ionicons name="star" size={20} color="#FE6902" />
+              <Ionicons name="star" size={20} color={colors.orange} />
               <View className="ml-3 flex-1">
                 <Text className="text-xs mb-0.5" style={{ color: colors.textSecondary }}>Total Points</Text>
                 <Text className="text-lg font-bold" style={{ color: colors.text }}>{totalPoints}</Text>
               </View>
             </View>
 
-            <View className="h-px my-2" style={{ backgroundColor: '#e5e7eb' }} />
+            <View className="h-px my-2" style={{ backgroundColor: colors.border }} />
 
             <View className="flex-row items-center py-2">
-              <Ionicons name="time" size={20} color="#FE6902" />
+              <Ionicons name="time" size={20} color={colors.orange} />
               <View className="ml-3 flex-1">
                 <Text className="text-xs mb-0.5" style={{ color: colors.textSecondary }}>Duration</Text>
                 <Text className="text-lg font-bold" style={{ color: colors.text }}>{formatDuration()}</Text>
@@ -115,16 +119,16 @@ export default function PracticeExamInfo() {
         </View>
 
         {/* Instructions Card */}
-        <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
+        <View className="rounded-2xl p-5 mb-4 border" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
           <View className="flex-row items-center mb-4">
-            <Ionicons name="information-circle" size={24} color="#FE6902" />
+            <Ionicons name="information-circle" size={24} color={colors.orange} />
             <Text className="text-lg font-bold ml-2.5" style={{ color: colors.text }}>Instructions</Text>
           </View>
 
           <View className="gap-3">
             {instructions.map((instruction, index) => (
               <View key={index} className="flex-row items-start">
-                <View className="w-6 h-6 rounded-full justify-center items-center mr-3 mt-0.5" style={{ backgroundColor: '#FE6902' }}>
+                <View className="w-6 h-6 rounded-full justify-center items-center mr-3 mt-0.5" style={{ backgroundColor: colors.orange }}>
                   <Text className="text-white text-xs font-bold">{index + 1}</Text>
                 </View>
                 <Text className="flex-1 text-sm leading-5" style={{ color: colors.textSecondary }}>{instruction}</Text>
@@ -145,8 +149,8 @@ export default function PracticeExamInfo() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="bg-[#FE6902] py-3.5 rounded-xl items-center flex-row justify-center"
-            style={{ elevation: 4 }}
+            className="py-3.5 rounded-xl items-center flex-row justify-center"
+            style={{ backgroundColor: colors.orange, elevation: 4 }}
             onPress={handleStartExam}
             activeOpacity={0.9}
           >

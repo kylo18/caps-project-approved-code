@@ -23,6 +23,7 @@ import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import MobileHeader from '../../../src/features/core/components/MobileHeader';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
+import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -30,6 +31,8 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const auth = useSelector((state: any) => state.auth);
   const user = auth?.user;
 
@@ -88,10 +91,17 @@ export default function AdminDashboard() {
   ];
 
   const statCards: { icon: IoniconName; label: string; value: number; color: string; route: any }[] = [
-    { icon: 'help-circle', label: 'Questions', value: stats.questions, color: '#FE6902', route: '/(auth)/(dean)/subjects' },
+    { icon: 'help-circle', label: 'Questions', value: stats.questions, color: colors.orange, route: '/(auth)/(dean)/subjects' },
     { icon: 'people', label: 'Users', value: stats.users, color: '#10B981', route: '/(auth)/(dean)/users' },
     { icon: 'book', label: 'Subjects', value: stats.subjects, color: '#3B82F6', route: '/(auth)/(dean)/subjects' },
   ];
+
+  const cardStyle = {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderWidth: 1,
+    ...shadow,
+  };
 
   const managementItems = [
     {
@@ -157,13 +167,13 @@ export default function AdminDashboard() {
   ]);
 
   return (
-    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+    <View className="flex-1" style={{ backgroundColor: colors.page }}>
       <MobileHeader title="Dashboard" />
 
       {isLoading ? (
         <View className="flex-1 justify-center items-center">
-          <CapsActivityIndicator size="large" color="#FE6902" />
-          <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <CapsActivityIndicator size="large" color={colors.orange} />
+          <Text className="mt-3" style={{ color: colors.textSoft }}>
             Loading dashboard...
           </Text>
         </View>
@@ -176,7 +186,7 @@ export default function AdminDashboard() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={onRefresh}
-              tintColor="#FE6902"
+              tintColor={colors.orange}
             />
           }
         >
@@ -185,22 +195,23 @@ export default function AdminDashboard() {
             <View
               className="rounded-2xl p-5 flex-row items-center"
               style={{
-                backgroundColor: isDark ? '#111827' : '#FFF7ED',
+                backgroundColor: isDark ? colors.headerWarm : colors.statsCard,
                 borderWidth: 1,
-                borderColor: isDark ? '#1F2937' : '#FED7AA',
+                borderColor: colors.border,
+                ...shadow,
               }}
             >
               <View
                 className="w-12 h-12 rounded-full items-center justify-center mr-4"
-                style={{ backgroundColor: '#FE6902' }}
+                style={{ backgroundColor: colors.orange }}
               >
                 <Ionicons name="happy-outline" size={24} color="#FFFFFF" />
               </View>
               <View className="flex-1">
-                <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                <Text className="text-lg font-bold" style={{ color: colors.text }}>
                   Welcome back, {user?.firstName || 'Admin'}
                 </Text>
-                <Text className={`text-sm mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                <Text className="text-sm mt-0.5" style={{ color: colors.textSoft }}>
                   Dean · CAPS Platform
                 </Text>
               </View>
@@ -216,15 +227,10 @@ export default function AdminDashboard() {
                   onPress={() => router.push(card.route)}
                   className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
                   activeOpacity={0.8}
-                  style={{
+                  style={[cardStyle, {
                     borderLeftWidth: 4,
                     borderLeftColor: card.color,
-                    shadowColor: isDark ? '#000' : card.color,
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isDark ? 0.2 : 0.06,
-                    shadowRadius: 6,
-                    elevation: 3,
-                  }}
+                  }]}
                 >
                   <View
                     className="w-14 h-14 rounded-2xl items-center justify-center mb-2"
@@ -232,10 +238,10 @@ export default function AdminDashboard() {
                   >
                     <Ionicons name={card.icon} size={28} color={card.color} />
                   </View>
-                  <Text className={`text-2xl font-extrabold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
                     {card.value ?? '--'}
                   </Text>
-                  <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
                     {card.label}
                   </Text>
                 </TouchableOpacity>
@@ -245,7 +251,7 @@ export default function AdminDashboard() {
 
           {/* Quick Actions */}
           <View className="px-4 pt-6">
-            <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <Text className="text-lg font-bold mb-3" style={{ color: colors.text }}>
               Quick Actions
             </Text>
             <View className="flex-row flex-wrap gap-3">
@@ -255,13 +261,7 @@ export default function AdminDashboard() {
                   onPress={() => router.push(action.route)}
                   className={`w-[48%] rounded-2xl p-5 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
                   activeOpacity={0.8}
-                  style={{
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isDark ? 0.2 : 0.04,
-                    shadowRadius: 6,
-                    elevation: 2,
-                  }}
+                  style={cardStyle}
                 >
                   <View
                     className="w-16 h-16 rounded-full items-center justify-center mb-3"
@@ -269,10 +269,10 @@ export default function AdminDashboard() {
                   >
                     <Ionicons name={action.icon} size={32} color={action.color} />
                   </View>
-                  <Text className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  <Text className="font-bold" style={{ color: colors.text }}>
                     {action.label}
                   </Text>
-                  <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
                     {action.description}
                   </Text>
                 </TouchableOpacity>
@@ -283,8 +283,8 @@ export default function AdminDashboard() {
           {/* Management Section */}
           <View className="px-4 pt-6">
             <View className="flex-row items-center mb-3">
-              <Ionicons name="briefcase-outline" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
-              <Text className={`text-lg font-bold ml-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              <Ionicons name="briefcase-outline" size={20} color={colors.textSoft} />
+              <Text className="text-lg font-bold ml-2" style={{ color: colors.text }}>
                 Management
               </Text>
             </View>
@@ -295,28 +295,23 @@ export default function AdminDashboard() {
                 onPress={() => router.push(item.route)}
                 className={`flex-row items-center rounded-2xl p-4 mb-3 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
                 activeOpacity={0.8}
-                style={{
+                style={[cardStyle, {
                   borderLeftWidth: 4,
                   borderLeftColor: item.color,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: isDark ? 0.2 : 0.04,
-                  shadowRadius: 4,
-                  elevation: 2,
-                }}
+                }]}
               >
                 <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: `${item.color}15` }}>
                   <Ionicons name={item.icon} size={24} color={item.color} />
                 </View>
                 <View className="flex-1 ml-4">
-                  <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  <Text className="font-semibold" style={{ color: colors.text }}>
                     {item.label}
                   </Text>
-                  <Text className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <Text className="text-sm" style={{ color: colors.textSoft }}>
                     {item.description}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                <Ionicons name="chevron-forward" size={20} color={colors.mutedIcon} />
               </TouchableOpacity>
             ))}
           </View>

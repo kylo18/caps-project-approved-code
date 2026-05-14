@@ -60,6 +60,15 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
     const email = user?.email || '';
     const initials = `${firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase() || '?';
     const avatarColor = AVATAR_COLORS[(user?.userID || 0) % AVATAR_COLORS.length];
+    const colors = {
+        bg: isDark ? '#0F0F0F' : '#F7F8FA',
+        surface: isDark ? '#1A1A1A' : '#FFFFFF',
+        surfaceSoft: isDark ? '#242424' : '#F2F4F7',
+        text: isDark ? '#F5F5F5' : '#111827',
+        muted: isDark ? '#A3A3A3' : '#6B7280',
+        border: isDark ? '#2A2A2A' : '#E5E7EB',
+        accent: isDark ? '#FF8C00' : '#FE6902',
+    };
 
     const handleLogout = async () => {
         await logoutUser();
@@ -71,19 +80,14 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
         <>
             {/* Main Header Row - No border, embedded in screen */}
             <View
-                className={`
-          flex-row items-center justify-between px-4 pb-3
-          ${isDark ? 'bg-background-dark' : 'bg-background-light'}
-        `}
-                style={{ paddingTop: insets.top + 12 }}
+                className="flex-row items-center justify-between px-4 pb-3"
+                style={{ paddingTop: insets.top + 12, backgroundColor: colors.bg }}
             >
                 {/* Left: Title */}
                 {showTitle && (
                     <Text
-                        className={`
-              text-xl font-bold
-              ${isDark ? 'text-foreground-dark' : 'text-foreground-light'}
-            `}
+                        className="text-xl font-bold"
+                        style={{ color: colors.text }}
                     >
                         {title}
                     </Text>
@@ -93,31 +97,27 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
                 <View className="flex-row items-center gap-2">
                     {/* Help Button */}
                     <Pressable
-                        className={`
-              w-9 h-9 rounded-full items-center justify-center
-              ${isDark ? 'bg-border-dark' : 'bg-background-secondary-light'}
-            `}
+                        className="w-9 h-9 rounded-full items-center justify-center"
+                        style={{ backgroundColor: colors.surface }}
                         onPress={() => setShowHelp(true)}
                     >
                         <Ionicons
                             name="help-circle-outline"
                             size={20}
-                            color={isDark ? '#F9FAFB' : '#111827'}
+                            color={colors.text}
                         />
                     </Pressable>
 
                     {/* Notifications Button */}
                     <Pressable
-                        className={`
-              w-9 h-9 rounded-full items-center justify-center relative
-              ${isDark ? 'bg-border-dark' : 'bg-background-secondary-light'}
-            `}
+                        className="w-9 h-9 rounded-full items-center justify-center relative"
+                        style={{ backgroundColor: colors.surface }}
                         onPress={() => setShowNotifications(true)}
                     >
                         <Ionicons
                             name="notifications-outline"
                             size={20}
-                            color={isDark ? '#F9FAFB' : '#111827'}
+                            color={colors.text}
                         />
                         {unreadCount > 0 && (
                             <View className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-error rounded-full items-center justify-center">
@@ -130,16 +130,14 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
 
                     {/* Theme Toggle */}
                     <Pressable
-                        className={`
-              w-9 h-9 rounded-full items-center justify-center
-              ${isDark ? 'bg-border-dark' : 'bg-background-secondary-light'}
-            `}
+                        className="w-9 h-9 rounded-full items-center justify-center"
+                        style={{ backgroundColor: colors.surface }}
                         onPress={toggleTheme}
                     >
                         <Ionicons
                             name={isDark ? 'sunny' : 'moon'}
                             size={20}
-                            color={isDark ? '#F9FAFB' : '#111827'}
+                            color={isDark ? '#FF8C00' : colors.text}
                         />
                     </Pressable>
 
@@ -172,14 +170,12 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
                     onPress={() => setShowProfileMenu(false)}
                 >
                     <Pressable
-                        className={`
-              mt-16 mx-4 rounded-2xl p-4
-              ${isDark ? 'bg-background-dark' : 'bg-background-light'}
-            `}
+                        className="mt-16 mx-4 rounded-2xl p-4 border"
+                        style={{ backgroundColor: colors.surface, borderColor: colors.border }}
                         onPress={(e) => e.stopPropagation()}
                     >
                         {/* Profile Header */}
-                        <View className="flex-row items-center gap-3 pb-4 mb-3 border-b border-border-light dark:border-border-dark">
+                        <View className="flex-row items-center gap-3 pb-4 mb-3 border-b" style={{ borderBottomColor: colors.border }}>
                             <View
                                 className="w-12 h-12 rounded-full items-center justify-center"
                                 style={{ backgroundColor: avatarColor }}
@@ -189,11 +185,12 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
                                 </Text>
                             </View>
                             <View className="flex-1">
-                                <Text className={`font-bold ${isDark ? 'text-foreground-dark' : 'text-foreground-light'}`}>
+                                <Text className="font-bold" style={{ color: colors.text }}>
                                     {firstName} {user?.lastName || ''}
                                 </Text>
                                 <Text
-                                    className={`text-sm ${isDark ? 'text-foreground-muted-dark' : 'text-foreground-muted-light'}`}
+                                    className="text-sm"
+                                    style={{ color: colors.muted }}
                                     numberOfLines={1}
                                 >
                                     {email}
@@ -212,9 +209,9 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
                             <Ionicons
                                 name="person-outline"
                                 size={20}
-                                color={isDark ? '#F9FAFB' : '#111827'}
+                                color={colors.text}
                             />
-                            <Text className={`${isDark ? 'text-foreground-dark' : 'text-foreground-light'}`}>
+                            <Text style={{ color: colors.text }}>
                                 Edit Profile
                             </Text>
                         </Pressable>
@@ -229,15 +226,16 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
                             <Ionicons
                                 name={isDark ? 'sunny' : 'moon'}
                                 size={20}
-                                color={isDark ? '#F9FAFB' : '#111827'}
+                                color={colors.text}
                             />
-                            <Text className={`${isDark ? 'text-foreground-dark' : 'text-foreground-light'}`}>
+                            <Text style={{ color: colors.text }}>
                                 {isDark ? 'Light Mode' : 'Dark Mode'}
                             </Text>
                         </Pressable>
 
                         <Pressable
-                            className="flex-row items-center gap-3 py-3 mt-2 border-t border-border-light dark:border-border-dark"
+                            className="flex-row items-center gap-3 py-3 mt-2 border-t"
+                            style={{ borderTopColor: colors.border }}
                             onPress={() => {
                                 setShowProfileMenu(false);
                                 setShowLogoutConfirm(true);

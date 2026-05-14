@@ -7,7 +7,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useMemo } from 'react';
-import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, TextInput, Alert, FlatList } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  useWindowDimensions,
+  Modal,
+  TextInput,
+  Alert,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,7 +49,7 @@ export default function ProgramChairSubjectsScreen() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [page, setPage] = useState(1);
+  const [cursor, setCursor] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [activeTab, setActiveTab] = useState('practice');
@@ -59,7 +71,7 @@ export default function ProgramChairSubjectsScreen() {
   const [showPrintModal, setShowPrintModal] = useState(false);
 
   useEffect(() => {
-    fetchSubjects();
+    fetchSubjects(true);
   }, []);
 
   useEffect(() => {
@@ -71,49 +83,42 @@ export default function ProgramChairSubjectsScreen() {
   }, [selectedSubject?.subjectID]);
 
   const fetchSubjects = async (reset = false) => {
-    const currentPage = reset ? 1 : page;
-
     if (reset) {
       setIsLoading(true);
-      setPage(1);
+      setCursor(null);
       setHasMore(true);
     } else {
       setIsLoadingMore(true);
     }
 
     try {
-      const data = await apiRequest(`/api/subjects?limit=20&page=${currentPage}`);
+      const url = cursor && !reset ? `/api/subjects?cursor=${cursor}` : '/api/subjects';
+      const data = await apiRequest(url);
       const list = Array.isArray(data?.subjects) ? data.subjects : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-      const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
 
       if (reset) {
         setSubjects(list);
-        if (total !== undefined) {
-          setHasMore(list.length < total);
-        } else {
-          setHasMore(list.length === 20);
-        }
+        setHasMore(data?.hasMore === true);
         if (selectedSubject) {
           const updatedSelection = list.find((subject: any) => subject.subjectID === selectedSubject.subjectID);
           setSelectedSubject(updatedSelection || null);
         }
+        // Set cursor for next page to last item's subjectID
+        if (list.length > 0) {
+          setCursor(data?.cursor ?? list[list.length - 1].subjectID);
+        }
       } else {
         setSubjects(prev => [...prev, ...list]);
-        if (total !== undefined) {
-          setHasMore((subjects.length + list.length) < total);
-        } else {
-          setHasMore(list.length === 20);
+        setHasMore(data?.hasMore === true);
+        if (list.length > 0) {
+          setCursor(data?.cursor ?? list[list.length - 1].subjectID);
         }
-        setPage(prev => prev + 1);
       }
     } catch (error) {
       showToast('Unable to load subjects', 'error');
     } finally {
-      if (reset) {
-        setIsLoading(false);
-      } else {
-        setIsLoadingMore(false);
-      }
+      setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -144,13 +149,11 @@ export default function ProgramChairSubjectsScreen() {
         setQuestionsHasMore(total !== undefined ? list.length < total : list.length >= 20);
       } else {
         setQuestions(prev => {
-          const existing = new Set(prev.map(q => q.questionID));
-          const newUnique = list.filter(q => !existing.has(q.questionID));
-          return [...prev, ...newUnique];
-        });
-        setQuestionsHasMore((prevCount: number) => {
-          const newTotal = total !== undefined ? (prevCount + list.length) < total : list.length >= 20;
-          return newTotal;
+          const existing = new Set(prev.map((q: any) => q.questionID));
+          const newUnique = list.filter((q: any) => !existing.has(q.questionID));
+          const nextQuestions = [...prev, ...newUnique];
+          setQuestionsHasMore(total !== undefined ? nextQuestions.length < total : list.length >= 20);
+          return nextQuestions;
         });
         setQuestionsPage(prev => prev + 1);
       }
@@ -168,6 +171,22 @@ export default function ProgramChairSubjectsScreen() {
   const handleLoadMoreQuestions = () => {
     if (!questionsHasMore || isLoadingMoreQuestions || isLoadingQuestions) return;
     fetchQuestions(false);
+  };
+
+  const handleMainScroll = ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const distanceFromBottom =
+      nativeEvent.contentSize.height -
+      (nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y);
+
+    if (distanceFromBottom > 96) {
+      return;
+    }
+
+    if (selectedSubject) {
+      handleLoadMoreQuestions();
+    } else {
+      handleLoadMore();
+    }
   };
 
   const fetchPrograms = async () => {
@@ -307,7 +326,7 @@ export default function ProgramChairSubjectsScreen() {
         showToast('Subject added', 'success');
       }
       setShowSubjectModal(false);
-      await fetchSubjects();
+      await fetchSubjects(true);
     } catch (error: unknown) {
       const message = error instanceof Error && 'data' in error
         ? (error as { data?: { message?: string } }).data?.message || error.message || 'Failed to save subject'
@@ -334,7 +353,7 @@ export default function ProgramChairSubjectsScreen() {
                 setSelectedSubject(null);
                 setQuestions([]);
               }
-              await fetchSubjects();
+              await fetchSubjects(true);
               showToast('Subject deleted', 'success');
             } catch (error) {
               showToast('Failed to delete subject', 'error');
@@ -425,6 +444,8 @@ export default function ProgramChairSubjectsScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 96 }}
         showsVerticalScrollIndicator={false}
+        onScroll={handleMainScroll}
+        scrollEventThrottle={250}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#FE6902" />}
       >
         {!selectedSubject ? (
@@ -441,50 +462,52 @@ export default function ProgramChairSubjectsScreen() {
                 </Text>
               </View>
             ) : (
-              subjects.map((subject) => (
-                <TouchableOpacity
-                  key={subject.subjectID}
-                  onPress={() => setSelectedSubject(subject)}
-                  className={`rounded-2xl p-4 mb-3 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-                  activeOpacity={0.7}
-                >
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-1 pr-3">
-                      <Text className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        {subject.subjectName || subject.name}
-                      </Text>
-                      {!!subject.subjectCode && (
-                        <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {subject.subjectCode}
+              <>
+                {subjects.map((subject) => (
+                  <TouchableOpacity
+                    key={String(subject.subjectID)}
+                    onPress={() => setSelectedSubject(subject)}
+                    className={`rounded-2xl p-4 mb-3 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+                    activeOpacity={0.7}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1 pr-3">
+                        <Text className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {subject.subjectName || subject.name}
                         </Text>
-                      )}
+                        {!!subject.subjectCode && (
+                          <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {subject.subjectCode}
+                          </Text>
+                        )}
+                      </View>
+                      <View className="flex-row items-center" style={{ gap: 10 }}>
+                        <TouchableOpacity
+                          onPress={() => openEditSubject(subject)}
+                          className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-orange-50'}`}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="create-outline" size={18} color="#FE6902" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteSubject(subject)}
+                          className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-red-50'}`}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                        </TouchableOpacity>
+                        <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                      </View>
                     </View>
-                    <View className="flex-row items-center" style={{ gap: 10 }}>
-                      <TouchableOpacity
-                        onPress={() => openEditSubject(subject)}
-                        className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-orange-50'}`}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="create-outline" size={18} color="#FE6902" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteSubject(subject)}
-                        className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-red-50'}`}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                      </TouchableOpacity>
-                      <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                  </TouchableOpacity>
+                ))}
+                {isLoadingMore ? (
+                    <View className="py-4 items-center">
+                      <CapsActivityIndicator size="small" color="#FE6902" />
+                      <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more...</Text>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
-            {isLoadingMore && (
-              <View className="py-4 items-center">
-                <CapsActivityIndicator size="small" color="#FE6902" />
-                <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more...</Text>
-              </View>
+                ) : null}
+              </>
             )}
           </View>
         ) : (
@@ -527,10 +550,8 @@ export default function ProgramChairSubjectsScreen() {
                 </Text>
               </View>
             ) : (
-              <FlatList
-                data={filteredQuestions}
-                keyExtractor={(q) => String(q.questionID ?? q.id ?? Math.random())}
-                renderItem={({ item: q, index: idx }) => (
+              <>
+                {filteredQuestions.map((q, idx) => (
                 <View
                   key={q.questionID || idx}
                   className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-gray-800' : 'bg-white'}`}
@@ -584,21 +605,13 @@ export default function ProgramChairSubjectsScreen() {
                     <Ionicons name="chevron-forward" size={18} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
                   </View>
                 </View>
-                )}
-                onEndReached={handleLoadMoreQuestions}
-                onEndReachedThreshold={0.5}
-                initialNumToRender={10}
-                maxToRenderPerBatch={8}
-                windowSize={5}
-                removeClippedSubviews={true}
-                ListFooterComponent={
-                  isLoadingMoreQuestions ? (
+                ))}
+                {isLoadingMoreQuestions ? (
                     <View className="py-4 items-center">
                       <CapsActivityIndicator size="small" color="#FE6902" />
                     </View>
-                  ) : null
-                }
-              />
+                ) : null}
+              </>
             )}
           </View>
           </>
