@@ -22,7 +22,7 @@ use Modules\Notifications\Services\PushNotificationService;
  * - GET /api/notifications - User's notifications (role 1)
  * - PATCH /api/notifications/{id}/read - Mark single as read
  * - POST /api/notifications/mark-all-read - Mark all as read
- * - POST /api/admin/notifications - Create notification (role 4-5)
+ * - POST /api/admin/notifications - Create notification (role 2-5)
  */
 class NotificationController extends Controller
 {
@@ -188,7 +188,7 @@ class NotificationController extends Controller
     /**
      * Admin: Create a new notification for a user or group.
      * 
-     * Protected: Requires role 4 (Dean) or 5 (Associate Dean)
+     * Protected: Requires a staff role (Faculty, Program Chair, Dean, or Associate Dean)
      * Can target specific users or broadcast to all users.
      * 
      * @param Request $request Contains type, title, message, target
@@ -199,9 +199,9 @@ class NotificationController extends Controller
         try {
             $user = Auth::user();
             
-            // Only Dean and Associate Dean can create notifications
-            if (!in_array($user->roleID, [4, 5])) {
-                return response()->json(['message' => 'Unauthorized. Admin access only.'], 403);
+            // Faculty, Program Chair, Dean, and Associate Dean can create announcements.
+            if (!in_array($user->roleID, [2, 3, 4, 5])) {
+                return response()->json(['message' => 'Unauthorized. Staff access only.'], 403);
             }
             
             // Validate request

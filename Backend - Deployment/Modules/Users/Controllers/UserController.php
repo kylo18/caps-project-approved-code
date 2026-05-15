@@ -707,6 +707,11 @@ class UserController extends Controller
                     $q->where('programName', $value);
                 });
             },
+            'yearLevel' => function ($q, $value) {
+                $q->whereHas('student', function ($q) use ($value) {
+                    $q->where('yearLevel', $value);
+                });
+            },
             'state' => function ($q, $value) {
                 $q->where('isActive', $value === 'Active');
             }

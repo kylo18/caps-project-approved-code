@@ -348,6 +348,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/admin/analytics/improvement-percentage', [AdminAnalyticsController::class, 'getImprovementPercentage']);
     Route::get('/admin/analytics/topic-mastery', [AdminAnalyticsController::class, 'getTopicMastery']);
     Route::get('/admin/analytics/content', [AdminAnalyticsController::class, 'getContentAnalytics']);
+    Route::get('/admin/analytics/student-scores', [AdminAnalyticsController::class, 'getStudentScores']);
 
     // Dashboard quick stats (role 2-5)
     Route::get('/dashboard/stats', [AdminAnalyticsController::class, 'getDashboardStats']);
@@ -363,7 +364,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/admin/support/tickets/{id}', [SupportController::class, 'getAdminTicket']);
     Route::patch('/admin/support/tickets/{id}', [SupportController::class, 'updateTicket']);
 
-    // Admin Notification Creation Routes (Role 4-5)
+    // Admin Notification Creation Routes (staff roles 2-5)
     Route::post('/admin/notifications', [NotificationController::class, 'create']);
 
     // Class Personal Quizzes (Faculty)
@@ -596,4 +597,3 @@ Route::get('storage/choices/{filename}', function ($filename) {
     }
     return response()->file($path);
 })->middleware('image.cors');
-

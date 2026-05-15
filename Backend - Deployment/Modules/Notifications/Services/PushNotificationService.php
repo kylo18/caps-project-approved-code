@@ -44,6 +44,8 @@ class PushNotificationService
                 'body' => $message,
                 'data' => $data,
                 'sound' => 'default',
+                'channelId' => 'default',
+                'priority' => 'high',
             ];
         }, $tokens);
 

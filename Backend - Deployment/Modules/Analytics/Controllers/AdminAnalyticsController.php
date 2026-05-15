@@ -860,6 +860,43 @@ class AdminAnalyticsController extends Controller
     }
 
     /**
+     * Get average scores per student for the enhancement screen.
+     * 
+     * Returns { userID, average_score } for all students who have taken exams.
+     * Used by the frontend to merge score data into the student list.
+     * 
+     * @return \Illuminate\Http\JsonResponse JSON response with per-student averages
+     */
+    public function getStudentScores(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            $results = DB::table('practice_exam_results')
+                ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
+                ->select(
+                    'users.userID',
+                    DB::raw('AVG(practice_exam_results.percentage) as average_score')
+                )
+                ->groupBy('users.userID')
+                ->get();
+            
+            return response()->json([
+                'message' => 'Student scores retrieved successfully',
+                'data' => $results
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('Student scores error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error retrieving student scores',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Apply role-based data scoping to prevent data leakage.
      * 
      * Different roles see different data scopes:

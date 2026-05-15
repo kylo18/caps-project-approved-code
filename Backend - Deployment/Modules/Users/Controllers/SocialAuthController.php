@@ -14,6 +14,8 @@ class SocialAuthController extends Controller
     // Starts the Google OAuth flow and remembers which frontend should receive the callback result.
     public function redirectToGoogle(Request $request)
     {
+        $frontendUrl = $request->query('frontend_url');
+
         try {
             if (!config('services.google.client_id')) {
                 throw new \Exception('Google Client ID is missing. Check your .env file and configuration cache.');
@@ -24,18 +26,31 @@ class SocialAuthController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            $redirectUrl = config('services.google.redirect');
+            // Encode the frontend_url as a state parameter so Google passes it through
+            // unchanged to the callback — no cookies or sessions needed.
+            $state = null;
+            if ($frontendUrl) {
+                $state = base64_encode(json_encode(['frontend_url' => $frontendUrl]));
+            }
+
             $driver = Socialite::driver('google')->stateless();
 
-            if ($redirectUrl) {
-                $driver->redirectUrl($redirectUrl);
+            if (config('services.google.redirect')) {
+                $driver->redirectUrl(config('services.google.redirect'));
+            }
+
+            if ($state) {
+                $driver->with(['state' => $state]);
             }
 
             $response = $driver->redirect();
-            $frontendUrlCookie = $this->makeFrontendUrlCookie($request);
 
-            if ($frontendUrlCookie) {
-                $response->withCookie($frontendUrlCookie);
+            // For non-mobile (web) flows, set a cookie so the callback knows the frontend URL.
+            if ($frontendUrl && !str_starts_with($frontendUrl, 'caps://')) {
+                $frontendUrlCookie = $this->makeFrontendUrlCookie($request);
+                if ($frontendUrlCookie) {
+                    $response->withCookie($frontendUrlCookie);
+                }
             }
 
             return $response;
@@ -47,20 +62,30 @@ class SocialAuthController extends Controller
             return $this->redirectToFrontendError(
                 'provider_failed',
                 'Failed to initiate Google login: ' . $e->getMessage(),
-                'google'
+                'google',
+                $frontendUrl
             );
         }
     }
 
     // Handles the Google provider callback and always sends the browser back to the frontend.
-    public function handleGoogleCallback()
+    public function handleGoogleCallback(Request $request)
     {
+        $frontendUrl = null;
+
         try {
-            // Debug logging for OAuth callback
+            // Decode the frontend_url from the state parameter (mobile) or cookie (web).
+            // Socialite passes custom provider parameters back as query params after Google redirects.
+            $state = $request->query('state');
+            if ($state) {
+                $frontendUrl = $this->decodeFrontendUrlState($state);
+            }
+
             Log::info('Google OAuth callback received', [
                 'url' => request()->fullUrl(),
                 'query_params' => request()->query(),
-                'cookies' => request()->cookie('oauth_frontend_url'),
+                'frontend_url_from_state' => $frontendUrl,
+                'cookie_oauth_frontend_url' => request()->cookie('oauth_frontend_url'),
                 'user_agent' => request()->userAgent(),
                 'ip' => request()->ip(),
             ]);
@@ -75,7 +100,7 @@ class SocialAuthController extends Controller
                 'id' => $googleUser->getId(),
             ]);
 
-            return $this->handleOAuthUser($googleUser, 'google');
+            return $this->handleOAuthUser($googleUser, 'google', $frontendUrl);
         } catch (\Exception $e) {
             Log::error('Google OAuth error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
@@ -84,7 +109,8 @@ class SocialAuthController extends Controller
             return $this->redirectToFrontendError(
                 'provider_failed',
                 'Failed to authenticate with Google.',
-                'google'
+                'google',
+                $frontendUrl
             );
         }
     }
@@ -113,7 +139,7 @@ class SocialAuthController extends Controller
             $facebookUser = Socialite::driver('facebook')->stateless()
                 ->setHttpClient(new \GuzzleHttp\Client(['verify' => config('app.env') === 'local' ? false : true]))
                 ->user();
-            return $this->handleOAuthUser($facebookUser, 'facebook');
+            return $this->handleOAuthUser($facebookUser, 'facebook', null);
         } catch (\Exception $e) {
             Log::error('Facebook OAuth error: ' . $e->getMessage());
             return $this->redirectToFrontendError(
@@ -124,7 +150,7 @@ class SocialAuthController extends Controller
         }
     }
 
-    private function handleOAuthUser($oauthUser, $provider)
+    private function handleOAuthUser($oauthUser, $provider, ?string $frontendUrl = null)
     {
         $providerId = $provider . '_id';
 
@@ -145,7 +171,8 @@ class SocialAuthController extends Controller
                 return $this->redirectToFrontendError(
                     'no_account',
                     'No CAPS account found with this email. Please register first.',
-                    $provider
+                    $provider,
+                    $frontendUrl
                 );
             }
 
@@ -163,7 +190,8 @@ class SocialAuthController extends Controller
                 return $this->redirectToFrontendError(
                     'account_pending',
                     'Your account is pending approval. Please wait for administrator verification.',
-                    $provider
+                    $provider,
+                    $frontendUrl
                 );
             }
 
@@ -177,7 +205,8 @@ class SocialAuthController extends Controller
                 return $this->redirectToFrontendError(
                     'account_not_approved',
                     'Your account is not approved. Please wait for administrator verification.',
-                    $provider
+                    $provider,
+                    $frontendUrl
                 );
             }
 
@@ -204,7 +233,8 @@ class SocialAuthController extends Controller
             return $this->redirectToFrontendError(
                 'account_pending',
                 'Your account is pending approval. Please wait for administrator verification.',
-                $provider
+                $provider,
+                $frontendUrl
             );
         }
 
@@ -218,38 +248,39 @@ class SocialAuthController extends Controller
             return $this->redirectToFrontendError(
                 'account_inactive',
                 'Your account is inactive. Please contact an administrator to reactivate your account.',
-                $provider
+                $provider,
+                $frontendUrl
             );
         }
 
-        return $this->redirectToFrontendSuccess($user, $provider);
+        return $this->redirectToFrontendSuccess($user, $provider, $frontendUrl);
     }
 
     // Creates a Sanctum token and returns the user to the frontend callback route with success params.
-    private function redirectToFrontendSuccess(User $user, string $provider)
+    private function redirectToFrontendSuccess(User $user, string $provider, ?string $frontendUrl = null)
     {
         $token = $user->createToken('auth-token')->plainTextToken;
 
-        return redirect()->away($this->buildFrontendUrl("/auth/{$provider}/callback", [
+        return redirect()->away($this->buildFrontendCallbackUrl($provider, [
             'social_token' => $token,
             'provider' => $provider,
-        ]))->withoutCookie('oauth_frontend_url');
+        ], $frontendUrl))->withoutCookie('oauth_frontend_url');
     }
 
     // Returns the user to the frontend with a provider-specific error code and message.
-    private function redirectToFrontendError(string $code, string $message, string $provider)
+    private function redirectToFrontendError(string $code, string $message, string $provider, ?string $frontendUrl = null)
     {
-        return redirect()->away($this->buildFrontendUrl("/auth/{$provider}/callback", [
+        return redirect()->away($this->buildFrontendCallbackUrl($provider, [
             'social_error' => $code,
             'message' => $message,
             'provider' => $provider,
-        ]))->withoutCookie('oauth_frontend_url');
+        ], $frontendUrl))->withoutCookie('oauth_frontend_url');
     }
 
     // Builds a frontend URL from the resolved base URL, callback path, and query parameters.
-    private function buildFrontendUrl(string $path = '/', array $params = []): string
+    private function buildFrontendUrl(string $path = '/', array $params = [], ?string $baseUrl = null): string
     {
-        $baseUrl = rtrim($this->resolveFrontendBaseUrl(), '/');
+        $baseUrl = rtrim($baseUrl ?: $this->resolveFrontendBaseUrl(), '/');
         $normalizedPath = '/' . ltrim($path, '/');
         $query = http_build_query($params);
 
@@ -258,16 +289,49 @@ class SocialAuthController extends Controller
             : "{$baseUrl}{$normalizedPath}";
     }
 
+    private function buildFrontendCallbackUrl(string $provider, array $params, ?string $frontendUrl = null): string
+    {
+        if ($this->isMobileFrontendUrl($frontendUrl)) {
+            return $this->appendQueryString($frontendUrl, $params);
+        }
+
+        $baseUrl = $this->isAllowedFrontendUrl($frontendUrl)
+            ? $frontendUrl
+            : $this->resolveFrontendBaseUrl();
+
+        return $this->buildFrontendUrl("/auth/{$provider}/callback", $params, $baseUrl);
+    }
+
+    private function appendQueryString(string $url, array $params): string
+    {
+        $query = http_build_query($params);
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return "{$url}{$separator}{$query}";
+    }
+
+    private function decodeFrontendUrlState(?string $state): ?string
+    {
+        if (!$state) {
+            return null;
+        }
+
+        $decoded = json_decode(base64_decode($state, true) ?: '', true);
+
+        return is_array($decoded) && isset($decoded['frontend_url'])
+            ? $decoded['frontend_url']
+            : null;
+    }
+
     // Chooses the safest frontend base URL from the OAuth cookie, config, or a local fallback guess.
     private function resolveFrontendBaseUrl(): string
     {
         $cookieFrontendUrl = request()->cookie('oauth_frontend_url');
+        $configuredFrontendUrl = config('app.frontend_url');
 
         if ($this->isAllowedFrontendUrl($cookieFrontendUrl)) {
             return $cookieFrontendUrl;
         }
-
-        $configuredFrontendUrl = config('app.frontend_url');
 
         if ($this->isAllowedFrontendUrl($configuredFrontendUrl)) {
             return $configuredFrontendUrl;
@@ -280,6 +344,25 @@ class SocialAuthController extends Controller
     private function makeFrontendUrlCookie(Request $request)
     {
         $frontendUrl = $request->query('frontend_url');
+
+        // Reject empty values and non-HTTP(S) URLs that aren't the mobile scheme
+        if (!$frontendUrl) {
+            return null;
+        }
+
+        if (str_starts_with($frontendUrl, 'caps://')) {
+            return cookie(
+                'oauth_frontend_url',
+                $frontendUrl,
+                10,
+                '/',
+                null,
+                false,
+                false,
+                false,
+                'Lax'
+            );
+        }
 
         if (!$this->isAllowedFrontendUrl($frontendUrl)) {
             return null;
@@ -307,10 +390,24 @@ class SocialAuthController extends Controller
 
         $scheme = parse_url($frontendUrl, PHP_URL_SCHEME);
         $host = parse_url($frontendUrl, PHP_URL_HOST);
+        $path = parse_url($frontendUrl, PHP_URL_PATH) ?: '';
+        $port = parse_url($frontendUrl, PHP_URL_PORT);
         $configuredHost = parse_url(config('app.frontend_url'), PHP_URL_HOST);
         $requestHost = request()->getHost();
+        $requestPort = request()->getPort();
+        $frontendPort = $port ?: ($scheme === 'https' ? 443 : 80);
 
         if (!in_array($scheme, ['http', 'https'], true)) {
+            return false;
+        }
+
+        // Never treat the backend API itself as a frontend. Otherwise an OAuth
+        // error/success callback can redirect back into this controller forever.
+        if (str_starts_with($path, '/api')) {
+            return false;
+        }
+
+        if ($host === $requestHost && (int) $frontendPort === (int) $requestPort) {
             return false;
         }
 
@@ -319,8 +416,12 @@ class SocialAuthController extends Controller
             $configuredHost,
             'localhost',
             '127.0.0.1',
-            'localhost:5173',
         ]), true);
+    }
+
+    private function isMobileFrontendUrl(?string $frontendUrl): bool
+    {
+        return is_string($frontendUrl) && str_starts_with($frontendUrl, 'caps://');
     }
 
     // Provides a final localhost-style fallback when no trusted frontend URL was supplied.
@@ -329,6 +430,11 @@ class SocialAuthController extends Controller
         $request = request();
         $scheme = $request->getScheme() ?: parse_url(config('app.url'), PHP_URL_SCHEME) ?: 'http';
         $host = $request->getHost() ?: parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
+        $port = (int) $request->getPort();
+
+        if ($port === 8000 && !in_array($host, ['localhost', '127.0.0.1'], true)) {
+            return "{$scheme}://{$host}:8005";
+        }
 
         return "{$scheme}://{$host}:5173";
     }

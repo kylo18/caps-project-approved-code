@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Users\Controllers\AuthController;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 use App\Services\LeaderboardService;
@@ -29,4 +32,8 @@ Route::get('/download/caps.apk', function (): BinaryFileResponse {
         'Content-Disposition' => 'attachment; filename="CAPS.apk"',
         'Cache-Control' => 'no-store, no-cache',
     ]);
-});
+})->withoutMiddleware([
+    StartSession::class,
+    ShareErrorsFromSession::class,
+    VerifyCsrfToken::class,
+]);
