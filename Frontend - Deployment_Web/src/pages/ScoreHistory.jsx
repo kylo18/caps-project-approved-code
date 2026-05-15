@@ -315,6 +315,9 @@ const ScoreHistory = () => {
     performance_band: "",
   });
   const [rankLabel, setRankLabel] = useState("Global Rank");
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [filterResults, setFilterResults] = useState(null);
+  const [filterResultsLoading, setFilterResultsLoading] = useState(false);
   const [activityFilter, setActivityFilter] = useState("all"); // "all" | "quiz" | "practice"
 
   // ── Load practice history (existing endpoint) ────────────────────────────
@@ -377,8 +380,33 @@ const ScoreHistory = () => {
   }, [apiUrl]);
 
   useEffect(() => {
-    if (activeTab === "history" || activeTab === "analytics") loadAnalytics(analyticsFilters);
+    if (activeTab === "history" || activeTab === "activity") loadAnalytics(analyticsFilters);
   }, [activeTab]);
+
+  // ── Apply filters to analytics ─────────────────────────────────
+  const applyFilterSearch = async () => {
+    setFilterResultsLoading(true);
+    setFilterModalOpen(false);
+    try {
+      const token = sessionStorage.getItem("token");
+      const params = new URLSearchParams();
+      Object.entries(analyticsFilters).forEach(([k, v]) => { if (v) params.set(k, v); });
+      const res = await fetch(`${apiUrl}/v1/student/analytics?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setFilterResults(json.data ?? null);
+      } else {
+        setFilterResults(null);
+      }
+    } catch (e) {
+      console.error(e);
+      setFilterResults(null);
+    } finally {
+      setFilterResultsLoading(false);
+    }
+  };
 
   // ── Derived history data ─────────────────────────────────────────────────
   const chronological = [...history].sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt));
@@ -491,12 +519,12 @@ const ScoreHistory = () => {
               <i className="bx bx-trending-up text-[17px] text-white" />
             </div>
             <div>
-              <p className="text-[14px] font-bold leading-tight text-gray-900 tracking-tight">My Achievements</p>
-              <p className="text-[11px] leading-none text-gray-400">Performance & activity overview</p>
+              <p className="text-[16px] font-bold leading-tight text-gray-900 tracking-tight">My Achievements</p>
+              <p className="text-[13px] leading-none text-gray-400">Performance & activity overview</p>
             </div>
           </div>
           {!loading && history.length > 0 && (
-            <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[11px] font-semibold text-gray-500">
+            <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[13px] font-semibold text-gray-500">
               {history.length} attempt{history.length !== 1 ? "s" : ""}
             </span>
           )}
@@ -508,7 +536,7 @@ const ScoreHistory = () => {
             {[
               { id: "history",   label: "Score History",    icon: "bx bx-history" },
               { id: "activity",  label: "Recent Activity",  icon: "bx bx-pulse" },
-              { id: "analytics", label: "Analytics",        icon: "bx bx-bar-chart-alt-2" },
+              
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -535,19 +563,112 @@ const ScoreHistory = () => {
         {activeTab === "history" && (
           <div className="space-y-4">
 
+            
             {/* KPI Cards */}
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[12px] text-gray-400">Your overall performance summary</p>
+              <button
+                onClick={() => setFilterModalOpen(true)}
+                className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-600 shadow-sm transition hover:border-orange-400 hover:text-orange-500"
+              >
+                <i className="bx bx-filter-alt text-[14px]" />
+                Filter Analytics
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               {loading ? (
                 [...Array(4)].map((_, i) => <Shimmer key={i} h={104} radius={16} />)
               ) : (
                 <>
                   <KpiCard label="Total Exams" value={history.length} sub="All attempts recorded" accentColor="#f97316" sparkData={recentScores} delay={0} />
+
                   <KpiCard label="Average Score" value={avgScore != null ? `${avgScore}%` : "—"} sub={bestScore != null ? `Best: ${bestScore}%` : "No data yet"} accentColor="#3b82f6" sparkData={recentScores} delay={60} />
+
                   <KpiCard label="Pass Rate" value={passRate != null ? `${passRate}%` : "—"} sub={`${passCount} of ${history.length} passed`} accentColor={passRateStyle.color} icon={passRateStyle.icon} delay={120} />
+
                   <KpiCard label="Improvement" value={fmtImp} sub={improvement != null ? (improvement >= 0 ? "Trending upward" : "Keep pushing") : "Need more data"} accentColor={impStyle.color} icon={impStyle.icon} delay={180} />
+
+                  <KpiCard label="Global Rank" value={ad?.rank_status?.rank ? `#${ad.rank_status.rank}` : "—"} sub={ad?.rank_status?.total_candidates ? `of ${ad.rank_status.total_candidates} students` : "No rank yet"} accentColor="#8b5cf6" icon="bx bx-trophy" delay={240} />
+
+                  <KpiCard label="Points Earned" value={ad?.summary?.total_earned_points ?? "—"} sub="Total across all exams" accentColor="#f59e0b" icon="bx bx-coin" delay={300} />
                 </>
               )}
             </div>
+
+            {/* Filter Results Modal */}
+            {(filterResultsLoading || filterResults) && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", animation: "fadeIn 0.2s ease" }}
+                onClick={(e) => { if (e.target === e.currentTarget) { setFilterResults(null); setAnalyticsFilters({ assessment_type: "", subject_id: "", date_from: "", date_to: "", performance_band: "" }); } }}
+              >
+                <div
+                  className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+                  style={{ animation: "scaleIn 0.2s ease" }}
+                >
+                  {/* Results Header */}
+                  <div className="flex items-center justify-between border-b border-orange-100 bg-orange-50/60 px-6 py-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-100">
+                        <i className="bx bx-bar-chart text-[15px] text-orange-500" />
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-bold text-gray-900">Filter Results</p>
+                        <p className="text-[11px] text-gray-400">
+                          {[
+                            analyticsFilters.assessment_type && `Type: ${analyticsFilters.assessment_type}`,
+                            analyticsFilters.date_from && `From: ${analyticsFilters.date_from}`,
+                            analyticsFilters.date_to && `To: ${analyticsFilters.date_to}`,
+                            analyticsFilters.performance_band && `Band: ${analyticsFilters.performance_band}`,
+                          ].filter(Boolean).join(" · ") || "All records"}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setFilterResults(null); setAnalyticsFilters({ assessment_type: "", subject_id: "", date_from: "", date_to: "", performance_band: "" }); }}
+                      className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-gray-200 text-gray-400 transition hover:border-red-300 hover:text-red-400"
+                    >
+                      <i className="bx bx-x text-[18px]" />
+                    </button>
+                  </div>
+
+                  {/* Results Body */}
+                  <div className="p-6">
+                    {filterResultsLoading ? (
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        {[...Array(4)].map((_, i) => <Shimmer key={i} h={104} radius={16} />)}
+                      </div>
+                    ) : !filterResults ? (
+                      <EmptyState message="No data found for these filters. Try adjusting them." height={140} />
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+
+                        <KpiCard label="Total Exams"   value={filterResults.summary.total_exams}                    sub="In selected period"          accentColor="#f97316" delay={0}   />
+
+                        <KpiCard label="Average Score" value={`${filterResults.summary.average_score_percentage}%`} sub={`Best: ${bestScore ?? "—"}%`} accentColor="#3b82f6" delay={60}  />
+
+                        <KpiCard label="Pass Rate"     value={`${filterResults.summary.pass_rate}%`}                sub="Based on 75% threshold"      accentColor="#10b981"  delay={120} />
+
+                        <KpiCard label="Points Earned" value={filterResults.summary.total_earned_points}             sub="Total across filtered exams"  accentColor="#8b5cf6"  delay={180} />
+
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Results Footer */}
+                  <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
+                    <p className="text-[11.5px] text-gray-400">Click outside or close to dismiss</p>
+                    <button
+                      onClick={() => { setFilterResults(null); setFilterModalOpen(true); }}
+                      className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12.5px] font-semibold text-gray-600 transition hover:border-orange-400 hover:text-orange-500"
+                    >
+                      <i className="bx bx-filter-alt text-[13px]" />
+                      Refine Filters
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Score Progression */}
             <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -673,7 +794,7 @@ const ScoreHistory = () => {
 
               {/* Column headers */}
               <div className="hidden grid-cols-[56px_1fr_160px_90px_84px_100px_88px] border-b border-gray-100 bg-gray-50/80 px-5 py-2.5 sm:grid">
-                {["#", "Subject", "Date & Time", "Type", "Score", "Band", "Status"].map((col, i) => (
+                {["#", "Subject", "Date & Time", "Type", "Score (%)", "Band", "Status"].map((col, i) => (
                   <div key={col} className={`text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 ${i === 1 ? "pl-5" : ""}`}
                     style={{ textAlign: i === 1 ? "left" : "center" }}>{col}</div>
                 ))}
@@ -787,34 +908,28 @@ const ScoreHistory = () => {
         ══════════════════════════════════════════════════════════════ */}
         {activeTab === "activity" && (
           <div className="space-y-4">
-
-            {/* Sub-filter */}
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[16px] font-bold text-gray-900 tracking-tight">Recent Activity</p>
-                <p className="text-[12px] text-gray-400">Your latest exam and quiz attempts</p>
-              </div>
-              <div className="flex gap-0.5 rounded-xl border border-gray-200 bg-gray-50 p-0.5">
-                {[{ id: "all", label: "All" }, { id: "quiz", label: "Quizzes" }, { id: "practice", label: "Practice" }].map((f) => (
-                  <button key={f.id} onClick={() => setActivityFilter(f.id)}
-                    className={`cursor-pointer rounded-lg px-3 py-1 text-[12px] font-semibold transition ${activityFilter === f.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-700"}`}>
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
+          
             <div className="grid gap-4 lg:grid-cols-3">
 
               {/* Activity Feed */}
               <div className="lg:col-span-2 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50">
-                    <i className="bx bx-pulse text-[14px] text-orange-500" />
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50">
+                      <i className="bx bx-pulse text-[14px] text-orange-500" />
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-bold text-gray-900">Activity Feed</p>
+                      <p className="text-[11px] text-gray-400">{filteredActivity.length} recent entries</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[13px] font-bold text-gray-900">Activity Feed</p>
-                    <p className="text-[11px] text-gray-400">{filteredActivity.length} recent entries</p>
+                  <div className="flex gap-0.5 rounded-xl border border-gray-200 bg-gray-50 p-0.5">
+                    {[{ id: "all", label: "All" }, { id: "quiz", label: "Quizzes" }, { id: "practice", label: "Practice" }].map((f) => (
+                      <button key={f.id} onClick={() => setActivityFilter(f.id)}
+                        className={`cursor-pointer rounded-lg px-3 py-1 text-[12px] font-semibold transition ${activityFilter === f.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-700"}`}>
+                        {f.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <div className="p-3 max-h-[520px] overflow-y-auto">
@@ -890,135 +1005,112 @@ const ScoreHistory = () => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
-            TAB: ANALYTICS (NEW — uses /api/v1/student/analytics)
-        ══════════════════════════════════════════════════════════════ */}
-        {activeTab === "analytics" && (
-          <div className="space-y-4">
+      </main>
 
-            {/* Filter Bar */}
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center gap-2">
-                <i className="bx bx-filter-alt text-[14px] text-gray-400" />
-                <p className="text-[12.5px] font-bold text-gray-700">Filter Analytics</p>
-                <span className="ml-auto text-[11px] text-gray-400">All filters are optional and combinable</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                {/* Assessment Type */}
-                <div>
-                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">Type</label>
-                  <select value={analyticsFilters.assessment_type}
-                    onChange={(e) => setAnalyticsFilters((f) => ({ ...f, assessment_type: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-[12px] font-medium text-gray-700 focus:border-orange-400 focus:outline-none">
-                    <option value="">All</option>
-                    <option value="quiz">Quiz</option>
-                    <option value="practice">Practice</option>
-                  </select>
+      {/* ── Filter Analytics Modal ── */}
+          {filterModalOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", animation: "fadeIn 0.2s ease" }}
+              onClick={(e) => { if (e.target === e.currentTarget) setFilterModalOpen(false); }}
+            >
+              <div
+                className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
+                style={{ animation: "scaleIn 0.2s ease" }}
+              >
+                {/* Modal Header */}
+                <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-100">
+                      <i className="bx bx-filter text-[15px] text-orange-500" />
+                    </div>
+                    <div>
+                      <p className="text-[14px] font-bold text-gray-900">Filter Analytics</p>
+                      <p className="text-[11px] text-gray-400">All filters are optional and combinable</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setFilterModalOpen(false)}
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-gray-200 text-gray-400 transition hover:border-gray-300 hover:text-gray-600"
+                  >
+                    <i className="bx bx-x text-[18px]" />
+                  </button>
                 </div>
-                {/* Date From */}
-                <div>
-                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">From</label>
-                  <input type="date" value={analyticsFilters.date_from}
-                    onChange={(e) => setAnalyticsFilters((f) => ({ ...f, date_from: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-[12px] text-gray-700 focus:border-orange-400 focus:outline-none" />
+
+                {/* Modal Body */}
+                <div className="space-y-4 px-6 py-5">
+                  {/* Assessment Type */}
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-gray-400">Assessment Type</label>
+                    <select
+                      value={analyticsFilters.assessment_type}
+                      onChange={(e) => setAnalyticsFilters((f) => ({ ...f, assessment_type: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] font-medium text-gray-700 focus:border-orange-400 focus:outline-none"
+                    >
+                      <option value="">All Types</option>
+                      <option value="quiz">Quiz</option>
+                      <option value="practice">Practice</option>
+                    </select>
+                  </div>
+
+                  {/* Date Range */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-gray-400">Date From</label>
+                      <input
+                        type="date"
+                        value={analyticsFilters.date_from}
+                        onChange={(e) => setAnalyticsFilters((f) => ({ ...f, date_from: e.target.value }))}
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] text-gray-700 focus:border-orange-400 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-gray-400">Date To</label>
+                      <input
+                        type="date"
+                        value={analyticsFilters.date_to}
+                        onChange={(e) => setAnalyticsFilters((f) => ({ ...f, date_to: e.target.value }))}
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] text-gray-700 focus:border-orange-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Performance Band */}
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-gray-400">Performance Band</label>
+                    <select
+                      value={analyticsFilters.performance_band}
+                      onChange={(e) => setAnalyticsFilters((f) => ({ ...f, performance_band: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] font-medium text-gray-700 focus:border-orange-400 focus:outline-none"
+                    >
+                      <option value="">All Bands</option>
+                      <option value="excellent">Excellent (80%+)</option>
+                      <option value="good">Good (60–79%)</option>
+                      <option value="needs_improvement">Needs Work (41–59%)</option>
+                      <option value="poor">Poor (≤40%)</option>
+                    </select>
+                  </div>
                 </div>
-                {/* Date To */}
-                <div>
-                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">To</label>
-                  <input type="date" value={analyticsFilters.date_to}
-                    onChange={(e) => setAnalyticsFilters((f) => ({ ...f, date_to: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-[12px] text-gray-700 focus:border-orange-400 focus:outline-none" />
-                </div>
-                {/* Performance Band */}
-                <div>
-                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">Band</label>
-                  <select value={analyticsFilters.performance_band}
-                    onChange={(e) => setAnalyticsFilters((f) => ({ ...f, performance_band: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-[12px] font-medium text-gray-700 focus:border-orange-400 focus:outline-none">
-                    <option value="">All Bands</option>
-                    <option value="excellent">Excellent (80%+)</option>
-                    <option value="good">Good (60–79%)</option>
-                    <option value="needs_improvement">Needs Work (41–59%)</option>
-                    <option value="poor">Poor (≤40%)</option>
-                  </select>
-                </div>
-                {/* Apply */}
-                <div className="flex items-end">
-                  <button onClick={() => loadAnalytics(analyticsFilters)}
-                    className="w-full cursor-pointer rounded-lg bg-orange-500 px-3 py-1.5 text-[12px] font-bold text-white shadow-sm shadow-orange-200 transition hover:bg-orange-600 active:scale-95">
-                    Apply Filters
+
+                {/* Modal Footer */}
+                <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-6 py-4">
+                  <button
+                    onClick={() => { setAnalyticsFilters({ assessment_type: "", subject_id: "", date_from: "", date_to: "", performance_band: "" }); }}
+                    className="cursor-pointer rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12.5px] font-semibold text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={applyFilterSearch}
+                    className="cursor-pointer rounded-xl bg-orange-500 px-5 py-2 text-[12.5px] font-bold text-white shadow-sm shadow-orange-200 transition hover:bg-orange-600 active:scale-95"
+                  >
+                    Apply & Search
                   </button>
                 </div>
               </div>
             </div>
+          )}
 
-            {analyticsLoading ? (
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                {[...Array(4)].map((_, i) => <Shimmer key={i} h={104} radius={16} />)}
-              </div>
-            ) : !ad ? (
-              <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
-                <EmptyState message="No data available for these filters. Try adjusting or clearing them." height={280} />
-              </div>
-            ) : (
-              <>
-                {/* Summary KPIs from API */}
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <KpiCard label="Total Exams" value={ad.summary.total_exams} sub="In selected period" accentColor="#f97316" delay={0} />
-                  <KpiCard label="Average Score" value={`${ad.summary.average_score_percentage}%`} sub={`${ad.summary.total_earned_points} pts earned`} accentColor="#3b82f6" delay={60} />
-                  <KpiCard label="Pass Rate" value={`${ad.summary.pass_rate}%`} sub="Based on 75% threshold" accentColor="#10b981" icon="bx bx-check-shield" delay={120} />
-                  <KpiCard label="Points Earned" value={ad.summary.total_earned_points} sub="Total across all exams" accentColor="#8b5cf6" icon="bx bx-coin-stack" delay={180} />
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-3">
-
-                  
-
-                  {/* Right column */}
-                  <div className="flex flex-col gap-3">
-
-                    {/* Rank Widget */}
-                    {ad.rank_status?.rank && (
-                      <RankWidget
-                        rank={ad.rank_status.rank}
-                        total={ad.rank_status.total_candidates}
-                        percentile={ad.rank_status.percentile}
-                        label={rankLabel}
-                      />
-                    )}
-
-                    {/* Score breakdown from API */}
-                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                      <p className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-gray-400">Score Breakdown</p>
-                      {[
-                        { label: "Excellent", value: ad.score_breakdown.excellent,          color: "#10b981" },
-                        { label: "Good",      value: ad.score_breakdown.good,               color: "#3b82f6" },
-                        { label: "Needs Work",value: ad.score_breakdown.needs_improvement,  color: "#f59e0b" },
-                        { label: "Poor",      value: ad.score_breakdown.poor,               color: "#ef4444" },
-                      ].map((b) => {
-                        const total = ad.summary.total_exams || 1;
-                        const pct = Math.round((b.value / total) * 100);
-                        return (
-                          <div key={b.label} className="mb-2.5">
-                            <div className="mb-1 flex items-center justify-between">
-                              <span className="text-[11.5px] font-medium text-gray-600">{b.label}</span>
-                              <span className="text-[11px] font-bold" style={{ color: b.color }}>{b.value} ({pct}%)</span>
-                            </div>
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-                              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: b.color }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-      </main>
     </div>
   );
 };
