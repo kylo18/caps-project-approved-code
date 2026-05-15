@@ -171,7 +171,7 @@ const ContentAnalytics = () => {
         <div style={{ flex: 1, minWidth: 0 }}>
 
           {/*new added: slightly reduced font sizes in top bar for tighter layout*/}
-          <div style={{ fontSize: 17, fontWeight: 700, color: "#1A1814" }}>Content Analytics</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: "#1A1814" }}>My Content</div>
           <div style={{ fontSize: 11, color: "#9B9790" }}>Your personal learning data</div>
         </div>
         

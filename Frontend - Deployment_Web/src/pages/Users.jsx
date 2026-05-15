@@ -417,7 +417,13 @@ const UserList = () => {
       }
 
       const data = await response.json();
-      setUsers(data.users || []);
+      //setUsers(data.users || []);
+      const sorted = (data.users || []).sort((a, b) => {
+        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      setUsers(sorted);
       const total = data.total || 0;
       setTotalPages(Math.ceil(total / itemsPerPage));
       setTotalUsers(total);
@@ -457,9 +463,11 @@ const UserList = () => {
   };
 
   // Remove all local filtering since it's now handled by the backend
+  /*
   const pendingUsersCount = users.filter(
     (user) => user.status === "pending",
-  ).length;
+  ).length;   */
+  const pendingCount = users.filter((user) => user.status === "pending").length;
 
   // Ref for "select all" checkbox to support indeterminate state
   const selectAllRef = useRef(null);
@@ -1344,13 +1352,18 @@ const UserList = () => {
                     }`}
                   >
                     <span>Status</span>
-                    {(stateFilter.length > 0 || statusFilter !== "all") && (
+                    {(stateFilter.length > 0 || statusFilter !== "all") ? (
                       <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs text-white">
                         {stateFilter.length + (statusFilter !== "all" ? 1 : 0)}
                       </span>
-                    )}
+                    ) : pendingCount > 0 ? (
+                      <span className="ml-1 flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                        {pendingCount}
+                      </span>
+                    ) : null}
                     <i className="bx bx-chevron-down text-xl"></i>
                   </button>
+
                   {showStatusDropdown && (
                     <div className="outfit-500 absolute right-0 z-50 mt-3 w-45 rounded-lg border border-gray-200 bg-white shadow-lg">
                       <div className="p-1">
@@ -1395,7 +1408,8 @@ const UserList = () => {
                         </div>
                         {[
                           { value: "all", label: "All" },
-                          { value: "pending", label: "Pending" },
+                          //{ value: "pending", label: "Pending" },
+                          { value: "pending", label: pendingCount > 0 ? `Pending (${pendingCount})` : "Pending" },
                           { value: "registered", label: "Approved" },
                           { value: "unregistered", label: "Rejected" },
                         ].map((option) => (
@@ -1701,7 +1715,8 @@ const UserList = () => {
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         {[
                           { value: "all", label: "All" },
-                          { value: "pending", label: "Pending" },
+                          //{ value: "pending", label: "Pending" },
+                          { value: "pending", label: pendingCount > 0 ? `Pending (${pendingCount})` : "Pending" },
                           { value: "registered", label: "Approved" },
                           { value: "unregistered", label: "Rejected" },
                         ].map((opt) => (

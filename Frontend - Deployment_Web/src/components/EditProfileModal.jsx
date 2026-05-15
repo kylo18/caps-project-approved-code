@@ -9,7 +9,7 @@ const EditProfileModal = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
           <h2 className="text-[14px] font-medium text-gray-700">
-            User Information
+            User Information 
           </h2>
 
           <button

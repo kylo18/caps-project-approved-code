@@ -13,10 +13,10 @@ export default function DownloadModal({ isOpen, onClose }) {
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen) return null; // Don't render anything if the modal is closed
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
-  const apkUrl = `${apiUrl.replace("/api", "")}/apk/CAPS.apk`;
+  const apkUrl = `${apiUrl.replace("/api", "")}/apk/CAPS.apk`; //endpoint to download the APK file
 
   return (
     <div

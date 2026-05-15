@@ -106,7 +106,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwit
       window.location.href = `${apiUrl}/auth/google/redirect?frontend_url=${encodeURIComponent(frontendUrl)}`;
     };
 
-    if (!isOpen) return null;
+    if (!isOpen) return null; // Don't render anything if the modal is closed
 
     return (
       <>

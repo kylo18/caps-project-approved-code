@@ -137,6 +137,7 @@ const Sidebar = ({
   const [avatarColor, setAvatarColor] = useState("bg-gray-300");
   // new added: Analytics popup state and ref
   const [showAnalyticsPopup, setShowAnalyticsPopup] = useState(false);
+  const [newUsersCount, setNewUsersCount] = useState(0);
   const analyticsRef = useRef(null);
   const sidebarRef = useRef();
   const userDropdownRef = useRef(null);
@@ -210,6 +211,43 @@ const Sidebar = ({
 
     fetchUserInfo();
   }, [apiUrl]);
+
+  // Fetch pending users count
+  useEffect(() => {
+    const fetchPendingUsersCount = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+        const response = await fetch(`${apiUrl}/admin/pending-users-count`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Pending users count:", data.count);
+          setNewUsersCount(data.count || 0);
+        } else {
+          console.warn("Failed to fetch pending users count. Status:", response.status);
+          const errorData = await response.json().catch(() => ({}));
+          console.warn("Error response:", errorData);
+        }
+      } catch (error) {
+        console.error("Error fetching pending users count:", error);
+      }
+    };
+
+    // Only fetch if user has admin role (role_id >= 2)
+    if (role_id && Number(role_id) >= 2) {
+      console.log("Fetching pending users count for role:", role_id);
+      fetchPendingUsersCount();
+      // Optionally refresh the count periodically
+      const interval = setInterval(fetchPendingUsersCount, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [apiUrl, role_id]);
 
   // Set avatar color based on user info
   useEffect(() => {
@@ -585,7 +623,7 @@ const Sidebar = ({
   const analyticsMenuItems = [  
     { label: "Achievements", path: "/analytics/achievements", icon: "bx bx-trophy" },
     { label: "Leaderboards", path: "/analytics/leaderboards", icon: "bx bx-bar-chart"},
-    { label: "My Content", path: "/analytics/content-analytics", icon: "bx bx-file" },
+    { label: "Content Analytics", path: "/analytics/content-analytics", icon: "bx bx-file" },
     { label: "Difficulty", path: "/analytics/difficult-analytics", icon: "bx bx-pulse" },
   ];
   
@@ -755,14 +793,14 @@ const Sidebar = ({
                               <img src={SubjectsIcon} alt="Subjects" className="h-[18px] w-[18px] object-contain" />
                               <span className="outfit-500 text-[13px]">Subjects</span>
                             </Link>
-                            {(parsedRoleId === 4 || parsedRoleId === 5) && (
+                            {(parsedRoleId === 4 || parsedRoleId === 5 || parsedRoleId === 2) && (
                               <Link
                                 to="/admin/enhancement"
                                 onClick={() => { setShowMoreDrawer(false); handleMenuClick(); }}
                                 className="flex items-center gap-3 rounded-xl px-3 py-2 text-gray-600 transition-colors hover:bg-gray-100"
                               >
                                 <i className="bx bx-bar-chart-square text-[18px]"></i>
-                                <span className="outfit-500 text-[13px]">Progress</span>
+                                <span className="outfit-500 text-[13px]">Overview</span>
                               </Link>
                             )}
                             <button
@@ -781,7 +819,7 @@ const Sidebar = ({
                                 }`}
                               >
                                 <i className="bx bx-bar-chart-square text-[18px]"></i>
-                                <span className="outfit-500 text-[13px]">Progress</span>
+                                <span className="outfit-500 text-[13px]">Overview</span>
                               </Link>
                             )}
 
@@ -830,8 +868,13 @@ const Sidebar = ({
                           ></i>
                         )}
                       </span>
-                      <span className="outfit-500 text-[9px] leading-4 text-center">
+                      <span className="outfit-500 text-[9px] leading-4 text-center relative">
                         {item.label}
+                        {item.label === "Users" && newUsersCount > 0 && (
+                          <span className="absolute -top-2 right-[-8px] flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                            {newUsersCount > 99 ? "99+" : newUsersCount}
+                          </span>
+                        )}
                       </span>
                     </Link>
                   )}
@@ -1101,13 +1144,18 @@ const Sidebar = ({
 
                       {!isUsersPage && (
                         <span
-                          className={`outfit-500 text-[15px] whitespace-nowrap ${
+                          className={`outfit-500 text-[15px] whitespace-nowrap flex items-center gap-2 ${
                             isItemActive
                               ? "font-[18px] text-black"
                               : "text-gray-600"
                           }`}
                         >
                           {item.label}
+                          {item.label === "Users" && newUsersCount > 0 && (
+                            <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
+                              {newUsersCount > 99 ? "99+" : newUsersCount}
+                            </span>
+                          )}
                         </span>
                       )}
                     </div>
@@ -1274,14 +1322,14 @@ const Sidebar = ({
                       <i className={`bx bx-bar-chart-square ${isUsersPage ? "text-[20px]" : "text-[20px]"} flex-shrink-0 ${activeMenu === "Enhancement" ? "text-orange-500" : "text-gray-600"}`}></i>
                       {!isUsersPage && (
                         <span className={`outfit-500 text-[15px] whitespace-nowrap ${activeMenu === "Enhancement" ? "text-black" : "text-gray-600"}`}>
-                          Progress
+                          Overview
                         </span>
                       )}
                     </div>
                   </button>
                   {isUsersPage && (
                     <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
-                      Progress
+                      Overview
                     </span>
                   )}
                 </div>
@@ -1530,14 +1578,14 @@ const Sidebar = ({
                       <i className={`bx bx-bar-chart-square text-[20px] flex-shrink-0 ${activeMenu === "Enhancement" ? "text-orange-500" : "text-gray-600"}`}></i>
                       {!isUsersPage && (
                         <span className={`outfit-500 text-[15px] whitespace-nowrap ${activeMenu === "Enhancement" ? "text-black" : "text-gray-600"}`}>
-                          Progress
+                          Overview
                         </span>
                       )}
                     </div>
                   </button>
                   {isUsersPage && (
                     <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
-                      Progress 
+                      Overview 
                     </span>
                   )}
                 </div>
@@ -1624,6 +1672,34 @@ const Sidebar = ({
                   </div>
                 </li>
               ))}
+
+
+              {/* Enhancement link - faculty */}
+              <li className="group relative">
+                <span className={`absolute top-1/2 left-0 h-6 w-[5px] -translate-y-1/2 rounded-tr-lg rounded-br-lg transition-colors ${isActive("/admin/enhancement") ? "bg-orange-500" : "bg-transparent"}`}></span>
+                <div className="px-3">
+                  <button
+                    onClick={() => { setActiveMenu("Enhancement"); navigate("/admin/enhancement"); }}
+                    className={`group flex w-full cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${isUsersPage ? "justify-center py-[10px]" : "justify-start py-[6px]"} ${activeMenu === "Enhancement" ? "bg-gray-100 text-orange-600" : ""}`}
+                  >
+                    <div className={`flex items-center ${isUsersPage ? "justify-center" : "ml-3 gap-[10px]"}`}>
+                      <i className={`bx bx-bar-chart-square text-[20px] flex-shrink-0 ${activeMenu === "Enhancement" ? "text-orange-500" : "text-gray-600"}`}></i>
+                      {!isUsersPage && (
+                        <span className={`outfit-500 text-[15px] whitespace-nowrap ${activeMenu === "Enhancement" ? "text-black" : "text-gray-600"}`}>
+                          Overview
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                  {isUsersPage && (
+                    <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                      Overview
+                    </span>
+                  )}
+                </div>
+              </li>
+
+
               {/* Export button below Subjects */}
               {parsedRoleId >= 3 && (
                 <li className="group relative">

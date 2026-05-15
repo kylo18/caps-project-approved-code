@@ -76,7 +76,7 @@ function App() {
     <Router>
       <Routes>
         {/*<Route path="/" element={<Login />} />*/}
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<LandingPage />} />  {/*route for the landing page*/}
         
         <Route path="/testLogin" element={<TestLogin />} />
 
