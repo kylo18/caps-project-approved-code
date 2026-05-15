@@ -17,7 +17,7 @@
 //         with choices, navigation footer (Previous/Next/Submit), error banner
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo, useRef } from 'react';
-import {   View, Text, TouchableOpacity, ScrollView, Modal, Dimensions, Alert, useWindowDimensions, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, Dimensions, Alert, useWindowDimensions, Image } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +32,85 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 
 const { width, height } = Dimensions.get('window');
+
+// ── TimerModalProps for the module-scope TimerModal ──
+interface TimerModalProps {
+  visible: boolean;
+  secondsLeft: number | null;
+  answeredCount: number;
+  questionCount: number;
+  bookmarkedCount: number;
+  isSubmitting: boolean;
+  onSubmit: () => void;
+  onGoToUnanswered: () => void;
+  colors: {
+    card: string;
+    border: string;
+    text: string;
+    textSecondary: string;
+    orange: string;
+  };
+  shadow: object;
+}
+
+// ── Module-scope TimerModal: defined ONCE, not recreated on every render ──
+const TimerModal = ({ visible, secondsLeft, answeredCount, questionCount, bookmarkedCount, isSubmitting, onSubmit, onGoToUnanswered, colors, shadow }: TimerModalProps) => (
+  <Modal visible={visible} transparent animationType="fade">
+    <View className="flex-1 bg-black/50 justify-center items-center">
+      <View className="rounded-[20px] p-6 items-center border" style={{ width: width * 0.85, backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
+        <Ionicons name="alarm" size={48} color={colors.orange} style={{ marginBottom: 16 }} />
+        <Text className="text-xl font-bold mb-2" style={{ color: colors.text }}>
+          {secondsLeft === 0 ? 'Time is Up!' : 'Submit Exam?'}
+        </Text>
+        <Text className="text-sm text-center mb-5" style={{ color: colors.textSecondary }}>
+          You have answered {answeredCount} of {questionCount} questions.
+        </Text>
+        <View className="flex-row w-full justify-around mb-6">
+          <View className="items-center">
+            <Text className="text-2xl font-bold" style={{ color: '#10B981' }}>{answeredCount}</Text>
+            <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Answered</Text>
+          </View>
+          <View className="items-center">
+            <Text className="text-2xl font-bold" style={{ color: '#EF4444' }}>{questionCount - answeredCount}</Text>
+            <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Unanswered</Text>
+          </View>
+          <View className="items-center">
+            <Text className="text-2xl font-bold" style={{ color: '#F59E0B' }}>{bookmarkedCount}</Text>
+            <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Bookmarked</Text>
+          </View>
+        </View>
+
+        {/* Go back to first unanswered question */}
+        {questionCount - answeredCount > 0 && (
+          <TouchableOpacity
+            className="w-full py-3 rounded-xl items-center border mb-3"
+            style={{ borderColor: '#EF4444', backgroundColor: 'transparent' }}
+            onPress={onGoToUnanswered}
+            activeOpacity={0.7}
+          >
+            <Text className="text-base font-semibold" style={{ color: '#EF4444' }}>
+              Go to Unanswered ({questionCount - answeredCount})
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          className="w-full py-3.5 rounded-xl items-center"
+          style={{ backgroundColor: colors.orange, opacity: isSubmitting ? 0.6 : 1 }}
+          onPress={onSubmit}
+          disabled={isSubmitting}
+          activeOpacity={0.8}
+        >
+          {isSubmitting ? (
+            <CapsActivityIndicator color="#fff" />
+          ) : (
+            <Text className="text-white text-base font-bold">Submit Exam</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  </Modal>
+);
 
 export default function PracticeExamScreen() {
   const router = useRouter();
@@ -65,6 +144,7 @@ export default function PracticeExamScreen() {
   const [loading, setLoading] = useState(true);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerActiveRef = useRef(false); // prevents duplicate timer intervals
   const examKey = `exam_${subjectID}`;
 
   // Fetch exam questions from API
@@ -109,27 +189,48 @@ export default function PracticeExamScreen() {
 
   // Timer
   useEffect(() => {
-    if (enableTimer && secondsLeft !== null && secondsLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setSecondsLeft((prev) => {
-          if (prev === null || prev <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            setShowTimerModal(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    if (!enableTimer || secondsLeft === null || secondsLeft <= 0) return;
+    if (timerActiveRef.current) return; // prevent duplicate intervals (Fast Refresh safe)
+    timerActiveRef.current = true;
+
+    timerRef.current = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timerRef.current!);
+          timerActiveRef.current = false;
+          setShowTimerModal(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      timerActiveRef.current = false;
     };
-  }, [enableTimer, secondsLeft !== null]);
+  }, [enableTimer]);
 
-  // Save answers to AsyncStorage
+  // Save answers to AsyncStorage (debounced: fires on answer/bookmark change, not every timer tick)
   useEffect(() => {
     saveState();
-  }, [answers, bookmarkedQuestions, secondsLeft]);
+  }, [answers, bookmarkedQuestions]);
+
+  // Periodic autosave: ensures we don't lose progress if the app crashes mid-exam
+  // (answers save on every change via the effect above; this covers cases where the
+  //  user never changes answers but the app is killed)
+  useEffect(() => {
+    const interval = setInterval(() => saveState(), 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fire-and-forget save when student submits or exits
+  useEffect(() => {
+    return () => {
+      AsyncStorage.setItem(`${examKey}_answers`, JSON.stringify({ data: answers, timestamp: Date.now() }));
+      AsyncStorage.setItem(`${examKey}_bookmarks`, JSON.stringify({ data: bookmarkedQuestions, timestamp: Date.now() }));
+    };
+  }, []);
 
   const loadSavedState = async () => {
     try {
@@ -328,6 +429,17 @@ export default function PracticeExamScreen() {
     }
   };
 
+  // Navigate to the first unanswered question and close the modal
+  const handleGoToUnanswered = () => {
+    const firstUnansweredIndex = questions.findIndex(
+      (q) => !answers[q.questionID]
+    );
+    if (firstUnansweredIndex !== -1) {
+      setCurrentQuestionIndex(firstUnansweredIndex);
+    }
+    setShowTimerModal(false);
+  };
+
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -358,50 +470,6 @@ export default function PracticeExamScreen() {
     u: { textDecorationLine: 'underline' as const },
     a: { color: colors.orange },
   }), [colors.text]);
-
-  // Timer Modal
-  const TimerModal = () => (
-    <Modal visible={showTimerModal} transparent animationType="fade">
-      <View className="flex-1 bg-black/50 justify-center items-center">
-        <View className="rounded-[20px] p-6 items-center border" style={{ width: width * 0.85, backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>
-          <Ionicons name="alarm" size={48} color={colors.orange} style={{ marginBottom: 16 }} />
-          <Text className="text-xl font-bold mb-2" style={{ color: colors.text }}>
-            {secondsLeft === 0 ? 'Time is Up!' : 'Submit Exam?'}
-          </Text>
-          <Text className="text-sm text-center mb-5" style={{ color: colors.textSecondary }}>
-            You have answered {answeredCount} of {questionCount} questions.
-          </Text>
-          <View className="flex-row w-full justify-around mb-6">
-            <View className="items-center">
-              <Text className="text-2xl font-bold" style={{ color: '#10B981' }}>{answeredCount}</Text>
-              <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Answered</Text>
-            </View>
-            <View className="items-center">
-              <Text className="text-2xl font-bold" style={{ color: '#EF4444' }}>{questionCount - answeredCount}</Text>
-              <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Unanswered</Text>
-            </View>
-            <View className="items-center">
-              <Text className="text-2xl font-bold" style={{ color: '#F59E0B' }}>{bookmarkedQuestions.length}</Text>
-              <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Bookmarked</Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            className="w-full py-3.5 rounded-xl items-center"
-            style={{ backgroundColor: colors.orange, opacity: isSubmitting ? 0.6 : 1 }}
-            onPress={() => handleSubmit(true)}
-            disabled={isSubmitting}
-            activeOpacity={0.8}
-          >
-            {isSubmitting ? (
-              <CapsActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white text-base font-bold">Submit Exam</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
 
   // Image Modal
   const ImageModal = () => (
@@ -643,7 +711,18 @@ export default function PracticeExamScreen() {
           )}
 
           {/* Modals */}
-          <TimerModal />
+          <TimerModal
+            visible={showTimerModal}
+            secondsLeft={secondsLeft}
+            answeredCount={answeredCount}
+            questionCount={questionCount}
+            bookmarkedCount={bookmarkedQuestions.length}
+            isSubmitting={isSubmitting}
+            onSubmit={() => handleSubmit(true)}
+            onGoToUnanswered={handleGoToUnanswered}
+            colors={colors}
+            shadow={shadow}
+          />
           <ImageModal />
           <QuestionListModal
             visible={isQuestionListOpen}

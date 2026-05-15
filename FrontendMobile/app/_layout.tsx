@@ -34,6 +34,9 @@ import {
   resolveNotificationActionUrl,
   setNotificationHandler,
 } from '../src/services/notificationService';
+import { useExitOnBack } from '../src/hooks/useExitOnBack';
+import { useAppUpdateCheck } from '../src/hooks/useAppUpdateCheck';
+import ForceUpdateModal from '../src/features/core/components/ForceUpdateModal';
 import '../global.css';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
@@ -45,6 +48,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 export default function RootLayout() {
   const router = useRouter();
   const isThreeButtonMode = useSystemNavigationMode();
+  useExitOnBack();
+  const updateCheck = useAppUpdateCheck();
 
   useEffect(() => {
     registerUnauthorizedCallback(() => {
@@ -148,6 +153,13 @@ export default function RootLayout() {
             </Stack>
             <StatusBar hidden={isThreeButtonMode} style="light" translucent />
             <Toast config={toastConfig} />
+            <ForceUpdateModal
+              visible={updateCheck.showModal}
+              appVersion={updateCheck.appVersion}
+              requiredVersion={updateCheck.requiredVersion}
+              isForced={updateCheck.isForced}
+              onDismiss={updateCheck.onDismiss}
+            />
           </ThemeProvider>
         </Provider>
       </SafeAreaProvider>

@@ -1,4 +1,7 @@
-import { View, Text, Modal, TouchableOpacity, Linking, Platform } from 'react-native';
+import { useState } from 'react';
+import { View, Text, Modal, TouchableOpacity, Platform, ActivityIndicator, Linking } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
+import Constants from 'expo-constants';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
 
 interface ForceUpdateModalProps {
@@ -12,6 +15,9 @@ interface ForceUpdateModalProps {
 export default function ForceUpdateModal({ visible, appVersion, requiredVersion, isForced, onDismiss }: ForceUpdateModalProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const colors = {
     bg: isDark ? '#1f2937' : '#fff',
     text: isDark ? '#f9fafb' : '#111827',
@@ -25,12 +31,43 @@ export default function ForceUpdateModal({ visible, appVersion, requiredVersion,
     }
   };
 
-  const handleUpdate = () => {
-    const baseUrl = _getApiBaseUrl();
-    const apkUrl = `${baseUrl}/download/caps.apk`;
+  const handleUpdate = async () => {
+    if (downloading) return;
+    if (Platform.OS !== 'android') return;
 
-    if (Platform.OS === 'android') {
-      Linking.openURL(apkUrl);
+    setDownloading(true);
+    setProgress(0);
+    setError(null);
+
+    try {
+      const API_URL = Constants.expoConfig?.extra?.API_URL as string | undefined;
+      const baseUrl = (API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+      const apkUrl = `${baseUrl}/download/caps.apk`;
+      const fileUri = FileSystem.cacheDirectory + 'CAPS.apk';
+
+      const downloadResumable = FileSystem.createDownloadResumable(
+        apkUrl,
+        fileUri,
+        {},
+        (downloadProgress) => {
+          const p = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+          setProgress(p);
+        }
+      );
+
+      const result = await downloadResumable.downloadAsync();
+
+      if (!result?.uri) {
+        throw new Error('Download failed — no file received.');
+      }
+
+      const contentUri = await FileSystem.getContentUriAsync(result.uri!);
+      await Linking.openURL(contentUri);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Download failed';
+      setError(msg);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -86,13 +123,35 @@ export default function ForceUpdateModal({ visible, appVersion, requiredVersion,
             </View>
           )}
 
+          {downloading ? (
+            <View className="mb-3">
+              <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? '#374151' : '#e5e7eb' }}>
+                <View className="h-full rounded-full" style={{ width: `${progress * 100}%`, backgroundColor: colors.accent }} />
+              </View>
+              <Text className="text-xs text-center mt-2" style={{ color: colors.textSecondary }}>
+                Downloading... {Math.round(progress * 100)}%
+              </Text>
+            </View>
+          ) : error ? (
+            <View className="bg-red-50 border border-red-100 rounded-xl p-3 mb-3">
+              <Text className="text-xs text-center" style={{ color: '#991b1b' }}>
+                {error}
+              </Text>
+            </View>
+          ) : null}
+
           <TouchableOpacity
             className="py-3.5 rounded-xl items-center mb-3"
-            style={{ backgroundColor: colors.accent }}
+            style={{ backgroundColor: downloading ? colors.textSecondary : colors.accent }}
             onPress={handleUpdate}
+            disabled={downloading}
             activeOpacity={0.8}
           >
-            <Text className="text-white text-base font-semibold">Download & Install Update</Text>
+            {downloading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-white text-base font-semibold">Download & Install Update</Text>
+            )}
           </TouchableOpacity>
 
           {!isForced && (
@@ -110,13 +169,4 @@ export default function ForceUpdateModal({ visible, appVersion, requiredVersion,
       </View>
     </Modal>
   );
-}
-
-/** Resolves the server base URL from the Expo config extras */
-function _getApiBaseUrl(): string {
-  // Dynamic import to avoid top-level side effects
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const Constants = require('expo-constants');
-  const extra = Constants.expoConfig?.extra as Record<string, string> | undefined;
-  return (extra?.API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
 }
