@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StatusStandardization extends Model
 {
-    protected $table = 'status_standardizations';
+    protected $table = 'status_standardization';
 
     protected $fillable = [
         'normalized_name',
@@ -26,6 +26,6 @@ class StatusStandardization extends Model
      */
     public function variants(): HasMany
     {
-        return $this->hasMany(StatusVariant::class, 'status_normalization_id');
+        return $this->hasMany(StatusVariant::class, 'status_standardization_id');
     }
 }

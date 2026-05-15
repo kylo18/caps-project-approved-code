@@ -10,7 +10,7 @@ class StatusVariant extends Model
     protected $table = 'status_variants';
     
     protected $fillable = [
-        'status_normalization_id',
+        'status_standardization_id',
         'variant',
     ];
 
@@ -24,6 +24,6 @@ class StatusVariant extends Model
      */
     public function statusNormalization(): BelongsTo
     {
-        return $this->belongsTo(StatusStandardization::class);
+        return $this->belongsTo(StatusStandardization::class, 'status_standardization_id');
     }
 }

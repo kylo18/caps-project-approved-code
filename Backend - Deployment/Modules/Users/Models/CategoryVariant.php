@@ -10,7 +10,7 @@ class CategoryVariant extends Model
     protected $table = 'category_variants';
     
     protected $fillable = [
-        'category_normalization_id',
+        'category_standardization_id',
         'variant',
     ];
 
@@ -24,6 +24,6 @@ class CategoryVariant extends Model
      */
     public function categoryNormalization(): BelongsTo
     {
-        return $this->belongsTo(CategoryStandardization::class);
+        return $this->belongsTo(CategoryStandardization::class, 'category_standardization_id');
     }
 }

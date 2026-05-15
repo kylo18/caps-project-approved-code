@@ -40,11 +40,11 @@ class PracticeExamController extends Controller
             }
 
             // Fetch subject (must be assigned to the user's program or general subject)
-            $subject = Subject::where(function($query) use ($user, $subjectID) {
+            $subject = Subject::where(function ($query) use ($user, $subjectID) {
                 $query->where('subjectID', $subjectID)
-                    ->where(function($q) use ($user) {
+                    ->where(function ($q) use ($user) {
                         $q->where('programID', $user->programID)
-                          ->orWhere('programID', 6); // 6 is for general subjects
+                            ->orWhere('programID', 6); // 6 is for general subjects
                     });
             })->first();
 
@@ -67,15 +67,17 @@ class PracticeExamController extends Controller
             $difficulties = Difficulty::all()->pluck('id', 'name');
 
             // Fetch and group questions by difficulty
-            $questions = Question::with(['choices' => function($query) {
-                $query->orderBy('position', 'asc');
-            }])
+            $questions = Question::with([
+                'choices' => function ($query) {
+                    $query->orderBy('position', 'asc');
+                }
+            ])
                 ->where('subjectID', $subjectID)
                 ->where('purpose_id', 2) // Changed to 2 for practiceQuestions
-                ->whereHas('status', function($query) {
+                ->whereHas('status', function ($query) {
                     $query->where('name', '!=', 'pending');
                 })
-                ->when(!empty($settings->coverage), function($query) use ($settings) {
+                ->when(!empty($settings->coverage), function ($query) use ($settings) {
                     $coverage = strtolower(trim($settings->coverage));
                     if ($coverage === 'full') {
                         return $query->whereIn('coverage_id', [1, 2]); // 1 for midterm, 2 for finals
@@ -89,8 +91,8 @@ class PracticeExamController extends Controller
             Log::info('Questions retrieved:', ['count' => $questions->count()]);
 
             $grouped = [
-                $difficulties['easy'] => [], 
-                $difficulties['moderate'] => [], 
+                $difficulties['easy'] => [],
+                $difficulties['moderate'] => [],
                 $difficulties['hard'] => []
             ];
 
@@ -147,7 +149,7 @@ class PracticeExamController extends Controller
                         if ($regularChoices->where('isCorrect', false)->count() < 4) {
                             continue;
                         }
-                        
+
                         try {
                             // Take 4 incorrect regular choices
                             $finalRegularChoices = $regularChoices->where('isCorrect', false)
@@ -164,7 +166,7 @@ class PracticeExamController extends Controller
                             Log::error("Choice processing failed (Question ID: {$q->questionID}): " . $e->getMessage());
                             continue;
                         }
-                    } 
+                    }
                     // For questions where a regular choice is correct
                     else {
                         // Ensure one correct and at least three incorrect choices
@@ -316,16 +318,18 @@ class PracticeExamController extends Controller
             $difficulties = Difficulty::all()->pluck('id', 'name');
 
             // Fetch and group questions by difficulty
-            $questions = Question::with(['choices' => function($query) {
-                $query->orderBy('position', 'asc');
-            }])
+            $questions = Question::with([
+                'choices' => function ($query) {
+                    $query->orderBy('position', 'asc');
+                }
+            ])
                 ->where('subjectID', $subjectID)
                 ->where('purpose_id', 3) // Personal questions
                 ->where('createdBy', $teacherID)
-                ->whereHas('status', function($query) {
+                ->whereHas('status', function ($query) {
                     $query->where('name', '!=', 'pending');
                 })
-                ->when(!empty($settings->coverage), function($query) use ($settings) {
+                ->when(!empty($settings->coverage), function ($query) use ($settings) {
                     $coverage = strtolower(trim($settings->coverage));
                     if ($coverage === 'full') {
                         return $query->whereIn('coverage_id', [1, 2]);
@@ -530,12 +534,15 @@ class PracticeExamController extends Controller
             $difficulties = Difficulty::all()->pluck('id', 'name');
 
             // Build base query for questions
-            $questionQuery = Question::with(['choices' => function($query) {
-                $query->orderBy('position', 'asc');
-            }, 'user'])
+            $questionQuery = Question::with([
+                'choices' => function ($query) {
+                    $query->orderBy('position', 'asc');
+                },
+                'user'
+            ])
                 ->where('subjectID', $subjectID)
                 ->where('purpose_id', 2)
-                ->whereHas('status', function($query) {
+                ->whereHas('status', function ($query) {
                     $query->where('name', '!=', 'pending');
                 });
 
@@ -552,14 +559,14 @@ class PracticeExamController extends Controller
             // Role-based filtering
             switch ($user->roleID) {
                 case 5: // Associate Dean
-                    $questionQuery->whereHas('user', function($q) use ($user) {
+                    $questionQuery->whereHas('user', function ($q) use ($user) {
                         $q->where('campusID', $user->campusID);
                     });
                     break;
                 case 3: // Program Chair
-                    $questionQuery->whereHas('user', function($q) use ($user) {
+                    $questionQuery->whereHas('user', function ($q) use ($user) {
                         $q->where('campusID', $user->campusID)
-                          ->where('programID', $user->programID);
+                            ->where('programID', $user->programID);
                     });
                     break;
                 case 2: // Faculty
@@ -567,10 +574,10 @@ class PracticeExamController extends Controller
                     break;
                 case 1: // Student
                     // Only allow questions for their program or general (programID == user.programID or programID == 6)
-                    $questionQuery->whereHas('user', function($q) use ($user) {
-                        $q->where(function($subQ) use ($user) {
+                    $questionQuery->whereHas('user', function ($q) use ($user) {
+                        $q->where(function ($subQ) use ($user) {
                             $subQ->where('programID', $user->programID)
-                                 ->orWhere('programID', 6);
+                                ->orWhere('programID', 6);
                         });
                     });
                     break;
@@ -821,7 +828,7 @@ class PracticeExamController extends Controller
 
         // Update leaderboard with exam result
         Leaderboard::updateOrCreateRecord($user->userID, $validated['subjectID'], round($percentage, 2));
-        
+
         // Trigger real-time Redis leaderboard update
         event(new \App\Events\ExamResultUpdated(
             $user->userID,
@@ -831,6 +838,9 @@ class PracticeExamController extends Controller
             null,
             $user->programID
         ));
+
+        // Invalidate analytics filter cache
+        app(\App\Services\StudentAnalyticsFilteringService::class)->invalidateUserCache($user->userID);
 
         return response()->json([
             'message' => 'Exam submitted successfully.',
@@ -911,6 +921,9 @@ class PracticeExamController extends Controller
             'earnedPoints' => $earnedPoints,
             'percentage' => round($percentage, 2),
         ]);
+        
+        // Invalidate analytics filter cache
+        app(\App\Services\StudentAnalyticsFilteringService::class)->invalidateUserCache($user->id);
 
         return response()->json([
             'message' => 'Personal exam submitted successfully.',
@@ -1044,7 +1057,7 @@ class PracticeExamController extends Controller
                         ];
                     }),
                     'selectedChoiceID' => $answer->selected_choice_id,
-                    'selectedChoice' => $answer->selectedChoice ? (function($selectedChoice) {
+                    'selectedChoice' => $answer->selectedChoice ? (function ($selectedChoice) {
                         $selectedChoiceText = $selectedChoice->choiceText;
                         if ($selectedChoice->choiceText) {
                             try {

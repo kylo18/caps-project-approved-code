@@ -145,6 +145,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/student/analytics/insights', [StudentAnalyticsController::class, 'getInsights']);
         Route::get('/student/analytics/trends', [StudentAnalyticsController::class, 'getPerformanceTrends']);
         Route::get('/student/analytics/frequently-mistaken', [StudentAnalyticsController::class, 'getFrequentlyMistaken']);
+        Route::get('/v1/student/analytics', [StudentAnalyticsController::class, 'getFilteredAnalytics']);
     });
 
     // Notification Routes (All authenticated users)

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\StudentAnalyticsFilteringService;
 
 /**
  * Student Analytics Controller
@@ -36,11 +37,11 @@ class StudentAnalyticsController extends Controller
         try {
             // Get authenticated student (role 1 only)
             $user = Auth::user();
-            
+
             if ($user->roleID !== 1) {
                 return response()->json(['message' => 'Unauthorized. Student access only.'], 403);
             }
-            
+
             // Get exam statistics
             $examStats = DB::table('practice_exam_results')
                 ->where('userID', $user->userID)
@@ -51,7 +52,7 @@ class StudentAnalyticsController extends Controller
                     DB::raw('MIN(percentage) as lowest_score')
                 )
                 ->first();
-            
+
             // Get weakest subject (lowest average score) using actual answers
             try {
                 $weakestTopic = DB::table('practice_exam_answers')
@@ -122,7 +123,7 @@ class StudentAnalyticsController extends Controller
             $thresholds = [1, 5, 10, 20, 50, 100];
             $currentVal = 0;
             $nextTarget = 1;
-            
+
             foreach ($thresholds as $t) {
                 if ($totalExamsCount >= $t) {
                     $currentVal = $t;
@@ -131,21 +132,22 @@ class StudentAnalyticsController extends Controller
                     break;
                 }
             }
-            if ($totalExamsCount >= 100) $nextTarget = 100;
-            
+            if ($totalExamsCount >= 100)
+                $nextTarget = 100;
+
             $achievementProgress = [
                 'current' => $currentVal,
                 'next_target' => $nextTarget,
                 'label' => "$currentVal of $nextTarget milestones"
             ];
-            
+
             // Get recent trend (last 5 exams)
             $recentExams = DB::table('practice_exam_results')
                 ->where('userID', $user->userID)
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
                 ->get();
-            
+
             $trend = 'stable';
             if ($recentExams->count() >= 3) {
                 $firstHalf = $recentExams->slice(0, floor($recentExams->count() / 2))->avg('percentage');
@@ -156,7 +158,7 @@ class StudentAnalyticsController extends Controller
                     $trend = 'declining';
                 }
             }
-            
+
             return response()->json([
                 'message' => 'Student summary retrieved',
                 'data' => [
@@ -175,7 +177,7 @@ class StudentAnalyticsController extends Controller
                     'trend' => $trend
                 ]
             ], 200);
-            
+
         } catch (\Exception $e) {
             Log::error('Student summary error: ' . $e->getMessage());
             return response()->json(['message' => 'Error retrieving student summary', 'error' => $e->getMessage()], 500);
@@ -191,11 +193,11 @@ class StudentAnalyticsController extends Controller
     {
         try {
             $user = Auth::user();
-            
+
             if ($user->roleID !== 1) {
                 return response()->json(['message' => 'Unauthorized. Student access only.'], 403);
             }
-            
+
             // Strong subjects (score >= 80%)
             try {
                 $strongTopics = DB::table('practice_exam_answers')
@@ -211,7 +213,7 @@ class StudentAnalyticsController extends Controller
             } catch (\Exception $e) {
                 $strongTopics = collect([]);
             }
-            
+
             // Weak subjects (score < 60%)
             try {
                 $weakTopics = DB::table('practice_exam_answers')
@@ -227,7 +229,7 @@ class StudentAnalyticsController extends Controller
             } catch (\Exception $e) {
                 $weakTopics = collect([]);
             }
-            
+
             // Average time spent (Mapped to topic shape)
             // Check if content_analytics table exists
             try {
@@ -248,7 +250,7 @@ class StudentAnalyticsController extends Controller
                 // Table doesn't exist, return empty collection
                 $timeSpent = collect([]);
             }
-            
+
             // Get strongest subject (highest score, reused for summary + insights)
             $strongestSubject = null;
             if ($strongTopics->count() > 0) {
@@ -261,14 +263,14 @@ class StudentAnalyticsController extends Controller
                     'strongest_subject' => $strongestSubject,
                     'strong_topics' => $strongTopics,
                     'weak_topics' => $weakTopics,
-                    'time_spent_per_topic' => $timeSpent->map(function($item) {
+                    'time_spent_per_topic' => $timeSpent->map(function ($item) {
                         $item->avg_time_formatted = $this->formatTime($item->avg_time);
                         $item->total_time_formatted = $this->formatTime($item->total_time);
                         return $item;
                     })
                 ]
             ], 200);
-            
+
         } catch (\Exception $e) {
             Log::error('Student insights error: ' . $e->getMessage());
             return response()->json(['message' => 'Error retrieving insights', 'error' => $e->getMessage()], 500);
@@ -287,13 +289,13 @@ class StudentAnalyticsController extends Controller
     {
         try {
             $user = Auth::user();
-            
+
             if ($user->roleID !== 1) {
                 return response()->json(['message' => 'Unauthorized. Student access only.'], 403);
             }
-            
+
             $limit = $request->input('limit', 20);
-            
+
             // Get exam history with subject names - most recent first
             $trends = DB::table('practice_exam_results')
                 ->join('subjects', 'practice_exam_results.subjectID', '=', 'subjects.subjectID')
@@ -311,7 +313,7 @@ class StudentAnalyticsController extends Controller
                 ->orderBy('practice_exam_results.created_at', 'desc')
                 ->limit($limit)
                 ->get();
-            
+
             // Calculate moving average (last 5 exams)
             $movingAvg = [];
             $windowSize = 5;
@@ -323,13 +325,13 @@ class StudentAnalyticsController extends Controller
                     $movingAvg[] = round($window->avg('percentage'), 2);
                 }
             }
-            
+
             // Add moving average to response
             $trends = $trends->map(function ($item, $index) use ($movingAvg) {
                 $item->moving_average = $movingAvg[$index];
                 return $item;
             });
-            
+
             return response()->json([
                 'message' => 'Performance trends retrieved',
                 'data' => $trends,
@@ -340,7 +342,7 @@ class StudentAnalyticsController extends Controller
                     'lowest_score' => round($trends->min('percentage') ?? 0, 2)
                 ]
             ], 200);
-            
+
         } catch (\Exception $e) {
             Log::error('Performance trends error: ' . $e->getMessage());
             return response()->json(['message' => 'Error retrieving trends', 'error' => $e->getMessage()], 500);
@@ -520,6 +522,57 @@ class StudentAnalyticsController extends Controller
             $hours = floor($seconds / 3600);
             $minutes = floor(($seconds % 3600) / 60);
             return $hours . 'h ' . $minutes . 'm';
+        }
+    }
+
+    /**
+     * Get filtered student analytics data based on dynamic parameters.
+     * 
+     * @param Request $request
+     * @param StudentAnalyticsFilteringService $service
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getFilteredAnalytics(Request $request, StudentAnalyticsFilteringService $service)
+    {
+        try {
+            $user = Auth::user();
+            
+            if ($user->roleID !== 1) {
+                return response()->json(['message' => 'Unauthorized. Student access only.'], 403);
+            }
+
+            // Extract optional filters from request
+            $filters = $request->only([
+                'program_id',
+                'year_level',
+                'subject_id',
+                'assessment_type',
+                'date_from',
+                'date_to',
+                'performance_band'
+            ]);
+
+            // Call service to get aggregated/filtered data
+            $analyticsData = $service->getAnalytics($user->userID, $filters);
+
+            if (empty($analyticsData)) {
+                return response()->json([
+                    'message' => 'No records match the specified criteria.',
+                    'data' => null
+                ], 404);
+            }
+
+            return response()->json([
+                'message' => 'Student analytics retrieved successfully.',
+                'data' => $analyticsData
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Filtered Student Analytics Error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An error occurred while generating analytics.',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }

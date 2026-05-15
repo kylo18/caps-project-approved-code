@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CategoryStandardization extends Model
 {
-    protected $table = 'category_standardizations';
+    protected $table = 'category_standardization';
 
     protected $fillable = [
         'normalized_name',
@@ -26,6 +26,6 @@ class CategoryStandardization extends Model
      */
     public function variants(): HasMany
     {
-        return $this->hasMany(CategoryVariant::class, 'category_normalization_id');
+        return $this->hasMany(CategoryVariant::class, 'category_standardization_id');
     }
 }

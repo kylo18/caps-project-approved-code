@@ -58,7 +58,7 @@ class StudentQuizController extends Controller
         if (isset($data['answers']) && is_array($data['answers'])) {
             $normalized = [];
             foreach ($data['answers'] as $row) {
-                if (! is_array($row)) {
+                if (!is_array($row)) {
                     continue;
                 }
                 $qid = $row['personalQuizQuestionID'] ?? $row['personalQuizQuestionId'] ?? null;
@@ -508,9 +508,11 @@ class StudentQuizController extends Controller
 
             // Get questions
             $questions = PersonalQuizQuestion::where('personalQuizID', $quiz->personalQuizID)
-                ->with(['personalQuizChoices' => function($query) {
-                    $query->orderBy('position', 'asc');
-                }])
+                ->with([
+                    'personalQuizChoices' => function ($query) {
+                        $query->orderBy('position', 'asc');
+                    }
+                ])
                 ->get();
 
             if ($questions->isEmpty()) {
@@ -708,7 +710,7 @@ class StudentQuizController extends Controller
             }
 
             $quiz = $classQuizAssignment->personalQuiz;
-            if (! $quiz) {
+            if (!$quiz) {
                 return response()->json([
                     'success' => false,
                     'message' => 'This class quiz is not linked to a valid personal quiz.',
@@ -856,10 +858,13 @@ class StudentQuizController extends Controller
                 }
 
                 DB::commit();
+                
+                // Invalidate analytics filter cache
+                app(\App\Services\StudentAnalyticsFilteringService::class)->invalidateUserCache($user->userID);
 
                 // Calculate time taken in minutes
                 $timeTakenMinutes = null;
-                if ($result->time_taken_seconds) { 
+                if ($result->time_taken_seconds) {
                     $timeTakenMinutes = round($result->time_taken_seconds / 60, 2);
                 }
 
@@ -1007,9 +1012,9 @@ class StudentQuizController extends Controller
                     'attempt_number' => $result->attempt_number,
                     'time_taken_seconds' => $result->time_taken_seconds,
                     'time_taken_minutes' => $timeTakenMinutes,
-                    'time_taken_formatted' => $timeTakenMinutes ? 
-                        ($timeTakenMinutes >= 1 ? 
-                            round($timeTakenMinutes) . ' minute' . (round($timeTakenMinutes) != 1 ? 's' : '') : 
+                    'time_taken_formatted' => $timeTakenMinutes ?
+                        ($timeTakenMinutes >= 1 ?
+                            round($timeTakenMinutes) . ' minute' . (round($timeTakenMinutes) != 1 ? 's' : '') :
                             $result->time_taken_seconds . ' second' . ($result->time_taken_seconds != 1 ? 's' : '')
                         ) : null,
                     'started_at' => $result->started_at,
@@ -1103,7 +1108,7 @@ class StudentQuizController extends Controller
         int $classPersonalQuizId,
         PersonalQuiz $quiz
     ): void {
-        if (! Schema::hasTable('student_quiz_attempt_answers')) {
+        if (!Schema::hasTable('student_quiz_attempt_answers')) {
             Log::warning('student_quiz_attempt_answers table missing; per-question analytics skipped. Run: php artisan migrate', [
                 'student_quiz_result_id' => $result->id,
             ]);
@@ -1113,7 +1118,7 @@ class StudentQuizController extends Controller
 
         foreach ($correctAnswers as $row) {
             $pq = $questions->get($row['personalQuizQuestionID']);
-            if (! $pq) {
+            if (!$pq) {
                 continue;
             }
 
