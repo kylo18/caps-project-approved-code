@@ -43,6 +43,14 @@ class StudentAnalyticsFilteringService
     public function invalidateUserCache(int $studentId): void
     {
         try {
+            // Only attempt Redis cleanup if we are using the redis cache driver
+            if (config('cache.default') !== 'redis') {
+                // If using file/database, we can't easily wildcard clear, 
+                // but we can try to clear the default key if it's predictable.
+                // For now, we skip as wildcards are a Redis-specific optimization.
+                return;
+            }
+
             $redis = \Illuminate\Support\Facades\Redis::connection();
             $prefix = config('database.redis.options.prefix', '');
             
@@ -56,7 +64,8 @@ class StudentAnalyticsFilteringService
                 \Illuminate\Support\Facades\Redis::del($keysToDelete);
             }
         } catch (\Exception $e) {
-            Log::error('Cache invalidation failed: ' . $e->getMessage());
+            // Log warning but don't crash the request
+            Log::warning('Analytics cache invalidation skipped: ' . $e->getMessage());
         }
     }
 
