@@ -28,7 +28,7 @@ export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps)
   const auth = useSelector((state: any) => state.auth);
   const user = auth?.user;
   const roleId = user?.roleID ?? user?.roleId;
-  const isAdminRole = roleId === 4 || roleId === 5;
+  const canCreateAnnouncement = [2, 3, 4, 5].includes(Number(roleId));
 
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -218,17 +218,22 @@ export default function RoleProfileScreen({ roleLabel }: RoleProfileScreenProps)
             onPress={() => setShowEditProfile(true)}
           />
           <ActionRow
-            icon={isAdminRole ? 'megaphone-outline' : 'help-circle-outline'}
-            label={isAdminRole ? 'Create Announcement' : 'Help Center'}
-            description={isAdminRole ? 'Post a new system announcement' : 'Open guides and support resources'}
+            icon={canCreateAnnouncement ? 'megaphone-outline' : 'help-circle-outline'}
+            label={canCreateAnnouncement ? 'Create Announcement' : 'Help Center'}
+            description={canCreateAnnouncement ? 'Post a new system announcement' : 'Open guides and support resources'}
             color="#10B981"
             text={text}
             muted={muted}
             onPress={() => {
-              if (isAdminRole) {
-                const route = roleId === 4
-                  ? '/(auth)/(dean)/create-announcement'
-                  : '/(auth)/(associate-dean)/create-announcement';
+              if (canCreateAnnouncement) {
+                const route =
+                  Number(roleId) === 2
+                    ? '/(auth)/(faculty)/create-announcement'
+                    : Number(roleId) === 3
+                      ? '/(auth)/(program-chair)/create-announcement'
+                      : Number(roleId) === 4
+                        ? '/(auth)/(dean)/create-announcement'
+                        : '/(auth)/(associate-dean)/create-announcement';
                 router.push(route);
                 return;
               }

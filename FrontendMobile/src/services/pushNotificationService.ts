@@ -16,6 +16,7 @@ import { apiRequest } from './apiClient';
 
 const PUSH_TOKEN_STORAGE_KEY = 'pushToken';
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type ExpoNotificationsModule = typeof import('expo-notifications');
 type ExpoNotification = Awaited<
@@ -40,6 +41,31 @@ async function getNotificationsModule(): Promise<ExpoNotificationsModule | null>
   return import('expo-notifications');
 }
 
+function getExpoProjectId(): string {
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ||
+    Constants.easConfig?.projectId;
+
+  if (typeof projectId !== 'string' || !UUID_PATTERN.test(projectId)) {
+    throw new Error('Expo push setup is missing a valid EAS project UUID.');
+  }
+
+  return projectId;
+}
+
+async function ensureAndroidNotificationChannel(Notifications: ExpoNotificationsModule): Promise<void> {
+  if (Platform.OS !== 'android') {
+    return;
+  }
+
+  await Notifications.setNotificationChannelAsync('default', {
+    name: 'default',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#FE6902',
+  });
+}
+
 /**
  * Request notification permissions and return the Expo push token.
  */
@@ -52,6 +78,8 @@ export async function registerForPushNotificationsAsync(): Promise<PushTokenResu
   if (!Device.isDevice) {
     return { token: null, status: 'not-supported' };
   }
+
+  await ensureAndroidNotificationChannel(Notifications);
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
@@ -66,18 +94,8 @@ export async function registerForPushNotificationsAsync(): Promise<PushTokenResu
   }
 
   const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: Constants.expoConfig?.extra?.eas?.projectId,
+    projectId: getExpoProjectId(),
   });
-
-  // Android requires a notification channel
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FE6902',
-    });
-  }
 
   await SecureStore.setItemAsync(PUSH_TOKEN_STORAGE_KEY, tokenData.data);
 

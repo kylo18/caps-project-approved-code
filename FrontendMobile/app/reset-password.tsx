@@ -14,7 +14,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { showToast } from '../src/hooks/useToast';
 
 export default function ResetPasswordScreen() {
-  const { token } = useLocalSearchParams();
+  const { token, email } = useLocalSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -40,15 +40,25 @@ export default function ResetPasswordScreen() {
       return;
     }
 
+    const resetEmail = Array.isArray(email) ? email[0] : email;
+    const normalizedEmail = typeof resetEmail === 'string' ? resetEmail.trim().toLowerCase() : '';
+
+    if (!normalizedEmail) {
+      showToast('Reset link is missing the account email. Please request a new reset link.', 'error');
+      return;
+    }
+
     setIsLoading(true);
     try {
       await apiRequest('/api/reset-password', {
         method: 'POST',
         body: {
           token: token as string,
+          email: normalizedEmail,
           password,
           password_confirmation: confirmPassword,
         },
+        auth: false,
       });
 
       showToast('Password reset successful!', 'success');

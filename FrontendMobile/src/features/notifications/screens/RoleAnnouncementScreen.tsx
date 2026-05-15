@@ -29,7 +29,7 @@ export default function RoleAnnouncementScreen({ roleLabel }: RoleAnnouncementSc
   const isDark = theme === 'dark';
   const user = useSelector((state: any) => state.auth?.user);
   const roleId = user?.roleID ?? user?.roleId;
-  const canCreateAnnouncement = roleId === 4 || roleId === 5;
+  const canCreateAnnouncement = [2, 3, 4, 5].includes(Number(roleId));
 
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -132,7 +132,7 @@ export default function RoleAnnouncementScreen({ roleLabel }: RoleAnnouncementSc
             >
               <Text style={{ color: '#DC2626', fontSize: 14, fontWeight: '700' }}>Access Restricted</Text>
               <Text style={{ color: '#DC2626', fontSize: 13, marginTop: 4 }}>
-                Only Dean and Associate Dean accounts can submit announcements.
+                Only Faculty, Program Chair, Dean, and Associate Dean accounts can submit announcements.
               </Text>
             </View>
           ) : null}

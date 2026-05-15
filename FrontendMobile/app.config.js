@@ -1,8 +1,14 @@
+const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || "2994a893-8549-4bf1-bf1a-d665c49f1c2f";
+
+if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(EAS_PROJECT_ID)) {
+  throw new Error('EXPO_PUBLIC_EAS_PROJECT_ID must be the Expo EAS project UUID, not the Firebase project ID');
+}
+
 export default {
   expo: {
     name: "CAPS",
     slug: "caps-mobile",
-    version: "1.0.0",
+    version: "1.0.1",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
@@ -30,7 +36,9 @@ export default {
       predictiveBackGestureEnabled: false,
       permissions: [
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "POST_NOTIFICATIONS",
+        "VIBRATE"
       ]
     },
     web: {
@@ -55,7 +63,7 @@ export default {
     ],
     extra: {
       eas: {
-        projectId: "caps-83e76"
+        projectId: EAS_PROJECT_ID
       },
       API_URL: process.env.EXPO_PUBLIC_API_URL,
       AI_SERVICE_URL: process.env.EXPO_PUBLIC_AI_SERVICE_URL,
