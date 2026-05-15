@@ -197,13 +197,21 @@ class FeedbackController
         }
 
         try {
+            /*
             // Step 1: Get all class IDs that belong to this faculty
             $classIds = \Modules\PersonalClasses\Models\ClassModel::where('facultyID', $facultyId)
                 ->pluck('classID');
 
             // Step 2: Get feedback linked specifically to those classes
             $query = UserFeedback::with(['user', 'class'])
-                ->whereIn('class_id', $classIds);
+                ->whereIn('class_id', $classIds);   */
+
+            // Get student IDs enrolled under this faculty
+            $studentIds = \Modules\Users\Models\StudentTeacherEnrollment::where('teacher_id', $facultyId)
+                ->pluck('student_id');
+
+            $query = UserFeedback::with('user')
+                ->whereIn('user_id', $studentIds);
 
             if ($request->has('status')) {
                 $normalizedStatus = FeedbackStandardizationService::normalizeStatus($request->status);
@@ -221,7 +229,8 @@ class FeedbackController
                 'success' => true,
                 'feedback' => $feedback,
                 'faculty_id' => $facultyId,
-                'class_count' => $classIds->count(),
+                //'class_count' => $classIds->count(),
+                'class_count' => $studentIds->count(),
             ]);
         } catch (\Exception $e) {
             return response()->json([

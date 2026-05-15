@@ -947,21 +947,54 @@ class PracticeExamController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        $history = PracticeExamResult::with('subject')
+        // Get student record (student_quiz_results uses students.id, not userID)
+        $student = \Modules\Users\Models\Student::where('userCode', $user->userCode)->first();
+
+        // Practice exam history
+        $practiceHistory = PracticeExamResult::with('subject')
             ->where('userID', $user->userID)
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($record) {
                 return [
-                    'resultID' => $record->resultID,
-                    'subjectID' => $record->subjectID,
+                    'resultID'    => $record->resultID,
+                    'subjectID'   => $record->subjectID,
                     'subjectName' => $record->subject->subjectName ?? 'Unknown Subject',
                     'totalPoints' => $record->totalPoints,
-                    'earnedPoints' => $record->earnedPoints,
-                    'percentage' => $record->percentage,
-                    'created_at' => $record->created_at,
+                    'earnedPoints'=> $record->earnedPoints,
+                    'percentage'  => $record->percentage,
+                    'type'        => 'practice',
+                    'created_at'  => $record->created_at,
                 ];
             });
+
+        // Quiz history (only if student record exists)
+        $quizHistory = collect();
+        if ($student) {
+            $quizHistory = \Modules\PersonalExams\Models\StudentQuizResult::with([
+                    'classQuizAssignment.personalQuiz'
+                ])
+                ->where('studentID', $student->id)
+                ->orderBy('submitted_at', 'desc')
+                ->get()
+                ->map(function ($record) {
+                    return [
+                        'resultID'    => 'quiz_' . $record->id,
+                        'subjectID'   => null,
+                        'subjectName' => $record->classQuizAssignment->personalQuiz->title ?? 'Quiz',
+                        'totalPoints' => $record->total_score,
+                        'earnedPoints'=> $record->score,
+                        'percentage'  => $record->percentage,
+                        'type'        => 'quiz',
+                        'created_at'  => $record->submitted_at ?? $record->created_at,
+                    ];
+                });
+        }
+
+        // Merge and sort by date descending
+        $history = $practiceHistory->concat($quizHistory)
+            ->sortByDesc('created_at')
+            ->values();
 
         return response()->json([
             'message' => 'History retrieved successfully.',

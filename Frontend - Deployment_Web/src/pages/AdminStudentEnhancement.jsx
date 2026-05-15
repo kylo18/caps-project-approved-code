@@ -7,7 +7,6 @@ const TICK_COLOR = "#9ca3af";
 const ALL_PROGRAMS = ["BSCpE", "CE", "ECE", "EE"];
 
 const PROGRAM_ID_MAP = { 1: "BSCpE", 2: "EE", 3: "CE", 4: "ECE", 5: "EE" };
-//const PROGRAM_ID_MAP = { 1: "BSCpE", 2: "EE", 3: "CE", 4: "ECE" };
 
 const PROGRAM_COLORS = {
   BSCpE: { bg: "#fff0e0", fg: "#c45e10", accent: "#f57c20" },
@@ -102,7 +101,7 @@ const KpiCard = ({ label, val, color, icon, sub }) => (
   </div>
 );
 
-// ── Program Stats Card (for Dean overview) ────────────────────────────────────
+// ── Program Stats Card ────────────────────────────────────────────────────────
 const ProgramStatsCard = ({ program, students, onClick }) => {
   const c = PROGRAM_COLORS[program] || { bg: "#f0f0f0", fg: "#555", accent: "#555" };
   const scoreValues = students.map((s) => Number(s.score ?? s.average_score ?? 0));
@@ -115,10 +114,8 @@ const ProgramStatsCard = ({ program, students, onClick }) => {
   const status = avg != null ? getStatus(avg) : null;
 
   return (
-    <div
-      onClick={onClick}
-      className="bg-white border border-gray-100 rounded-2xl p-5 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all group"
-    >
+    <div onClick={onClick}
+      className="bg-white border border-gray-100 rounded-2xl p-5 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all group">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl flex items-center justify-center font-bold text-[13px]"
@@ -132,7 +129,6 @@ const ProgramStatsCard = ({ program, students, onClick }) => {
         </div>
         {status && <StatusBadge status={status} />}
       </div>
-
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-gray-50 rounded-xl p-3">
           <p className="text-[11px] text-gray-400 mb-1">Avg. Score</p>
@@ -151,9 +147,7 @@ const ProgramStatsCard = ({ program, students, onClick }) => {
           )}
         </div>
       </div>
-
       {passRate != null && <PassRateBar value={passRate} />}
-
       <div className="mt-3 flex items-center justify-end">
         <span className="text-[12px] font-medium text-orange-500 group-hover:text-orange-600 flex items-center gap-1">
           View students <i className="bx bx-chevron-right text-[16px]"></i>
@@ -262,7 +256,6 @@ const StudentDetail = ({ student, studentIndex, onBack }) => {
 const StudentList = ({ students, programLabel, onBack }) => {
   const [search, setSearch] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
-  //console.log("first student:", students[0]);
 
   const filtered = students.filter((s) => {
     const name = `${s.firstName || ""} ${s.lastName || ""}`.trim().toLowerCase();
@@ -287,7 +280,6 @@ const StudentList = ({ students, programLabel, onBack }) => {
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-      {/* Header */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
         {onBack && (
           <button onClick={onBack}
@@ -309,7 +301,6 @@ const StudentList = ({ students, programLabel, onBack }) => {
         </div>
       </div>
 
-      {/* Table desktop */}
       {filtered.length === 0 ? (
         <div className="py-16 text-center text-[13px] text-gray-400">
           <i className="bx bx-user-x text-[36px] mb-2 block"></i>
@@ -355,7 +346,6 @@ const StudentList = ({ students, programLabel, onBack }) => {
             </table>
           </div>
 
-          {/* Mobile cards */}
           <div className="flex flex-col divide-y divide-gray-50 sm:hidden">
             {filtered.map((s) => {
               const av = AVATAR_PALETTE[students.indexOf(s) % AVATAR_PALETTE.length];
@@ -456,32 +446,15 @@ const ChartsSection = ({ passFailData, improvementData, studentProgressData }) =
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex flex-col items-center">
         <p className="text-[15px] font-bold text-gray-800 mb-4">Pass vs Fail</p>
-        {/* SVG Semicircle Gauge */}
         <div className="relative" style={{ width: 200, height: 110 }}>
           <svg width="200" height="110" viewBox="0 0 200 110">
-            {/* Background track */}
-            <path
-              d="M 20 100 A 80 80 0 0 1 180 100"
-              fill="none" stroke="#f0f0f0" strokeWidth="14" strokeLinecap="round"
-            />
-            {/* Failed arc (red) - full background first */}
-            <path
-              d="M 20 100 A 80 80 0 0 1 180 100"
-              fill="none" stroke="#a32d2d" strokeWidth="14" strokeLinecap="round"
-            />
-            {/* Passed arc (green) - proportional fill */}
+            <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#f0f0f0" strokeWidth="14" strokeLinecap="round" />
+            <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#a32d2d" strokeWidth="14" strokeLinecap="round" />
             {totalResults > 0 && (
-              <path
-                d="M 20 100 A 80 80 0 0 1 180 100"
-                fill="none"
-                stroke="#0f6e56"
-                strokeWidth="14"
-                strokeLinecap="round"
-                strokeDasharray={`${(passed / totalResults) * 251.2} 251.2`}
-              />
+              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#0f6e56" strokeWidth="14" strokeLinecap="round"
+                strokeDasharray={`${(passed / totalResults) * 251.2} 251.2`} />
             )}
           </svg>
-          {/* Center text */}
           <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
             <span className="text-[32px] font-bold leading-none" style={{ color: "#0f6e56" }}>
               {totalResults > 0 ? Math.round((passed / totalResults) * 100) : 0}
@@ -489,8 +462,6 @@ const ChartsSection = ({ passFailData, improvementData, studentProgressData }) =
             </span>
           </div>
         </div>
-
-        {/* Stats below */}
         <div className="flex items-center justify-between w-full mt-4 px-4">
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-1.5">
@@ -519,11 +490,403 @@ const ChartsSection = ({ passFailData, improvementData, studentProgressData }) =
   );
 };
 
+// ── Faculty: Class Card with analytics ───────────────────────────────────────
+const FacultyClassCard = ({ cls, summary, onClick }) => {
+  const classId   = cls.classID ?? cls.id;
+  const name      = cls.name ?? cls.className ?? "Unnamed Class";
+  const subject   = cls.subject?.subjectName ?? cls.subjectName ?? "";
+  const semester  = cls.semester ?? "";
+
+  // Pull from /analytics/faculty/summary/{classId} response
+  const totalStudents = summary?.total_students  ?? cls.enrollments_count ?? cls.students?.length ?? 0;
+  const avgScore      = summary?.average_score   != null ? Number(summary.average_score).toFixed(1)  : null;
+  const passRate      = summary?.pass_rate       != null ? Math.round(Number(summary.pass_rate))     : null;
+  const status        = avgScore != null ? getStatus(Number(avgScore)) : null;
+
+  return (
+    <div onClick={onClick}
+      className="bg-white border border-gray-100 rounded-2xl p-5 cursor-pointer hover:shadow-md hover:border-orange-200 transition-all group">
+
+      {/* Header */}
+      <div className="flex items-start gap-3 mb-4">
+        <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: "#fff0e0" }}>
+          <i className="bx bx-book-open text-[20px]" style={{ color: ORANGE }}></i>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-bold text-gray-800 leading-tight truncate">{name}</p>
+          {subject && <p className="text-[12px] text-gray-400 mt-0.5 truncate">{subject}</p>}
+          {semester && (
+            <div className="flex items-center gap-1 mt-1">
+              <i className="bx bx-calendar text-[12px] text-orange-300"></i>
+              <span className="text-[11px] text-gray-400">{semester}</span>
+            </div>
+          )}
+        </div>
+        {status && <StatusBadge status={status} />}
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+          <p className="text-[11px] text-gray-400 mb-0.5">Students</p>
+          <p className="text-[16px] font-bold text-gray-700">{totalStudents}</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+          <p className="text-[11px] text-gray-400 mb-0.5">Avg Score</p>
+          {avgScore != null
+            ? <p className="text-[16px] font-bold" style={{ color: ORANGE }}>{avgScore}%</p>
+            : <p className="text-[13px] text-gray-300">—</p>}
+        </div>
+        <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+          <p className="text-[11px] text-gray-400 mb-0.5">Pass Rate</p>
+          {passRate != null
+            ? <p className="text-[16px] font-bold" style={{ color: passRate >= 75 ? "#0f6e56" : "#a32d2d" }}>{passRate}%</p>
+            : <p className="text-[13px] text-gray-300">—</p>}
+        </div>
+      </div>
+
+      {passRate != null && <PassRateBar value={passRate} />}
+
+      <div className="mt-3 flex items-center justify-end">
+        <span className="text-[12px] font-medium text-orange-500 group-hover:text-orange-600 flex items-center gap-1">
+          View students <i className="bx bx-chevron-right text-[16px]"></i>
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// ── Faculty: Class Detail (students + analytics for one class) ────────────────
+const FacultyClassDetail = ({ cls, summary, students, onBack }) => {
+  const name     = cls.name ?? cls.className ?? "Class";
+  const subject  = cls.subject?.subjectName ?? cls.subjectName ?? "";
+
+  const totalStudents = summary?.total_students ?? students.length;
+  const avgScore      = summary?.average_score  != null ? Number(summary.average_score).toFixed(1) : "0.0";
+  const passRate      = summary?.pass_rate      != null ? Math.round(Number(summary.pass_rate))    : 0;
+  const passed        = summary?.passed         ?? 0;
+  const failed        = summary?.failed         ?? 0;
+  const exc           = summary?.breakdown?.excellent         ?? 0;
+  const good          = summary?.breakdown?.good              ?? 0;
+  const ni            = summary?.breakdown?.needs_improvement ?? 0;
+  const poor          = summary?.breakdown?.poor              ?? 0;
+  const totalBd       = totalStudents || 1;
+
+  return (
+    <div className="space-y-4">
+      {/* Back + class banner */}
+      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+        <button onClick={onBack}
+          className="mb-4 flex items-center gap-1.5 text-[13px] px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-400 hover:text-orange-500 transition-colors">
+          <i className="bx bx-arrow-back text-[15px]"></i> Back to My Classes
+        </button>
+
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "#fff0e0" }}>
+            <i className="bx bx-book-open text-[24px]" style={{ color: ORANGE }}></i>
+          </div>
+          <div className="flex-1">
+            <p className="text-[20px] font-bold text-gray-800">{name}</p>
+            {subject && <p className="text-[13px] text-gray-400">{subject}</p>}
+          </div>
+          <div className="flex items-center gap-6 flex-wrap">
+            <div className="text-center">
+              <p className="text-[22px] font-bold" style={{ color: ORANGE }}>{avgScore}%</p>
+              <p className="text-[11px] text-gray-400">Avg Score</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[22px] font-bold" style={{ color: passRate >= 75 ? "#0f6e56" : "#a32d2d" }}>{passRate}%</p>
+              <p className="text-[11px] text-gray-400">Pass Rate</p>
+            </div>
+            <StatusBadge status={getStatus(Number(avgScore))} />
+          </div>
+        </div>
+      </div>
+
+      {/* Pass vs Fail + Score Breakdown side-by-side */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Pass vs Fail gauge */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex flex-col items-center">
+          <p className="text-[15px] font-bold text-gray-800 mb-4">Pass vs Fail</p>
+          <div className="relative" style={{ width: 200, height: 110 }}>
+            <svg width="200" height="110" viewBox="0 0 200 110">
+              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#f0f0f0" strokeWidth="14" strokeLinecap="round" />
+              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#a32d2d" strokeWidth="14" strokeLinecap="round" />
+              {totalStudents > 0 && (
+                <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#0f6e56" strokeWidth="14" strokeLinecap="round"
+                  strokeDasharray={`${(passed / (passed + failed || 1)) * 251.2} 251.2`} />
+              )}
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
+              <span className="text-[32px] font-bold leading-none" style={{ color: "#0f6e56" }}>
+                {passRate}<span className="text-[18px]">%</span>
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between w-full mt-4 px-4">
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#0f6e56]"></div>
+                <span className="text-[22px] font-bold text-gray-800">{passed}</span>
+              </div>
+              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Passed</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#a32d2d]"></div>
+                <span className="text-[22px] font-bold text-gray-800">{failed}</span>
+              </div>
+              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Failed</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Score breakdown */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <p className="text-[13px] font-semibold text-gray-700 mb-4">Score Breakdown</p>
+          <div className="space-y-3">
+            {[
+              { label: "Excellent (≥ 80%)",         val: exc,  color: "#c45e10" },
+              { label: "Good (60–79%)",              val: good, color: "#0f6e56" },
+              { label: "Needs improvement (40–59%)", val: ni,   color: "#854f0b" },
+              { label: "Poor (< 40%)",               val: poor, color: "#a32d2d" },
+            ].map((r) => {
+              const pct = Math.round((r.val / totalBd) * 100);
+              return (
+                <div key={r.label} className="flex items-center gap-3">
+                  <div className="w-44 text-[12px] text-gray-500 flex-shrink-0">{r.label}</div>
+                  <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: r.color }} />
+                  </div>
+                  <div className="text-[12px] font-semibold w-16 text-right" style={{ color: r.color }}>
+                    {r.val} <span className="text-gray-400 font-normal">({pct}%)</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Student list for this class */}
+      <StudentList
+        students={students}
+        programLabel={name}
+        onBack={null}
+      />
+    </div>
+  );
+};
+
+// ── Faculty View (orchestrator) ───────────────────────────────────────────────
+const FacultyView = ({ apiUrl, currentUser }) => {
+  const [loading, setLoading]               = useState(true);
+  const [classes, setClasses]               = useState([]);
+  const [classSummaries, setClassSummaries] = useState({});
+  const [classStudents, setClassStudents]   = useState({}); // { classId: [students] }
+  const [view, setView]                     = useState("classes");
+
+  const facultyId = currentUser?.userID ?? currentUser?.id ?? null;
+
+  useEffect(() => {
+    if (!facultyId) return;
+    const fetchAll = async () => {
+      setLoading(true);
+      try {
+        const token   = sessionStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+        const base    = apiUrl?.replace(/\/$/, "") ?? "";
+
+        // 1. Get faculty's classes
+        const classRes = await fetch(`${base}/classes/index`, { headers });
+        let classList = [];
+        if (classRes.ok) {
+          const j = await classRes.json();
+          //classList = Array.isArray(j) ? j : Array.isArray(j.data) ? j.data : [];
+          classList = Array.isArray(j) ? j : Array.isArray(j.classes) ? j.classes : Array.isArray(j.data) ? j.data : [];
+          setClasses(classList);
+        }
+
+        // 2. For each class, fetch students + analytics summary in parallel
+        if (classList.length > 0) {
+          const perClassResults = await Promise.all(
+            classList.map(async (cls) => {
+              const cid = cls.classID ?? cls.id;
+              const [studRes, summaryRes] = await Promise.all([
+                fetch(`${base}/classes/${cid}/students`, { headers }),
+                fetch(`${base}/analytics/faculty/summary/${cid}`, { headers }),
+              ]);
+
+              let students = [];
+              if (studRes.ok) {
+                const j = await studRes.json();
+                students = Array.isArray(j.students) ? j.students
+                  : Array.isArray(j.data) ? j.data
+                  : [];
+              }
+
+              let summary = null;
+              if (summaryRes.ok) {
+                const j = await summaryRes.json();
+                summary = j.data ?? j ?? null;
+              }
+
+              return { cid, students, summary };
+            })
+          );
+
+          const studentsMap = {};
+          const summaryMap  = {};
+          perClassResults.forEach(({ cid, students, summary }) => {
+            studentsMap[cid] = students;
+            summaryMap[cid]  = summary;
+          });
+          setClassStudents(studentsMap);
+          setClassSummaries(summaryMap);
+        }
+      } catch (e) {
+        console.error("Faculty fetch error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
+  }, [apiUrl, facultyId]);
+
+  // ── Derived ──
+  const selectedClassId = view.startsWith("class:") ? Number(view.replace("class:", "")) : null;
+  const selectedClass   = selectedClassId != null ? classes.find((c) => (c.classID ?? c.id) === selectedClassId) : null;
+  const selectedSummary = selectedClassId != null ? (classSummaries[selectedClassId] ?? null) : null;
+  const selectedStudents = selectedClassId != null ? (classStudents[selectedClassId] ?? []) : [];
+
+  // All students (flattened, deduplicated by studentID)
+  const allStudents = Object.values(classStudents).flat().reduce((acc, s) => {
+    if (!acc.find((x) => x.studentID === s.studentID)) acc.push(s);
+    return acc;
+  }, []);
+
+  // Overall KPIs computed from class summaries
+  const summaryValues  = Object.values(classSummaries).filter(Boolean);
+  const overallAvg     = summaryValues.length
+    ? (summaryValues.reduce((a, s) => a + Number(s.average_score ?? 0), 0) / summaryValues.length).toFixed(1)
+    : "0.0";
+  const overallPass    = summaryValues.length
+    ? Math.round(summaryValues.reduce((a, s) => a + Number(s.pass_rate ?? 0), 0) / summaryValues.length)
+    : 0;
+  const totalStudents  = allStudents.length;
+  const needSupportCount = summaryValues.reduce((a, s) =>
+    a + ((s.breakdown?.needs_improvement ?? 0) + (s.breakdown?.poor ?? 0)), 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <span className="loader" />
+      </div>
+    );
+  }
+
+  // ── Class detail view ──
+  if (view.startsWith("class:") && selectedClass) {
+    return (
+      <FacultyClassDetail
+        cls={selectedClass}
+        summary={selectedSummary}
+        students={selectedStudents}
+        onBack={() => setView("classes")}
+      />
+    );
+  }
+
+  // ── All students view ──
+  if (view === "all-students") {
+    return (
+      <StudentList
+        students={allStudents.map((s) => ({
+          ...s,
+          userID: s.studentID,
+          firstName: s.firstName,
+          lastName: s.lastName,
+        }))}
+        programLabel="All My Students"
+        onBack={() => setView("classes")}
+      />
+    );
+  }
+
+  // ── Classes overview ──
+  return (
+    <div className="space-y-5">
+      {/* Overall KPI strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KpiCard label="My Classes"     val={classes.length}    color={ORANGE}    icon="bx-book"         />
+        <KpiCard label="Total Students" val={totalStudents}      color="#534ab7"   icon="bx-group"        />
+        <KpiCard label="Avg. Score"     val={`${overallAvg}%`}  color="#555"      icon="bx-discount"     />
+        <KpiCard label="Pass Rate"      val={`${overallPass}%`} color="#0f6e56"   icon="bx-check-circle" />
+      </div>
+
+      {/* View all students shortcut */}
+      {totalStudents > 0 && (
+        <div onClick={() => setView("all-students")}
+          className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-2xl px-5 py-3 cursor-pointer hover:bg-orange-100 transition-colors">
+          <div className="flex items-center gap-3">
+            <i className="bx bx-group text-[22px] text-orange-500"></i>
+            <div>
+              <p className="text-[14px] font-semibold text-orange-700">View All My Students</p>
+              <p className="text-[12px] text-orange-400">{totalStudents} students across all classes</p>
+            </div>
+          </div>
+          <i className="bx bx-chevron-right text-[22px] text-orange-400"></i>
+        </div>
+      )}
+
+      {/* Needs support alert */}
+      {needSupportCount > 0 && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-2xl px-5 py-3">
+          <i className="bx bx-error-circle text-[22px] text-red-400"></i>
+          <div>
+            <p className="text-[13px] font-semibold text-red-700">
+              {needSupportCount} student{needSupportCount !== 1 ? "s" : ""} may need support
+            </p>
+            <p className="text-[12px] text-red-400">Scoring below passing threshold across your classes</p>
+          </div>
+        </div>
+      )}
+
+      {/* Classes grid */}
+      <div>
+        <p className="text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-3">My Classes</p>
+        {classes.length === 0 ? (
+          <div className="bg-white border border-gray-100 rounded-2xl p-10 text-center text-gray-400 shadow-sm">
+            <i className="bx bx-book-open text-[36px] mb-2 block"></i>
+            <p className="text-[13px]">No classes found.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {classes.map((cls) => {
+              const cid = cls.classID ?? cls.id;
+              return (
+                <FacultyClassCard
+                  key={cid}
+                  cls={cls}
+                  summary={classSummaries[cid] ?? null}
+                  onClick={() => setView(`class:${cid}`)}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 const AdminStudentEnhancement = () => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState("overview"); // "overview" | "program:{name}" | "students:{name}"
+  const [view, setView] = useState("overview");
 
   const [summaryData, setSummaryData] = useState(null);
   const [passFailData, setPassFailData] = useState(null);
@@ -536,25 +899,22 @@ const AdminStudentEnhancement = () => {
   useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem("user") || "{}");
     setCurrentUser(user);
-    //console.log("currentUser full:", JSON.stringify(user, null, 2));
   }, []);
-
-  
 
   const currentRoleId = Number(currentUser?.roleID ?? currentUser?.roleId ?? 0);
   const isDeanOrAssocDean = [4, 5].includes(currentRoleId);
   const isProgramChair = currentRoleId === 3;
+  const isFaculty = currentRoleId === 2; // ← NEW
+
   const currentProgramId = Number(currentUser?.programID ?? currentUser?.program?.programID ?? 0);
   const myProgram = PROGRAM_ID_MAP[currentProgramId] ?? null;
 
-  // Students visible to this user
   const visibleStudents = isDeanOrAssocDean
     ? students
     : isProgramChair
       ? students.filter((s) => Number(s.programID ?? s.program?.programID ?? 0) === currentProgramId)
       : students;
 
-  // Programs visible to this user
   const visiblePrograms = isDeanOrAssocDean
     ? ALL_PROGRAMS
     : isProgramChair && myProgram
@@ -562,6 +922,9 @@ const AdminStudentEnhancement = () => {
       : ALL_PROGRAMS;
 
   useEffect(() => {
+    // Faculty has its own data fetching inside FacultyView — skip admin endpoints
+    if (isFaculty) { setLoading(false); return; }
+
     const fetchAll = async () => {
       setLoading(true);
       try {
@@ -595,9 +958,8 @@ const AdminStudentEnhancement = () => {
       }
     };
     fetchAll();
-  }, [apiUrl]);
+  }, [apiUrl, isFaculty]);
 
-  // KPI values
   const total = isProgramChair ? visibleStudents.length : (studentCount || students.length);
   const passRate = passFailData ? Math.round(passFailData.pass_rate) : 0;
   const avgScore = summaryData?.average_score != null ? Number(summaryData.average_score).toFixed(1) : "0.0";
@@ -612,7 +974,6 @@ const AdminStudentEnhancement = () => {
   const poor = passFailData?.breakdown?.poor ?? 0;
   const totalForBreakdown = summaryData?.total_students ?? visibleStudents.length;
 
-  // Parse view state
   const viewingProgramStudents = view.startsWith("students:");
   const viewingProgramName = viewingProgramStudents ? view.replace("students:", "") : null;
   const studentsForProgram = viewingProgramName
@@ -623,7 +984,9 @@ const AdminStudentEnhancement = () => {
     ? (currentRoleId === 4 ? "Dean" : "Associate Dean")
     : isProgramChair
       ? `Program Chair — ${myProgram || ""}`
-      : "";
+      : isFaculty
+        ? "Faculty"
+        : "";
 
   return (
     <div className="outfit-400 p-3 sm:p-5 min-h-screen pt-16 sm:pt-5 pb-28 sm:pb-6 bg-gray-50/50">
@@ -633,7 +996,7 @@ const AdminStudentEnhancement = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-[18px] sm:text-[22px] font-bold text-gray-800">
-              {isProgramChair && myProgram ? "" : "Student Enhancement Analytics"}
+              {isFaculty ? "My Students" : isProgramChair && myProgram ? "" : "Student Enhancement Analytics"}
             </h1>
             {roleLabel && (
               <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[20px] font-semibold text-orange-600">
@@ -642,29 +1005,40 @@ const AdminStudentEnhancement = () => {
             )}
           </div>
           <p className="text-[13px] text-gray-400">
-            {isProgramChair
-              ? `Showing performance data for your program`
-              : "Overall student performance across all programs"}
+            {isFaculty
+              ? "Students enrolled in your classes"
+              : isProgramChair
+                ? "Showing performance data for your program"
+                : "Overall student performance across all programs"}
           </p>
         </div>
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border ${
-          trendLabel === "improving" ? "bg-green-50 text-green-600 border-green-200"
-          : trendLabel === "declining" ? "bg-red-50 text-red-500 border-red-200"
-          : "bg-gray-50 text-gray-500 border-gray-200"
-        }`}>
-          <i className={`bx ${trendLabel === "improving" ? "bx-trending-up" : trendLabel === "declining" ? "bx-trending-down" : "bx-minus"} text-[14px]`}></i>
-          {trendLabel.charAt(0).toUpperCase() + trendLabel.slice(1)}
-        </div>
+
+        {/* Trend badge — not shown for faculty since they have their own KPIs */}
+        {!isFaculty && (
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border ${
+            trendLabel === "improving" ? "bg-green-50 text-green-600 border-green-200"
+            : trendLabel === "declining" ? "bg-red-50 text-red-500 border-red-200"
+            : "bg-gray-50 text-gray-500 border-gray-200"
+          }`}>
+            <i className={`bx ${trendLabel === "improving" ? "bx-trending-up" : trendLabel === "declining" ? "bx-trending-down" : "bx-minus"} text-[14px]`}></i>
+            {trendLabel.charAt(0).toUpperCase() + trendLabel.slice(1)}
+          </div>
+        )}
       </div>
 
-      {/* ── Loading ── */}
-      {loading && (
+      {/* ── FACULTY VIEW ── */}
+      {isFaculty && (
+        <FacultyView apiUrl={apiUrl} currentUser={currentUser} />
+      )}
+
+      {/* ── Loading (non-faculty) ── */}
+      {!isFaculty && loading && (
         <div className="flex items-center justify-center py-32">
           <span className="loader" />
         </div>
       )}
 
-      {!loading && (
+      {!isFaculty && !loading && (
         <>
           {/* ── KPI Cards ── */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
@@ -676,10 +1050,9 @@ const AdminStudentEnhancement = () => {
             <KpiCard label="Improvement" val={`${Number(improvement) > 0 ? "+" : ""}${improvement}%`} color="#534ab7" icon="bx-trending-up" />
           </div>
 
-          {/* ── PROGRAM CHAIR VIEW: single program ── */}
+          {/* ── PROGRAM CHAIR VIEW ── */}
           {isProgramChair && myProgram && (
             <div className="space-y-4">
-              {/* Program banner */}
               <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
                 <div className="flex items-center gap-4 flex-wrap">
                   {(() => {
@@ -710,11 +1083,7 @@ const AdminStudentEnhancement = () => {
                   })()}
                 </div>
               </div>
-
-              {/* Charts */}
               <ChartsSection passFailData={passFailData} improvementData={improvementData} studentProgressData={studentProgressData} />
-
-              {/* Score breakdown */}
               <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
                 <p className="text-[13px] font-semibold text-gray-700 mb-4">Score Breakdown</p>
                 <div className="space-y-3">
@@ -739,60 +1108,47 @@ const AdminStudentEnhancement = () => {
                   })}
                 </div>
               </div>
-
-              {/* Student list */}
               <StudentList students={visibleStudents} programLabel={myProgram} onBack={null} />
-              
             </div>
           )}
 
           {/* ── DEAN / ASSOC DEAN VIEW ── */}
           {isDeanOrAssocDean && (
             <>
-              {/* Showing student list for a specific program */}
               {viewingProgramStudents && (
                 <StudentList
                   students={studentsForProgram}
                   programLabel={viewingProgramName}
                   onBack={() => setView("overview")}
-                  
                 />
               )}
-
-              {/* Overview */}
               {!viewingProgramStudents && (
                 <div className="space-y-4">
-                  {/* Charts + breakdown */}
-                 
                   <ChartsSection passFailData={passFailData} improvementData={improvementData} studentProgressData={studentProgressData} />
-        
-
                   <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                      <p className="text-[13px] font-semibold text-gray-700 mb-4">Score Breakdown</p>
-                      <div className="space-y-3">
-                        {[
-                          { label: "Excellent (≥ 80%)", val: exc, color: "#c45e10" },
-                          { label: "Good (60–79%)", val: good, color: "#0f6e56" },
-                          { label: "Needs improvement", val: ni, color: "#854f0b" },
-                          { label: "Poor (< 40%)", val: poor, color: "#a32d2d" },
-                        ].map((r) => {
-                          const pct = totalForBreakdown ? Math.round((r.val / totalForBreakdown) * 100) : 0;
-                          return (
-                            <div key={r.label}>
-                              <div className="flex justify-between text-[12px] mb-1">
-                                <span className="text-gray-500">{r.label}</span>
-                                <span className="font-semibold" style={{ color: r.color }}>{r.val} ({pct}%)</span>
-                              </div>
-                              <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: r.color }} />
-                              </div>
+                    <p className="text-[13px] font-semibold text-gray-700 mb-4">Score Breakdown</p>
+                    <div className="space-y-3">
+                      {[
+                        { label: "Excellent (≥ 80%)", val: exc, color: "#c45e10" },
+                        { label: "Good (60–79%)", val: good, color: "#0f6e56" },
+                        { label: "Needs improvement", val: ni, color: "#854f0b" },
+                        { label: "Poor (< 40%)", val: poor, color: "#a32d2d" },
+                      ].map((r) => {
+                        const pct = totalForBreakdown ? Math.round((r.val / totalForBreakdown) * 100) : 0;
+                        return (
+                          <div key={r.label}>
+                            <div className="flex justify-between text-[12px] mb-1">
+                              <span className="text-gray-500">{r.label}</span>
+                              <span className="font-semibold" style={{ color: r.color }}>{r.val} ({pct}%)</span>
                             </div>
-                          );
-                        })}
-                      </div>
+                            <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: r.color }} />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-
-                  {/* Performance by program table */}
+                  </div>
                   <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
                     <div className="text-[11px] font-medium text-orange-500 uppercase tracking-widest mb-3">
                       Performance by program
