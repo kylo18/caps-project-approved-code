@@ -15,12 +15,14 @@ class ExamCompletionMail extends Mailable
     public $user;
     public $score;
     public $examName;
+    public $performanceSummary;
 
-    public function __construct($user, $score, $examName = 'Applied Power Electronics')
+    public function __construct($user, $score, $examName = 'Applied Power Electronics', $performanceSummary = [])
     {
         $this->user = $user;
         $this->score = $score;
         $this->examName = $examName;
+        $this->performanceSummary = $performanceSummary;
     }
 
     public function envelope(): Envelope

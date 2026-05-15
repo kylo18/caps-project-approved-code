@@ -79,11 +79,11 @@ class EmailNotificationService
     /**
      * Send exam completion notification.
      */
-    public function sendExamCompletionNotification($user, $score, $examName = 'Applied Power Electronics')
+    public function sendExamCompletionNotification($user, $score, $examName = 'Applied Power Electronics', $performanceSummary = [])
     {
         try {
             // Queue is used here so exam flows are not blocked by SMTP latency.
-            Mail::to($user->email)->queue(new ExamCompletionMail($user, $score, $examName));
+            Mail::to($user->email)->queue(new ExamCompletionMail($user, $score, $examName, $performanceSummary));
 
             EmailLog::create([
                 'user_id' => $user->userID,

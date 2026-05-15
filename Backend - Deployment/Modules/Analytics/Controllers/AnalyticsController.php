@@ -161,7 +161,19 @@ class AnalyticsController extends Controller
                 $userModel = \Modules\Users\Models\User::find($attempt->user_id);
                 if ($userModel) {
                     $emailService = app(EmailNotificationService::class);
-                    $emailService->sendExamCompletionNotification($userModel, $overallScore);
+                    
+                    // Fetch performance summary data (weak topics and recommendations)
+                    $performanceSummary = [
+                        'weak_topics' => ExamTopicAnalytics::where('attempt_id', $attemptId)
+                            ->where('is_weak', true)
+                            ->join('coverages', 'exam_topic_analytics.topic_id', '=', 'coverages.id')
+                            ->select('coverages.name', 'exam_topic_analytics.score_pct')
+                            ->get(),
+                        'recommendations' => ExamRecommendation::where('attempt_id', $attemptId)
+                            ->pluck('recommendation')
+                    ];
+                    
+                    $emailService->sendExamCompletionNotification($userModel, $overallScore, 'Applied Power Electronics', $performanceSummary);
                 }
             } catch (\Exception $e) {
                 Log::warning('Exam completion email failed: ' . $e->getMessage());

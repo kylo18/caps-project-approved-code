@@ -36,9 +36,6 @@ upsert_env_var "JWT_SECRET" "${JWT_SECRET:-}"
 upsert_env_var "CACHE_DRIVER" "${CACHE_DRIVER:-file}" # QUESTIONABLE
 upsert_env_var "SESSION_DRIVER" "${SESSION_DRIVER:-file}" # Still questionable because we dont know what will be the behavior if this line is changed in the live environment
 upsert_env_var "QUEUE_CONNECTION" "${QUEUE_CONNECTION:-sync}" # I think this is uncessery since we have already it in the live environment 
-upsert_env_var "REDIS_CLIENT" "${REDIS_CLIENT:-predis}"
-upsert_env_var "REDIS_HOST" "${REDIS_HOST:-127.0.0.1}"
-upsert_env_var "REDIS_PORT" "${REDIS_PORT:-6379}"
 upsert_env_var "FRONTEND_URL" "${FRONTEND_URL:-}"
 upsert_env_var "GOOGLE_CLIENT_ID" "${GOOGLE_CLIENT_ID:-}"
 upsert_env_var "GOOGLE_CLIENT_SECRET" "${GOOGLE_CLIENT_SECRET:-}"
@@ -70,6 +67,19 @@ fi
 # fi
 
 # Clear all caches to ensure fresh settings are loaded
+if [ "${REDIS_HOST:-}" != "127.0.0.1" ] && [ -n "${REDIS_HOST:-}" ]; then
+  echo "Waiting for Redis ($REDIS_HOST) to be ready..."
+  # Try to resolve and ping redis a few times
+  for i in $(seq 1 10); do
+    if getent hosts "$REDIS_HOST" > /dev/null; then
+       echo "Redis is reachable."
+       break
+    fi
+    echo "Waiting for DNS resolution of $REDIS_HOST..."
+    sleep 2
+  done
+fi
+
 php artisan migrate #added this line to ensure database migrations are run before clearing caches
 php artisan optimize:clear
 php artisan config:clear

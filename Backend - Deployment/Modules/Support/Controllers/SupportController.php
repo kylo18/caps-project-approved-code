@@ -161,6 +161,15 @@ class SupportController extends Controller
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
+
+            // Notify administrators
+            try {
+                $emailService = app(\Modules\Users\Services\EmailNotificationService::class);
+                $ticket = DB::table('support_tickets')->find($ticketId);
+                $emailService->sendSupportTicketNotification($ticket, $user);
+            } catch (\Exception $e) {
+                Log::warning('Support ticket admin notification failed: ' . $e->getMessage());
+            }
             
             return response()->json([
                 'success' => true,

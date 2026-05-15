@@ -58,7 +58,7 @@ class SystemNotificationController extends Controller
 
         foreach ($users as $user) {
             try {
-                Mail::to($user->email)->send(new SystemUpdateMail(
+                Mail::to($user->email)->queue(new SystemUpdateMail(
                     $request->title,
                     $request->message
                 ));

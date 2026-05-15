@@ -13,12 +13,12 @@ class SystemUpdateMail extends Mailable
     use Queueable, SerializesModels;
 
     public $title;
-    public $message;
+    public $content;
 
-    public function __construct($title, $message)
+    public function __construct($title, $content)
     {
         $this->title = $title;
-        $this->message = $message;
+        $this->content = $content;
     }
 
     public function envelope(): Envelope
