@@ -185,13 +185,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwit
                   <label className="outfit-500 text-sm text-gray-700">
                     Password
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => { onClose(); onSwitchToForgotPassword?.(); }}
-                    className="outfit-400 text-sm text-orange-500 hover:underline"
-                  >
-                    Forgot password?
-                  </button>
+
                 </div>
                 <div className="relative">
                   <input
@@ -211,6 +205,13 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwit
                     <i
                       className={`bx ${passwordVisible ? "bx-eye-alt text-orange-500" : "bx-eye-slash"} text-[20px]`}
                     ></i>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { onClose(); onSwitchToForgotPassword?.(); }}
+                    className="outfit-400 text-sm text-orange-500 hover:underline absolute right-0 top-full mt-1"
+                  >
+                    Forgot password?
                   </button>
                 </div>
               </div>

@@ -491,16 +491,22 @@ const ChartsSection = ({ passFailData, improvementData, studentProgressData }) =
 };
 
 // ── Faculty: Class Card with analytics ───────────────────────────────────────
-const FacultyClassCard = ({ cls, summary, onClick }) => {
+const FacultyClassCard = ({ cls, summary, students = [], onClick }) => {
   const classId   = cls.classID ?? cls.id;
   const name      = cls.name ?? cls.className ?? "Unnamed Class";
   const subject   = cls.subject?.subjectName ?? cls.subjectName ?? "";
   const semester  = cls.semester ?? "";
 
   // Pull from /analytics/faculty/summary/{classId} response
-  const totalStudents = summary?.total_students  ?? cls.enrollments_count ?? cls.students?.length ?? 0;
-  const avgScore      = summary?.average_score   != null ? Number(summary.average_score).toFixed(1)  : null;
-  const passRate      = summary?.pass_rate       != null ? Math.round(Number(summary.pass_rate))     : null;
+  const totalStudents = students.length || summary?.total_students || 0;
+  
+  const scoreValues   = students.map((s) => Number(s.average_score ?? s.score ?? 0)).filter((v) => v > 0);
+  const avgScore      = scoreValues.length ? (scoreValues.reduce((a, v) => a + v, 0) / scoreValues.length).toFixed(1) : null;
+  const passRate      = scoreValues.length ? Math.round((scoreValues.filter((v) => v >= 75).length / scoreValues.length) * 100) : null;
+
+  //const totalStudents = summary?.total_students  ?? cls.enrollments_count ?? cls.students?.length ?? 0;
+  //const avgScore      = summary?.average_score   != null ? Number(summary.average_score).toFixed(1)  : null;
+  //const passRate      = summary?.pass_rate       != null ? Math.round(Number(summary.pass_rate))     : null;
   const status        = avgScore != null ? getStatus(Number(avgScore)) : null;
 
   return (
@@ -775,7 +781,8 @@ const FacultyView = ({ apiUrl, currentUser }) => {
   const overallPass    = summaryValues.length
     ? Math.round(summaryValues.reduce((a, s) => a + Number(s.pass_rate ?? 0), 0) / summaryValues.length)
     : 0;
-  const totalStudents  = allStudents.length;
+  //const totalStudents  = allStudents.length;
+  const totalStudents = Object.values(classStudents).reduce((sum, arr) => sum + arr.length, 0);
   const needSupportCount = summaryValues.reduce((a, s) =>
     a + ((s.breakdown?.needs_improvement ?? 0) + (s.breakdown?.poor ?? 0)), 0);
 
@@ -871,6 +878,7 @@ const FacultyView = ({ apiUrl, currentUser }) => {
                   key={cid}
                   cls={cls}
                   summary={classSummaries[cid] ?? null}
+                  students={classStudents[cid] ?? []}
                   onClick={() => setView(`class:${cid}`)}
                 />
               );

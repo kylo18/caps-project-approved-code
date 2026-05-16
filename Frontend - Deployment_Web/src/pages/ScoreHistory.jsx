@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+//import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 const fmtDate = (d) =>
@@ -84,6 +85,7 @@ const TrendChart = ({ months, avgs }) => {
   const yTicks = Array.from({ length: 5 }, (_, i) => Math.round(min + (i / 4) * (max - min)));
   //const show75 = 75 >= min && 75 <= max;
   const show75 = true;
+  
 
   return (
     <div ref={containerRef} style={{ width: "100%", height: h, position: "relative" }}>
@@ -314,41 +316,110 @@ const ScoreHistory = () => {
     date_to: "",
     performance_band: "",
   });
+
+  //for analytics filter modal - add here a use state for each filter type (subject, date range, performance band, etc.) and use those to construct the analyticsFilters object when applying the filter search. Also add state for managing the visibility of the filter modal and the results of the filter search.
   const [rankLabel, setRankLabel] = useState("Global Rank");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filterResults, setFilterResults] = useState(null);
   const [filterResultsLoading, setFilterResultsLoading] = useState(false);
   const [activityFilter, setActivityFilter] = useState("all"); // "all" | "quiz" | "practice"
+  const [bandDetailTab, setBandDetailTab] = useState(null); // null | "Excellent" | "Good" | "Needs Work" | "Poor"
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+  const [bandFilter, setBandFilter] = useState("all");
+  const [bandDropdownOpen, setBandDropdownOpen] = useState(false);
+
+
 
   // ── Load practice history (existing endpoint) ────────────────────────────
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const token = sessionStorage.getItem("token");
-        const res = await fetch(`${apiUrl}/practice-exam/history`, {
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = sessionStorage.getItem("token");
+
+      const [localRes, quizRes, analyticsRes] = await Promise.all([
+        fetch(`${apiUrl}/practice-exam/history`, {
           headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const raw = data.history || [];
-          const normalized = raw.map((item, i) => ({
-            ...item,
-            score: Math.round(item.percentage ?? 0),
-            passed: (item.percentage ?? 0) >= 75,
-            completedAt: item.created_at,
-            attemptNumber: i + 1,
-          }));
-          setHistory(normalized);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
+        }),
+        fetch(`${apiUrl}/quiz-results`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${apiUrl}/v1/student/analytics`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      // ── Parse practice history ──────────────────────────────────────────
+      let normalized = [];
+      if (localRes.ok) {
+        const data = await localRes.json();
+        const raw = data.history || [];
+        normalized = raw.map((item, i) => ({
+          ...item,
+          score: Math.round(item.percentage ?? 0),
+          passed: (item.percentage ?? 0) >= 75,
+          completedAt: item.created_at,
+          attemptNumber: i + 1,
+          assessment_type: "practice",
+          subjectName: item.subject_name || item.subjectName || null,
+          _source: "local",
+        }));
       }
-    };
-    load();
+
+      // ── Parse quiz results ──────────────────────────────────────────────
+      if (quizRes.ok) {
+        const quizData = await quizRes.json();
+        const quizRaw = quizData.data || quizData.results || quizData.history || [];
+
+        
+
+        const quizNormalized = quizRaw.map((item) => ({
+          ...item,
+          
+          score: Math.round(parseFloat(item.percentage) || 0),
+          passed: parseFloat(item.percentage) >= 75,
+          completedAt: item.submitted_at || item.created_at || item.date,
+          assessment_type: "quiz",
+          subjectName: item.class_quiz_assignment?.personal_quiz?.title || null,
+          earnedPoints: Math.round(parseFloat(item.score)) ?? null,
+          totalPoints: Math.round(parseFloat(item.total_score)) ?? null,
+          resultID: item.id ?? null,
+          _source: "quiz",
+        }));
+        normalized = [...normalized, ...quizNormalized];
+      }
+
+      // ── Parse analytics (for KPI cards) ────────────────────────────────
+      if (analyticsRes.ok) {
+        const analyticsJson = await analyticsRes.json();
+        setAnalyticsData(analyticsJson.data ?? null);
+      }
+
+      // ── Sort newest first, re-number ────────────────────────────────────
+      const merged = normalized
+        .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+        .map((item, i) => ({ ...item, attemptNumber: i + 1 }));
+
+      setHistory(merged);
+
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }, [apiUrl]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [load]);
 
   // ── Load analytics (new endpoint) ───────────────────────────────────────
   const loadAnalytics = useCallback(async (filters = {}) => {
@@ -363,6 +434,7 @@ const ScoreHistory = () => {
       });
       if (res.ok) {
         const json = await res.json();
+
         setAnalyticsData(json.data ?? null);
         // Update rank label based on applied filters
         if (filters.subject_id) setRankLabel(`Rank in Subject ${filters.subject_id}`);
@@ -380,8 +452,28 @@ const ScoreHistory = () => {
   }, [apiUrl]);
 
   useEffect(() => {
-    if (activeTab === "history" || activeTab === "activity") loadAnalytics(analyticsFilters);
-  }, [activeTab]);
+  loadAnalytics({});
+}, []);
+
+  useEffect(() => {
+    if (!typeDropdownOpen) return;
+    const close = (e) => {
+      if (!e.target.closest("[data-type-dropdown]")) setTypeDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [typeDropdownOpen]);
+
+  useEffect(() => {
+    if (!bandDropdownOpen) return;
+    const close = (e) => {
+      if (!e.target.closest("[data-band-dropdown]")) setBandDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [bandDropdownOpen]);
+
+
 
   // ── Apply filters to analytics ─────────────────────────────────
   const applyFilterSearch = async () => {
@@ -414,7 +506,26 @@ const ScoreHistory = () => {
   const sorted = [...history].sort((a, b) =>
     sortDir === "desc" ? new Date(b.completedAt) - new Date(a.completedAt) : new Date(a.completedAt) - new Date(b.completedAt)
   );
-  const filtered = filter === "all" ? sorted : filter === "pass" ? sorted.filter((h) => h.passed) : sorted.filter((h) => !h.passed);
+  const passFiltered = filter === "all" ? sorted : filter === "pass" ? sorted.filter((h) => h.passed) : sorted.filter((h) => !h.passed);
+
+  const typeFiltered = typeFilter === "all" ? passFiltered : passFiltered.filter((h) => h.assessment_type === typeFilter);
+
+  
+  const BAND_RANGES = {
+    excellent:  { min: 80, max: 100 },
+    good:       { min: 60, max: 79  },
+    lacking:    { min: 41, max: 59  },
+    poor:       { min: 0,  max: 40  },
+  };
+  const filtered = bandFilter === "all"
+    ? typeFiltered
+    : typeFiltered.filter((h) => {
+        const r = BAND_RANGES[bandFilter];
+        if (!r) return true; // safety: unknown band key shows everything
+        return h.score >= r.min && h.score <= r.max;
+      });
+      
+
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
 
@@ -450,35 +561,23 @@ const ScoreHistory = () => {
   const monthLabels = Object.keys(monthMap);
   const monthAvgs = monthLabels.map((k) => Math.round(monthMap[k].total / monthMap[k].count));
   const recentScores = withScores.slice(-12).map((h) => h.score);
+
   const EMPTY = history.length === 0 && !loading;
+
   const fmtImp = improvement != null ? `${improvement > 0 ? "+" : ""}${improvement}%` : "—";
 
-  // ── Recent activity derived (from progression in analytics or history) ───
-  const recentActivity = (() => {
-    // Prefer analytics progression if loaded, fallback to history
-    if (analyticsData?.progression?.length) {
-      return [...analyticsData.progression]
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 20)
-        .map((p, i) => ({
-          id: i,
-          date: p.date,
-          percentage: p.percentage,
-          assessment_type: p.assessment_type,
-          points_earned: p.points_earned,
-        }));
-    }
+  // ── Recent activity derived ───────────────────────────────────────────────
+  const recentActivity = useMemo(() => {
     return [...sorted]
-      .slice(0, 20)
       .map((h, i) => ({
         id: h.resultID ?? i,
         date: h.completedAt,
         percentage: h.score,
-        assessment_type: h.assessment_type || h.type || "practice",
+        assessment_type: h.assessment_type,
         subject_name: h.subjectName || h.subject_name,
         points_earned: h.earnedPoints || h.points_earned,
       }));
-  })();
+  }, [sorted]);
 
   const filteredActivity = activityFilter === "all" ? recentActivity
     : recentActivity.filter((a) => a.assessment_type === activityFilter);
@@ -534,8 +633,6 @@ const ScoreHistory = () => {
         <div className="mx-auto max-w-full pt-1 pb-0.5">
           <div className="flex gap-0">
             {[
-              { id: "history",   label: "Score History",    icon: "bx bx-history" },
-              { id: "activity",  label: "Recent Activity",  icon: "bx bx-pulse" },
               
             ].map((tab) => (
               <button
@@ -565,14 +662,15 @@ const ScoreHistory = () => {
 
             
             {/* KPI Cards */}
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-[12px] text-gray-400">Your overall performance summary</p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[16px] font-bold leading-tight text-gray-900 tracking-tight">Your overall performance summary</p>
               <button
                 onClick={() => setFilterModalOpen(true)}
-                className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-600 shadow-sm transition hover:border-orange-400 hover:text-orange-500"
+                className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-600 shadow-sm transition hover:border-orange-400 hover:text-orange-500 group"
               >
-                <i className="bx bx-filter-alt text-[14px]" />
+                <i className="bx bx-filter-alt text-[14px] transition group-hover:rotate-180" style={{ transitionDuration: "0.3s" }} />
                 Filter Analytics
+                <span className="ml-0.5 flex h-1.5 w-1.5 rounded-full bg-orange-400 opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -591,6 +689,24 @@ const ScoreHistory = () => {
                   <KpiCard label="Global Rank" value={ad?.rank_status?.rank ? `#${ad.rank_status.rank}` : "—"} sub={ad?.rank_status?.total_candidates ? `of ${ad.rank_status.total_candidates} students` : "No rank yet"} accentColor="#8b5cf6" icon="bx bx-trophy" delay={240} />
 
                   <KpiCard label="Points Earned" value={ad?.summary?.total_earned_points ?? "—"} sub="Total across all exams" accentColor="#f59e0b" icon="bx bx-coin" delay={300} />
+
+                  <KpiCard
+                    label="Practice Runs"
+                    value={history.filter((h) => h.assessment_type === "practice").length || "—"}
+                    sub="Total practice attempts"
+                    accentColor="#10b981"
+                    icon="bx bx-book-open"
+                    delay={420}
+                  />
+
+                  <KpiCard
+                    label="Quizzes Taken"
+                    value={history.filter((h) => h.assessment_type === "quiz").length || "—"}
+                    sub="Total quiz attempts"
+                    accentColor="#8b5cf6"
+                    icon="bx bx-pencil"
+                    delay={360}
+                  />
                 </>
               )}
             </div>
@@ -792,13 +908,101 @@ const ScoreHistory = () => {
                 </button>
               </div>
 
+
               {/* Column headers */}
               <div className="hidden grid-cols-[56px_1fr_160px_90px_84px_100px_88px] border-b border-gray-100 bg-gray-50/80 px-5 py-2.5 sm:grid">
-                {["#", "Subject", "Date & Time", "Type", "Score (%)", "Band", "Status"].map((col, i) => (
-                  <div key={col} className={`text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 ${i === 1 ? "pl-5" : ""}`}
-                    style={{ textAlign: i === 1 ? "left" : "center" }}>{col}</div>
-                ))}
+                {["#", "Subject", "Date & Time", "Type", "Score (%)", "Band", "Status"].map((col, i) => {
+                  if (i === 3) return (
+                    <div key={col} className="relative flex justify-center" data-type-dropdown>
+                      <button
+                        onClick={() => setTypeDropdownOpen((o) => !o)}
+                        className="flex cursor-pointer items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 hover:text-orange-500 transition"
+                      >
+                        {col}
+                        {typeFilter !== "all" && (
+                          <span className="ml-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-500 normal-case tracking-normal">
+                            {typeFilter}
+                          </span>
+                        )}
+                        <i className={`bx bx-chevron-down text-[13px] transition-transform duration-200 ${typeDropdownOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {typeDropdownOpen && (
+                        <div
+                          className="absolute top-full mt-1 z-30 min-w-[110px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+                          style={{ left: "50%", transform: "translateX(-50%)" }}
+                        >
+                          {[
+                            { id: "all",      label: "All Types" },
+                            { id: "practice", label: "Practice"  },
+                            { id: "quiz",     label: "Quiz"       },
+                          ].map((opt) => (
+                            <button
+                              key={opt.id}
+                              onClick={() => { setTypeFilter(opt.id); setTypeDropdownOpen(false); setPage(1); }}
+                              className={`flex w-full cursor-pointer items-center gap-2 px-3.5 py-2 text-[12px] font-semibold transition hover:bg-gray-50 ${
+                                typeFilter === opt.id ? "text-orange-500" : "text-gray-600"
+                              }`}
+                            >
+                              {typeFilter === opt.id ? <i className="bx bx-check text-[13px]" /> : <span className="w-[13px]" />}
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+
+                  if (i === 5) return (
+                    <div key={col} className="relative flex justify-center" data-band-dropdown>
+                      <button
+                        onClick={() => setBandDropdownOpen((o) => !o)}
+                        className="flex cursor-pointer items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 hover:text-orange-500 transition"
+                      >
+                        {col}
+                        {bandFilter !== "all" && (
+                          <span className="ml-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-500 normal-case tracking-normal capitalize">
+                            {bandFilter.replace("_", " ")}
+                          </span>
+                        )}
+                        <i className={`bx bx-chevron-down text-[13px] transition-transform duration-200 ${bandDropdownOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {bandDropdownOpen && (
+                        <div
+                          className="absolute top-full mt-1 z-30 min-w-[130px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+                          style={{ left: "50%", transform: "translateX(-50%)" }}
+                        >
+                          {[
+                            { id: "all",        label: "All Bands",  color: null        },
+                            { id: "excellent",  label: "Excellent",  color: "#10b981"   },
+                            { id: "good",       label: "Good",       color: "#3b82f6"   },
+                            { id: "lacking",    label: "Lacking",    color: "#f59e0b"   },
+                            { id: "poor",       label: "Poor",       color: "#ef4444"   },
+                          ].map((opt) => (
+                            <button
+                              key={opt.id}
+                              onClick={() => { setBandFilter(opt.id); setBandDropdownOpen(false); setPage(1); }}
+                              className={`flex w-full cursor-pointer items-center gap-2 px-3.5 py-2 text-[12px] font-semibold transition hover:bg-gray-50 ${
+                                bandFilter === opt.id ? "text-orange-500" : "text-gray-600"
+                              }`}
+                            >
+                              {bandFilter === opt.id ? <i className="bx bx-check text-[13px]" /> : <span className="w-[13px]" />}
+                              {opt.color && <span className="h-2 w-2 rounded-full shrink-0" style={{ background: opt.color }} />}
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+
+                  return (
+                    <div key={col} className={`text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 ${i === 1 ? "pl-5" : ""}`}
+                      style={{ textAlign: i === 1 ? "left" : "center" }}>{col}</div>
+                  );
+                })}
               </div>
+
+              
 
               {/* Rows */}
               {loading ? (
@@ -807,7 +1011,8 @@ const ScoreHistory = () => {
                 <EmptyState message={EMPTY ? "No exams taken yet. Start your first practice exam!" : "No results match this filter."} height={220} />
               ) : (
                 paginated.map((h, i) => (
-                  <div key={h.resultID ?? i}>
+                  //<div key={h.resultID ?? i}>
+                  <div key={h.resultID ?? `${h.completedAt}-${h.assessment_type}-${i}`}>
                     
                     {/* Desktop */}
                     <div className="hidden cursor-default grid-cols-[56px_1fr_160px_90px_84px_100px_88px] items-center border-b border-gray-50 px-5 py-3.5 transition hover:bg-gray-50/60 sm:grid">
@@ -821,6 +1026,12 @@ const ScoreHistory = () => {
                         {(h.earnedPoints != null || h.totalPoints != null) && (
                           <p className="mt-0.5 text-[11px] text-gray-400">{h.earnedPoints ?? "—"} / {h.totalPoints ?? "—"} pts</p>
                         )}
+                        <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-gray-100">
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{ width: `${h.score ?? 0}%`, background: getBand(h.score ?? 0).color, opacity: 0.75 }}
+                          />
+                        </div>
                       </div>
 
                       {/* Date & Time */}
@@ -901,111 +1112,123 @@ const ScoreHistory = () => {
           </div>
         )}
 
-        
+      </main>
 
-        {/* ══════════════════════════════════════════════════════════════
-            TAB: RECENT ACTIVITY (NEW)
-        ══════════════════════════════════════════════════════════════ */}
-        {activeTab === "activity" && (
-          <div className="space-y-4">
-          
-            <div className="grid gap-4 lg:grid-cols-3">
 
-              {/* Activity Feed */}
-              <div className="lg:col-span-2 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50">
-                      <i className="bx bx-pulse text-[14px] text-orange-500" />
-                    </div>
-                    <div>
-                      <p className="text-[13px] font-bold text-gray-900">Activity Feed</p>
-                      <p className="text-[11px] text-gray-400">{filteredActivity.length} recent entries</p>
-                    </div>
+      {/* Band Detail Modal */}
+      {bandDetailTab && (() => {
+        const bandDefs = {
+          "Excellent": { min: 80, max: 100, color: "#10b981", bg: "#ecfdf5", text: "#065f46" },
+          "Good":      { min: 60, max: 79,  color: "#3b82f6", bg: "#eff6ff", text: "#1e40af" },
+          "Lacking":   { min: 41, max: 59,  color: "#f59e0b", bg: "#fffbeb", text: "#92400e" },
+          "Poor":      { min: 0,  max: 40,  color: "#ef4444", bg: "#fef2f2", text: "#991b1b" },
+        };
+        const allBands = ["Excellent", "Good", "Lacking", "Poor"];
+        const b = bandDefs[bandDetailTab];
+        const items = withScores
+          .filter((h) => h.score >= b.min && h.score <= b.max)
+          .sort((a, c) => new Date(c.completedAt) - new Date(a.completedAt));
+
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+            onClick={(e) => { if (e.target === e.currentTarget) setBandDetailTab(null); }}
+          >
+            <div
+              className="w-full sm:max-w-lg bg-white flex flex-col shadow-2xl"
+              style={{ borderRadius: "20px 20px 16px 16px", height: "88vh", maxHeight: "680px" }}
+            >
+              {/* Drag handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full bg-gray-200" />
+              </div>
+
+              {/* Header */}
+              <div className="px-5 pt-2 pb-4 border-b border-gray-100">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-[17px] font-bold text-gray-900 leading-tight">{bandDetailTab} Scores</p>
+                    <p className="text-[12px] text-gray-400 mt-0.5">{b.min}% – {b.max}% range</p>
                   </div>
-                  <div className="flex gap-0.5 rounded-xl border border-gray-200 bg-gray-50 p-0.5">
-                    {[{ id: "all", label: "All" }, { id: "quiz", label: "Quizzes" }, { id: "practice", label: "Practice" }].map((f) => (
-                      <button key={f.id} onClick={() => setActivityFilter(f.id)}
-                        className={`cursor-pointer rounded-lg px-3 py-1 text-[12px] font-semibold transition ${activityFilter === f.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-700"}`}>
-                        {f.label}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-xl px-3 py-1.5 text-[13px] font-bold" style={{ background: b.bg, color: b.text }}>
+                      {items.length} total
+                    </span>
+                    <button
+                      onClick={() => setBandDetailTab(null)}
+                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition hover:bg-gray-200"
+                    >
+                      <i className="bx bx-x text-[20px]" />
+                    </button>
                   </div>
                 </div>
-                <div className="p-3 max-h-[520px] overflow-y-auto">
-                  {loading ? (
-                    <div className="space-y-2 p-2">{[...Array(6)].map((_, i) => <Shimmer key={i} h={72} radius={12} />)}</div>
-                  ) : filteredActivity.length === 0 ? (
-                    <EmptyState message="No recent activity found." height={200} />
-                  ) : (
-                    filteredActivity.map((item, i) => <ActivityItem key={item.id ?? i} item={item} index={i} />)
-                  )}
+
+                {/* Band tabs */}
+                <div className="flex gap-2">
+                  {allBands.map((bl) => {
+                    const bd = bandDefs[bl];
+                    const isActive = bandDetailTab === bl;
+                    return (
+                      <button
+                        key={bl}
+                        onClick={() => setBandDetailTab(bl)}
+                        className="flex-1 rounded-xl py-2 text-[11.5px] font-bold transition cursor-pointer"
+                        style={isActive
+                          ? { background: bd.color, color: "#fff", boxShadow: `0 2px 8px ${bd.color}44` }
+                          : { background: "#f3f4f6", color: "#9ca3af" }}
+                      >
+                        {bl}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Side stats */}
-              <div className="flex flex-col gap-3">
-
-                {/* Streak / quick stats */}
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                  <p className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-gray-400">Quick Stats</p>
-                  <div className="space-y-3">
-                    {[
-                      { label: "Last 7 days", value: history.filter((h) => (Date.now() - new Date(h.completedAt)) / 86400000 <= 7).length, icon: "bx bx-calendar-week", color: "#3b82f6" },
-                      { label: "Last 30 days", value: history.filter((h) => (Date.now() - new Date(h.completedAt)) / 86400000 <= 30).length, icon: "bx bx-calendar", color: "#f97316" },
-                      { label: "Quizzes taken", value: history.filter((h) => (h.assessment_type || h.type) === "quiz").length || "—", icon: "bx bx-pencil", color: "#8b5cf6" },
-                      { label: "Practice runs", value: history.filter((h) => (h.assessment_type || h.type) === "practice" || (!h.assessment_type && !h.type)).length || "—", icon: "bx bx-book-open", color: "#10b981" },
-                    ].map((s) => (
-                      <div key={s.label} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: s.color + "15" }}>
-                            <i className={`${s.icon} text-[13px]`} style={{ color: s.color }} />
+              {/* List */}
+              <div className="overflow-y-auto px-4 py-3" style={{ height: "480px" }}>
+                {items.length === 0 ? (
+                  <EmptyState message={`No ${bandDetailTab.toLowerCase()} scores yet.`} height={180} />
+                ) : (
+                  <div className="space-y-2">
+                    {items.map((h, i) => (
+                      <div
+                        key={h.resultID ?? i}
+                        className="flex items-center justify-between rounded-2xl px-4 py-3.5 transition"
+                        style={{ background: "#f9fafb", border: "1px solid #f3f4f6" }}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-semibold text-gray-900 leading-snug">{h.subjectName || "Practice Exam"}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[11px] text-gray-400">{fmtDate(h.completedAt)}</span>
+                            <span
+                              className="rounded-lg px-2 py-0.5 text-[10.5px] font-semibold capitalize"
+                              style={{
+                                background: h.assessment_type === "quiz" ? "#f5f3ff" : "#fff7ed",
+                                color: h.assessment_type === "quiz" ? "#7c3aed" : "#ea580c",
+                              }}
+                            >
+                              {h.assessment_type || "practice"}
+                            </span>
                           </div>
-                          <span className="text-[12px] text-gray-600">{s.label}</span>
                         </div>
-                        <span className="text-[13px] font-bold text-gray-900">{s.value}</span>
+                        <div className="flex items-center gap-2.5 shrink-0 ml-3">
+                          <span className="text-[18px] font-bold" style={{ color: b.color }}>{h.score}%</span>
+                          <StatusChip passed={h.passed} />
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
-
-                {/* Performance breakdown */}
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                  <p className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-gray-400">Performance Bands</p>
-                  {loading ? (
-                    <div className="space-y-2">{[...Array(4)].map((_, i) => <Shimmer key={i} h={24} radius={6} />)}</div>
-                  ) : (() => {
-                    const bands = [
-                      { label: "Excellent", min: 80, color: "#10b981" },
-                      { label: "Good",      min: 60, color: "#3b82f6" },
-                      { label: "Needs Work",min: 41, color: "#f59e0b" },
-                      { label: "Poor",      min: 0,  color: "#ef4444" },
-                    ];
-                    const total = withScores.length || 1;
-                    return bands.map((b, bi) => {
-                      const next = bands[bi - 1];
-                      const count = withScores.filter((h) => h.score >= b.min && (next ? h.score < next.min : true)).length;
-                      const pct = Math.round((count / total) * 100);
-                      return (
-                        <div key={b.label} className="mb-2.5">
-                          <div className="mb-1 flex items-center justify-between">
-                            <span className="text-[11.5px] font-medium text-gray-600">{b.label}</span>
-                            <span className="text-[11px] font-bold" style={{ color: b.color }}>{count} ({pct}%)</span>
-                          </div>
-                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: b.color }} />
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
+                )}
               </div>
+
+              {/* Safe area bottom padding */}
+              <div className="h-4" />
             </div>
           </div>
-        )}
-
-      </main>
+        );
+      })()}
+      
 
       {/* ── Filter Analytics Modal ── */}
           {filterModalOpen && (
