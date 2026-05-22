@@ -52,7 +52,7 @@ export default function AssoDeanSubjectsScreen() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [page, setPage] = useState(1);
+  const [cursor, setCursor] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
@@ -67,59 +67,71 @@ export default function AssoDeanSubjectsScreen() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
   const [activeSubjectForMenu, setActiveSubjectForMenu] = useState<any>(null);
+  const [filterProgramID, setFilterProgramID] = useState<string>('All');
+  const [filterYearLevelID, setFilterYearLevelID] = useState<string>('All');
 
   useEffect(() => {
-    fetchSubjects();
+    fetchPrograms();
+    fetchYearLevels();
   }, []);
+
+  useEffect(() => {
+    fetchSubjects(true);
+  }, [filterProgramID, filterYearLevelID]);
 
   useEffect(() => {
     if (selectedSubject) fetchQuestions();
   }, [selectedSubject]);
 
   const fetchSubjects = async (reset = false) => {
-    const currentPage = reset ? 1 : page;
+    const currentCursor = reset ? null : cursor;
 
     if (reset) {
       setIsLoading(true);
-      setPage(1);
+      setSubjects([]);
       setHasMore(true);
     } else {
       setIsLoadingMore(true);
     }
 
     try {
-      const data = await apiRequest(`/api/subjects?limit=20&page=${currentPage}`);
+      let url = '/api/subjects?limit=20';
+      if (currentCursor !== null) {
+        url += `&cursor=${currentCursor}`;
+      }
+      if (filterProgramID !== 'All') {
+        url += `&programID=${filterProgramID}`;
+      }
+      if (filterYearLevelID !== 'All') {
+        url += `&yearLevelID=${filterYearLevelID}`;
+      }
+
+      const data = await apiRequest(url);
       const list: Subject[] = Array.isArray(data?.subjects) ? data.subjects : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-      const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
 
       if (reset) {
         setSubjects(list);
-        if (total !== undefined) {
-          setHasMore(list.length < total);
-        } else {
-          setHasMore(list.length === 20);
-        }
+        setHasMore(data?.hasMore === true);
         if (selectedSubject) {
           const updatedSelection = list.find((subject) => subject.subjectID === selectedSubject.subjectID);
           setSelectedSubject(updatedSelection || null);
         }
       } else {
-        setSubjects(prev => [...prev, ...list]);
-        if (total !== undefined) {
-          setHasMore((subjects.length + list.length) < total);
-        } else {
-          setHasMore(list.length === 20);
-        }
-        setPage(prev => prev + 1);
+        setSubjects(prev => {
+          const existing = new Set(prev.map(s => s.subjectID));
+          const newUnique = list.filter(s => !existing.has(s.subjectID));
+          return [...prev, ...newUnique];
+        });
+        setHasMore(data?.hasMore === true);
+      }
+      if (list.length > 0) {
+        setCursor(data?.cursor ?? list[list.length - 1].subjectID);
       }
     } catch (error) {
       showToast('Unable to load subjects', 'error');
     } finally {
-      if (reset) {
-        setIsLoading(false);
-      } else {
-        setIsLoadingMore(false);
-      }
+      setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -224,7 +236,7 @@ export default function AssoDeanSubjectsScreen() {
         showToast('Subject added', 'success');
       }
       setShowSubjectModal(false);
-      await fetchSubjects();
+      await fetchSubjects(true);
     } catch (error: unknown) {
       const message = error instanceof Error && 'data' in error
         ? (error as { data?: { message?: string } }).data?.message || 'Failed to save subject'
@@ -248,7 +260,7 @@ export default function AssoDeanSubjectsScreen() {
               setSelectedSubject(null);
               setQuestions([]);
             }
-            await fetchSubjects();
+            await fetchSubjects(true);
             showToast('Subject deleted', 'success');
           } catch (error) {
             showToast('Failed to delete subject', 'error');
@@ -371,6 +383,71 @@ export default function AssoDeanSubjectsScreen() {
             <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               Subject List ({subjects.length})
             </Text>
+
+            {/* Filters */}
+            <View className="mb-4 gap-2">
+              {/* Program Filter */}
+              <View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => setFilterProgramID('All')}
+                    className={`px-3 py-1.5 rounded-full ${filterProgramID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                    activeOpacity={0.7}
+                  >
+                    <Text className={`text-xs ${filterProgramID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      All Programs
+                    </Text>
+                  </TouchableOpacity>
+                  {programs.map((p: any) => {
+                    const id = String(p.programID || p.id);
+                    const name = p.programName || p.name || '';
+                    return (
+                      <TouchableOpacity
+                        key={id}
+                        onPress={() => setFilterProgramID(id)}
+                        className={`px-3 py-1.5 rounded-full ${filterProgramID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                        activeOpacity={0.7}
+                      >
+                        <Text className={`text-xs ${filterProgramID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* Year Level Filter */}
+              <View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => setFilterYearLevelID('All')}
+                    className={`px-3 py-1.5 rounded-full ${filterYearLevelID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                    activeOpacity={0.7}
+                  >
+                    <Text className={`text-xs ${filterYearLevelID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      All Years
+                    </Text>
+                  </TouchableOpacity>
+                  {yearLevels.map((yl: any) => {
+                    const id = String(yl.yearLevelID || yl.id);
+                    const name = yl.name || yl.yearLevel || '';
+                    return (
+                      <TouchableOpacity
+                        key={id}
+                        onPress={() => setFilterYearLevelID(id)}
+                        className={`px-3 py-1.5 rounded-full ${filterYearLevelID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                        activeOpacity={0.7}
+                      >
+                        <Text className={`text-xs ${filterYearLevelID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </View>
             {subjects.length === 0 ? (
               <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
                 <Ionicons name="book-outline" size={64} color="#FE6902" />

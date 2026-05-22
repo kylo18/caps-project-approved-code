@@ -125,6 +125,8 @@ export default function AdminSubjectsScreen() {
   const [yearLevelID, setYearLevelID] = useState('');
   const [programs, setPrograms] = useState<any[]>([]);
   const [yearLevels, setYearLevels] = useState<any[]>([]);
+  const [filterProgramID, setFilterProgramID] = useState<string>('All');
+  const [filterYearLevelID, setFilterYearLevelID] = useState<string>('All');
 
   // Subject settings modal state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -164,10 +166,16 @@ export default function AdminSubjectsScreen() {
     setDifficultyMode('default');
   };
 
-  // Fetch subjects on mount
+  // Fetch subjects, programs, and year levels on mount
   useEffect(() => {
-    fetchSubjects();
+    fetchPrograms();
+    fetchYearLevels();
   }, []);
+
+  // Re-fetch subjects when filters change
+  useEffect(() => {
+    fetchSubjects(true);
+  }, [filterProgramID, filterYearLevelID]);
 
   // Fetch questions when subject changes
   useEffect(() => {
@@ -177,17 +185,28 @@ export default function AdminSubjectsScreen() {
   }, [selectedSubject]);
 
   const fetchSubjects = async (reset = false) => {
+    const currentCursor = reset ? null : cursor;
+
     if (reset) {
       setIsLoading(true);
       setSubjects([]);
-      setCursor(null);
       setHasMore(true);
     } else {
       setIsLoadingMore(true);
     }
 
     try {
-      const url = cursor && !reset ? `/api/subjects?cursor=${cursor}` : '/api/subjects';
+      let url = '/api/subjects?limit=20';
+      if (currentCursor !== null) {
+        url += `&cursor=${currentCursor}`;
+      }
+      if (filterProgramID !== 'All') {
+        url += `&programID=${filterProgramID}`;
+      }
+      if (filterYearLevelID !== 'All') {
+        url += `&yearLevelID=${filterYearLevelID}`;
+      }
+
       const data = await apiRequest(url);
       const list = Array.isArray(data?.subjects) ? data.subjects :
         Array.isArray(data?.data) ? data.data :
@@ -687,6 +706,72 @@ export default function AdminSubjectsScreen() {
           <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Subject List ({subjects.length})
           </Text>
+
+          {/* Filters */}
+          <View className="mb-4 gap-2">
+            {/* Program Filter */}
+            <View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setFilterProgramID('All')}
+                  className={`px-3 py-1.5 rounded-full ${filterProgramID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                  activeOpacity={0.7}
+                >
+                  <Text className={`text-xs ${filterProgramID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    All Programs
+                  </Text>
+                </TouchableOpacity>
+                {programs.map((p: any) => {
+                  const id = String(p.programID || p.id);
+                  const name = p.programName || p.name || '';
+                  return (
+                    <TouchableOpacity
+                      key={id}
+                      onPress={() => setFilterProgramID(id)}
+                      className={`px-3 py-1.5 rounded-full ${filterProgramID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                      activeOpacity={0.7}
+                    >
+                      <Text className={`text-xs ${filterProgramID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* Year Level Filter */}
+            <View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setFilterYearLevelID('All')}
+                  className={`px-3 py-1.5 rounded-full ${filterYearLevelID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                  activeOpacity={0.7}
+                >
+                  <Text className={`text-xs ${filterYearLevelID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    All Years
+                  </Text>
+                </TouchableOpacity>
+                {yearLevels.map((yl: any) => {
+                  const id = String(yl.yearLevelID || yl.id);
+                  const name = yl.name || yl.yearLevel || '';
+                  return (
+                    <TouchableOpacity
+                      key={id}
+                      onPress={() => setFilterYearLevelID(id)}
+                      className={`px-3 py-1.5 rounded-full ${filterYearLevelID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                      activeOpacity={0.7}
+                    >
+                      <Text className={`text-xs ${filterYearLevelID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+
           <FlatList
             data={subjects}
             keyExtractor={(subject) => subject.subjectID?.toString() || Math.random().toString()}

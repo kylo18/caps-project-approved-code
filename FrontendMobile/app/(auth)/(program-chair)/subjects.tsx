@@ -73,10 +73,17 @@ export default function ProgramChairSubjectsScreen() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
   const [activeSubjectForMenu, setActiveSubjectForMenu] = useState<any>(null);
+  const [filterProgramID, setFilterProgramID] = useState<string>('All');
+  const [filterYearLevelID, setFilterYearLevelID] = useState<string>('All');
+
+  useEffect(() => {
+    fetchPrograms();
+    fetchYearLevels();
+  }, []);
 
   useEffect(() => {
     fetchSubjects(true);
-  }, []);
+  }, [filterProgramID, filterYearLevelID]);
 
   useEffect(() => {
     // Reset questions page and refetch when a new subject is selected
@@ -87,6 +94,8 @@ export default function ProgramChairSubjectsScreen() {
   }, [selectedSubject?.subjectID]);
 
   const fetchSubjects = async (reset = false) => {
+    const currentCursor = reset ? null : cursor;
+
     if (reset) {
       setIsLoading(true);
       setCursor(null);
@@ -96,7 +105,17 @@ export default function ProgramChairSubjectsScreen() {
     }
 
     try {
-      const url = cursor && !reset ? `/api/subjects?cursor=${cursor}` : '/api/subjects';
+      let url = '/api/subjects?limit=20';
+      if (currentCursor !== null) {
+        url += `&cursor=${currentCursor}`;
+      }
+      if (filterProgramID !== 'All') {
+        url += `&programID=${filterProgramID}`;
+      }
+      if (filterYearLevelID !== 'All') {
+        url += `&yearLevelID=${filterYearLevelID}`;
+      }
+
       const data = await apiRequest(url);
       const list = Array.isArray(data?.subjects) ? data.subjects : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
 
@@ -112,7 +131,11 @@ export default function ProgramChairSubjectsScreen() {
           setCursor(data?.cursor ?? list[list.length - 1].subjectID);
         }
       } else {
-        setSubjects(prev => [...prev, ...list]);
+        setSubjects(prev => {
+          const existing = new Set(prev.map((s: any) => s.subjectID));
+          const newUnique = list.filter((s: any) => !existing.has(s.subjectID));
+          return [...prev, ...newUnique];
+        });
         setHasMore(data?.hasMore === true);
         if (list.length > 0) {
           setCursor(data?.cursor ?? list[list.length - 1].subjectID);
@@ -457,6 +480,72 @@ export default function ProgramChairSubjectsScreen() {
             <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               Subject List ({subjects.length})
             </Text>
+
+            {/* Filters */}
+            <View className="mb-4 gap-2">
+              {/* Program Filter */}
+              <View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => setFilterProgramID('All')}
+                    className={`px-3 py-1.5 rounded-full ${filterProgramID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                    activeOpacity={0.7}
+                  >
+                    <Text className={`text-xs ${filterProgramID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      All Programs
+                    </Text>
+                  </TouchableOpacity>
+                  {programs.map((p: any) => {
+                    const id = String(p.programID || p.id);
+                    const name = p.programName || p.name || '';
+                    return (
+                      <TouchableOpacity
+                        key={id}
+                        onPress={() => setFilterProgramID(id)}
+                        className={`px-3 py-1.5 rounded-full ${filterProgramID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                        activeOpacity={0.7}
+                      >
+                        <Text className={`text-xs ${filterProgramID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* Year Level Filter */}
+              <View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => setFilterYearLevelID('All')}
+                    className={`px-3 py-1.5 rounded-full ${filterYearLevelID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                    activeOpacity={0.7}
+                  >
+                    <Text className={`text-xs ${filterYearLevelID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      All Years
+                    </Text>
+                  </TouchableOpacity>
+                  {yearLevels.map((yl: any) => {
+                    const id = String(yl.yearLevelID || yl.id);
+                    const name = yl.name || yl.yearLevel || '';
+                    return (
+                      <TouchableOpacity
+                        key={id}
+                        onPress={() => setFilterYearLevelID(id)}
+                        className={`px-3 py-1.5 rounded-full ${filterYearLevelID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                        activeOpacity={0.7}
+                      >
+                        <Text className={`text-xs ${filterYearLevelID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </View>
+
             {subjects.length === 0 ? (
               <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
                 <Ionicons name="book-outline" size={64} color="#FE6902" />

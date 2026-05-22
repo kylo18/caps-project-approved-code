@@ -42,10 +42,19 @@ export default function FacultySubjectsScreen() {
   const [isAssigning, setIsAssigning] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
   const [activeSubjectForMenu, setActiveSubjectForMenu] = useState<any>(null);
+  const [programs, setPrograms] = useState<any[]>([]);
+  const [yearLevels, setYearLevels] = useState<any[]>([]);
+  const [filterProgramID, setFilterProgramID] = useState<string>('All');
+  const [filterYearLevelID, setFilterYearLevelID] = useState<string>('All');
+
+  useEffect(() => {
+    fetchPrograms();
+    fetchYearLevels();
+  }, []);
 
   useEffect(() => {
     fetchSubjects(true);
-  }, []);
+  }, [filterProgramID, filterYearLevelID]);
 
   useEffect(() => {
     if (selectedSubject) {
@@ -65,7 +74,14 @@ export default function FacultySubjectsScreen() {
     }
 
     try {
-      const data = await apiRequest(`/api/faculty/my-subjects?limit=20&page=${currentPage}`);
+      let url = `/api/faculty/my-subjects?limit=20&page=${currentPage}`;
+      if (filterProgramID !== 'All') {
+        url += `&programID=${filterProgramID}`;
+      }
+      if (filterYearLevelID !== 'All') {
+        url += `&yearLevelID=${filterYearLevelID}`;
+      }
+      const data = await apiRequest(url);
       const list = Array.isArray(data?.data) ? data.data : Array.isArray(data?.subjects) ? data.subjects : Array.isArray(data) ? data : [];
       const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
 
@@ -110,6 +126,30 @@ export default function FacultySubjectsScreen() {
       setQuestions(Array.isArray(data?.data) ? data.data : Array.isArray(data?.questions) ? data.questions : Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching questions:', error);
+    }
+  };
+
+  const fetchPrograms = async () => {
+    try {
+      const res = await apiRequest('/api/programs');
+      const list = Array.isArray(res?.programs) ? res.programs :
+        Array.isArray(res?.data) ? res.data :
+        Array.isArray(res) ? res : [];
+      setPrograms(list);
+    } catch {
+      setPrograms([]);
+    }
+  };
+
+  const fetchYearLevels = async () => {
+    try {
+      const res = await apiRequest('/api/year-levels');
+      const list = Array.isArray(res?.year_levels) ? res.year_levels :
+        Array.isArray(res?.data) ? res.data :
+        Array.isArray(res) ? res : [];
+      setYearLevels(list);
+    } catch {
+      setYearLevels([]);
     }
   };
 
@@ -284,6 +324,72 @@ export default function FacultySubjectsScreen() {
             <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               Subject List ({subjects.length})
             </Text>
+
+            {/* Filters */}
+            <View className="mb-4 gap-2">
+              {/* Program Filter */}
+              <View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => setFilterProgramID('All')}
+                    className={`px-3 py-1.5 rounded-full ${filterProgramID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                    activeOpacity={0.7}
+                  >
+                    <Text className={`text-xs ${filterProgramID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      All Programs
+                    </Text>
+                  </TouchableOpacity>
+                  {programs.map((p: any) => {
+                    const id = String(p.programID || p.id);
+                    const name = p.programName || p.name || '';
+                    return (
+                      <TouchableOpacity
+                        key={id}
+                        onPress={() => setFilterProgramID(id)}
+                        className={`px-3 py-1.5 rounded-full ${filterProgramID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                        activeOpacity={0.7}
+                      >
+                        <Text className={`text-xs ${filterProgramID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* Year Level Filter */}
+              <View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => setFilterYearLevelID('All')}
+                    className={`px-3 py-1.5 rounded-full ${filterYearLevelID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                    activeOpacity={0.7}
+                  >
+                    <Text className={`text-xs ${filterYearLevelID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      All Years
+                    </Text>
+                  </TouchableOpacity>
+                  {yearLevels.map((yl: any) => {
+                    const id = String(yl.yearLevelID || yl.id);
+                    const name = yl.name || yl.yearLevel || '';
+                    return (
+                      <TouchableOpacity
+                        key={id}
+                        onPress={() => setFilterYearLevelID(id)}
+                        className={`px-3 py-1.5 rounded-full ${filterYearLevelID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                        activeOpacity={0.7}
+                      >
+                        <Text className={`text-xs ${filterYearLevelID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </View>
+
             {subjects.length === 0 ? (
               <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
                 <Ionicons name="book-outline" size={64} color="#FE6902" />
