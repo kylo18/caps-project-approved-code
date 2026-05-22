@@ -47,7 +47,68 @@ class AdminAnalyticsController extends Controller
             $query = $this->applyRoleBasedScope($query, $user);
             
             // Calculate summary metrics
-            $totalStudents = (clone $query)->count(DB::raw('DISTINCT practice_exam_results.userID'));
+            // Build query on users table to count total students scoped by role/campus/program
+            $studentCountQuery = DB::table('users')
+                ->where('roleID', 1)
+                ->where('isActive', true);
+
+            switch ($user->roleID) {
+                case 4: // Dean
+                case 5: // Associate Dean
+                    if ($user->campusID) {
+                        $studentCountQuery->where('campusID', $user->campusID);
+                    }
+                    break;
+                case 3: // Program Chair
+                case 2: // Faculty
+                    if ($user->campusID && $user->programID) {
+                        $studentCountQuery->where('campusID', $user->campusID)
+                                          ->where('programID', $user->programID);
+                    }
+                    break;
+                default:
+                    $studentCountQuery->whereRaw('1 = 0');
+            }
+            $totalStudents = $studentCountQuery->count();
+
+            // Program breakdown of students
+            $programQuery = DB::table('users')
+                ->join('programs', 'users.programID', '=', 'programs.programID')
+                ->where('users.roleID', 1)
+                ->where('users.isActive', true);
+
+            switch ($user->roleID) {
+                case 4: // Dean
+                case 5: // Associate Dean
+                    if ($user->campusID) {
+                        $programQuery->where('users.campusID', $user->campusID);
+                    }
+                    break;
+                case 3: // Program Chair
+                case 2: // Faculty
+                    if ($user->campusID && $user->programID) {
+                        $programQuery->where('users.campusID', $user->campusID)
+                                     ->where('users.programID', $user->programID);
+                    }
+                    break;
+                default:
+                    $programQuery->whereRaw('1 = 0');
+            }
+
+            $programStatsRaw = $programQuery
+                ->select('programs.programName', 'programs.programName2', DB::raw('count(users.userID) as count'))
+                ->groupBy('programs.programID', 'programs.programName', 'programs.programName2')
+                ->get();
+
+            $programStats = [];
+            foreach ($programStatsRaw as $ps) {
+                $programStats[] = [
+                    'programName' => $ps->programName,
+                    'programName2' => $ps->programName2,
+                    'count' => $ps->count
+                ];
+            }
+
             $totalExams = (clone $query)->count();
             $avgScore = (clone $query)->avg('percentage') ?? 0;
             
@@ -71,7 +132,8 @@ class AdminAnalyticsController extends Controller
                     'average_score' => round($avgScore, 2),
                     'pass_rate' => round($passRate / 100, 2),
                     'improvement_percentage' => round($improvement, 2),
-                    'fail_rate' => round((100 - $passRate) / 100, 4)
+                    'fail_rate' => round((100 - $passRate) / 100, 4),
+                    'program_stats' => $programStats
                 ]
             ], 200);
             

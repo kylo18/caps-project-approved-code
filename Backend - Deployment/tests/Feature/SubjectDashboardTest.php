@@ -11,7 +11,7 @@ use Laravel\Sanctum\Sanctum;
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
 // Helper to create a user manually since factories don't exist
-function createTestUser($roleID, $programID = null) {
+function createTestUser($roleID, $programID = 1) {
     // Ensure role exists
     DB::table('roles')->insertOrIgnore(['roleID' => $roleID, 'roleName' => 'Test Role']);
     // Ensure campus exists
@@ -60,6 +60,9 @@ function createTestSubject($programID, $subjectName) {
 // ──────────────────────────────────────────────
 
 test('student can fetch grouped dashboard subjects', function () {
+    dump('Default connection: ' . config('database.default'));
+    dump('Sqlite DB: ' . config('database.connections.sqlite.database'));
+    dump('MySQL DB: ' . config('database.connections.mysql.database'));
     $student = createTestUser(1, 1);
     Sanctum::actingAs($student);
 

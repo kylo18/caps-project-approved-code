@@ -201,16 +201,22 @@ class FacultySubjectController extends Controller
             $page    = max((int) $request->input('page', 1), 1);
             $offset  = ($page - 1) * $perPage;
 
-            $total = DB::table('faculty_subjects')
-                ->where('facultyID', $user->userID)
-                ->count();
-
-            $subjects = DB::table('subjects as s')
+            $query = DB::table('subjects as s')
                 ->join('faculty_subjects as fs', 's.subjectID', '=', 'fs.subjectID')
                 ->join('programs as p', 's.programID', '=', 'p.programID')
                 ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
-                ->where('fs.facultyID', $user->userID)
-                ->select(
+                ->where('fs.facultyID', $user->userID);
+
+            if ($request->has('programID') && $request->input('programID') !== 'All') {
+                $query->where('s.programID', $request->input('programID'));
+            }
+            if ($request->has('yearLevelID') && $request->input('yearLevelID') !== 'All') {
+                $query->where('s.yearLevelID', $request->input('yearLevelID'));
+            }
+
+            $total = $query->count();
+
+            $subjects = $query->select(
                     's.subjectID',
                     's.subjectCode',
                     's.subjectName',

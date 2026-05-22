@@ -32,8 +32,11 @@ COPY . .
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Fix: Remove invalid lock file and regenerate dependencies for Laravel 12
-RUN rm -f composer.lock && composer update --no-dev --optimize-autoloader --ignore-platform-reqs
+# Fix: Remove invalid lock file and reinstall dependencies for Laravel 12
+RUN rm -f composer.lock && composer install --no-dev --no-scripts --optimize-autoloader --ignore-platform-reqs
+
+# Install laravel/pail separately (it's in require-dev but registered in config/app.php for production use)
+RUN composer require --no-update laravel/pail:^1.2.2 && composer update laravel/pail --no-scripts --ignore-platform-reqs
 
 # Set correct permissions for storage and cache
 RUN chown -R www-data:www-data /var/www/html \

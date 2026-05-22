@@ -113,6 +113,14 @@ class SubjectController extends Controller
                     });
                 });
 
+            // Apply optional filters
+            if ($request->has('programID') && $request->input('programID') !== 'All') {
+                $query->where('s.programID', $request->input('programID'));
+            }
+            if ($request->has('yearLevelID') && $request->input('yearLevelID') !== 'All') {
+                $query->where('s.yearLevelID', $request->input('yearLevelID'));
+            }
+
             // Apply cursor (keyset pagination) for efficient scrolling
             if ($cursor !== null) {
                 $query->where('s.subjectID', '>', (int)$cursor);
