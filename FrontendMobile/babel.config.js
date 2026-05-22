@@ -5,5 +5,8 @@ module.exports = function (api) {
       ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
       'nativewind/babel',
     ],
+    plugins: [
+      ['transform-remove-console', { exclude: ['error', 'warn'] }],
+    ],
   };
 };

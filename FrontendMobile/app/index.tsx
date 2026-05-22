@@ -468,7 +468,15 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              <Text className="text-center text-xs mt-2" style={{ color: colors.textSecondary }}>Developed by <Text style={{ color: colors.primary }}>Team Caps</Text></Text>
+              <Text className="text-center text-xs mt-2" style={{ color: colors.textSecondary }}>
+                Developed by{' '}
+                <Text
+                  style={{ color: colors.primary, fontWeight: 'bold' }}
+                  onPress={() => router.push('/team-caps')}
+                >
+                  Team Caps
+                </Text>
+              </Text>
             </View>
           </View>
         </ScrollView>

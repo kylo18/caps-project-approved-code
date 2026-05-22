@@ -149,6 +149,7 @@ export default function RootLayout() {
               <Stack.Screen name="register" />
               <Stack.Screen name="forgot-password" />
               <Stack.Screen name="reset-password" />
+              <Stack.Screen name="team-caps" />
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             </Stack>
             <StatusBar hidden={isThreeButtonMode} style="light" translucent />

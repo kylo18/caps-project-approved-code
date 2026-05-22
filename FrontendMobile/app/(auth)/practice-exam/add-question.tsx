@@ -37,6 +37,7 @@ export default function AddQuestionForm() {
   const richText = useRef<RichEditor>(null);
 
   const subjectID = params.subjectID;
+  const personalQuizID = params.personalQuizID;
 
   const handleChoiceChange = (index: number, value: string) => {
     const newChoices = [...choices];
@@ -74,35 +75,59 @@ export default function AddQuestionForm() {
         { choiceText: 'None of the above', isCorrect: false },
       ];
 
-      // Add question with required backend fields
-      const questionRes = await apiRequest('/api/questions/add', {
-        method: 'POST',
-        body: {
-          subjectID: Number(subjectID),
-          questionText: questionText.trim(),
-          coverage_id: 1,
-          score: 1,
-          difficulty_id: 1,
-          status_id: 2,
-          purpose_id: 1,
-        },
-      });
-
-      const questionID = questionRes?.questionID || questionRes?.data?.questionID || questionRes?.data?.id;
-
-      // Add choices
-      if (questionID) {
-        await apiRequest('/api/questions/choices', {
+      if (personalQuizID) {
+        // ── Personal Quiz flow: add question to a quiz container ──
+        const questionRes = await apiRequest('/api/personal-quiz-questions', {
           method: 'POST',
           body: {
-            questionID: Number(questionID),
-            choices: allChoices,
+            personalQuizID: Number(personalQuizID),
+            questionText: questionText.trim(),
+            score: 1,
+            coverage_id: null,
           },
         });
-      }
+        const questionID = questionRes?.quizQuestion?.personalQuizQuestionID || questionRes?.personalQuizQuestionID || questionRes?.data?.personalQuizQuestionID;
+        if (questionID) {
+          await apiRequest('/api/personal-quiz-choices', {
+            method: 'POST',
+            body: {
+              personalQuizQuestionID: Number(questionID),
+              choices: allChoices.map((c) => ({ choiceText: c.choiceText, isCorrect: c.isCorrect ? 1 : 0 })),
+            },
+          });
+        }
+        showToast('Question added to quiz', 'success');
+        router.back();
+      } else {
+        // ── Legacy standalone question flow ──
+        const questionRes = await apiRequest('/api/questions/add', {
+          method: 'POST',
+          body: {
+            subjectID: Number(subjectID),
+            questionText: questionText.trim(),
+            coverage_id: 1,
+            score: 1,
+            difficulty_id: 1,
+            status_id: 2,
+            purpose_id: 1,
+          },
+        });
 
-      showToast('Question added successfully', 'success');
-      router.back();
+        const questionID = questionRes?.questionID || questionRes?.data?.questionID || questionRes?.data?.id;
+
+        if (questionID) {
+          await apiRequest('/api/questions/choices', {
+            method: 'POST',
+            body: {
+              questionID: Number(questionID),
+              choices: allChoices,
+            },
+          });
+        }
+
+        showToast('Question added successfully', 'success');
+        router.back();
+      }
     } catch (error: unknown) {
       const message = error instanceof Error && 'data' in error
         ? (error as { data?: { message?: string } }).data?.message || error.message || 'Failed to add question'
@@ -130,7 +155,7 @@ export default function AddQuestionForm() {
         <TouchableOpacity onPress={() => router.back()} className="p-2">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text className="text-xl font-bold" style={{ color: colors.text }}>Add Question</Text>
+        <Text className="text-xl font-bold" style={{ color: colors.text }}>{personalQuizID ? 'Add to Quiz' : 'Add Question'}</Text>
         <View style={{ width: 40 }} />
       </View>
 

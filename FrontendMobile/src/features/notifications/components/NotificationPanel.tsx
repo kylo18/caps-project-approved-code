@@ -3,8 +3,8 @@ import { View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import CapsActivityIndicator from '../../../features/core/components/CapsActivityIndicator';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { apiRequest } from '../../../../src/services/apiClient';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
+import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../../../../src/services/notificationService';
 
 export default function NotificationPanel({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const router = useRouter();
@@ -23,9 +23,8 @@ export default function NotificationPanel({ visible, onClose }: { visible: boole
   const fetchNotifications = async () => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/notifications');
-      const data = response?.data ?? response;
-      setNotifications(Array.isArray(data) ? data : []);
+      const { data } = await getNotifications();
+      setNotifications(data);
     } catch (error) {
       console.error('Failed to load notifications:', error);
       setNotifications([]);
@@ -37,7 +36,7 @@ export default function NotificationPanel({ visible, onClose }: { visible: boole
   const markAsRead = async (notificationID: any) => {
     if (!notificationID) return;
     try {
-      await apiRequest(`/api/notifications/${notificationID}/read`, { method: 'PATCH' });
+      await markNotificationRead(notificationID);
       setNotifications((prev: any[]) =>
         prev.map((n: any) => {
           const id = n.notificationID ?? n.id ?? n.notification_id;
@@ -51,7 +50,7 @@ export default function NotificationPanel({ visible, onClose }: { visible: boole
 
   const markAllAsRead = async () => {
     try {
-      await apiRequest('/api/notifications/mark-all-read', { method: 'POST' });
+      await markAllNotificationsRead();
       setNotifications((prev: any[]) => prev.map((n: any) => ({ ...n, isRead: true })));
     } catch (error) {
       console.error('Failed to mark all as read:', error);

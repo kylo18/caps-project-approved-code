@@ -533,7 +533,9 @@ export default function AdminReportsScreen({ role }: Props) {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           <TabButton label="Recent Takers" icon="time-outline" active={activeTab === 'recent'} onPress={() => setActiveTab('recent')} />
           <TabButton label="Leaderboard" icon="trophy-outline" active={activeTab === 'leaderboard'} onPress={() => setActiveTab('leaderboard')} />
-          <TabButton label="All Reports" icon="document-text-outline" active={activeTab === 'reports'} onPress={() => setActiveTab('reports')} />
+          {role !== 'faculty' && (
+            <TabButton label="All Reports" icon="document-text-outline" active={activeTab === 'reports'} onPress={() => setActiveTab('reports')} />
+          )}
         </ScrollView>
 
         {loading ? (

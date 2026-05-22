@@ -97,6 +97,8 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
 
   useEffect(() => {
     loadAll();
+    const interval = setInterval(loadAll, 30_000);
+    return () => clearInterval(interval);
   }, [loadAll]);
 
   useEffect(() => {

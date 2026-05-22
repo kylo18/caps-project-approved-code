@@ -30,11 +30,20 @@ export default function PracticeExamInfo() {
   const totalPoints = parseInt(params.totalPoints as string) || 0;
   const enableTimer = params.enableTimer === 'true';
   const durationMinutes = parseInt(params.durationMinutes as string) || 0;
+  const origin = (params.origin as string) || 'home';
 
   const handleStartExam = () => {
     router.push({
       pathname: '/(auth)/practice-exam/take',
-      params: { subjectID, subjectName, totalItems, totalPoints, enableTimer: String(enableTimer), durationMinutes: String(durationMinutes) }
+      params: { 
+        subjectID, 
+        subjectName, 
+        totalItems, 
+        totalPoints, 
+        enableTimer: String(enableTimer), 
+        durationMinutes: String(durationMinutes),
+        origin 
+      }
     });
   };
 

@@ -13,7 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,15 +45,58 @@ export default function FacultyDashboard() {
   const firstName = user?.firstName || 'Faculty';
   const lastName = user?.lastName || '';
 
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [quizTitle, setQuizTitle] = useState('');
+  const [quizTypeID, setQuizTypeID] = useState<number>(2); // 1 = subject-based, 2 = custom
+  const [quizSubjectID, setQuizSubjectID] = useState<number | null>(null);
+  const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleCreateQuiz = async () => {
+    if (!quizTitle.trim()) {
+      showToast('Please enter a quiz title', 'error');
+      return;
+    }
+    if (quizTypeID === 1 && !quizSubjectID) {
+      showToast('Please select a subject for subject-based quiz', 'error');
+      return;
+    }
+
+    setIsCreatingQuiz(true);
+    try {
+      const res = await apiRequest('/api/personal-quizzes', {
+        method: 'POST',
+        body: {
+          title: quizTitle.trim(),
+          quiz_type_id: quizTypeID,
+          subjectID: quizSubjectID || null,
+        },
+      });
+      const quizID = res?.quiz?.personalQuizID || res?.personalQuizID || res?.data?.personalQuizID;
+      setShowQuizModal(false);
+      setQuizTitle('');
+      setQuizTypeID(2);
+      setQuizSubjectID(null);
+      if (quizID) {
+        router.push({ pathname: '/(auth)/practice-exam/add-question', params: { personalQuizID: String(quizID), subjectID: quizSubjectID ? String(quizSubjectID) : undefined } });
+      } else {
+        showToast('Quiz created but could not navigate to add questions', 'success');
+      }
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to create quiz', 'error');
+    } finally {
+      setIsCreatingQuiz(false);
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
       // Fetch subjects assigned to this faculty member
-      const subjectsRes = await apiRequest('/api/subjects');
+      const subjectsRes = await apiRequest('/api/faculty/my-subjects');
       const subjectList = subjectsRes?.subjects || subjectsRes?.data || subjectsRes || [];
       setSubjects(Array.isArray(subjectList) ? subjectList : []);
 
@@ -106,7 +149,7 @@ export default function FacultyDashboard() {
   const quickActions = [
     { icon: 'layers' as const, label: 'My Classes', route: '/(auth)/(faculty)/classes', color: colors.orange },
     { icon: 'people' as const, label: 'Students', route: '/(auth)/(faculty)/users', color: '#3B82F6' },
-    { icon: 'create' as const, label: 'Create Quiz', route: '/(auth)/practice-exam/add-question', color: '#10B981' },
+    { icon: 'create' as const, label: 'Create Quiz', color: '#10B981', onPress: () => setShowQuizModal(true) },
     { icon: 'stats-chart' as const, label: 'Reports', route: '/(auth)/(faculty)/reports', color: '#8B5CF6' },
   ];
 
@@ -140,7 +183,7 @@ export default function FacultyDashboard() {
       key: 'quiz',
       icon: 'create-outline',
       label: 'Create Quiz',
-      onPress: () => router.push('/(auth)/practice-exam/add-question'),
+      onPress: () => setShowQuizModal(true),
     },
   ]);
 
@@ -265,7 +308,7 @@ export default function FacultyDashboard() {
               key={idx}
               className={`w-[48%] rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
               style={cardStyle}
-              onPress={() => router.push(action.route as string)}
+              onPress={() => action.onPress ? action.onPress() : router.push(action.route as string)}
               activeOpacity={0.7}
             >
               <View
@@ -333,6 +376,79 @@ export default function FacultyDashboard() {
           </>
         )}
       </ScrollView>
+
+      {/* Create Quiz Modal */}
+      <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
+          <View className={`rounded-t-3xl px-5 pt-5 pb-8 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+            <View className="flex-row items-center justify-between mb-5">
+              <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Quiz</Text>
+              <TouchableOpacity onPress={() => setShowQuizModal(false)}>
+                <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+              </TouchableOpacity>
+            </View>
+
+            <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Title</Text>
+            <TextInput
+              value={quizTitle}
+              onChangeText={setQuizTitle}
+              placeholder="Enter quiz title"
+              placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-50 text-gray-900 border-gray-200'}`}
+            />
+
+            <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Type</Text>
+            <View className="flex-row gap-3 mb-4">
+              {[ { id: 2, label: 'Custom' }, { id: 1, label: 'Subject-based' } ].map((type) => (
+                <TouchableOpacity
+                  key={type.id}
+                  onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
+                  className={`flex-1 rounded-xl px-4 py-3 border text-center ${quizTypeID === type.id ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                >
+                  <Text className={`font-semibold ${quizTypeID === type.id ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>{type.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {quizTypeID === 1 && (
+              <>
+                <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Select Subject</Text>
+                <ScrollView style={{ maxHeight: 160 }} className="mb-4">
+                  <View style={{ gap: 8 }}>
+                    {subjects.map((subject) => {
+                      const sid = subject.subjectID || subject.id;
+                      return (
+                        <TouchableOpacity
+                          key={sid}
+                          onPress={() => setQuizSubjectID(Number(sid))}
+                          className={`rounded-xl px-4 py-3 border ${quizSubjectID === sid ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                        >
+                          <Text className={`font-semibold ${quizSubjectID === sid ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {subject.subjectName || subject.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              </>
+            )}
+
+            <TouchableOpacity
+              onPress={handleCreateQuiz}
+              disabled={isCreatingQuiz}
+              className="bg-primary rounded-2xl py-4 items-center mt-2"
+              style={{ opacity: isCreatingQuiz ? 0.7 : 1 }}
+            >
+              {isCreatingQuiz ? (
+                <CapsActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-white font-semibold">Create & Add Questions</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

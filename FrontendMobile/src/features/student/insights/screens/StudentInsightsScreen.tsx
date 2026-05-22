@@ -1151,7 +1151,7 @@ export default function StudentInsightsScreen() {
                   setShowTrendModal(false);
                   router.push({
                     pathname: '/(auth)/practice-exam/exam-trend-chart',
-                    params: { data: JSON.stringify(trendData || []) },
+                    params: { data: JSON.stringify(trendData || []), origin: 'profile' },
                   });
                 }}
                 className="mt-3 rounded-[14px] py-3 items-center"

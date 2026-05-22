@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useMemo } from 'react';
-import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, Alert } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +20,8 @@ import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 import type { AdminToolAction } from '../../../src/features/admin/shared/components/AdminFloatingTools';
+import SubjectCard from '../../../src/features/subjects/components/SubjectCard';
+import BottomModal from '../../../src/features/core/components/BottomModal';
 
 export default function FacultySubjectsScreen() {
   const router = useRouter();
@@ -38,6 +40,8 @@ export default function FacultySubjectsScreen() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [availableSubjects, setAvailableSubjects] = useState<any[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [activeSubjectForMenu, setActiveSubjectForMenu] = useState<any>(null);
 
   useEffect(() => {
     fetchSubjects(true);
@@ -290,35 +294,16 @@ export default function FacultySubjectsScreen() {
               </View>
             ) : (
               subjects.map((subject) => (
-                <TouchableOpacity
+                <SubjectCard
                   key={subject.subjectID}
+                  subject={subject}
+                  role="faculty"
                   onPress={() => setSelectedSubject(subject)}
-                  className={`rounded-2xl p-4 mb-3 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-                  activeOpacity={0.7}
-                >
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-1 pr-3">
-                      <Text className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        {subject.subjectName || subject.name}
-                      </Text>
-                      {!!subject.subjectCode && (
-                        <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {subject.subjectCode}
-                        </Text>
-                      )}
-                    </View>
-                    <View className="flex-row items-center" style={{ gap: 10 }}>
-                      <TouchableOpacity
-                        onPress={() => handleRemoveSubject(subject)}
-                        className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-red-50'}`}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
-                      </TouchableOpacity>
-                      <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                  onMenuPress={() => {
+                    setActiveSubjectForMenu(subject);
+                    setShowActionModal(true);
+                  }}
+                />
               ))
             )}
             {isLoadingMore && (
@@ -451,6 +436,27 @@ export default function FacultySubjectsScreen() {
           </View>
         </View>
       </Modal>
+
+      <BottomModal
+        visible={showActionModal}
+        title="Subject Actions"
+        onClose={() => setShowActionModal(false)}
+      >
+        <TouchableOpacity
+          className="flex-row items-center py-4 border-b border-gray-200 dark:border-gray-800"
+          style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
+          onPress={() => {
+            setShowActionModal(false);
+            if (activeSubjectForMenu) {
+              handleRemoveSubject(activeSubjectForMenu);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="trash-outline" size={22} color="#EF4444" />
+          <Text className="text-base font-semibold ml-3" style={{ color: '#EF4444', marginLeft: 12 }}>Unassign Subject</Text>
+        </TouchableOpacity>
+      </BottomModal>
     </View>
   );
 }

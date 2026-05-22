@@ -135,6 +135,40 @@ export default function StudentDashboard() {
     [summary]
   );
 
+  const subjectStatsMap = useMemo(() => {
+    const stats: Record<number, { attemptsCount: number; averageScore: number; progress: number }> = {};
+    if (!Array.isArray(trend)) return stats;
+
+    const groups: Record<number, number[]> = {};
+    trend.forEach((item) => {
+      const subId = item?.subjectID ?? item?.subject_id;
+      if (subId != null) {
+        const score = item?.score_percentage ?? 0;
+        const numericId = Number(subId);
+        if (!groups[numericId]) {
+          groups[numericId] = [];
+        }
+        groups[numericId].push(score);
+      }
+    });
+
+    Object.keys(groups).forEach((subIdKey) => {
+      const subId = Number(subIdKey);
+      const scores = groups[subId];
+      const attemptsCount = scores.length;
+      const totalScore = scores.reduce((sum, val) => sum + val, 0);
+      const averageScore = attemptsCount > 0 ? totalScore / attemptsCount : 0;
+      const progress = averageScore / 100;
+      stats[subId] = {
+        attemptsCount,
+        averageScore,
+        progress,
+      };
+    });
+
+    return stats;
+  }, [trend]);
+
   useEffect(() => {
     loadDashboard();
     loadUnreadCount();
@@ -575,16 +609,24 @@ export default function StudentDashboard() {
                   <Text style={{ color: colors.textSoft }}>No practice subjects are available yet.</Text>
                 </View>
               ) : (
-                subjects.slice(0, 8).map((subject) => (
-                  <StudentExamCard
-                    key={subject.subjectID}
-                    title={subject.subjectName}
-                    subtitle={subject.subjectCode || 'GEN'}
-                    iconVariant={getSubjectVisualVariant(subject.subjectName)}
-                    subjectCode={subject.subjectCode}
-                    onPress={() => handleSubjectPress(subject)}
-                  />
-                ))
+                subjects.slice(0, 8).map((subject) => {
+                  const stats = subjectStatsMap[Number(subject.subjectID)];
+                  return (
+                    <StudentExamCard
+                      key={subject.subjectID}
+                      title={subject.subjectName}
+                      subtitle={subject.subjectCode || 'GEN'}
+                      iconVariant={getSubjectVisualVariant(subject.subjectName)}
+                      subjectCode={subject.subjectCode}
+                      onPress={() => handleSubjectPress(subject)}
+                      attemptsCount={stats?.attemptsCount}
+                      averageScore={stats?.averageScore}
+                      progress={stats?.progress}
+                      programName={subject.programName}
+                      yearLevel={subject.yearLevel}
+                    />
+                  );
+                })
               )}
             </View>
           </View>

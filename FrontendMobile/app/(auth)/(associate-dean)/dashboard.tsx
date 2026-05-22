@@ -303,7 +303,7 @@ export default function AssoDeanDashboard() {
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
             style={cardStyle}
-            onPress={() => router.push('/(auth)/(associate-dean)/reports')}
+            onPress={() => router.push('/(auth)/(associate-dean)/subjects')}
             activeOpacity={0.7}
           >
             <View
@@ -360,7 +360,7 @@ export default function AssoDeanDashboard() {
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
             style={cardStyle}
-            onPress={() => router.push('/(auth)/(associate-dean)/subjects')}
+            onPress={() => router.push('/(auth)/(associate-dean)/analytics')}
             activeOpacity={0.7}
           >
             <View
