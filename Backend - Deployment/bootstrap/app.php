@@ -29,11 +29,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return route('login');
         });
-        
-        // Add CORS middleware globally
-        $middleware->prepend(
-            HandleCors::class,
-        );
+
+        // Security headers injected as a terminating middleware into the api group
+        $middleware->api(append: [
+            \App\Http\Middleware\SecurityHeaders::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (AuthenticationException $e, Request $request) {

@@ -71,7 +71,7 @@ class AdminAnalyticsController extends Controller
                     'average_score' => round($avgScore, 2),
                     'pass_rate' => round($passRate / 100, 2),
                     'improvement_percentage' => round($improvement, 2),
-                    'fail_rate' => round((100 - $passRate) / 100, 2)
+                    'fail_rate' => round((100 - $passRate) / 100, 4)
                 ]
             ], 200);
             
@@ -265,7 +265,7 @@ class AdminAnalyticsController extends Controller
                     'total' => $total,
                     'passed' => $stats->passed ?? 0,
                     'failed' => $stats->failed ?? 0,
-                    'pass_rate' => $total > 0 ? round(($stats->passed / $total) * 100, 2) : 0,
+                    'pass_rate' => $total > 0 ? round($stats->passed / $total, 4) : 0,
                     'breakdown' => [
                         'excellent' => $stats->excellent ?? 0,  // 80%+
                         'good' => $stats->good ?? 0,            // 60-79%
@@ -689,8 +689,8 @@ class AdminAnalyticsController extends Controller
                         'total_exams' => $academicStats->total_exams ?? 0,
                         'student_count' => $academicStats->student_count ?? 0,
                         'average_score' => round($academicStats->avg_score ?? 0, 2),
-                        'pass_rate' => $academicStats->total_exams > 0 
-                            ? round(($academicStats->passed / $academicStats->total_exams) * 100, 2)
+                        'pass_rate' => $academicStats->total_exams > 0
+                            ? round($academicStats->passed / $academicStats->total_exams, 4)
                             : 0
                     ]
                 ]
@@ -832,8 +832,8 @@ class AdminAnalyticsController extends Controller
                             'total_exams' => $performance->total_exams,
                             'student_count' => $performance->student_count,
                             'average_score' => round($performance->avg_score, 2),
-                            'pass_rate' => $performance->total_exams > 0 
-                                ? round(($performance->passed / $performance->total_exams) * 100, 2)
+                            'pass_rate' => $performance->total_exams > 0
+                                ? round($performance->passed / $performance->total_exams, 4)
                                 : 0
                         ];
                     }),
