@@ -103,7 +103,8 @@ class SubjectController extends Controller
                     's.programID',
                     'p.programName',
                     's.yearLevelID',
-                    'yl.name as yearLevel'
+                    'yl.name as yearLevel',
+                    's.is_enabled_for_exam_questions'
                 )
                 ->when($user->roleID === 3, function ($q) use ($user) {
                     $q->where(function ($q2) use ($user) {
@@ -143,6 +144,7 @@ class SubjectController extends Controller
                     'programName' => $programName,
                     'yearLevelID' => $subject->yearLevelID,
                     'yearLevel' => $subject->yearLevel ?? 'N/A',
+                    'is_enabled_for_exam_questions' => (bool) $subject->is_enabled_for_exam_questions,
                 ];
             });
 
@@ -735,6 +737,7 @@ class SubjectController extends Controller
                     'programName' => $subject->program ? $subject->program->programName : 'Other',
                     'yearLevelID' => $subject->yearLevelID,
                     'yearLevel' => $subject->yearLevel ? $subject->yearLevel->name : null,
+                    'is_enabled_for_exam_questions' => (bool) $subject->is_enabled_for_exam_questions,
                 ];
             });
 
