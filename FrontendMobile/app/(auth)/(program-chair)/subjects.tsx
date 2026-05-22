@@ -31,6 +31,8 @@ import { showToast } from '../../../src/hooks/useToast';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 import type { AdminToolAction } from '../../../src/features/admin/shared/components/AdminFloatingTools';
 import PrintExamModal from '../../../src/features/practice/components/PrintExamModal';
+import SubjectCard from '../../../src/features/subjects/components/SubjectCard';
+import BottomModal from '../../../src/features/core/components/BottomModal';
 
 const TABS = [
   { key: 'practice', label: 'Practice' },
@@ -69,6 +71,8 @@ export default function ProgramChairSubjectsScreen() {
   const [programs, setPrograms] = useState<any[]>([]);
   const [yearLevels, setYearLevels] = useState<any[]>([]);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [activeSubjectForMenu, setActiveSubjectForMenu] = useState<any>(null);
 
   useEffect(() => {
     fetchSubjects(true);
@@ -464,42 +468,16 @@ export default function ProgramChairSubjectsScreen() {
             ) : (
               <>
                 {subjects.map((subject) => (
-                  <TouchableOpacity
+                  <SubjectCard
                     key={String(subject.subjectID)}
+                    subject={subject}
+                    role="program_chair"
                     onPress={() => setSelectedSubject(subject)}
-                    className={`rounded-2xl p-4 mb-3 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-                    activeOpacity={0.7}
-                  >
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1 pr-3">
-                        <Text className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                          {subject.subjectName || subject.name}
-                        </Text>
-                        {!!subject.subjectCode && (
-                          <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {subject.subjectCode}
-                          </Text>
-                        )}
-                      </View>
-                      <View className="flex-row items-center" style={{ gap: 10 }}>
-                        <TouchableOpacity
-                          onPress={() => openEditSubject(subject)}
-                          className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-orange-50'}`}
-                          activeOpacity={0.7}
-                        >
-                          <Ionicons name="create-outline" size={18} color="#FE6902" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => handleDeleteSubject(subject)}
-                          className={`w-9 h-9 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-red-50'}`}
-                          activeOpacity={0.7}
-                        >
-                          <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                        </TouchableOpacity>
-                        <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
+                    onMenuPress={() => {
+                      setActiveSubjectForMenu(subject);
+                      setShowActionModal(true);
+                    }}
+                  />
                 ))}
                 {isLoadingMore ? (
                     <View className="py-4 items-center">
@@ -703,6 +681,42 @@ export default function ProgramChairSubjectsScreen() {
           </View>
         </View>
       </Modal>
+
+      <BottomModal
+        visible={showActionModal}
+        title="Subject Actions"
+        onClose={() => setShowActionModal(false)}
+      >
+        <TouchableOpacity
+          className="flex-row items-center py-4 border-b border-gray-200 dark:border-gray-800"
+          style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
+          onPress={() => {
+            setShowActionModal(false);
+            if (activeSubjectForMenu) {
+              openEditSubject(activeSubjectForMenu);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="create-outline" size={22} color={isDark ? '#fff' : '#111827'} />
+          <Text className="text-base font-semibold ml-3" style={{ color: isDark ? '#fff' : '#111827', marginLeft: 12 }}>Edit Subject Info</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="flex-row items-center py-4"
+          style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
+          onPress={() => {
+            setShowActionModal(false);
+            if (activeSubjectForMenu) {
+              handleDeleteSubject(activeSubjectForMenu);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="trash-outline" size={22} color="#EF4444" />
+          <Text className="text-base font-semibold ml-3" style={{ color: '#EF4444', marginLeft: 12 }}>Delete Subject</Text>
+        </TouchableOpacity>
+      </BottomModal>
     </View>
   );
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React from 'react';
 import {
     FlatList,
     Pressable,
@@ -34,9 +35,8 @@ type TabKey = 'overview' | 'students' | 'analytics';
 
 const PROGRAMS = ['All', 'BSCpE', 'CE', 'ECE', 'EE'];
 const YEARS = ['All', '1st Year', '2nd Year', '3rd Year', '4th Year'];
-// Score data is not returned by /users. The backend route /results/all-students
-// references a non-existent controller method, and AdminAnalyticsController has no
-// per-student score endpoint. If exam scores become available, re-enable filtering.
+// Scores are fetched separately from /api/admin/analytics/student-scores and merged
+// into student objects. Students without exam data will show "—" for scores.
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -292,6 +292,75 @@ function ProgressLineChart({
     );
 }
 
+const StudentListItem = React.memo(({ student, index, isDark }: {
+    student: any;
+    index: number;
+    isDark: boolean;
+}) => {
+    const name = `${student.firstName ?? ''} ${student.lastName ?? ''}`.trim() || `Student ${index + 1}`;
+    const program = normalizeProgram(student.program || student.programName) || 'Unassigned';
+    const email = student.email || 'No email';
+    const isActive = student.isActive ?? true;
+    const rawScore = student.average_score ?? student.score ?? student.latest_score ?? student.overall_score ?? null;
+    const hasScore = Number.isFinite(Number(rawScore)) && Number(rawScore) > 0;
+    const scoreDisplay = hasScore ? fmtPct(Number(rawScore)) : '—';
+    const scoreColorValue = hasScore ? scoreColor(Number(rawScore)) : (isDark ? '#6B7280' : '#9CA3AF');
+
+    return (
+        <View className="rounded-[24px] p-4 mb-3" style={{ backgroundColor: isDark ? '#111827' : '#FFFFFF' }}>
+            <View className="flex-row items-start justify-between">
+                <View className="flex-row items-center flex-1 mr-3">
+                    <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#FFF0E0' }}>
+                        <Text className="text-[13px] font-bold" style={{ color: '#C45E10' }}>
+                            {initials(name)}
+                        </Text>
+                    </View>
+                    <View className="flex-1">
+                        <Text className="text-[15px] font-bold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                            {name}
+                        </Text>
+                        <Text className="text-[12px] mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                            {email}
+                        </Text>
+                    </View>
+                </View>
+                <View className="rounded-full px-3 py-1" style={{ backgroundColor: isActive ? '#DCFCE7' : '#FEE2E2' }}>
+                    <Text style={{ color: isActive ? '#166534' : '#991B1B', fontSize: 11, fontWeight: '700' }}>
+                        {isActive ? 'Active' : 'Inactive'}
+                    </Text>
+                </View>
+            </View>
+
+            <View className="flex-row justify-between mt-4 pt-3" style={{ borderTopWidth: 1, borderTopColor: isDark ? '#1F2937' : '#F3F4F6' }}>
+                <View>
+                    <Text className="text-[11px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                        Program
+                    </Text>
+                    <Text className="text-[14px] font-semibold mt-0.5" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                        {program}
+                    </Text>
+                </View>
+                <View>
+                    <Text className="text-[11px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                        Score
+                    </Text>
+                    <Text className="text-[14px] font-semibold mt-0.5" style={{ color: scoreColorValue }}>
+                        {scoreDisplay}
+                    </Text>
+                </View>
+                <View>
+                    <Text className="text-[11px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                        Status
+                    </Text>
+                    <Text className="text-[14px] font-semibold mt-0.5" style={{ color: isActive ? '#10B981' : '#EF4444' }}>
+                        {isActive ? 'Active' : 'Inactive'}
+                    </Text>
+                </View>
+            </View>
+        </View>
+    );
+});
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'overview' }: { role: Role; initialTab?: TabKey }) {
@@ -306,6 +375,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     const [error, setError] = useState<string | null>(null);
 
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [activeProgram, setActiveProgram] = useState('All');
     // const [statusFilter, setStatusFilter] = useState<'all'>('all');
 
@@ -323,6 +393,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     const [studentPage, setStudentPage] = useState(1);
     const [hasMoreStudents, setHasMoreStudents] = useState(true);
     const [loadingMoreStudents, setLoadingMoreStudents] = useState(false);
+    const [loadingStudentsTab, setLoadingStudentsTab] = useState(false);
     const [studentScores, setStudentScores] = useState<Map<number | string, number>>(new Map());
     const [activeYear, setActiveYear] = useState('All');
 
@@ -355,6 +426,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     const fetchStudents = useCallback(async () => {
         if (fetchedTabs.current.has('students')) return;
         fetchedTabs.current.add('students');
+        setLoadingStudentsTab(true);
         try {
             const [usersRes, scoresRes] = await Promise.all([
                 apiRequest('/api/users?role=Student&limit=20&page=1'),
@@ -390,6 +462,8 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
             console.error('Failed to fetch students:', e);
             setStudents([]);
             setStudentCount(0);
+        } finally {
+            setLoadingStudentsTab(false);
         }
     }, []);
 
@@ -397,6 +471,11 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
         if (activeTab === 'overview' || activeTab === 'analytics') fetchOverview();
         else if (activeTab === 'students') fetchStudents();
     }, [activeTab, fetchOverview, fetchStudents]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(search), 300);
+        return () => clearTimeout(timer);
+    }, [search]);
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
@@ -494,9 +573,9 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
             const matchesProgram = activeProgram === 'All' || program === activeProgram;
             const name = `${student.firstName ?? ''} ${student.lastName ?? ''}`.trim();
             const matchesSearch =
-                !search.trim() ||
-                name.toLowerCase().includes(search.toLowerCase()) ||
-                String(student.email ?? '').toLowerCase().includes(search.toLowerCase());
+                !debouncedSearch.trim() ||
+                name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                String(student.email ?? '').toLowerCase().includes(debouncedSearch.toLowerCase());
             const yearValue = student.yearLevel ?? student.student_profile?.year_level ?? student.studentProfile?.yearLevel;
             const yearNum = Number(yearValue);
             const yearMap: Record<number, string> = { 1: '1st Year', 2: '2nd Year', 3: '3rd Year', 4: '4th Year' };
@@ -504,7 +583,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
             const matchesYear = activeYear === 'All' || yearLabel === activeYear;
             return matchesProgram && matchesSearch && matchesYear;
         });
-    }, [activeProgram, activeYear, search, students]);
+    }, [activeProgram, activeYear, debouncedSearch, students]);
 
     const topSubjects = useMemo(() => {
         return subjects
@@ -760,7 +839,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                                                     </Text>
                                                 </View>
                                                 <Text className="text-[13px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                    {fmtPct(passFail.pass_rate)}
+                                                    {Math.round(passFail.pass_rate)}%
                                                 </Text>
                                             </View>
                                         </View>
@@ -911,115 +990,45 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                             </Text>
                         </SectionCard>
 
-                        <FlatList
-                            data={filteredStudents}
-                            keyExtractor={(item, index) => `${item.userID ?? item.id ?? 'student'}-${index}`}
-                            renderItem={({ item: student, index }) => {
-                                const name = `${student.firstName ?? ''} ${student.lastName ?? ''}`.trim() || `Student ${index + 1}`;
-                                const program = normalizeProgram(student.program || student.programName) || 'Unassigned';
-                                const email = student.email || 'No email';
-                                const isActive = student.isActive ?? true;
-                                const rawScore = student.average_score ?? student.score ?? student.latest_score ?? student.overall_score ?? null;
-                                const hasScore = Number.isFinite(Number(rawScore)) && Number(rawScore) > 0;
-                                const scoreDisplay = hasScore ? fmtPct(Number(rawScore)) : '—';
-                                const scoreColorValue = hasScore ? scoreColor(Number(rawScore)) : (isDark ? '#6B7280' : '#9CA3AF');
-
-                                return (
-                                    <View
-                                        className="rounded-[24px] p-4 mb-3"
-                                        style={{ backgroundColor: isDark ? '#111827' : '#FFFFFF' }}
-                                    >
-                                        <View className="flex-row items-start justify-between">
-                                            <View className="flex-row items-center flex-1 mr-3">
-                                                <View
-                                                    className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                                                    style={{ backgroundColor: '#FFF0E0' }}
-                                                >
-                                                    <Text className="text-[13px] font-bold" style={{ color: '#C45E10' }}>
-                                                        {initials(name)}
-                                                    </Text>
-                                                </View>
-                                                <View className="flex-1">
-                                                    <Text className="text-[15px] font-bold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                        {name}
-                                                    </Text>
-                                                    <Text className="text-[12px] mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                                        {email}
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                            <View
-                                                className="rounded-full px-3 py-1"
-                                                style={{ backgroundColor: isActive ? '#DCFCE7' : '#FEE2E2' }}
-                                            >
-                                                <Text
-                                                    style={{
-                                                        color: isActive ? '#166534' : '#991B1B',
-                                                        fontSize: 11,
-                                                        fontWeight: '700',
-                                                    }}
-                                                >
-                                                    {isActive ? 'Active' : 'Inactive'}
-                                                </Text>
-                                            </View>
+                        {loadingStudentsTab && students.length === 0 ? (
+                            <View className="flex-1 justify-center items-center py-20">
+                                <CapsActivityIndicator size="large" color="#FE6902" />
+                            </View>
+                        ) : (
+                            <FlatList
+                                data={filteredStudents}
+                                keyExtractor={(item, index) => `${item.userID ?? item.id ?? 'student'}-${index}`}
+                                renderItem={({ item, index }) => (
+                                    <StudentListItem student={item} index={index} isDark={isDark} />
+                                )}
+                                ListEmptyComponent={
+                                    <SectionCard title="Students" isDark={isDark}>
+                                        <EmptyState
+                                            icon="people-outline"
+                                            title="No students found"
+                                            subtitle="Try adjusting your filters or check back later."
+                                            isDark={isDark}
+                                        />
+                                    </SectionCard>
+                                }
+                                ListFooterComponent={
+                                    loadingMoreStudents ? (
+                                        <View className="py-4 items-center">
+                                            <CapsActivityIndicator size="small" color="#FE6902" />
+                                            <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                                Loading more...
+                                            </Text>
                                         </View>
-
-                                        <View className="flex-row justify-between mt-4 pt-3" style={{ borderTopWidth: 1, borderTopColor: isDark ? '#1F2937' : '#F3F4F6' }}>
-                                            <View>
-                                                <Text className="text-[11px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                                    Program
-                                                </Text>
-                                                <Text className="text-[14px] font-semibold mt-0.5" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                    {program}
-                                                </Text>
-                                            </View>
-                                            <View>
-                                                <Text className="text-[11px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                                    Score
-                                                </Text>
-                                                <Text className="text-[14px] font-semibold mt-0.5" style={{ color: scoreColorValue }}>
-                                                    {scoreDisplay}
-                                                </Text>
-                                            </View>
-                                            <View>
-                                                <Text className="text-[11px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                                    Status
-                                                </Text>
-                                                <Text className="text-[14px] font-semibold mt-0.5" style={{ color: isActive ? '#10B981' : '#EF4444' }}>
-                                                    {isActive ? 'Active' : 'Inactive'}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    </View>
-                                );
-                            }}
-                            ListEmptyComponent={
-                                <SectionCard title="Students" isDark={isDark}>
-                                    <EmptyState
-                                        icon="people-outline"
-                                        title="No students found"
-                                        subtitle="Try adjusting your filters or check back later."
-                                        isDark={isDark}
-                                    />
-                                </SectionCard>
-                            }
-                            ListFooterComponent={
-                                loadingMoreStudents ? (
-                                    <View className="py-4 items-center">
-                                        <CapsActivityIndicator size="small" color="#FE6902" />
-                                        <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                            Loading more...
-                                        </Text>
-                                    </View>
-                                ) : null
-                            }
-                            onEndReached={loadMoreStudents}
-                            onEndReachedThreshold={0.5}
-                            removeClippedSubviews
-                            maxToRenderPerBatch={10}
-                            windowSize={5}
-                            initialNumToRender={10}
-                        />
+                                    ) : null
+                                }
+                                onEndReached={loadMoreStudents}
+                                onEndReachedThreshold={0.5}
+                                removeClippedSubviews
+                                maxToRenderPerBatch={10}
+                                windowSize={5}
+                                initialNumToRender={10}
+                            />
+                        )}
                     </View>
                 ) : null}
 

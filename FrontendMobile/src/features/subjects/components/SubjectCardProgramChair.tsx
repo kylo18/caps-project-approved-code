@@ -1,41 +1,20 @@
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../../src/services/apiClient';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
 import { showToast } from '../../../../src/hooks/useToast';
-
-// Rotating icon pool — visually varied, subject-agnostic, consistent per subjectCode
-const ICON_POOL = [
-  'book-outline',
-  'library-outline',
-  'school-outline',
-  'albums-outline',
-  'documents-outline',
-  'grid-outline',
-  'layers-outline',
-  'layers',
-];
-
-const getSubjectIcon = (subjectCode?: string | null): string => {
-  const code = subjectCode ?? '';
-  const index = code.split('').reduce((sum, c) => sum + c.charCodeAt(0), 0) % ICON_POOL.length;
-  return ICON_POOL[index];
-};
+import SubjectCard from './SubjectCard';
+import BottomModal from '../../core/components/BottomModal';
 
 export default function SubjectCardProgramChair({ subject, onDelete, onPress }: { subject?: any; onDelete?: (id?: number | string) => void; onPress?: () => void }) {
+  const [showMenu, setShowMenu] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const colors = {
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    orange: '#FE6902',
-    red: '#EF4444',
-  };
-
   const handleDelete = () => {
-    Alert.alert('Delete Subject', `Are you sure you want to delete ${subject?.subjectName}?`, [
+    setShowMenu(false);
+    Alert.alert('Delete Subject', `Are you sure you want to delete ${subject?.subjectName || subject?.name}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -54,22 +33,28 @@ export default function SubjectCardProgramChair({ subject, onDelete, onPress }: 
   };
 
   return (
-    <TouchableOpacity
-      className="flex-row items-center rounded-2xl p-4 gap-3 mb-2.5"
-      style={{ backgroundColor: colors.card }}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: '#FEF3C7' }}>
-        <Ionicons name={getSubjectIcon(subject?.subjectCode)} size={24} color={colors.orange} />
-      </View>
-      <View className="flex-1">
-        <Text className="text-base font-bold" numberOfLines={1} style={{ color: colors.text }}>{subject?.subjectName || 'Unknown Subject'}</Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>{subject?.subjectCode || 'GEN'}</Text>
-      </View>
-      <TouchableOpacity className="p-1.5" onPress={handleDelete} activeOpacity={0.7}>
-        <Ionicons name="trash" size={20} color={colors.red} />
-      </TouchableOpacity>
-    </TouchableOpacity>
+    <>
+      <SubjectCard
+        subject={subject}
+        role="program_chair"
+        onPress={onPress}
+        onMenuPress={() => setShowMenu(true)}
+      />
+      <BottomModal
+        visible={showMenu}
+        title="Subject Actions"
+        onClose={() => setShowMenu(false)}
+      >
+        <TouchableOpacity
+          className="flex-row items-center py-4 border-b border-gray-200 dark:border-gray-800"
+          style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
+          onPress={handleDelete}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="trash-outline" size={22} color="#EF4444" />
+          <Text className="text-base font-semibold ml-3" style={{ color: '#EF4444', marginLeft: 12 }}>Delete Subject</Text>
+        </TouchableOpacity>
+      </BottomModal>
+    </>
   );
 }

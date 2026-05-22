@@ -30,6 +30,7 @@ import QuestionListModal from '../../../src/features/practice/components/Questio
 import { addBookmark, removeBookmark } from '../../../src/services/studentBookmarkService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
+import ConfirmModal from '../../../src/features/core/components/ConfirmModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -142,6 +143,8 @@ export default function PracticeExamScreen() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const origin = (params.origin as string) || 'home';
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerActiveRef = useRef(false); // prevents duplicate timer intervals
@@ -418,7 +421,7 @@ export default function PracticeExamScreen() {
           subjectName,
           totalItems: questions.length,
           resultId: resultId ? String(resultId) : '',
-          origin: 'home',
+          origin: origin,
         }
       });
     } catch (err: any) {
@@ -556,9 +559,12 @@ export default function PracticeExamScreen() {
                 )}
               </View>
             </View>
-            <View className="flex-row gap-2">
+            <View className="flex-row gap-2 items-center">
               <TouchableOpacity className="p-2" onPress={() => setIsQuestionListOpen(true)}>
                 <Ionicons name="list" size={22} color={colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity className="p-2" onPress={() => setShowExitModal(true)}>
+                <Ionicons name="close" size={24} color="#EF4444" />
               </TouchableOpacity>
             </View>
           </View>
@@ -724,6 +730,19 @@ export default function PracticeExamScreen() {
             shadow={shadow}
           />
           <ImageModal />
+          <ConfirmModal
+            visible={showExitModal}
+            title="Exit Practice Exam?"
+            message="Are you sure you want to exit?"
+            confirmText="Exit"
+            cancelText="Cancel"
+            onConfirm={async () => {
+              await clearExamData();
+              setShowExitModal(false);
+              router.replace('/(auth)/(student)/dashboard');
+            }}
+            onCancel={() => setShowExitModal(false)}
+          />
           <QuestionListModal
             visible={isQuestionListOpen}
             onClose={() => setIsQuestionListOpen(false)}

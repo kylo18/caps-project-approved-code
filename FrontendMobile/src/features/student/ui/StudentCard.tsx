@@ -57,6 +57,11 @@ export type StudentExamCardProps = {
   iconVariant?: 'bars' | 'formula' | 'grid';
   highlight?: boolean;
   subjectCode?: string | null;
+  progress?: number;
+  averageScore?: number;
+  attemptsCount?: number;
+  programName?: string;
+  yearLevel?: string;
 };
 
 export function StudentExamCard({
@@ -66,6 +71,11 @@ export function StudentExamCard({
   iconVariant,
   highlight = false,
   subjectCode,
+  progress,
+  averageScore,
+  attemptsCount,
+  programName,
+  yearLevel,
 }: StudentExamCardProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -73,10 +83,12 @@ export function StudentExamCard({
   const shadow = getStudentShadow(isDark);
   const iconName = subjectCode ? getSubjectIcon(subjectCode) : 'book-outline';
 
+  const badgeBg = isDark ? '#2A2A2A' : '#F3F4F6';
+
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center rounded-[20px] px-2 py-2 border-2"
+      className="flex-row items-center rounded-[20px] px-3 py-3 border-2"
       style={[
         {
           backgroundColor: highlight ? colors.statsCard : colors.card,
@@ -87,19 +99,58 @@ export function StudentExamCard({
       ]}
     >
       <SubjectTile iconVariant={iconVariant} iconName={iconName} colors={colors} />
-      <View className="flex-1 gap-1.5">
-        <Text numberOfLines={1} className="text-base font-medium" style={{ color: colors.text }}>
+      <View className="flex-1 gap-1">
+        <Text numberOfLines={1} className="text-base font-semibold" style={{ color: colors.text }}>
           {title}
         </Text>
         <Text numberOfLines={1} className="text-xs" style={{ color: colors.textSoft }}>
           {subtitle}
         </Text>
+
+        {/* Metadata Badges */}
+        {(programName || yearLevel) && (
+          <View className="flex-row flex-wrap gap-1 mt-1">
+            {programName && (
+              <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: badgeBg }}>
+                <Text className="text-[10px] font-bold" style={{ color: colors.textSoft }}>
+                  {programName}
+                </Text>
+              </View>
+            )}
+            {yearLevel && (
+              <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: badgeBg }}>
+                <Text className="text-[10px] font-bold" style={{ color: colors.textSoft }}>
+                  Yr {yearLevel}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Metrics Row */}
+        {attemptsCount !== undefined && averageScore !== undefined && (
+          <Text className="text-[11px] font-semibold mt-1" style={{ color: colors.orange }}>
+            {attemptsCount} attempt{attemptsCount !== 1 ? 's' : ''} • {Math.round(averageScore)}% Avg
+          </Text>
+        )}
+
+        {/* Progress Bar */}
+        {progress !== undefined && (
+          <View className="w-full h-1.5 rounded-full overflow-hidden mt-1.5" style={{ backgroundColor: isDark ? '#2A2A2A' : '#E7E8EF' }}>
+            <View
+              className="h-full rounded-full"
+              style={{
+                width: `${Math.min(100, Math.max(0, progress * 100))}%`,
+                backgroundColor: colors.orange,
+              }}
+            />
+          </View>
+        )}
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.orange} />
     </Pressable>
   );
 }
-
 export function getSubjectVisualVariant(input?: string | null): StudentExamCardProps['iconVariant'] {
   const label = input?.toLowerCase() ?? '';
   if (label.includes('program') || label.includes('database') || label.includes('logic')) return 'grid';

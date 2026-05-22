@@ -47,6 +47,8 @@ export default function ClassesScreen({
 
   useEffect(() => {
     loadClasses();
+    const interval = setInterval(loadClasses, 30_000);
+    return () => clearInterval(interval);
   }, [loadClasses]);
 
   const filteredClasses = useMemo(() => {

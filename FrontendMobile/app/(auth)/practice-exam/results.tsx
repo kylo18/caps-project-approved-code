@@ -48,6 +48,7 @@ export default function PracticeExamResults() {
   const [examDuration, setExamDuration] = useState(params.examDuration as string);
   const [startTime, setStartTime] = useState(params.startTime as string);
   const [endTime, setEndTime] = useState(params.endTime as string);
+  const [subjectID, setSubjectID] = useState((params.subjectID as string) || '');
 
   useEffect(() => {
     if (resultId) {
@@ -69,6 +70,7 @@ export default function PracticeExamResults() {
       setExamDuration(data?.examDuration ?? data?.duration ?? null);
       setStartTime(data?.startTime ?? null);
       setEndTime(data?.created_at ?? data?.endTime ?? null);
+      setSubjectID(String(data?.subjectID ?? data?.subject_id ?? params.subjectID ?? ''));
 
       const results = data?.results || [];
       setExamResults(results);
@@ -389,7 +391,15 @@ export default function PracticeExamResults() {
             style={{ backgroundColor: colors.orange, elevation: 4 }}
             onPress={() => router.replace({
               pathname: '/(auth)/practice-exam/info',
-              params: { subjectName, totalItems: String(totalItems), totalPoints: String(totalPoints), enableTimer: 'true', durationMinutes: '60' }
+              params: {
+                subjectID,
+                subjectName,
+                totalItems: String(totalItems),
+                totalPoints: String(totalPoints),
+                enableTimer: 'true',
+                durationMinutes: '60',
+                origin
+              }
             })}
             activeOpacity={0.9}
           >

@@ -290,7 +290,7 @@ export default function ProgramChairDashboard() {
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
             style={cardStyle}
-            onPress={() => router.push('/(auth)/(program-chair)/reports')}
+            onPress={() => router.push('/(auth)/(program-chair)/subjects')}
             activeOpacity={0.7}
           >
             <Ionicons name="library" size={28} color={colors.orange} />
@@ -332,7 +332,7 @@ export default function ProgramChairDashboard() {
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
             style={cardStyle}
-            onPress={() => router.push('/(auth)/(program-chair)/subjects')}
+            onPress={() => router.push('/(auth)/(program-chair)/reports')}
             activeOpacity={0.7}
           >
             <Ionicons name="document-text" size={28} color="#8B5CF6" />

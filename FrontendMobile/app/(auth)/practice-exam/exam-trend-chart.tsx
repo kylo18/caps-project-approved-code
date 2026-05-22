@@ -30,7 +30,9 @@ export default function ExamTrendChartScreen() {
   const shadow = getStudentShadow(isDark);
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { data } = useLocalSearchParams<{ data?: string }>();
+  const params = useLocalSearchParams<{ data?: string; origin?: string }>();
+  const data = params.data;
+  const origin = params.origin || 'profile';
 
   const allData: ExamEntry[] = useMemo(() => {
     if (!data) return [];
@@ -243,10 +245,19 @@ export default function ExamTrendChartScreen() {
                   ? '#F59E0B'
                   : '#EF4444';
               return (
-                <View
+                <TouchableOpacity
                   key={`${entry.result_id ?? entry.attempt_id ?? idx}`}
                   className="flex-row items-center p-3 rounded-2xl mb-2 border"
                   style={{ backgroundColor: colors.card, borderColor: colors.border }}
+                  onPress={() => {
+                    if (entry.result_id) {
+                      router.push({
+                        pathname: '/(auth)/practice-exam/results',
+                        params: { resultId: entry.result_id, origin },
+                      });
+                    }
+                  }}
+                  disabled={!entry.result_id}
                 >
                   <View
                     className="w-10 h-10 rounded-full items-center justify-center"
@@ -269,7 +280,7 @@ export default function ExamTrendChartScreen() {
                     className="w-1.5 h-1.5 rounded-full"
                     style={{ backgroundColor: scoreColor }}
                   />
-                </View>
+                </TouchableOpacity>
               );
             })}
           </View>
