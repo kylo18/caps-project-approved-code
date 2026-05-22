@@ -47,6 +47,16 @@ export default function PracticeExamInfo() {
     });
   };
 
+  const handleBack = () => {
+    if (origin === 'profile') {
+      router.replace('/(auth)/(student)/insights');
+    } else if (origin === 'search') {
+      router.replace('/(auth)/(student)/search');
+    } else {
+      router.replace('/(auth)/(student)/dashboard');
+    }
+  };
+
   const colors = {
     bg: themeColors.page,
     card: themeColors.card,
@@ -79,7 +89,7 @@ export default function PracticeExamInfo() {
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="flex-row items-center mb-6" style={{ paddingTop: insets.top + 8 }}>
-          <TouchableOpacity onPress={() => router.back()} className="p-2 mr-3">
+          <TouchableOpacity onPress={handleBack} className="p-2 mr-3">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text className="text-2xl font-bold" style={{ color: colors.text }}>Exam Information</Text>
@@ -151,7 +161,7 @@ export default function PracticeExamInfo() {
           <TouchableOpacity
             className="py-3.5 rounded-xl items-center border"
             style={{ borderColor: colors.border }}
-            onPress={() => router.back()}
+            onPress={handleBack}
             activeOpacity={0.7}
           >
             <Text className="text-base font-semibold" style={{ color: colors.text }}>Back to Subjects</Text>

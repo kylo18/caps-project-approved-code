@@ -11,6 +11,12 @@ import { apiRequest } from '../../../../services/apiClient';
 // Types matching the actual backend JSON responses
 // ─────────────────────────────────────────────────────────────────────────────
 
+export interface ProgramStat {
+    programName: string;
+    programName2?: string;
+    count: number;
+}
+
 export interface DashboardSummary {
     active_students: number;
     total_students: number;
@@ -19,6 +25,7 @@ export interface DashboardSummary {
     pass_rate: number;              // Backend returns 0-1 ratio
     improvement_percentage: number;
     fail_rate: number;              // Backend returns 0-1 ratio
+    program_stats?: ProgramStat[];
 }
 
 export interface PassFailRate {
@@ -117,6 +124,7 @@ export async function getDashboardSummary(): Promise<{ data: DashboardSummary }>
                 pass_rate: safeNumber(d.pass_rate),              // 0-1 ratio
                 improvement_percentage: safeNumber(d.improvement_percentage),
                 fail_rate: safeNumber(d.fail_rate),              // 0-1 ratio
+                program_stats: d.program_stats,
             },
         };
     } catch (error) {

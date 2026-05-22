@@ -292,6 +292,7 @@ export default function StudentDashboard() {
           totalPoints: data.totalPoints || data.questions.length,
           enableTimer: Boolean(data.enableTimer).toString(),
           durationMinutes: data.durationMinutes?.toString() || '60',
+          origin: 'home',
         },
       });
     } catch (error: unknown) {
@@ -541,8 +542,6 @@ export default function StudentDashboard() {
           >
             <StudentSectionHeader
               title="Available Subjects"
-              actionLabel="Search"
-              onActionPress={() => router.push('/(auth)/(student)/search')}
             />
             <Text
               className="text-sm mt-1"
@@ -550,6 +549,29 @@ export default function StudentDashboard() {
             >
               Continue practicing from your available subjects.
             </Text>
+
+            <Pressable
+              onPress={() => router.push('/(auth)/(student)/search')}
+              className="flex-row items-center gap-3 rounded-2xl border px-4 py-3.5 mt-3 mb-2"
+              style={{
+                backgroundColor: colors.cardSoft,
+                borderColor: colors.border,
+                ...shadow
+              }}
+            >
+              <Ionicons name="search" size={18} color={colors.orange} />
+              <Text
+                className="flex-1 text-[15px] font-semibold"
+                style={{
+                  color: colors.orange,
+                  fontFamily: 'Rubik',
+                }}
+              >
+                Search Subjects
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.orange} />
+            </Pressable>
+
 
             {/* Live Exam Cards */}
             <View className="mt-[18px] gap-[14px]">

@@ -561,11 +561,24 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     }, [summary, studentCount]);
 
     const programStats = useMemo(() => {
+        const stats = summary?.program_stats;
+        if (stats && Array.isArray(stats)) {
+            return PROGRAMS.filter((p) => p !== 'All').map((program) => {
+                let count = 0;
+                for (const ps of stats) {
+                    const normalizedBackend = normalizeProgram(ps.programName || ps.programName2);
+                    if (normalizedBackend === program) {
+                        count += ps.count;
+                    }
+                }
+                return { program, count };
+            });
+        }
         return PROGRAMS.filter((p) => p !== 'All').map((program) => {
             const items = students.filter((s) => normalizeProgram(s.program || s.programName) === program);
             return { program, count: items.length };
         });
-    }, [students]);
+    }, [summary, students]);
 
     const filteredStudents = useMemo(() => {
         return students.filter((student) => {
@@ -672,571 +685,582 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     }
 
     // ── Render ───────────────────────────────────────────────────────────────
+    const renderHeaderAndTabs = () => (
+        <View style={{ gap: 16 }}>
+            {/* Header */}
+            <View>
+                <Text className="text-[24px] font-bold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                    {role === 'dean' ? 'Dean' : 'Associate Dean'} Workspace
+                </Text>
+                <Text className="text-[13px] mt-2 leading-5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                    Unified mobile workspace for student enhancement, oversight, and analytics review.
+                </Text>
+            </View>
+
+            {/* Tab pills */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                {(
+                    [
+                        { key: 'overview', label: 'Overview', icon: 'home-outline' },
+                        { key: 'students', label: 'Students', icon: 'people-outline' },
+                        { key: 'analytics', label: 'Analytics', icon: 'analytics-outline' },
+                    ] as const
+                ).map((tab) => (
+                    <Pressable
+                        key={tab.key}
+                        onPress={() => setActiveTab(tab.key)}
+                        className="rounded-full px-4 py-2.5 flex-row items-center"
+                        style={{
+                            backgroundColor: activeTab === tab.key ? '#FE6902' : isDark ? '#111827' : '#FFFFFF',
+                            minHeight: 44,
+                        }}
+                    >
+                        <Ionicons
+                            name={tab.icon}
+                            size={16}
+                            color={activeTab === tab.key ? '#FFFFFF' : isDark ? '#9CA3AF' : '#6B7280'}
+                        />
+                        <Text
+                            className="ml-2 text-[13px] font-semibold"
+                            style={{ color: activeTab === tab.key ? '#FFFFFF' : isDark ? '#D1D5DB' : '#4B5563' }}
+                        >
+                            {tab.label}
+                        </Text>
+                    </Pressable>
+                ))}
+            </ScrollView>
+        </View>
+    );
+
     return (
         <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
             <MobileHeader title="Enhancement & Analytics" />
 
-            <ScrollView
-                className="flex-1"
-                contentContainerStyle={{ padding: 16, paddingBottom: 140, gap: 16 }}
-                showsVerticalScrollIndicator={false}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FE6902" />}
-            >
-                {/* Header */}
-                <View>
-                    <Text className="text-[24px] font-bold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                        {role === 'dean' ? 'Dean' : 'Associate Dean'} Workspace
-                    </Text>
-                    <Text className="text-[13px] mt-2 leading-5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                        Unified mobile workspace for student enhancement, oversight, and analytics review.
-                    </Text>
-                </View>
+            {activeTab === 'overview' || activeTab === 'analytics' ? (
+                <ScrollView
+                    className="flex-1"
+                    contentContainerStyle={{ padding: 16, paddingBottom: 140, gap: 16 }}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FE6902" />}
+                >
+                    {renderHeaderAndTabs()}
 
-                {/* Tab pills */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                    {(
-                        [
-                            { key: 'overview', label: 'Overview', icon: 'home-outline' },
-                            { key: 'students', label: 'Students', icon: 'people-outline' },
-                            { key: 'analytics', label: 'Analytics', icon: 'analytics-outline' },
-                        ] as const
-                    ).map((tab) => (
-                        <Pressable
-                            key={tab.key}
-                            onPress={() => setActiveTab(tab.key)}
-                            className="rounded-full px-4 py-2.5 flex-row items-center"
-                            style={{
-                                backgroundColor: activeTab === tab.key ? '#FE6902' : isDark ? '#111827' : '#FFFFFF',
-                                minHeight: 44,
-                            }}
-                        >
-                            <Ionicons
-                                name={tab.icon}
-                                size={16}
-                                color={activeTab === tab.key ? '#FFFFFF' : isDark ? '#9CA3AF' : '#6B7280'}
-                            />
-                            <Text
-                                className="ml-2 text-[13px] font-semibold"
-                                style={{ color: activeTab === tab.key ? '#FFFFFF' : isDark ? '#D1D5DB' : '#4B5563' }}
-                            >
-                                {tab.label}
-                            </Text>
-                        </Pressable>
-                    ))}
-                </ScrollView>
+                    {/* OVERVIEW TAB */}
+                    {activeTab === 'overview' ? (
+                        <View style={{ gap: 16 }}>
+                            {/* KPI Cards */}
+                            <View className="flex-row flex-wrap gap-3">
+                                {metrics.map((metric) => (
+                                    <OverviewMetricCard
+                                        key={metric.label}
+                                        label={metric.label}
+                                        value={metric.value}
+                                        icon={metric.icon}
+                                        color={metric.color}
+                                        isDark={isDark}
+                                    />
+                                ))}
+                            </View>
 
-                {/* ═══════════════════════════════════════════════════════════════
-                    OVERVIEW TAB
-                ═══════════════════════════════════════════════════════════════ */}
-                {activeTab === 'overview' ? (
-                    <View className="gap-4">
-                        {/* KPI Cards */}
-                        <View className="flex-row flex-wrap gap-3">
-                            {metrics.map((metric) => (
-                                <OverviewMetricCard
-                                    key={metric.label}
-                                    label={metric.label}
-                                    value={metric.value}
-                                    icon={metric.icon}
-                                    color={metric.color}
-                                    isDark={isDark}
-                                />
-                            ))}
-                        </View>
-
-                        {/* Trend Snapshot */}
-                        <SectionCard title="Trend Snapshot" isDark={isDark}>
-                            {!hasExamData ? (
-                                <EmptyState
-                                    icon="trending-up-outline"
-                                    title="No trend data yet"
-                                    subtitle="Student exam results will appear here once practice exams are taken."
-                                    isDark={isDark}
-                                />
-                            ) : !hasCurrentMonthData ? (
-                                <EmptyState
-                                    icon="trending-up-outline"
-                                    title="No exams this month"
-                                    subtitle="Student exam results for the current month will appear here once practice exams are taken."
-                                    isDark={isDark}
-                                />
-                            ) : (
-                                <View className="flex-row items-center justify-between">
-                                    <View className="flex-1 mr-3">
-                                        <Text className="text-[16px] font-bold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                            {improvement && improvement.improvement_percentage >= 0
-                                                ? 'Improving performance'
-                                                : 'Performance declined'}
-                                        </Text>
-                                        <Text className="text-[13px] mt-2 leading-5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                            Current average {fmtPct(improvement?.current_month_avg ?? summary?.average_score ?? 0)}
-                                            versus previous average {fmtPct(improvement?.previous_month_avg ?? 0)}.
-                                        </Text>
-                                    </View>
-                                    <View
-                                        className="rounded-full px-4 py-2"
-                                        style={{
-                                            backgroundColor:
-                                                improvement && improvement.improvement_percentage >= 0 ? '#DCFCE7' : '#FEE2E2',
-                                        }}
-                                    >
-                                        <Text
+                            {/* Trend Snapshot */}
+                            <SectionCard title="Trend Snapshot" isDark={isDark}>
+                                {!hasExamData ? (
+                                    <EmptyState
+                                        icon="trending-up-outline"
+                                        title="No trend data yet"
+                                        subtitle="Student exam results will appear here once practice exams are taken."
+                                        isDark={isDark}
+                                    />
+                                ) : !hasCurrentMonthData ? (
+                                    <EmptyState
+                                        icon="trending-up-outline"
+                                        title="No exams this month"
+                                        subtitle="Student exam results for the current month will appear here once practice exams are taken."
+                                        isDark={isDark}
+                                    />
+                                ) : (
+                                    <View className="flex-row items-center justify-between">
+                                        <View className="flex-1 mr-3">
+                                            <Text className="text-[16px] font-bold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                                {improvement && improvement.improvement_percentage >= 0
+                                                    ? 'Improving performance'
+                                                    : 'Performance declined'}
+                                            </Text>
+                                            <Text className="text-[13px] mt-2 leading-5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                                Current average {fmtPct(improvement?.current_month_avg ?? summary?.average_score ?? 0)}
+                                                versus previous average {fmtPct(improvement?.previous_month_avg ?? 0)}.
+                                            </Text>
+                                        </View>
+                                        <View
+                                            className="rounded-full px-4 py-2"
                                             style={{
-                                                color: improvement && improvement.improvement_percentage >= 0 ? '#166534' : '#991B1B',
-                                                fontSize: 14,
-                                                fontWeight: '800',
+                                                backgroundColor:
+                                                    improvement && improvement.improvement_percentage >= 0 ? '#DCFCE7' : '#FEE2E2',
                                             }}
                                         >
-                                            {improvement && improvement.improvement_percentage > 0 ? '+' : ''}
-                                            {fmtPct(improvement?.improvement_percentage ?? 0)}
-                                        </Text>
-                                    </View>
-                                </View>
-                            )}
-                        </SectionCard>
-
-                        {/* Pass vs Fail */}
-                        <SectionCard title="Pass vs Fail" isDark={isDark}>
-                            {!passFail || passFail.total === 0 ? (
-                                <EmptyState
-                                    icon="pie-chart-outline"
-                                    title="No pass/fail data"
-                                    subtitle="Exam results will populate this section once students take practice exams."
-                                    isDark={isDark}
-                                />
-                            ) : (
-                                <View>
-                                    <View className="flex-row items-center justify-between mb-4">
-                                        <PassFailRing passed={passFail.passed} failed={passFail.failed} />
-                                        <View className="flex-1 ml-5 gap-3">
-                                            <View className="flex-row items-center justify-between">
-                                                <View className="flex-row items-center gap-2">
-                                                    <View className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#10B981' }} />
-                                                    <Text className="text-[13px]" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
-                                                        Passed
-                                                    </Text>
-                                                </View>
-                                                <Text className="text-[13px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                    {passFail.passed}
-                                                </Text>
-                                            </View>
-                                            <View className="flex-row items-center justify-between">
-                                                <View className="flex-row items-center gap-2">
-                                                    <View className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#EF4444' }} />
-                                                    <Text className="text-[13px]" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
-                                                        Failed
-                                                    </Text>
-                                                </View>
-                                                <Text className="text-[13px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                    {passFail.failed}
-                                                </Text>
-                                            </View>
-                                            <View className="flex-row items-center justify-between">
-                                                <View className="flex-row items-center gap-2">
-                                                    <View className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#FE6902' }} />
-                                                    <Text className="text-[13px]" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
-                                                        Pass Rate
-                                                    </Text>
-                                                </View>
-                                                <Text className="text-[13px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                    {Math.round(passFail.pass_rate)}%
-                                                </Text>
-                                            </View>
+                                            <Text
+                                                style={{
+                                                    color: improvement && improvement.improvement_percentage >= 0 ? '#166534' : '#991B1B',
+                                                    fontSize: 14,
+                                                    fontWeight: '800',
+                                                }}
+                                            >
+                                                {improvement && improvement.improvement_percentage > 0 ? '+' : ''}
+                                                {fmtPct(improvement?.improvement_percentage ?? 0)}
+                                            </Text>
                                         </View>
                                     </View>
-                                    {/* Score breakdown */}
-                                    <View className="gap-2 mt-1">
-                                        {[
-                                            { label: 'Excellent (≥80%)', val: passFail.breakdown.excellent, color: '#C45E10' },
-                                            { label: 'Good (60–79%)', val: passFail.breakdown.good, color: '#10B981' },
-                                            { label: 'Needs improvement (40–59%)', val: passFail.breakdown.needs_improvement, color: '#F59E0B' },
-                                            { label: 'Poor (<40%)', val: passFail.breakdown.poor, color: '#EF4444' },
-                                        ].map((r) => {
-                                            const pct = passFail.total > 0 ? Math.round((r.val / passFail.total) * 100) : 0;
-                                            return (
-                                                <View key={r.label} className="flex-row items-center gap-2">
-                                                    <Text className="text-[11px] w-40" numberOfLines={1} style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                                        {r.label}
-                                                    </Text>
-                                                    <View className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? '#1F2937' : '#F3F4F6' }}>
-                                                        <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: r.color }} />
+                                )}
+                            </SectionCard>
+
+                            {/* Pass vs Fail */}
+                            <SectionCard title="Pass vs Fail" isDark={isDark}>
+                                {!passFail || passFail.total === 0 ? (
+                                    <EmptyState
+                                        icon="pie-chart-outline"
+                                        title="No pass/fail data"
+                                        subtitle="Exam results will populate this section once students take practice exams."
+                                        isDark={isDark}
+                                    />
+                                ) : (
+                                    <View>
+                                        <View className="flex-row items-center justify-between mb-4">
+                                            <PassFailRing passed={passFail.passed} failed={passFail.failed} />
+                                            <View className="flex-1 ml-5 gap-3">
+                                                <View className="flex-row items-center justify-between">
+                                                    <View className="flex-row items-center gap-2">
+                                                        <View className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#10B981' }} />
+                                                        <Text className="text-[13px]" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
+                                                            Passed
+                                                        </Text>
                                                     </View>
-                                                    <Text className="text-[11px] font-medium w-14 text-right" style={{ color: r.color }}>
-                                                        {r.val}{' '}
-                                                        <Text style={{ color: isDark ? '#9CA3AF' : '#9CA3AF' }}>({pct}%)</Text>
+                                                    <Text className="text-[13px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                                        {passFail.passed}
+                                                    </Text>
+                                                </View>
+                                                <View className="flex-row items-center justify-between">
+                                                    <View className="flex-row items-center gap-2">
+                                                        <View className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#EF4444' }} />
+                                                        <Text className="text-[13px]" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
+                                                            Failed
+                                                        </Text>
+                                                    </View>
+                                                    <Text className="text-[13px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                                        {passFail.failed}
+                                                    </Text>
+                                                </View>
+                                                <View className="flex-row items-center justify-between">
+                                                    <View className="flex-row items-center gap-2">
+                                                        <View className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#FE6902' }} />
+                                                        <Text className="text-[13px]" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
+                                                            Pass Rate
+                                                        </Text>
+                                                    </View>
+                                                    <Text className="text-[13px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                                        {Math.round(passFail.pass_rate)}%
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        </View>
+                                        {/* Score breakdown */}
+                                        <View className="gap-2 mt-1">
+                                            {[
+                                                { label: 'Excellent (≥80%)', val: passFail.breakdown.excellent, color: '#C45E10' },
+                                                { label: 'Good (60–79%)', val: passFail.breakdown.good, color: '#10B981' },
+                                                { label: 'Needs improvement (40–59%)', val: passFail.breakdown.needs_improvement, color: '#F59E0B' },
+                                                { label: 'Poor (<40%)', val: passFail.breakdown.poor, color: '#EF4444' },
+                                            ].map((r) => {
+                                                const pct = passFail.total > 0 ? Math.round((r.val / passFail.total) * 100) : 0;
+                                                return (
+                                                    <View key={r.label} className="flex-row items-center gap-2">
+                                                        <Text className="text-[11px] w-40" numberOfLines={1} style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                                            {r.label}
+                                                        </Text>
+                                                        <View className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? '#1F2937' : '#F3F4F6' }}>
+                                                            <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: r.color }} />
+                                                        </View>
+                                                        <Text className="text-[11px] font-medium w-14 text-right" style={{ color: r.color }}>
+                                                            {r.val}{' '}
+                                                            <Text style={{ color: isDark ? '#9CA3AF' : '#9CA3AF' }}>({pct}%)</Text>
+                                                        </Text>
+                                                    </View>
+                                                );
+                                            })}
+                                        </View>
+                                    </View>
+                                )}
+                            </SectionCard>
+
+                            {/* Program Performance */}
+                            <SectionCard title="Program Performance" isDark={isDark}>
+                                {programStats.every((p) => p.count === 0) ? (
+                                    <EmptyState
+                                        icon="school-outline"
+                                        title="No program data"
+                                        subtitle="Students will appear here once they are enrolled and take exams."
+                                        isDark={isDark}
+                                    />
+                                ) : (
+                                    <View className="gap-3">
+                                        {programStats.map((row) => (
+                                            <Pressable
+                                                key={row.program}
+                                                onPress={() => {
+                                                    setActiveProgram(row.program);
+                                                    setActiveTab('students');
+                                                }}
+                                                className="flex-row items-center justify-between py-2"
+                                                style={{ minHeight: 44 }}
+                                            >
+                                                <View className="flex-1">
+                                                    <Text className="text-[14px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                                        {row.program}
+                                                    </Text>
+                                                    <Text className="text-[12px] mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                                        {row.count} student{row.count === 1 ? '' : 's'}
+                                                    </Text>
+                                                </View>
+                                                <Ionicons name="chevron-forward" size={18} color={isDark ? '#4B5563' : '#9CA3AF'} />
+                                            </Pressable>
+                                        ))}
+                                    </View>
+                                )}
+                            </SectionCard>
+                        </View>
+                    ) : null}
+
+                    {/* ANALYTICS TAB */}
+                    {activeTab === 'analytics' ? (
+                        <View style={{ gap: 16 }}>
+                            {/* Content Summary */}
+                            <SectionCard title="Content Summary" isDark={isDark}>
+                                {!content ||
+                                    (content.most_viewed_lessons.length === 0 &&
+                                        content.most_attempted_quiz_questions.length === 0) ? (
+                                    <EmptyState
+                                        icon="document-text-outline"
+                                        title="No content analytics yet"
+                                        subtitle="Content engagement data will appear here as students interact with lessons and quizzes."
+                                        isDark={isDark}
+                                    />
+                                ) : (
+                                    <View className="gap-4">
+                                        {content.most_viewed_lessons.length > 0 && (
+                                            <View>
+                                                <Text className="text-[13px] font-semibold mb-2" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                                    Most Viewed Lessons
+                                                </Text>
+                                                {content.most_viewed_lessons.slice(0, 3).map((item, i) => (
+                                                    <View key={i} className="flex-row items-center justify-between py-2">
+                                                        <Text className="text-[13px] flex-1 mr-3" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }} numberOfLines={1}>
+                                                            {item.lesson_title}
+                                                        </Text>
+                                                        <Text className="text-[13px] font-semibold" style={{ color: '#3B82F6' }}>
+                                                            {item.views} views
+                                                        </Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        )}
+                                        {content.most_attempted_quiz_questions.length > 0 && (
+                                            <View>
+                                                <Text className="text-[13px] font-semibold mb-2" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                                    Most Attempted Questions
+                                                </Text>
+                                                {content.most_attempted_quiz_questions.slice(0, 3).map((item, i) => (
+                                                    <View key={i} className="flex-row items-center justify-between py-2">
+                                                        <Text className="text-[13px] flex-1 mr-3" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }} numberOfLines={1}>
+                                                            {item.question_preview}
+                                                        </Text>
+                                                        <Text className="text-[13px] font-semibold" style={{ color: '#8B5CF6' }}>
+                                                            {item.attempts}
+                                                        </Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        )}
+                                        {content.most_skipped_topics.length > 0 && (
+                                            <View>
+                                                <Text className="text-[13px] font-semibold mb-2" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                                    Most Skipped Topics
+                                                </Text>
+                                                {content.most_skipped_topics.slice(0, 3).map((item, i) => (
+                                                    <View key={i} className="flex-row items-center justify-between py-2">
+                                                        <Text className="text-[13px] flex-1 mr-3" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }} numberOfLines={1}>
+                                                            {item.topic}
+                                                        </Text>
+                                                        <Text className="text-[13px] font-semibold" style={{ color: '#F59E0B' }}>
+                                                            {item.skip_count} skips
+                                                        </Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        )}
+                                    </View>
+                                )}
+                            </SectionCard>
+
+                            {/* Top Subjects */}
+                            <SectionCard title="Top Subjects" isDark={isDark}>
+                                {topSubjects.length === 0 ? (
+                                    <EmptyState
+                                        icon="book-outline"
+                                        title="No subject data yet"
+                                        subtitle="Subject performance will appear once students complete practice exams."
+                                        isDark={isDark}
+                                    />
+                                ) : (
+                                    <View className="gap-3">
+                                        {topSubjects.map((subject, index) => (
+                                            <View key={subject.subjectID} className="flex-row items-center justify-between">
+                                                <View className="flex-row items-center flex-1 mr-3">
+                                                    <Text className="text-[12px] font-bold w-6" style={{ color: '#9CA3AF' }}>
+                                                        {index + 1}
+                                                    </Text>
+                                                    <View className="flex-1">
+                                                        <Text className="text-[14px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                                            {subject.subjectName}
+                                                        </Text>
+                                                        <Text className="text-[12px] mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                                            {subject.exam_count} exam{subject.exam_count === 1 ? '' : 's'}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                                <Text className="text-[16px] font-bold" style={{ color: scoreColor(subject.avg_score) }}>
+                                                    {fmtPct(subject.avg_score)}
+                                                </Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                )}
+                            </SectionCard>
+
+                            {/* Weakest Topics */}
+                            <SectionCard title="Weakest Topics" isDark={isDark}>
+                                {topicMastery.length === 0 ? (
+                                    <EmptyState
+                                        icon="alert-circle-outline"
+                                        title="No topic mastery data"
+                                        subtitle="Topic difficulty analytics will appear as students attempt more questions."
+                                        isDark={isDark}
+                                    />
+                                ) : (
+                                    <View className="gap-4">
+                                        {topicMastery.slice(0, 5).map((item, index) => {
+                                            const difficultyColor =
+                                                item.mastery_level === 'difficult'
+                                                    ? '#EF4444'
+                                                    : item.mastery_level === 'moderate'
+                                                        ? '#F59E0B'
+                                                        : '#10B981';
+                                            return (
+                                                <View key={index}>
+                                                    <View className="flex-row items-center justify-between mb-2">
+                                                        <View className="flex-1 mr-3">
+                                                            <Text className="text-[14px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                                                {item.topic}
+                                                            </Text>
+                                                            <Text className="text-[12px] mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                                                {item.subjectName}
+                                                            </Text>
+                                                        </View>
+                                                        <View className="flex-row items-center gap-2">
+                                                            <View
+                                                                className="rounded-full px-2.5 py-0.5"
+                                                                style={{ backgroundColor: `${difficultyColor}18` }}
+                                                            >
+                                                                <Text style={{ color: difficultyColor, fontSize: 11, fontWeight: '700', textTransform: 'capitalize' }}>
+                                                                    {item.mastery_level}
+                                                                </Text>
+                                                            </View>
+                                                        </View>
+                                                    </View>
+                                                    <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? '#1F2937' : '#E5E7EB' }}>
+                                                        <View
+                                                            className="h-full rounded-full"
+                                                            style={{
+                                                                width: `${Math.min(100, Math.round(item.avg_difficulty * 100))}%`,
+                                                                backgroundColor: difficultyColor,
+                                                            }}
+                                                        />
+                                                    </View>
+                                                    <Text className="text-[11px] mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                                        {item.total_attempts} total attempts · avg {item.avg_attempts.toFixed(1)} tries
                                                     </Text>
                                                 </View>
                                             );
                                         })}
                                     </View>
-                                </View>
-                            )}
-                        </SectionCard>
-
-                        {/* Program Performance */}
-                        <SectionCard title="Program Performance" isDark={isDark}>
-                            {programStats.every((p) => p.count === 0) ? (
-                                <EmptyState
-                                    icon="school-outline"
-                                    title="No program data"
-                                    subtitle="Students will appear here once they are enrolled and take exams."
-                                    isDark={isDark}
-                                />
-                            ) : (
-                                <View className="gap-3">
-                                    {programStats.map((row) => (
-                                        <Pressable
-                                            key={row.program}
-                                            onPress={() => {
-                                                setActiveProgram(row.program);
-                                                setActiveTab('students');
-                                            }}
-                                            className="flex-row items-center justify-between py-2"
-                                            style={{ minHeight: 44 }}
-                                        >
-                                            <View className="flex-1">
-                                                <Text className="text-[14px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                    {row.program}
-                                                </Text>
-                                                <Text className="text-[12px] mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                                    {row.count} student{row.count === 1 ? '' : 's'}
-                                                </Text>
-                                            </View>
-                                            <Ionicons name="chevron-forward" size={18} color={isDark ? '#4B5563' : '#9CA3AF'} />
-                                        </Pressable>
-                                    ))}
-                                </View>
-                            )}
-                        </SectionCard>
-                    </View>
-                ) : null}
-
-                {/* ═══════════════════════════════════════════════════════════════
-                    STUDENTS TAB
-                ═══════════════════════════════════════════════════════════════ */}
-                {activeTab === 'students' ? (
-                    <View className="gap-4">
-                        <SectionCard title="Filters" isDark={isDark}>
-                            <View
-                                className="flex-row items-center rounded-2xl px-3 py-3 mb-3"
-                                style={{ backgroundColor: isDark ? '#1F2937' : '#F9FAFB' }}
-                            >
-                                <Ionicons name="search" size={16} color={isDark ? '#9CA3AF' : '#6B7280'} />
-                                <TextInput
-                                    value={search}
-                                    onChangeText={setSearch}
-                                    placeholder="Search students"
-                                    placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-                                    style={{ flex: 1, marginLeft: 10, color: isDark ? '#FFFFFF' : '#111827' }}
-                                />
-                            </View>
-
-                            <Text className="text-[12px] font-medium mb-2" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                Program
-                            </Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
-                                {PROGRAMS.map((program) => (
-                                    <Pressable
-                                        key={program}
-                                        onPress={() => setActiveProgram(program)}
-                                        className="rounded-full px-4 py-2"
-                                        style={{
-                                            backgroundColor: activeProgram === program ? '#FE6902' : isDark ? '#1F2937' : '#F3F4F6',
-                                            minHeight: 36,
-                                        }}
-                                    >
-                                        <Text
-                                            style={{
-                                                color: activeProgram === program ? '#FFFFFF' : isDark ? '#D1D5DB' : '#4B5563',
-                                                fontSize: 12,
-                                                fontWeight: '600',
-                                            }}
-                                        >
-                                            {program}
-                                        </Text>
-                                    </Pressable>
-                                ))}
-                            </ScrollView>
-
-                            <Text className="text-[12px] font-medium mb-2" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                Year Level
-                            </Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
-                                {YEARS.map((year) => (
-                                    <Pressable
-                                        key={year}
-                                        onPress={() => setActiveYear(year)}
-                                        className="rounded-full px-4 py-2"
-                                        style={{
-                                            backgroundColor: activeYear === year ? '#FE6902' : isDark ? '#1F2937' : '#F3F4F6',
-                                            minHeight: 36,
-                                        }}
-                                    >
-                                        <Text
-                                            style={{
-                                                color: activeYear === year ? '#FFFFFF' : isDark ? '#D1D5DB' : '#4B5563',
-                                                fontSize: 12,
-                                                fontWeight: '600',
-                                            }}
-                                        >
-                                            {year}
-                                        </Text>
-                                    </Pressable>
-                                ))}
-                            </ScrollView>
-
-                            <Text className="text-[11px] mt-1" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
-                                Note: performance filters require exam score data.
-                            </Text>
-                        </SectionCard>
-
-                        {loadingStudentsTab && students.length === 0 ? (
-                            <View className="flex-1 justify-center items-center py-20">
-                                <CapsActivityIndicator size="large" color="#FE6902" />
-                            </View>
-                        ) : (
-                            <FlatList
-                                data={filteredStudents}
-                                keyExtractor={(item, index) => `${item.userID ?? item.id ?? 'student'}-${index}`}
-                                renderItem={({ item, index }) => (
-                                    <StudentListItem student={item} index={index} isDark={isDark} />
                                 )}
-                                ListEmptyComponent={
-                                    <SectionCard title="Students" isDark={isDark}>
-                                        <EmptyState
-                                            icon="people-outline"
-                                            title="No students found"
-                                            subtitle="Try adjusting your filters or check back later."
-                                            isDark={isDark}
-                                        />
-                                    </SectionCard>
-                                }
-                                ListFooterComponent={
-                                    loadingMoreStudents ? (
-                                        <View className="py-4 items-center">
-                                            <CapsActivityIndicator size="small" color="#FE6902" />
-                                            <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                                Loading more...
-                                            </Text>
-                                        </View>
-                                    ) : null
-                                }
-                                onEndReached={loadMoreStudents}
-                                onEndReachedThreshold={0.5}
-                                removeClippedSubviews
-                                maxToRenderPerBatch={10}
-                                windowSize={5}
-                                initialNumToRender={10}
-                            />
-                        )}
-                    </View>
-                ) : null}
+                            </SectionCard>
 
-                {/* ═══════════════════════════════════════════════════════════════
-                    ANALYTICS TAB
-                ═══════════════════════════════════════════════════════════════ */}
-                {activeTab === 'analytics' ? (
-                    <View className="gap-4">
-                        {/* Content Summary */}
-                        <SectionCard title="Content Summary" isDark={isDark}>
-                            {!content ||
-                                (content.most_viewed_lessons.length === 0 &&
-                                    content.most_attempted_quiz_questions.length === 0) ? (
-                                <EmptyState
-                                    icon="document-text-outline"
-                                    title="No content analytics yet"
-                                    subtitle="Content engagement data will appear here as students interact with lessons and quizzes."
-                                    isDark={isDark}
-                                />
-                            ) : (
-                                <View className="gap-4">
-                                    {content.most_viewed_lessons.length > 0 && (
-                                        <View>
-                                            <Text className="text-[13px] font-semibold mb-2" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                Most Viewed Lessons
-                                            </Text>
-                                            {content.most_viewed_lessons.slice(0, 3).map((item, i) => (
-                                                <View key={i} className="flex-row items-center justify-between py-2">
-                                                    <Text className="text-[13px] flex-1 mr-3" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }} numberOfLines={1}>
-                                                        {item.lesson_title}
-                                                    </Text>
-                                                    <Text className="text-[13px] font-semibold" style={{ color: '#3B82F6' }}>
-                                                        {item.views} views
-                                                    </Text>
-                                                </View>
-                                            ))}
-                                        </View>
-                                    )}
-                                    {content.most_attempted_quiz_questions.length > 0 && (
-                                        <View>
-                                            <Text className="text-[13px] font-semibold mb-2" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                Most Attempted Questions
-                                            </Text>
-                                            {content.most_attempted_quiz_questions.slice(0, 3).map((item, i) => (
-                                                <View key={i} className="flex-row items-center justify-between py-2">
-                                                    <Text className="text-[13px] flex-1 mr-3" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }} numberOfLines={1}>
-                                                        {item.question_preview}
-                                                    </Text>
-                                                    <Text className="text-[13px] font-semibold" style={{ color: '#8B5CF6' }}>
-                                                        {item.attempts}
-                                                    </Text>
-                                                </View>
-                                            ))}
-                                        </View>
-                                    )}
-                                    {content.most_skipped_topics.length > 0 && (
-                                        <View>
-                                            <Text className="text-[13px] font-semibold mb-2" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                Most Skipped Topics
-                                            </Text>
-                                            {content.most_skipped_topics.slice(0, 3).map((item, i) => (
-                                                <View key={i} className="flex-row items-center justify-between py-2">
-                                                    <Text className="text-[13px] flex-1 mr-3" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }} numberOfLines={1}>
-                                                        {item.topic}
-                                                    </Text>
-                                                    <Text className="text-[13px] font-semibold" style={{ color: '#F59E0B' }}>
-                                                        {item.skip_count} skips
-                                                    </Text>
-                                                </View>
-                                            ))}
-                                        </View>
-                                    )}
-                                </View>
-                            )}
-                        </SectionCard>
-
-                        {/* Top Subjects */}
-                        <SectionCard title="Top Subjects" isDark={isDark}>
-                            {topSubjects.length === 0 ? (
-                                <EmptyState
-                                    icon="book-outline"
-                                    title="No subject data yet"
-                                    subtitle="Subject performance will appear once students complete practice exams."
-                                    isDark={isDark}
-                                />
-                            ) : (
-                                <View className="gap-3">
-                                    {topSubjects.map((subject, index) => (
-                                        <View key={subject.subjectID} className="flex-row items-center justify-between">
-                                            <View className="flex-row items-center flex-1 mr-3">
-                                                <Text className="text-[12px] font-bold w-6" style={{ color: '#9CA3AF' }}>
-                                                    {index + 1}
-                                                </Text>
-                                                <View className="flex-1">
-                                                    <Text className="text-[14px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                        {subject.subjectName}
-                                                    </Text>
-                                                    <Text className="text-[12px] mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                                        {subject.exam_count} exam{subject.exam_count === 1 ? '' : 's'}
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                            <Text className="text-[16px] font-bold" style={{ color: scoreColor(subject.avg_score) }}>
-                                                {fmtPct(subject.avg_score)}
-                                            </Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            )}
-                        </SectionCard>
-
-                        {/* Weakest Topics */}
-                        <SectionCard title="Weakest Topics" isDark={isDark}>
-                            {topicMastery.length === 0 ? (
-                                <EmptyState
-                                    icon="alert-circle-outline"
-                                    title="No topic mastery data"
-                                    subtitle="Topic difficulty analytics will appear as students attempt more questions."
-                                    isDark={isDark}
-                                />
-                            ) : (
-                                <View className="gap-4">
-                                    {topicMastery.slice(0, 5).map((item, index) => {
-                                        const difficultyColor =
-                                            item.mastery_level === 'difficult'
-                                                ? '#EF4444'
-                                                : item.mastery_level === 'moderate'
-                                                    ? '#F59E0B'
-                                                    : '#10B981';
-                                        return (
-                                            <View key={index}>
-                                                <View className="flex-row items-center justify-between mb-2">
-                                                    <View className="flex-1 mr-3">
-                                                        <Text className="text-[14px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                            {item.topic}
-                                                        </Text>
-                                                        <Text className="text-[12px] mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                                            {item.subjectName}
-                                                        </Text>
-                                                    </View>
-                                                    <View className="flex-row items-center gap-2">
-                                                        <View
-                                                            className="rounded-full px-2.5 py-0.5"
-                                                            style={{ backgroundColor: `${difficultyColor}18` }}
-                                                        >
-                                                            <Text style={{ color: difficultyColor, fontSize: 11, fontWeight: '700', textTransform: 'capitalize' }}>
-                                                                {item.mastery_level}
-                                                            </Text>
-                                                        </View>
-                                                    </View>
-                                                </View>
-                                                <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? '#1F2937' : '#E5E7EB' }}>
-                                                    <View
-                                                        className="h-full rounded-full"
-                                                        style={{
-                                                            width: `${Math.min(100, Math.round(item.avg_difficulty * 100))}%`,
-                                                            backgroundColor: difficultyColor,
-                                                        }}
-                                                    />
-                                                </View>
-                                                <Text className="text-[11px] mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                                    {item.total_attempts} total attempts · avg {item.avg_attempts.toFixed(1)} tries
-                                                </Text>
-                                            </View>
-                                        );
-                                    })}
-                                </View>
-                            )}
-                        </SectionCard>
-
-                        {/* Recent Progress */}
-                        <SectionCard title="Recent Progress" isDark={isDark}>
-                            {recentProgress.length === 0 ? (
-                                <EmptyState
-                                    icon="time-outline"
-                                    title="No recent progress"
-                                    subtitle="Progress over time will be tracked as students take more exams."
-                                    isDark={isDark}
-                                />
-                            ) : (
-                                <View className="gap-3">
-                                    <ProgressLineChart
-                                        points={progress}
-                                        periodType={progressPeriod}
+                            {/* Recent Progress */}
+                            <SectionCard title="Recent Progress" isDark={isDark}>
+                                {recentProgress.length === 0 ? (
+                                    <EmptyState
+                                        icon="time-outline"
+                                        title="No recent progress"
+                                        subtitle="Progress over time will be tracked as students take more exams."
                                         isDark={isDark}
                                     />
-                                    {recentProgress.map((point, index) => (
-                                        <View key={index} className="flex-row items-center justify-between">
-                                            <View className="flex-1 mr-3">
-                                                <Text className="text-[14px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                                                    {formatPeriod(point.period, progressPeriod)}
-                                                </Text>
-                                                <Text className="text-[12px] mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                                                    {point.exam_count} exam{point.exam_count === 1 ? '' : 's'} · {point.student_count} student
-                                                    {point.student_count === 1 ? '' : 's'}
+                                ) : (
+                                    <View className="gap-3">
+                                        <ProgressLineChart
+                                            points={progress}
+                                            periodType={progressPeriod}
+                                            isDark={isDark}
+                                        />
+                                        {recentProgress.map((point, index) => (
+                                            <View key={index} className="flex-row items-center justify-between">
+                                                <View className="flex-1 mr-3">
+                                                    <Text className="text-[14px] font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                                        {formatPeriod(point.period, progressPeriod)}
+                                                    </Text>
+                                                    <Text className="text-[12px] mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                                        {point.exam_count} exam{point.exam_count === 1 ? '' : 's'} · {point.student_count} student
+                                                        {point.student_count === 1 ? '' : 's'}
+                                                    </Text>
+                                                </View>
+                                                <Text className="text-[16px] font-bold" style={{ color: scoreColor(point.avg_score) }}>
+                                                    {fmtPct(point.avg_score)}
                                                 </Text>
                                             </View>
-                                            <Text className="text-[16px] font-bold" style={{ color: scoreColor(point.avg_score) }}>
-                                                {fmtPct(point.avg_score)}
-                                            </Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            )}
-                        </SectionCard>
+                                        ))}
+                                    </View>
+                                )}
+                            </SectionCard>
+                        </View>
+                    ) : null}
+                </ScrollView>
+            ) : null}
+
+            {/* STUDENTS TAB */}
+            {activeTab === 'students' ? (
+                loadingStudentsTab && students.length === 0 ? (
+                    <View className="flex-1">
+                        <View className="p-4" style={{ gap: 16 }}>
+                            {renderHeaderAndTabs()}
+                        </View>
+                        <View className="flex-1 justify-center items-center">
+                            <CapsActivityIndicator size="large" color="#FE6902" />
+                        </View>
                     </View>
-                ) : null}
-            </ScrollView>
+                ) : (
+                    <FlatList
+                        data={filteredStudents}
+                        keyExtractor={(item, index) => `${item.userID ?? item.id ?? 'student'}-${index}`}
+                        renderItem={({ item, index }) => (
+                            <StudentListItem student={item} index={index} isDark={isDark} />
+                        )}
+                        contentContainerStyle={{ padding: 16, paddingBottom: 140 }}
+                        ListHeaderComponent={
+                            <View className="mb-4" style={{ gap: 16 }}>
+                                {renderHeaderAndTabs()}
+                                <SectionCard title="Filters" isDark={isDark}>
+                                    <View
+                                        className="flex-row items-center rounded-2xl px-3 py-3 mb-3"
+                                        style={{ backgroundColor: isDark ? '#1F2937' : '#F9FAFB' }}
+                                    >
+                                        <Ionicons name="search" size={16} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                                        <TextInput
+                                            value={search}
+                                            onChangeText={setSearch}
+                                            placeholder="Search students"
+                                            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                                            style={{ flex: 1, marginLeft: 10, color: isDark ? '#FFFFFF' : '#111827' }}
+                                        />
+                                    </View>
+
+                                    <Text className="text-[12px] font-medium mb-2" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                        Program
+                                    </Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
+                                        {PROGRAMS.map((program) => (
+                                            <Pressable
+                                                key={program}
+                                                onPress={() => setActiveProgram(program)}
+                                                className="rounded-full px-4 py-2"
+                                                style={{
+                                                    backgroundColor: activeProgram === program ? '#FE6902' : isDark ? '#1F2937' : '#F3F4F6',
+                                                    minHeight: 36,
+                                                }}
+                                            >
+                                                <Text
+                                                    style={{
+                                                        color: activeProgram === program ? '#FFFFFF' : isDark ? '#D1D5DB' : '#4B5563',
+                                                        fontSize: 12,
+                                                        fontWeight: '600',
+                                                    }}
+                                                >
+                                                    {program}
+                                                </Text>
+                                            </Pressable>
+                                        ))}
+                                    </ScrollView>
+
+                                    <Text className="text-[12px] font-medium mb-2" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                        Year Level
+                                    </Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
+                                        {YEARS.map((year) => (
+                                            <Pressable
+                                                key={year}
+                                                onPress={() => setActiveYear(year)}
+                                                className="rounded-full px-4 py-2"
+                                                style={{
+                                                    backgroundColor: activeYear === year ? '#FE6902' : isDark ? '#1F2937' : '#F3F4F6',
+                                                    minHeight: 36,
+                                                }}
+                                            >
+                                                <Text
+                                                    style={{
+                                                        color: activeYear === year ? '#FFFFFF' : isDark ? '#D1D5DB' : '#4B5563',
+                                                        fontSize: 12,
+                                                        fontWeight: '600',
+                                                    }}
+                                                >
+                                                    {year}
+                                                </Text>
+                                            </Pressable>
+                                        ))}
+                                    </ScrollView>
+
+                                    <Text className="text-[11px] mt-1" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
+                                        Note: performance filters require exam score data.
+                                    </Text>
+                                </SectionCard>
+                            </View>
+                        }
+                        ListEmptyComponent={
+                            <SectionCard title="Students" isDark={isDark}>
+                                <EmptyState
+                                    icon="people-outline"
+                                    title="No students found"
+                                    subtitle="Try adjusting your filters or check back later."
+                                    isDark={isDark}
+                                />
+                            </SectionCard>
+                        }
+                        ListFooterComponent={
+                            loadingMoreStudents ? (
+                                <View className="py-4 items-center">
+                                    <CapsActivityIndicator size="small" color="#FE6902" />
+                                    <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                        Loading more...
+                                    </Text>
+                                </View>
+                            ) : null
+                        }
+                        onEndReached={loadMoreStudents}
+                        onEndReachedThreshold={0.5}
+                        removeClippedSubviews
+                        maxToRenderPerBatch={10}
+                        windowSize={5}
+                        initialNumToRender={10}
+                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FE6902" />}
+                    />
+                )
+            ) : null}
         </View>
     );
 }

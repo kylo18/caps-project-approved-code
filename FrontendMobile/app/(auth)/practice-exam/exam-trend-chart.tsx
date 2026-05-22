@@ -101,7 +101,13 @@ export default function ExamTrendChartScreen() {
         }}
       >
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => {
+            if (origin === 'profile') {
+              router.replace('/(auth)/(student)/insights');
+            } else {
+              router.replace('/(auth)/(student)/dashboard');
+            }
+          }}
           className="p-2 -ml-2 mr-2"
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />

@@ -64,6 +64,7 @@ export default function StudentSearchScreen() {
           totalPoints: data.totalPoints || data.questions.length,
           enableTimer: Boolean(data.enableTimer).toString(),
           durationMinutes: data.durationMinutes?.toString() || '60',
+          origin: 'search',
         },
       });
     } catch (error: unknown) {
