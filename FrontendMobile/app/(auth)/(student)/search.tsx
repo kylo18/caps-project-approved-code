@@ -75,10 +75,16 @@ export default function StudentSearchScreen() {
 
   const filteredSubjects = useMemo(() => {
     let nextSubjects = [...subjects];
+
+    const isGE = (subject: any) =>
+      subject.programID === 6 ||
+      subject.programName === 'GE' ||
+      String(subject.programName).toLowerCase() === 'ge';
+
     if (activeFilter === 'Program') {
-      nextSubjects = nextSubjects.filter((subject) => Boolean(subject.programID));
+      nextSubjects = nextSubjects.filter((subject) => !isGE(subject));
     } else if (activeFilter === 'General') {
-      nextSubjects = nextSubjects.filter((subject) => !subject.programID);
+      nextSubjects = nextSubjects.filter((subject) => isGE(subject));
     }
     if (searchQuery.trim()) {
       const query = searchQuery.trim().toLowerCase();
