@@ -44,7 +44,13 @@ function StudentLeaderboardRow({
       </View>
       <StudentAvatar label={entry?.name ?? 'ST'} size={48} index={rank} />
       <View className="flex-1 gap-0.5">
-        <Text numberOfLines={1} className="font-sans text-base font-medium leading-6" style={{ color: studentColors.text }}>
+        <Text 
+          numberOfLines={2} 
+          adjustsFontSizeToFit 
+          minimumFontScale={0.8}
+          className="font-sans text-base font-medium leading-6" 
+          style={{ color: studentColors.text }}
+        >
           {entry?.name ?? 'Student'}
         </Text>
         <Text numberOfLines={1} className="font-sans text-xs font-normal leading-[18px]" style={{ color: studentColors.textSoft }}>
@@ -98,8 +104,14 @@ function StudentLeaderboardPodium({ topThree }: PodiumProps) {
               <Text className="font-sans text-[42px] font-bold" style={{ color: studentColors.white }}>{place}</Text>
             </View>
           </View>
-          <Text numberOfLines={1} className="font-sans text-sm font-medium leading-5 mt-3 max-w-[88px] text-center" style={{ color: studentColors.white }}>
-            {entry?.firstName ?? entry?.name ?? `#${place}`}
+          <Text 
+            numberOfLines={2} 
+            adjustsFontSizeToFit 
+            minimumFontScale={0.7}
+            className="font-sans text-xs font-medium leading-4 mt-3 max-w-[88px] text-center" 
+            style={{ color: studentColors.white }}
+          >
+            {entry?.name ?? `#${place}`}
           </Text>
           <Text className="font-sans text-xs font-medium leading-[18px]" style={{ color: 'rgba(255,255,255,0.9)' }}>
             {entry ? `${Math.round(entry.points ?? entry.score ?? 0)} pts` : '--'}

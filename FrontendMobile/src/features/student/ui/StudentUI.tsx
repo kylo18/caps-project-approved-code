@@ -25,6 +25,7 @@ export {
   StudentLeaderboardRow,
   StudentLeaderboardPodium,
 } from './StudentLeaderboard';
+export { LeaderboardShareModal } from './LeaderboardShareModal';
 export { StudentFilterSheet } from './StudentFilterSheet';
 export { StudentTabBar } from './StudentTabBar';
 export { StudentHeroDecoration } from './StudentDecorations';

@@ -15,7 +15,7 @@ import {
   type StudentLeaderboardEntry,
   type StudentLeaderboardResponse,
 } from '../../../src/services/studentLeaderboardService';
-import { shareLeaderboardAchievement } from '../../../src/services/shareService';
+
 import {
   StudentFilterSheet,
   StudentHeroDecoration,
@@ -25,6 +25,7 @@ import {
   formatWeeklyCountdown,
   getStudentColors,
   getStudentShadow,
+  LeaderboardShareModal,
 } from '../../../src/features/student/ui/StudentUI';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,6 +56,14 @@ export default function LeaderboardScreen() {
   const [response, setResponse] = useState<StudentLeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // ── State for Share Modal ────────────────────────────────────────────────
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [shareData, setShareData] = useState<{
+    rank: number;
+    score: number;
+    subjectName?: string | null;
+  } | null>(null);
 
   // ── Fetch leaderboard whenever period or filters change ──────────────────
   useEffect(() => {
@@ -179,6 +188,22 @@ export default function LeaderboardScreen() {
         }}
       />
 
+      {/* ───────────────────────────────────────────────────────────────────
+          SHARE PREVIEW MODAL
+          Visual card generation & sharing.
+          ─────────────────────────────────────────────────────────────────── */}
+      {shareData && (
+        <LeaderboardShareModal
+          visible={shareModalVisible}
+          onClose={() => setShareModalVisible(false)}
+          rank={shareData.rank}
+          score={shareData.score}
+          studentName={viewer?.name || 'CAPS Student'}
+          subjectName={shareData.subjectName}
+          period={period}
+        />
+      )}
+
       <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerClassName="pb-[120px]">
 
         {/* ─────────────────────────────────────────────────────────────────
@@ -253,18 +278,20 @@ export default function LeaderboardScreen() {
                   <Text className="flex-1 text-sm font-medium leading-5" style={{ color: isDark ? colors.text : '#8A4A2F', fontFamily: 'Rubik' }}>{weeklyComparisonCopy}</Text>
                   {viewer?.rank != null && (
                     <Pressable
-                      onPress={() =>
-                        shareLeaderboardAchievement({
+                      onPress={() => {
+                        setShareData({
                           rank: viewer.rank ?? 0,
                           score: viewer.score ?? 0,
                           subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || undefined,
-                        })
-                      }
-                      className="p-1.5 rounded-full"
-                      style={{ backgroundColor: colors.card }}
+                        });
+                        setShareModalVisible(true);
+                      }}
+                      className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full"
+                      style={{ backgroundColor: colors.orange }}
                       hitSlop={8}
                     >
-                      <Ionicons name="share-outline" size={22} color={colors.orange} />
+                      <Ionicons name="share-social-outline" size={16} color="#FFFFFF" />
+                      <Text className="text-xs font-bold text-white" style={{ fontFamily: 'Rubik' }}>Share</Text>
                     </Pressable>
                   )}
                 </View>
@@ -345,18 +372,20 @@ export default function LeaderboardScreen() {
                   <Text className="flex-1 text-sm font-medium leading-5" style={{ color: isDark ? colors.text : '#8A4A2F', fontFamily: 'Rubik' }}>{allTimeComparisonCopy}</Text>
                   {viewer?.rank != null && (
                     <Pressable
-                      onPress={() =>
-                        shareLeaderboardAchievement({
+                      onPress={() => {
+                        setShareData({
                           rank: viewer.rank ?? 0,
                           score: viewer.score ?? 0,
                           subjectName: selectedSubject?.subjectName || selectedSubject?.subjectCode || undefined,
-                        })
-                      }
-                      className="p-1.5 rounded-full"
-                      style={{ backgroundColor: colors.card }}
+                        });
+                        setShareModalVisible(true);
+                      }}
+                      className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full"
+                      style={{ backgroundColor: colors.orange }}
                       hitSlop={8}
                     >
-                      <Ionicons name="share-outline" size={22} color={colors.orange} />
+                      <Ionicons name="share-social-outline" size={16} color="#FFFFFF" />
+                      <Text className="text-xs font-bold text-white" style={{ fontFamily: 'Rubik' }}>Share</Text>
                     </Pressable>
                   )}
                 </View>

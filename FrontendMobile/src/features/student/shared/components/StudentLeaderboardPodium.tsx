@@ -64,8 +64,14 @@ export function StudentLeaderboardPodium({ topThree }: StudentLeaderboardPodiumP
                 <Text className="font-sans text-[42px] font-bold" style={{ color: studentColors.white }}>{place}</Text>
               </View>
             </View>
-            <Text numberOfLines={1} className="font-sans text-sm font-medium leading-5 mt-3 max-w-[88px] text-center" style={{ color: studentColors.white }}>
-              {entry ? entry.firstName ?? entry.name ?? `#${place}` : `#${place}`}
+            <Text 
+              numberOfLines={2} 
+              adjustsFontSizeToFit 
+              minimumFontScale={0.7}
+              className="font-sans text-xs font-medium leading-4 mt-3 max-w-[88px] text-center" 
+              style={{ color: studentColors.white }}
+            >
+              {entry ? entry.name ?? `#${place}` : `#${place}`}
             </Text>
             <Text className="font-sans text-xs font-medium leading-[18px]" style={{ color: 'rgba(255,255,255,0.9)' }}>
               {entry ? `${Math.round(entry.points ?? entry.score ?? 0)} pts` : '--'}

@@ -63,7 +63,13 @@ export function StudentLeaderboardRow({
 
       {/* Name + subtitle */}
       <View className="flex-1 gap-0.5">
-        <Text numberOfLines={1} className="font-sans text-base font-medium leading-6" style={{ color: studentColors.text }}>
+        <Text 
+          numberOfLines={2} 
+          adjustsFontSizeToFit 
+          minimumFontScale={0.8}
+          className="font-sans text-base font-medium leading-6" 
+          style={{ color: studentColors.text }}
+        >
           {entry?.name ?? 'Student'}
         </Text>
         <Text numberOfLines={1} className="font-sans text-xs font-normal leading-[18px]" style={{ color: studentColors.textSoft }}>
