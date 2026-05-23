@@ -14,7 +14,10 @@ const getTier = (score) => {
   if (score >= 90) return { label: "Elite",      color: "#854d0e", bg: "#fef9c3", border: "#fde68a" };
   if (score >= 80) return { label: "Advanced",   color: "#1d4ed8", bg: "#dbeafe", border: "#bfdbfe" };
   if (score >= 70) return { label: "Proficient", color: "#166534", bg: "#dcfce7", border: "#bbf7d0" };
-  return                   { label: "No Exams",  color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" };
+  if (score >= 60) return { label: "Developing", color: "#d97706", bg: "#fef3c7", border: "#fde68a" };
+  if (score >= 50) return { label: "Beginner",   color: "#dc2626", bg: "#fee2e2", border: "#fecaca" };
+  if (score != null) return { label: "Needs Work", color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" };
+  return               { label: "No Exams",    color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" };
 };
 
 const getScoreColor = (score) => {
@@ -364,6 +367,7 @@ const Leaderboard = () => {
   const [programs,        setPrograms]        = useState(["All"]);
   const [myApiRank,       setMyApiRank]       = useState(null);
   const [myApiScore,      setMyApiScore]      = useState(null);
+  const [totalStudents,   setTotalStudents]   = useState(0);
 
   const isMobile = useIsMobile();
   const pad      = isMobile ? "0 14px" : "0 40px";
@@ -398,7 +402,7 @@ const Leaderboard = () => {
           userCode:   entry.userCode ?? '',
           program:    normalizeProgram(entry.program || '—'),
           isMe:       entry.userID === userData?.userID,
-          avgScore:   entry.score != null ? Math.round(entry.score) : null,
+          avgScore: entry.highestPercentage != null ? Math.round(entry.highestPercentage) : null,
           totalExams: entry.attempts ?? 0,
         }));
 
@@ -411,6 +415,15 @@ const Leaderboard = () => {
 
         setStudents(sorted);
         setPrograms(PROGRAM_TABS);
+
+        if (lbData.viewer) {
+        setMyApiRank(lbData.viewer.rank ?? null);
+        setMyApiScore(lbData.viewer.highestPercentage != null
+          ? Math.round(lbData.viewer.highestPercentage)
+          : null);
+      }
+      setTotalStudents(lbData.viewer?.totalCandidates ?? sorted.length);
+
       } catch (err) {
         setError("Unable to load leaderboard data.");
         console.error(err);
@@ -452,7 +465,7 @@ const Leaderboard = () => {
       <div style={{
         background: "#fff",
         borderBottom: "1px solid #e5e7eb",
-        padding: isMobile ? "54px 14px 0" : "32px 40px 0",
+        padding: isMobile ? "16px 14px 0" : "16px 40px 0",
         position: "relative", overflow: "hidden", flexShrink: 0,
       }}>
           <div style={{
@@ -707,13 +720,10 @@ const Leaderboard = () => {
         display: "flex", alignItems: "center", justifyContent: "space-between",
         flexShrink: 0, gap: 8,
       }}>
-        <span style={{ fontSize: 10, color: "#9ca3af" }}>
-          {loading ? "Loading..." : `${filtered.length} / ${students.length} students`}
-        </span>
+        
         {myRank && (
-          <span style={{ fontSize: 10, color: "#9ca3af" }}>
-            Rank: <span style={{ color: "#FF6014", fontWeight: 800 }}>#{myRank}</span>
-            {!isMobile && ` · Top ${percentile}%`}
+          <span style={{ fontSize: 12, color: "#9ca3af" }}>
+            Your Rank: <span style={{ color: "#FF6014", fontWeight: 800 }}>#{myRank}</span>
           </span>
         )}
       </div>

@@ -1002,13 +1002,15 @@ const AdminStudentEnhancement = () => {
       {/* ── Header ── */}
       <div className="flex items-start justify-between flex-wrap gap-3 mb-6">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-[18px] sm:text-[22px] font-bold text-gray-800">
-              {isFaculty ? "My Students" : isProgramChair && myProgram ? "" : "Student Enhancement Analytics"}
+          {(!isProgramChair || !myProgram) && (
+            <h1 className="text-[18px] sm:text-[22px] font-bold text-gray-800 mb-1">
+              {isFaculty ? "My Students" : "Student Enhancement Analytics"}
             </h1>
+          )}
+          <div className="flex items-center gap-2 mb-1">
             {roleLabel && (
-              <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[20px] font-semibold text-orange-600">
-                <i className="bx bx-badge-check text-[25px]"></i> {roleLabel}
+              <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[15px] font-semibold text-orange-600">
+                <i className="bx bx-badge-check text-[13px]"></i> {roleLabel}
               </span>
             )}
           </div>

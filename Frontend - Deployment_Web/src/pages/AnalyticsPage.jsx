@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import ScoreHistory from "./ScoreHistory";
 import Leaderboard from "./Leaderboard";
 import ContentAnalytics from "./ContentAnalytics";
 import DifficultyAnalytics from "./DifficultyAnalytics";
+
 
 
 /* ── Map route → section id ─────────────────────────────────── */
@@ -20,6 +21,15 @@ const AnalyticsPage = () => {
     const navigate = useNavigate();
     const sectionRefs = useRef({});
     const isManualScrolling = useRef(false);
+
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+      const onResize = () => setIsMobile(window.innerWidth <= 768);
+      window.addEventListener("resize", onResize);
+      return () => window.removeEventListener("resize", onResize);
+    }, []);
+    
 
   /* ── On route change → scroll to matching section ───────── */
   useEffect(() => {
@@ -94,6 +104,7 @@ useEffect(() => {
         id="leaderboards"
         ref={(el) => { sectionRefs.current["leaderboards"] = el; }}
         className="scroll-mt-4 w-full overflow-x-hidden"
+        style={{ marginTop: "-100px" }}
       >
         <Leaderboard />
       </section>
@@ -103,6 +114,7 @@ useEffect(() => {
         id="content-analytics"
         ref={(el) => { sectionRefs.current["content-analytics"] = el; }}
         className="scroll-mt-4 w-full overflow-x-hidden"
+        style={{ marginTop: "10px" }}
       >
         <ContentAnalytics />
       </section>
@@ -112,6 +124,8 @@ useEffect(() => {
         id="difficult-analytics"
         ref={(el) => { sectionRefs.current["difficult-analytics"] = el; }}
         className="scroll-mt-4 w-full overflow-x-hidden"
+        //style={{ marginTop: "-70px" }}
+        style={{ marginTop: isMobile ? "-70px" : "20px" }}
       >
         <DifficultyAnalytics />
       </section>

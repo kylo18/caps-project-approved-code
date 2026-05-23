@@ -557,12 +557,14 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
             )}
           </div>
 
+          {/*
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-200" />
             <span className="text-xs text-gray-400">OR</span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
+          
           <button
             //onClick={() => alert("Google Sign-In is coming soon.")}
             onClick={handleGoogleLogin}
@@ -581,7 +583,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
               />
             </svg>
             Register with Google
-          </button>
+          </button> */}
 
           {/* Login link */}
           <p className="outgit-400 text-center text-sm text-gray-500">

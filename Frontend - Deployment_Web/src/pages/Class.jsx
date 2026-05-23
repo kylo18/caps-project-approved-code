@@ -587,7 +587,7 @@ const Class = () => {
                     setShowJoinForm(true);
                     resetJoinForm();
                   }}
-                  className="outfit-500 -mb-2 hidden cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:inline-flex md:text-[14px]"
+                  className="outfit-500 -mb-2 cursor-pointer items-center rounded-xl p-2 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-100 md:inline-flex md:text-[14px]"
                 >
                   <i className="bxx bx-plus text-[20px]"></i>
                 </button>

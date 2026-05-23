@@ -142,11 +142,13 @@ const ContentAnalytics = () => {
   return (
     <div style={{
       background:  "#F5F3EF",
-      minHeight:   "100vh",
+      minHeight: "auto",
       fontFamily:  "'Segoe UI', system-ui, sans-serif",
       overflowX:   "hidden",  // new added: prevents horizontal overflow on mobile
-      maxWidth:    "100vw",
-    }}>
+      maxWidth:    "100vw", // new added: ensures content doesn't exceed viewport width
+      overflow:      "hidden",
+      paddingBottom: 0,
+      }}>
 
       
       
@@ -159,16 +161,16 @@ const ContentAnalytics = () => {
       <div style={{
         background:   "#fff",
         borderBottom: "1px solid #EAE8E2",
-        padding:      isMobile ? "60px 16px 14px" : "16px 28px",
+        padding: isMobile ? "16px 16px 14px" : "16px 28px",
         display:      "flex",
         alignItems:   "center",
         gap:          14,
         position:     "sticky",
         top:          0,
         zIndex:       10,
-      }}>
+        }}>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0}}>
 
           {/*new added: slightly reduced font sizes in top bar for tighter layout*/}
           <div style={{ fontSize: 17, fontWeight: 700, color: "#1A1814" }}>My Content</div>
@@ -180,7 +182,7 @@ const ContentAnalytics = () => {
         {!loading && data && (
           <div style={{
             fontSize: 10, color: "#9B9790",
-            background: "#F5F3EF",
+            background: "#fff",
             border: "1px solid #EAE8E2",
             borderRadius: 20,
             padding: "3px 10px",
@@ -191,7 +193,7 @@ const ContentAnalytics = () => {
         )}
       </div>
 
-      <div style={{ padding: isMobile ? "16px 16px 100px" : "24px 28px 100px" }}>
+      <div style={{ padding: isMobile ? "16px 16px 100px" : "24px 28px 24px", background: "#fff" }}>
 
         {/* ── STAT CARDS ── */}
         <div style={{
@@ -232,6 +234,7 @@ const ContentAnalytics = () => {
                 gap:           5,
                 transition:    "all 0.15s",
                 fontFamily:    "inherit",
+                boxShadow: tab === t.id ? `0 2px 8px ${t.accent}25` : "0 1px 3px rgba(0,0,0,0.05)",
               }}
             >
               <span style={{ fontSize: isMobile ? 18 : 20, lineHeight: 1 }}>{t.icon}</span>
@@ -254,7 +257,8 @@ const ContentAnalytics = () => {
           borderRadius: 16,
           border:       "1px solid #EAE8E2",
           overflow:     "hidden",
-          marginBottom: 16,
+          marginBottom: 0,
+          boxShadow:    "0 1px 4px rgba(0,0,0,0.06)",
         }}>
           {/* Card header */}
           <div style={{
@@ -399,6 +403,7 @@ const StatCard = ({ s, loading }) => (
     border:       "1px solid #EAE8E2",
     position:     "relative",
     overflow:     "hidden",
+    boxShadow:    "0 1px 4px rgba(0,0,0,0.06)",
   }}>
     <div style={{
       position: "absolute", top: 0, left: 0, right: 0,

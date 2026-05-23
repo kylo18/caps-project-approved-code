@@ -198,13 +198,13 @@ const DifficultyAnalytics = () => {
   };
 
   return (
-    <div className="bg-[#F5F3EF] min-h-screen overflow-x-hidden max-w-full font-sans">
+    <div className="bg-white min-h-screen overflow-x-hidden max-w-full font-sans">
       {/* Page header: back button, title, and current trend badge */}
-      <div className="bg-white border-b border-[#EAE8E2] p-4 sm:p-4 sm:px-7 flex flex-wrap items-center gap-4">
+      <div className="bg-white border-b border-[#EAE8E2] px-4 py-3 sm:px-7 flex flex-wrap items-center gap-4">
       
         <div>
           <div className="text-base font-bold text-[#1A1814]">Learning Difficulty</div>
-          <div className="text-xs text-[#9B9790]">Your personal Easy / Moderate / Hard breakdown · Real exam data</div>
+          <div className="text-xs text-[#9B9790]">Your personal Easy / Moderate / Hard breakdown</div>
         </div>
 
         {!loading && trend && (
@@ -223,9 +223,9 @@ const DifficultyAnalytics = () => {
       )}
 
       {/* Main page content container */}
-      <div className="px-4 pb-24 sm:px-7">
+      <div className="px-4 pb-27 sm:px-7">
         {/* Summary panel: average score, exam metadata, and band chart */}
-        <div className="mb-5 overflow-hidden mt-5 rounded-[14px] border border-[#EAE8E2] bg-white">
+        <div className="mb-5 overflow-hidden mt-5 rounded-[14px] border border-[#EAE8E2] bg-white shadow-sm">
           <div className={`grid gap-0 ${isMobile ? "grid-cols-1" : "grid-cols-[1fr_1fr]"} p-5 sm:px-6`}>
             <div className={`flex flex-col justify-center ${isMobile ? "pb-5" : "pr-7"}`}>
               <div className="text-[10px] font-bold uppercase tracking-[0.9px] text-[#9B9790] mb-2">Your average score</div>
@@ -304,7 +304,7 @@ const DifficultyAnalytics = () => {
 
         {/* Recent exam trend chart: only render when there are at least 2 exam records */}
         {!loading && recentExams.length >= 2 && (
-          <div className="mb-5 rounded-[14px] border border-[#EAE8E2] bg-white p-4">
+          <div className="mb-5 rounded-[14px] border border-[#EAE8E2] bg-white shadow-sm p-4">
             <div className="mb-3 text-sm font-semibold text-[#1A1814]">
               Your Recent Exam Scores
               <span className="ml-2 text-xs font-normal text-[#9B9790]">last {recentExams.length} exams</span>
@@ -329,7 +329,7 @@ const DifficultyAnalytics = () => {
 
         {/* Core performance widgets: error rate metrics, overall student performance, and difficulty band summary */}
         <div className="grid gap-3 sm:grid-cols-3 mb-5">
-          <div className="overflow-hidden rounded-[14px] border border-[#EAE8E2] bg-white">
+          <div className="overflow-hidden rounded-[14px] border border-[#EAE8E2] bg-white shadow-sm">
             <div className="flex items-baseline justify-between border-b border-[#F0EDE8] px-4 py-3">
               <span className="text-sm font-semibold text-[#1A1814]">Error rate per level</span>
               <span className="text-xs text-[#9B9790]">Wrong ÷ total</span>
@@ -359,7 +359,7 @@ const DifficultyAnalytics = () => {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[14px] border border-[#EAE8E2] bg-white">
+          <div className="overflow-hidden rounded-[14px] border border-[#EAE8E2] bg-white shadow-sm">
             <div className="flex items-baseline justify-between border-b border-[#F0EDE8] px-4 py-3">
               <span className="text-sm font-semibold text-[#1A1814]">Your performance</span>
               <span className="text-xs text-[#9B9790]">Personal stats</span>
@@ -400,7 +400,7 @@ const DifficultyAnalytics = () => {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[14px] border border-[#EAE8E2] bg-white">
+          <div className="overflow-hidden rounded-[14px] border border-[#EAE8E2] bg-white shadow-sm">
             <div className="flex items-baseline justify-between border-b border-[#F0EDE8] px-4 py-3">
               <span className="text-sm font-semibold text-[#1A1814]">Score by difficulty band</span>
               <span className="text-xs text-[#9B9790]">Correct ÷ total</span>
@@ -431,7 +431,7 @@ const DifficultyAnalytics = () => {
         </div>
 
         {/* Topic difficulty breakdown table: shows per-topic scores and average tries */}
-        <div className="overflow-hidden rounded-[14px] border border-[#EAE8E2] bg-white mb-5">
+        <div className="overflow-hidden rounded-[14px] border border-[#EAE8E2] bg-white shadow-sm mb-5">
           <div className="flex items-center justify-between border-b border-[#F0EDE8] px-5 py-3">
             <span className="text-sm font-semibold text-[#1A1814]">Topic Difficulty Breakdown</span>
             <span className="text-xs text-[#9B9790]">Sorted by most questions answered</span>
@@ -535,7 +535,7 @@ const DifficultyAnalytics = () => {
 
         {/* Score colour guide: quick legend for performance bands */}
         {!loading && !EMPTY && topics.length > 0 && (
-          <div className="rounded-[14px] border border-[#EAE8E2] bg-white p-4">
+          <div className="rounded-[14px] border border-[#EAE8E2] bg-white shadow-sm p-4">
             <div className="mb-2 text-sm font-semibold text-[#1A1814]">Score colour guide</div>
             <div className="flex flex-wrap gap-5">
               {[
