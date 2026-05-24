@@ -1,12 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, Modal, Pressable, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Modal, Pressable, TouchableOpacity, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import ViewShot from 'react-native-view-shot';
 import { shareLeaderboardAchievement } from '../../../services/shareService';
 import { getStudentColors, getStudentShadow } from './studentTokens';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { StudentAvatar } from './StudentAvatar';
 
 interface LeaderboardShareModalProps {
   visible: boolean;
@@ -25,22 +24,21 @@ export function LeaderboardShareModal({
   score,
   studentName,
   subjectName,
-  period,
 }: LeaderboardShareModalProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const colors = getStudentColors(isDark);
   const shadow = getStudentShadow(isDark);
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.min(290, Math.max(220, width - 72));
+  const cardHeight = Math.round(cardWidth * (1142 / 870));
   
   const viewShotRef = useRef<any>(null);
   const [sharing, setSharing] = useState(false);
 
-  // Set the medal color based on rank
-  const medalColor = 
-    rank === 1 ? '#FFD52F' // Gold
-    : rank === 2 ? '#BFC0C8' // Silver
-    : rank === 3 ? '#D89548' // Bronze
-    : '#FE6902'; // Brand Orange
+  const accentColor = '#E95D0A';
+  const displayName = studentName.trim().toUpperCase() || 'CAPS STUDENT';
+  const displaySubject = subjectName?.trim() || 'Overall Status';
 
   const handleShare = async () => {
     if (sharing) return;
@@ -88,68 +86,65 @@ export function LeaderboardShareModal({
           <ViewShot
             ref={viewShotRef}
             options={{ format: 'png', quality: 1.0 }}
-            style={styles.cardContainer}
+            style={[styles.cardContainer, { width: cardWidth, height: cardHeight }]}
           >
             <LinearGradient
-              colors={['#1E1B4B', '#311042']}
+              colors={['#F1C45D', '#F5A044', '#F18D35']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.achievementCard}
             >
-              {/* Card Inner Border — fills edge to edge */}
-              <View style={[styles.cardInnerBorder, { borderColor: `${medalColor}55` }]}>
-
-                {/* Header branding */}
+              <View style={styles.cardInnerBorder}>
                 <View style={styles.cardHeader}>
-                  <Ionicons name="school" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Ionicons name="school" size={22} color="#FFFFFF" style={{ marginRight: 10 }} />
                   <Text style={styles.cardHeaderText}>CAPS</Text>
                 </View>
 
-                {/* Trophy / Ribbon visual */}
                 <View style={styles.trophyContainer}>
-                  <LinearGradient
-                    colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.02)']}
-                    style={styles.trophyGlow}
-                  >
-                    <Ionicons 
-                      name={rank <= 3 ? 'trophy' : 'medal'} 
-                      size={68} 
-                      color={medalColor} 
-                    />
-                  </LinearGradient>
+                  <View style={styles.trophyGlow}>
+                    <Ionicons name="ribbon" size={72} color={accentColor} />
+                  </View>
                 </View>
 
-                {/* Student Info */}
                 <View style={styles.studentInfo}>
-                  <Text style={styles.achievementTitle}>LEADERBOARD</Text>
+                  <Text style={styles.achievementTitle}>LEADERBOARD STAR</Text>
                   <Text 
                     style={styles.studentName} 
                     numberOfLines={2} 
                     adjustsFontSizeToFit 
                     minimumFontScale={0.6}
                   >
-                    {studentName}
+                    {displayName}
                   </Text>
                   <Text style={styles.subjectText} numberOfLines={1}>
-                    {subjectName ? `${subjectName}` : `Overall ${period === 'weekly' ? 'Weekly' : 'All-Time'}`}
+                    {displaySubject}
                   </Text>
                 </View>
 
-                {/* Achievements row */}
                 <View style={styles.statsRow}>
-                  <View style={[styles.statBadge, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                  <View style={styles.statBadge}>
                     <Text style={styles.statLabel}>RANK</Text>
-                    <Text style={[styles.statValue, { color: medalColor }]}>#{rank}</Text>
+                    <Text
+                      style={[styles.statValue, { color: accentColor }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.72}
+                    >
+                      #{rank}
+                    </Text>
                   </View>
-                  <View style={[styles.statBadge, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                  <View style={styles.statBadge}>
                     <Text style={styles.statLabel}>POINTS</Text>
-                    <Text style={[styles.statValue, { color: '#FFFFFF' }]}>{score} PTS</Text>
+                    <Text
+                      style={[styles.statValue, styles.pointsValue]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.72}
+                    >
+                      {score} PTS
+                    </Text>
                   </View>
                 </View>
-
-                {/* Watermark — inside border with enough bottom padding */}
-                <View style={styles.cardFooter}>
-                  <Text style={styles.watermarkText}>Join me &amp; test your skills on CAPS</Text>
-                </View>
-
               </View>
             </LinearGradient>
           </ViewShot>
@@ -223,13 +218,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 20,
   },
   container: {
     width: '100%',
     maxWidth: 360,
     borderRadius: 28,
-    padding: 20,
+    padding: 16,
     alignItems: 'center',
   },
   modalHeader: {
@@ -246,10 +241,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardContainer: {
-    borderRadius: 24,
+    borderRadius: 18,
     overflow: 'hidden',
-    width: 290,
-    height: 390,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -262,106 +255,101 @@ const styles = StyleSheet.create({
   },
   cardInnerBorder: {
     flex: 1,
-    borderWidth: 1.5,
-    borderRadius: 24,
-    padding: 16,
-    paddingBottom: 14,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: 16,
+    paddingHorizontal: 22,
+    paddingTop: 24,
+    paddingBottom: 22,
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   cardHeader: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
   },
   cardHeaderText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 2,
+    fontSize: 18,
+    fontWeight: '500',
     fontFamily: 'Rubik',
   },
   trophyContainer: {
-    marginVertical: 12,
+    marginTop: 8,
+    marginBottom: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   trophyGlow: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+    width: 112,
+    height: 112,
+    borderRadius: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
   },
   studentInfo: {
     alignItems: 'center',
     width: '100%',
   },
   achievementTitle: {
-    color: '#FE6902',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 6,
+    color: '#C95B1E',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 10,
     fontFamily: 'Rubik',
   },
   studentName: {
     color: '#FFFFFF',
     fontSize: 22,
-    fontWeight: 'bold',
+    lineHeight: 27,
+    fontWeight: '800',
     textAlign: 'center',
     fontFamily: 'Rubik',
-    width: '90%',
+    width: '100%',
   },
   subjectText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 4,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '400',
+    marginTop: 10,
     textAlign: 'center',
     fontFamily: 'Rubik',
-    width: '90%',
+    width: '100%',
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: 14,
     width: '100%',
-    marginVertical: 14,
+    marginTop: 14,
   },
   statBadge: {
     flex: 1,
-    borderRadius: 12,
-    paddingVertical: 10,
+    minHeight: 62,
+    borderRadius: 14,
+    paddingVertical: 9,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
   },
   statLabel: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 2,
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 4,
     fontFamily: 'Rubik',
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 22,
+    lineHeight: 27,
+    fontWeight: '800',
     fontFamily: 'Rubik',
   },
-  cardFooter: {
-    alignItems: 'center',
-    paddingTop: 6,
-  },
-  watermarkText: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 10,
-    fontFamily: 'Rubik',
+  pointsValue: {
+    color: '#FFFFFF',
   },
   actions: {
     width: '100%',
@@ -395,7 +383,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     fontFamily: 'Rubik',
-    letterSpacing: 0.3,
   },
   cancelButton: {
     width: '100%',
