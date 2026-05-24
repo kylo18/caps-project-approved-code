@@ -197,19 +197,17 @@ class FeedbackController
         }
 
         try {
-            /*
-            // Step 1: Get all class IDs that belong to this faculty
-            $classIds = \Modules\PersonalClasses\Models\ClassModel::where('facultyID', $facultyId)
-                ->pluck('classID');
+            // Get all classes belonging to this faculty, with their enrolled students
+            $classes = \Modules\PersonalClasses\Models\ClassModel::where('facultyID', $facultyId)
+                ->with('enrollments')
+                ->get();
 
-            // Step 2: Get feedback linked specifically to those classes
-            $query = UserFeedback::with(['user', 'class'])
-                ->whereIn('class_id', $classIds);   */
+            // Get all student IDs across all classes
+            $studentIds = $classes->flatMap(function ($class) {
+                return $class->enrollments->pluck('studentID');
+            })->unique()->values();
 
-            // Get student IDs enrolled under this faculty
-            $studentIds = \Modules\Users\Models\StudentTeacherEnrollment::where('teacher_id', $facultyId)
-                ->pluck('student_id');
-
+            // Get all feedback from those students
             $query = UserFeedback::with('user')
                 ->whereIn('user_id', $studentIds);
 
@@ -223,20 +221,34 @@ class FeedbackController
                 $query->issueType($normalizedIssueType);
             }
 
-            $feedback = $query->orderBy('created_at', 'desc')->paginate(20);
+            $feedbackList = $query->orderBy('created_at', 'desc')->get();
+
+            // Group feedback by class
+            $grouped = $classes->map(function ($class) use ($feedbackList) {
+                $classStudentIds = $class->enrollments->pluck('studentID')->toArray();
+                $classFeedback = $feedbackList->filter(function ($fb) use ($classStudentIds) {
+                    return in_array($fb->user_id, $classStudentIds);
+                })->values();
+
+                return [
+                    'class_id'   => $class->classID,
+                    'class_name' => $class->className,
+                    'feedback'   => $classFeedback,
+                ];
+            });
 
             return response()->json([
-                'success' => true,
-                'feedback' => $feedback,
-                'faculty_id' => $facultyId,
-                //'class_count' => $classIds->count(),
-                'class_count' => $studentIds->count(),
+                'success'       => true,
+                'grouped'       => $grouped,
+                'faculty_id'    => $facultyId,
+                'class_count'   => $classes->count(),
+                'student_count' => $studentIds->count(),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch faculty feedback.',
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }

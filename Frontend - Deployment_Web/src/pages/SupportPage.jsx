@@ -169,6 +169,7 @@ export default function SupportPage() {
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
   const [adminActionToast, setAdminActionToast] = useState("");
   const [statusOverrides, setStatusOverrides] = useState({});
+  const [groupedFacultyReports, setGroupedFacultyReports] = useState([]);
 
   const currentRoleId = Number(currentUser?.roleID ?? currentUser?.roleId ?? 0);
   const isDeanOrAssocDean = [4, 5].includes(currentRoleId);
@@ -305,16 +306,29 @@ export default function SupportPage() {
         return r.json();
       })
       .then((data) => {
-        // Handle both response formats
-        const feedbackList = data.feedback?.data || data.feedback || data.data || [];
-        const normalized = feedbackList.map((ticket) => ({
-          ...ticket,
-          description: ticket.message,
-          category: ticket.issue_type,
-          status: statusOverrides[ticket.id] || ticket.status,
-        }));
-        setAllReports(normalized);
-        //console.log("All reports:", JSON.stringify(normalized, null, 2));
+        if (isFaculty && data.grouped) {
+          setGroupedFacultyReports(
+            data.grouped.map((group) => ({
+              ...group,
+              feedback: group.feedback.map((ticket) => ({
+                ...ticket,
+                description: ticket.message,
+                category: ticket.issue_type,
+                status: statusOverrides[ticket.id] || ticket.status,
+              })),
+            }))
+          );
+          setAllReports([]);
+        } else {
+          const feedbackList = data.feedback?.data || data.feedback || data.data || [];
+          const normalized = feedbackList.map((ticket) => ({
+            ...ticket,
+            description: ticket.message,
+            category: ticket.issue_type,
+            status: statusOverrides[ticket.id] || ticket.status,
+          }));
+          setAllReports(normalized);
+        }
       })
       .catch((err) => {
         console.error("Reports fetch error:", err);
@@ -1055,11 +1069,13 @@ export default function SupportPage() {
                           {currentUser?.program?.programName ?? currentUser?.program_name ?? ""}
                         </span>
                       </div>
-                      <p className="text-[12px] text-gray-500 mt-0.5">Showing student reports from your class</p>
+                      <p className="text-[12px] text-gray-500 mt-0.5">Student feedback from your enrolled classes</p>
                     </div>
                   </div>
                   <div className="rounded-xl bg-orange-50 border border-orange-100 px-5 py-3 text-center">
-                    <p className="text-[22px] font-bold text-orange-600">{filteredAllReports.length}</p>
+                    <p className="text-[22px] font-bold text-orange-600">
+                      {groupedFacultyReports.reduce((sum, g) => sum + g.feedback.length, 0)}
+                    </p>
                     <p className="text-[11px] text-gray-500">Reports</p>
                   </div>
                 </div>
@@ -1472,88 +1488,127 @@ export default function SupportPage() {
                   </div>
                 </>
               ) : (
-                /* Single table for non-dean users (program chairs, faculty) */
-                <div className="rounded-2xl border border-gray-200 bg-white shadow-lg">
-                  <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 sm:px-6">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-100 to-orange-50">
-                        <i className="bx bx-clipboard text-[18px] text-orange-600"></i>
-                      </span>
-                      <div>
-                        <h2 className="text-[18px] font-bold text-gray-800">Student Reports</h2>
-                        <p className="text-[12px] text-gray-500">
-                          Showing student reports from your assigned program.
-                        </p>
+                <>
+                  {isFaculty ? (
+                    /* Faculty: grouped by class */
+                    groupedFacultyReports.length === 0 && !allReportsLoading ? (
+                      <div className="rounded-2xl border border-gray-200 bg-white shadow-lg py-10 text-center text-[13px] text-gray-400">
+                        No classes or reports found.
                       </div>
-                    </div>
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
-                      {filteredAllReports.length} item(s)
-                    </span>
-                  </div>
-
-                  {allReportsLoading ? (
-                    <div className="py-10 text-center text-[13px] text-gray-400">Loading reports...</div>
-                  ) : allReportsError ? (
-                    <div className="py-10 text-center text-[13px] text-red-500">{allReportsError}</div>
-                  ) : filteredAllReports.length === 0 ? (
-                    <div className="py-10 text-center text-[13px] text-gray-400">No reports found for your scope.</div>
-                  ) : (
-                    <div className="divide-y divide-gray-100">
-                      {filteredAllReports.map((ticket) => (
-                        <div key={ticket.id} className="px-5 py-4 transition hover:bg-gray-50 sm:px-6">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="mb-1 flex flex-wrap items-center gap-2">
-                                <span className="text-[11px] font-bold text-gray-400">#{ticket.id}</span>
-                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
-                                  {ticket.category}
-                                </span>
+                    ) : (
+                      groupedFacultyReports.map((group) => (
+                        <div key={group.class_id} className="rounded-2xl border border-gray-200 bg-white shadow-lg">
+                          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 sm:px-6">
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-100 to-orange-50">
+                                <i className="bx bx-widget text-[18px] text-orange-600"></i>
+                              </span>
+                              <div>
+                                <h2 className="text-[18px] font-bold text-gray-800">{group.class_name}</h2>
+                                <p className="text-[12px] text-gray-500">Student feedback from this class</p>
                               </div>
-                              {ticket.user && (
-                                <p className="text-[12px] font-semibold text-gray-500">
-                                  {ticket.user.firstName} {ticket.user.lastName}
-                                  <span className="ml-1 font-normal text-gray-400">({ticket.user.email})</span>
-                                </p>
-                              )}
-                              <p className="truncate text-[14px] font-semibold text-gray-800">{ticket.subject}</p>
-                              <p className="mt-0.5 line-clamp-2 text-[13px] text-gray-500">{ticket.description}</p>
                             </div>
-                            <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
-                              <StatusBadge status={normalizeStatus(ticket.status)} />
-                              <span className="text-[11px] text-gray-400">{formatDate(ticket.created_at)}</span>
-                            </div>
+                            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
+                              {group.feedback.length} item(s)
+                            </span>
                           </div>
-                          {isDeanOrAssocDean && (
-                            <div className="mt-3 flex justify-end gap-2">
-                              <button
-                                type="button"
-                                disabled={statusUpdatingId === ticket.id}
-                                onClick={() => handleDeanStatusUpdate(ticket.id, "in_progress")}
-                                className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${normalizeStatus(ticket.status) === "in_progress"
-                                    ? "bg-amber-100 text-amber-700"
-                                    : "bg-gray-100 text-gray-600 hover:bg-amber-50 hover:text-amber-700"
-                                  } ${statusUpdatingId === ticket.id ? "cursor-not-allowed opacity-60" : ""}`}
-                              >
-                                Fix
-                              </button>
-                              <button
-                                type="button"
-                                disabled={statusUpdatingId === ticket.id}
-                                onClick={() => handleDeanStatusUpdate(ticket.id, "resolved")}
-                                className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${normalizeStatus(ticket.status) === "resolved"
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700"
-                                  } ${statusUpdatingId === ticket.id ? "cursor-not-allowed opacity-60" : ""}`}
-                              >
-                                Mark as Done
-                              </button>
+
+                          {allReportsLoading ? (
+                            <div className="py-10 text-center text-[13px] text-gray-400">Loading reports...</div>
+                          ) : allReportsError ? (
+                            <div className="py-10 text-center text-[13px] text-red-500">{allReportsError}</div>
+                          ) : group.feedback.length === 0 ? (
+                            <div className="py-10 text-center text-[13px] text-gray-400">No feedback from students in this class yet.</div>
+                          ) : (
+                            <div className="divide-y divide-gray-100">
+                              {group.feedback.map((ticket) => (
+                                <div key={ticket.id} className="px-5 py-4 transition hover:bg-gray-50 sm:px-6">
+                                  <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                                        <span className="text-[11px] font-bold text-gray-400">#{ticket.id}</span>
+                                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+                                          {ticket.category}
+                                        </span>
+                                      </div>
+                                      {ticket.user && (
+                                        <p className="text-[12px] font-semibold text-gray-500">
+                                          {ticket.user.firstName} {ticket.user.lastName}
+                                          <span className="ml-1 font-normal text-gray-400">({ticket.user.email})</span>
+                                        </p>
+                                      )}
+                                      <p className="truncate text-[14px] font-semibold text-gray-800">{ticket.subject}</p>
+                                      <p className="mt-0.5 line-clamp-2 text-[13px] text-gray-500">{ticket.description}</p>
+                                    </div>
+                                    <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
+                                      <StatusBadge status={normalizeStatus(ticket.status)} />
+                                      <span className="text-[11px] text-gray-400">{formatDate(ticket.created_at)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           )}
                         </div>
-                      ))}
+                      ))
+                    )
+                  ) : (
+                    /* Program Chair: flat list */
+                    <div className="rounded-2xl border border-gray-200 bg-white shadow-lg">
+                      <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 sm:px-6">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-100 to-orange-50">
+                            <i className="bx bx-clipboard text-[18px] text-orange-600"></i>
+                          </span>
+                          <div>
+                            <h2 className="text-[18px] font-bold text-gray-800">Student Reports</h2>
+                            <p className="text-[12px] text-gray-500">Showing student reports from your assigned program.</p>
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
+                          {filteredAllReports.length} item(s)
+                        </span>
+                      </div>
+
+                      {allReportsLoading ? (
+                        <div className="py-10 text-center text-[13px] text-gray-400">Loading reports...</div>
+                      ) : allReportsError ? (
+                        <div className="py-10 text-center text-[13px] text-red-500">{allReportsError}</div>
+                      ) : filteredAllReports.length === 0 ? (
+                        <div className="py-10 text-center text-[13px] text-gray-400">No reports found for your scope.</div>
+                      ) : (
+                        <div className="divide-y divide-gray-100">
+                          {filteredAllReports.map((ticket) => (
+                            <div key={ticket.id} className="px-5 py-4 transition hover:bg-gray-50 sm:px-6">
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                                    <span className="text-[11px] font-bold text-gray-400">#{ticket.id}</span>
+                                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+                                      {ticket.category}
+                                    </span>
+                                  </div>
+                                  {ticket.user && (
+                                    <p className="text-[12px] font-semibold text-gray-500">
+                                      {ticket.user.firstName} {ticket.user.lastName}
+                                      <span className="ml-1 font-normal text-gray-400">({ticket.user.email})</span>
+                                    </p>
+                                  )}
+                                  <p className="truncate text-[14px] font-semibold text-gray-800">{ticket.subject}</p>
+                                  <p className="mt-0.5 line-clamp-2 text-[13px] text-gray-500">{ticket.description}</p>
+                                </div>
+                                <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
+                                  <StatusBadge status={normalizeStatus(ticket.status)} />
+                                  <span className="text-[11px] text-gray-400">{formatDate(ticket.created_at)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
+                </>
               )}
             </div>
           )}

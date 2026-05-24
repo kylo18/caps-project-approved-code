@@ -1034,7 +1034,7 @@ const Sidebar = ({
           )}
         </div>
         
-        <div className="min-h-0 flex-1 overflow-y-auto pb-3">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-3">
         {/* Sidebar menu items */}
         <ul className="mt-2 mb-3 space-y-[5px] px-0">
           {menuItems.map((item, index) => {
