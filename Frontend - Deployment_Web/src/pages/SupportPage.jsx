@@ -1055,7 +1055,6 @@ export default function SupportPage() {
                           {currentUser?.program?.programName ?? currentUser?.program_name ?? ""}
                         </span>
                       </div>
-                      {/*<h2 className="text-[18px] font-bold text-gray-800">Computer Engineering Student Reports </h2>*/}
                       <p className="text-[12px] text-gray-500 mt-0.5">Showing student reports from your class</p>
                     </div>
                   </div>

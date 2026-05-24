@@ -205,7 +205,7 @@ const StudentDetail = ({ student, studentIndex, onBack }) => {
     <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
       <button onClick={onBack}
         className="mb-3 flex items-center gap-1.5 text-[13px] px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-400 hover:text-orange-500 transition-colors">
-        <i className="bx bx-arrow-back text-[15px]"></i> Back
+        <i className="bx bx-x text-[15px]"></i> Close
       </button>
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <div className="flex items-center gap-3">
@@ -268,109 +268,124 @@ const StudentList = ({ students, programLabel, onBack }) => {
     return nameA.localeCompare(nameB);
   });
 
-  if (selectedStudent) {
-    return (
-      <StudentDetail
-        student={selectedStudent}
-        studentIndex={students.indexOf(selectedStudent)}
-        onBack={() => setSelectedStudent(null)}
-      />
-    );
-  }
+  
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-        {onBack && (
-          <button onClick={onBack}
-            className="flex items-center gap-1.5 text-[13px] px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-400 hover:text-orange-500 transition-colors flex-shrink-0">
-            <i className="bx bx-arrow-back text-[15px]"></i> Back
-          </button>
-        )}
-        <div className="flex-1">
-          <p className="text-[16px] font-bold text-gray-800">{programLabel} Students</p>
-          <p className="text-[12px] text-gray-400">{filtered.length} of {students.length} shown</p>
-        </div>
-        <div className="relative">
-          <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-gray-400 text-[15px]"></i>
-          <input
-            type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search..."
-            className="text-[13px] pl-9 pr-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:border-orange-400 w-[160px]"
-          />
-        </div>
-      </div>
 
-      {filtered.length === 0 ? (
-        <div className="py-16 text-center text-[13px] text-gray-400">
-          <i className="bx bx-user-x text-[36px] mb-2 block"></i>
-          No students found.
+    <>
+      {/* ── Modal ── */}
+      {selectedStudent && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
+          onClick={() => setSelectedStudent(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <StudentDetail
+              student={selectedStudent}
+              studentIndex={students.indexOf(selectedStudent)}
+              onBack={() => setSelectedStudent(null)}
+            />
+          </div>
         </div>
-      ) : (
-        <>
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="bg-gray-50">
-                  {["Student", "Email", "Program", "Status", "Remarks"].map((h, i) => (
-                    <th key={h} className={`text-[11px] font-semibold text-gray-400 uppercase tracking-wider py-3 px-4 ${i === 0 ? "text-left" : "text-center"}`}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map((s) => {
-                  const av = AVATAR_PALETTE[students.indexOf(s) % AVATAR_PALETTE.length];
-                  const name = `${s.firstName || ""} ${s.lastName || ""}`.trim();
-                  return (
-                    <tr key={s.userID || s.id} onClick={() => setSelectedStudent(s)}
-                      className="cursor-pointer hover:bg-orange-50/40 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
-                            style={{ background: av.bg, color: av.fg }}>
-                            {initials(name)}
-                          </div>
-                          <span className="font-medium text-gray-700">{name || "Unnamed"}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center text-gray-500">{s.email || "—"}</td>
-                      <td className="py-3 px-4 text-center"><ProgramTag program={s.program || "Unknown"} /></td>
-                      <td className="py-3 px-4 text-center text-gray-500 text-[12px]">{s.status || (s.isActive ? "Active" : "Inactive") || "—"}</td>
-                      <td className="py-3 px-4 text-center text-gray-400 text-[12px]">{s.remarks || "—"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex flex-col divide-y divide-gray-50 sm:hidden">
-            {filtered.map((s) => {
-              const av = AVATAR_PALETTE[students.indexOf(s) % AVATAR_PALETTE.length];
-              const name = `${s.firstName || ""} ${s.lastName || ""}`.trim();
-              return (
-                <div key={s.userID || s.id} onClick={() => setSelectedStudent(s)}
-                  className="px-4 py-3 cursor-pointer hover:bg-orange-50/40 transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
-                      style={{ background: av.bg, color: av.fg }}>
-                      {initials(name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-gray-800 truncate">{name || "Unnamed"}</p>
-                      <p className="text-[11px] text-gray-400 truncate">{s.email || "No email"}</p>
-                    </div>
-                    <ProgramTag program={s.program || "Unknown"} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
       )}
-    </div>
+
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+          {onBack && (
+            <button onClick={onBack}
+              className="flex items-center gap-1.5 text-[13px] px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-400 hover:text-orange-500 transition-colors flex-shrink-0">
+              <i className="bx bx-arrow-back text-[15px]"></i> Back
+            </button>
+          )}
+          <div className="flex-1">
+            <p className="text-[16px] font-bold text-gray-800">{programLabel} Students</p>
+            <p className="text-[12px] text-gray-400">{filtered.length} of {students.length} shown</p>
+          </div>
+          <div className="relative">
+            <i className="bx bx-search absolute top-1/2 left-3 -translate-y-1/2 text-gray-400 text-[15px]"></i>
+            <input
+              type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="text-[13px] pl-9 pr-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:border-orange-400 w-[160px]"
+            />
+          </div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="py-16 text-center text-[13px] text-gray-400">
+            <i className="bx bx-user-x text-[36px] mb-2 block"></i>
+            No students found.
+          </div>
+        ) : (
+          <>
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="bg-gray-50">
+                    {["Student", "Email", "Program", "Status", "Remarks"].map((h, i) => (
+                      <th key={h} className={`text-[11px] font-semibold text-gray-400 uppercase tracking-wider py-3 px-4 ${i === 0 ? "text-left" : "text-center"}`}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filtered.map((s) => {
+                    const av = AVATAR_PALETTE[students.indexOf(s) % AVATAR_PALETTE.length];
+                    const name = `${s.firstName || ""} ${s.lastName || ""}`.trim();
+                    return (
+                      <tr key={s.userID || s.id} onClick={() => setSelectedStudent(s)}
+                        className="cursor-pointer hover:bg-orange-50/40 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                              style={{ background: av.bg, color: av.fg }}>
+                              {initials(name)}
+                            </div>
+                            <span className="font-medium text-gray-700">{name || "Unnamed"}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center text-gray-500">{s.email || "—"}</td>
+                        <td className="py-3 px-4 text-center"><ProgramTag program={s.program || "Unknown"} /></td>
+                        <td className="py-3 px-4 text-center text-gray-500 text-[12px]">{s.status || (s.isActive ? "Active" : "Inactive") || "—"}</td>
+                        <td className="py-3 px-4 text-center text-gray-400 text-[12px]">{s.remarks || "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex flex-col divide-y divide-gray-50 sm:hidden">
+              {filtered.map((s) => {
+                const av = AVATAR_PALETTE[students.indexOf(s) % AVATAR_PALETTE.length];
+                const name = `${s.firstName || ""} ${s.lastName || ""}`.trim();
+                return (
+                  <div key={s.userID || s.id} onClick={() => setSelectedStudent(s)}
+                    className="px-4 py-3 cursor-pointer hover:bg-orange-50/40 transition-colors">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                        style={{ background: av.bg, color: av.fg }}>
+                        {initials(name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-gray-800 truncate">{name || "Unnamed"}</p>
+                        <p className="text-[11px] text-gray-400 truncate">{s.email || "No email"}</p>
+                      </div>
+                      <ProgramTag program={s.program || "Unknown"} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 };
 
@@ -917,11 +932,14 @@ const AdminStudentEnhancement = () => {
   const currentProgramId = Number(currentUser?.programID ?? currentUser?.program?.programID ?? 0);
   const myProgram = PROGRAM_ID_MAP[currentProgramId] ?? null;
 
-  const visibleStudents = isDeanOrAssocDean
+  const VALID_PROGRAMS = ["BSCpE", "CE", "ECE", "EE"];
+
+  const visibleStudents = (isDeanOrAssocDean
     ? students
     : isProgramChair
       ? students.filter((s) => Number(s.programID ?? s.program?.programID ?? 0) === currentProgramId)
-      : students;
+      : students
+  ).filter((s) => VALID_PROGRAMS.includes(normalizeProgram(s.program || s.programName)));
 
   const visiblePrograms = isDeanOrAssocDean
     ? ALL_PROGRAMS
@@ -952,13 +970,24 @@ const AdminStudentEnhancement = () => {
         if (impRes.ok) { const j = await impRes.json(); setImprovementData(j.data ?? null); }
         if (progressRes.ok) { const j = await progressRes.json(); setStudentProgressData(Array.isArray(j.data) ? j.data : []); }
 
-        const usersRes = await fetch(`${baseUrl}/users?role=Student&limit=200&page=1`, { headers });
-        if (usersRes.ok) {
+        // Fetch all students across all pages
+        let allFetchedStudents = [];
+        let page = 1;
+        let totalPages = 1;
+
+        do {
+          const usersRes = await fetch(`${baseUrl}/users?role=Student&limit=200&page=${page}`, { headers });
+          if (!usersRes.ok) break;
           const usersJson = await usersRes.json();
-          setStudents(Array.isArray(usersJson.users) ? usersJson.users : []);
-          const backendTotal = Number(usersJson.total);
-          setStudentCount(Number.isFinite(backendTotal) ? backendTotal : (Array.isArray(usersJson.users) ? usersJson.users.length : 0));
-        }
+          const pageStudents = Array.isArray(usersJson.users) ? usersJson.users : [];
+          allFetchedStudents = [...allFetchedStudents, ...pageStudents];
+          totalPages = usersJson.totalPages ?? 1;
+          if (page === 1) setStudentCount(Number(usersJson.total) || 0);
+          page++;
+        } while (page <= totalPages);
+
+        setStudents(allFetchedStudents);
+
       } catch (e) {
         console.error("Fetch error:", e);
       } finally {
@@ -968,7 +997,8 @@ const AdminStudentEnhancement = () => {
     fetchAll();
   }, [apiUrl, isFaculty]);
 
-  const total = isProgramChair ? visibleStudents.length : (studentCount || students.length);
+  //const total = isProgramChair ? visibleStudents.length : (studentCount || students.length);
+  const total = visibleStudents.length;
   const passRate = passFailData ? Math.round(passFailData.pass_rate) : 0;
   const avgScore = summaryData?.average_score != null ? Number(summaryData.average_score).toFixed(1) : "0.0";
   const improvement = improvementData?.improvement_percentage ?? summaryData?.improvement_percentage ?? 0;
@@ -1050,15 +1080,17 @@ const AdminStudentEnhancement = () => {
 
       {!isFaculty && !loading && (
         <>
-          {/* ── KPI Cards ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-            <KpiCard label="Total Students" val={total} color={ORANGE} icon="bx-group" />
-            <KpiCard label="Avg. Score" val={`${avgScore}%`} color="#555" icon="bx-discount" />
-            <KpiCard label="Pass Rate" val={`${passRate}%`} color="#0f6e56" icon="bx-check-circle" />
-            <KpiCard label="Top Performers" val={`${topPerformers}`} color={ORANGE} icon="bx-trophy" />
-            <KpiCard label="Need Support" val={`${needSupport}`} color="#a32d2d" icon="bx-people-handshake" />
-            <KpiCard label="Improvement" val={`${Number(improvement) > 0 ? "+" : ""}${improvement}%`} color="#534ab7" icon="bx-trending-up" />
-          </div>
+          {/* ── KPI Cards — hide when viewing a program's students ── */}
+          {!viewingProgramStudents && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+              <KpiCard label="Total Students" val={total} color={ORANGE} icon="bx-group" />
+              <KpiCard label="Avg. Score" val={`${avgScore}%`} color="#555" icon="bx-discount" />
+              <KpiCard label="Pass Rate" val={`${passRate}%`} color="#0f6e56" icon="bx-check-circle" />
+              <KpiCard label="Top Performers" val={`${topPerformers}`} color={ORANGE} icon="bx-trophy" />
+              <KpiCard label="Need Support" val={`${needSupport}`} color="#a32d2d" icon="bx-people-handshake" />
+              <KpiCard label="Improvement" val={`${Number(improvement) > 0 ? "+" : ""}${improvement}%`} color="#534ab7" icon="bx-trending-up" />
+            </div>
+          )}
 
           {/* ── PROGRAM CHAIR VIEW ── */}
           {isProgramChair && myProgram && (
