@@ -30,7 +30,7 @@ export function LeaderboardShareModal({
   const colors = getStudentColors(isDark);
   const shadow = getStudentShadow(isDark);
   const { width } = useWindowDimensions();
-  const cardWidth = Math.min(290, Math.max(220, width - 72));
+  const cardWidth = Math.min(290, Math.max(248, width - 64));
   const cardHeight = Math.round(cardWidth * (1142 / 870));
   
   const viewShotRef = useRef<any>(null);
@@ -121,29 +121,40 @@ export function LeaderboardShareModal({
                   </Text>
                 </View>
 
-                <View style={styles.statsRow}>
-                  <View style={styles.statBadge}>
-                    <Text style={styles.statLabel}>RANK</Text>
-                    <Text
-                      style={[styles.statValue, { color: accentColor }]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.72}
-                    >
-                      #{rank}
-                    </Text>
+                <View style={styles.bottomContent}>
+                  <View style={styles.statsRow}>
+                    <View style={styles.statBadge}>
+                      <Text style={styles.statLabel}>RANK</Text>
+                      <Text
+                        style={[styles.statValue, { color: accentColor }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.72}
+                      >
+                        #{rank}
+                      </Text>
+                    </View>
+                    <View style={styles.statBadge}>
+                      <Text style={styles.statLabel}>POINTS</Text>
+                      <Text
+                        style={[styles.statValue, styles.pointsValue]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.72}
+                      >
+                        {score} PTS
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.statBadge}>
-                    <Text style={styles.statLabel}>POINTS</Text>
-                    <Text
-                      style={[styles.statValue, styles.pointsValue]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.72}
-                    >
-                      {score} PTS
-                    </Text>
-                  </View>
+
+                  <Text
+                    style={styles.cardFooterText}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.78}
+                  >
+                    Join me &amp; test your skills on CAPS
+                  </Text>
                 </View>
               </View>
             </LinearGradient>
@@ -259,8 +270,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.92)',
     borderRadius: 16,
     paddingHorizontal: 22,
-    paddingTop: 24,
-    paddingBottom: 22,
+    paddingTop: 22,
+    paddingBottom: 18,
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -276,15 +287,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Rubik',
   },
   trophyContainer: {
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: 6,
+    marginBottom: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
   trophyGlow: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.22)',
@@ -297,7 +308,7 @@ const styles = StyleSheet.create({
     color: '#C95B1E',
     fontSize: 13,
     fontWeight: '700',
-    marginBottom: 10,
+    marginBottom: 8,
     fontFamily: 'Rubik',
   },
   studentName: {
@@ -313,23 +324,27 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '400',
-    marginTop: 10,
+    marginTop: 8,
     textAlign: 'center',
     fontFamily: 'Rubik',
     width: '100%',
+  },
+  bottomContent: {
+    width: '100%',
+    alignItems: 'center',
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 14,
     width: '100%',
-    marginTop: 14,
+    marginTop: 10,
   },
   statBadge: {
     flex: 1,
-    minHeight: 62,
+    minHeight: 58,
     borderRadius: 14,
-    paddingVertical: 9,
+    paddingVertical: 8,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -343,13 +358,22 @@ const styles = StyleSheet.create({
     fontFamily: 'Rubik',
   },
   statValue: {
-    fontSize: 22,
-    lineHeight: 27,
+    fontSize: 21,
+    lineHeight: 26,
     fontWeight: '800',
     fontFamily: 'Rubik',
   },
   pointsValue: {
     color: '#FFFFFF',
+  },
+  cardFooterText: {
+    width: '100%',
+    color: 'rgba(255, 255, 255, 0.76)',
+    fontSize: 10,
+    fontWeight: '500',
+    fontFamily: 'Rubik',
+    marginTop: 12,
+    textAlign: 'center',
   },
   actions: {
     width: '100%',
