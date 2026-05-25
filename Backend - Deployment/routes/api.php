@@ -30,6 +30,7 @@ use Modules\Support\Controllers\SupportController;
 use Modules\Notifications\Controllers\NotificationController;
 use Modules\Users\Controllers\FeedbackController;
 use Modules\Notifications\Controllers\PushTokenController;
+use Modules\Users\Models\Campus;
 // New imports: these controllers were referenced in routes below but had no use statements,
 // causing "Class does not exist" errors at runtime (artisan route:list crashed).
 use Modules\PersonalExams\Controllers\PersonalQuizController;
@@ -55,6 +56,17 @@ Route::get('/roles', [RoleController::class, 'indexAvailableRoles']);
 Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail']);
 Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 Route::get('/app-version', [AppController::class, 'getVersion']);
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok']);
+});
+Route::get('/campuses', function () {
+    return response()->json([
+        'message' => 'Campuses retrieved successfully.',
+        'campuses' => Campus::query()
+            ->orderBy('campusID')
+            ->get(['campusID', 'campusName']),
+    ]);
+});
 
 
 /*
