@@ -19,6 +19,7 @@ const APK_MIME_TYPE = 'application/vnd.android.package-archive';
 const FLAG_GRANT_READ_URI_PERMISSION = 1;
 const EXTRA_RETURN_RESULT = 'android.intent.extra.RETURN_RESULT';
 const EXTRA_INSTALL_RESULT = 'android.intent.extra.INSTALL_RESULT';
+const MAX_DOWNLOAD_ATTEMPTS = 3;
 
 const INSTALL_FAILURE_MESSAGES: Record<number, string> = {
   [-2]: 'Android rejected the downloaded APK as invalid. Please rebuild and upload the APK again.',
@@ -45,6 +46,89 @@ function getInstallFailureMessage(intentResult: { resultCode: number; extra?: ob
   }
 
   return 'Android did not confirm that the update was installed. Please try again.';
+}
+
+function getHeader(headers: Record<string, string> | undefined, name: string) {
+  if (!headers) return undefined;
+  const match = Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase());
+  return match?.[1];
+}
+
+function getExpectedApkBytes(headers: Record<string, string> | undefined) {
+  const contentRange = getHeader(headers, 'content-range');
+  const rangeTotal = contentRange?.match(/\/(\d+)$/)?.[1];
+  const expected = Number(rangeTotal ?? getHeader(headers, 'content-length'));
+  return Number.isFinite(expected) && expected > 0 ? expected : null;
+}
+
+async function getFileBytes(fileUri: string) {
+  const info = await FileSystem.getInfoAsync(fileUri);
+  return info.exists && !info.isDirectory && typeof info.size === 'number' ? info.size : 0;
+}
+
+function toErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error || 'Download failed');
+}
+
+async function downloadApkWithRetry(apkUrl: string, fileUri: string, onProgress: (progress: number) => void) {
+  await FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => undefined);
+
+  let resumeData: string | undefined;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MAX_DOWNLOAD_ATTEMPTS; attempt += 1) {
+    try {
+      const downloadResumable = FileSystem.createDownloadResumable(
+        apkUrl,
+        fileUri,
+        {},
+        (downloadProgress) => {
+          const expectedBytes = downloadProgress.totalBytesExpectedToWrite;
+          const progress = expectedBytes > 0
+            ? downloadProgress.totalBytesWritten / expectedBytes
+            : 0;
+          onProgress(Math.min(Math.max(progress, 0), 1));
+        },
+        resumeData
+      );
+
+      const result = await downloadResumable.downloadAsync();
+
+      if (!result?.uri) {
+        throw new Error('Download failed: no APK file was received.');
+      }
+
+      if (result.status < 200 || result.status >= 300) {
+        throw new Error(`Download failed with HTTP ${result.status}.`);
+      }
+
+      const expectedBytes = getExpectedApkBytes(result.headers);
+      if (expectedBytes) {
+        const actualBytes = await getFileBytes(fileUri);
+        if (actualBytes !== expectedBytes) {
+          throw new Error(`Download incomplete: received ${actualBytes} of ${expectedBytes} bytes.`);
+        }
+      }
+
+      onProgress(1);
+      return result;
+    } catch (err) {
+      lastError = err;
+
+      if (attempt >= MAX_DOWNLOAD_ATTEMPTS) {
+        break;
+      }
+
+      const partialBytes = await getFileBytes(fileUri).catch(() => 0);
+      resumeData = partialBytes > 0 ? String(partialBytes) : undefined;
+
+      if (!resumeData) {
+        await FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => undefined);
+      }
+    }
+  }
+
+  throw new Error(toErrorMessage(lastError));
 }
 
 interface ForceUpdateModalProps {
@@ -121,20 +205,7 @@ export default function ForceUpdateModal({ visible, appVersion, requiredVersion,
       }
 
       const fileUri = `${FileSystem.cacheDirectory}CAPS-${safeVersionTag}.apk`;
-      await FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => undefined);
-
-      const downloadResumable = FileSystem.createDownloadResumable(
-        apkUrl,
-        fileUri,
-        {},
-        (downloadProgress) => {
-          const expectedBytes = downloadProgress.totalBytesExpectedToWrite;
-          const p = expectedBytes > 0 ? downloadProgress.totalBytesWritten / expectedBytes : 0;
-          setProgress(p);
-        }
-      );
-
-      const result = await downloadResumable.downloadAsync();
+      const result = await downloadApkWithRetry(apkUrl, fileUri, setProgress);
 
       if (!result?.uri) {
         throw new Error('Download failed — no file received.');
