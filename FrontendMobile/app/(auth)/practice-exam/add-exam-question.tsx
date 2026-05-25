@@ -91,12 +91,12 @@ export default function CombinedExamQuestionForm() {
   };
 
   const colors = {
-    bg: isDark ? '#000' : '#f3f4f6',
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    inputBg: isDark ? '#111827' : '#fff',
+    bg: isDark ? '#0F0F0F' : '#f3f4f6',
+    card: isDark ? '#1A1A1A' : '#fff',
+    text: isDark ? '#F5F5F5' : '#111827',
+    textSecondary: isDark ? '#A3A3A3' : '#6b7280',
+    border: isDark ? '#2A2A2A' : '#e5e7eb',
+    inputBg: isDark ? '#242424' : '#fff',
     orange: '#FE6902',
     green: '#10B981',
   };

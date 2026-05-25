@@ -313,7 +313,7 @@ export default function PracticeExamResults() {
                       const isUserChoiceCorrect = isUserChoice && q.isCorrect;
                       const isUserChoiceWrong = isUserChoice && !q.isCorrect;
 
-                      let choiceBg = isDark ? '#1f2937' : '#fff';
+                      let choiceBg = isDark ? '#1A1A1A' : '#fff';
                       let choiceBorder = colors.border;
                       let choiceIcon = null;
 

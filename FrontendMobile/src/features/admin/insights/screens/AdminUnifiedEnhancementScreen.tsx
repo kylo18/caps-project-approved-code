@@ -123,7 +123,7 @@ function EmptyState({ icon, title, subtitle, isDark }: { icon: string; title: st
 
 function SectionCard({ title, children, isDark, action }: { title: string; children: React.ReactNode; isDark: boolean; action?: React.ReactNode }) {
     return (
-        <View className="rounded-[24px] p-4" style={{ backgroundColor: isDark ? '#111827' : '#FFFFFF' }}>
+        <View className="rounded-[24px] p-4" style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF' }}>
             <View className="flex-row items-center justify-between mb-4">
                 <Text className="text-[12px] font-semibold uppercase tracking-[1.2px]" style={{ color: '#FE6902' }}>
                     {title}
@@ -151,7 +151,7 @@ function OverviewMetricCard({
     return (
         <View
             className="rounded-[20px] p-4 flex-1 min-w-[47%]"
-            style={{ backgroundColor: isDark ? '#111827' : '#FFFFFF' }}
+            style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF' }}
         >
             <View className="w-10 h-10 rounded-2xl items-center justify-center mb-3" style={{ backgroundColor: `${color}18` }}>
                 <Ionicons name={icon} size={20} color={color} />
@@ -240,12 +240,12 @@ function ProgressLineChart({
 
     const polyline = plotted.map((point) => `${point.x},${point.y}`).join(' ');
     const lineColor = '#FE6902';
-    const gridColor = isDark ? '#1F2937' : '#E5E7EB';
+    const gridColor = isDark ? '#2A2A2A' : '#E5E7EB';
 
     return (
         <View
             className="rounded-[22px] px-3 py-3"
-            style={{ backgroundColor: isDark ? '#0F172A' : '#FFF7ED' }}
+            style={{ backgroundColor: isDark ? '#242424' : '#FFF7ED' }}
         >
             <View className="flex-row items-center justify-between mb-2">
                 <View>
@@ -307,7 +307,7 @@ const StudentListItem = React.memo(({ student, index, isDark }: {
     const scoreColorValue = hasScore ? scoreColor(Number(rawScore)) : (isDark ? '#6B7280' : '#9CA3AF');
 
     return (
-        <View className="rounded-[24px] p-4 mb-3" style={{ backgroundColor: isDark ? '#111827' : '#FFFFFF' }}>
+        <View className="rounded-[24px] p-4 mb-3" style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF' }}>
             <View className="flex-row items-start justify-between">
                 <View className="flex-row items-center flex-1 mr-3">
                     <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#FFF0E0' }}>
@@ -331,7 +331,7 @@ const StudentListItem = React.memo(({ student, index, isDark }: {
                 </View>
             </View>
 
-            <View className="flex-row justify-between mt-4 pt-3" style={{ borderTopWidth: 1, borderTopColor: isDark ? '#1F2937' : '#F3F4F6' }}>
+            <View className="flex-row justify-between mt-4 pt-3" style={{ borderTopWidth: 1, borderTopColor: isDark ? '#2A2A2A' : '#F3F4F6' }}>
                 <View>
                     <Text className="text-[11px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
                         Program
@@ -648,7 +648,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     // ── Loading state ────────────────────────────────────────────────────────
     if (loading) {
         return (
-            <View className={`flex-1 justify-center items-center ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+            <View className={`flex-1 justify-center items-center ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
                 <CapsActivityIndicator size="large" color="#FE6902" />
             </View>
         );
@@ -657,7 +657,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     // ── Error state ──────────────────────────────────────────────────────────
     if (error) {
         return (
-            <View className={`flex-1 items-center justify-center px-6 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+            <View className={`flex-1 items-center justify-center px-6 ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
                 <MobileHeader title="Enhancement & Analytics" />
                 <View className="flex-1 items-center justify-center">
                     <Ionicons name="alert-circle-outline" size={56} color="#EF4444" />
@@ -711,7 +711,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                         onPress={() => setActiveTab(tab.key)}
                         className="rounded-full px-4 py-2.5 flex-row items-center"
                         style={{
-                            backgroundColor: activeTab === tab.key ? '#FE6902' : isDark ? '#111827' : '#FFFFFF',
+                            backgroundColor: activeTab === tab.key ? '#FE6902' : isDark ? '#1A1A1A' : '#FFFFFF',
                             minHeight: 44,
                         }}
                     >
@@ -733,7 +733,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     );
 
     return (
-        <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+        <View className={`flex-1 ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
             <MobileHeader title="Enhancement & Analytics" />
 
             {activeTab === 'overview' || activeTab === 'analytics' ? (
@@ -876,7 +876,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                                                         <Text className="text-[11px] w-40" numberOfLines={1} style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
                                                             {r.label}
                                                         </Text>
-                                                        <View className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? '#1F2937' : '#F3F4F6' }}>
+                                                        <View className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? '#2A2A2A' : '#F3F4F6' }}>
                                                             <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: r.color }} />
                                                         </View>
                                                         <Text className="text-[11px] font-medium w-14 text-right" style={{ color: r.color }}>
@@ -1075,7 +1075,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                                                             </View>
                                                         </View>
                                                     </View>
-                                                    <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? '#1F2937' : '#E5E7EB' }}>
+                                                    <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? '#2A2A2A' : '#E5E7EB' }}>
                                                         <View
                                                             className="h-full rounded-full"
                                                             style={{
@@ -1159,7 +1159,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                                 <SectionCard title="Filters" isDark={isDark}>
                                     <View
                                         className="flex-row items-center rounded-2xl px-3 py-3 mb-3"
-                                        style={{ backgroundColor: isDark ? '#1F2937' : '#F9FAFB' }}
+                                        style={{ backgroundColor: isDark ? '#242424' : '#F9FAFB' }}
                                     >
                                         <Ionicons name="search" size={16} color={isDark ? '#9CA3AF' : '#6B7280'} />
                                         <TextInput
@@ -1181,7 +1181,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                                                 onPress={() => setActiveProgram(program)}
                                                 className="rounded-full px-4 py-2"
                                                 style={{
-                                                    backgroundColor: activeProgram === program ? '#FE6902' : isDark ? '#1F2937' : '#F3F4F6',
+                                                    backgroundColor: activeProgram === program ? '#FE6902' : isDark ? '#242424' : '#F3F4F6',
                                                     minHeight: 36,
                                                 }}
                                             >
@@ -1208,7 +1208,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
                                                 onPress={() => setActiveYear(year)}
                                                 className="rounded-full px-4 py-2"
                                                 style={{
-                                                    backgroundColor: activeYear === year ? '#FE6902' : isDark ? '#1F2937' : '#F3F4F6',
+                                                    backgroundColor: activeYear === year ? '#FE6902' : isDark ? '#242424' : '#F3F4F6',
                                                     minHeight: 36,
                                                 }}
                                             >

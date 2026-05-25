@@ -77,11 +77,11 @@ export default function DuplicateQuestionForm() {
   };
 
   const colors = {
-    bg: isDark ? '#000' : '#f3f4f6',
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
+    bg: isDark ? '#0F0F0F' : '#f3f4f6',
+    card: isDark ? '#1A1A1A' : '#fff',
+    text: isDark ? '#F5F5F5' : '#111827',
+    textSecondary: isDark ? '#A3A3A3' : '#6b7280',
+    border: isDark ? '#2A2A2A' : '#e5e7eb',
     orange: '#FE6902',
   };
 
