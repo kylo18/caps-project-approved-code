@@ -297,7 +297,13 @@ export default function PracticeExamResults() {
                           strong: { color: colors.text, fontWeight: '700' },
                           u: { textDecorationLine: 'underline' },
                           a: { color: '#FE6902' },
+                          img: {
+                            backgroundColor: isDark ? '#ffffff' : 'transparent',
+                            borderRadius: 8,
+                            padding: 6,
+                          },
                         }}
+                        ignoredStyles={['color', 'backgroundColor']}
                       />
                     </View>
 

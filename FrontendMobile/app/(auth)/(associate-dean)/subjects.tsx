@@ -515,7 +515,13 @@ export default function AssoDeanSubjectsScreen() {
                         strong: { color: isDark ? '#fff' : '#111827', fontWeight: '700' },
                         u: { textDecorationLine: 'underline' },
                         a: { color: '#FE6902' },
+                        img: {
+                          backgroundColor: isDark ? '#ffffff' : 'transparent',
+                          borderRadius: 8,
+                          padding: 6,
+                        },
                       }}
+                      ignoredStyles={['color', 'backgroundColor']}
                     />
                   </View>
                   <View className="flex-row items-center pt-2 border-t border-gray-200 dark:border-[#2A2A2A]">

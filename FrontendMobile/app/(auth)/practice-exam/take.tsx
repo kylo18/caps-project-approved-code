@@ -472,7 +472,12 @@ export default function PracticeExamScreen() {
     strong: { color: colors.text, fontWeight: '700' as const },
     u: { textDecorationLine: 'underline' as const },
     a: { color: colors.orange },
-  }), [colors.text]);
+    img: {
+      backgroundColor: isDark ? '#ffffff' : 'transparent',
+      borderRadius: 8,
+      padding: 6,
+    },
+  }), [colors.text, isDark]);
 
   // Image Modal
   const ImageModal = () => (
@@ -497,7 +502,7 @@ export default function PracticeExamScreen() {
           {imageModalUrl ? (
             <Image
               source={{ uri: imageModalUrl }}
-              style={{ width: width - 40, height: height * 0.6 }}
+              style={{ width: width - 40, height: height * 0.6, backgroundColor: '#ffffff', borderRadius: 8 }}
               resizeMode="contain"
             />
           ) : null}
@@ -603,6 +608,7 @@ export default function PracticeExamScreen() {
                   contentWidth={windowWidth - 48}
                   source={{ html: currentQuestion.questionText || '<p></p>' }}
                   tagsStyles={questionTagsStyles}
+                  ignoredStyles={['color', 'backgroundColor']}
                 />
               </View>
 

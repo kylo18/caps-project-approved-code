@@ -897,7 +897,13 @@ export default function AdminSubjectsScreen() {
                       strong: { color: isDark ? '#fff' : '#111827', fontWeight: '700' },
                       u: { textDecorationLine: 'underline' },
                       a: { color: '#FE6902' },
+                      img: {
+                        backgroundColor: isDark ? '#ffffff' : 'transparent',
+                        borderRadius: 8,
+                        padding: 6,
+                      },
                     }}
+                    ignoredStyles={['color', 'backgroundColor']}
                   />
                 </View>
 
@@ -1124,7 +1130,13 @@ export default function AdminSubjectsScreen() {
                       strong: { color: isDark ? '#fff' : '#111827', fontWeight: '700' },
                       u: { textDecorationLine: 'underline' },
                       a: { color: '#FE6902' },
+                      img: {
+                        backgroundColor: isDark ? '#ffffff' : 'transparent',
+                        borderRadius: 8,
+                        padding: 6,
+                      },
                     }}
+                    ignoredStyles={['color', 'backgroundColor']}
                   />
                 </View>
 
