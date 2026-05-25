@@ -235,7 +235,7 @@ class NotificationController extends Controller
                 $createdCount++;
             }
 
-            $this->pushNotifications->sendToUsers(
+            $pushResult = $this->pushNotifications->sendToUsers(
                 $targetUsers,
                 $validated['title'],
                 $validated['message'],
@@ -246,7 +246,8 @@ class NotificationController extends Controller
             
             return response()->json([
                 'message' => 'Notification created successfully',
-                'created_count' => $createdCount
+                'created_count' => $createdCount,
+                'push' => $pushResult
             ], 201);
             
         } catch (\Illuminate\Validation\ValidationException $e) {

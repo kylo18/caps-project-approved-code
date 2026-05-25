@@ -46,6 +46,7 @@ class PushNotificationService
                 'sound' => 'default',
                 'channelId' => 'default',
                 'priority' => 'high',
+                'ttl' => 604800,
             ];
         }, $tokens);
 

@@ -9,9 +9,14 @@ use Illuminate\Support\Facades\Log;
 use Modules\Users\Models\User;
 use App\Mail\SystemUpdateMail;
 use Illuminate\Support\Facades\Mail;
+use Modules\Notifications\Services\PushNotificationService;
 
 class SystemNotificationController extends Controller
 {
+    public function __construct(private PushNotificationService $pushNotifications)
+    {
+    }
+
     public function sendSystemUpdate(Request $request)
     {
         $authUser = Auth::user();
@@ -69,11 +74,19 @@ class SystemNotificationController extends Controller
             }
         }
 
+        $pushResult = $this->pushNotifications->sendToUsers(
+            $users->pluck('userID')->all(),
+            $request->title,
+            $request->message,
+            ['type' => 'system_update']
+        );
+
         return response()->json([
             'message' => 'System notification sent.',
             'sent' => $sentCount,
             'failed' => $failedCount,
-            'total' => $users->count()
+            'total' => $users->count(),
+            'push' => $pushResult
         ], 200);
     }
 }
