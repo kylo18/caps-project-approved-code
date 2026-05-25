@@ -91,7 +91,12 @@ export default function DuplicateQuestionForm() {
     strong: { color: colors.text, fontWeight: '700' as const },
     u: { textDecorationLine: 'underline' as const },
     a: { color: colors.orange },
-  }), [colors.text, colors.orange]);
+    img: {
+      backgroundColor: isDark ? '#ffffff' : 'transparent',
+      borderRadius: 8,
+      padding: 6,
+    },
+  }), [colors.text, colors.orange, isDark]);
 
   if (isLoading) {
     return <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.bg }}><CapsActivityIndicator size="large" color={colors.orange} /></View>;
@@ -115,6 +120,7 @@ export default function DuplicateQuestionForm() {
               contentWidth={width - 64}
               source={{ html: question?.questionText || '<p>No question text</p>' }}
               tagsStyles={tagsStyles}
+              ignoredStyles={['color', 'backgroundColor']}
             />
           </View>
 
