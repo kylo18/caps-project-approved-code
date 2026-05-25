@@ -217,11 +217,11 @@ function InsightCard({
       style={({ pressed }) => ({
         borderRadius: 28,
         padding: 18,
-        backgroundColor: isDark ? '#111827' : '#FFFFFF',
+        backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
         opacity: pressed ? 0.92 : 1,
         transform: [{ scale: pressed ? 0.985 : 1 }],
         borderWidth: 1,
-        borderColor: isDark ? '#1F2937' : '#E5E7EB',
+        borderColor: isDark ? '#2A2A2A' : '#E5E7EB',
         shadowColor: '#000',
         shadowOpacity: isDark ? 0.18 : 0.08,
         shadowRadius: 14,
@@ -269,7 +269,7 @@ export default function AdminInsightsShellScreen({ role }: Props) {
   useScreenFloatingTools(fabActions);
 
   return (
-    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+    <View className={`flex-1 ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
       <MobileHeader title={content.title} />
 
       <ScrollView

@@ -88,7 +88,7 @@ const juniorMobileDevelopers: Developer[] = [
     role: 'Scrum Master',
     badge: 'Mobile Team',
     description:
-      'Coordinates sprint flow, task tracking, and mobile team collaboration to keep implementation work organized.',
+      'Coordinates sprint flow, task tracking, and collaboration between the web and mobile teams to keep implementation work organized',
     image: GAGNO_IMAGE,
     imageStyle: {
       position: 'absolute',
@@ -105,11 +105,6 @@ const juniorMobileDevelopers: Developer[] = [
     description:
       'Guides mobile project planning, task ownership, and delivery coordination for the junior development team.',
     image: EMBOL_IMAGE,
-    imageStyle: {
-      position: 'absolute',
-      height: '125%',
-      top: 0,
-    },
     themeColor: '#14B8A6',
     facebook: 'https://www.facebook.com/share/18Bf4H2B6p/',
   },
@@ -189,7 +184,7 @@ export default function TeamCapsScreen() {
       }
     } catch (err) {
       // Fallback to React Native linking
-      Linking.openURL(url).catch(() => {});
+      Linking.openURL(url).catch(() => { });
     }
   };
 

@@ -120,9 +120,9 @@ function EmptyState({ icon, message, isDark }: { icon: keyof typeof Ionicons.gly
   return (
     <View
       className="rounded-3xl px-5 py-10 items-center"
-      style={{ backgroundColor: isDark ? '#111827' : '#FFFFFF' }}
+      style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF' }}
     >
-      <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: isDark ? '#1F2937' : '#FFF0E0' }}>
+      <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: isDark ? '#242424' : '#FFF0E0' }}>
         <Ionicons name={icon} size={24} color="#FE6902" />
       </View>
       <Text
@@ -151,7 +151,7 @@ function SummaryCard({
   return (
     <View
       className="flex-1 rounded-[22px] p-4"
-      style={{ backgroundColor: isDark ? '#111827' : '#FFFFFF' }}
+      style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF' }}
     >
       <View className="w-10 h-10 rounded-2xl items-center justify-center mb-3" style={{ backgroundColor: `${color}20` }}>
         <Ionicons name={icon} size={20} color={color} />
@@ -171,10 +171,10 @@ function RecentTakerCard({ item, isDark }: { item: RecentTaker; isDark: boolean 
   const subject = item.lastAttemptSubject?.subjectName || item.lastAttemptSubject?.subjectCode || 'No subject';
 
   return (
-    <View className="rounded-[24px] p-4" style={{ backgroundColor: isDark ? '#111827' : '#FFFFFF' }}>
+    <View className="rounded-[24px] p-4" style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF' }}>
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center flex-1 mr-3">
-          <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: isDark ? '#1F2937' : '#FFF0E0' }}>
+          <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: isDark ? '#242424' : '#FFF0E0' }}>
             <Text className="font-bold text-[13px]" style={{ color: '#FE6902' }}>
               {initials(name)}
             </Text>
@@ -199,17 +199,17 @@ function RecentTakerCard({ item, isDark }: { item: RecentTaker; isDark: boolean 
       </View>
 
       <View className="mt-4 flex-row flex-wrap">
-        <View className="rounded-full px-3 py-1 mr-2 mb-2" style={{ backgroundColor: isDark ? '#1F2937' : '#F3F4F6' }}>
+        <View className="rounded-full px-3 py-1 mr-2 mb-2" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
           <Text className="text-[11px] font-medium" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
             {subject}
           </Text>
         </View>
-        <View className="rounded-full px-3 py-1 mr-2 mb-2" style={{ backgroundColor: isDark ? '#1F2937' : '#F3F4F6' }}>
+        <View className="rounded-full px-3 py-1 mr-2 mb-2" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
           <Text className="text-[11px] font-medium" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
             {item.totalAttempts ?? 0} attempt{item.totalAttempts === 1 ? '' : 's'}
           </Text>
         </View>
-        <View className="rounded-full px-3 py-1 mb-2" style={{ backgroundColor: isDark ? '#1F2937' : '#F3F4F6' }}>
+        <View className="rounded-full px-3 py-1 mb-2" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
           <Text className="text-[11px] font-medium" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
             {formatDate(item.lastAttemptDate)}
           </Text>
@@ -231,9 +231,9 @@ function LeaderboardCard({
   const name = getDisplayName(item);
 
   return (
-    <View className="rounded-[24px] p-4" style={{ backgroundColor: isDark ? '#111827' : '#FFFFFF' }}>
+    <View className="rounded-[24px] p-4" style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF' }}>
       <View className="flex-row items-center">
-        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: rank === 1 ? '#FEF3C7' : isDark ? '#1F2937' : '#F3F4F6' }}>
+        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: rank === 1 ? '#FEF3C7' : isDark ? '#242424' : '#F3F4F6' }}>
           <Text className="text-[14px] font-bold" style={{ color: rank === 1 ? '#B45309' : isDark ? '#FFFFFF' : '#111827' }}>
             {rank}
           </Text>
@@ -278,14 +278,14 @@ function TicketCard({ item, isDark }: { item: UserReportTicket; isDark: boolean 
     : 'Unknown reporter';
 
   return (
-    <View className="rounded-[24px] p-4" style={{ backgroundColor: isDark ? '#111827' : '#FFFFFF' }}>
+    <View className="rounded-[24px] p-4" style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF' }}>
       <View className="flex-row items-start justify-between">
         <View className="flex-1 mr-3">
           <View className="flex-row items-center flex-wrap mb-2">
             <Text className="text-[11px] font-bold mr-2" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
               #{item.id}
             </Text>
-            <View className="rounded-full px-2.5 py-1 mr-2" style={{ backgroundColor: isDark ? '#1F2937' : '#F3F4F6' }}>
+            <View className="rounded-full px-2.5 py-1 mr-2" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
               <Text className="text-[11px] font-medium" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
                 {item.category || 'General'}
               </Text>
@@ -338,7 +338,7 @@ function TicketGroup({
             {title}
           </Text>
         </View>
-        <View className="rounded-full px-3 py-1" style={{ backgroundColor: isDark ? '#1F2937' : '#F3F4F6' }}>
+        <View className="rounded-full px-3 py-1" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
           <Text className="text-[11px] font-semibold" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
             {items.length}
           </Text>
@@ -499,7 +499,7 @@ export default function AdminReportsScreen({ role }: Props) {
   useScreenFloatingTools(fabActions);
 
   return (
-    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+    <View className={`flex-1 ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
       <MobileHeader title={meta.title} />
 
       <ScrollView

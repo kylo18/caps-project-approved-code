@@ -1151,7 +1151,7 @@ export default function AdminSubjectsScreen() {
                       className={`
                         flex-row items-center p-3 rounded-xl mb-2
                         ${choice.isCorrect || choice.is_correct
-                          ? 'bg-green-100 border border-green-500'
+                          ? isDark ? 'bg-green-950/40 border border-green-500' : 'bg-green-100 border border-green-500'
                           : isDark ? 'bg-gray-700' : 'bg-gray-50'
                         }
                       `}
