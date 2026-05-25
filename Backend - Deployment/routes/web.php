@@ -19,9 +19,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // ─── APK Download ────────────────────────────────────────────────────────────
 // Place app-release.apk in: public/apk/CAPS.apk
-// Download URL: http://your-ip/download/caps.apk
-Route::get('/download/caps.apk', function (): BinaryFileResponse {
+// Download URLs:
+// - http://your-ip/download/caps.apk
+// - http://your-ip/downloads/caps.apk (compatibility alias for manual browser checks)
+$serveCapsApk = function (): BinaryFileResponse {
     $path = public_path('apk/CAPS.apk');
+    clearstatcache(true, $path);
 
     if (!file_exists($path)) {
         abort(404, 'APK not found. Please upload app-release.apk to public/apk/');
@@ -32,8 +35,12 @@ Route::get('/download/caps.apk', function (): BinaryFileResponse {
         'Content-Disposition' => 'attachment; filename="CAPS.apk"',
         'Cache-Control' => 'no-store, no-cache',
     ]);
-})->withoutMiddleware([
-    StartSession::class,
-    ShareErrorsFromSession::class,
-    VerifyCsrfToken::class,
-]);
+};
+
+foreach (['/download/caps.apk', '/downloads/caps.apk'] as $apkDownloadPath) {
+    Route::get($apkDownloadPath, $serveCapsApk)->withoutMiddleware([
+        StartSession::class,
+        ShareErrorsFromSession::class,
+        VerifyCsrfToken::class,
+    ]);
+}
