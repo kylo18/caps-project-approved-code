@@ -118,34 +118,87 @@ class SocialAuthController extends Controller
     // Starts the Facebook OAuth flow and remembers which frontend should receive the callback result.
     public function redirectToFacebook(Request $request)
     {
-        if (!config('services.facebook.client_id')) {
-            throw new \Exception('Facebook Client ID is missing. Check your .env file and configuration cache.');
+        $frontendUrl = $request->query('frontend_url');
+
+        try {
+            if (!config('services.facebook.client_id')) {
+                throw new \Exception('Facebook Client ID is missing. Check your .env file and configuration cache.');
+            }
+
+            Log::info('Facebook OAuth redirect initiated', [
+                'frontend_url' => $frontendUrl,
+                'ip' => $request->ip(),
+            ]);
+
+            $state = null;
+            if ($frontendUrl) {
+                $state = base64_encode(json_encode(['frontend_url' => $frontendUrl]));
+            }
+
+            $driver = Socialite::driver('facebook')->stateless();
+
+            if (config('services.facebook.redirect')) {
+                $driver->redirectUrl(config('services.facebook.redirect'));
+            }
+
+            if ($state) {
+                $driver->with(['state' => $state]);
+            }
+
+            $response = $driver->redirect();
+
+            if ($frontendUrl && !str_starts_with($frontendUrl, 'caps://')) {
+                $frontendUrlCookie = $this->makeFrontendUrlCookie($request);
+                if ($frontendUrlCookie) {
+                    $response->withCookie($frontendUrlCookie);
+                }
+            }
+
+            return $response;
+        } catch (\Exception $e) {
+            Log::error('Facebook OAuth redirect failed: ' . $e->getMessage(), [
+                'exception_class' => get_class($e),
+            ]);
+
+            return $this->redirectToFrontendError(
+                'provider_failed',
+                'Failed to initiate Facebook login: ' . $e->getMessage(),
+                'facebook',
+                $frontendUrl
+            );
         }
-
-        $response = Socialite::driver('facebook')->stateless()->redirect();
-        $frontendUrlCookie = $this->makeFrontendUrlCookie($request);
-
-        if ($frontendUrlCookie) {
-            $response->withCookie($frontendUrlCookie);
-        }
-
-        return $response;
     }
 
     // Handles the Facebook provider callback and always sends the browser back to the frontend.
-    public function handleFacebookCallback()
+    public function handleFacebookCallback(Request $request)
     {
+        $frontendUrl = null;
+
         try {
+            $state = $request->query('state');
+            if ($state) {
+                $frontendUrl = $this->decodeFrontendUrlState($state);
+            }
+
+            Log::info('Facebook OAuth callback received', [
+                'url' => request()->fullUrl(),
+                'frontend_url_from_state' => $frontendUrl,
+                'cookie_oauth_frontend_url' => request()->cookie('oauth_frontend_url'),
+                'user_agent' => request()->userAgent(),
+                'ip' => request()->ip(),
+            ]);
+
             $facebookUser = Socialite::driver('facebook')->stateless()
                 ->setHttpClient(new \GuzzleHttp\Client(['verify' => config('app.env') === 'local' ? false : true]))
                 ->user();
-            return $this->handleOAuthUser($facebookUser, 'facebook', null);
+            return $this->handleOAuthUser($facebookUser, 'facebook', $frontendUrl);
         } catch (\Exception $e) {
             Log::error('Facebook OAuth error: ' . $e->getMessage());
             return $this->redirectToFrontendError(
                 'provider_failed',
                 'Failed to authenticate with Facebook.',
-                'facebook'
+                'facebook',
+                $frontendUrl
             );
         }
     }
