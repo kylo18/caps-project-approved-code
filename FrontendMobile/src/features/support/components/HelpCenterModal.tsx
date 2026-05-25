@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import CapsActivityIndicator from '../../../features/core/components/CapsActivityIndicator';
 import { showToast } from '../../../hooks/useToast';
 import { getFAQs, submitSupportRequest, FAQ } from '../../../services/helpService';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getRoleThemeColors } from '../../../features/core/styles/roleTheme';
 
 interface HelpCenterModalProps {
   visible: boolean;
@@ -12,6 +14,8 @@ interface HelpCenterModalProps {
 }
 
 export default function HelpCenterModal({ visible, onClose, userRole }: HelpCenterModalProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const isStudent = !userRole || userRole === 1;
 
   const [activeTab, setActiveTab] = useState(isStudent ? 'faq' : 'announcement');
@@ -91,14 +95,16 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
     }
   };
 
+  const roleColors = getRoleThemeColors(isDark);
   const colors = {
-    bg: 'rgba(0,0,0,0.5)',
-    card: '#fff',
-    text: '#111827',
-    textSecondary: '#6b7280',
-    border: '#e5e7eb',
-    inputBg: '#fff',
-    orange: '#FE6902',
+    bg: roleColors.overlay,
+    card: roleColors.surface,
+    tabIdle: roleColors.surfaceSoft,
+    text: roleColors.text,
+    textSecondary: roleColors.muted,
+    border: roleColors.border,
+    inputBg: roleColors.input,
+    orange: roleColors.accent,
   };
 
   const title = isStudent ? 'Help Center' : 'Create Announcement';
@@ -120,7 +126,7 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
               <View className="flex-row gap-2 mb-4">
                 <TouchableOpacity
                   className="flex-row items-center px-4 py-2 rounded-full"
-                  style={{ backgroundColor: activeTab === 'faq' ? colors.orange : 'transparent' }}
+                  style={{ backgroundColor: activeTab === 'faq' ? colors.orange : colors.tabIdle, borderWidth: activeTab === 'faq' ? 0 : 1, borderColor: colors.border }}
                   onPress={() => setActiveTab('faq')}
                   activeOpacity={0.7}
                 >
@@ -129,7 +135,7 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="flex-row items-center px-4 py-2 rounded-full"
-                  style={{ backgroundColor: activeTab === 'support' ? colors.orange : 'transparent' }}
+                  style={{ backgroundColor: activeTab === 'support' ? colors.orange : colors.tabIdle, borderWidth: activeTab === 'support' ? 0 : 1, borderColor: colors.border }}
                   onPress={() => setActiveTab('support')}
                   activeOpacity={0.7}
                 >
@@ -170,7 +176,7 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
                       <TouchableOpacity
                         key={cat.key}
                         className="px-3 py-1.5 rounded-full border"
-                        style={{ borderColor: category === cat.key ? colors.orange : '#e5e7eb', backgroundColor: category === cat.key ? colors.orange : '#fff' }}
+                        style={{ borderColor: category === cat.key ? colors.orange : colors.border, backgroundColor: category === cat.key ? colors.orange : colors.tabIdle }}
                         onPress={() => setCategory(cat.key)}
                         activeOpacity={0.7}
                       >
@@ -204,7 +210,7 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
 
                   <TouchableOpacity
                     className="py-3.5 rounded-xl items-center mt-4"
-                    style={{ backgroundColor: '#FE6902', opacity: isSubmitting ? 0.6 : 1 }}
+                    style={{ backgroundColor: colors.orange, opacity: isSubmitting ? 0.6 : 1 }}
                     onPress={handleSubmit}
                     disabled={isSubmitting}
                     activeOpacity={0.8}
@@ -241,7 +247,7 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
 
               <TouchableOpacity
                 className="py-3.5 rounded-xl items-center mt-4"
-                style={{ backgroundColor: '#FE6902', opacity: isSubmitting ? 0.6 : 1 }}
+                style={{ backgroundColor: colors.orange, opacity: isSubmitting ? 0.6 : 1 }}
                 onPress={handleSubmit}
                 disabled={isSubmitting}
                 activeOpacity={0.8}

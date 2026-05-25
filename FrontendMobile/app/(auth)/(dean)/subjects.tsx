@@ -656,8 +656,8 @@ export default function AdminSubjectsScreen() {
   // Render loading skeleton
   if (isLoading) {
     return (
-      <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
-        <View className={`px-4 py-3 ${isDark ? 'bg-gray-800' : 'bg-white'} border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+      <View className={`flex-1 ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
+        <View className={`px-4 py-3 ${isDark ? 'bg-[#242424]' : 'bg-white'} border-b ${isDark ? 'border-[#2A2A2A]' : 'border-gray-200'}`}>
           <View className="h-8 w-40 bg-gray-300 rounded-lg" />
         </View>
         <View className="flex-1 justify-center items-center">
@@ -671,10 +671,10 @@ export default function AdminSubjectsScreen() {
   }
 
   return (
-    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+    <View className={`flex-1 ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
       {/* Header */}
       <View
-        className={`px-4 pb-3 pt-3 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+        className={`px-4 pb-3 pt-3 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
         style={{ paddingTop: insets.top + 12 }}
       >
         <View className="flex-row items-center justify-between">
@@ -714,7 +714,7 @@ export default function AdminSubjectsScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                 <TouchableOpacity
                   onPress={() => setFilterProgramID('All')}
-                  className={`px-3 py-1.5 rounded-full ${filterProgramID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                  className={`px-3 py-1.5 rounded-full ${filterProgramID === 'All' ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
                   activeOpacity={0.7}
                 >
                   <Text className={`text-xs ${filterProgramID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -728,7 +728,7 @@ export default function AdminSubjectsScreen() {
                     <TouchableOpacity
                       key={id}
                       onPress={() => setFilterProgramID(id)}
-                      className={`px-3 py-1.5 rounded-full ${filterProgramID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                      className={`px-3 py-1.5 rounded-full ${filterProgramID === id ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
                       activeOpacity={0.7}
                     >
                       <Text className={`text-xs ${filterProgramID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -745,7 +745,7 @@ export default function AdminSubjectsScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                 <TouchableOpacity
                   onPress={() => setFilterYearLevelID('All')}
-                  className={`px-3 py-1.5 rounded-full ${filterYearLevelID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                  className={`px-3 py-1.5 rounded-full ${filterYearLevelID === 'All' ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
                   activeOpacity={0.7}
                 >
                   <Text className={`text-xs ${filterYearLevelID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -759,7 +759,7 @@ export default function AdminSubjectsScreen() {
                     <TouchableOpacity
                       key={id}
                       onPress={() => setFilterYearLevelID(id)}
-                      className={`px-3 py-1.5 rounded-full ${filterYearLevelID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                      className={`px-3 py-1.5 rounded-full ${filterYearLevelID === id ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
                       activeOpacity={0.7}
                     >
                       <Text className={`text-xs ${filterYearLevelID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -809,7 +809,7 @@ export default function AdminSubjectsScreen() {
               ) : null
             }
             ListEmptyComponent={
-              <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+              <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                 <Ionicons name="book-outline" size={64} color="#FE6902" />
                 <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Subjects Yet</Text>
                 <Text className={`text-sm mt-2 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -825,7 +825,7 @@ export default function AdminSubjectsScreen() {
           <View className="px-4 py-3">
             <View className={`
               flex-row items-center px-3 py-2 rounded-xl
-              ${isDark ? 'bg-gray-800' : 'bg-white'}
+              ${isDark ? 'bg-[#242424]' : 'bg-white'}
             `}>
               <Ionicons name="search" size={20} className={isDark ? 'text-gray-400' : 'text-gray-400'} />
               <TextInput
@@ -853,7 +853,7 @@ export default function AdminSubjectsScreen() {
                   pathname: '/(auth)/practice-exam/duplicate-question',
                   params: { subjectID: selectedSubject?.subjectID }
                 })}
-                className={`px-3 py-1.5 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                className={`px-3 py-1.5 rounded-lg ${isDark ? 'bg-[#242424]' : 'bg-white'}`}
               >
                 <Text className={`text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>Duplicate</Text>
               </TouchableOpacity>
@@ -866,7 +866,7 @@ export default function AdminSubjectsScreen() {
             renderItem={({ item: q, index: idx }) => (
               <TouchableOpacity
                 onPress={() => openDetail(q)}
-                className={`rounded-2xl p-4 mx-4 mb-3 ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                className={`rounded-2xl p-4 mx-4 mb-3 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}
                 activeOpacity={0.7}
               >
                 <View className="flex-row justify-between items-start mb-2">
@@ -910,7 +910,7 @@ export default function AdminSubjectsScreen() {
                   </View>
                 )}
 
-                <View className="flex-row justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
+                <View className="flex-row justify-between items-center pt-2 border-t border-gray-200 dark:border-[#2A2A2A]">
                   <TouchableOpacity
                     onPress={() => handleToggleStatus(q, q.status === 'approved' ? 'pending' : 'approved')}
                     className="flex-row items-center gap-1"
@@ -967,7 +967,7 @@ export default function AdminSubjectsScreen() {
               ) : null
             }
             ListEmptyComponent={
-              <View className={`rounded-3xl p-8 items-center mx-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+              <View className={`rounded-3xl p-8 items-center mx-4 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                 <Ionicons name="help-circle-outline" size={64} color="#FE6902" />
                 <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                   {searchQuery ? 'No Results Found' : 'No Questions Yet'}
@@ -985,7 +985,7 @@ export default function AdminSubjectsScreen() {
 
       <Modal visible={showSubjectModal} transparent animationType="fade" onRequestClose={() => setShowSubjectModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+          <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
             <View className="flex-row justify-between items-center mb-4">
               <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {editingSubject ? 'Edit Subject' : 'Add Subject'}
@@ -1001,7 +1001,7 @@ export default function AdminSubjectsScreen() {
               onChangeText={setSubjectCode}
               placeholder="e.g. CS101"
               placeholderTextColor={isDark ? '#9CA3AF' : '#9CA3AF'}
-              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-gray-700 text-white bg-gray-800' : 'border-gray-200 text-gray-900 bg-white'}`}
+              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-[#2A2A2A] text-white bg-[#242424]' : 'border-gray-200 text-gray-900 bg-white'}`}
             />
 
             <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Subject Name</Text>
@@ -1010,11 +1010,11 @@ export default function AdminSubjectsScreen() {
               onChangeText={setSubjectName}
               placeholder="e.g. Introduction to Computer Science"
               placeholderTextColor={isDark ? '#9CA3AF' : '#9CA3AF'}
-              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-gray-700 text-white bg-gray-800' : 'border-gray-200 text-gray-900 bg-white'}`}
+              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-[#2A2A2A] text-white bg-[#242424]' : 'border-gray-200 text-gray-900 bg-white'}`}
             />
 
             <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Program</Text>
-            <View className={`border rounded-xl mb-4 overflow-hidden ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <View className={`border rounded-xl mb-4 overflow-hidden ${isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, gap: 8 }}>
                 {programs.map((p: any) => (
                   <TouchableOpacity
@@ -1031,7 +1031,7 @@ export default function AdminSubjectsScreen() {
             </View>
 
             <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Year Level</Text>
-            <View className={`border rounded-xl mb-6 overflow-hidden ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <View className={`border rounded-xl mb-6 overflow-hidden ${isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, gap: 8 }}>
                 {yearLevels.map((yl: any) => (
                   <TouchableOpacity
@@ -1071,10 +1071,10 @@ export default function AdminSubjectsScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowDetailModal(false)}
       >
-        <View className={`flex-1 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <View className={`flex-1 ${isDark ? 'bg-[#1A1A1A]' : 'bg-gray-50'}`}>
           <View className={`
             flex-row justify-between items-center px-4 py-3 border-b
-            ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}
+            ${isDark ? 'bg-[#1A1A1A] border-[#2A2A2A]' : 'bg-white border-gray-200'}
           `}>
             <TouchableOpacity onPress={() => setShowDetailModal(false)}>
               <Text className="text-primary font-semibold">Close</Text>
@@ -1111,7 +1111,7 @@ export default function AdminSubjectsScreen() {
                 </View>
 
                 {/* Question Text */}
-                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                   <Text className={`text-xs font-semibold uppercase mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                     Question
                   </Text>
@@ -1129,7 +1129,7 @@ export default function AdminSubjectsScreen() {
                 </View>
 
                 {/* Choices */}
-                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                   <Text className={`text-xs font-semibold uppercase mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                     Choices
                   </Text>
@@ -1166,7 +1166,7 @@ export default function AdminSubjectsScreen() {
                 </View>
 
                 {/* Meta Info */}
-                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                   <Text className={`text-xs font-semibold uppercase mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                     Details
                   </Text>
@@ -1176,19 +1176,19 @@ export default function AdminSubjectsScreen() {
                       {getDisplayText(selectedQuestion.topic, 'N/A')}
                     </Text>
                   </View>
-                  <View className="flex-row justify-between items-center py-2 border-t border-gray-200 dark:border-gray-700">
+                  <View className="flex-row justify-between items-center py-2 border-t border-gray-200 dark:border-[#2A2A2A]">
                     <Text className={isDark ? 'text-gray-400' : 'text-gray-500'}>Subject</Text>
                     <Text className={isDark ? 'text-white' : 'text-gray-900'}>
                       {getDisplayText(selectedSubject?.subjectName, 'N/A')}
                     </Text>
                   </View>
-                  <View className="flex-row justify-between items-center py-2 border-t border-gray-200 dark:border-gray-700">
+                  <View className="flex-row justify-between items-center py-2 border-t border-gray-200 dark:border-[#2A2A2A]">
                     <Text className={isDark ? 'text-gray-400' : 'text-gray-500'}>Difficulty</Text>
                     <Text className={isDark ? 'text-white' : 'text-gray-900'}>
                       {getDisplayText(selectedQuestion.difficulty, 'N/A')}
                     </Text>
                   </View>
-                  <View className="flex-row justify-between items-center py-2 border-t border-gray-200 dark:border-gray-700">
+                  <View className="flex-row justify-between items-center py-2 border-t border-gray-200 dark:border-[#2A2A2A]">
                     <Text className={isDark ? 'text-gray-400' : 'text-gray-500'}>Points</Text>
                     <Text className={isDark ? 'text-white' : 'text-gray-900'}>
                       {selectedQuestion.points || selectedQuestion.maxPoints || 1}
@@ -1243,10 +1243,10 @@ export default function AdminSubjectsScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowSettingsModal(false)}
       >
-        <View className={`flex-1 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <View className={`flex-1 ${isDark ? 'bg-[#1A1A1A]' : 'bg-gray-50'}`}>
           <View className={`
             flex-row justify-between items-center px-4 py-3 border-b
-            ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}
+            ${isDark ? 'bg-[#1A1A1A] border-[#2A2A2A]' : 'bg-white border-gray-200'}
           `}>
             <TouchableOpacity onPress={() => setShowSettingsModal(false)}>
               <Text className="text-primary font-semibold">Cancel</Text>
@@ -1269,7 +1269,7 @@ export default function AdminSubjectsScreen() {
               </View>
             ) : (
               <>
-                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                   <View className="flex-row justify-between items-center mb-3">
                     <View className="flex-1 mr-3">
                       <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Target Subjects</Text>
@@ -1292,7 +1292,7 @@ export default function AdminSubjectsScreen() {
                         <TouchableOpacity
                           key={subject.subjectID}
                           onPress={() => toggleSettingsTargetSubject(subject.subjectID)}
-                          className={`px-3 py-2 rounded-full border ${selected ? 'bg-primary border-primary' : isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}
+                          className={`px-3 py-2 rounded-full border ${selected ? 'bg-primary border-primary' : isDark ? 'bg-[#1A1A1A] border-[#2A2A2A]' : 'bg-white border-gray-200'}`}
                           activeOpacity={0.7}
                         >
                           <Text className={`text-sm font-semibold ${selected ? 'text-white' : isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -1311,7 +1311,7 @@ export default function AdminSubjectsScreen() {
                 </View>
 
                 {/* Qualifying Exam Toggle */}
-                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                   <View className="flex-row justify-between items-center">
                     <View className="flex-1 mr-4">
                       <Text className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Enable Exam Question Entry</Text>
@@ -1329,7 +1329,7 @@ export default function AdminSubjectsScreen() {
                 </View>
 
                 {/* Practice Exam Settings */}
-                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+                <View className={`rounded-2xl p-4 mb-4 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                   {settingsMessage ? (
                     <View className={`rounded-xl px-3 py-3 mb-4 ${isDark ? 'bg-orange-500/10 border border-orange-400/30' : 'bg-orange-50 border border-orange-200'}`}>
                       <Text className={`${isDark ? 'text-orange-100' : 'text-orange-800'} text-sm font-medium`}>
@@ -1459,7 +1459,7 @@ export default function AdminSubjectsScreen() {
         onClose={() => setShowActionModal(false)}
       >
         <TouchableOpacity
-          className="flex-row items-center py-4 border-b border-gray-200 dark:border-gray-800"
+          className="flex-row items-center py-4 border-b border-gray-200 dark:border-[#2A2A2A]"
           style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
           onPress={() => {
             setShowActionModal(false);
@@ -1474,7 +1474,7 @@ export default function AdminSubjectsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          className="flex-row items-center py-4 border-b border-gray-200 dark:border-gray-800"
+          className="flex-row items-center py-4 border-b border-gray-200 dark:border-[#2A2A2A]"
           style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
           onPress={() => {
             setShowActionModal(false);

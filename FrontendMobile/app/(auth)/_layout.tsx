@@ -12,6 +12,7 @@ import { View } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { OfflineBanner } from '../../src/features/core/components/OfflineBanner';
+import { getRoleThemeColors } from '../../src/features/core/styles/roleTheme';
 import { getDashboardRoute } from '../../src/utils/roleValidation';
 import type { RootState } from '../../src/store';
 
@@ -26,6 +27,7 @@ const ROUTE_ROLE_MAP: Record<string, number> = {
 export default function AuthLayout() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const colors = getRoleThemeColors(isDark);
   const pathname = usePathname();
   const isAuthenticated = useSelector((state: RootState) => state.auth?.isAuthenticated);
   const roleID = useSelector((state: RootState) => state.auth.user?.roleID);
@@ -54,7 +56,7 @@ export default function AuthLayout() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: isDark ? '#000' : '#f3f4f6' }}>
+    <View className="flex-1" style={{ backgroundColor: colors.page }}>
       <OfflineBanner />
       <Slot />
     </View>

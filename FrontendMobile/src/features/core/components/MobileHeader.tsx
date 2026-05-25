@@ -15,7 +15,7 @@
 //   - showTitle: Whether to show the title (default: true)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { View, Text, Pressable, Modal, ScrollView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +26,7 @@ import { logoutUser } from '../../../utils/logoutUser';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { unregisterStoredPushToken } from '../../../services/pushNotificationService';
 import NotificationPanel from '../../../features/notifications/components/NotificationPanel';
+import { getUnreadCount } from '../../../services/notificationService';
 import EditProfileModal from '../../../features/profile/components/EditProfileModal';
 import ConfirmModal from '../../../features/core/components/ConfirmModal';
 import HelpCenterModal from '../../../features/support/components/HelpCenterModal';
@@ -75,6 +76,17 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
         dispatch(logout());
         router.replace('/');
     };
+
+    const refreshUnreadCount = useCallback(async () => {
+        const result = await getUnreadCount();
+        setUnreadCount(result.count);
+    }, []);
+
+    useEffect(() => {
+        void refreshUnreadCount();
+        const interval = setInterval(refreshUnreadCount, 30_000);
+        return () => clearInterval(interval);
+    }, [refreshUnreadCount]);
 
     return (
         <>
@@ -251,7 +263,10 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
             {/* Modals */}
             <NotificationPanel
                 visible={showNotifications}
-                onClose={() => setShowNotifications(false)}
+                onClose={() => {
+                    setShowNotifications(false);
+                    void refreshUnreadCount();
+                }}
             />
             <EditProfileModal
                 visible={showEditProfile}

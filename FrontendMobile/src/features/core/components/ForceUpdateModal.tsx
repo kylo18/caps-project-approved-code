@@ -6,6 +6,7 @@ import Constants from 'expo-constants';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
 import { showToast } from '../../../../src/hooks/useToast';
 import CapsActivityIndicator from './CapsActivityIndicator';
+import { getRoleThemeColors } from '../styles/roleTheme';
 
 type InstallState = 'idle' | 'downloading' | 'installing' | 'done';
 type CapsAppControlModule = {
@@ -142,14 +143,18 @@ interface ForceUpdateModalProps {
 export default function ForceUpdateModal({ visible, appVersion, requiredVersion, isForced, onDismiss }: ForceUpdateModalProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const roleColors = getRoleThemeColors(isDark);
   const [installState, setInstallState] = useState<InstallState>('idle');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const colors = {
-    bg: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    accent: '#FE6902',
+    bg: roleColors.surface,
+    surfaceSoft: roleColors.surfaceSoft,
+    overlay: roleColors.overlay,
+    border: roleColors.border,
+    text: roleColors.text,
+    textSecondary: roleColors.muted,
+    accent: roleColors.accent,
   };
 
   useEffect(() => {
@@ -194,10 +199,10 @@ export default function ForceUpdateModal({ visible, appVersion, requiredVersion,
       setInstallState('downloading');
       setProgress(0);
 
-      const API_URL = Constants.expoConfig?.extra?.API_URL as string | undefined;
-      const baseUrl = (API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
       const versionTag = requiredVersion || 'latest';
       const safeVersionTag = versionTag.replace(/[^0-9A-Za-z._-]/g, '') || 'latest';
+      const API_URL = Constants.expoConfig?.extra?.API_URL as string | undefined;
+      const baseUrl = (API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
       const apkUrl = `${baseUrl}/download/caps.apk?v=${encodeURIComponent(versionTag)}`;
 
       if (!FileSystem.cacheDirectory) {
@@ -247,10 +252,10 @@ export default function ForceUpdateModal({ visible, appVersion, requiredVersion,
       animationType="fade"
       onRequestClose={handleDismiss}
     >
-      <View className="flex-1 bg-black/60 justify-center items-center">
+      <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.overlay }}>
         <View
-          className="w-4/5 p-6 rounded-2xl"
-          style={{ backgroundColor: colors.bg, elevation: 6 }}
+          className="w-4/5 p-6 rounded-2xl border"
+          style={{ backgroundColor: colors.bg, borderColor: colors.border, elevation: 6 }}
         >
           {installState === 'done' ? (
             <>
@@ -308,7 +313,7 @@ export default function ForceUpdateModal({ visible, appVersion, requiredVersion,
               </Text>
 
               <View className="flex-row justify-center gap-2 mb-5">
-                <Text className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: isDark ? '#374151' : '#f3f4f6', color: colors.textSecondary }}>
+                <Text className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: colors.surfaceSoft, color: colors.textSecondary }}>
                   Your version: {appVersion}
                 </Text>
                 <Text className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: isForced ? '#FEE2E2' : '#DBEAFE', color: isForced ? '#991b1b' : '#1e40af' }}>
@@ -332,7 +337,7 @@ export default function ForceUpdateModal({ visible, appVersion, requiredVersion,
 
               {installState === 'downloading' ? (
                 <View className="mb-3">
-                  <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? '#374151' : '#e5e7eb' }}>
+                  <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.surfaceSoft }}>
                     <View className="h-full rounded-full" style={{ width: `${progress * 100}%`, backgroundColor: colors.accent }} />
                   </View>
                   <Text className="text-xs text-center mt-2" style={{ color: colors.textSecondary }}>

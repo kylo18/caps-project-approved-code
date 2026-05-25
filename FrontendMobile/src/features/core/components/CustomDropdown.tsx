@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
+import { getRoleThemeColors } from '../styles/roleTheme';
 
 interface DropdownItem {
   id: string | number;
@@ -25,13 +26,15 @@ export default function CustomDropdown({ items, selectedValue, onSelect, placeho
   const selectedItem = items.find(i => i.value === selectedValue);
   const displayText = selectedItem?.label || placeholder;
 
+  const roleColors = getRoleThemeColors(isDark);
   const colors = {
-    bg: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(0,0,0,0.5)',
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    orange: '#FE6902',
+    bg: roleColors.overlay,
+    card: roleColors.surface,
+    item: roleColors.surfaceSoft,
+    text: roleColors.text,
+    textSecondary: roleColors.muted,
+    border: roleColors.border,
+    orange: roleColors.accent,
   };
 
   return (
@@ -64,7 +67,7 @@ export default function CustomDropdown({ items, selectedValue, onSelect, placeho
                   <TouchableOpacity
                     key={item.id}
                     className="flex-row items-center justify-between py-3 border-b gap-2"
-                    style={{ borderBottomColor: colors.border, backgroundColor: selectedItem?.value === item.value ? `${colors.orange}15` : 'transparent' }}
+                    style={{ borderBottomColor: colors.border, backgroundColor: selectedItem?.value === item.value ? (isDark ? colors.item : `${colors.orange}15`) : 'transparent' }}
                     onPress={() => {
                       onSelect(item.value, item);
                       setIsOpen(false);

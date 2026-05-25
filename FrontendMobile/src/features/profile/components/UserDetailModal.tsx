@@ -12,6 +12,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { showToast } from '../../../hooks/useToast';
 import { useSelector } from 'react-redux';
 import CapsActivityIndicator from '../../../features/core/components/CapsActivityIndicator';
+import { getRoleThemeColors } from '../../../features/core/styles/roleTheme';
 import {
     applyUserActionLocally,
     canApproveUser,
@@ -53,16 +54,20 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
     const currentUser = auth?.user;
     const currentUserRole = currentUser?.roleID;
 
+    const roleColors = getRoleThemeColors(isDark);
     const colors = {
-        bg: isDark ? '#000' : '#f3f4f6',
-        card: isDark ? '#1f2937' : '#fff',
-        text: isDark ? '#f9fafb' : '#111827',
-        textSecondary: isDark ? '#9ca3af' : '#6b7280',
-        border: isDark ? '#374151' : '#e5e7eb',
-        orange: '#FE6902',
+        bg: roleColors.page,
+        card: roleColors.surface,
+        surfaceSoft: roleColors.surfaceSoft,
+        input: roleColors.input,
+        text: roleColors.text,
+        textSecondary: roleColors.muted,
+        border: roleColors.border,
+        orange: roleColors.accent,
         green: '#10B981',
         red: '#EF4444',
         blue: '#3B82F6',
+        purple: '#8B5CF6',
     };
 
     useEffect(() => {
@@ -212,8 +217,8 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View className="flex-1 justify-center items-center" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
-                <View className="flex-1 w-full max-w-md mx-4 my-4 rounded-2xl overflow-hidden" style={{ backgroundColor: colors.card }}>
+            <View className="flex-1 justify-center items-center" style={{ backgroundColor: roleColors.overlay }}>
+                <View className="flex-1 w-full max-w-md mx-4 my-4 rounded-2xl overflow-hidden" style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }}>
                     {/* Header */}
                     <View className="flex-row justify-between items-center px-5 py-4 border-b" style={{ borderBottomColor: colors.border }}>
                         <Text className="text-lg font-bold" style={{ color: colors.text }}>User Details</Text>
@@ -233,7 +238,7 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
                         </View>
 
                         {/* Info */}
-                        <View className="rounded-xl px-4 py-1 mb-4" style={{ backgroundColor: isDark ? '#111827' : '#f9fafb' }}>
+                        <View className="rounded-xl px-4 py-1 mb-4" style={{ backgroundColor: colors.surfaceSoft }}>
                             <InfoRow icon="person-outline" label="User Code" value={user.userCode} />
                             <InfoRow icon="shield-checkmark-outline" label="Role" value={currentRole.name} />
                             <InfoRow icon="information-circle-outline" label="Status" value={statusLabel} />
@@ -248,7 +253,7 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
                                 <Text className="text-sm font-bold mb-2" style={{ color: colors.text }}>Change Role</Text>
                                 <TouchableOpacity
                                     className="flex-row justify-between items-center px-4 py-3 rounded-xl border"
-                                    style={{ backgroundColor: isDark ? '#111827' : '#f9fafaf', borderColor: colors.border }}
+                                    style={{ backgroundColor: colors.input, borderColor: colors.border }}
                                     onPress={() => setShowRoleDropdown(!showRoleDropdown)}
                                     activeOpacity={0.7}
                                     disabled={isUpdatingRole}
@@ -262,7 +267,7 @@ export default function UserDetailModal({ visible, user, onClose, onUserUpdated 
                                 </TouchableOpacity>
 
                                 {showRoleDropdown && (
-                                    <View className="mt-1 rounded-xl border overflow-hidden" style={{ backgroundColor: isDark ? '#111827' : '#f9fafb', borderColor: colors.border }}>
+                                    <View className="mt-1 rounded-xl border overflow-hidden" style={{ backgroundColor: colors.input, borderColor: colors.border }}>
                                         {availableRoles.map(role => (
                                             <TouchableOpacity
                                                 key={role.id}

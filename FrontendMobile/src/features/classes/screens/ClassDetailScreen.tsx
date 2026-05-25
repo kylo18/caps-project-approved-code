@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { showToast } from '../../../hooks/useToast';
+import { getRoleShadow, getRoleThemeColors } from '../../core/styles/roleTheme';
 import {
   archiveFacultyClass,
   assignQuizToClass,
@@ -25,6 +26,13 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const colors = getRoleThemeColors(isDark);
+  const cardStyle = {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    ...getRoleShadow(isDark),
+  };
   const { classID, className } = useLocalSearchParams();
   const resolvedClassID = String(classID || '');
 
@@ -336,35 +344,35 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
 
   if (loading) {
     return (
-      <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`} style={{ paddingTop: insets.top + 12 }}>
+      <View className="flex-1" style={{ backgroundColor: colors.page, paddingTop: insets.top + 12 }}>
         <View className="flex-row items-center px-4 pb-4">
           <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 mr-2">
-            <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#111827'} />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Class Detail</Text>
+          <Text className="text-lg font-bold" style={{ color: colors.text }}>Class Detail</Text>
         </View>
         <View className="flex-1 items-center justify-center">
-          <CapsActivityIndicator size="large" color="#FE6902" />
-          <Text className={`mt-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Loading class manager...</Text>
+          <CapsActivityIndicator size="large" color={colors.accent} />
+          <Text className="mt-3" style={{ color: colors.muted }}>Loading class manager...</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+    <View className="flex-1" style={{ backgroundColor: colors.page }}>
       <View
-        className={`px-4 pb-4 ${isDark ? 'bg-gray-900' : 'bg-white'} border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}
-        style={{ paddingTop: insets.top + 12 }}
+        className="px-4 pb-4 border-b"
+        style={{ paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomColor: colors.border }}
       >
         <View className="flex-row items-start justify-between">
           <View className="flex-row flex-1 items-start">
             <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 mr-2">
-              <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#111827'} />
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
             <View className="flex-1">
-              <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</Text>
-              <Text className={`mt-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <Text className="text-xl font-bold" style={{ color: colors.text }}>{title}</Text>
+              <Text className="mt-1 text-sm" style={{ color: colors.muted }}>
                 {subtitle || classInfo?.schedule || 'Class manager'}
               </Text>
             </View>
@@ -374,8 +382,8 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
             <TouchableOpacity
               onPress={openEditModal}
               disabled={!classInfo && !!resolvedClassID}
-              className={`px-3 py-2 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
-              style={{ opacity: (!classInfo && !!resolvedClassID) ? 0.5 : 1 }}
+              className="px-3 py-2 rounded-xl"
+              style={{ backgroundColor: colors.surfaceSoft, opacity: (!classInfo && !!resolvedClassID) ? 0.5 : 1 }}
               activeOpacity={0.8}
             >
               <Ionicons name="create-outline" size={18} color="#FE6902" />
@@ -383,8 +391,8 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
             <TouchableOpacity
               onPress={handleArchiveClass}
               disabled={isArchiving || !classInfo}
-              className={`px-3 py-2 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
-              style={{ opacity: classInfo ? 1 : 0.5 }}
+              className="px-3 py-2 rounded-xl"
+              style={{ backgroundColor: colors.surfaceSoft, opacity: classInfo ? 1 : 0.5 }}
               activeOpacity={0.8}
             >
               <Ionicons name="archive-outline" size={18} color="#EF4444" />
@@ -393,14 +401,14 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
         </View>
 
         <View className="flex-row flex-wrap gap-2 mt-4">
-          <HeaderPill icon="key-outline" text={classInfo?.classCode || 'No code'} isDark={isDark} />
-          <HeaderPill icon="time-outline" text={classInfo?.schedule || 'No schedule'} isDark={isDark} />
-          <HeaderPill icon="people-outline" text={`${students.length} students`} isDark={isDark} />
+          <HeaderPill icon="key-outline" text={classInfo?.classCode || 'No code'} colors={colors} />
+          <HeaderPill icon="time-outline" text={classInfo?.schedule || 'No schedule'} colors={colors} />
+          <HeaderPill icon="people-outline" text={`${students.length} students`} colors={colors} />
         </View>
       </View>
 
       <View className="px-4 pt-4">
-        <View className={`flex-row rounded-2xl p-1 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+        <View className="flex-row rounded-2xl p-1" style={cardStyle}>
           {(['students', 'quizzes'] as const).map((item) => (
             <TouchableOpacity
               key={item}
@@ -408,7 +416,7 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
               className={`flex-1 rounded-xl py-3 ${segment === item ? 'bg-primary' : 'bg-transparent'}`}
               activeOpacity={0.8}
             >
-              <Text className={`text-center font-semibold ${segment === item ? 'text-white' : isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              <Text className="text-center font-semibold" style={{ color: segment === item ? '#FFFFFF' : colors.muted }}>
                 {item === 'students' ? 'Students' : 'Assigned Quizzes'}
               </Text>
             </TouchableOpacity>
@@ -424,7 +432,8 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
       >
         {classLoadMessage && !classInfo ? (
           <EmptyCard
-            isDark={isDark}
+            colors={colors}
+            cardStyle={cardStyle}
             icon="alert-circle-outline"
             title="Class not found"
             message={classLoadMessage}
@@ -433,7 +442,8 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
         {segment === 'students' ? (
           students.length === 0 ? (
             <EmptyCard
-              isDark={isDark}
+              colors={colors}
+              cardStyle={cardStyle}
               icon="people-outline"
               title="No students enrolled"
               message="Students added to this class will appear here."
@@ -442,18 +452,19 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
             students.map((student, index) => (
               <View
                 key={student.enrollmentID || student.studentID || student.userID || index}
-                className={`rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                className="rounded-2xl p-4"
+                style={cardStyle}
               >
                 <View className="flex-row items-center justify-between">
                   <View className="flex-1 mr-3">
-                    <Text className={`text-base font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <Text className="text-base font-semibold" style={{ color: colors.text }}>
                       {student.firstName} {student.lastName}
                     </Text>
-                    <Text className={`mt-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <Text className="mt-1 text-sm" style={{ color: colors.muted }}>
                       {student.userCode || 'No user code'}{student.program ? ` · ${student.program}` : ''}
                     </Text>
                     {student.email ? (
-                      <Text className={`mt-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{student.email}</Text>
+                      <Text className="mt-1 text-sm" style={{ color: colors.muted }}>{student.email}</Text>
                     ) : null}
                   </View>
 
@@ -483,7 +494,8 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
 
             {assignedQuizzes.length === 0 ? (
               <EmptyCard
-                isDark={isDark}
+                colors={colors}
+                cardStyle={cardStyle}
                 icon="clipboard-outline"
                 title="No quizzes assigned"
                 message="Use the button above to assign an available quiz to this class."
@@ -498,24 +510,26 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
                 return (
                   <View
                     key={quiz.classPersonalQuizID || `${name}-${index}`}
-                    className={`rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                    className="rounded-2xl p-4"
+                    style={cardStyle}
                   >
-                    <Text className={`text-base font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{name}</Text>
+                    <Text className="text-base font-semibold" style={{ color: colors.text }}>{name}</Text>
                     <View className="flex-row flex-wrap gap-2 mt-3">
-                      <HeaderPill icon="calendar-outline" text={`Start: ${start}`} isDark={isDark} />
-                      <HeaderPill icon="calendar-clear-outline" text={`End: ${end}`} isDark={isDark} />
+                      <HeaderPill icon="calendar-outline" text={`Start: ${start}`} colors={colors} />
+                      <HeaderPill icon="calendar-clear-outline" text={`End: ${end}`} colors={colors} />
                       {accuracy !== undefined ? (
-                        <HeaderPill icon="stats-chart-outline" text={`${Number(accuracy).toFixed(1)}% accuracy`} isDark={isDark} />
+                        <HeaderPill icon="stats-chart-outline" text={`${Number(accuracy).toFixed(1)}% accuracy`} colors={colors} />
                       ) : null}
                     </View>
 
                     <View className="flex-row gap-3 mt-4">
                       <TouchableOpacity
                         onPress={() => handleOpenDatesModal(quiz)}
-                        className={`flex-1 rounded-xl py-3 ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
+                        className="flex-1 rounded-xl py-3"
+                        style={{ backgroundColor: colors.surfaceSoft }}
                         activeOpacity={0.8}
                       >
-                        <Text className={`text-center font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Dates</Text>
+                        <Text className="text-center font-semibold" style={{ color: colors.text }}>Dates</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => handleUnassignQuiz(quiz)}
@@ -535,6 +549,7 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
 
       <EditClassModal
         isDark={isDark}
+        colors={colors}
         visible={showEditModal}
         form={editForm}
         setForm={setEditForm}
@@ -548,6 +563,7 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
 
       <AssignQuizModal
         isDark={isDark}
+        colors={colors}
         visible={showAssignModal}
         quizzes={filteredAvailableQuizzes}
         selectedQuiz={selectedQuiz}
@@ -561,6 +577,7 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
 
       <QuizDatesModal
         isDark={isDark}
+        colors={colors}
         visible={showDatesModal}
         title={selectedAssignedQuiz?.quizName || selectedAssignedQuiz?.personalQuiz?.title || 'Quiz Dates'}
         dates={dateForm}
@@ -573,40 +590,43 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
   );
 }
 
-function HeaderPill({ icon, text, isDark }: { icon: keyof typeof Ionicons.glyphMap; text: string; isDark: boolean }) {
+function HeaderPill({ icon, text, colors }: { icon: keyof typeof Ionicons.glyphMap; text: string; colors: ReturnType<typeof getRoleThemeColors> }) {
   return (
     <View
-      className={`flex-row items-center px-3 py-2 rounded-full ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
-      style={{ gap: 6 }}
+      className="flex-row items-center px-3 py-2 rounded-full"
+      style={{ backgroundColor: colors.surfaceSoft, gap: 6 }}
     >
-      <Ionicons name={icon} size={14} color="#FE6902" />
-      <Text className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{text}</Text>
+      <Ionicons name={icon} size={14} color={colors.accent} />
+      <Text className="text-xs" style={{ color: colors.text }}>{text}</Text>
     </View>
   );
 }
 
 function EmptyCard({
-  isDark,
+  colors,
+  cardStyle,
   icon,
   title,
   message,
 }: {
-  isDark: boolean;
+  colors: ReturnType<typeof getRoleThemeColors>;
+  cardStyle: object;
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   message: string;
 }) {
   return (
-    <View className={`rounded-2xl p-8 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
-      <Ionicons name={icon} size={48} color={isDark ? '#6B7280' : '#9CA3AF'} />
-      <Text className={`mt-3 text-base font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</Text>
-      <Text className={`mt-2 text-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{message}</Text>
+    <View className="rounded-2xl p-8 items-center" style={cardStyle}>
+      <Ionicons name={icon} size={48} color={colors.mutedIcon} />
+      <Text className="mt-3 text-base font-semibold" style={{ color: colors.text }}>{title}</Text>
+      <Text className="mt-2 text-center text-sm" style={{ color: colors.muted }}>{message}</Text>
     </View>
   );
 }
 
 function EditClassModal({
   isDark,
+  colors,
   visible,
   form,
   setForm,
@@ -618,9 +638,10 @@ function EditClassModal({
   loading,
 }: any) {
   return (
-    <BottomModal isDark={isDark} visible={visible} title="Edit Class" onClose={onClose}>
+    <BottomModal isDark={isDark} colors={colors} visible={visible} title="Edit Class" onClose={onClose}>
       <LabeledInput
         isDark={isDark}
+        colors={colors}
         label="Class Name"
         value={form.className}
         onChangeText={(text) => setForm((prev: any) => ({ ...prev, className: text }))}
@@ -628,6 +649,7 @@ function EditClassModal({
       />
       <LabeledInput
         isDark={isDark}
+        colors={colors}
         label="Schedule"
         value={form.schedule}
         onChangeText={(text) => setForm((prev: any) => ({ ...prev, schedule: text }))}
@@ -635,6 +657,7 @@ function EditClassModal({
       />
       <LabeledInput
         isDark={isDark}
+        colors={colors}
         label="Description"
         value={form.description}
         onChangeText={(text) => setForm((prev: any) => ({ ...prev, description: text }))}
@@ -642,7 +665,7 @@ function EditClassModal({
         multiline
       />
 
-      <Text className={`mt-4 mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Subject</Text>
+      <Text className="mt-4 mb-2 font-semibold" style={{ color: colors.text }}>Subject</Text>
       <ScrollView style={{ maxHeight: 180 }} showsVerticalScrollIndicator={false}>
         <View style={{ gap: 8 }}>
           {subjects.map((subject: any) => {
@@ -652,13 +675,14 @@ function EditClassModal({
               <TouchableOpacity
                 key={subjectID}
                 onPress={() => setSelectedSubjectID(subjectID)}
-                className={`rounded-xl px-4 py-3 border ${selected ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                className="rounded-xl px-4 py-3 border"
+                style={{ borderColor: selected ? colors.accent : colors.border, backgroundColor: selected ? `${colors.accent}18` : colors.input }}
               >
-                <Text className={`font-semibold ${selected ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                <Text className="font-semibold" style={{ color: selected ? colors.accent : colors.text }}>
                   {subject.subjectName}
                 </Text>
                 {subject.subjectCode ? (
-                  <Text className={`mt-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{subject.subjectCode}</Text>
+                  <Text className="mt-1 text-sm" style={{ color: colors.muted }}>{subject.subjectCode}</Text>
                 ) : null}
               </TouchableOpacity>
             );
@@ -680,6 +704,7 @@ function EditClassModal({
 
 function AssignQuizModal({
   isDark,
+  colors,
   visible,
   quizzes,
   selectedQuiz,
@@ -691,9 +716,10 @@ function AssignQuizModal({
   loading,
 }: any) {
   return (
-    <BottomModal isDark={isDark} visible={visible} title="Assign Quiz" onClose={onClose}>
+    <BottomModal isDark={isDark} colors={colors} visible={visible} title="Assign Quiz" onClose={onClose}>
       <LabeledInput
         isDark={isDark}
+        colors={colors}
         label="Start Date"
         value={dates.startDate}
         onChangeText={(text) => setDates((prev: any) => ({ ...prev, startDate: text }))}
@@ -701,18 +727,19 @@ function AssignQuizModal({
       />
       <LabeledInput
         isDark={isDark}
+        colors={colors}
         label="Deadline"
         value={dates.deadlineDate}
         onChangeText={(text) => setDates((prev: any) => ({ ...prev, deadlineDate: text }))}
         placeholder="YYYY-MM-DD"
       />
 
-      <Text className={`mt-4 mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Available Quizzes</Text>
+      <Text className="mt-4 mb-2 font-semibold" style={{ color: colors.text }}>Available Quizzes</Text>
       <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
         <View style={{ gap: 8 }}>
           {quizzes.length === 0 ? (
-            <View className={`rounded-xl px-4 py-5 ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-              <Text className={`text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>No available quizzes for this class.</Text>
+            <View className="rounded-xl px-4 py-5" style={{ backgroundColor: colors.surfaceSoft }}>
+              <Text className="text-center" style={{ color: colors.muted }}>No available quizzes for this class.</Text>
             </View>
           ) : (
             quizzes.map((quiz: any) => {
@@ -722,13 +749,14 @@ function AssignQuizModal({
                 <TouchableOpacity
                   key={quizID}
                   onPress={() => setSelectedQuiz(selected ? null : quiz)}
-                  className={`rounded-xl px-4 py-3 border ${selected ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                  className="rounded-xl px-4 py-3 border"
+                  style={{ borderColor: selected ? colors.accent : colors.border, backgroundColor: selected ? `${colors.accent}18` : colors.input }}
                 >
-                  <Text className={`font-semibold ${selected ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                  <Text className="font-semibold" style={{ color: selected ? colors.accent : colors.text }}>
                     {quiz.title || quiz.quizName || 'Untitled Quiz'}
                   </Text>
                   {quiz.subject?.subjectCode ? (
-                    <Text className={`mt-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{quiz.subject.subjectCode}</Text>
+                    <Text className="mt-1 text-sm" style={{ color: colors.muted }}>{quiz.subject.subjectCode}</Text>
                   ) : null}
                 </TouchableOpacity>
               );
@@ -749,11 +777,12 @@ function AssignQuizModal({
   );
 }
 
-function QuizDatesModal({ isDark, visible, title, dates, setDates, onClose, onSave, loading }: any) {
+function QuizDatesModal({ isDark, colors, visible, title, dates, setDates, onClose, onSave, loading }: any) {
   return (
-    <BottomModal isDark={isDark} visible={visible} title={title} onClose={onClose}>
+    <BottomModal isDark={isDark} colors={colors} visible={visible} title={title} onClose={onClose}>
       <LabeledInput
         isDark={isDark}
+        colors={colors}
         label="Start Date"
         value={dates.startDate}
         onChangeText={(text) => setDates((prev: any) => ({ ...prev, startDate: text }))}
@@ -761,6 +790,7 @@ function QuizDatesModal({ isDark, visible, title, dates, setDates, onClose, onSa
       />
       <LabeledInput
         isDark={isDark}
+        colors={colors}
         label="End Date"
         value={dates.deadlineDate}
         onChangeText={(text) => setDates((prev: any) => ({ ...prev, deadlineDate: text }))}
@@ -781,12 +811,14 @@ function QuizDatesModal({ isDark, visible, title, dates, setDates, onClose, onSa
 
 function BottomModal({
   isDark,
+  colors,
   visible,
   title,
   onClose,
   children,
 }: {
   isDark: boolean;
+  colors: ReturnType<typeof getRoleThemeColors>;
   visible: boolean;
   title: string;
   onClose: () => void;
@@ -794,12 +826,12 @@ function BottomModal({
 }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
-        <View className={`rounded-t-3xl px-5 pt-5 pb-8 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
+        <View className="rounded-t-3xl px-5 pt-5 pb-8" style={{ backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: 1 }}>
           <View className="flex-row items-center justify-between mb-4">
-            <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</Text>
+            <Text className="text-lg font-bold" style={{ color: colors.text }}>{title}</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+              <Ionicons name="close" size={24} color={colors.muted} />
             </TouchableOpacity>
           </View>
           {children}
@@ -811,6 +843,7 @@ function BottomModal({
 
 function LabeledInput({
   isDark,
+  colors,
   label,
   value,
   onChangeText,
@@ -818,6 +851,7 @@ function LabeledInput({
   multiline = false,
 }: {
   isDark: boolean;
+  colors: ReturnType<typeof getRoleThemeColors>;
   label: string;
   value: string;
   onChangeText: (text: string) => void;
@@ -826,15 +860,18 @@ function LabeledInput({
 }) {
   return (
     <View style={{ marginTop: 10 }}>
-      <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{label}</Text>
+      <Text className="mb-2 font-semibold" style={{ color: colors.text }}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+        placeholderTextColor={colors.mutedIcon}
         multiline={multiline}
-        className={`${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-50 text-gray-900 border-gray-200'} border rounded-2xl px-4 py-3`}
-        style={multiline ? { minHeight: 90, textAlignVertical: 'top' } : undefined}
+        className="border rounded-2xl px-4 py-3"
+        style={[
+          { backgroundColor: colors.input, borderColor: colors.border, color: colors.text },
+          multiline ? { minHeight: 90, textAlignVertical: 'top' } : null,
+        ]}
       />
     </View>
   );

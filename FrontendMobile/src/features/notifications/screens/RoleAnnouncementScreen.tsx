@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { apiRequest } from '../../../services/apiClient';
 import { showToast } from '../../../hooks/useToast';
+import { getRoleThemeColors } from '../../../features/core/styles/roleTheme';
 
 type RoleAnnouncementScreenProps = {
   roleLabel: string;
@@ -37,15 +38,19 @@ export default function RoleAnnouncementScreen({ roleLabel }: RoleAnnouncementSc
   const [submitting, setSubmitting] = useState(false);
 
   const colors = useMemo(
-    () => ({
-      page: isDark ? '#000000' : '#F3F4F6',
-      card: isDark ? '#111827' : '#FFFFFF',
-      text: isDark ? '#F9FAFB' : '#111827',
-      muted: isDark ? '#9CA3AF' : '#6B7280',
-      border: isDark ? '#1F2937' : '#E5E7EB',
-      input: isDark ? '#0F172A' : '#FFFFFF',
-      primary: '#FE6902',
-    }),
+    () => {
+      const roleColors = getRoleThemeColors(isDark);
+      return {
+        page: roleColors.page,
+        card: roleColors.surface,
+        text: roleColors.text,
+        muted: roleColors.muted,
+        border: roleColors.border,
+        input: roleColors.input,
+        primary: roleColors.accent,
+        dangerSoft: roleColors.dangerSoft,
+      };
+    },
     [isDark]
   );
 
@@ -126,7 +131,7 @@ export default function RoleAnnouncementScreen({ roleLabel }: RoleAnnouncementSc
                 borderRadius: 18,
                 borderWidth: 1,
                 borderColor: '#FCA5A5',
-                backgroundColor: isDark ? '#450A0A' : '#FEF2F2',
+                backgroundColor: colors.dangerSoft,
                 padding: 14,
               }}
             >

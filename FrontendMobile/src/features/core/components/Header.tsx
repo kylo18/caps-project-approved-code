@@ -11,6 +11,7 @@ import NotificationPanel from '../../../features/notifications/components/Notifi
 import EditProfileModal from '../../../features/profile/components/EditProfileModal';
 import ConfirmModal from '../../../features/core/components/ConfirmModal';
 import HelpCenterModal from '../../../features/support/components/HelpCenterModal';
+import { getRoleThemeColors } from '../styles/roleTheme';
 import collegeLogo from '../../../../assets/college-logo.png';
 
 export default function Header({ title, isStudentPage = false }: { title: string; isStudentPage?: boolean }) {
@@ -44,13 +45,14 @@ export default function Header({ title, isStudentPage = false }: { title: string
     router.replace('/');
   };
 
+  const roleColors = getRoleThemeColors(isDark);
   const colors = {
-    bg: isStudentPage ? '#FF7A00' : isDark ? '#1f2937' : '#fff',
-    text: isStudentPage ? '#fff' : isDark ? '#f9fafb' : '#111827',
-    textSecondary: isStudentPage ? 'rgba(255,255,255,0.8)' : isDark ? '#9ca3af' : '#6b7280',
-    border: isStudentPage ? 'rgba(255,255,255,0.2)' : isDark ? '#374151' : '#e5e7eb',
-    iconBtn: isStudentPage ? 'rgba(255,255,255,0.15)' : isDark ? '#374151' : '#f3f4f6',
-    orange: '#FE6902',
+    bg: isStudentPage ? '#FF7A00' : roleColors.surface,
+    text: isStudentPage ? '#fff' : roleColors.text,
+    textSecondary: isStudentPage ? 'rgba(255,255,255,0.8)' : roleColors.muted,
+    border: isStudentPage ? 'rgba(255,255,255,0.2)' : roleColors.border,
+    iconBtn: isStudentPage ? 'rgba(255,255,255,0.15)' : roleColors.surfaceSoft,
+    orange: roleColors.accent,
   };
 
   return (
@@ -124,19 +126,19 @@ export default function Header({ title, isStudentPage = false }: { title: string
       <Modal visible={showProfileMenu} transparent animationType="fade">
         <TouchableOpacity
           className="flex-1 justify-start"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)', paddingTop: 60 }}
+          style={{ backgroundColor: roleColors.overlay, paddingTop: 60 }}
           activeOpacity={1}
           onPress={() => setShowProfileMenu(false)}
         >
           <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-            <View className="mx-4 rounded-2xl p-4" style={{ backgroundColor: isDark ? '#1f2937' : '#fff', elevation: 8 }}>
-              <View className="flex-row items-center gap-3 pb-4 mb-4 border-b" style={{ borderBottomColor: '#e5e7eb' }}>
+            <View className="mx-4 rounded-2xl p-4" style={{ backgroundColor: roleColors.surface, borderColor: roleColors.border, borderWidth: 1, elevation: 8 }}>
+              <View className="flex-row items-center gap-3 pb-4 mb-4 border-b" style={{ borderBottomColor: roleColors.border }}>
                 <View className="w-12 h-12 rounded-full items-center justify-center" style={{ backgroundColor: avatarColor }}>
                   <Text className="text-lg font-extrabold text-white">{initials}</Text>
                 </View>
                 <View>
-                  <Text className="text-base font-bold" style={{ color: isDark ? '#f9fafb' : '#111827' }}>{firstName} {user?.lastName || ''}</Text>
-                  <Text className="text-xs mt-0.5" style={{ color: isDark ? '#9ca3af' : '#6b7280' }} numberOfLines={1}>{email}</Text>
+                  <Text className="text-base font-bold" style={{ color: roleColors.text }}>{firstName} {user?.lastName || ''}</Text>
+                  <Text className="text-xs mt-0.5" style={{ color: roleColors.muted }} numberOfLines={1}>{email}</Text>
                 </View>
               </View>
 
@@ -145,8 +147,8 @@ export default function Header({ title, isStudentPage = false }: { title: string
                 onPress={() => { setShowProfileMenu(false); setShowEditProfile(true); }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="person" size={20} color={isDark ? '#f9fafb' : '#111827'} />
-                <Text className="text-sm font-medium" style={{ color: isDark ? '#f9fafb' : '#111827' }}>Edit Profile</Text>
+                <Ionicons name="person" size={20} color={roleColors.text} />
+                <Text className="text-sm font-medium" style={{ color: roleColors.text }}>Edit Profile</Text>
               </TouchableOpacity>
 
               {!isStudentPage && (
@@ -155,14 +157,14 @@ export default function Header({ title, isStudentPage = false }: { title: string
                   onPress={() => { setShowProfileMenu(false); toggleTheme(); }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name={isDark ? 'sunny' : 'moon'} size={20} color={isDark ? '#f9fafb' : '#111827'} />
-                  <Text className="text-sm font-medium" style={{ color: isDark ? '#f9fafb' : '#111827' }}>{isDark ? 'Light Mode' : 'Dark Mode'}</Text>
+                  <Ionicons name={isDark ? 'sunny' : 'moon'} size={20} color={roleColors.text} />
+                  <Text className="text-sm font-medium" style={{ color: roleColors.text }}>{isDark ? 'Light Mode' : 'Dark Mode'}</Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
                 className="flex-row items-center gap-3 py-3 border-t mt-2"
-                style={{ borderTopColor: '#e5e7eb', paddingTop: 16, marginTop: 8 }}
+                style={{ borderTopColor: roleColors.border, paddingTop: 16, marginTop: 8 }}
                 onPress={() => { setShowProfileMenu(false); setShowLogoutConfirm(true); }}
                 activeOpacity={0.7}
               >
@@ -176,7 +178,7 @@ export default function Header({ title, isStudentPage = false }: { title: string
 
       <NotificationPanel visible={showNotifications} onClose={() => setShowNotifications(false)} />
       <EditProfileModal visible={showEditProfile} onClose={() => setShowEditProfile(false)} user={user} />
-      <HelpCenterModal visible={showHelp} onClose={() => setShowHelp(false)} />
+      <HelpCenterModal visible={showHelp} onClose={() => setShowHelp(false)} userRole={user?.roleID} />
       <ConfirmModal
         visible={showLogoutConfirm}
         title="Log Out"

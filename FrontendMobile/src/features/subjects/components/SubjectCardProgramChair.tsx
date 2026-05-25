@@ -46,7 +46,7 @@ export default function SubjectCardProgramChair({ subject, onDelete, onPress }: 
         onClose={() => setShowMenu(false)}
       >
         <TouchableOpacity
-          className="flex-row items-center py-4 border-b border-gray-200 dark:border-gray-800"
+          className="flex-row items-center py-4 border-b border-gray-200 dark:border-[#2A2A2A]"
           style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
           onPress={handleDelete}
           activeOpacity={0.7}

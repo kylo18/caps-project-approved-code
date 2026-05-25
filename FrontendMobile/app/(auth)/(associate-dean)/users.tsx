@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../src/services/apiClient';
 import { useTheme } from '../../../src/contexts/ThemeContext';
+import { getRoleThemeColors } from '../../../src/features/core/styles/roleTheme';
 import { showToast } from '../../../src/hooks/useToast';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UserDetailModal from '../../../src/features/profile/components/UserDetailModal';
@@ -42,6 +43,8 @@ interface UserItem {
   email?: string;
   roleID?: number | string;
   roleName?: string;
+  status?: string | null;
+  isActive?: boolean | null;
   [key: string]: any;
 }
 
@@ -49,6 +52,7 @@ export default function AssociateDeanUsersScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const themeColors = getRoleThemeColors(isDark);
   const insets = useSafeAreaInsets();
 
   // Pagination state
@@ -333,12 +337,12 @@ export default function AssociateDeanUsersScreen() {
   const isAdmin = (user: any) => ADMIN_ROLES.includes(Number(user.roleID));
 
   const colors = {
-    bg: isDark ? '#000' : '#f3f4f6',
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    inputBg: isDark ? '#111827' : '#fff',
+    bg: themeColors.page,
+    card: themeColors.surface,
+    text: themeColors.text,
+    textSecondary: themeColors.muted,
+    border: themeColors.border,
+    inputBg: themeColors.surfaceSoft,
     orange: '#FE6902',
     green: '#10B981',
     red: '#EF4444',
@@ -494,7 +498,7 @@ export default function AssociateDeanUsersScreen() {
                       <Text className="text-xs font-semibold" style={{ color: activeRoleFilter === f.key ? '#fff' : colors.textSecondary }}>{f.label}</Text>
                     </TouchableOpacity>
                   ))}
-                  <TouchableOpacity className="w-[34px] h-[34px] rounded-[17px] justify-center items-center" style={{ backgroundColor: showAdvancedFilters ? colors.orange : 'rgba(0,0,0,0.05)' }} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)} activeOpacity={0.7}>
+                  <TouchableOpacity className="w-[34px] h-[34px] rounded-[17px] justify-center items-center" style={{ backgroundColor: showAdvancedFilters ? colors.orange : colors.inputBg }} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)} activeOpacity={0.7}>
                     <Ionicons name="options" size={16} color={showAdvancedFilters ? '#fff' : colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
@@ -594,7 +598,7 @@ function FilterDropdown({ label, value, onValueChange, options, colors }: { labe
             <Text className="text-base font-bold mb-3" style={{ color: colors.text }}>{label}</Text>
             <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled>
               {options.map((opt: any) => (
-                <TouchableOpacity key={opt.id} className="flex-row items-center justify-between py-3 border-b border-gray-200" style={value === opt.id ? { backgroundColor: `${colors.orange}15` } : undefined} onPress={() => { onValueChange(opt.id); setOpen(false); }} activeOpacity={0.7}>
+                <TouchableOpacity key={opt.id} className="flex-row items-center justify-between py-3 border-b" style={[{ borderBottomColor: colors.border }, value === opt.id ? { backgroundColor: `${colors.orange}15` } : undefined]} onPress={() => { onValueChange(opt.id); setOpen(false); }} activeOpacity={0.7}>
                   <Text className="text-sm flex-1" style={[{ color: colors.text }, value === opt.id ? { color: colors.orange, fontWeight: '700' } : undefined]}>{opt.label}</Text>
                   {value === opt.id && <Ionicons name="checkmark" size={18} color={colors.orange} />}
                 </TouchableOpacity>

@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
+import { getRoleThemeColors } from '../../core/styles/roleTheme';
 
 export type SubjectCardProps = {
   subject: {
@@ -37,6 +38,7 @@ const getSubjectIcon = (subjectCode?: string | null): typeof ICON_POOL[number] =
 export default function SubjectCard({ subject, role, onPress, onMenuPress }: SubjectCardProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const themeColors = getRoleThemeColors(isDark);
 
   // Role Theme styling based on HSL color guidelines:
   // Faculty: Emerald (#10B981, HSL: 162, 72%, 40%)
@@ -46,12 +48,12 @@ export default function SubjectCard({ subject, role, onPress, onMenuPress }: Sub
   const roleBg = isFaculty ? 'rgba(16, 185, 129, 0.12)' : 'rgba(99, 102, 241, 0.12)';
 
   const colors = {
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    badgeText: isDark ? '#e5e7eb' : '#4b5563',
-    badgeBg: isDark ? '#374151' : '#f3f4f6',
+    card: themeColors.surface,
+    text: themeColors.text,
+    textSecondary: themeColors.muted,
+    border: themeColors.border,
+    badgeText: isDark ? '#E5E7EB' : '#4b5563',
+    badgeBg: isDark ? themeColors.surfaceSoft : '#f3f4f6',
     green: '#10B981',
     greenBg: isDark ? 'rgba(16, 185, 129, 0.2)' : '#D1FAE5',
     red: '#EF4444',

@@ -1,22 +1,24 @@
 import { View, Modal, Text } from 'react-native';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
 import AnimatedCapsLoader from '../../../features/core/components/AnimatedCapsLoader';
+import { getRoleThemeColors } from '../styles/roleTheme';
 
 export default function LoadingOverlay({ visible = false, message = 'Loading...' }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const colors = getRoleThemeColors(isDark);
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View className="flex-1 bg-black/50 justify-center items-center">
-        <View className={`p-6 rounded-2xl items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`} style={{ minWidth: 120 }}>
+      <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.overlay }}>
+        <View className="p-6 rounded-2xl items-center border" style={{ minWidth: 120, backgroundColor: colors.surface, borderColor: colors.border }}>
           <AnimatedCapsLoader
             size="md"
-            color={isDark ? '#f9fafb' : '#111827'}
-            accentColor="#FE6902"
+            color={colors.text}
+            accentColor={colors.accent}
           />
           {message && (
-            <Text className={`mt-3 text-sm text-center ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+            <Text className="mt-3 text-sm text-center" style={{ color: colors.text }}>
               {message}
             </Text>
           )}

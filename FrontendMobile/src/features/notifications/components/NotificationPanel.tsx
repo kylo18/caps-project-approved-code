@@ -4,6 +4,7 @@ import CapsActivityIndicator from '../../../features/core/components/CapsActivit
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
+import { getRoleThemeColors } from '../../../../src/features/core/styles/roleTheme';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../../../../src/services/notificationService';
 
 export default function NotificationPanel({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -112,13 +113,15 @@ export default function NotificationPanel({ visible, onClose }: { visible: boole
     }
   };
 
+  const roleColors = getRoleThemeColors(isDark);
   const colors = {
-    bg: 'rgba(0,0,0,0.5)',
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    orange: '#FE6902',
+    bg: roleColors.overlay,
+    card: roleColors.surface,
+    item: roleColors.surfaceSoft,
+    text: roleColors.text,
+    textSecondary: roleColors.muted,
+    border: roleColors.border,
+    orange: roleColors.accent,
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -161,7 +164,7 @@ export default function NotificationPanel({ visible, onClose }: { visible: boole
                   <TouchableOpacity
                     key={resolvedId || idx}
                     className="flex-row items-start gap-3 py-3 border-b"
-                    style={{ borderBottomColor: colors.border, backgroundColor: !notification.isRead ? `${colors.orange}10` : 'transparent', borderLeftWidth: !notification.isRead ? 3 : 0, borderLeftColor: colors.orange }}
+                    style={{ borderBottomColor: colors.border, backgroundColor: !notification.isRead ? (isDark ? colors.item : `${colors.orange}10`) : 'transparent', borderLeftWidth: !notification.isRead ? 3 : 0, borderLeftColor: colors.orange }}
                     onPress={() => handleNotificationPress(notification)}
                     activeOpacity={0.7}
                   >

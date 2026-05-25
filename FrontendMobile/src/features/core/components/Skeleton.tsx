@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { View, Animated } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { getRoleThemeColors } from '../styles/roleTheme';
 
 interface SkeletonProps {
     variant?: 'text' | 'card' | 'avatar' | 'button';
@@ -11,6 +12,7 @@ interface SkeletonProps {
 export function Skeleton({ variant = 'text', className = '', style }: SkeletonProps) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const colors = getRoleThemeColors(isDark);
     const opacity = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
@@ -42,7 +44,7 @@ export function Skeleton({ variant = 'text', className = '', style }: SkeletonPr
                 className
             ].filter(Boolean).join(' ')}
             style={[
-                { backgroundColor: isDark ? '#374151' : '#E5E7EB', opacity },
+                { backgroundColor: isDark ? colors.surfaceSoft : '#E5E7EB', opacity },
                 style,
             ]}
         />
@@ -52,9 +54,10 @@ export function Skeleton({ variant = 'text', className = '', style }: SkeletonPr
 export function SkeletonCard() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const colors = getRoleThemeColors(isDark);
 
     return (
-        <View className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+        <View className="rounded-2xl p-4 mb-3" style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}>
             <View className="flex-row items-center justify-between mb-3">
                 <View className="flex-row items-center gap-2">
                     <Skeleton variant="avatar" />
@@ -70,7 +73,7 @@ export function SkeletonCard() {
                 <Skeleton variant="button" style={{ width: 64 }} />
                 <Skeleton variant="button" style={{ width: 80 }} />
             </View>
-            <View className="flex-row justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-700">
+            <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: colors.border }}>
                 <View className="flex-row items-center gap-2">
                     <Skeleton variant="avatar" style={{ height: 24, width: 24, borderRadius: 12 }} />
                     <Skeleton variant="text" style={{ width: 80, height: 12 }} />
@@ -97,15 +100,16 @@ export function SkeletonList({ count = 3 }: { count?: number }) {
 export function SkeletonStatsGrid() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const colors = getRoleThemeColors(isDark);
 
     return (
         <View className="flex-row flex-wrap gap-3">
-            <View className={`flex-1 min-w-36 rounded-2xl p-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+            <View className="flex-1 min-w-36 rounded-2xl p-4" style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}>
                 <Skeleton variant="text" style={{ width: 64, marginBottom: 12 }} />
                 <Skeleton variant="text" style={{ width: 80, height: 32, marginBottom: 8 }} />
                 <Skeleton variant="text" style={{ width: 96 }} />
             </View>
-            <View className={`flex-1 min-w-36 rounded-2xl p-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+            <View className="flex-1 min-w-36 rounded-2xl p-4" style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}>
                 <Skeleton variant="text" style={{ width: 64, marginBottom: 12 }} />
                 <Skeleton variant="text" style={{ width: 80, height: 32, marginBottom: 8 }} />
                 <Skeleton variant="text" style={{ width: 96 }} />
@@ -117,11 +121,12 @@ export function SkeletonStatsGrid() {
 export function SkeletonAvatar({ className, style }: { className?: string; style?: any }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const colors = getRoleThemeColors(isDark);
     return (
         <View
             className={['h-10 w-10 rounded-full', className].filter(Boolean).join(' ')}
             style={[
-                { backgroundColor: isDark ? '#374151' : '#E5E7EB' },
+                { backgroundColor: isDark ? colors.surfaceSoft : '#E5E7EB' },
                 style
             ]}
         />

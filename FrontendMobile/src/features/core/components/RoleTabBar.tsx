@@ -1,6 +1,8 @@
-import { Ionicons } from '@expo/vector-icons'; import { Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { getRoleShadow, getRoleThemeColors } from '../styles/roleTheme';
 
 type RoleTabBarProps = {
   state: any;
@@ -35,6 +37,8 @@ export default function RoleTabBar({
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
+  const colors = getRoleThemeColors(isDark);
+  const shadow = getRoleShadow(isDark);
 
   const activeRouteName = state.routes[state.index]?.name;
   const visibleRouteSet = new Set(visibleRoutes);
@@ -43,7 +47,7 @@ export default function RoleTabBar({
   return (
     <View
       style={{
-        backgroundColor: isDark ? '#000' : 'transparent',
+        backgroundColor: isDark ? colors.page : 'transparent',
         paddingBottom: Math.max(insets.bottom, 10),
         paddingTop: 6,
       }}
@@ -55,13 +59,11 @@ export default function RoleTabBar({
           justifyContent: 'space-around',
           marginHorizontal: 12,
           borderRadius: 22,
-          backgroundColor: isDark ? '#111827' : '#FFFFFF',
+          backgroundColor: colors.surface,
+          borderWidth: isDark ? 1 : 0,
+          borderColor: colors.border,
           paddingVertical: 10,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: isDark ? 0.25 : 0.1,
-          shadowRadius: 16,
-          elevation: 8,
+          ...shadow,
         }}
       >
         {routes.map((route: any) => {
@@ -84,13 +86,13 @@ export default function RoleTabBar({
               <Ionicons
                 name={focused ? iconPair.focused : iconPair.unfocused}
                 size={22}
-                color={focused ? '#FE6902' : isDark ? '#9CA3AF' : '#6B7280'}
+                color={focused ? colors.accent : colors.muted}
               />
               <Text
                 style={{
                   fontSize: 11,
                   fontWeight: focused ? '700' : '500',
-                  color: focused ? '#FE6902' : isDark ? '#9CA3AF' : '#6B7280',
+                  color: focused ? colors.accent : colors.muted,
                 }}
               >
                 {label}

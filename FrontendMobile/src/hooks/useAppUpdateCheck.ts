@@ -28,8 +28,6 @@ export function useAppUpdateCheck(): UseAppUpdateCheckResult {
         setAppVersion(currentVersion);
         setRequiredVersion(serverVersion);
 
-        // Backend currently only returns { version }, no isForced flag.
-        // Default to non-forced so users can skip.
         const forced = data?.isForced ?? false;
         setIsForced(forced);
 

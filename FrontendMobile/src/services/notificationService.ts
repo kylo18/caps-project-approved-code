@@ -230,7 +230,9 @@ export async function deleteNotification(notificationID: number): Promise<{ succ
 export async function getUnreadCount(): Promise<{ count: number }> {
     try {
         const response = await apiRequest('/api/notifications/unread-count');
-        return { count: response?.count ?? response?.data?.count ?? 0 };
+        return {
+            count: response?.unread_count ?? response?.count ?? response?.data?.unread_count ?? response?.data?.count ?? 0,
+        };
     } catch (error) {
         console.error('Failed to get unread count:', error);
         return { count: 0 };

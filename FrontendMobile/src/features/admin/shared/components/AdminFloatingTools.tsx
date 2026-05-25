@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Animated, Easing, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../../../contexts/ThemeContext';
+import { getRoleShadow, getRoleThemeColors } from '../../../../features/core/styles/roleTheme';
 
 export type AdminToolAction = {
   key: string;
@@ -23,8 +25,6 @@ const ORANGE = '#FE6902';
 const ORANGE_DARK = '#E55D00';
 const ORANGE_SOFT = '#FFF0E0';
 const WHITE = '#FFFFFF';
-const PANEL_BG = 'rgba(255,255,255,0.98)';
-const PANEL_BORDER = 'rgba(254,105,2,0.18)';
 
 const FLOAT_SHADOW = {
   shadowColor: ORANGE,
@@ -34,20 +34,16 @@ const FLOAT_SHADOW = {
   elevation: 16,
 };
 
-const PANEL_SHADOW = {
-  shadowColor: '#000',
-  shadowOpacity: 0.16,
-  shadowRadius: 16,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 10,
-};
-
 export default function AdminFloatingTools({
   actions,
   bottom = 110,
   right = 16,
   visible = true,
 }: AdminFloatingToolsProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getRoleThemeColors(isDark);
+  const panelShadow = getRoleShadow(isDark);
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const animation = useRef(new Animated.Value(0)).current;
@@ -138,7 +134,7 @@ export default function AdminFloatingTools({
               pointerEvents="none"
               style={{
                 flex: 1,
-                backgroundColor: '#111827',
+                backgroundColor: colors.page,
                 opacity: backdropOpacity,
               }}
             />
@@ -160,12 +156,12 @@ export default function AdminFloatingTools({
         <View
           style={{
             borderRadius: 28,
-            backgroundColor: PANEL_BG,
+            backgroundColor: colors.surface,
             borderWidth: 1,
-            borderColor: PANEL_BORDER,
+            borderColor: colors.border,
             paddingVertical: 10,
             paddingHorizontal: 10,
-            ...PANEL_SHADOW,
+            ...panelShadow,
           }}
         >
           <View
@@ -184,7 +180,7 @@ export default function AdminFloatingTools({
                   width: 32,
                   height: 32,
                   borderRadius: 16,
-                  backgroundColor: ORANGE_SOFT,
+                  backgroundColor: isDark ? colors.surfaceSoft : ORANGE_SOFT,
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: 10,
@@ -195,7 +191,7 @@ export default function AdminFloatingTools({
               <View>
                 <Text
                   style={{
-                    color: '#111827',
+                    color: colors.text,
                     fontSize: 14,
                     fontWeight: '700',
                     fontFamily: 'Rubik',
@@ -205,7 +201,7 @@ export default function AdminFloatingTools({
                 </Text>
                 <Text
                   style={{
-                    color: '#6B7280',
+                    color: colors.muted,
                     fontSize: 11,
                     fontWeight: '500',
                     fontFamily: 'Rubik',
@@ -223,14 +219,14 @@ export default function AdminFloatingTools({
                 width: 34,
                 height: 34,
                 borderRadius: 17,
-                backgroundColor: '#FFFFFF',
+                backgroundColor: colors.surfaceSoft,
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: pressed ? 0.85 : 1,
                 transform: [{ scale: pressed ? 0.95 : 1 }],
               })}
             >
-              <Ionicons name="close" size={18} color="#6B7280" />
+              <Ionicons name="close" size={18} color={colors.muted} />
             </Pressable>
           </View>
 
@@ -254,7 +250,9 @@ export default function AdminFloatingTools({
                     borderRadius: 18,
                     paddingVertical: 14,
                     paddingHorizontal: 6,
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: colors.surfaceSoft,
+                    borderWidth: 1,
+                    borderColor: colors.border,
                     opacity: isDisabled ? 0.45 : pressed ? 0.86 : 1,
                     transform: [{ scale: pressed ? 0.985 : 1 }],
                   })}
@@ -274,7 +272,7 @@ export default function AdminFloatingTools({
                   </View>
                   <Text
                     style={{
-                      color: '#111827',
+                      color: colors.text,
                       fontSize: 12,
                       fontWeight: '700',
                       fontFamily: 'Rubik',
@@ -333,7 +331,7 @@ export default function AdminFloatingTools({
                 fontSize: 15,
                 fontWeight: '800',
                 fontFamily: 'Rubik',
-                letterSpacing: 0.2,
+                letterSpacing: 0,
                 textAlign: 'center',
                 lineHeight: 18,
               }}

@@ -13,10 +13,18 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { showToast } from '../../../hooks/useToast';
 import { getArchivedClasses, unarchiveFacultyClass } from '../../../services/facultyClassService';
 import MobileHeader from '../../../features/core/components/MobileHeader';
+import { getRoleShadow, getRoleThemeColors } from '../../core/styles/roleTheme';
 
 export default function ArchivedClassesScreen() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const colors = getRoleThemeColors(isDark);
+  const cardStyle = {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    ...getRoleShadow(isDark),
+  };
 
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,35 +113,35 @@ export default function ArchivedClassesScreen() {
 
   if (loading) {
     return (
-      <View className={`flex-1 items-center justify-center ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
-        <ActivityIndicator size="large" color="#f57c20" />
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.page }}>
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
 
   return (
-    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+    <View className="flex-1" style={{ backgroundColor: colors.page }}>
       <MobileHeader title="Archived Classes" />
 
       <ScrollView
         className="flex-1 px-4 pt-4"
         contentContainerStyle={{ paddingBottom: 120 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f57c20" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
       >
         {classes.length === 0 ? (
-          <View className={`rounded-2xl p-8 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
-            <Ionicons name={loadError ? 'alert-circle-outline' : 'archive-outline'} size={40} color={loadError ? '#EF4444' : isDark ? '#6b7280' : '#9ca3af'} />
-            <Text className={`mt-3 font-semibold ${loadError ? 'text-red-500' : isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <View className="rounded-2xl p-8 items-center" style={cardStyle}>
+            <Ionicons name={loadError ? 'alert-circle-outline' : 'archive-outline'} size={40} color={loadError ? '#EF4444' : colors.mutedIcon} />
+            <Text className="mt-3 font-semibold" style={{ color: loadError ? '#EF4444' : colors.muted }}>
               {loadError ? 'Unable to load archived classes' : 'No archived classes'}
             </Text>
-            <Text className={`text-sm mt-1 text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            <Text className="text-sm mt-1 text-center" style={{ color: colors.muted }}>
               {loadError || emptyMessage}
             </Text>
             {loadError ? (
               <Pressable
                 onPress={fetchArchived}
                 className="mt-4 px-4 py-2.5 rounded-xl"
-                style={{ backgroundColor: '#f57c20' }}
+                style={{ backgroundColor: colors.accent }}
               >
                 <Text className="text-white font-semibold">Retry</Text>
               </Pressable>
@@ -150,32 +158,33 @@ export default function ArchivedClassesScreen() {
               return (
                 <View
                   key={classID}
-                  className={`rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                  className="rounded-2xl p-4"
+                  style={cardStyle}
                 >
                   <View className="flex-row items-start justify-between">
                     <View className="flex-1 pr-3">
-                      <Text className={`font-bold text-[15px] ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      <Text className="font-bold text-[15px]" style={{ color: colors.text }}>
                         {item.className || 'Unnamed Class'}
                       </Text>
-                      <Text className={`text-sm mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <Text className="text-sm mt-0.5" style={{ color: colors.muted }}>
                         {item.subject?.subjectCode || item.subjectCode || 'No subject code'}
                       </Text>
                     </View>
-                    <View className="px-2 py-1 rounded-full" style={{ backgroundColor: isDark ? '#374151' : '#f3f4f6' }}>
-                      <Text className={`text-[11px] font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <View className="px-2 py-1 rounded-full" style={{ backgroundColor: colors.surfaceSoft }}>
+                      <Text className="text-[11px] font-medium" style={{ color: colors.muted }}>
                         Archived
                       </Text>
                     </View>
                   </View>
 
                   <View className="flex-row flex-wrap gap-2 mt-3">
-                    <View className={`flex-row items-center px-3 py-1.5 rounded-full ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`} style={{ gap: 6 }}>
-                      <Ionicons name="key-outline" size={12} color="#f57c20" />
-                      <Text className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{item.classCode || 'No code'}</Text>
+                    <View className="flex-row items-center px-3 py-1.5 rounded-full" style={{ backgroundColor: colors.surfaceSoft, gap: 6 }}>
+                      <Ionicons name="key-outline" size={12} color={colors.accent} />
+                      <Text className="text-xs" style={{ color: colors.text }}>{item.classCode || 'No code'}</Text>
                     </View>
-                    <View className={`flex-row items-center px-3 py-1.5 rounded-full ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`} style={{ gap: 6 }}>
-                      <Ionicons name="people-outline" size={12} color="#f57c20" />
-                      <Text className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{studentCount} students</Text>
+                    <View className="flex-row items-center px-3 py-1.5 rounded-full" style={{ backgroundColor: colors.surfaceSoft, gap: 6 }}>
+                      <Ionicons name="people-outline" size={12} color={colors.accent} />
+                      <Text className="text-xs" style={{ color: colors.text }}>{studentCount} students</Text>
                     </View>
                   </View>
 

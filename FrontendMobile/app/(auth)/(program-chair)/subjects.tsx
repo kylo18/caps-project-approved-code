@@ -423,16 +423,16 @@ export default function ProgramChairSubjectsScreen() {
   // Render loading state
   if (isLoading) {
     return (
-      <View className={`flex-1 justify-center items-center ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+      <View className={`flex-1 justify-center items-center ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
         <CapsActivityIndicator size="large" color="#FE6902" />
       </View>
     );
   }
 
   return (
-    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-gray-100'}`}>
+    <View className={`flex-1 ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
       {/* Header */}
-      <View className={`px-4 pb-3 pt-3 ${isDark ? 'bg-gray-900' : 'bg-white'} border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`} style={{ paddingTop: insets.top + 12 }}>
+      <View className={`px-4 pb-3 pt-3 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'} border-b ${isDark ? 'border-[#2A2A2A]' : 'border-gray-200'}`} style={{ paddingTop: insets.top + 12 }}>
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
             <TouchableOpacity
@@ -455,7 +455,7 @@ export default function ProgramChairSubjectsScreen() {
           <View className="flex-row items-center" style={{ gap: 8 }}>
             <TouchableOpacity
               onPress={() => router.push('/(auth)/(program-chair)/classes')}
-              className={`px-3 py-2 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
+              className={`px-3 py-2 rounded-xl ${isDark ? 'bg-[#242424]' : 'bg-gray-100'}`}
               activeOpacity={0.7}
             >
               <View className="flex-row items-center">
@@ -488,7 +488,7 @@ export default function ProgramChairSubjectsScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                   <TouchableOpacity
                     onPress={() => setFilterProgramID('All')}
-                    className={`px-3 py-1.5 rounded-full ${filterProgramID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                    className={`px-3 py-1.5 rounded-full ${filterProgramID === 'All' ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
                     activeOpacity={0.7}
                   >
                     <Text className={`text-xs ${filterProgramID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -502,7 +502,7 @@ export default function ProgramChairSubjectsScreen() {
                       <TouchableOpacity
                         key={id}
                         onPress={() => setFilterProgramID(id)}
-                        className={`px-3 py-1.5 rounded-full ${filterProgramID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                        className={`px-3 py-1.5 rounded-full ${filterProgramID === id ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
                         activeOpacity={0.7}
                       >
                         <Text className={`text-xs ${filterProgramID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -519,7 +519,7 @@ export default function ProgramChairSubjectsScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                   <TouchableOpacity
                     onPress={() => setFilterYearLevelID('All')}
-                    className={`px-3 py-1.5 rounded-full ${filterYearLevelID === 'All' ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                    className={`px-3 py-1.5 rounded-full ${filterYearLevelID === 'All' ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
                     activeOpacity={0.7}
                   >
                     <Text className={`text-xs ${filterYearLevelID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -533,7 +533,7 @@ export default function ProgramChairSubjectsScreen() {
                       <TouchableOpacity
                         key={id}
                         onPress={() => setFilterYearLevelID(id)}
-                        className={`px-3 py-1.5 rounded-full ${filterYearLevelID === id ? 'bg-primary' : isDark ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}
+                        className={`px-3 py-1.5 rounded-full ${filterYearLevelID === id ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
                         activeOpacity={0.7}
                       >
                         <Text className={`text-xs ${filterYearLevelID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -547,7 +547,7 @@ export default function ProgramChairSubjectsScreen() {
             </View>
 
             {subjects.length === 0 ? (
-              <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+              <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                 <Ionicons name="book-outline" size={64} color="#FE6902" />
                 <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Subjects Yet</Text>
                 <Text className={`text-sm mt-2 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -580,7 +580,7 @@ export default function ProgramChairSubjectsScreen() {
         ) : (
           <>
           <View className="px-4 mb-3">
-            <View className={`flex-row rounded-xl p-1 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+            <View className={`flex-row rounded-xl p-1 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
               {TABS.map(tab => (
                 <TouchableOpacity
                   key={tab.key}
@@ -609,7 +609,7 @@ export default function ProgramChairSubjectsScreen() {
                 <Text className="text-sm mt-3" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading questions...</Text>
               </View>
             ) : filteredQuestions.length === 0 ? (
-              <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+              <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                 <Ionicons name="help-circle-outline" size={64} color="#FE6902" />
                 <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Questions Yet</Text>
                 <Text className={`text-sm mt-2 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -621,7 +621,7 @@ export default function ProgramChairSubjectsScreen() {
                 {filteredQuestions.map((q, idx) => (
                 <View
                   key={q.questionID || idx}
-                  className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                  className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}
                 >
                   <View className="flex-row justify-between items-center mb-2">
                     <Text className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Q{idx + 1}</Text>
@@ -667,7 +667,7 @@ export default function ProgramChairSubjectsScreen() {
                       }}
                     />
                   </View>
-                  <View className="flex-row justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <View className="flex-row justify-between items-center pt-2 border-t border-gray-200 dark:border-[#2A2A2A]">
                     <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{q.choices?.length || 4} choices</Text>
                     <Ionicons name="chevron-forward" size={18} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
                   </View>
@@ -692,7 +692,7 @@ export default function ProgramChairSubjectsScreen() {
       {/* Add/Edit Subject Modal */}
       <Modal visible={showSubjectModal} transparent animationType="fade" onRequestClose={() => setShowSubjectModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+          <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
             <View className="flex-row justify-between items-center mb-4">
               <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {editingSubject ? 'Edit Subject' : 'Add Subject'}
@@ -708,7 +708,7 @@ export default function ProgramChairSubjectsScreen() {
               onChangeText={setSubjectCode}
               placeholder="e.g. CS101"
               placeholderTextColor={isDark ? '#9CA3AF' : '#9CA3AF'}
-              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-gray-700 text-white bg-gray-800' : 'border-gray-200 text-gray-900 bg-white'}`}
+              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-[#2A2A2A] text-white bg-[#242424]' : 'border-gray-200 text-gray-900 bg-white'}`}
             />
 
             <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Subject Name</Text>
@@ -717,11 +717,11 @@ export default function ProgramChairSubjectsScreen() {
               onChangeText={setSubjectName}
               placeholder="e.g. Introduction to Computer Science"
               placeholderTextColor={isDark ? '#9CA3AF' : '#9CA3AF'}
-              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-gray-700 text-white bg-gray-800' : 'border-gray-200 text-gray-900 bg-white'}`}
+              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-[#2A2A2A] text-white bg-[#242424]' : 'border-gray-200 text-gray-900 bg-white'}`}
             />
 
             <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Program</Text>
-            <View className={`border rounded-xl mb-4 overflow-hidden ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <View className={`border rounded-xl mb-4 overflow-hidden ${isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, gap: 8 }}>
                 {programs.map((p: any) => (
                   <TouchableOpacity
@@ -738,7 +738,7 @@ export default function ProgramChairSubjectsScreen() {
             </View>
 
             <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Year Level</Text>
-            <View className={`border rounded-xl mb-6 overflow-hidden ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <View className={`border rounded-xl mb-6 overflow-hidden ${isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, gap: 8 }}>
                 {yearLevels.map((yl: any) => (
                   <TouchableOpacity
@@ -777,7 +777,7 @@ export default function ProgramChairSubjectsScreen() {
         onClose={() => setShowActionModal(false)}
       >
         <TouchableOpacity
-          className="flex-row items-center py-4 border-b border-gray-200 dark:border-gray-800"
+          className="flex-row items-center py-4 border-b border-gray-200 dark:border-[#2A2A2A]"
           style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
           onPress={() => {
             setShowActionModal(false);

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
+import { getRoleThemeColors } from '../../core/styles/roleTheme';
 
 const sortOptions = [
   { label: 'Name (A-Z)', value: 'name_asc' },
@@ -17,13 +18,15 @@ export default function SortUsers({ onSelect, currentValue }: { onSelect?: (valu
   const isDark = theme === 'dark';
   const [visible, setVisible] = useState(false);
 
+  const roleColors = getRoleThemeColors(isDark);
   const colors = {
-    bg: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(0,0,0,0.5)',
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
-    orange: '#FE6902',
+    bg: roleColors.overlay,
+    card: roleColors.surface,
+    item: roleColors.surfaceSoft,
+    text: roleColors.text,
+    textSecondary: roleColors.muted,
+    border: roleColors.border,
+    orange: roleColors.accent,
   };
 
   const handleSelect = (value: string) => {
@@ -65,7 +68,7 @@ export default function SortUsers({ onSelect, currentValue }: { onSelect?: (valu
                 <TouchableOpacity
                   key={option.value}
                   className="flex-row items-center justify-between py-3 border-b"
-                  style={{ borderBottomColor: colors.border, backgroundColor: currentValue === option.value ? `${colors.orange}15` : 'transparent' }}
+                  style={{ borderBottomColor: colors.border, backgroundColor: currentValue === option.value ? (isDark ? colors.item : `${colors.orange}15`) : 'transparent' }}
                   onPress={() => handleSelect(option.value)}
                   activeOpacity={0.7}
                 >
