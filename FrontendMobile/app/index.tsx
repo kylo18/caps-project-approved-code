@@ -14,12 +14,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
 import Svg, { Path } from 'react-native-svg';
 import { apiRequest } from '../src/services/apiClient';
 import * as SecureStore from 'expo-secure-store';
 import NetInfo from '@react-native-community/netinfo';
-import Constants from 'expo-constants';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../src/store/slices/authSlice';
 import { getDashboardRoute } from '../src/utils/roleValidation';
@@ -211,6 +209,14 @@ export default function LoginScreen() {
 
   // ── OAuth: Google / Facebook (Backend) ──
   const handleOAuthLogin = async (provider: 'google' | 'facebook') => {
+    if (provider === 'facebook') {
+      Alert.alert(
+        'Coming soon',
+        'Facebook sign in is not available yet. Please use Google or your CAPS account for now.'
+      );
+      return;
+    }
+
     setIsLoading(true);
     try {
       if (provider === 'google') {
@@ -247,44 +253,11 @@ export default function LoginScreen() {
         routeBasedOnRole(user!.roleID ?? user!.roleId);
         return;
       }
-
-      // Facebook: use backend OAuth redirect via web browser
-      const API_URL = Constants.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL;
-      const result = await WebBrowser.openAuthSessionAsync(
-        `${API_URL}/api/auth/${provider}/redirect`,
-        'caps://auth/callback'
-      );
-      if (result.type === 'success') {
-        const token = extractTokenFromUrl(result.url);
-        if (!token) {
-          showToast('OAuth login failed', 'error');
-          return;
-        }
-        await SecureStore.setItemAsync('token', token);
-        const response = await apiRequest('/api/user/profile');
-        const user = response;
-        await SecureStore.setItemAsync('user', JSON.stringify(user));
-        await SecureStore.setItemAsync('rememberMe', 'true');
-        const pushResult = await registerForPushNotificationsAsync();
-        if (pushResult.token) {
-          await registerPushTokenWithBackend(pushResult.token);
-        }
-        dispatch(setCredentials({ user, token }));
-        routeBasedOnRole(user.roleID ?? user.roleId);
-      }
     } catch (error: unknown) {
       showToast(error instanceof Error ? error.message : 'OAuth login failed', 'error');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const extractTokenFromUrl = (url: string): string | null => {
-    try {
-      const urlObj = new URL(url);
-      const params = new URLSearchParams(urlObj.hash.substring(1));
-      return params.get('token') || urlObj.searchParams.get('token');
-    } catch { return null; }
   };
 
   const routeBasedOnRole = (roleID: number) => {

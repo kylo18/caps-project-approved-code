@@ -1,6 +1,18 @@
 const { version: APP_VERSION } = require('../Backend - Deployment/version.json');
 const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || "2994a893-8549-4bf1-bf1a-d665c49f1c2f";
 
+const androidVersionCodeFromVersion = (version) => {
+  const [major = 0, minor = 0, patch = 0] = version
+    .split('.')
+    .map((part) => Number.parseInt(part, 10) || 0);
+
+  return major * 10000 + minor * 100 + patch;
+};
+
+const ANDROID_VERSION_CODE =
+  Number.parseInt(process.env.EXPO_PUBLIC_ANDROID_VERSION_CODE || '', 10) ||
+  androidVersionCodeFromVersion(APP_VERSION);
+
 if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(EAS_PROJECT_ID)) {
   throw new Error('EXPO_PUBLIC_EAS_PROJECT_ID must be the Expo EAS project UUID, not the Firebase project ID');
 }
@@ -33,6 +45,7 @@ export default {
         backgroundColor: "#FE6902"
       },
       package: "com.caps.mobile",
+      versionCode: ANDROID_VERSION_CODE,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       permissions: [

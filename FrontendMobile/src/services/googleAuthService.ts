@@ -9,12 +9,12 @@ import Constants from 'expo-constants';
 import { User } from '../types';
 
 const API_URL = Constants.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL || '';
-const REDIRECT_PATH = '/auth/google/callback';
+type SocialProvider = 'google' | 'facebook';
 
 WebBrowser.maybeCompleteAuthSession();
 
-function getGoogleRedirectUrl() {
-  return Linking.createURL(REDIRECT_PATH, {
+function getSocialRedirectUrl(provider: SocialProvider) {
+  return Linking.createURL(`/auth/${provider}/callback`, {
     scheme: 'caps',
     isTripleSlashed: true,
   });
@@ -36,7 +36,7 @@ function extractSocialError(url: string): { code: string; message: string } | nu
     if (error) {
       return {
         code: error,
-        message: urlObj.searchParams.get('message') || 'Google sign in failed',
+        message: urlObj.searchParams.get('message') || 'Social sign in failed',
       };
     }
     return null;
@@ -46,11 +46,11 @@ function extractSocialError(url: string): { code: string; message: string } | nu
 }
 
 /**
- * Mobile Google sign-in via backend OAuth redirect.
- * Opens the browser, lets the user authenticate with Google, and the backend
- * redirects back to the generated caps:///auth/google/callback?social_token=...
+ * Mobile social sign-in via backend OAuth redirect.
+ * Opens the browser, lets the user authenticate with the provider, and the backend
+ * redirects back to the generated caps:///auth/{provider}/callback?social_token=...
  */
-export async function signInWithGoogleMobile(): Promise<{
+async function signInWithSocialMobile(provider: SocialProvider): Promise<{
   success: boolean;
   token?: string;
   user?: User;
@@ -64,16 +64,16 @@ export async function signInWithGoogleMobile(): Promise<{
   }
 
   try {
-    const redirectUrl = getGoogleRedirectUrl();
+    const redirectUrl = getSocialRedirectUrl(provider);
     const authUrl =
-      `${API_URL}/api/auth/google/redirect?frontend_url=${encodeURIComponent(redirectUrl)}`;
+      `${API_URL}/api/auth/${provider}/redirect?frontend_url=${encodeURIComponent(redirectUrl)}`;
 
     const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
 
     if (result.type !== 'success') {
       return {
         success: false,
-        error: result.type === 'cancel' ? 'Sign in was cancelled' : 'Google sign in failed',
+        error: result.type === 'cancel' ? 'Sign in was cancelled' : `${provider} sign in failed`,
       };
     }
 
@@ -91,16 +91,24 @@ export async function signInWithGoogleMobile(): Promise<{
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'An unexpected error occurred during Google sign in',
+      error: error instanceof Error ? error.message : `An unexpected error occurred during ${provider} sign in`,
     };
   }
+}
+
+export function signInWithGoogleMobile() {
+  return signInWithSocialMobile('google');
+}
+
+export function signInWithFacebookMobile() {
+  return signInWithSocialMobile('facebook');
 }
 
 /**
  * Web Google sign-in via popup.
  * The backend redirects to a frontend page that posts the token back via postMessage.
  */
-export async function signInWithGooglePopup(): Promise<{
+async function signInWithSocialPopup(provider: SocialProvider): Promise<{
   success: boolean;
   token?: string;
   user?: User;
@@ -115,8 +123,8 @@ export async function signInWithGooglePopup(): Promise<{
 
   try {
     const popup = window.open(
-      `${API_URL}/api/auth/google/redirect`,
-      'googleSignIn',
+      `${API_URL}/api/auth/${provider}/redirect`,
+      `${provider}SignIn`,
       'width=500,height=600'
     );
 
@@ -140,7 +148,7 @@ export async function signInWithGooglePopup(): Promise<{
           clearInterval(checkClosed);
           window.removeEventListener('message', messageHandler);
           popup?.close();
-          resolve({ success: false, error: event.data.message || 'Google sign in failed' });
+          resolve({ success: false, error: event.data.message || `${provider} sign in failed` });
         }
       };
 
@@ -157,6 +165,14 @@ export async function signInWithGooglePopup(): Promise<{
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Popup sign-in failed' };
   }
+}
+
+export function signInWithGooglePopup() {
+  return signInWithSocialPopup('google');
+}
+
+export function signInWithFacebookPopup() {
+  return signInWithSocialPopup('facebook');
 }
 
 /**
