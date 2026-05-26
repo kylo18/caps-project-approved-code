@@ -222,6 +222,8 @@ class ClassEnrollmentController extends Controller
                 ], 404);
             }
 
+            $class->load(['subject']);
+
             // Get total number of quizzes assigned to this class
             $totalQuizzes = ClassPersonalQuiz::where('classID', $classID)->count();
 
@@ -276,6 +278,11 @@ class ClassEnrollmentController extends Controller
                     'classID' => $class->classID,
                     'className' => $class->className,
                     'classCode' => $class->classCode,
+                    'description' => $class->description,
+                    'schedule' => $class->schedule,
+                    'isActive' => $class->isActive,
+                    'subjectID' => $class->subjectID,
+                    'subject' => $class->subject,
                 ],
                 'students' => $students,
                 'total' => $students->count(),
