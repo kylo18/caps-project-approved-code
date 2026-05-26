@@ -76,6 +76,33 @@ export default function ProgramChairSubjectsScreen() {
   const [filterProgramID, setFilterProgramID] = useState<string>('All');
   const [filterYearLevelID, setFilterYearLevelID] = useState<string>('All');
 
+  // Quiz creation modal state
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [quizTitle, setQuizTitle] = useState('');
+  const [quizTypeID, setQuizTypeID] = useState<number>(2);
+  const [quizSubjectID, setQuizSubjectID] = useState<number | null>(null);
+  const [quizCoverage, setQuizCoverage] = useState<string>('midterm');
+  const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
+
+  const handleCreateQuiz = async () => {
+    if (!quizTitle.trim()) { showToast('Please enter a quiz title', 'error'); return; }
+    if (quizTypeID === 1 && !quizSubjectID) { showToast('Please select a subject for subject-based quiz', 'error'); return; }
+    setIsCreatingQuiz(true);
+    try {
+      const res = await apiRequest('/api/personal-quizzes', {
+        method: 'POST',
+        body: { title: quizTitle.trim(), quiz_type_id: quizTypeID, subjectID: quizSubjectID || null, coverage: quizTypeID === 1 ? quizCoverage : undefined },
+      });
+      const quizID = res?.quiz?.personalQuizID || res?.personalQuizID || res?.data?.personalQuizID;
+      setShowQuizModal(false); setQuizTitle(''); setQuizTypeID(2); setQuizSubjectID(null); setQuizCoverage('midterm');
+      if (quizID) {
+        router.push({ pathname: '/(auth)/practice-exam/add-question', params: { personalQuizID: String(quizID), subjectID: quizSubjectID ? String(quizSubjectID) : undefined } });
+      } else { showToast('Quiz created but could not navigate to add questions', 'success'); }
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to create quiz', 'error');
+    } finally { setIsCreatingQuiz(false); }
+  };
+
   useEffect(() => {
     fetchPrograms();
     fetchYearLevels();
@@ -415,6 +442,13 @@ export default function ProgramChairSubjectsScreen() {
       label: 'Print / Export',
       onPress: () => setShowPrintModal(true),
       backgroundColor: '#8B5CF6',
+    },
+    {
+      key: 'create-quiz',
+      icon: 'create-outline',
+      label: 'Create Quiz',
+      onPress: () => setShowQuizModal(true),
+      backgroundColor: '#FE6902',
     },
   ], [selectedSubject, router, setShowPrintModal]);
 
@@ -812,6 +846,60 @@ export default function ProgramChairSubjectsScreen() {
           <Text className="text-base font-semibold ml-3" style={{ color: '#EF4444', marginLeft: 12 }}>Delete Subject</Text>
         </TouchableOpacity>
       </BottomModal>
+
+      {/* Create Quiz Modal */}
+      <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+          <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, backgroundColor: isDark ? '#111827' : '#ffffff' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: isDark ? '#fff' : '#111827' }}>Create Quiz</Text>
+              <TouchableOpacity onPress={() => setShowQuizModal(false)}>
+                <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Quiz Title</Text>
+            <TextInput value={quizTitle} onChangeText={setQuizTitle} placeholder="Enter quiz title" placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+              style={{ borderWidth: 1, borderColor: isDark ? '#374151' : '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, color: isDark ? '#fff' : '#111827', backgroundColor: isDark ? '#1F2937' : '#F9FAFB' }} />
+            <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Quiz Type</Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+              {[{ id: 2, label: 'Custom' }, { id: 1, label: 'Subject-based' }].map((type) => (
+                <TouchableOpacity key={type.id} onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
+                  style={{ flex: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, alignItems: 'center', borderColor: quizTypeID === type.id ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizTypeID === type.id ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                  <Text style={{ fontWeight: '600', color: quizTypeID === type.id ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{type.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {quizTypeID === 1 && (
+              <>
+                <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Select Subject</Text>
+                <ScrollView style={{ maxHeight: 160, marginBottom: 16 }}>
+                  <View style={{ gap: 8 }}>
+                    {subjects.map((subject) => (
+                      <TouchableOpacity key={subject.subjectID} onPress={() => setQuizSubjectID(Number(subject.subjectID))}
+                        style={{ borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizSubjectID === subject.subjectID ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                        <Text style={{ fontWeight: '600', color: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{subject.subjectName || subject.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+                <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Coverage</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                  {[{ value: 'midterm', label: 'Midterm' }, { value: 'final', label: 'Finals' }, { value: 'full', label: 'Full' }].map((opt) => (
+                    <TouchableOpacity key={opt.value} onPress={() => setQuizCoverage(opt.value)}
+                      style={{ flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizCoverage === opt.value ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                      <Text style={{ fontWeight: '600', fontSize: 13, color: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+            <TouchableOpacity onPress={handleCreateQuiz} disabled={isCreatingQuiz}
+              style={{ backgroundColor: '#FE6902', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 8, opacity: isCreatingQuiz ? 0.7 : 1 }}>
+              {isCreatingQuiz ? <CapsActivityIndicator color="#fff" /> : <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 15 }}>Create &amp; Add Questions</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

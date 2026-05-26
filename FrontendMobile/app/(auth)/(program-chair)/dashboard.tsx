@@ -6,14 +6,14 @@
 // - Greeting with user name
 // - Stats grid (students, faculty, subjects, quizzes)
 // - Performance overview with progress bars
-// - Quick action cards
+// - Quick action cards (including Create Quiz)
 // - Subject overview list
 // - Pull-to-refresh
 // - Uses MobileHeader with NativeWind styling
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Dimensions, Modal, TextInput } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,6 +48,12 @@ export default function ProgramChairDashboard() {
     passRate: 0,
     activeQuizzes: 0,
   });
+
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [quizTitle, setQuizTitle] = useState('');
+  const [quizTypeID, setQuizTypeID] = useState<number>(2); // 1 = subject-based, 2 = custom
+  const [quizSubjectID, setQuizSubjectID] = useState<number | null>(null);
+  const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
 
   const firstName = user?.firstName || 'Program Chair';
   const lastName = user?.lastName || '';
@@ -105,6 +111,43 @@ export default function ProgramChairDashboard() {
     }
   };
 
+  const handleCreateQuiz = async () => {
+    if (!quizTitle.trim()) {
+      showToast('Please enter a quiz title', 'error');
+      return;
+    }
+    if (quizTypeID === 1 && !quizSubjectID) {
+      showToast('Please select a subject for subject-based quiz', 'error');
+      return;
+    }
+
+    setIsCreatingQuiz(true);
+    try {
+      const res = await apiRequest('/api/personal-quizzes', {
+        method: 'POST',
+        body: {
+          title: quizTitle.trim(),
+          quiz_type_id: quizTypeID,
+          subjectID: quizSubjectID || null,
+        },
+      });
+      const quizID = res?.quiz?.personalQuizID || res?.personalQuizID || res?.data?.personalQuizID;
+      setShowQuizModal(false);
+      setQuizTitle('');
+      setQuizTypeID(2);
+      setQuizSubjectID(null);
+      if (quizID) {
+        router.push({ pathname: '/(auth)/practice-exam/add-question', params: { personalQuizID: String(quizID), subjectID: quizSubjectID ? String(quizSubjectID) : undefined } });
+      } else {
+        showToast('Quiz created but could not navigate to add questions', 'success');
+      }
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to create quiz', 'error');
+    } finally {
+      setIsCreatingQuiz(false);
+    }
+  };
+
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await fetchData();
@@ -157,21 +200,13 @@ export default function ProgramChairDashboard() {
       label: 'Classes',
       onPress: () => router.push('/(auth)/(program-chair)/classes'),
     },
+    {
+      key: 'quiz',
+      icon: 'create-outline',
+      label: 'Create Quiz',
+      onPress: () => setShowQuizModal(true),
+    },
   ]);
-
-  if (isLoading) {
-    return (
-      <View className="flex-1" style={{ backgroundColor: colors.page }}>
-        <MobileHeader title="Program Chair" />
-        <View className="flex-1 justify-center items-center">
-          <CapsActivityIndicator size="large" color={colors.orange} />
-          <Text className="mt-3" style={{ color: colors.textSoft }}>
-            Loading dashboard...
-          </Text>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.page }}>
@@ -343,6 +378,20 @@ export default function ProgramChairDashboard() {
               Export analytics
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            style={cardStyle}
+            onPress={() => setShowQuizModal(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="create" size={28} color="#10B981" />
+            <Text className="font-semibold mt-3" style={{ color: colors.text }}>
+              Create Quiz
+            </Text>
+            <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
+              Design new quiz
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Subject Overview */}
@@ -405,6 +454,79 @@ export default function ProgramChairDashboard() {
           </>
         )}
       </ScrollView>
+
+      {/* Create Quiz Modal */}
+      <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
+          <View className={`rounded-t-3xl px-5 pt-5 pb-8 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+            <View className="flex-row items-center justify-between mb-5">
+              <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Quiz</Text>
+              <TouchableOpacity onPress={() => setShowQuizModal(false)}>
+                <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+              </TouchableOpacity>
+            </View>
+
+            <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Title</Text>
+            <TextInput
+              value={quizTitle}
+              onChangeText={setQuizTitle}
+              placeholder="Enter quiz title"
+              placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-50 text-gray-900 border-gray-200'}`}
+            />
+
+            <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Type</Text>
+            <View className="flex-row gap-3 mb-4">
+              {[ { id: 2, label: 'Custom' }, { id: 1, label: 'Subject-based' } ].map((type) => (
+                <TouchableOpacity
+                  key={type.id}
+                  onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
+                  className={`flex-1 rounded-xl px-4 py-3 border text-center ${quizTypeID === type.id ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                >
+                  <Text className={`font-semibold ${quizTypeID === type.id ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>{type.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {quizTypeID === 1 && (
+              <>
+                <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Select Subject</Text>
+                <ScrollView style={{ maxHeight: 160 }} className="mb-4">
+                  <View style={{ gap: 8 }}>
+                    {subjects.map((subject) => {
+                      const sid = subject.subjectID || subject.id;
+                      return (
+                        <TouchableOpacity
+                          key={sid}
+                          onPress={() => setQuizSubjectID(Number(sid))}
+                          className={`rounded-xl px-4 py-3 border ${quizSubjectID === sid ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                        >
+                          <Text className={`font-semibold ${quizSubjectID === sid ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {subject.subjectName || subject.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              </>
+            )}
+
+            <TouchableOpacity
+              onPress={handleCreateQuiz}
+              disabled={isCreatingQuiz}
+              className="bg-primary rounded-2xl py-4 items-center mt-2"
+              style={{ opacity: isCreatingQuiz ? 0.7 : 1 }}
+            >
+              {isCreatingQuiz ? (
+                <CapsActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-white font-semibold">Create & Add Questions</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

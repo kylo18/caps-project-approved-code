@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Modal, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import CapsActivityIndicator from '../../../features/core/components/CapsActivityIndicator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -401,7 +402,30 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
         </View>
 
         <View className="flex-row flex-wrap gap-2 mt-4">
-          <HeaderPill icon="key-outline" text={classInfo?.classCode || 'No code'} colors={colors} />
+          {/* Copyable class code */}
+          <TouchableOpacity
+            onPress={async () => {
+              const code = classInfo?.classCode;
+              if (code) {
+                await Clipboard.setStringAsync(code);
+                showToast(`Code "${code}" copied!`, 'success');
+              }
+            }}
+            activeOpacity={0.7}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 999,
+              gap: 6,
+              backgroundColor: colors.surfaceSoft,
+            }}
+          >
+            <Ionicons name="key-outline" size={14} color={colors.accent} />
+            <Text style={{ fontSize: 12, color: colors.text }}>{classInfo?.classCode || 'No code'}</Text>
+            <Ionicons name="copy-outline" size={13} color={colors.muted} />
+          </TouchableOpacity>
           <HeaderPill icon="time-outline" text={classInfo?.schedule || 'No schedule'} colors={colors} />
           <HeaderPill icon="people-outline" text={`${students.length} students`} colors={colors} />
         </View>

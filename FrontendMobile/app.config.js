@@ -20,7 +20,8 @@ if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 export default {
   expo: {
     name: "CAPS",
-    slug: "caps-mobile",
+    slug: "caps",
+    owner: "capsbackends-organization",
     version: APP_VERSION,
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -45,6 +46,7 @@ export default {
         backgroundColor: "#FE6902"
       },
       package: "com.caps.mobile",
+      googleServicesFile: "./google-services.json",
       versionCode: ANDROID_VERSION_CODE,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
