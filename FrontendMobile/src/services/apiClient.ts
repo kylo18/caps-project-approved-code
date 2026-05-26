@@ -37,6 +37,7 @@ async function handleUnauthorized() {
   if (onUnauthorizedCallback) {
     onUnauthorizedCallback();
   }
+  isHandlingUnauthorized = false;
 }
 
 function buildUrl(path: string) {

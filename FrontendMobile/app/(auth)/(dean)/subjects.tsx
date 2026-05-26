@@ -267,7 +267,6 @@ export default function AdminSubjectsScreen() {
       }
     } catch (error) {
       const err = error as { status?: number; message?: string };
-      console.log('[subjects] fetchSubjects error:', err.status, err.message);
       if (err.status !== 401) {
         showToast('Unable to load subjects', 'error');
       }
