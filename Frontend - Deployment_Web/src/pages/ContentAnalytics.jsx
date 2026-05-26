@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 // new added: moved TABS config outside component to avoid re-creation on every render
@@ -57,6 +57,12 @@ const ContentAnalytics = () => {
   // new added: added mobile detection state for responsive layout
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+  const [refreshing,  setRefreshing]  = useState(false);
+  const [error,       setError]       = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const apiUrlRef = useRef(apiUrl);
+  useEffect(() => { apiUrlRef.current = apiUrl; }, [apiUrl]);
+
   useEffect(() => {
     // new added: renamed resize handler to onResize for consistency
     const onResize = () => setIsMobile(window.innerWidth <= 768);
@@ -64,26 +70,43 @@ const ContentAnalytics = () => {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const token = sessionStorage.getItem("token");
-        const res   = await fetch(`${apiUrl}/practice-exam/content-analytics`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) setData(await res.json());
+  const fetchData = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    else         setRefreshing(true);
+    setError(null);
+    let cancelled = false;
+    try {
+      const token = sessionStorage.getItem("token");
+      const res   = await fetch(`${apiUrlRef.current}/practice-exam/content-analytics`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      const json = await res.json();
 
-      // new added: reformatted catch/finally to multiline for readability
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
+      console.log("API response:", json);
+
+      if (!cancelled) {
+        setData(json);
+        setLastUpdated(new Date());
       }
-    };
-    load();
-  }, [apiUrl]);
+    } catch (e) {
+      if (!cancelled) setError(e.message || "Failed to load data");
+    } finally {
+      if (!cancelled) { setLoading(false); setRefreshing(false); }
+    }
+    return () => { cancelled = true; };
+  }, []);
 
+    useEffect(() => {
+      let cancel;
+      fetchData().then(c => { cancel = c; });
+      return () => cancel?.();
+    }, [fetchData]);
+
+    useEffect(() => {
+      const id = setInterval(() => fetchData({ silent: true }), 30_000);
+      return () => clearInterval(id);
+    }, [fetchData]);
 
   // new added: replaced separate flat arrays with a unified itemsMap object;
   // each tab now has name, value, sub (display label), and display (formatted value)
@@ -130,7 +153,9 @@ const ContentAnalytics = () => {
   const stats = [
     { label: "Lessons Viewed",      value: data?.totalViews    ?? 0, icon: "📖", accent: "#FF6014", soft: "#FEF0EA" },
     { label: "Questions Attempted", value: data?.totalAttempts ?? 0, icon: "✏️", accent: "#3B8BD4", soft: "#EBF4FD" },
-    { label: "Avg Error Rate",      value: data?.avgErrorRate != null ? `${data.avgErrorRate}%` : "0%", icon: "❌", accent: "#E55012", soft: "#FCEBEB" },
+    { label: "Avg Error Rate",      value: data?.avgErrorRate != null 
+    ? `${(data.avgErrorRate <= 1 ? data.avgErrorRate * 100 : data.avgErrorRate).toFixed(1)}%` 
+    : "0%", icon: "❌", accent: "#E55012", soft: "#FCEBEB" },
     { label: "Topics Skipped",      value: data?.totalSkipped  ?? 0, icon: "⏭️", accent: "#7F77DD", soft: "#F0EFFD" },
   ];
 
@@ -176,10 +201,28 @@ const ContentAnalytics = () => {
           <div style={{ fontSize: 17, fontWeight: 700, color: "#1A1814" }}>My Content</div>
           <div style={{ fontSize: 11, color: "#9B9790" }}>Your personal learning data</div>
         </div>
+
+
+        <button
+          onClick={() => fetchData({ silent: true })}
+          disabled={loading || refreshing}
+          style={{
+            background: "none", border: "1px solid #EAE8E2", borderRadius: 20,
+            padding: "4px 10px", cursor: "pointer", display: "flex",
+            alignItems: "center", gap: 5, fontSize: 11, color: "#9B9790",
+            opacity: loading || refreshing ? 0.5 : 1,
+            fontFamily: "inherit",
+          }}
+        >
+          <span style={{ display:"inline-block", animation: refreshing ? "spin 0.8s linear infinite" : "none" }}>
+            🔄
+          </span>
+          {refreshing ? "Updating…" : "Refresh"}
+        </button>
         
         {/* new added: added last updated date badge in top bar, shown only when data is loaded*/}
         {/* Last updated badge */}
-        {!loading && data && (
+        {!loading && lastUpdated && (
           <div style={{
             fontSize: 10, color: "#9B9790",
             background: "#fff",
@@ -188,10 +231,31 @@ const ContentAnalytics = () => {
             padding: "3px 10px",
             whiteSpace: "nowrap",
           }}>
-            Updated {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            Updated {lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
           </div>
         )}
       </div>
+
+      {error && (
+        <div style={{
+          background: "#FCEBEB", borderBottom: "1px solid #F7C1C1",
+          padding: "10px 20px", display: "flex",
+          alignItems: "center", justifyContent: "space-between",
+          fontSize: 13, color: "#B03A0E",
+        }}>
+          <span>⚠️ {error}</span>
+          <button
+            onClick={() => fetchData()}
+            style={{
+              background: "#E55012", color: "#fff", border: "none",
+              borderRadius: 8, padding: "4px 12px",
+              fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <div style={{ padding: isMobile ? "16px 16px 100px" : "24px 28px 24px", background: "#fff" }}>
 
@@ -388,7 +452,10 @@ const ContentAnalytics = () => {
       </div>
       
       {/* new added: slightly reduced pulse animation low opacity for subtler skeleton effect*/}
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}`}</style>
+      <style>{`
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+      `}</style>
     </div>
   );
 };

@@ -157,6 +157,136 @@ const ProgramStatsCard = ({ program, students, onClick }) => {
   );
 };
 
+
+const StudentSubjectPerformance = ({ userId }) => {
+  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetch_ = async () => {
+      setLoading(true);
+      try {
+        const token = sessionStorage.getItem("token");
+        console.log("[SubjectPerf] fetching for userId:", userId);
+        const res = await fetch(`${apiUrl}/admin/analytics/student/${userId}/subject-scores`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        const j = await res.json();
+        console.log("[SubjectPerf] response:", j);
+        if (res.ok) {
+          setData(j.data ?? null);
+        } else {
+          console.error("[SubjectPerf] server error:", j.message, j.error);
+        }
+      } catch (e) {
+        console.error("Subject scores error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch_();
+  }, [userId]);
+
+  if (loading) return (
+    <div className="rounded-xl bg-gray-50 p-6 text-center text-[13px] text-gray-400">
+      Loading performance data...
+    </div>
+  );
+
+  const practice = data?.practice ?? [];
+  const quiz = data?.quiz ?? [];
+  const totalExams = practice.reduce((a, s) => a + Number(s.attempt_count ?? 0), 0);
+  const totalQuizzes = quiz.reduce((a, s) => a + Number(s.attempt_count ?? 0), 0);
+
+  return (
+    <div className="space-y-4">
+      {/* Totals */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-center">
+          <p className="text-[11px] text-orange-400 mb-1">Total Exams Taken</p>
+          <p className="text-[22px] font-bold text-orange-500">{totalExams}</p>
+        </div>
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+          <p className="text-[11px] text-blue-400 mb-1">Total Quizzes Taken</p>
+          <p className="text-[22px] font-bold text-blue-500">{totalQuizzes}</p>
+        </div>
+      </div>
+
+      {/* Practice Exam Subject Performance */}
+      {practice.length > 0 && (
+        <div>
+          <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            Subject Performance (Practice Exams)
+          </p>
+          <div className="space-y-2">
+            {practice.map((s, i) => {
+              const avg = Number(s.avg_score ?? 0);
+              const { background, color } = pillStyle(avg);
+              const label = avg >= 90 ? "Excellent" : avg >= 80 ? "Good" : avg >= 75 ? "Average" : "Needs Support";
+              const isFirst = i === 0;
+              const isLast = i === practice.length - 1;
+              return (
+                <div key={s.subjectID} className={`rounded-xl border p-3 ${isFirst ? "border-green-200 bg-green-50" : isLast && practice.length > 1 ? "border-red-100 bg-red-50" : "border-gray-100 bg-gray-50"}`}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      {isFirst && <i className="bx bx-trophy text-[14px] text-green-500"></i>}
+                      {isLast && practice.length > 1 && <i className="bx bx-error-circle text-[14px] text-red-400"></i>}
+                      <p className="text-[13px] font-semibold text-gray-700">{s.subjectName}</p>
+                    </div>
+                    <span style={{ background, color }} className="text-[11px] font-semibold px-2 py-0.5 rounded-full">{label}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${avg}%`, background: color }} />
+                    </div>
+                    <span className="text-[12px] font-bold" style={{ color }}>{avg.toFixed(1)}%</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1">{s.attempt_count} attempt{s.attempt_count !== 1 ? "s" : ""} · Best: {Number(s.best_score ?? 0).toFixed(1)}%</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Quiz Performance */}
+      {quiz.length > 0 && (
+        <div>
+          <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            Quiz Performance
+          </p>
+          <div className="space-y-2">
+            {quiz.map((q) => {
+              const avg = Number(q.avg_score ?? 0);
+              const { background, color } = pillStyle(avg);
+              return (
+                <div key={q.subjectID} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[13px] font-semibold text-gray-700">{q.subjectName}</p>
+                    <span style={{ background, color }} className="text-[11px] font-semibold px-2 py-0.5 rounded-full">
+                      {avg.toFixed(1)}%
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-400">{q.attempt_count} attempt{q.attempt_count !== 1 ? "s" : ""} · Best: {Number(q.best_score ?? 0).toFixed(1)}%</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {practice.length === 0 && quiz.length === 0 && (
+        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-[13px] text-gray-400">
+          <i className="bx bx-book-open text-[28px] mb-2 block"></i>
+          No exam or quiz data available for this student.
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Student Detail ─────────────────────────────────────────────────────────────
 const StudentDetail = ({ student, studentIndex, onBack }) => {
   const trendRef = useRef(null);
@@ -228,7 +358,18 @@ const StudentDetail = ({ student, studentIndex, onBack }) => {
           { label: "Program", val: student.program || "N/A" },
           { label: "Status", val: student.status || (student.isActive ? "Active" : "Inactive") || "Unknown" },
           { label: "Email", val: student.email || "N/A" },
-          { label: "Remarks", val: student.remarks || "None" },
+          { label: "Remarks", val: (() => {
+              const score = student.average_score ?? student.score ?? null;
+              const total = Number(student.totalQuizzes ?? 0);
+              const pct = score !== null
+                ? Number(score)
+                : total > 0
+                  ? Math.round((Number(student.quizzesCompleted ?? 0) / total) * 100)
+                  : null;
+              if (pct === null) return "No exam/quiz yet";
+              return pct >= 90 ? "Excellent" : pct >= 80 ? "Good" : pct >= 75 ? "Average" : "Needs Support";
+            })()
+          },
         ].map((m) => (
           <div key={m.label} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
             <p className="text-[11px] text-gray-400 mb-1">{m.label}</p>
@@ -237,17 +378,7 @@ const StudentDetail = ({ student, studentIndex, onBack }) => {
         ))}
       </div>
 
-      {student.trend?.length > 0 ? (
-        <>
-          <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Score trend</p>
-          <div style={{ height: 200 }}><canvas ref={trendRef} /></div>
-        </>
-      ) : (
-        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-[13px] text-gray-400">
-          <i className="bx bx-line-chart text-[28px] mb-2 block"></i>
-          Trend data is not available for this student.
-        </div>
-      )}
+      <StudentSubjectPerformance userId={student.userID ?? student.studentID} />
     </div>
   );
 };
@@ -284,6 +415,9 @@ const StudentList = ({ students, programLabel, onBack }) => {
             className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
+
+
+
             <StudentDetail
               student={selectedStudent}
               studentIndex={students.indexOf(selectedStudent)}
@@ -351,8 +485,24 @@ const StudentList = ({ students, programLabel, onBack }) => {
                         </td>
                         <td className="py-3 px-4 text-center text-gray-500">{s.email || "—"}</td>
                         <td className="py-3 px-4 text-center"><ProgramTag program={s.program || "Unknown"} /></td>
-                        <td className="py-3 px-4 text-center text-gray-500 text-[12px]">{s.status || (s.isActive ? "Active" : "Inactive") || "—"}</td>
-                        <td className="py-3 px-4 text-center text-gray-400 text-[12px]">{s.remarks || "—"}</td>
+                        <td className="py-3 px-4 text-center text-gray-500 text-[12px]">
+                          {s.status || (Number(s.quizzesCompleted ?? 0) > 0 ? "Active" : "Inactive")}
+                        </td>
+                        <td className="py-3 px-4 text-center text-[12px]">
+                          {(() => {
+                            const score = s.average_score ?? s.score ?? null;
+                            const total = Number(s.totalQuizzes ?? 0);
+                            const pct = score !== null
+                              ? Number(score)
+                              : total > 0
+                                ? Math.round((Number(s.quizzesCompleted ?? 0) / total) * 100)
+                                : null;
+                            if (pct === null) return <span className="text-gray-400 text-[11px]">No exam/quiz yet</span>;
+                            const { background, color } = pillStyle(pct);
+                            const label = pct >= 90 ? "Excellent" : pct >= 80 ? "Good" : pct >= 75 ? "Average" : "Needs Support";
+                            return <span style={{ background, color }} className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold">{label}</span>;
+                          })()}
+                        </td>
                       </tr>
                     );
                   })}
@@ -515,7 +665,13 @@ const FacultyClassCard = ({ cls, summary, students = [], onClick }) => {
   // Pull from /analytics/faculty/summary/{classId} response
   const totalStudents = students.length || summary?.total_students || 0;
   
-  const scoreValues   = students.map((s) => Number(s.average_score ?? s.score ?? 0)).filter((v) => v > 0);
+  const scoreValues = students
+    .map((s) => {
+      const total = Number(s.totalQuizzes ?? 0);
+      if (total === 0) return null;
+      return Math.round((Number(s.quizzesCompleted ?? 0) / total) * 100);
+    })
+    .filter((v) => v !== null);
   const avgScore      = scoreValues.length ? (scoreValues.reduce((a, v) => a + v, 0) / scoreValues.length).toFixed(1) : null;
   const passRate      = scoreValues.length ? Math.round((scoreValues.filter((v) => v >= 75).length / scoreValues.length) * 100) : null;
 
@@ -548,7 +704,7 @@ const FacultyClassCard = ({ cls, summary, students = [], onClick }) => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-2 gap-2 mb-4">
         <div className="bg-gray-50 rounded-xl p-2.5 text-center">
           <p className="text-[11px] text-gray-400 mb-0.5">Students</p>
           <p className="text-[16px] font-bold text-gray-700">{totalStudents}</p>
@@ -557,12 +713,6 @@ const FacultyClassCard = ({ cls, summary, students = [], onClick }) => {
           <p className="text-[11px] text-gray-400 mb-0.5">Avg Score</p>
           {avgScore != null
             ? <p className="text-[16px] font-bold" style={{ color: ORANGE }}>{avgScore}%</p>
-            : <p className="text-[13px] text-gray-300">—</p>}
-        </div>
-        <div className="bg-gray-50 rounded-xl p-2.5 text-center">
-          <p className="text-[11px] text-gray-400 mb-0.5">Pass Rate</p>
-          {passRate != null
-            ? <p className="text-[16px] font-bold" style={{ color: passRate >= 75 ? "#0f6e56" : "#a32d2d" }}>{passRate}%</p>
             : <p className="text-[13px] text-gray-300">—</p>}
         </div>
       </div>
@@ -583,16 +733,28 @@ const FacultyClassDetail = ({ cls, summary, students, onBack }) => {
   const name     = cls.name ?? cls.className ?? "Class";
   const subject  = cls.subject?.subjectName ?? cls.subjectName ?? "";
 
-  const totalStudents = summary?.total_students ?? students.length;
-  const avgScore      = summary?.average_score  != null ? Number(summary.average_score).toFixed(1) : "0.0";
-  const passRate      = summary?.pass_rate      != null ? Math.round(Number(summary.pass_rate))    : 0;
-  const passed        = summary?.passed         ?? 0;
-  const failed        = summary?.failed         ?? 0;
-  const exc           = summary?.breakdown?.excellent         ?? 0;
-  const good          = summary?.breakdown?.good              ?? 0;
-  const ni            = summary?.breakdown?.needs_improvement ?? 0;
-  const poor          = summary?.breakdown?.poor              ?? 0;
-  const totalBd       = totalStudents || 1;
+  const scoreValues = students
+    .map((s) => {
+      const total = Number(s.totalQuizzes ?? 0);
+      if (total === 0) return null;
+      return Math.round((Number(s.quizzesCompleted ?? 0) / total) * 100);
+    })
+    .filter((v) => v !== null);
+
+  const totalStudents = students.length;
+  const avgScore = scoreValues.length
+    ? (scoreValues.reduce((a, v) => a + v, 0) / scoreValues.length).toFixed(1)
+    : "0.0";
+  const passRate = scoreValues.length
+    ? Math.round((scoreValues.filter((v) => v >= 75).length / scoreValues.length) * 100)
+    : 0;
+  const passed = scoreValues.filter((v) => v >= 75).length;
+  const failed = scoreValues.filter((v) => v < 75).length;
+  const exc  = scoreValues.filter((v) => v >= 80).length;
+  const good = scoreValues.filter((v) => v >= 60 && v < 80).length;
+  const ni   = scoreValues.filter((v) => v >= 40 && v < 60).length;
+  const poor = scoreValues.filter((v) => v < 40).length;
+  const totalBd = totalStudents || 1;
 
   return (
     <div className="space-y-4">
@@ -615,11 +777,7 @@ const FacultyClassDetail = ({ cls, summary, students, onBack }) => {
           <div className="flex items-center gap-6 flex-wrap">
             <div className="text-center">
               <p className="text-[22px] font-bold" style={{ color: ORANGE }}>{avgScore}%</p>
-              <p className="text-[11px] text-gray-400">Avg Score</p>
-            </div>
-            <div className="text-center">
-              <p className="text-[22px] font-bold" style={{ color: passRate >= 75 ? "#0f6e56" : "#a32d2d" }}>{passRate}%</p>
-              <p className="text-[11px] text-gray-400">Pass Rate</p>
+              <p className="text-[11px] text-gray-400">Overall Avg Score</p>
             </div>
             <StatusBadge status={getStatus(Number(avgScore))} />
           </div>
@@ -746,6 +904,10 @@ const FacultyView = ({ apiUrl, currentUser }) => {
                 students = Array.isArray(j.students) ? j.students
                   : Array.isArray(j.data) ? j.data
                   : [];
+                if (students.length > 0) {
+                  console.log(`[Faculty] Class ${cid} student keys:`, Object.keys(students[0]));
+                  console.log(`[Faculty] Class ${cid} sample:`, students[0]);
+                }
               }
 
               let summary = null;
@@ -764,6 +926,25 @@ const FacultyView = ({ apiUrl, currentUser }) => {
             studentsMap[cid] = students;
             summaryMap[cid]  = summary;
           });
+
+          // Fetch scores for all students, same as Dean/AssoDean does
+          const scoresRes = await fetch(`${base}/admin/analytics/student-scores`, { headers });
+          if (scoresRes.ok) {
+            const scoresJson = await scoresRes.json();
+            const scoresMap = {};
+            (scoresJson.data ?? []).forEach((s) => {
+              scoresMap[s.userID] = parseFloat(s.average_score ?? 0);
+            });
+
+            // Attach the score to each student object
+            Object.keys(studentsMap).forEach((cid) => {
+              studentsMap[cid] = studentsMap[cid].map((s) => ({
+                ...s,
+                average_score: scoresMap[s.studentID] ?? scoresMap[s.userID] ?? null,
+              }));
+            });
+          }
+
           setClassStudents(studentsMap);
           setClassSummaries(summaryMap);
         }
@@ -790,11 +971,17 @@ const FacultyView = ({ apiUrl, currentUser }) => {
 
   // Overall KPIs computed from class summaries
   const summaryValues  = Object.values(classSummaries).filter(Boolean);
-  const overallAvg     = summaryValues.length
-    ? (summaryValues.reduce((a, s) => a + Number(s.average_score ?? 0), 0) / summaryValues.length).toFixed(1)
+  const allScores = Object.values(classStudents).flat().map((s) => {
+    const total = Number(s.totalQuizzes ?? 0);
+    if (total === 0) return null;
+    return Math.round((Number(s.quizzesCompleted ?? 0) / total) * 100);
+  }).filter((v) => v !== null);
+
+  const overallAvg = allScores.length
+    ? (allScores.reduce((a, v) => a + v, 0) / allScores.length).toFixed(1)
     : "0.0";
-  const overallPass    = summaryValues.length
-    ? Math.round(summaryValues.reduce((a, s) => a + Number(s.pass_rate ?? 0), 0) / summaryValues.length)
+  const overallPass = allScores.length
+    ? Math.round((allScores.filter((v) => v >= 75).length / allScores.length) * 100)
     : 0;
   //const totalStudents  = allStudents.length;
   const totalStudents = Object.values(classStudents).reduce((sum, arr) => sum + arr.length, 0);
@@ -1162,7 +1349,14 @@ const AdminStudentEnhancement = () => {
                   })}
                 </div>
               </div>
-              <StudentList students={visibleStudents} programLabel={myProgram} onBack={null} />
+              <StudentList 
+                students={visibleStudents.map((s) => ({
+                  ...s,
+                  average_score: studentScores[s.userID] ?? studentScores[s.id] ?? null,
+                }))} 
+                programLabel={myProgram} 
+                onBack={null} 
+              />
             </div>
           )}
 
@@ -1171,7 +1365,10 @@ const AdminStudentEnhancement = () => {
             <>
               {viewingProgramStudents && (
                 <StudentList
-                  students={studentsForProgram}
+                  students={studentsForProgram.map((s) => ({
+                    ...s,
+                    average_score: studentScores[s.userID] ?? studentScores[s.id] ?? null,
+                  }))}
                   programLabel={viewingProgramName}
                   onBack={() => setView("overview")}
                 />

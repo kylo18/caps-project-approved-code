@@ -1001,4 +1001,52 @@ class AdminAnalyticsController extends Controller
         
         return $query;
     }
+    
+    public function getStudentSubjectScores(Request $request, $userId)
+    {
+        try {
+            $practiceResults = DB::table('practice_exam_results')
+                ->join('subjects', 'practice_exam_results.subjectID', '=', 'subjects.subjectID')
+                ->where('practice_exam_results.userID', $userId)
+                ->select(
+                    'subjects.subjectID',
+                    'subjects.subjectName',
+                    DB::raw('COUNT(*) as attempt_count'),
+                    DB::raw('AVG(practice_exam_results.percentage) as avg_score'),
+                    DB::raw('MAX(practice_exam_results.percentage) as best_score'),
+                    DB::raw('MIN(practice_exam_results.percentage) as lowest_score')
+                )
+                ->groupBy('subjects.subjectID', 'subjects.subjectName')
+                ->orderByDesc('avg_score')
+                ->get();
+
+            $quizResults = DB::table('student_quiz_results')
+                ->join('class_personal_quizzes', 'student_quiz_results.class_quiz_assignment_id', '=', 'class_personal_quizzes.classPersonalQuizID')
+                ->join('personal_quizzes', 'class_personal_quizzes.personalQuizID', '=', 'personal_quizzes.personalQuizID')
+                ->where('student_quiz_results.studentID', $userId)
+                ->select(
+                    'personal_quizzes.personalQuizID as subjectID',
+                    'personal_quizzes.title as subjectName',
+                    DB::raw('COUNT(*) as attempt_count'),
+                    DB::raw('AVG(student_quiz_results.percentage) as avg_score'),
+                    DB::raw('MAX(student_quiz_results.percentage) as best_score')
+                )
+                ->groupBy('personal_quizzes.personalQuizID', 'personal_quizzes.title')
+                ->get();
+
+            return response()->json([
+                'message' => 'Student subject scores retrieved',
+                'data' => [
+                    'practice' => $practiceResults,
+                    'quiz'     => $quizResults,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error retrieving student subject scores',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
 }

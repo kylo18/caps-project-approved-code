@@ -737,6 +737,24 @@ class PracticeExamController extends Controller
         ]);
 
         $attemptId = $validated['attempt_id'] ?? null;
+
+        // Auto-create attempt if frontend didn't send one
+        if (!$attemptId) {
+            $exam = \Modules\PracticeExams\Models\Exam::firstOrCreate(
+                ['subject_id' => $validated['subjectID']],
+                ['title' => 'Practice Exam', 'total_items' => 0, 'status' => 'active']
+            );
+            $newAttempt = ExamAttempt::create([
+                'user_id'        => $user->userID,
+                'exam_id'        => $exam->id,
+                'attempt_number' => ExamAttempt::where('user_id', $user->userID)->where('exam_id', $exam->id)->count() + 1,
+                'started_at'     => now(),
+                'finished_at'    => now(),
+                'status'         => 'completed',
+            ]);
+            $attemptId = $newAttempt->id;
+        }
+
         $answers = collect($validated['answers']);
         $totalPoints = 0;
         $earnedPoints = 0;

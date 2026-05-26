@@ -413,8 +413,6 @@ const Leaderboard = () => {
         });
         const lbData = await lbRes.json();
 
-        console.log("RAW LEADERBOARD:", JSON.stringify(lbData.leaderboard?.slice(0, 5), null, 2));
-        console.log("TOTAL ENTRIES:", lbData.leaderboard?.length);
 
         if (!lbRes.ok) {
           throw new Error(lbData.message || 'Unable to load leaderboard data.');
