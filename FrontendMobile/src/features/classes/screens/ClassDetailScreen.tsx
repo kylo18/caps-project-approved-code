@@ -16,7 +16,6 @@ import {
   getAssignedClassQuizzes,
   getAvailableClassQuizzes,
   getClassStudents,
-  getFacultyClassDetail,
   getClassSubjects,
   removeStudentFromClass,
   unassignQuizFromClass,
@@ -116,22 +115,10 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
       setStudents([]);
       return;
     }
-    try {
-      const [studentsData, classDetailData] = await Promise.all([
-        getClassStudents(resolvedClassID),
-        getFacultyClassDetail(resolvedClassID).catch(err => {
-          console.error('Error fetching class details in loadStudents:', err);
-          return null;
-        })
-      ]);
-
-      const fullClassInfo = classDetailData?.class || classDetailData?.data?.class || studentsData.classInfo;
-      setClassInfo(fullClassInfo);
-      setStudents(Array.isArray(studentsData.students) ? studentsData.students : []);
-      setClassLoadMessage(studentsData.emptyReason === 'class_not_found' ? studentsData.message || 'Class not found.' : '');
-    } catch (error) {
-      console.error('Error in loadStudents parallel fetch:', error);
-    }
+    const data = await getClassStudents(resolvedClassID);
+    setClassInfo(data.classInfo);
+    setStudents(Array.isArray(data.students) ? data.students : []);
+    setClassLoadMessage(data.emptyReason === 'class_not_found' ? data.message || 'Class not found.' : '');
   }, [resolvedClassID]);
 
   const loadAssignedQuizzes = useCallback(async () => {
