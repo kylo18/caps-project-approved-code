@@ -16,12 +16,15 @@ const API_URL = Constants.expoConfig?.extra?.API_URL;
 
 /* ── Global unauthorized handler ─────────────────────────────────────────── */
 let onUnauthorizedCallback: (() => void) | null = null;
+let isHandlingUnauthorized = false;
 
 export function registerUnauthorizedCallback(callback: () => void) {
   onUnauthorizedCallback = callback;
 }
 
 async function handleUnauthorized() {
+  if (isHandlingUnauthorized) return;
+  isHandlingUnauthorized = true;
   try {
     // Lazy import to break the require cycle:
     // logoutUser → pushNotificationService → apiClient → logoutUser
@@ -86,6 +89,7 @@ async function rawApiRequest(
     if (!response.ok) {
       if (response.status === 401) {
         await handleUnauthorized();
+        return null;
       }
       const error: ApiError = new Error(data.message || 'Request failed') as ApiError;
       error.status = response.status;
