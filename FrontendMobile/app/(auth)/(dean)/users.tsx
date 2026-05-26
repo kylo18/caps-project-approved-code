@@ -486,6 +486,7 @@ export default function AdminUsersScreen() {
       ) : (
         <>
           <FlatList
+            keyboardShouldPersistTaps="handled"
             data={filteredUsers}
             keyExtractor={(item) => String(item.userID)}
             renderItem={renderUser}

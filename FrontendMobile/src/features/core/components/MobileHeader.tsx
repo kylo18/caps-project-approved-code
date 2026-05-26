@@ -13,6 +13,8 @@
 // Props:
 //   - title: Optional screen title
 //   - showTitle: Whether to show the title (default: true)
+//   - showBack: Optional back arrow visibility
+//   - onBack: Optional custom back press handler
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useCallback, useState } from 'react';
@@ -34,6 +36,8 @@ import HelpCenterModal from '../../../features/support/components/HelpCenterModa
 interface MobileHeaderProps {
     title?: string;
     showTitle?: boolean;
+    showBack?: boolean;
+    onBack?: () => void;
 }
 
 const AVATAR_COLORS = [
@@ -41,7 +45,7 @@ const AVATAR_COLORS = [
     '#EF4444', '#F59E0B', '#14B8A6', '#6366F1'
 ];
 
-export default function MobileHeader({ title, showTitle = true }: MobileHeaderProps) {
+export default function MobileHeader({ title, showTitle = true, showBack = false, onBack }: MobileHeaderProps) {
     const router = useRouter();
     const dispatch = useDispatch();
     const { theme, toggleTheme } = useTheme();
@@ -95,15 +99,29 @@ export default function MobileHeader({ title, showTitle = true }: MobileHeaderPr
                 className="flex-row items-center justify-between px-4 pb-3"
                 style={{ paddingTop: insets.top + 12, backgroundColor: colors.bg }}
             >
-                {/* Left: Title */}
-                {showTitle && (
-                    <Text
-                        className="text-xl font-bold"
-                        style={{ color: colors.text }}
-                    >
-                        {title}
-                    </Text>
-                )}
+                {/* Left: Title & Back Button */}
+                <View className="flex-row items-center flex-1 mr-2" style={{ gap: 4 }}>
+                    {showBack && (
+                        <Pressable
+                            onPress={onBack || (() => router.back())}
+                            className="p-2 -ml-2 rounded-full"
+                        >
+                            <Ionicons
+                                name="arrow-back"
+                                size={24}
+                                color={colors.text}
+                            />
+                        </Pressable>
+                    )}
+                    {showTitle && (
+                        <Text
+                            className="text-xl font-bold"
+                            style={{ color: colors.text }}
+                        >
+                            {title}
+                        </Text>
+                    )}
+                </View>
 
                 {/* Right: Action Icons */}
                 <View className="flex-row items-center gap-2">

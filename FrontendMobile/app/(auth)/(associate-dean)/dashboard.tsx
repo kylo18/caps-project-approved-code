@@ -14,7 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Dimensions, Modal, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Dimensions, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -532,73 +532,78 @@ export default function AssoDeanDashboard() {
       {/* Create Quiz Modal */}
       <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
-          <View className={`rounded-t-3xl px-5 pt-5 pb-8 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
-            <View className="flex-row items-center justify-between mb-5">
-              <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Quiz</Text>
-              <TouchableOpacity onPress={() => setShowQuizModal(false)}>
-                <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ width: '100%' }}
+          >
+            <View className={`rounded-t-3xl px-5 pt-5 pb-8 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+              <View className="flex-row items-center justify-between mb-5">
+                <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Quiz</Text>
+                <TouchableOpacity onPress={() => setShowQuizModal(false)}>
+                  <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                </TouchableOpacity>
+              </View>
+
+              <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Title</Text>
+              <TextInput
+                value={quizTitle}
+                onChangeText={setQuizTitle}
+                placeholder="Enter quiz title"
+                placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-50 text-gray-900 border-gray-200'}`}
+              />
+
+              <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Type</Text>
+              <View className="flex-row gap-3 mb-4">
+                {[ { id: 2, label: 'Custom' }, { id: 1, label: 'Subject-based' } ].map((type) => (
+                  <TouchableOpacity
+                    key={type.id}
+                    onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
+                    className={`flex-1 rounded-xl px-4 py-3 border text-center ${quizTypeID === type.id ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                  >
+                    <Text className={`font-semibold ${quizTypeID === type.id ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>{type.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {quizTypeID === 1 && (
+                <>
+                  <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Select Subject</Text>
+                  <ScrollView style={{ maxHeight: 160 }} className="mb-4">
+                    <View style={{ gap: 8 }}>
+                      {subjects.map((subject) => {
+                        const sid = subject.subjectID || subject.id;
+                        return (
+                          <TouchableOpacity
+                            key={sid}
+                            onPress={() => setQuizSubjectID(Number(sid))}
+                            className={`rounded-xl px-4 py-3 border ${quizSubjectID === sid ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                          >
+                            <Text className={`font-semibold ${quizSubjectID === sid ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                              {subject.subjectName || subject.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+                </>
+              )}
+
+              <TouchableOpacity
+                onPress={handleCreateQuiz}
+                disabled={isCreatingQuiz}
+                className="bg-primary rounded-2xl py-4 items-center mt-2"
+                style={{ opacity: isCreatingQuiz ? 0.7 : 1 }}
+              >
+                {isCreatingQuiz ? (
+                  <CapsActivityIndicator color="#fff" />
+                ) : (
+                  <Text className="text-white font-semibold">Create & Add Questions</Text>
+                )}
               </TouchableOpacity>
             </View>
-
-            <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Title</Text>
-            <TextInput
-              value={quizTitle}
-              onChangeText={setQuizTitle}
-              placeholder="Enter quiz title"
-              placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-              className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-50 text-gray-900 border-gray-200'}`}
-            />
-
-            <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Type</Text>
-            <View className="flex-row gap-3 mb-4">
-              {[ { id: 2, label: 'Custom' }, { id: 1, label: 'Subject-based' } ].map((type) => (
-                <TouchableOpacity
-                  key={type.id}
-                  onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
-                  className={`flex-1 rounded-xl px-4 py-3 border text-center ${quizTypeID === type.id ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
-                >
-                  <Text className={`font-semibold ${quizTypeID === type.id ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>{type.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {quizTypeID === 1 && (
-              <>
-                <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Select Subject</Text>
-                <ScrollView style={{ maxHeight: 160 }} className="mb-4">
-                  <View style={{ gap: 8 }}>
-                    {subjects.map((subject) => {
-                      const sid = subject.subjectID || subject.id;
-                      return (
-                        <TouchableOpacity
-                          key={sid}
-                          onPress={() => setQuizSubjectID(Number(sid))}
-                          className={`rounded-xl px-4 py-3 border ${quizSubjectID === sid ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
-                        >
-                          <Text className={`font-semibold ${quizSubjectID === sid ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {subject.subjectName || subject.name}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </ScrollView>
-              </>
-            )}
-
-            <TouchableOpacity
-              onPress={handleCreateQuiz}
-              disabled={isCreatingQuiz}
-              className="bg-primary rounded-2xl py-4 items-center mt-2"
-              style={{ opacity: isCreatingQuiz ? 0.7 : 1 }}
-            >
-              {isCreatingQuiz ? (
-                <CapsActivityIndicator color="#fff" />
-              ) : (
-                <Text className="text-white font-semibold">Create & Add Questions</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>

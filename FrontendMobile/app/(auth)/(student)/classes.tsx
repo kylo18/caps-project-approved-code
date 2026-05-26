@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, RefreshControl, ScrollView, Text, TextInput, View, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -447,6 +447,23 @@ export default function StudentClassesScreen() {
                     >
                       <View className="flex-row items-center justify-between">
                         <View className="flex-1 mr-3">
+                          <View className="flex-row items-center flex-wrap gap-1.5 mb-1.5" style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                            <View 
+                              className="px-2 py-0.5 rounded-md" 
+                              style={{ backgroundColor: colors.cardSoft, borderWidth: 1, borderColor: colors.border }}
+                            >
+                              <Text 
+                                style={{ 
+                                  color: colors.orange, 
+                                  fontFamily: 'Rubik', 
+                                  fontSize: 10, 
+                                  fontWeight: '600' 
+                                }}
+                              >
+                                {result.className || 'Class'}
+                              </Text>
+                            </View>
+                          </View>
                           <Text
                             numberOfLines={1}
                             style={{
@@ -469,7 +486,7 @@ export default function StudentClassesScreen() {
                               marginTop: 2,
                             }}
                           >
-                            {result.className || 'Class'} · {new Date(result.completedAt || result.created_at).toLocaleDateString()}
+                            {new Date(result.completedAt || result.created_at).toLocaleDateString()}
                           </Text>
                         </View>
                         <View className="flex-row items-center" style={{ gap: 4 }}>
@@ -569,85 +586,90 @@ export default function StudentClassesScreen() {
             setJoinError('');
           }}
         >
-          <Pressable onPress={(e) => e.stopPropagation()}>
-            <View
-              className="rounded-t-[32px] px-6 pt-5 pb-8"
-              style={{ paddingBottom: insets.bottom + 24, backgroundColor: colors.card }}
-            >
-              <View className="self-center w-12 h-1.5 rounded-full mb-6" style={{ backgroundColor: colors.border }} />
-
-              <Text
-                style={{
-                  color: colors.text,
-                  fontFamily: 'Rubik',
-                  fontSize: 20,
-                  fontWeight: '500',
-                  lineHeight: 28,
-                  marginBottom: 4,
-                }}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ width: '100%' }}
+          >
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View
+                className="rounded-t-[32px] px-6 pt-5 pb-8"
+                style={{ paddingBottom: insets.bottom + 24, backgroundColor: colors.card }}
               >
-                Join a Class
-              </Text>
-              <Text
-                style={{
-                  color: colors.textSoft,
-                  fontFamily: 'Rubik',
-                  fontSize: 14,
-                  fontWeight: '400',
-                  lineHeight: 20,
-                  marginBottom: 20,
-                }}
-              >
-                Enter the 6-character class code provided by your teacher.
-              </Text>
+                <View className="self-center w-12 h-1.5 rounded-full mb-6" style={{ backgroundColor: colors.border }} />
 
-              <TextInput
-                value={joinCode}
-                onChangeText={(text) => {
-                  setJoinCode(text.toUpperCase());
-                  setJoinError('');
-                }}
-                placeholder="ABC123"
-                autoCapitalize="characters"
-                maxLength={10}
-                className="rounded-2xl border-2 px-4 py-3.5 text-base"
-                style={{
-                  borderColor: joinError ? '#EF4444' : colors.border,
-                  backgroundColor: colors.cardSoft,
-                  fontFamily: 'Rubik',
-                  color: colors.text,
-                }}
-                placeholderTextColor={colors.textSoft}
-              />
-              {joinError ? (
-                <Text className="mt-2 text-sm" style={{ color: '#EF4444', fontFamily: 'Rubik' }}>
-                  {joinError}
+                <Text
+                  style={{
+                    color: colors.text,
+                    fontFamily: 'Rubik',
+                    fontSize: 20,
+                    fontWeight: '500',
+                    lineHeight: 28,
+                    marginBottom: 4,
+                  }}
+                >
+                  Join a Class
                 </Text>
-              ) : null}
+                <Text
+                  style={{
+                    color: colors.textSoft,
+                    fontFamily: 'Rubik',
+                    fontSize: 14,
+                    fontWeight: '400',
+                    lineHeight: 20,
+                    marginBottom: 20,
+                  }}
+                >
+                  Enter the 6-character class code provided by your teacher.
+                </Text>
 
-              <Pressable
-                onPress={handleJoin}
-                disabled={joining}
-                className="rounded-2xl py-4 mt-5 items-center"
-                style={{ backgroundColor: colors.orange, opacity: joining ? 0.7 : 1 }}
-              >
-                {joining ? (
-                  <CapsActivityIndicator color="#fff" />
-                ) : (
-                  <Text
-                    style={{
-                      color: '#fff',
-                      fontFamily: 'Rubik',
-                      fontSize: 16,
-                      fontWeight: '600',
-                    }}
-                  >
-                    Join Class
+                <TextInput
+                  value={joinCode}
+                  onChangeText={(text) => {
+                    setJoinCode(text.toUpperCase());
+                    setJoinError('');
+                  }}
+                  placeholder="ABC123"
+                  autoCapitalize="characters"
+                  maxLength={10}
+                  className="rounded-2xl border-2 px-4 py-3.5 text-base"
+                  style={{
+                    borderColor: joinError ? '#EF4444' : colors.border,
+                    backgroundColor: colors.cardSoft,
+                    fontFamily: 'Rubik',
+                    color: colors.text,
+                  }}
+                  placeholderTextColor={colors.textSoft}
+                />
+                {joinError ? (
+                  <Text className="mt-2 text-sm" style={{ color: '#EF4444', fontFamily: 'Rubik' }}>
+                    {joinError}
                   </Text>
-                )}
-              </Pressable>
-            </View>
-          </Pressable>
+                ) : null}
+
+                <Pressable
+                  onPress={handleJoin}
+                  disabled={joining}
+                  className="rounded-2xl py-4 mt-5 items-center"
+                  style={{ backgroundColor: colors.orange, opacity: joining ? 0.7 : 1 }}
+                >
+                  {joining ? (
+                    <CapsActivityIndicator color="#fff" />
+                  ) : (
+                    <Text
+                      style={{
+                        color: '#fff',
+                        fontFamily: 'Rubik',
+                        fontSize: 16,
+                        fontWeight: '600',
+                      }}
+                    >
+                      Join Class
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            </Pressable>
+          </KeyboardAvoidingView>
         </Pressable>
       </Modal>
     </View>

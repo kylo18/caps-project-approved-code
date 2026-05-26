@@ -13,7 +13,7 @@
 //         text input, image URL input, and radio button per choice, submit button
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -109,7 +109,11 @@ export default function CombinedExamQuestionForm() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>
         <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
           <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>Question Text *</Text>
           <TextInput className="border rounded-[10px] p-2.5 text-sm min-h-[60px] mb-2.5" style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }} value={questionText} onChangeText={setQuestionText} placeholder="Enter question..." placeholderTextColor={colors.textSecondary} multiline numberOfLines={4} textAlignVertical="top" />
@@ -130,13 +134,14 @@ export default function CombinedExamQuestionForm() {
               </View>
               <TextInput className="border rounded-lg p-2 text-xs" style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }} value={choice.choiceImage} onChangeText={(val) => handleChoiceChange(idx, 'choiceImage', val)} placeholder="Image URL (optional)" placeholderTextColor={colors.textSecondary} />
             </View>
-          ))}
-        </View>
+            ))}
+          </View>
 
-        <TouchableOpacity className="flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl gap-2" style={{ opacity: isSubmitting ? 0.6 : 1 }} onPress={handleSubmit} disabled={isSubmitting} activeOpacity={0.8}>
-          {isSubmitting ? <CapsActivityIndicator color="#fff" /> : <><Ionicons name="checkmark-circle" size={20} color="#fff" /><Text className="text-white text-base font-bold">Add Question</Text></>}
-        </TouchableOpacity>
-      </ScrollView>
+          <TouchableOpacity className="flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl gap-2" style={{ opacity: isSubmitting ? 0.6 : 1 }} onPress={handleSubmit} disabled={isSubmitting} activeOpacity={0.8}>
+            {isSubmitting ? <CapsActivityIndicator color="#fff" /> : <><Ionicons name="checkmark-circle" size={20} color="#fff" /><Text className="text-white text-base font-bold">Add Question</Text></>}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

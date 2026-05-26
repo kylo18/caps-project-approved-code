@@ -14,8 +14,20 @@ import { showToast } from '../../../hooks/useToast';
 import { getArchivedClasses, unarchiveFacultyClass, deleteFacultyClass } from '../../../services/facultyClassService';
 import MobileHeader from '../../../features/core/components/MobileHeader';
 import { getRoleShadow, getRoleThemeColors } from '../../core/styles/roleTheme';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 export default function ArchivedClassesScreen() {
+  const router = useRouter();
+  const { origin, rolePath } = useLocalSearchParams();
+
+  const handleBack = () => {
+    if (origin === 'classes' && rolePath) {
+      router.replace(`/(auth)${rolePath}/classes` as string);
+    } else {
+      router.back();
+    }
+  };
+
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const colors = getRoleThemeColors(isDark);
@@ -120,7 +132,7 @@ export default function ArchivedClassesScreen() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.page }}>
-      <MobileHeader title="Archived Classes" />
+      <MobileHeader title="Archived Classes" showBack onBack={handleBack} />
 
       <ScrollView
         className="flex-1 px-4 pt-4"

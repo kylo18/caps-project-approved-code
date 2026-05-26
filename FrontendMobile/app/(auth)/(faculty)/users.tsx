@@ -245,6 +245,7 @@ export default function FacultyUsersScreen() {
         </View>
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={filteredUsers}
           keyExtractor={(item) => String(item.userID)}
           renderItem={renderUser}

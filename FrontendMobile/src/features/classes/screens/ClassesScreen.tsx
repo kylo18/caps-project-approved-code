@@ -164,7 +164,10 @@ export default function ClassesScreen({
       key: 'archived',
       icon: 'archive-outline',
       label: 'Archived',
-      onPress: () => router.push(`/(auth)${rolePath}/archived-classes` as string),
+      onPress: () => router.push({
+        pathname: `/(auth)${rolePath}/archived-classes` as string,
+        params: { origin: 'classes', rolePath }
+      }),
     },
   ]);
 

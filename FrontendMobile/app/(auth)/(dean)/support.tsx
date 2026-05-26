@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, RefreshControl, Modal, ScrollView, TextInput, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, RefreshControl, Modal, ScrollView, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -237,7 +237,11 @@ export default function AdminSupportScreen() {
       {/* Detail Modal */}
       <Modal visible={showDetailModal} transparent animationType="slide" onRequestClose={closeModal}>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.modalContent, { backgroundColor: colors.bg, paddingBottom: insets.bottom + 20 }]}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ width: '100%' }}
+          >
+            <View style={[styles.modalContent, { backgroundColor: colors.bg, paddingBottom: insets.bottom + 20 }]}>
             <View style={[styles.modalHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Ticket Details</Text>
               <TouchableOpacity onPress={closeModal}>
@@ -345,7 +349,8 @@ export default function AdminSupportScreen() {
                 </View>
               </ScrollView>
             ) : null}
-          </View>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>

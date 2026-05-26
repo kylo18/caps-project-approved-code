@@ -11,7 +11,7 @@
 //         buttons and text inputs, hint text, submit button
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -159,7 +159,11 @@ export default function AddQuestionForm() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>
         <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, flex: 1, minHeight: 280, elevation: 2 }}>
           <Text className="text-base font-bold mb-2" style={{ color: colors.text }}>Question Text</Text>
           <View className="border rounded-xl overflow-hidden flex-1" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}>
@@ -234,7 +238,8 @@ export default function AddQuestionForm() {
             </>
           )}
         </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

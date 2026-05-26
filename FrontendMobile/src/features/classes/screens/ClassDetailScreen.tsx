@@ -8,12 +8,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { showToast } from '../../../hooks/useToast';
 import { getRoleShadow, getRoleThemeColors } from '../../core/styles/roleTheme';
+import DatePickerInput from '../components/DatePickerInput';
+import SchedulePickerInput from '../components/SchedulePickerInput';
 import {
   archiveFacultyClass,
   assignQuizToClass,
   getAssignedClassQuizzes,
   getAvailableClassQuizzes,
   getClassStudents,
+  getFacultyClassDetail,
   getClassSubjects,
   removeStudentFromClass,
   unassignQuizFromClass,
@@ -25,6 +28,7 @@ import {
   getQuizResultsForQuiz,
   getQuizNonTakers,
   getClassQuizSettings,
+  createClassQuizSettings,
   getPersonalQuizLeaderboard,
   getPersonalQuizRecentTakers,
 } from '../../../services/facultyClassService';
@@ -97,7 +101,13 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
     schedule: '',
     isActive: true,
   });
-  const [assignDates, setAssignDates] = useState({ startDate: '', deadlineDate: '' });
+  const [assignDates, setAssignDates] = useState({
+    startDate: '',
+    deadlineDate: '',
+    quizAttempts: '',
+    quizTimerEnabled: false,
+    quizTimer: ''
+  });
   const [dateForm, setDateForm] = useState({ startDate: '', deadlineDate: '', quizAttempts: '', quizTimerEnabled: false, quizTimer: '' });
 
   const loadStudents = useCallback(async () => {
@@ -106,10 +116,22 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
       setStudents([]);
       return;
     }
-    const data = await getClassStudents(resolvedClassID);
-    setClassInfo(data.classInfo);
-    setStudents(Array.isArray(data.students) ? data.students : []);
-    setClassLoadMessage(data.emptyReason === 'class_not_found' ? data.message || 'Class not found.' : '');
+    try {
+      const [studentsData, classDetailData] = await Promise.all([
+        getClassStudents(resolvedClassID),
+        getFacultyClassDetail(resolvedClassID).catch(err => {
+          console.error('Error fetching class details in loadStudents:', err);
+          return null;
+        })
+      ]);
+
+      const fullClassInfo = classDetailData?.class || classDetailData?.data?.class || studentsData.classInfo;
+      setClassInfo(fullClassInfo);
+      setStudents(Array.isArray(studentsData.students) ? studentsData.students : []);
+      setClassLoadMessage(studentsData.emptyReason === 'class_not_found' ? studentsData.message || 'Class not found.' : '');
+    } catch (error) {
+      console.error('Error in loadStudents parallel fetch:', error);
+    }
   }, [resolvedClassID]);
 
   const loadAssignedQuizzes = useCallback(async () => {
@@ -212,7 +234,13 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
       const list = await getAvailableClassQuizzes(resolvedClassID);
       setAvailableQuizzes(Array.isArray(list) ? list : []);
       setSelectedQuiz(null);
-      setAssignDates({ startDate: '', deadlineDate: '' });
+      setAssignDates({
+        startDate: '',
+        deadlineDate: '',
+        quizAttempts: '',
+        quizTimerEnabled: false,
+        quizTimer: ''
+      });
       setShowAssignModal(true);
     } catch (error) {
       console.error('Error loading available quizzes:', error);
@@ -321,14 +349,50 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
       return;
     }
 
+    const attemptsNum = assignDates.quizAttempts?.trim()
+      ? parseInt(assignDates.quizAttempts, 10)
+      : null;
+
+    if (attemptsNum !== null && (isNaN(attemptsNum) || attemptsNum < 1)) {
+      showToast('Attempts limit must be a number greater than or equal to 1', 'error');
+      return;
+    }
+
+    const timerVal = assignDates.quizTimerEnabled && assignDates.quizTimer?.trim()
+      ? parseInt(assignDates.quizTimer, 10)
+      : null;
+
+    if (assignDates.quizTimerEnabled && (timerVal === null || isNaN(timerVal) || timerVal < 1)) {
+      showToast('Timer duration must be a number of minutes greater than or equal to 1', 'error');
+      return;
+    }
+
     setIsAssigning(true);
     try {
-      await assignQuizToClass({
+      const res = await assignQuizToClass({
         classID: resolvedClassID,
         personalQuizID,
         startDate: assignDates.startDate || null,
         deadlineDate: assignDates.deadlineDate || null,
       });
+
+      const classPersonalQuizID = res?.classPersonalQuiz?.classPersonalQuizID || res?.classPersonalQuizID || res?.id;
+      if (classPersonalQuizID) {
+        if (attemptsNum !== null || assignDates.quizTimerEnabled) {
+          try {
+            await createClassQuizSettings(classPersonalQuizID, {
+              startTime: assignDates.startDate || null,
+              endTime: assignDates.deadlineDate || null,
+              quizAttempts: attemptsNum,
+              quizTimerEnabled: assignDates.quizTimerEnabled,
+              quizTimer: timerVal,
+            });
+          } catch (settingsError) {
+            console.error('Error creating quiz settings on assign:', settingsError);
+          }
+        }
+      }
+
       showToast('Quiz assigned to class', 'success');
       setShowAssignModal(false);
       await loadAssignedQuizzes();
@@ -365,14 +429,15 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
     const quizID = quiz.classPersonalQuizID || quiz.id;
     if (quizID) {
       try {
-        const settings = await getClassQuizSettings(quizID);
+        const res = await getClassQuizSettings(quizID);
+        const settings = res?.setting || res;
         if (settings) {
           setDateForm(prev => ({
             ...prev,
             startDate: (settings.startTime || settings.startDate || prev.startDate || '').slice(0, 10),
             deadlineDate: (settings.endTime || settings.deadlineDate || prev.deadlineDate || '').slice(0, 10),
             quizAttempts: settings.quizAttempts || settings.maxAttempts ? String(settings.quizAttempts || settings.maxAttempts) : prev.quizAttempts,
-            quizTimerEnabled: !!settings.quizTimerEnabled,
+            quizTimerEnabled: settings.quizTimerEnabled !== undefined ? !!settings.quizTimerEnabled : prev.quizTimerEnabled,
             quizTimer: settings.quizTimer ? String(settings.quizTimer) : prev.quizTimer,
           }));
         }
@@ -978,13 +1043,13 @@ function EditClassModal({
         onChangeText={(text) => setForm((prev: any) => ({ ...prev, className: text }))}
         placeholder="Enter class name"
       />
-      <LabeledInput
+      <SchedulePickerInput
         isDark={isDark}
         colors={colors}
         label="Schedule"
         value={form.schedule}
-        onChangeText={(text) => setForm((prev: any) => ({ ...prev, schedule: text }))}
-        placeholder="e.g. Mon/Wed 8:00 - 10:00"
+        onChange={(text) => setForm((prev: any) => ({ ...prev, schedule: text }))}
+        placeholder="Select class schedule"
       />
       <LabeledInput
         isDark={isDark}
@@ -1048,22 +1113,54 @@ function AssignQuizModal({
 }: any) {
   return (
     <BottomModal isDark={isDark} colors={colors} visible={visible} title="Assign Quiz" onClose={onClose}>
-      <LabeledInput
+      <DatePickerInput
         isDark={isDark}
         colors={colors}
         label="Start Date"
         value={dates.startDate}
-        onChangeText={(text) => setDates((prev: any) => ({ ...prev, startDate: text }))}
-        placeholder="YYYY-MM-DD"
+        onChange={(text) => setDates((prev: any) => ({ ...prev, startDate: text }))}
+        placeholder="Select start date"
       />
-      <LabeledInput
+      <DatePickerInput
         isDark={isDark}
         colors={colors}
         label="Deadline"
         value={dates.deadlineDate}
-        onChangeText={(text) => setDates((prev: any) => ({ ...prev, deadlineDate: text }))}
-        placeholder="YYYY-MM-DD"
+        onChange={(text) => setDates((prev: any) => ({ ...prev, deadlineDate: text }))}
+        placeholder="Select deadline date"
       />
+
+      <LabeledInput
+        isDark={isDark}
+        colors={colors}
+        label="Attempts Limit"
+        value={dates.quizAttempts}
+        onChangeText={(text) => setDates((prev: any) => ({ ...prev, quizAttempts: text }))}
+        placeholder="e.g. 3 (leave blank for unlimited)"
+        keyboardType="numeric"
+      />
+
+      <View className="flex-row items-center justify-between mt-4 mb-2">
+        <Text className="font-semibold text-[15px]" style={{ color: colors.text }}>Enable Time Limit</Text>
+        <Switch
+          value={dates.quizTimerEnabled}
+          onValueChange={(val) => setDates((prev: any) => ({ ...prev, quizTimerEnabled: val }))}
+          trackColor={{ false: '#767577', true: '#FE6902' }}
+          thumbColor={dates.quizTimerEnabled ? '#fff' : '#f4f3f4'}
+        />
+      </View>
+
+      {dates.quizTimerEnabled && (
+        <LabeledInput
+          isDark={isDark}
+          colors={colors}
+          label="Time Limit (minutes)"
+          value={dates.quizTimer || ''}
+          onChangeText={(text) => setDates((prev: any) => ({ ...prev, quizTimer: text }))}
+          placeholder="e.g. 60"
+          keyboardType="numeric"
+        />
+      )}
 
       <Text className="mt-4 mb-2 font-semibold" style={{ color: colors.text }}>Available Quizzes</Text>
       <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
@@ -1111,21 +1208,21 @@ function AssignQuizModal({
 function QuizSettingsModal({ isDark, colors, visible, title, dates, setDates, onClose, onSave, loading }: any) {
   return (
     <BottomModal isDark={isDark} colors={colors} visible={visible} title={title} onClose={onClose}>
-      <LabeledInput
+      <DatePickerInput
         isDark={isDark}
         colors={colors}
         label="Start Date"
         value={dates.startDate}
-        onChangeText={(text) => setDates((prev: any) => ({ ...prev, startDate: text }))}
-        placeholder="YYYY-MM-DD"
+        onChange={(text) => setDates((prev: any) => ({ ...prev, startDate: text }))}
+        placeholder="Select start date"
       />
-      <LabeledInput
+      <DatePickerInput
         isDark={isDark}
         colors={colors}
         label="End Date"
         value={dates.deadlineDate}
-        onChangeText={(text) => setDates((prev: any) => ({ ...prev, deadlineDate: text }))}
-        placeholder="YYYY-MM-DD"
+        onChange={(text) => setDates((prev: any) => ({ ...prev, deadlineDate: text }))}
+        placeholder="Select end date"
       />
       <LabeledInput
         isDark={isDark}
@@ -1581,13 +1678,15 @@ function NonTakersModal({
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
               <View style={{ gap: 12 }}>
                 {students.map((item: any, idx: number) => {
-                  const studentName = item.studentName || `${item.firstName || ''} ${item.lastName || ''}`.trim() || 'Unknown Student';
-                  const studentCode = item.studentCode || item.userCode || '';
-                  const email = item.email || '';
+                  const student = item.student || item;
+                  const studentName = item.studentName || `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Unknown Student';
+                  const studentCode = item.studentCode || student.userCode || '';
+                  const email = item.email || student.email || '';
+                  const studentID = item.studentID || student.userID || idx;
 
                   return (
                     <View
-                      key={item.studentID || item.userID || idx}
+                      key={studentID}
                       className="rounded-2xl p-4 border flex-row items-center justify-between"
                       style={{
                         borderColor: colors.border,

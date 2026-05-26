@@ -102,13 +102,28 @@ export default function StudentSearchScreen() {
     <View className="flex-1 bg-white">
       <StatusBar style="light" />
 
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
         {/* Orange hero header */}
         <View className="px-6 pb-[18px]" style={{ paddingTop: insets.top + 18, backgroundColor: studentColors.orange }}>
           <StudentHeroDecoration />
-          <Text className="mb-[18px] text-center text-[28px] font-medium leading-9 text-white" style={{ fontFamily: 'Rubik' }}>
-            Search
-          </Text>
+          <View className="flex-row items-center mb-[18px]">
+            <Pressable
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(auth)/(student)/dashboard');
+                }
+              }}
+              className="mr-3 h-10 w-10 items-center justify-center rounded-full"
+              style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+            >
+              <Ionicons name="arrow-back" size={22} color="#fff" />
+            </Pressable>
+            <Text className="text-[28px] font-medium leading-9 text-white" style={{ fontFamily: 'Rubik' }}>
+              Search
+            </Text>
+          </View>
 
           <View
             className="flex-row items-center gap-2.5 rounded-2xl border px-3.5 py-3"

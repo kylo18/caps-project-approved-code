@@ -451,6 +451,7 @@ export default function AssociateDeanUsersScreen() {
       ) : (
         <>
           <FlatList
+            keyboardShouldPersistTaps="handled"
             data={filteredUsers}
             keyExtractor={(item) => String(item.userID)}
             renderItem={renderUser}

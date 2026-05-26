@@ -19,6 +19,8 @@ import {
   Alert,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
@@ -748,7 +750,11 @@ export default function ProgramChairSubjectsScreen() {
       {/* Add/Edit Subject Modal */}
       <Modal visible={showSubjectModal} transparent animationType="fade" onRequestClose={() => setShowSubjectModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ width: '100%' }}
+          >
+            <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
             <View className="flex-row justify-between items-center mb-4">
               <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {editingSubject ? 'Edit Subject' : 'Add Subject'}
@@ -823,7 +829,8 @@ export default function ProgramChairSubjectsScreen() {
                 <Text className="text-white font-bold text-base">{editingSubject ? 'Save Changes' : 'Add Subject'}</Text>
               )}
             </TouchableOpacity>
-          </View>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -866,7 +873,11 @@ export default function ProgramChairSubjectsScreen() {
       {/* Create Quiz Modal */}
       <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-          <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, backgroundColor: isDark ? '#111827' : '#ffffff' }}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ width: '100%' }}
+          >
+            <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, backgroundColor: isDark ? '#111827' : '#ffffff' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <Text style={{ fontSize: 18, fontWeight: '700', color: isDark ? '#fff' : '#111827' }}>Create Quiz</Text>
               <TouchableOpacity onPress={() => setShowQuizModal(false)}>
@@ -913,7 +924,8 @@ export default function ProgramChairSubjectsScreen() {
               style={{ backgroundColor: '#FE6902', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 8, opacity: isCreatingQuiz ? 0.7 : 1 }}>
               {isCreatingQuiz ? <CapsActivityIndicator color="#fff" /> : <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 15 }}>Create &amp; Add Questions</Text>}
             </TouchableOpacity>
-          </View>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>

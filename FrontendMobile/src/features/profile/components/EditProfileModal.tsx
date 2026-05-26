@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
 import { showToast } from '../../../../src/hooks/useToast';
@@ -122,7 +122,11 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.62)' }}>
-        <View className="rounded-t-[28px] border px-5 pt-3 pb-5" style={{ backgroundColor: colors.bg, borderColor: colors.border, maxHeight: '84%' }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ width: '100%' }}
+        >
+          <View className="rounded-t-[28px] border px-5 pt-3 pb-5" style={{ backgroundColor: colors.bg, borderColor: colors.border, maxHeight: '84%' }}>
           <View className="items-center pb-3">
             <View className="h-1 w-12 rounded-full" style={{ backgroundColor: colors.border }} />
           </View>
@@ -141,7 +145,7 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <View className="rounded-2xl border p-4 mb-4" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
             <Text className="text-sm font-semibold mb-1.5" style={{ color: colors.text }}>First Name</Text>
             <TextInput
@@ -226,6 +230,7 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
             </TouchableOpacity>
           </ScrollView>
         </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

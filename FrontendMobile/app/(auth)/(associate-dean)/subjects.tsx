@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useMemo } from 'react';
-import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Alert, useWindowDimensions, Modal, TextInput, FlatList } from 'react-native';
+import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Alert, useWindowDimensions, Modal, TextInput, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -593,7 +593,11 @@ export default function AssoDeanSubjectsScreen() {
 
       <Modal visible={showSubjectModal} transparent animationType="fade" onRequestClose={() => setShowSubjectModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ width: '100%' }}
+          >
+            <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
             <View className="flex-row justify-between items-center mb-4">
               <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {editingSubject ? 'Edit Subject' : 'Add Subject'}
@@ -668,7 +672,8 @@ export default function AssoDeanSubjectsScreen() {
                 <Text className="text-white font-bold text-base">{editingSubject ? 'Save Changes' : 'Add Subject'}</Text>
               )}
             </TouchableOpacity>
-          </View>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 

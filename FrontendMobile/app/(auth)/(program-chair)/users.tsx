@@ -461,6 +461,7 @@ export default function ProgramChairUsersScreen() {
       ) : (
         <>
           <FlatList
+            keyboardShouldPersistTaps="handled"
             data={filteredUsers}
             keyExtractor={(item) => String(item.userID)}
             renderItem={renderUser}

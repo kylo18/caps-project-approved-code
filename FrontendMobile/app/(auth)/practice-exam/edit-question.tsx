@@ -11,7 +11,7 @@
 //         save changes button; shows loading spinner while fetching
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -128,7 +128,11 @@ export default function EditQuestionForm() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>
         <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, flex: 1, minHeight: 280, elevation: 2 }}>
           <Text className="text-base font-bold mb-2" style={{ color: colors.text }}>Question Text</Text>
           <View className="border rounded-xl overflow-hidden flex-1" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}>
@@ -178,7 +182,8 @@ export default function EditQuestionForm() {
         <TouchableOpacity className="flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl gap-2" style={{ opacity: isSubmitting ? 0.6 : 1 }} onPress={handleSubmit} disabled={isSubmitting} activeOpacity={0.8}>
           {isSubmitting ? <CapsActivityIndicator color="#fff" /> : <><Ionicons name="save" size={20} color="#fff" /><Text className="text-white text-base font-bold">Save Changes</Text></>}
         </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

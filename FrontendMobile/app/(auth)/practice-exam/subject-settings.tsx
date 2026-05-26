@@ -11,7 +11,7 @@
 //         section (timer switch + duration input), save button
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -143,7 +143,11 @@ export default function SubjectSettingsDean() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>
         <View className="rounded-2xl p-4" style={{ backgroundColor: colors.card, elevation: 2 }}>
           <View className="flex-row items-center py-3 gap-3">
             <View style={{ flex: 1 }}>
@@ -190,7 +194,8 @@ export default function SubjectSettingsDean() {
             {isSaving ? <CapsActivityIndicator color="#fff" /> : <Text className="text-white text-[15px] font-bold">Save Settings</Text>}
           </TouchableOpacity>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

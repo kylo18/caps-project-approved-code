@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, useWindowDimensions, Switch, Alert, FlatList } from 'react-native';
+import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, useWindowDimensions, Switch, Alert, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1034,7 +1034,11 @@ export default function AdminSubjectsScreen() {
 
       <Modal visible={showSubjectModal} transparent animationType="fade" onRequestClose={() => setShowSubjectModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ width: '100%' }}
+          >
+            <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
             <View className="flex-row justify-between items-center mb-4">
               <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {editingSubject ? 'Edit Subject' : 'Add Subject'}
@@ -1109,7 +1113,8 @@ export default function AdminSubjectsScreen() {
                 <Text className="text-white font-bold text-base">{editingSubject ? 'Save Changes' : 'Add Subject'}</Text>
               )}
             </TouchableOpacity>
-          </View>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -1575,54 +1580,59 @@ export default function AdminSubjectsScreen() {
       {/* Create Quiz Modal */}
       <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-          <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, backgroundColor: isDark ? '#111827' : '#ffffff' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: isDark ? '#fff' : '#111827' }}>Create Quiz</Text>
-              <TouchableOpacity onPress={() => setShowQuizModal(false)}>
-                <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
-              </TouchableOpacity>
-            </View>
-            <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Quiz Title</Text>
-            <TextInput value={quizTitle} onChangeText={setQuizTitle} placeholder="Enter quiz title" placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-              style={{ borderWidth: 1, borderColor: isDark ? '#374151' : '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, color: isDark ? '#fff' : '#111827', backgroundColor: isDark ? '#1F2937' : '#F9FAFB' }} />
-            <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Quiz Type</Text>
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-              {[{ id: 2, label: 'Custom' }, { id: 1, label: 'Subject-based' }].map((type) => (
-                <TouchableOpacity key={type.id} onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
-                  style={{ flex: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, alignItems: 'center', borderColor: quizTypeID === type.id ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizTypeID === type.id ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
-                  <Text style={{ fontWeight: '600', color: quizTypeID === type.id ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{type.label}</Text>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ width: '100%' }}
+          >
+            <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, backgroundColor: isDark ? '#111827' : '#ffffff' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: isDark ? '#fff' : '#111827' }}>Create Quiz</Text>
+                <TouchableOpacity onPress={() => setShowQuizModal(false)}>
+                  <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
                 </TouchableOpacity>
-              ))}
-            </View>
-            {quizTypeID === 1 && (
-              <>
-                <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Select Subject</Text>
-                <ScrollView style={{ maxHeight: 160, marginBottom: 16 }}>
-                  <View style={{ gap: 8 }}>
-                    {subjects.map((subject) => (
-                      <TouchableOpacity key={subject.subjectID} onPress={() => setQuizSubjectID(Number(subject.subjectID))}
-                        style={{ borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizSubjectID === subject.subjectID ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
-                        <Text style={{ fontWeight: '600', color: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{subject.subjectName}</Text>
+              </View>
+              <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Quiz Title</Text>
+              <TextInput value={quizTitle} onChangeText={setQuizTitle} placeholder="Enter quiz title" placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                style={{ borderWidth: 1, borderColor: isDark ? '#374151' : '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, color: isDark ? '#fff' : '#111827', backgroundColor: isDark ? '#1F2937' : '#F9FAFB' }} />
+              <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Quiz Type</Text>
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                {[{ id: 2, label: 'Custom' }, { id: 1, label: 'Subject-based' }].map((type) => (
+                  <TouchableOpacity key={type.id} onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
+                    style={{ flex: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, alignItems: 'center', borderColor: quizTypeID === type.id ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizTypeID === type.id ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                    <Text style={{ fontWeight: '600', color: quizTypeID === type.id ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{type.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {quizTypeID === 1 && (
+                <>
+                  <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Select Subject</Text>
+                  <ScrollView style={{ maxHeight: 160, marginBottom: 16 }}>
+                    <View style={{ gap: 8 }}>
+                      {subjects.map((subject) => (
+                        <TouchableOpacity key={subject.subjectID} onPress={() => setQuizSubjectID(Number(subject.subjectID))}
+                          style={{ borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizSubjectID === subject.subjectID ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                          <Text style={{ fontWeight: '600', color: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{subject.subjectName}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </ScrollView>
+                  <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Coverage</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                    {[{ value: 'midterm', label: 'Midterm' }, { value: 'final', label: 'Finals' }, { value: 'full', label: 'Full' }].map((opt) => (
+                      <TouchableOpacity key={opt.value} onPress={() => setQuizCoverage(opt.value)}
+                        style={{ flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizCoverage === opt.value ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                        <Text style={{ fontWeight: '600', fontSize: 13, color: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{opt.label}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
-                </ScrollView>
-                <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Coverage</Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-                  {[{ value: 'midterm', label: 'Midterm' }, { value: 'final', label: 'Finals' }, { value: 'full', label: 'Full' }].map((opt) => (
-                    <TouchableOpacity key={opt.value} onPress={() => setQuizCoverage(opt.value)}
-                      style={{ flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizCoverage === opt.value ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
-                      <Text style={{ fontWeight: '600', fontSize: 13, color: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{opt.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
-            <TouchableOpacity onPress={handleCreateQuiz} disabled={isCreatingQuiz}
-              style={{ backgroundColor: '#FE6902', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 8, opacity: isCreatingQuiz ? 0.7 : 1 }}>
-              {isCreatingQuiz ? <CapsActivityIndicator color="#fff" /> : <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 15 }}>Create &amp; Add Questions</Text>}
-            </TouchableOpacity>
-          </View>
+                </>
+              )}
+              <TouchableOpacity onPress={handleCreateQuiz} disabled={isCreatingQuiz}
+                style={{ backgroundColor: '#FE6902', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 8, opacity: isCreatingQuiz ? 0.7 : 1 }}>
+                {isCreatingQuiz ? <CapsActivityIndicator color="#fff" /> : <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 15 }}>Create &amp; Add Questions</Text>}
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>
