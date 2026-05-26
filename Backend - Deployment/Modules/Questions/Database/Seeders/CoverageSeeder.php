@@ -12,12 +12,14 @@ class CoverageSeeder extends Seeder
     public function run()
     {
         try {
-            DB::table('coverages')->insert([
-                ['name' => 'midterm'],
-                ['name' => 'finals'],
+            DB::table('coverages')->insertOrIgnore([
+                ['id' => 1, 'name' => 'midterm'],
+                ['id' => 2, 'name' => 'finals'],
+                ['id' => 3, 'name' => 'full'],
             ]);
         } catch (Exception $e) {
             Log::error('Failed to seed coverages table: ' . $e->getMessage());
         }
     }
 }
+

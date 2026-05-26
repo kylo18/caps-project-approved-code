@@ -252,8 +252,8 @@ class PersonalQuizQuestionController extends Controller
                 ], 422);
             }
 
-            // For subject-based quizzes, coverage_id is required
-            $coverageId = $validated['coverage_id'] ?? null;
+            // For subject-based quizzes, coverage_id is required. Fall back to the quiz's coverage_id.
+            $coverageId = $validated['coverage_id'] ?? $quiz->coverage_id;
             if ($isSubjectBased && empty($coverageId)) {
                 return response()->json([
                     'success' => false,
@@ -548,8 +548,8 @@ class PersonalQuizQuestionController extends Controller
                 ], 422);
             }
 
-            // Validate coverage based on quiz type
-            $coverageId = $validated['coverage_id'] ?? $quizQuestion->personalQuizCoverageId;
+            // Validate coverage based on quiz type. Fall back to quiz's coverage_id.
+            $coverageId = $validated['coverage_id'] ?? $quizQuestion->personalQuizCoverageId ?? $quiz->coverage_id;
             if ($isSubjectBased && empty($coverageId)) {
                 return response()->json([
                     'success' => false,
@@ -812,8 +812,8 @@ class PersonalQuizQuestionController extends Controller
             // Determine coverage for target question
             $targetCoverageId = null;
             if ($isTargetSubjectBased) {
-                // Use provided coverage_id or fall back to source question's coverage
-                $targetCoverageId = $validated['coverage_id'] ?? $sourceQuestion->personalQuizCoverageId;
+                // Use provided coverage_id or fall back to source question's coverage or target quiz's coverage
+                $targetCoverageId = $validated['coverage_id'] ?? $sourceQuestion->personalQuizCoverageId ?? $targetQuiz->coverage_id;
                 if (empty($targetCoverageId)) {
                     return response()->json([
                         'success' => false,
