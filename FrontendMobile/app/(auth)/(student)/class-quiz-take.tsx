@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import RenderHtml from 'react-native-render-html';
 import { useTheme } from '../../../src/contexts/ThemeContext';
-import { getStudentColors, getStudentShadow, studentColors } from '../../../src/features/student/ui/StudentUI';
+import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 import { submitQuiz } from '../../../src/services/studentClassService';
 
 interface Question {
@@ -322,6 +322,7 @@ export default function ClassQuizTakeScreen() {
               contentWidth={windowWidth - 48}
               source={{ html: currentQuestion.questionText || '<p></p>' }}
               tagsStyles={questionTagsStyles}
+              baseStyle={{ color: colors.text }}
               ignoredStyles={['color', 'backgroundColor']}
             />
           </View>

@@ -258,7 +258,7 @@ export default function ClassesScreen({
         ) : (
           filteredClasses.map((item, index) => {
             const isActive = item.isActive !== false;
-            const studentCount = item.studentCount ?? item.totalStudents ?? item.studentsCount ?? 0;
+            const studentCount = item.studentCount ?? item.enrollments?.length ?? item.totalStudents ?? item.studentsCount ?? 0;
 
             return (
               <TouchableOpacity

@@ -151,7 +151,7 @@ export default function ArchivedClassesScreen() {
             {classes.map((item) => {
               const classID = item.classID || item.id;
               const isRestoring = restoringId === classID;
-              const studentCount = item.students?.length ?? item.studentCount ?? 0;
+              const studentCount = item.students?.length ?? item.enrollments?.length ?? item.studentCount ?? 0;
               const isActive = item.isActive ?? false;
 
               return (

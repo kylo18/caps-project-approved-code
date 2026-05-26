@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useMemo } from 'react';
-import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Alert, useWindowDimensions, Modal, TextInput } from 'react-native';
+import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Alert, useWindowDimensions, Modal, TextInput, FlatList } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -55,6 +55,9 @@ export default function AssoDeanSubjectsScreen() {
   const [cursor, setCursor] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [questionsPage, setQuestionsPage] = useState(1);
+  const [questionsHasMore, setQuestionsHasMore] = useState(true);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [subjectCode, setSubjectCode] = useState('');
@@ -80,7 +83,7 @@ export default function AssoDeanSubjectsScreen() {
   }, [filterProgramID, filterYearLevelID]);
 
   useEffect(() => {
-    if (selectedSubject) fetchQuestions();
+    if (selectedSubject) fetchQuestions(true);
   }, [selectedSubject]);
 
   const fetchSubjects = async (reset = false) => {
@@ -140,14 +143,39 @@ export default function AssoDeanSubjectsScreen() {
     fetchSubjects(false);
   };
 
-  const fetchQuestions = async () => {
+  const handleLoadMoreQuestions = () => {
+    if (!questionsHasMore || isLoadingQuestions || !selectedSubject) return;
+    fetchQuestions(false);
+  };
+
+  const fetchQuestions = async (reset = false) => {
     if (!selectedSubject) return;
+    const currentPage = reset ? 1 : questionsPage;
+    setIsLoadingQuestions(true);
     try {
-      const data = await apiRequest(`/api/subjects/${selectedSubject.subjectID}/questions`);
+      const data = await apiRequest(
+        `/api/subjects/${selectedSubject.subjectID}/questions?page=${currentPage}&limit=20`
+      );
       const qList: Question[] = Array.isArray(data?.questions) ? data.questions : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-      setQuestions(qList);
+      const totalPages = data?.total_pages;
+
+      if (reset) {
+        setQuestions(qList);
+        setQuestionsPage(1);
+        setQuestionsHasMore(totalPages ? currentPage < totalPages : qList.length === 20);
+      } else {
+        setQuestions(prev => {
+          const existing = new Set(prev.map(q => q.questionID));
+          const newUnique = qList.filter(q => !existing.has(q.questionID));
+          return [...prev, ...newUnique];
+        });
+        setQuestionsPage(prev => prev + 1);
+        setQuestionsHasMore(totalPages ? currentPage < totalPages : qList.length === 20);
+      }
     } catch (error) {
-      console.error('Error fetching questions:', error);
+      showToast('Unable to load questions', 'error');
+    } finally {
+      setIsLoadingQuestions(false);
     }
   };
 
@@ -301,6 +329,7 @@ export default function AssoDeanSubjectsScreen() {
   const onRefresh = async () => {
     setIsRefreshing(true);
     await fetchSubjects(true);
+    if (selectedSubject) await fetchQuestions(true);
     setIsRefreshing(false);
   };
 
@@ -372,169 +401,193 @@ export default function AssoDeanSubjectsScreen() {
         </View>
       </View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 96 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#FE6902" />}
-      >
-        {!selectedSubject ? (
-          <View className="px-4 py-4">
-            <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Subject List ({subjects.length})
-            </Text>
+      {!selectedSubject ? (
+        <View className="flex-1 px-4 py-4">
+          <Text className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            Subject List ({subjects.length})
+          </Text>
 
-            {/* Filters */}
-            <View className="mb-4 gap-2">
-              {/* Program Filter */}
-              <View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                  <TouchableOpacity
-                    onPress={() => setFilterProgramID('All')}
-                    className={`px-3 py-1.5 rounded-full ${filterProgramID === 'All' ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
-                    activeOpacity={0.7}
-                  >
-                    <Text className={`text-xs ${filterProgramID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                      All Programs
-                    </Text>
-                  </TouchableOpacity>
-                  {programs.map((p: any) => {
-                    const id = String(p.programID || p.id);
-                    const name = p.programName || p.name || '';
-                    return (
-                      <TouchableOpacity
-                        key={id}
-                        onPress={() => setFilterProgramID(id)}
-                        className={`px-3 py-1.5 rounded-full ${filterProgramID === id ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
-                        activeOpacity={0.7}
-                      >
-                        <Text className={`text-xs ${filterProgramID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              {/* Year Level Filter */}
-              <View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                  <TouchableOpacity
-                    onPress={() => setFilterYearLevelID('All')}
-                    className={`px-3 py-1.5 rounded-full ${filterYearLevelID === 'All' ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
-                    activeOpacity={0.7}
-                  >
-                    <Text className={`text-xs ${filterYearLevelID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                      All Years
-                    </Text>
-                  </TouchableOpacity>
-                  {yearLevels.map((yl: any) => {
-                    const id = String(yl.yearLevelID || yl.id);
-                    const name = yl.name || yl.yearLevel || '';
-                    return (
-                      <TouchableOpacity
-                        key={id}
-                        onPress={() => setFilterYearLevelID(id)}
-                        className={`px-3 py-1.5 rounded-full ${filterYearLevelID === id ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
-                        activeOpacity={0.7}
-                      >
-                        <Text className={`text-xs ${filterYearLevelID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
+          {/* Filters */}
+          <View className="mb-4 gap-2">
+            {/* Program Filter */}
+            <View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setFilterProgramID('All')}
+                  className={`px-3 py-1.5 rounded-full ${filterProgramID === 'All' ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
+                  activeOpacity={0.7}
+                >
+                  <Text className={`text-xs ${filterProgramID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    All Programs
+                  </Text>
+                </TouchableOpacity>
+                {programs.map((p: any) => {
+                  const id = String(p.programID || p.id);
+                  const name = p.programName || p.name || '';
+                  return (
+                    <TouchableOpacity
+                      key={id}
+                      onPress={() => setFilterProgramID(id)}
+                      className={`px-3 py-1.5 rounded-full ${filterProgramID === id ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
+                      activeOpacity={0.7}
+                    >
+                      <Text className={`text-xs ${filterProgramID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
-            {subjects.length === 0 ? (
+
+            {/* Year Level Filter */}
+            <View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setFilterYearLevelID('All')}
+                  className={`px-3 py-1.5 rounded-full ${filterYearLevelID === 'All' ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
+                  activeOpacity={0.7}
+                >
+                  <Text className={`text-xs ${filterYearLevelID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    All Years
+                  </Text>
+                </TouchableOpacity>
+                {yearLevels.map((yl: any) => {
+                  const id = String(yl.yearLevelID || yl.id);
+                  const name = yl.name || yl.yearLevel || '';
+                  return (
+                    <TouchableOpacity
+                      key={id}
+                      onPress={() => setFilterYearLevelID(id)}
+                      className={`px-3 py-1.5 rounded-full ${filterYearLevelID === id ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
+                      activeOpacity={0.7}
+                    >
+                      <Text className={`text-xs ${filterYearLevelID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+
+          <FlatList
+            data={subjects}
+            keyExtractor={(subject) => subject.subjectID?.toString() || Math.random().toString()}
+            renderItem={({ item: subject }) => (
+              <SubjectCard
+                subject={subject}
+                role="associate_dean"
+                onPress={() => setSelectedSubject(subject)}
+                onMenuPress={() => {
+                  setActiveSubjectForMenu(subject);
+                  setShowActionModal(true);
+                }}
+              />
+            )}
+            contentContainerStyle={{ paddingBottom: 120 }}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={15}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.9}
+            refreshControl={
+              <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#FE6902" />
+            }
+            ListFooterComponent={
+              isLoadingMore ? (
+                <View className="py-4 items-center">
+                  <CapsActivityIndicator size="small" color="#FE6902" />
+                  <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more...</Text>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
               <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                 <Ionicons name="book-outline" size={64} color="#FE6902" />
                 <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Subjects Yet</Text>
               </View>
-            ) : (
-              subjects.map(subject => (
-                <SubjectCard
-                  key={subject.subjectID}
-                  subject={subject}
-                  role="associate_dean"
-                  onPress={() => setSelectedSubject(subject)}
-                  onMenuPress={() => {
-                    setActiveSubjectForMenu(subject);
-                    setShowActionModal(true);
-                  }}
-                />
-              ))
-            )}
-            {isLoadingMore && (
-              <View className="py-4 items-center">
-                <CapsActivityIndicator size="small" color="#FE6902" />
-                <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more...</Text>
+            }
+          />
+        </View>
+      ) : (
+        <View className="flex-1 px-4 pt-4">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Questions ({questions.length})
+            </Text>
+          </View>
+
+          <FlatList
+            data={questions}
+            keyExtractor={(q, idx) => q.questionID?.toString() || idx.toString()}
+            renderItem={({ item: q, index: idx }) => (
+              <View className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Q{idx + 1}</Text>
+                  <View className="flex-row items-center gap-2">
+                    <TouchableOpacity
+                      onPress={() => handleToggleStatus(q.questionID, q.status || 'pending')}
+                      className={`px-2 py-1 rounded-lg ${q.status === 'approved' ? 'bg-green-500' : 'bg-yellow-500'}`}
+                      activeOpacity={0.7}
+                    >
+                      <Text className="text-white text-xs font-semibold">{q.status === 'approved' ? 'Approved' : 'Pending'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteQuestion(q.questionID)} className="p-1" activeOpacity={0.7}>
+                      <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={{ marginBottom: 12, maxHeight: 56, overflow: 'hidden' }}>
+                  <RenderHtml
+                    contentWidth={windowWidth - 64}
+                    source={{ html: q.questionText || '<p>No question text</p>' }}
+                    tagsStyles={{
+                      p: { color: isDark ? '#fff' : '#111827', fontSize: 15, lineHeight: 20, marginBottom: 4 },
+                      li: { color: isDark ? '#fff' : '#111827', fontSize: 14, lineHeight: 18 },
+                      strong: { color: isDark ? '#fff' : '#111827', fontWeight: '700' },
+                      u: { textDecorationLine: 'underline' },
+                      a: { color: '#FE6902' },
+                      img: {
+                        backgroundColor: isDark ? '#ffffff' : 'transparent',
+                        borderRadius: 8,
+                        padding: 6,
+                      },
+                    }}
+                    ignoredStyles={['color', 'backgroundColor']}
+                  />
+                </View>
+                <View className="flex-row items-center pt-2 border-t border-gray-200 dark:border-[#2A2A2A]">
+                  <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{q.choices?.length || 4} choices</Text>
+                </View>
               </View>
             )}
-          </View>
-        ) : (
-          <View className="px-4">
-            <View className="flex-row justify-between items-center mb-3">
-              <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Questions ({questions.length})
-              </Text>
-            </View>
-
-            {questions.length === 0 ? (
+            contentContainerStyle={{ paddingBottom: 120 }}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={15}
+            onEndReached={handleLoadMoreQuestions}
+            onEndReachedThreshold={0.9}
+            ListFooterComponent={
+              isLoadingQuestions ? (
+                <View className="py-4 items-center">
+                  <CapsActivityIndicator size="small" color="#FE6902" />
+                  <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more...</Text>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
               <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                 <Ionicons name="help-circle-outline" size={64} color="#FE6902" />
                 <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Questions</Text>
               </View>
-            ) : (
-              questions.map((q, idx) => (
-                <View key={q.questionID || idx} className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
-                  <View className="flex-row justify-between items-center mb-2">
-                    <Text className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Q{idx + 1}</Text>
-                    <View className="flex-row items-center gap-2">
-                      <TouchableOpacity
-                        onPress={() => handleToggleStatus(q.questionID, q.status || 'pending')}
-                        className={`px-2 py-1 rounded-lg ${q.status === 'approved' ? 'bg-green-500' : 'bg-yellow-500'}`}
-                        activeOpacity={0.7}
-                      >
-                        <Text className="text-white text-xs font-semibold">{q.status === 'approved' ? 'Approved' : 'Pending'}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDeleteQuestion(q.questionID)} className="p-1" activeOpacity={0.7}>
-                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  <View style={{ marginBottom: 12, maxHeight: 56, overflow: 'hidden' }}>
-                    <RenderHtml
-                      contentWidth={windowWidth - 64}
-                      source={{ html: q.questionText || '<p>No question text</p>' }}
-                      tagsStyles={{
-                        p: { color: isDark ? '#fff' : '#111827', fontSize: 15, lineHeight: 20, marginBottom: 4 },
-                        li: { color: isDark ? '#fff' : '#111827', fontSize: 14, lineHeight: 18 },
-                        strong: { color: isDark ? '#fff' : '#111827', fontWeight: '700' },
-                        u: { textDecorationLine: 'underline' },
-                        a: { color: '#FE6902' },
-                        img: {
-                          backgroundColor: isDark ? '#ffffff' : 'transparent',
-                          borderRadius: 8,
-                          padding: 6,
-                        },
-                      }}
-                      ignoredStyles={['color', 'backgroundColor']}
-                    />
-                  </View>
-                  <View className="flex-row items-center pt-2 border-t border-gray-200 dark:border-[#2A2A2A]">
-                    <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{q.choices?.length || 4} choices</Text>
-                  </View>
-                </View>
-              ))
-            )}
-          </View>
-        )}
-      </ScrollView>
-
-
+            }
+          />
+        </View>
+      )}
 
       <PrintExamModal visible={showPrintModal} onClose={() => setShowPrintModal(false)} />
 

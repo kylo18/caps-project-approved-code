@@ -5,12 +5,17 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { studentColors } from '../../../src/features/student/ui/StudentUI';
+import { useTheme } from '../../../src/contexts/ThemeContext';
+import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/studentTokens';
 import { getQuizInfo, startQuiz } from '../../../src/services/studentClassService';
 
 export default function ClassQuizStartScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = getStudentColors(isDark);
+  const shadow = getStudentShadow(isDark);
   const { classPersonalQuizID, classID, quizName } = useLocalSearchParams();
   const quizId = String(classPersonalQuizID);
 
@@ -77,9 +82,9 @@ export default function ClassQuizStartScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: studentColors.surface }}>
-        <StatusBar style="light" />
-        <CapsActivityIndicator size="large" color={studentColors.orange} />
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.surface }}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <CapsActivityIndicator size="large" color={colors.orange} />
       </View>
     );
   }
@@ -88,11 +93,11 @@ export default function ClassQuizStartScreen() {
   const settings = info?.settings || {};
 
   return (
-    <View className="flex-1 bg-white">
-      <StatusBar style="light" />
+    <View className="flex-1" style={{ backgroundColor: colors.page }}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
-      <View className="px-6 pb-6" style={{ paddingTop: insets.top + 12, backgroundColor: studentColors.orange }}>
+      <View className="px-6 pb-6" style={{ paddingTop: insets.top + 12, backgroundColor: colors.orange }}>
         <Pressable
           onPress={() => router.back()}
           className="h-10 w-10 items-center justify-center rounded-full mb-4"
@@ -109,21 +114,23 @@ export default function ClassQuizStartScreen() {
       </View>
 
       <ScrollView
-        className="flex-1 bg-white rounded-t-[24px] -mt-4"
+        className="flex-1 rounded-t-[24px] -mt-4"
         contentContainerStyle={{ padding: 24, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: colors.card }}
       >
         {/* Meta Cards */}
         <View className="flex-row flex-wrap" style={{ gap: 10 }}>
-          <MetaCard icon="document-text-outline" label="Questions" value={`${info?.questionCount || '?'} questions`} />
+          <MetaCard colors={colors} icon="document-text-outline" label="Questions" value={`${info?.questionCount || '?'} questions`} />
           <MetaCard
+            colors={colors}
             icon="time-outline"
             label="Duration"
             value={settings.quizTimerEnabled ? formatDuration(settings.quizTimer) : 'Untimed'}
           />
-          <MetaCard icon="refresh-outline" label="Attempts" value={`${info?.maxAttempts || 1} allowed`} />
+          <MetaCard colors={colors} icon="refresh-outline" label="Attempts" value={`${info?.maxAttempts || 1} allowed`} />
           {info?.deadlineDate && (
-            <MetaCard icon="calendar-outline" label="Deadline" value={new Date(info.deadlineDate).toLocaleDateString()} />
+            <MetaCard colors={colors} icon="calendar-outline" label="Deadline" value={new Date(info.deadlineDate).toLocaleDateString()} />
           )}
         </View>
 
@@ -132,7 +139,7 @@ export default function ClassQuizStartScreen() {
           <View className="mt-6">
             <Text
               style={{
-                color: studentColors.text,
+                color: colors.text,
                 fontFamily: 'Rubik',
                 fontSize: 16,
                 fontWeight: '600',
@@ -144,7 +151,7 @@ export default function ClassQuizStartScreen() {
             {quiz.description ? (
               <Text
                 style={{
-                  color: studentColors.textSoft,
+                  color: colors.textSoft,
                   fontFamily: 'Rubik',
                   fontSize: 14,
                   lineHeight: 22,
@@ -157,7 +164,7 @@ export default function ClassQuizStartScreen() {
               <Text
                 className="mt-2"
                 style={{
-                  color: studentColors.textSoft,
+                  color: colors.textSoft,
                   fontFamily: 'Rubik',
                   fontSize: 14,
                   lineHeight: 22,
@@ -173,7 +180,7 @@ export default function ClassQuizStartScreen() {
         <View className="mt-6">
           <Text
             style={{
-              color: studentColors.text,
+              color: colors.text,
               fontFamily: 'Rubik',
               fontSize: 16,
               fontWeight: '600',
@@ -183,21 +190,22 @@ export default function ClassQuizStartScreen() {
             Quiz Settings
           </Text>
           <View className="gap-2">
-            <SettingRow active={settings.shuffleQuestions} label="Shuffled questions" />
-            <SettingRow active={settings.shuffleChoices} label="Shuffled choices" />
-            <SettingRow active={settings.showScoreAfterQuiz} label="Show score after quiz" />
-            <SettingRow active={settings.showCorrectAnswers} label="Show correct answers after" />
-            <SettingRow active={settings.autoSubmitOnTimeout} label="Auto-submit when time runs out" />
+            <SettingRow colors={colors} active={settings.shuffleQuestions} label="Shuffled questions" />
+            <SettingRow colors={colors} active={settings.shuffleChoices} label="Shuffled choices" />
+            <SettingRow colors={colors} active={settings.showScoreAfterQuiz} label="Show score after quiz" />
+            <SettingRow colors={colors} active={settings.showCorrectAnswers} label="Show correct answers after" />
+            <SettingRow colors={colors} active={settings.autoSubmitOnTimeout} label="Auto-submit when time runs out" />
           </View>
         </View>
       </ScrollView>
 
       {/* Bottom Action */}
       <View
-        className="absolute bottom-0 left-0 right-0 px-6 py-4 bg-white"
+        className="absolute bottom-0 left-0 right-0 px-6 py-4"
         style={{
+          backgroundColor: colors.card,
           borderTopWidth: 1,
-          borderTopColor: studentColors.border,
+          borderTopColor: colors.border,
           paddingBottom: insets.bottom + 16,
         }}
       >
@@ -205,7 +213,7 @@ export default function ClassQuizStartScreen() {
           onPress={handleStart}
           disabled={starting}
           className="rounded-2xl py-4 items-center"
-          style={{ backgroundColor: studentColors.orange, opacity: starting ? 0.7 : 1 }}
+          style={{ backgroundColor: colors.orange, opacity: starting ? 0.7 : 1 }}
         >
           {starting ? (
             <CapsActivityIndicator color="#fff" />
@@ -220,17 +228,17 @@ export default function ClassQuizStartScreen() {
   );
 }
 
-function MetaCard({ icon, label, value }: { icon: any; label: string; value: string }) {
+function MetaCard({ colors, icon, label, value }: { colors: any; icon: any; label: string; value: string }) {
   return (
     <View
       className="flex-row items-center rounded-2xl px-3 py-2.5 border-2 flex-1"
-      style={{ backgroundColor: studentColors.surfaceSoft, borderColor: studentColors.border, minWidth: 140 }}
+      style={{ backgroundColor: colors.surfaceSoft, borderColor: colors.border, minWidth: 140 }}
     >
-      <Ionicons name={icon} size={18} color={studentColors.orange} style={{ marginRight: 8 }} />
+      <Ionicons name={icon} size={18} color={colors.orange} style={{ marginRight: 8 }} />
       <View>
         <Text
           style={{
-            color: studentColors.textSoft,
+            color: colors.textSoft,
             fontFamily: 'Rubik',
             fontSize: 10,
             fontWeight: '500',
@@ -240,7 +248,7 @@ function MetaCard({ icon, label, value }: { icon: any; label: string; value: str
         </Text>
         <Text
           style={{
-            color: studentColors.text,
+            color: colors.text,
             fontFamily: 'Rubik',
             fontSize: 13,
             fontWeight: '700',
@@ -253,17 +261,17 @@ function MetaCard({ icon, label, value }: { icon: any; label: string; value: str
   );
 }
 
-function SettingRow({ active, label }: { active?: boolean; label: string }) {
+function SettingRow({ colors, active, label }: { colors: any; active?: boolean; label: string }) {
   return (
     <View className="flex-row items-center gap-2">
       <Ionicons
         name={active ? 'checkmark-circle' : 'close-circle'}
         size={16}
-        color={active ? studentColors.success : studentColors.textSoft}
+        color={active ? colors.success : colors.textSoft}
       />
       <Text
         style={{
-          color: active ? studentColors.text : studentColors.textSoft,
+          color: active ? colors.text : colors.textSoft,
           fontFamily: 'Rubik',
           fontSize: 13,
           fontWeight: active ? '500' : '400',
