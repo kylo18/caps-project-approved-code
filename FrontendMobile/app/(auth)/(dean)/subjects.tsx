@@ -163,9 +163,15 @@ export default function AdminSubjectsScreen() {
     if (quizTypeID === 1 && !quizSubjectID) { showToast('Please select a subject for subject-based quiz', 'error'); return; }
     setIsCreatingQuiz(true);
     try {
+      const coverageMapping: Record<string, number> = { midterm: 1, final: 2, full: 3 };
       const res = await apiRequest('/api/personal-quizzes', {
         method: 'POST',
-        body: { title: quizTitle.trim(), quiz_type_id: quizTypeID, subjectID: quizSubjectID || null, coverage: quizTypeID === 1 ? quizCoverage : undefined },
+        body: {
+          title: quizTitle.trim(),
+          quiz_type_id: quizTypeID,
+          subjectID: quizSubjectID || null,
+          coverage_id: quizTypeID === 1 ? (coverageMapping[quizCoverage] || 1) : undefined,
+        },
       });
       const quizID = res?.quiz?.personalQuizID || res?.personalQuizID || res?.data?.personalQuizID;
       setShowQuizModal(false); setQuizTitle(''); setQuizTypeID(2); setQuizSubjectID(null); setQuizCoverage('midterm');
@@ -370,7 +376,7 @@ export default function AdminSubjectsScreen() {
     try {
       if (editingSubject) {
         await apiRequest(`/api/subjects/${editingSubject.subjectID}/update`, {
-          method: 'POST',
+          method: 'PUT',
           body: {
             subjectCode: subjectCode.trim(),
             subjectName: subjectName.trim(),
@@ -882,15 +888,6 @@ export default function AdminSubjectsScreen() {
               <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 Questions ({filteredQuestions.length})
               </Text>
-              <TouchableOpacity
-                onPress={() => router.push({
-                  pathname: '/(auth)/practice-exam/duplicate-question',
-                  params: { subjectID: selectedSubject?.subjectID }
-                })}
-                className={`px-3 py-1.5 rounded-lg ${isDark ? 'bg-[#242424]' : 'bg-white'}`}
-              >
-                <Text className={`text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>Duplicate</Text>
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -973,6 +970,15 @@ export default function AdminSubjectsScreen() {
                       className="p-2"
                     >
                       <Ionicons name="create-outline" size={20} color="#FE6902" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => router.push({
+                        pathname: '/(auth)/practice-exam/duplicate-question',
+                        params: { questionID: q.questionID, question: JSON.stringify(q) }
+                      })}
+                      className="p-2"
+                    >
+                      <Ionicons name="copy-outline" size={20} color="#FE6902" />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => confirmDelete(q)}
@@ -1255,6 +1261,19 @@ export default function AdminSubjectsScreen() {
                     <Text className="text-white font-semibold">
                       {selectedQuestion.status === 'approved' ? 'Reject' : 'Approve'}
                     </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowDetailModal(false);
+                      router.push({
+                        pathname: '/(auth)/practice-exam/duplicate-question',
+                        params: { questionID: selectedQuestion.questionID, question: JSON.stringify(selectedQuestion) }
+                      });
+                    }}
+                    className="flex-1 py-3 rounded-xl items-center"
+                    style={{ backgroundColor: '#FE6902' }}
+                  >
+                    <Text className="text-white font-semibold">Duplicate</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => confirmDelete(selectedQuestion)}

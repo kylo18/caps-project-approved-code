@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, KeyboardTypeOptions, Modal, RefreshControl, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import CapsActivityIndicator from '../../../features/core/components/CapsActivityIndicator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -20,6 +20,13 @@ import {
   updateClassQuizDates,
   updateFacultyClass,
   createFacultyClass,
+  getPersonalQuizQuestions,
+  getClassQuizResults,
+  getQuizResultsForQuiz,
+  getQuizNonTakers,
+  getClassQuizSettings,
+  getPersonalQuizLeaderboard,
+  getPersonalQuizRecentTakers,
 } from '../../../services/facultyClassService';
 
 export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?: string }) {
@@ -34,10 +41,18 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
     borderWidth: 1,
     ...getRoleShadow(isDark),
   };
-  const { classID, className } = useLocalSearchParams();
+  const { classID, className, origin } = useLocalSearchParams();
   const resolvedClassID = String(classID || '');
 
-  const [segment, setSegment] = useState<'students' | 'quizzes'>('students');
+  const handleBack = () => {
+    if (origin === 'classes') {
+      router.replace(`/(auth)${rolePath}/classes` as string);
+    } else {
+      router.back();
+    }
+  };
+
+  const [segment, setSegment] = useState<'students' | 'quizzes' | 'results'>('students');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [classInfo, setClassInfo] = useState<any>(null);
@@ -45,9 +60,25 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
   const [assignedQuizzes, setAssignedQuizzes] = useState<any[]>([]);
   const [classLoadMessage, setClassLoadMessage] = useState('');
 
+  // Results & Leaderboard state
+  const [classQuizResults, setClassQuizResults] = useState<any[]>([]);
+  const [showResultsModal, setShowResultsModal] = useState(false);
+  const [showNonTakersModal, setShowNonTakersModal] = useState(false);
+  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
+  const [selectedResultsQuiz, setSelectedResultsQuiz] = useState<any>(null);
+  const [quizStudentResults, setQuizStudentResults] = useState<any[]>([]);
+  const [quizNonTakers, setQuizNonTakers] = useState<any[]>([]);
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [recentTakers, setRecentTakers] = useState<any[]>([]);
+  const [loadingResults, setLoadingResults] = useState(false);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDatesModal, setShowDatesModal] = useState(false);
+  const [showQuestionsModal, setShowQuestionsModal] = useState(false);
+  const [selectedPreviewQuizID, setSelectedPreviewQuizID] = useState<number | string | null>(null);
+  const [selectedPreviewQuizName, setSelectedPreviewQuizName] = useState<string>('');
 
   const [subjects, setSubjects] = useState<any[]>([]);
   const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
@@ -67,7 +98,7 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
     isActive: true,
   });
   const [assignDates, setAssignDates] = useState({ startDate: '', deadlineDate: '' });
-  const [dateForm, setDateForm] = useState({ startDate: '', deadlineDate: '' });
+  const [dateForm, setDateForm] = useState({ startDate: '', deadlineDate: '', quizAttempts: '', quizTimerEnabled: false, quizTimer: '' });
 
   const loadStudents = useCallback(async () => {
     if (!resolvedClassID) {
@@ -90,19 +121,36 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
     setAssignedQuizzes(Array.isArray(list) ? list : []);
   }, [resolvedClassID]);
 
+  const loadClassQuizResults = useCallback(async () => {
+    if (!resolvedClassID) {
+      setClassQuizResults([]);
+      return;
+    }
+    setLoadingResults(true);
+    try {
+      const results = await getClassQuizResults(resolvedClassID);
+      setClassQuizResults(Array.isArray(results) ? results : []);
+    } catch (error) {
+      console.error('Error loading class quiz results:', error);
+    } finally {
+      setLoadingResults(false);
+    }
+  }, [resolvedClassID]);
+
   const loadAll = useCallback(async () => {
     try {
-      await Promise.all([loadStudents(), loadAssignedQuizzes()]);
+      await Promise.all([loadStudents(), loadAssignedQuizzes(), loadClassQuizResults()]);
     } catch (error) {
       console.error('Error loading class detail:', error);
       showToast('Unable to load class details', 'error');
       setStudents([]);
       setAssignedQuizzes([]);
+      setClassQuizResults([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [loadAssignedQuizzes, loadStudents]);
+  }, [loadAssignedQuizzes, loadStudents, loadClassQuizResults]);
 
   useEffect(() => {
     loadAll();
@@ -288,29 +336,141 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
     }
   };
 
-  const handleOpenDatesModal = (quiz: any) => {
+  const handleOpenQuestionsModal = (quiz: any) => {
+    const quizID = quiz.personalQuizID || quiz.personalQuiz?.personalQuizID;
+    if (!quizID) {
+      showToast('Quiz ID not found', 'error');
+      return;
+    }
+    setSelectedPreviewQuizID(quizID);
+    setSelectedPreviewQuizName(quiz.quizName || quiz.personalQuiz?.title || 'Quiz Preview');
+    setShowQuestionsModal(true);
+  };
+
+  const handleOpenDatesModal = async (quiz: any) => {
     setSelectedAssignedQuiz(quiz);
     setDateForm({
       startDate: (quiz.startTime || quiz.startDate || '').slice(0, 10),
       deadlineDate: (quiz.endTime || quiz.deadlineDate || '').slice(0, 10),
+      quizAttempts: quiz.maxAttempts ? String(quiz.maxAttempts) : '',
+      quizTimerEnabled: quiz.durationMinutes ? true : false,
+      quizTimer: quiz.durationMinutes ? String(quiz.durationMinutes) : '',
     });
     setShowDatesModal(true);
+
+    const quizID = quiz.classPersonalQuizID || quiz.id;
+    if (quizID) {
+      try {
+        const settings = await getClassQuizSettings(quizID);
+        if (settings) {
+          setDateForm(prev => ({
+            ...prev,
+            startDate: (settings.startTime || settings.startDate || prev.startDate || '').slice(0, 10),
+            deadlineDate: (settings.endTime || settings.deadlineDate || prev.deadlineDate || '').slice(0, 10),
+            quizAttempts: settings.quizAttempts || settings.maxAttempts ? String(settings.quizAttempts || settings.maxAttempts) : prev.quizAttempts,
+            quizTimerEnabled: !!settings.quizTimerEnabled,
+            quizTimer: settings.quizTimer ? String(settings.quizTimer) : prev.quizTimer,
+          }));
+        }
+      } catch (err) {
+        console.log('Class quiz settings fetch fallback:', err);
+      }
+    }
+  };
+
+  const handleOpenQuizResults = async (quiz: any) => {
+    setSelectedResultsQuiz(quiz);
+    setQuizStudentResults([]);
+    setShowResultsModal(true);
+    const quizID = quiz.classPersonalQuizID || quiz.id || quiz.personalQuizID;
+    if (quizID) {
+      try {
+        const results = await getQuizResultsForQuiz(quizID);
+        setQuizStudentResults(Array.isArray(results) ? results : []);
+      } catch (error) {
+        console.error('Error loading quiz results:', error);
+        showToast('Unable to load student scores', 'error');
+      }
+    }
+  };
+
+  const handleOpenNonTakers = async (quiz: any) => {
+    setSelectedResultsQuiz(quiz);
+    setQuizNonTakers([]);
+    setShowNonTakersModal(true);
+    const quizID = quiz.classPersonalQuizID || quiz.id || quiz.personalQuizID;
+    if (quizID) {
+      try {
+        const nonTakers = await getQuizNonTakers(quizID);
+        setQuizNonTakers(Array.isArray(nonTakers) ? nonTakers : []);
+      } catch (error) {
+        console.error('Error loading non-takers:', error);
+        showToast('Unable to load non-takers', 'error');
+      }
+    }
+  };
+
+  const handleOpenLeaderboard = async (quiz: any) => {
+    setSelectedResultsQuiz(quiz);
+    setLeaderboardData([]);
+    setRecentTakers([]);
+    setShowLeaderboardModal(true);
+    setLoadingLeaderboard(true);
+    const quizID = quiz.quiz?.personalQuizID || quiz.personalQuiz?.personalQuizID || quiz.personalQuizID || quiz.id;
+    if (quizID) {
+      try {
+        const [leaderboard, recent] = await Promise.all([
+          getPersonalQuizLeaderboard(quizID),
+          getPersonalQuizRecentTakers(quizID)
+        ]);
+        setLeaderboardData(Array.isArray(leaderboard) ? leaderboard : []);
+        setRecentTakers(Array.isArray(recent) ? recent : []);
+      } catch (error) {
+        console.error('Error loading leaderboard:', error);
+        showToast('Unable to load leaderboard data', 'error');
+      } finally {
+        setLoadingLeaderboard(false);
+      }
+    }
   };
 
   const handleSaveDates = async () => {
     if (!selectedAssignedQuiz?.classPersonalQuizID) return;
     setIsUpdatingDates(true);
     try {
+      const attemptsNum = dateForm.quizAttempts?.trim()
+        ? parseInt(dateForm.quizAttempts, 10)
+        : null;
+
+      if (attemptsNum !== null && (isNaN(attemptsNum) || attemptsNum < 1)) {
+        showToast('Attempts limit must be a number greater than or equal to 1', 'error');
+        setIsUpdatingDates(false);
+        return;
+      }
+
+      const timerVal = dateForm.quizTimerEnabled && dateForm.quizTimer?.trim()
+        ? parseInt(dateForm.quizTimer, 10)
+        : null;
+
+      if (dateForm.quizTimerEnabled && (timerVal === null || isNaN(timerVal) || timerVal < 1)) {
+        showToast('Timer duration must be a number of minutes greater than or equal to 1', 'error');
+        setIsUpdatingDates(false);
+        return;
+      }
+
       await updateClassQuizDates(selectedAssignedQuiz.classPersonalQuizID, {
-        startTime: dateForm.startDate || undefined,
-        endTime: dateForm.deadlineDate || undefined,
-      });
-      showToast('Quiz dates updated', 'success');
+        startTime: dateForm.startDate || null,
+        endTime: dateForm.deadlineDate || null,
+        quizAttempts: attemptsNum,
+        quizTimerEnabled: dateForm.quizTimerEnabled,
+        quizTimer: timerVal,
+      } as any);
+      showToast('Quiz settings updated', 'success');
       setShowDatesModal(false);
       await loadAssignedQuizzes();
     } catch (error) {
-      console.error('Error updating quiz dates:', error);
-      showToast('Failed to update quiz dates', 'error');
+      console.error('Error updating quiz settings:', error);
+      showToast('Failed to update quiz settings', 'error');
     } finally {
       setIsUpdatingDates(false);
     }
@@ -347,7 +507,7 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
     return (
       <View className="flex-1" style={{ backgroundColor: colors.page, paddingTop: insets.top + 12 }}>
         <View className="flex-row items-center px-4 pb-4">
-          <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 mr-2">
+          <TouchableOpacity onPress={handleBack} className="p-2 -ml-2 mr-2">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text className="text-lg font-bold" style={{ color: colors.text }}>Class Detail</Text>
@@ -368,7 +528,7 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
       >
         <View className="flex-row items-start justify-between">
           <View className="flex-row flex-1 items-start">
-            <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 mr-2">
+            <TouchableOpacity onPress={handleBack} className="p-2 -ml-2 mr-2">
               <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
             <View className="flex-1">
@@ -433,15 +593,15 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
 
       <View className="px-4 pt-4">
         <View className="flex-row rounded-2xl p-1" style={cardStyle}>
-          {(['students', 'quizzes'] as const).map((item) => (
+          {(['students', 'quizzes', 'results'] as const).map((item) => (
             <TouchableOpacity
               key={item}
               onPress={() => setSegment(item)}
               className={`flex-1 rounded-xl py-3 ${segment === item ? 'bg-primary' : 'bg-transparent'}`}
               activeOpacity={0.8}
             >
-              <Text className="text-center font-semibold" style={{ color: segment === item ? '#FFFFFF' : colors.muted }}>
-                {item === 'students' ? 'Students' : 'Assigned Quizzes'}
+              <Text className="text-center font-semibold text-xs" style={{ color: segment === item ? '#FFFFFF' : colors.muted }}>
+                {item === 'students' ? 'Students' : item === 'quizzes' ? 'Quizzes' : 'Results'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -503,7 +663,7 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
               </View>
             ))
           )
-        ) : (
+        ) : segment === 'quizzes' ? (
           <>
             <TouchableOpacity
               onPress={openAssignQuizModal}
@@ -541,26 +701,128 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
                     <View className="flex-row flex-wrap gap-2 mt-3">
                       <HeaderPill icon="calendar-outline" text={`Start: ${start}`} colors={colors} />
                       <HeaderPill icon="calendar-clear-outline" text={`End: ${end}`} colors={colors} />
+                      <HeaderPill
+                        icon="repeat-outline"
+                        text={quiz.maxAttempts ? `${quiz.maxAttempts} attempt${quiz.maxAttempts !== 1 ? 's' : ''}` : 'Unlimited attempts'}
+                        colors={colors}
+                      />
                       {accuracy !== undefined ? (
                         <HeaderPill icon="stats-chart-outline" text={`${Number(accuracy).toFixed(1)}% accuracy`} colors={colors} />
                       ) : null}
                     </View>
 
-                    <View className="flex-row gap-3 mt-4">
+                    <View className="flex-row flex-wrap gap-2 mt-4">
+                      <TouchableOpacity
+                        onPress={() => handleOpenQuestionsModal(quiz)}
+                        className="flex-1 min-w-[120px] rounded-xl py-2.5 border"
+                        style={{ borderColor: colors.accent, backgroundColor: 'transparent' }}
+                        activeOpacity={0.8}
+                      >
+                        <Text className="text-center font-semibold text-[11px]" style={{ color: colors.accent }}>View Questions</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleOpenLeaderboard(quiz)}
+                        className="flex-1 min-w-[120px] rounded-xl py-2.5 border"
+                        style={{ borderColor: colors.accent, backgroundColor: 'transparent' }}
+                        activeOpacity={0.8}
+                      >
+                        <Text className="text-center font-semibold text-[11px]" style={{ color: colors.accent }}>Leaderboard</Text>
+                      </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => handleOpenDatesModal(quiz)}
-                        className="flex-1 rounded-xl py-3"
+                        className="flex-1 min-w-[80px] rounded-xl py-2.5"
                         style={{ backgroundColor: colors.surfaceSoft }}
                         activeOpacity={0.8}
                       >
-                        <Text className="text-center font-semibold" style={{ color: colors.text }}>Dates</Text>
+                        <Text className="text-center font-semibold text-[11px]" style={{ color: colors.text }}>Settings</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => handleUnassignQuiz(quiz)}
-                        className="flex-1 rounded-xl py-3 bg-red-50"
+                        className="flex-1 min-w-[80px] rounded-xl py-2.5 bg-red-50"
                         activeOpacity={0.8}
                       >
-                        <Text className="text-center font-semibold text-red-600">Unassign</Text>
+                        <Text className="text-center font-semibold text-[11px] text-red-600">Unassign</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </>
+        ) : (
+          <>
+            {loadingResults ? (
+              <View className="py-8 items-center justify-center">
+                <CapsActivityIndicator size="small" color={colors.accent} />
+                <Text className="mt-2 text-xs" style={{ color: colors.muted }}>Loading quiz results...</Text>
+              </View>
+            ) : classQuizResults.length === 0 ? (
+              <EmptyCard
+                colors={colors}
+                cardStyle={cardStyle}
+                icon="bar-chart-outline"
+                title="No results available"
+                message="Students' scores will appear here after they attempt the assigned quizzes."
+              />
+            ) : (
+              classQuizResults.map((quiz, index) => {
+                const name = quiz.quiz?.title || quiz.quizName || quiz.personalQuiz?.title || quiz.title || 'Untitled Quiz';
+                const takers = quiz.totalStudents ?? quiz.takersCount ?? quiz.takers_count ?? 0;
+                const totalStudents = students.length;
+                const avgAccuracy = quiz.avgAccuracy ?? quiz.averageAccuracy ?? quiz.average_accuracy ?? quiz.accuracy ?? (
+                  quiz.students && quiz.students.length > 0
+                    ? quiz.students.reduce((acc: number, s: any) => acc + (s.highestAttempt?.percentage ?? 0), 0) / quiz.students.length
+                    : 0
+                );
+
+                // Color-coded badge for average accuracy
+                const accuracyColor = avgAccuracy >= 70 ? '#10B981' : avgAccuracy >= 50 ? '#F59E0B' : '#EF4444';
+                const accuracyBg = avgAccuracy >= 70 ? (isDark ? '#064e3b30' : '#ecfdf5') : avgAccuracy >= 50 ? (isDark ? '#78350f30' : '#fffbeb') : (isDark ? '#7f1d1d30' : '#fef2f2');
+
+                return (
+                  <View
+                    key={quiz.classPersonalQuizID || `${name}-${index}`}
+                    className="rounded-2xl p-4"
+                    style={cardStyle}
+                  >
+                    <View className="flex-row justify-between items-start">
+                      <View className="flex-1 pr-2">
+                        <Text className="text-base font-semibold" style={{ color: colors.text }}>{name}</Text>
+                        <Text className="text-xs mt-1" style={{ color: colors.muted }}>
+                          {takers} / {totalStudents} student{totalStudents !== 1 ? 's' : ''} attempted
+                        </Text>
+                      </View>
+                      <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: accuracyBg }}>
+                        <Text className="text-[11px] font-bold" style={{ color: accuracyColor }}>
+                          {Number(avgAccuracy).toFixed(1)}% avg
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View className="flex-row flex-wrap gap-2 mt-4">
+                      <TouchableOpacity
+                        onPress={() => handleOpenQuizResults(quiz)}
+                        className="flex-1 min-w-[100px] rounded-xl py-2"
+                        style={{ backgroundColor: colors.surfaceSoft }}
+                        activeOpacity={0.8}
+                      >
+                        <Text className="text-center font-semibold text-[11px]" style={{ color: colors.text }}>View Scores</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleOpenNonTakers(quiz)}
+                        className="flex-1 min-w-[100px] rounded-xl py-2"
+                        style={{ backgroundColor: colors.surfaceSoft }}
+                        activeOpacity={0.8}
+                      >
+                        <Text className="text-center font-semibold text-[11px]" style={{ color: colors.text }}>Non-Takers</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleOpenLeaderboard(quiz)}
+                        className="flex-1 min-w-[100px] rounded-xl py-2 border"
+                        style={{ borderColor: colors.accent, backgroundColor: 'transparent' }}
+                        activeOpacity={0.8}
+                      >
+                        <Text className="text-center font-semibold text-[11px]" style={{ color: colors.accent }}>Leaderboard</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -599,16 +861,57 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
         loading={isAssigning}
       />
 
-      <QuizDatesModal
+      <QuizSettingsModal
         isDark={isDark}
         colors={colors}
         visible={showDatesModal}
-        title={selectedAssignedQuiz?.quizName || selectedAssignedQuiz?.personalQuiz?.title || 'Quiz Dates'}
+        title={selectedAssignedQuiz?.quizName || selectedAssignedQuiz?.personalQuiz?.title || 'Quiz Settings'}
         dates={dateForm}
         setDates={setDateForm}
         onClose={() => setShowDatesModal(false)}
         onSave={handleSaveDates}
         loading={isUpdatingDates}
+      />
+
+      <ViewQuestionsModal
+        isDark={isDark}
+        colors={colors}
+        visible={showQuestionsModal}
+        title={selectedPreviewQuizName}
+        personalQuizID={selectedPreviewQuizID}
+        onClose={() => {
+          setShowQuestionsModal(false);
+          setSelectedPreviewQuizID(null);
+        }}
+      />
+
+      <QuizResultsModal
+        isDark={isDark}
+        colors={colors}
+        visible={showResultsModal}
+        title={selectedResultsQuiz?.quizName || selectedResultsQuiz?.title || 'Quiz Results'}
+        results={quizStudentResults}
+        onClose={() => setShowResultsModal(false)}
+      />
+
+      <NonTakersModal
+        isDark={isDark}
+        colors={colors}
+        visible={showNonTakersModal}
+        title={selectedResultsQuiz?.quizName || selectedResultsQuiz?.title || 'Quiz Non-Takers'}
+        students={quizNonTakers}
+        onClose={() => setShowNonTakersModal(false)}
+      />
+
+      <LeaderboardModal
+        isDark={isDark}
+        colors={colors}
+        visible={showLeaderboardModal}
+        title={selectedResultsQuiz?.quizName || selectedResultsQuiz?.title || 'Quiz'}
+        leaderboard={leaderboardData}
+        recent={recentTakers}
+        loading={loadingLeaderboard}
+        onClose={() => setShowLeaderboardModal(false)}
       />
     </View>
   );
@@ -801,7 +1104,7 @@ function AssignQuizModal({
   );
 }
 
-function QuizDatesModal({ isDark, colors, visible, title, dates, setDates, onClose, onSave, loading }: any) {
+function QuizSettingsModal({ isDark, colors, visible, title, dates, setDates, onClose, onSave, loading }: any) {
   return (
     <BottomModal isDark={isDark} colors={colors} visible={visible} title={title} onClose={onClose}>
       <LabeledInput
@@ -820,6 +1123,37 @@ function QuizDatesModal({ isDark, colors, visible, title, dates, setDates, onClo
         onChangeText={(text) => setDates((prev: any) => ({ ...prev, deadlineDate: text }))}
         placeholder="YYYY-MM-DD"
       />
+      <LabeledInput
+        isDark={isDark}
+        colors={colors}
+        label="Attempts Limit"
+        value={dates.quizAttempts}
+        onChangeText={(text) => setDates((prev: any) => ({ ...prev, quizAttempts: text }))}
+        placeholder="e.g. 3 (leave blank for unlimited)"
+        keyboardType="numeric"
+      />
+
+      <View className="flex-row items-center justify-between mt-4 mb-2">
+        <Text className="font-semibold text-[15px]" style={{ color: colors.text }}>Enable Time Limit</Text>
+        <Switch
+          value={dates.quizTimerEnabled}
+          onValueChange={(val) => setDates((prev: any) => ({ ...prev, quizTimerEnabled: val }))}
+          trackColor={{ false: '#767577', true: '#FE6902' }}
+          thumbColor={dates.quizTimerEnabled ? '#fff' : '#f4f3f4'}
+        />
+      </View>
+
+      {dates.quizTimerEnabled && (
+        <LabeledInput
+          isDark={isDark}
+          colors={colors}
+          label="Time Limit (minutes)"
+          value={dates.quizTimer || ''}
+          onChangeText={(text) => setDates((prev: any) => ({ ...prev, quizTimer: text }))}
+          placeholder="e.g. 60"
+          keyboardType="numeric"
+        />
+      )}
 
       <TouchableOpacity
         onPress={onSave}
@@ -827,7 +1161,7 @@ function QuizDatesModal({ isDark, colors, visible, title, dates, setDates, onClo
         className="bg-primary rounded-2xl py-4 items-center mt-5"
         style={{ opacity: loading ? 0.7 : 1 }}
       >
-        {loading ? <CapsActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Save Dates</Text>}
+        {loading ? <CapsActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Save Settings</Text>}
       </TouchableOpacity>
     </BottomModal>
   );
@@ -873,6 +1207,7 @@ function LabeledInput({
   onChangeText,
   placeholder,
   multiline = false,
+  keyboardType = 'default',
 }: {
   isDark: boolean;
   colors: ReturnType<typeof getRoleThemeColors>;
@@ -881,6 +1216,7 @@ function LabeledInput({
   onChangeText: (text: string) => void;
   placeholder: string;
   multiline?: boolean;
+  keyboardType?: KeyboardTypeOptions;
 }) {
   return (
     <View style={{ marginTop: 10 }}>
@@ -891,6 +1227,7 @@ function LabeledInput({
         placeholder={placeholder}
         placeholderTextColor={colors.mutedIcon}
         multiline={multiline}
+        keyboardType={keyboardType}
         className="border rounded-2xl px-4 py-3"
         style={[
           { backgroundColor: colors.input, borderColor: colors.border, color: colors.text },
@@ -906,4 +1243,582 @@ function formatDate(value?: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();
+}
+
+function ViewQuestionsModal({
+  isDark,
+  colors,
+  visible,
+  title,
+  personalQuizID,
+  onClose,
+}: {
+  isDark: boolean;
+  colors: ReturnType<typeof getRoleThemeColors>;
+  visible: boolean;
+  title: string;
+  personalQuizID: number | string | null;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    if (visible && personalQuizID) {
+      loadQuestions();
+    } else {
+      setQuestions([]);
+      setTotal(0);
+    }
+  }, [visible, personalQuizID]);
+
+  async function loadQuestions() {
+    setLoading(true);
+    try {
+      const data = await getPersonalQuizQuestions(personalQuizID!);
+      setQuestions(data.questions);
+      setTotal(data.total);
+    } catch (error) {
+      console.error('Error loading quiz questions preview:', error);
+      showToast('Unable to load quiz questions', 'error');
+      setQuestions([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
+        <View
+          className="rounded-t-3xl px-5 pt-5 pb-8"
+          style={{
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            borderTopWidth: 1,
+            height: '80%',
+          }}
+        >
+          {/* Header */}
+          <View className="flex-row items-center justify-between mb-4 pb-3 border-b" style={{ borderBottomColor: colors.border }}>
+            <View className="flex-1 mr-3">
+              <Text className="text-lg font-bold" style={{ color: colors.text }} numberOfLines={1}>
+                {title}
+              </Text>
+              <Text className="text-xs mt-0.5" style={{ color: colors.muted }}>
+                {loading ? 'Loading questions...' : `${total} question${total !== 1 ? 's' : ''}`}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={{ padding: 6, borderRadius: 999, backgroundColor: colors.surfaceSoft }}>
+              <Ionicons name="close" size={20} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Content */}
+          {loading ? (
+            <View className="flex-1 items-center justify-center">
+              <CapsActivityIndicator size="large" color={colors.accent} />
+            </View>
+          ) : questions.length === 0 ? (
+            <View className="flex-1 items-center justify-center py-8">
+              <Ionicons name="document-text-outline" size={48} color={colors.mutedIcon} />
+              <Text className="mt-3 text-base font-semibold" style={{ color: colors.text }}>No questions</Text>
+              <Text className="mt-1 text-center text-sm" style={{ color: colors.muted }}>This quiz doesn't have any questions yet.</Text>
+            </View>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+              <View style={{ gap: 16 }}>
+                {questions.map((question: any, qIdx: number) => {
+                  const qText = question.questionText || question.personalQuizQuestionText || '';
+                  const choices = question.choices || question.personalQuizChoices || [];
+                  const points = question.score || 1;
+
+                  return (
+                    <View
+                      key={question.personalQuizQuestionID || qIdx}
+                      className="rounded-2xl p-4 border"
+                      style={{
+                        borderColor: colors.border,
+                        backgroundColor: colors.surfaceSoft,
+                      }}
+                    >
+                      {/* Header row with Q index and points */}
+                      <View className="flex-row items-center justify-between mb-3">
+                        <View className="px-2 py-0.5 rounded" style={{ backgroundColor: `${colors.accent}15` }}>
+                          <Text className="text-[10px] font-bold" style={{ color: colors.accent }}>
+                            QUESTION {qIdx + 1}
+                          </Text>
+                        </View>
+                        <Text className="text-xs" style={{ color: colors.muted }}>
+                          {points} pt{points !== 1 ? 's' : ''}
+                        </Text>
+                      </View>
+
+                      {/* Question Image if any */}
+                      {question.image ? (
+                        <Image
+                          source={{ uri: question.image }}
+                          className="w-full h-40 rounded-xl mb-3"
+                          style={{ resizeMode: 'cover' }}
+                        />
+                      ) : null}
+
+                      {/* Question Text */}
+                      <Text
+                        className="text-[15px] leading-5 font-semibold mb-3"
+                        style={{ color: colors.text }}
+                      >
+                        {stripHtml(qText)}
+                      </Text>
+
+                      {/* Choices */}
+                      <View style={{ gap: 8 }}>
+                        {choices.map((choice: any, cIdx: number) => {
+                          const isCorrect = choice.isCorrect === true || choice.isCorrect === 1;
+                          return (
+                            <View
+                              key={choice.personalQuizChoiceID || cIdx}
+                              className="flex-row items-center p-3 rounded-xl border"
+                              style={{
+                                borderColor: isCorrect ? '#10B981' : colors.border,
+                                backgroundColor: isCorrect ? (isDark ? '#064e3b30' : '#ecfdf5') : colors.surface,
+                              }}
+                            >
+                              <View className="mr-3">
+                                <Ionicons
+                                  name={isCorrect ? "checkmark-circle" : "ellipse-outline"}
+                                  size={18}
+                                  color={isCorrect ? "#10B981" : colors.muted}
+                                />
+                              </View>
+                              <Text
+                                className="flex-1 text-sm"
+                                style={{
+                                  color: isCorrect ? "#10B981" : colors.text,
+                                  fontWeight: isCorrect ? '700' : '400',
+                                }}
+                              >
+                                {String.fromCharCode(65 + cIdx)}. {choice.choiceText}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const stripHtml = (input: string) =>
+  input?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() || '';
+
+// ── Custom subcomponents for Results, Non-Takers, and Leaderboards ───────────
+
+function QuizResultsModal({
+  isDark,
+  colors,
+  visible,
+  title,
+  results,
+  onClose,
+}: {
+  isDark: boolean;
+  colors: ReturnType<typeof getRoleThemeColors>;
+  visible: boolean;
+  title: string;
+  results: any[];
+  onClose: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
+        <View
+          className="rounded-t-3xl px-5 pt-5 pb-8"
+          style={{
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            borderTopWidth: 1,
+            height: '80%',
+          }}
+        >
+          {/* Header */}
+          <View className="flex-row items-center justify-between mb-4 pb-3 border-b" style={{ borderBottomColor: colors.border }}>
+            <View className="flex-1 mr-3">
+              <Text className="text-lg font-bold" style={{ color: colors.text }} numberOfLines={1}>
+                {title} — Scores
+              </Text>
+              <Text className="text-xs mt-0.5" style={{ color: colors.muted }}>
+                {results.length} attempt{results.length !== 1 ? 's' : ''} recorded
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={{ padding: 6, borderRadius: 999, backgroundColor: colors.surfaceSoft }}>
+              <Ionicons name="close" size={20} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Content */}
+          {results.length === 0 ? (
+            <View className="flex-1 items-center justify-center py-8">
+              <Ionicons name="people-outline" size={48} color={colors.mutedIcon} />
+              <Text className="mt-3 text-base font-semibold" style={{ color: colors.text }}>No attempts yet</Text>
+              <Text className="mt-1 text-center text-sm" style={{ color: colors.muted }}>No student has submitted this quiz yet.</Text>
+            </View>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+              <View style={{ gap: 12 }}>
+                {results.map((item: any, idx: number) => {
+                  const studentName = item.studentName || (item.student ? `${item.student.firstName} ${item.student.lastName}` : 'Unknown Student');
+                  const studentCode = item.studentCode || item.student?.userCode || '';
+                  const score = item.score ?? 0;
+                  const total = item.totalQuestions ?? item.total_questions ?? 10;
+                  const acc = item.accuracy ?? ((score / (total || 1)) * 100);
+                  const isPassed = acc >= 50;
+
+                  return (
+                    <View
+                      key={item.resultID || item.id || idx}
+                      className="rounded-2xl p-4 border flex-row items-center justify-between"
+                      style={{
+                        borderColor: colors.border,
+                        backgroundColor: colors.surfaceSoft,
+                      }}
+                    >
+                      <View className="flex-1 mr-3">
+                        <Text className="text-sm font-bold" style={{ color: colors.text }}>
+                          {studentName}
+                        </Text>
+                        {studentCode ? (
+                          <Text className="text-xs mt-1" style={{ color: colors.muted }}>
+                            {studentCode}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View className="items-end">
+                        <Text className="text-sm font-bold" style={{ color: colors.text }}>
+                          {score} / {total}
+                        </Text>
+                        <View className="px-2 py-0.5 rounded-full mt-1.5" style={{ backgroundColor: isPassed ? '#10B98120' : '#EF444420' }}>
+                          <Text className="text-[10px] font-bold" style={{ color: isPassed ? '#10B981' : '#EF4444' }}>
+                            {Number(acc).toFixed(0)}%
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function NonTakersModal({
+  isDark,
+  colors,
+  visible,
+  title,
+  students,
+  onClose,
+}: {
+  isDark: boolean;
+  colors: ReturnType<typeof getRoleThemeColors>;
+  visible: boolean;
+  title: string;
+  students: any[];
+  onClose: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
+        <View
+          className="rounded-t-3xl px-5 pt-5 pb-8"
+          style={{
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            borderTopWidth: 1,
+            height: '80%',
+          }}
+        >
+          {/* Header */}
+          <View className="flex-row items-center justify-between mb-4 pb-3 border-b" style={{ borderBottomColor: colors.border }}>
+            <View className="flex-1 mr-3">
+              <Text className="text-lg font-bold" style={{ color: colors.text }} numberOfLines={1}>
+                {title} — Non-Takers
+              </Text>
+              <Text className="text-xs mt-0.5" style={{ color: colors.muted }}>
+                {students.length} student{students.length !== 1 ? 's' : ''} have not started
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={{ padding: 6, borderRadius: 999, backgroundColor: colors.surfaceSoft }}>
+              <Ionicons name="close" size={20} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Content */}
+          {students.length === 0 ? (
+            <View className="flex-1 items-center justify-center py-8">
+              <Ionicons name="checkmark-circle-outline" size={48} color="#10B981" />
+              <Text className="mt-3 text-base font-semibold" style={{ color: colors.text }}>100% Completed!</Text>
+              <Text className="mt-1 text-center text-sm" style={{ color: colors.muted }}>All students have completed this quiz.</Text>
+            </View>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+              <View style={{ gap: 12 }}>
+                {students.map((item: any, idx: number) => {
+                  const studentName = item.studentName || `${item.firstName || ''} ${item.lastName || ''}`.trim() || 'Unknown Student';
+                  const studentCode = item.studentCode || item.userCode || '';
+                  const email = item.email || '';
+
+                  return (
+                    <View
+                      key={item.studentID || item.userID || idx}
+                      className="rounded-2xl p-4 border flex-row items-center justify-between"
+                      style={{
+                        borderColor: colors.border,
+                        backgroundColor: colors.surfaceSoft,
+                      }}
+                    >
+                      <View className="flex-1">
+                        <Text className="text-sm font-bold" style={{ color: colors.text }}>
+                          {studentName}
+                        </Text>
+                        <Text className="text-xs mt-1" style={{ color: colors.muted }}>
+                          {[studentCode, email].filter(Boolean).join(' · ')}
+                        </Text>
+                      </View>
+                      <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: '#EF444415' }}>
+                        <Text className="text-[10px] font-bold text-red-500">
+                          Pending
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function LeaderboardModal({
+  isDark,
+  colors,
+  visible,
+  title,
+  leaderboard,
+  recent,
+  loading,
+  onClose,
+}: {
+  isDark: boolean;
+  colors: ReturnType<typeof getRoleThemeColors>;
+  visible: boolean;
+  title: string;
+  leaderboard: any[];
+  recent: any[];
+  loading: boolean;
+  onClose: () => void;
+}) {
+  const [showRecent, setShowRecent] = useState(false);
+
+  // Group top 3 and others
+  const top3 = leaderboard.slice(0, 3);
+  const remaining = leaderboard.slice(3);
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
+        <View
+          className="rounded-t-3xl px-5 pt-5 pb-8"
+          style={{
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            borderTopWidth: 1,
+            height: '85%',
+          }}
+        >
+          {/* Header */}
+          <View className="flex-row items-center justify-between mb-4 pb-3 border-b" style={{ borderBottomColor: colors.border }}>
+            <View className="flex-1 mr-3">
+              <Text className="text-lg font-bold" style={{ color: colors.text }} numberOfLines={1}>
+                🏆 {title} Leaderboard
+              </Text>
+              <Text className="text-xs mt-0.5" style={{ color: colors.muted }}>
+                Top performers in this class
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={{ padding: 6, borderRadius: 999, backgroundColor: colors.surfaceSoft }}>
+              <Ionicons name="close" size={20} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Content */}
+          {loading ? (
+            <View className="flex-1 items-center justify-center">
+              <CapsActivityIndicator size="large" color={colors.accent} />
+              <Text className="mt-2 text-xs" style={{ color: colors.muted }}>Loading rankings...</Text>
+            </View>
+          ) : leaderboard.length === 0 ? (
+            <View className="flex-1 items-center justify-center py-8">
+              <Ionicons name="ribbon-outline" size={48} color={colors.mutedIcon} />
+              <Text className="mt-3 text-base font-semibold" style={{ color: colors.text }}>No rankings yet</Text>
+              <Text className="mt-1 text-center text-sm" style={{ color: colors.muted }}>Take the quiz to populate the leaderboard!</Text>
+            </View>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              {/* Podium for top 3 */}
+              {top3.length > 0 ? (
+                <View className="flex-row justify-center items-end gap-3 mb-6 mt-4 px-2">
+                  {/* 2nd Place */}
+                  {top3[1] ? (
+                    <View className="items-center flex-1">
+                      <Text className="text-2xl">🥈</Text>
+                      <View className="w-full rounded-t-2xl py-3 px-1 items-center mt-2" style={{ backgroundColor: colors.surfaceSoft, minHeight: 90, borderWidth: 1, borderColor: colors.border }}>
+                        <Text className="text-[11px] font-bold text-center" style={{ color: colors.text }} numberOfLines={2}>
+                          {top3[1].name || top3[1].studentName || top3[1].student?.firstName || 'Student 2'}
+                        </Text>
+                        <Text className="text-xs font-bold mt-2 text-gray-500">
+                          {Number(top3[1].highestPercentage ?? top3[1].percentage ?? top3[1].accuracy ?? 0).toFixed(0)}%
+                        </Text>
+                      </View>
+                    </View>
+                  ) : <View className="flex-1" />}
+
+                  {/* 1st Place */}
+                  {top3[0] ? (
+                    <View className="items-center flex-1">
+                      <Text className="text-3xl">🥇</Text>
+                      <View className="w-full rounded-t-2xl py-4 px-1 items-center mt-2" style={{ backgroundColor: `${colors.accent}15`, minHeight: 110, borderWidth: 2, borderColor: colors.accent }}>
+                        <Text className="text-[12px] font-bold text-center" style={{ color: colors.accent }} numberOfLines={2}>
+                          {top3[0].name || top3[0].studentName || top3[0].student?.firstName || 'Student 1'}
+                        </Text>
+                        <Text className="text-sm font-extrabold mt-2" style={{ color: colors.accent }}>
+                          {Number(top3[0].highestPercentage ?? top3[0].percentage ?? top3[0].accuracy ?? 0).toFixed(0)}%
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {/* 3rd Place */}
+                  {top3[2] ? (
+                    <View className="items-center flex-1">
+                      <Text className="text-2xl">🥉</Text>
+                      <View className="w-full rounded-t-2xl py-3 px-1 items-center mt-2" style={{ backgroundColor: colors.surfaceSoft, minHeight: 80, borderWidth: 1, borderColor: colors.border }}>
+                        <Text className="text-[11px] font-bold text-center" style={{ color: colors.text }} numberOfLines={2}>
+                          {top3[2].name || top3[2].studentName || top3[2].student?.firstName || 'Student 3'}
+                        </Text>
+                        <Text className="text-xs font-bold mt-2 text-amber-700">
+                          {Number(top3[2].highestPercentage ?? top3[2].percentage ?? top3[2].accuracy ?? 0).toFixed(0)}%
+                        </Text>
+                      </View>
+                    </View>
+                  ) : <View className="flex-1" />}
+                </View>
+              ) : null}
+
+              {/* Remaining ranked students */}
+              {remaining.length > 0 ? (
+                <View style={{ gap: 8 }} className="mb-6">
+                  <Text className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: colors.muted }}>
+                    Other Rankings
+                  </Text>
+                  {remaining.map((item: any, idx: number) => {
+                    const rankNum = idx + 4;
+                    const studentName = item.name || item.studentName || (item.student ? `${item.student.firstName} ${item.student.lastName}` : 'Student');
+                    const acc = item.highestPercentage ?? item.percentage ?? item.accuracy ?? 0;
+
+                    return (
+                      <View
+                        key={item.id || idx}
+                        className="flex-row items-center justify-between p-3.5 rounded-xl"
+                        style={{ backgroundColor: colors.surfaceSoft }}
+                      >
+                        <View className="flex-row items-center">
+                          <Text className="text-xs font-bold w-6 text-center" style={{ color: colors.muted }}>
+                            #{rankNum}
+                          </Text>
+                          <Text className="text-sm font-semibold ml-2" style={{ color: colors.text }}>
+                            {studentName}
+                          </Text>
+                        </View>
+                        <Text className="text-sm font-bold" style={{ color: colors.text }}>
+                          {Number(acc).toFixed(0)}%
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : null}
+
+              {/* Collapsible Recent Takers */}
+              {recent.length > 0 ? (
+                <View className="mt-2 border-t pt-4" style={{ borderTopColor: colors.border }}>
+                  <TouchableOpacity
+                    onPress={() => setShowRecent(!showRecent)}
+                    className="flex-row justify-between items-center py-2"
+                  >
+                    <Text className="text-xs font-bold uppercase tracking-wider" style={{ color: colors.muted }}>
+                      Recent Attempts ({recent.length})
+                    </Text>
+                    <Ionicons
+                      name={showRecent ? "chevron-up" : "chevron-down"}
+                      size={16}
+                      color={colors.muted}
+                    />
+                  </TouchableOpacity>
+
+                  {showRecent ? (
+                    <View style={{ gap: 8 }} className="mt-2">
+                      {recent.map((item: any, idx: number) => {
+                        const name = item.name || item.studentName || item.student?.firstName || 'Student';
+                        const acc = item.lastAttemptPercentage ?? item.highestPercentage ?? item.accuracy ?? 0;
+                        const dateStr = item.lastAttemptDate || item.takenAt || item.completedAt || item.submitTime || '';
+
+                        return (
+                          <View
+                            key={idx}
+                            className="flex-row justify-between items-center p-3 rounded-lg"
+                            style={{ backgroundColor: colors.surfaceSoft }}
+                          >
+                            <View>
+                              <Text className="text-xs font-semibold" style={{ color: colors.text }}>
+                                {name}
+                              </Text>
+                              {dateStr ? (
+                                <Text className="text-[10px] mt-0.5" style={{ color: colors.muted }}>
+                                  {formatDate(dateStr)}
+                                </Text>
+                              ) : null}
+                            </View>
+                            <Text className="text-xs font-bold" style={{ color: colors.text }}>
+                              {Number(acc).toFixed(0)}%
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
 }

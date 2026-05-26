@@ -155,7 +155,8 @@ export default function EditQuestionForm() {
               initialContentHTML={questionText}
               onChange={setQuestionText}
               placeholder="Enter question..."
-              style={{ backgroundColor: colors.inputBg, color: colors.text, flex: 1 }}
+              style={{ backgroundColor: colors.inputBg, flex: 1 }}
+              editorStyle={{ backgroundColor: colors.inputBg, color: colors.text }}
               initialHeight={180}
               useContainer
             />

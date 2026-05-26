@@ -92,13 +92,14 @@ export default function ClassesScreen({
     }
     setIsCreatingQuiz(true);
     try {
+      const coverageMapping: Record<string, number> = { midterm: 1, final: 2, full: 3 };
       const res = await apiRequest('/api/personal-quizzes', {
         method: 'POST',
         body: {
           title: quizTitle.trim(),
           quiz_type_id: quizTypeID,
           subjectID: quizSubjectID || null,
-          coverage: quizTypeID === 1 ? quizCoverage : undefined,
+          coverage_id: quizTypeID === 1 ? (coverageMapping[quizCoverage] || 1) : undefined,
         },
       });
       const quizID = res?.quiz?.personalQuizID || res?.personalQuizID || res?.data?.personalQuizID;
@@ -150,7 +151,7 @@ export default function ClassesScreen({
       label: 'Create Class',
       onPress: () => router.push({
         pathname: `/(auth)${rolePath}/class-detail` as string,
-        params: { t: Date.now() }
+        params: { t: Date.now(), origin: 'classes' }
       }),
     },
     {
@@ -271,6 +272,7 @@ export default function ClassesScreen({
                     params: {
                       classID: String(item.classID || item.id),
                       className: item.className || 'Class',
+                      origin: 'classes',
                     },
                   })
                 }

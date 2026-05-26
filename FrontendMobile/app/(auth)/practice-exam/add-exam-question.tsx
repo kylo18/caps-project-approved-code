@@ -38,7 +38,7 @@ export default function CombinedExamQuestionForm() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChoiceChange = (index: number, field: 'text' | 'explanation', value: string) => {
+  const handleChoiceChange = (index: number, field: 'choiceText' | 'choiceImage', value: string) => {
     const newChoices = [...choices];
     (newChoices[index] as Record<string, string | boolean>)[field] = value;
     setChoices(newChoices);

@@ -214,7 +214,7 @@ export default function AssoDeanSubjectsScreen() {
     try {
       if (editingSubject) {
         await apiRequest(`/api/subjects/${editingSubject.subjectID}/update`, {
-          method: 'POST',
+          method: 'PUT',
           body: {
             subjectCode: subjectCode.trim(),
             subjectName: subjectName.trim(),

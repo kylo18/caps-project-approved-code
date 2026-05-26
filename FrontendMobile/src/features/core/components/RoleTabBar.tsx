@@ -34,14 +34,17 @@ export default function RoleTabBar({
   navigation,
   visibleRoutes,
 }: RoleTabBarProps) {
+  const activeRouteName = state.routes[state.index]?.name;
+  const visibleRouteSet = new Set(visibleRoutes);
+  if (!visibleRouteSet.has(activeRouteName)) {
+    return null;
+  }
+
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
   const colors = getRoleThemeColors(isDark);
   const shadow = getRoleShadow(isDark);
-
-  const activeRouteName = state.routes[state.index]?.name;
-  const visibleRouteSet = new Set(visibleRoutes);
   const routes = state.routes.filter((route: any) => visibleRouteSet.has(route.name));
 
   return (

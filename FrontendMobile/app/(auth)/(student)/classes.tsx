@@ -297,7 +297,7 @@ export default function StudentClassesScreen() {
                   onPress={() => {
                     router.push({
                       pathname: '/(auth)/(student)/class-detail',
-                      params: { classID: String(cls.classID), className: cls.className },
+                      params: { classID: String(cls.classID), className: cls.className, origin: 'classes' },
                     });
                   }}
                 >

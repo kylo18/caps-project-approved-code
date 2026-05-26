@@ -89,9 +89,15 @@ export default function ProgramChairSubjectsScreen() {
     if (quizTypeID === 1 && !quizSubjectID) { showToast('Please select a subject for subject-based quiz', 'error'); return; }
     setIsCreatingQuiz(true);
     try {
+      const coverageMapping: Record<string, number> = { midterm: 1, final: 2, full: 3 };
       const res = await apiRequest('/api/personal-quizzes', {
         method: 'POST',
-        body: { title: quizTitle.trim(), quiz_type_id: quizTypeID, subjectID: quizSubjectID || null, coverage: quizTypeID === 1 ? quizCoverage : undefined },
+        body: {
+          title: quizTitle.trim(),
+          quiz_type_id: quizTypeID,
+          subjectID: quizSubjectID || null,
+          coverage_id: quizTypeID === 1 ? (coverageMapping[quizCoverage] || 1) : undefined,
+        },
       });
       const quizID = res?.quiz?.personalQuizID || res?.personalQuizID || res?.data?.personalQuizID;
       setShowQuizModal(false); setQuizTitle(''); setQuizTypeID(2); setQuizSubjectID(null); setQuizCoverage('midterm');
@@ -358,7 +364,7 @@ export default function ProgramChairSubjectsScreen() {
     try {
       if (editingSubject) {
         await apiRequest(`/api/subjects/${editingSubject.subjectID}/update`, {
-          method: 'POST',
+          method: 'PUT',
           body: {
             subjectCode: subjectCode.trim(),
             subjectName: subjectName.trim(),
@@ -678,6 +684,16 @@ export default function ProgramChairSubjectsScreen() {
                         activeOpacity={0.7}
                       >
                         <Ionicons name="create-outline" size={18} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => router.push({
+                          pathname: '/(auth)/practice-exam/duplicate-question',
+                          params: { questionID: q.questionID, question: JSON.stringify(q) }
+                        })}
+                        className="p-1"
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="copy-outline" size={18} color="#FE6902" />
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => handleDeleteQuestion(q.questionID)}

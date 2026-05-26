@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { showToast } from '../../../hooks/useToast';
-import { getArchivedClasses, unarchiveFacultyClass } from '../../../services/facultyClassService';
+import { getArchivedClasses, unarchiveFacultyClass, deleteFacultyClass } from '../../../services/facultyClassService';
 import MobileHeader from '../../../features/core/components/MobileHeader';
 import { getRoleShadow, getRoleThemeColors } from '../../core/styles/roleTheme';
 
@@ -98,8 +98,7 @@ export default function ArchivedClassesScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            const { apiRequest } = await import('../../../services/apiClient');
-            await apiRequest(`/api/classes/${classID}`, { method: 'DELETE' });
+            await deleteFacultyClass(classID);
             showToast('Class deleted permanently', 'success');
             setClasses((prev) => prev.filter((c) => (c.classID || c.id) !== classID));
           } catch (error) {

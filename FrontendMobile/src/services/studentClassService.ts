@@ -109,7 +109,7 @@ export async function getQuizResult(resultID: number | string) {
 
 export async function getClassHistory(classID: number | string) {
   const response = await apiRequest(`/api/classes/${classID}/quiz-history`);
-  return response?.data || response || [];
+  return response?.history || response?.data || response || [];
 }
 
 export async function getQuizHistory(classPersonalQuizID: number | string) {
@@ -136,3 +136,21 @@ export async function enrollTeacher(teacherID: number | string) {
   });
   return response?.data || response || {};
 }
+
+// ── Added Student API service functions ───────────────────────────────────────
+
+export async function getStudentPracticeSubjects() {
+  const response = await apiRequest('/api/student/practice-subjects');
+  return response?.data || response || [];
+}
+
+export async function getExamPreview(subjectID: number | string) {
+  const response = await apiRequest(`/api/subjects/${subjectID}/exam-preview`);
+  return response?.data || response || {};
+}
+
+export async function getStudentDashboardSubjects() {
+  const response = await apiRequest('/api/student/dashboard-subjects');
+  return response?.data || response || [];
+}
+

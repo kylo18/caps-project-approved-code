@@ -455,6 +455,16 @@ export default function FacultySubjectsScreen() {
                         <Ionicons name="create-outline" size={18} color={isDark ? '#9CA3AF' : '#6B7280'} />
                       </TouchableOpacity>
                       <TouchableOpacity
+                        onPress={() => router.push({
+                          pathname: '/(auth)/practice-exam/duplicate-question',
+                          params: { questionID: q.questionID, question: JSON.stringify(q) }
+                        })}
+                        className="p-1"
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="copy-outline" size={18} color="#FE6902" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
                         onPress={() => handleDeleteQuestion(q.questionID)}
                         className="p-1"
                         activeOpacity={0.7}

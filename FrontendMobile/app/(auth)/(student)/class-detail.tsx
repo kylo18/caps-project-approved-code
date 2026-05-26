@@ -19,8 +19,16 @@ import {
 export default function ClassDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { classID, className } = useLocalSearchParams();
+  const { classID, className, origin } = useLocalSearchParams();
   const classId = String(classID);
+
+  const handleBack = () => {
+    if (origin === 'classes') {
+      router.replace('/(auth)/(student)/classes');
+    } else {
+      router.back();
+    }
+  };
 
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
@@ -56,11 +64,13 @@ export default function ClassDetailScreen() {
   async function loadHistory() {
     try {
       const data = await getClassHistory(classId);
-      const historyList = data?.data || data || [];
+      const historyList = data?.history || data?.data || data || [];
       setHistory(Array.isArray(historyList) ? historyList : []);
     } catch (error) {
       console.error('Error loading history:', error);
       setHistory([]);
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -112,7 +122,7 @@ export default function ClassDetailScreen() {
     if (!quiz.isAvailable && quiz.startDate && new Date(quiz.startDate) > new Date()) {
       return { label: 'Upcoming', color: '#F59E0B', icon: 'time' as const };
     }
-    if (quiz.isAvailable && quiz.canAttempt && (quiz.remainingAttempts ?? 0) > 0) {
+    if (quiz.isAvailable && quiz.canAttempt && (quiz.remainingAttempts === null || quiz.remainingAttempts === undefined || quiz.remainingAttempts > 0)) {
       return { label: 'Available', color: studentColors.orange, icon: 'play-circle' as const };
     }
     if (!quiz.canAttempt && quiz.availabilityMessage) {
@@ -154,7 +164,7 @@ export default function ClassDetailScreen() {
       {/* ── Orange Hero Header ─────────────────────────────────────────── */}
       <View className="px-6 pb-[42px]" style={{ paddingTop: insets.top + 12, backgroundColor: studentColors.orange }}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={handleBack}
           className="h-10 w-10 items-center justify-center rounded-full mb-4"
           style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
         >
@@ -420,52 +430,58 @@ function HistoryList({ history, formatDate }: { history: any[]; formatDate: (d: 
 
   return (
     <View className="gap-3">
-      {history.map((item: any, index: number) => (
-        <View
-          key={`${item.attemptID || index}-${index}`}
-          className="rounded-[22px] border-2 px-4 py-3.5 bg-white"
-          style={{ borderColor: studentColors.border, ...studentShadow }}
-        >
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1 mr-3">
+      {history.map((item: any, index: number) => {
+        const title = item.quiz?.title || item.quizName || item.personalQuiz?.title || 'Quiz';
+        const date = item.highestAttempt?.submitted_at || item.completedAt || item.startedAt;
+        const accuracy = item.highestAttempt?.percentage ?? item.accuracy ?? 0;
+
+        return (
+          <View
+            key={`${item.classPersonalQuizID || index}-${index}`}
+            className="rounded-[22px] border-2 px-4 py-3.5 bg-white"
+            style={{ borderColor: studentColors.border, ...studentShadow }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 mr-3">
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: studentColors.text,
+                    fontFamily: 'Rubik',
+                    fontSize: 15,
+                    fontWeight: '500',
+                    lineHeight: 22,
+                  }}
+                >
+                  {title}
+                </Text>
+                <Text
+                  style={{
+                    color: studentColors.textSoft,
+                    fontFamily: 'Rubik',
+                    fontSize: 12,
+                    fontWeight: '400',
+                    lineHeight: 18,
+                    marginTop: 2,
+                  }}
+                >
+                  {formatDate(date)}
+                </Text>
+              </View>
               <Text
-                numberOfLines={1}
                 style={{
-                  color: studentColors.text,
+                  color: accuracy >= 70 ? studentColors.success : accuracy >= 50 ? '#856404' : '#EF4444',
                   fontFamily: 'Rubik',
-                  fontSize: 15,
-                  fontWeight: '500',
-                  lineHeight: 22,
+                  fontSize: 16,
+                  fontWeight: '700',
                 }}
               >
-                {item.quizName || item.personalQuiz?.title || 'Quiz'}
-              </Text>
-              <Text
-                style={{
-                  color: studentColors.textSoft,
-                  fontFamily: 'Rubik',
-                  fontSize: 12,
-                  fontWeight: '400',
-                  lineHeight: 18,
-                  marginTop: 2,
-                }}
-              >
-                {formatDate(item.completedAt || item.startedAt)}
+                {Math.round(accuracy)}%
               </Text>
             </View>
-            <Text
-              style={{
-                color: item.accuracy >= 70 ? studentColors.success : item.accuracy >= 50 ? '#856404' : '#EF4444',
-                fontFamily: 'Rubik',
-                fontSize: 16,
-                fontWeight: '700',
-              }}
-            >
-              {Math.round(item.accuracy ?? 0)}%
-            </Text>
           </View>
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 }

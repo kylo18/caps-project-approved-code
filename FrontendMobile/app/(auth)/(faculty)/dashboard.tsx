@@ -73,6 +73,7 @@ export default function FacultyDashboard() {
           title: quizTitle.trim(),
           quiz_type_id: quizTypeID,
           subjectID: quizSubjectID || null,
+          coverage_id: quizTypeID === 1 ? 1 : undefined,
         },
       });
       const quizID = res?.quiz?.personalQuizID || res?.personalQuizID || res?.data?.personalQuizID;

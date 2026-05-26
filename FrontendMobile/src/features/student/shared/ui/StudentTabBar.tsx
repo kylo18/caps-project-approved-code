@@ -17,12 +17,15 @@ function getTabIcon(name: string, focused: boolean): keyof typeof Ionicons.glyph
 }
 
 export function StudentTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const activeRouteName = state.routes[state.index]?.name;
+  const visibleTabNames = new Set(['dashboard', 'classes', 'leaderboard', 'insights']);
+  if (!visibleTabNames.has(activeRouteName)) {
+    return null;
+  }
+
   const visibleRoutes = useMemo(() => {
-    const visibleTabNames = new Set(['dashboard', 'classes', 'leaderboard', 'insights']);
     return state.routes.filter((route) => visibleTabNames.has(route.name));
   }, [state.routes]);
-
-  const activeRouteName = state.routes[state.index]?.name;
 
   return (
     <View className="absolute left-0 right-0 bottom-0 bg-transparent">
