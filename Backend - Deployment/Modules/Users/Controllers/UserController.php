@@ -119,6 +119,8 @@ class UserController extends Controller
             'fullName' => $user->firstName . ' ' . $user->lastName,
             'remarks' => $remarks,
             'curriculum' => $curriculum,
+            'programID' => $user->programID,
+            'programName' => $user->program?->programName ?? null,
         ], 200);
     }
 

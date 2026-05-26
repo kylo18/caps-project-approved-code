@@ -8,6 +8,7 @@ import useToast from "../hooks/useToast";
 import Toast from "./Toast";
 import CollegeLogo from "/src/assets/college-logo.png";
 import AppVersion from "./appVersion";
+import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification, createAnnouncement } from "../services/notificationService";
 
 import DashboardIcon from "/src/assets/symbols/dashboard.svg";
 import DashboardIconH from "/src/assets/symbols/dashboardhover.svg";
@@ -138,6 +139,15 @@ const Sidebar = ({
   // new added: Analytics popup state and ref
   const [showAnalyticsPopup, setShowAnalyticsPopup] = useState(false);
   const [newUsersCount, setNewUsersCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [showAddAnnouncementModal, setShowAddAnnouncementModal] = useState(false);
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementMessage, setAnnouncementMessage] = useState("");
+  const [isAnnouncing, setIsAnnouncing] = useState(false);
+
+
   const analyticsRef = useRef(null);
   const sidebarRef = useRef();
   const userDropdownRef = useRef(null);
@@ -301,17 +311,169 @@ const Sidebar = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showAnalyticsPopup]);
 
-  // Close Support popup when clicking outside
+  // Close Support or Notifications popup when clicking outside
   useEffect(() => {
-    if (activeMenu !== "Support") return;
+    if (!activeMenu) return;
     const handleClickOutside = (e) => {
-      if (!e.target.closest("[data-support-popup]")) {
+      if (activeMenu === "Support" && !e.target.closest("[data-support-popup]")) {
+        setActiveMenu(null);
+      }
+      if (activeMenu === "Notifications" && !e.target.closest("[data-notifications-popup]")) {
         setActiveMenu(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [activeMenu]);
+
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      const response = await getNotifications();
+      setNotifications(response.data || []);
+      setUnreadCount(response.meta?.unread_count || 0);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Error marking all notifications read:", err);
+    }
+  };
+
+  const handleMarkRead = async (id, actionUrl) => {
+    try {
+      await markNotificationRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      if (actionUrl) {
+        setActiveMenu(null);
+        navigate(actionUrl);
+      }
+    } catch (err) {
+      console.error("Error marking notification read:", err);
+    }
+  };
+
+  const handleNotificationClick = async (item) => {
+    setSelectedNotification(item);
+    if (!item.is_read) {
+      try {
+        await markNotificationRead(item.id);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === item.id ? { ...n, is_read: true } : n))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      } catch (err) {
+        console.error("Error marking notification read:", err);
+      }
+    }
+  };
+
+  const handleDeleteNotification = async (id, event) => {
+    if (event) {
+      event.stopPropagation();
+    }
+    try {
+      await deleteNotification(id);
+      setNotifications((prev) => {
+        const itemToDelete = prev.find((n) => n.id === id);
+        const wasUnread = itemToDelete && !itemToDelete.is_read;
+        if (wasUnread) {
+          setUnreadCount((prevCount) => Math.max(0, prevCount - 1));
+        }
+        return prev.filter((n) => n.id !== id);
+      });
+      if (selectedNotification && selectedNotification.id === id) {
+        setSelectedNotification(null);
+      }
+      showToast("Notification deleted successfully", "success");
+    } catch (err) {
+      console.error("Error deleting notification:", err);
+      showToast("Failed to delete notification", "error");
+    }
+  };
+
+  const handleCreateAnnouncement = async (e) => {
+    e.preventDefault();
+    if (!announcementTitle.trim() || !announcementMessage.trim()) return;
+
+    setIsAnnouncing(true);
+    try {
+      let target_type = "all";
+      let target_id = null;
+
+      if (parsedRoleId === 4 || parsedRoleId === 5) {
+        // Dean / Associate Dean targets all students (role 1)
+        target_type = "role";
+        target_id = 1;
+      } else if (parsedRoleId === 3) {
+        // Program Chair targets students in their program
+        target_type = "program_students";
+        target_id = userInfo?.programID || null;
+      } else if (parsedRoleId === 2) {
+        // Faculty targets their enrolled students
+        target_type = "enrolled";
+        target_id = null;
+      }
+
+      await createAnnouncement({
+        type: "system_announcement",
+        title: announcementTitle.trim(),
+        message: announcementMessage.trim(),
+        target_type,
+        target_id,
+      });
+
+      showToast("Announcement created successfully!", "success");
+      setAnnouncementTitle("");
+      setAnnouncementMessage("");
+      setShowAddAnnouncementModal(false);
+      fetchNotifications();
+    } catch (err) {
+      console.error("Failed to create announcement:", err);
+      showToast(err.message || "Failed to create announcement", "error");
+    } finally {
+      setIsAnnouncing(false);
+    }
+  };
+
+  const formatTimeAgo = (dateString) => {
+    try {
+      const now = new Date();
+      const date = new Date(dateString);
+      const seconds = Math.floor((now - date) / 1000);
+      if (isNaN(seconds) || seconds < 0) return "Just now";
+
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (days > 7) {
+        return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      }
+      if (days > 0) return `${days}d ago`;
+      if (hours > 0) return `${hours}h ago`;
+      if (minutes > 0) return `${minutes}m ago`;
+      return "Just now";
+    } catch (e) {
+      return "";
+    }
+  };
 
   // Handle logout
   const handleLogout = async () => {
@@ -1768,6 +1930,154 @@ const Sidebar = ({
         </div>
         {/* Support button at the bottom */}
         <div className="mt-auto border-t border-gray-200 bg-white px-3 py-3">
+          {/* Notifications popup trigger */}
+          <div className="relative" data-notifications-popup>
+            <button
+              onClick={() => setActiveMenu(activeMenu === "Notifications" ? null : "Notifications")}
+              className={`group mb-2 flex w-full cursor-pointer items-center rounded-lg py-[8px] transition-colors hover:bg-gray-100 hover:text-gray-800 ${
+                isUsersPage ? "justify-center" : "justify-start"
+              } ${activeMenu === "Notifications" ? "bg-gray-100 text-orange-600" : ""}`}
+            >
+              <div
+                className={`flex items-center relative ${
+                  isUsersPage ? "justify-center" : "ml-3 gap-[10px]"
+                }`}
+              >
+                <div className="relative flex items-center justify-center">
+                  <i
+                    className={`bx ${
+                      activeMenu === "Notifications"
+                        ? "bxs-bell text-orange-600 animate-swing"
+                        : "bx-bell text-gray-500 group-hover:text-orange-500"
+                    } text-[20px] flex-shrink-0`}
+                  />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+                {!isUsersPage && (
+                  <span className="outfit-500 text-[15px] whitespace-nowrap text-gray-600">
+                    Notifications
+                  </span>
+                )}
+              </div>
+            </button>
+
+            {/* Notifications Popup */}
+            {activeMenu === "Notifications" && (
+              <div className="absolute bottom-full left-0 z-[70] mb-2 w-[380px] rounded-2xl border border-gray-200 bg-white p-5 shadow-xl flex flex-col max-h-[calc(100vh-270px)]">
+                {/* Arrow pointer */}
+                <div className="absolute -bottom-[7px] left-4 h-3 w-3 rotate-45 border-r border-b border-gray-200 bg-white"></div>
+                
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <h3 className="outfit-700 text-lg font-bold text-gray-800 flex items-center gap-2">
+                      <i className="bx bx-bell text-orange-500 text-lg" />
+                      Notifications
+                    </h3>
+                    {parsedRoleId > 1 && (
+                      <button
+                        onClick={() => setShowAddAnnouncementModal(true)}
+                        className="flex items-center justify-center rounded-full bg-orange-500 hover:bg-orange-600 text-white size-6 transition active:scale-95 shadow-sm"
+                        title="Add announcement"
+                      >
+                        <i className="bx bx-plus text-base"></i>
+                      </button>
+                    )}
+                  </div>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllRead}
+                      className="outfit-500 text-sm font-bold text-orange-500 hover:text-orange-600 transition-colors"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+
+                {/* List container */}
+                <div className="overflow-y-auto pr-1 flex-1 flex flex-col gap-3 scrollbar-thin">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                      <i className="bx bx-bell-off text-4xl mb-2 text-gray-300" />
+                      <p className="outfit-500 text-base text-gray-500">No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.map((item) => {
+                      let iconClass = "bx-bell";
+                      let bgClass = "bg-blue-50 text-blue-500";
+                      
+                      if (item.type === "lesson" || item.type === "lesson_available") {
+                        iconClass = "bx-book-open";
+                        bgClass = "bg-orange-50 text-orange-500";
+                      } else if (item.type === "quiz_result") {
+                        iconClass = "bx-file";
+                        bgClass = "bg-green-50 text-green-500";
+                      } else if (item.type === "achievement" || item.type === "milestone") {
+                        iconClass = "bx-trophy";
+                        bgClass = "bg-yellow-50 text-yellow-600";
+                      } else if (item.type === "announcement" || item.type === "system_announcement") {
+                        iconClass = "bx-bullhorn";
+                        bgClass = "bg-purple-50 text-purple-500";
+                      }
+
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleNotificationClick(item)}
+                          className={`flex items-start gap-4 rounded-2xl p-3.5 cursor-pointer transition-all duration-200 border text-left ${
+                            item.is_read
+                              ? "border-transparent hover:bg-gray-50"
+                              : "border-orange-50 bg-orange-50/20 hover:bg-orange-50/45"
+                          }`}
+                        >
+                          <div className={`flex size-10 flex-shrink-0 items-center justify-center rounded-full ${bgClass}`}>
+                            <i className={`bx ${iconClass} text-xl`} />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1.5">
+                              <h4 className={`outfit-700 text-[15px] font-bold truncate ${item.is_read ? "text-gray-600" : "text-gray-900"}`}>
+                                {item.title}
+                              </h4>
+                              {!item.is_read && (
+                                <span className="h-2 w-2 flex-shrink-0 rounded-full bg-orange-500" />
+                              )}
+                            </div>
+                            <p className="outfit-400 text-sm text-gray-600 line-clamp-2 mt-0.5 leading-relaxed">
+                              {item.message}
+                            </p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="outfit-400 text-xs text-gray-500">
+                                {formatTimeAgo(item.created_at)}
+                              </span>
+                              <button
+                                onClick={(e) => handleDeleteNotification(item.id, e)}
+                                className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors p-1.5 rounded-md"
+                                title="Delete notification"
+                              >
+                                <i className="bx bx-trash text-[16px]"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isUsersPage && (
+              <span className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 z-[100]">
+                Notifications
+              </span>
+            )}
+          </div>
+
           {/* Support popup trigger */}
           <div className="relative" data-support-popup>
             <button
@@ -1887,6 +2197,181 @@ const Sidebar = ({
           <AppVersion />
         </div>*/}
       </div>
+
+      {/* Notification Detail Modal */}
+      {selectedNotification && (
+        <div className="lightbox-bg fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="animate-fade-in-up flex w-[90vw] max-w-[560px] flex-col rounded-2xl bg-white p-8 shadow-2xl relative border border-gray-100">
+            {/* Close button (X) */}
+            <button
+              onClick={() => setSelectedNotification(null)}
+              className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+            >
+              <i className="bx bx-x text-2xl"></i>
+            </button>
+
+            {/* Icon & Title */}
+            <div className="flex items-center gap-4 mb-4 pr-6">
+              <div className={`flex size-14 flex-shrink-0 items-center justify-center rounded-full ${
+                (selectedNotification.type === "lesson" || selectedNotification.type === "lesson_available") ? "bg-orange-50 text-orange-500" :
+                selectedNotification.type === "quiz_result" ? "bg-green-50 text-green-500" :
+                (selectedNotification.type === "achievement" || selectedNotification.type === "milestone") ? "bg-yellow-50 text-yellow-600" :
+                (selectedNotification.type === "announcement" || selectedNotification.type === "system_announcement") ? "bg-purple-50 text-purple-500" :
+                "bg-blue-50 text-blue-500"
+              }`}>
+                <i className={`bx ${
+                  (selectedNotification.type === "lesson" || selectedNotification.type === "lesson_available") ? "bx-book-open" :
+                  selectedNotification.type === "quiz_result" ? "bx-file" :
+                  (selectedNotification.type === "achievement" || selectedNotification.type === "milestone") ? "bx-trophy" :
+                  (selectedNotification.type === "announcement" || selectedNotification.type === "system_announcement") ? "bx-bullhorn" :
+                  "bx-bell"
+                } text-3xl`} />
+              </div>
+              <div className="min-w-0">
+                <span className="outfit-500 text-sm text-gray-400 font-semibold uppercase tracking-wider block">
+                  {selectedNotification.type ? selectedNotification.type.replace(/_/g, ' ') : "Notification"}
+                </span>
+                <h3 className="outfit-700 text-xl font-bold text-gray-900 leading-snug mt-0.5 break-words">
+                  {selectedNotification.title}
+                </h3>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-[1px] w-full bg-gray-100 mb-5"></div>
+
+            {/* Message Body */}
+            <div className="mb-6 max-h-[40vh] overflow-y-auto pr-1 scrollbar-thin">
+              <p className="outfit-400 text-base text-gray-600 leading-relaxed whitespace-pre-line break-words">
+                {selectedNotification.message}
+              </p>
+              <span className="outfit-400 text-sm text-gray-400 mt-4 block">
+                Received {formatTimeAgo(selectedNotification.created_at)}
+              </span>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={(e) => handleDeleteNotification(selectedNotification.id, e)}
+                className="outfit-500 cursor-pointer rounded-lg border border-red-200 text-red-600 hover:bg-red-50 px-6 py-2.5 text-base font-semibold transition active:scale-98"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setSelectedNotification(null)}
+                className="outfit-500 cursor-pointer rounded-lg bg-orange-500 hover:bg-orange-700 text-white px-7 py-2.5 text-base font-semibold transition active:scale-98 shadow-md"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Announcement Modal */}
+      {showAddAnnouncementModal && (
+        <div className="lightbox-bg fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <form
+            onSubmit={handleCreateAnnouncement}
+            className="animate-fade-in-up flex w-[90vw] max-w-[500px] flex-col rounded-2xl bg-white p-7 shadow-2xl relative border border-gray-100"
+          >
+            {/* Close button (X) */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddAnnouncementModal(false);
+                setAnnouncementTitle("");
+                setAnnouncementMessage("");
+              }}
+              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+            >
+              <i className="bx bx-x text-2xl"></i>
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3.5 mb-4">
+              <div className="flex size-11 flex-shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                <i className="bx bx-bullhorn text-2xl" />
+              </div>
+              <div>
+                <h3 className="outfit-700 text-lg font-bold text-gray-900 leading-snug">
+                  Create Announcement
+                </h3>
+                <span className="outfit-400 text-xs text-gray-400 block mt-0.5">
+                  {parsedRoleId === 4 || parsedRoleId === 5 ? "Send announcement to all students" :
+                   parsedRoleId === 3 ? `Send announcement to students in ${userInfo?.programName || "assigned program"}` :
+                   "Send announcement to all your enrolled students"}
+                </span>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-[1px] w-full bg-gray-100 mb-5"></div>
+
+            {/* Inputs */}
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., Upcoming Holiday or Class Schedule Change"
+                  value={announcementTitle}
+                  onChange={(e) => setAnnouncementTitle(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                  Message
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Enter details of the announcement..."
+                  value={announcementMessage}
+                  onChange={(e) => setAnnouncementMessage(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200 resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddAnnouncementModal(false);
+                  setAnnouncementTitle("");
+                  setAnnouncementMessage("");
+                }}
+                className="outfit-500 cursor-pointer rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 px-5 py-2 text-sm font-semibold transition active:scale-98"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isAnnouncing || !announcementTitle.trim() || !announcementMessage.trim()}
+                className="outfit-500 cursor-pointer rounded-lg bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2 text-sm font-semibold transition active:scale-98 shadow-md flex items-center gap-1.5"
+              >
+                {isAnnouncing ? (
+                  <>
+                    <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                    Posting...
+                  </>
+                ) : (
+                  "Post"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <PrintExamModal
         isOpen={showPrintModal === true}
         onClose={() => setShowPrintModal(false)}

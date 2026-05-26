@@ -1,39 +1,108 @@
-import { mockNotificationsResponse } from "../mockdata/notificationMockData";
+const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
-// Manage clone notifications.
-function cloneNotifications() {
-  // Clone each object so read-state changes in the UI do not mutate the source mock data.
-  return mockNotificationsResponse.data.map((item) => ({ ...item }));
+function getHeaders() {
+  const token = sessionStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Authorization: `Bearer ${token}`,
+  };
 }
 
-// Return a fresh copy on each call so UI state mutations do not leak back into
-// the mock source and create inconsistent read/unread behavior across screens.
+// Fetch all notifications for the authenticated user
 export async function getNotifications() {
-  const data = cloneNotifications();
-  return Promise.resolve({
-    data,
-    meta: {
-      unread_count: data.filter((item) => !item.is_read).length,
-    },
-  });
+  try {
+    const response = await fetch(`${apiUrl}/notifications`, {
+      method: "GET",
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch notifications: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error in getNotifications service:", error);
+    throw error;
+  }
 }
 
-// Manage mark notification read.
+// Mark a specific notification as read
 export async function markNotificationRead(id) {
-  // Minimal response shape for optimistic UI updates in NotificationPanel.jsx.
-  return Promise.resolve({
-    message: "Notification marked as read.",
-    data: {
-      id,
-      is_read: true,
-    },
-  });
+  try {
+    const response = await fetch(`${apiUrl}/notifications/${id}/read`, {
+      method: "PATCH",
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to mark notification read: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`Error in markNotificationRead service for ID ${id}:`, error);
+    throw error;
+  }
 }
 
-// Manage mark all notifications read.
+// Mark all notifications as read
 export async function markAllNotificationsRead() {
-  // The panel updates local state after this call instead of refetching the whole list.
-  return Promise.resolve({
-    message: "All notifications marked as read.",
-  });
+  try {
+    const response = await fetch(`${apiUrl}/notifications/mark-all-read`, {
+      method: "POST",
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to mark all notifications read: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error in markAllNotificationsRead service:", error);
+    throw error;
+  }
 }
+
+// Delete a specific notification
+export async function deleteNotification(id) {
+  try {
+    const response = await fetch(`${apiUrl}/notifications/${id}`, {
+      method: "DELETE",
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete notification: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`Error in deleteNotification service for ID ${id}:`, error);
+    throw error;
+  }
+}
+
+// Create a new announcement/notification (staff only)
+export async function createAnnouncement(payload) {
+  try {
+    const response = await fetch(`${apiUrl}/admin/notifications`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Failed to create announcement: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error in createAnnouncement service:", error);
+    throw error;
+  }
+}
+

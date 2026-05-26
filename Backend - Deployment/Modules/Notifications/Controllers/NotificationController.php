@@ -209,7 +209,7 @@ class NotificationController extends Controller
                 'type' => 'required|in:achievement,lesson_available,quiz_result,system_announcement,milestone,enrollment',
                 'title' => 'required|string|max:255',
                 'message' => 'required|string',
-                'target_type' => 'required|in:user,role,campus,program,all',
+                'target_type' => 'required|in:user,role,campus,program,all,enrolled,program_students',
                 'target_id' => 'nullable|integer',
                 'data' => 'nullable|array'
             ]);
@@ -334,6 +334,28 @@ class NotificationController extends Controller
                 // All users in specific program
                 return DB::table('users')
                     ->where('programID', $targetId)
+                    ->where('isActive', true)
+                    ->pluck('userID')
+                    ->toArray();
+
+            case 'program_students':
+                // All students in specific program
+                return DB::table('users')
+                    ->where('programID', $targetId)
+                    ->where('roleID', 1)
+                    ->where('isActive', true)
+                    ->pluck('userID')
+                    ->toArray();
+
+            case 'enrolled':
+                // All students enrolled under this teacher
+                $studentIds = DB::table('student_teacher_enrollments')
+                    ->where('teacher_id', $adminUser->userID)
+                    ->pluck('student_id')
+                    ->toArray();
+                return DB::table('users')
+                    ->whereIn('userID', $studentIds)
+                    ->where('roleID', 1)
                     ->where('isActive', true)
                     ->pluck('userID')
                     ->toArray();
