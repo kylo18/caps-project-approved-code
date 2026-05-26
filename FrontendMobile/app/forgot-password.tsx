@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
@@ -14,6 +16,7 @@ import CapsActivityIndicator from '../src/features/core/components/CapsActivityI
 import { apiRequest } from '../src/services/apiClient';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { showToast } from '../src/hooks/useToast';
+import loginBg from '../assets/login-bg.png';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -25,14 +28,14 @@ export default function ForgotPasswordScreen() {
 
   const colors = useMemo(
     () => ({
-      page: isDark ? '#050505' : '#F3F4F6',
-      card: isDark ? '#111827' : '#FFFFFF',
-      soft: isDark ? '#1F2937' : '#FFF7ED',
-      text: isDark ? '#F9FAFB' : '#111827',
+      page: isDark ? '#0F0F0F' : '#F7F8FA',
+      card: isDark ? '#141414' : '#FFFFFF',
+      soft: isDark ? 'rgba(255,140,0,0.16)' : 'rgba(254,105,2,0.10)',
+      text: isDark ? '#F5F5F5' : '#111827',
       muted: isDark ? '#A3A3A3' : '#6B7280',
-      border: isDark ? '#374151' : '#E5E7EB',
-      input: isDark ? '#0B1220' : '#FFFFFF',
-      primary: '#FE6902',
+      border: isDark ? '#2A2A2A' : '#DADDE5',
+      input: isDark ? '#1F1F1F' : '#FFFFFF',
+      primary: isDark ? '#FF8C00' : '#FE6902',
       success: '#10B981',
     }),
     [isDark]
@@ -91,25 +94,28 @@ export default function ForgotPasswordScreen() {
   );
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: colors.page }}
-    >
-      <HeaderActions />
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24, paddingTop: 120, paddingBottom: 40 }}
+    <View style={{ flex: 1, backgroundColor: colors.page }}>
+      <Image source={loginBg} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        <View
-          style={{
-            backgroundColor: colors.card,
-            borderRadius: 24,
-            padding: 24,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
+        <HeaderActions />
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24, paddingTop: 120, paddingBottom: 40 }}
         >
+          <View
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: 24,
+              padding: 24,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
           <View style={{ alignItems: 'center' }}>
             <View
               style={{
@@ -202,8 +208,9 @@ export default function ForgotPasswordScreen() {
               </TouchableOpacity>
             </View>
           )}
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
