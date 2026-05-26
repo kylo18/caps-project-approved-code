@@ -133,7 +133,7 @@ class LeaderboardController extends Controller
         try {
             $period = $this->normalizePeriod($request->query('period', 'all_time'));
             [$periodStart, $periodEnd] = $this->getPeriodBounds($period);
-            $limit = (int) $request->query('limit', 20); // Default to 20 for mobile
+            $limit = (int) $request->query('limit', 50); // Default to 50 for mobile
             $viewer = $this->resolveViewer($request);
             $viewerId = $viewer ? (int) $viewer->userID : null;
 
@@ -155,7 +155,10 @@ class LeaderboardController extends Controller
             // Build base query - only select needed columns to reduce memory
             $resultsQuery = DB::table('practice_exam_results as per')
                 ->join('users as u', 'per.userID', '=', 'u.userID')
+                ->join('programs as prog', 'u.programID', '=', 'prog.programID')
                 ->where('u.roleID', 1)
+                ->whereIn('prog.programName', ['BS-CpE', 'BS-CE', 'BS-ECE', 'BS-EE'])
+                ->where('u.userCode', 'not like', 'TC-%')
                 ->select([
                     'per.userID',
                     DB::raw('MAX(per.percentage) as highestPercentage'),

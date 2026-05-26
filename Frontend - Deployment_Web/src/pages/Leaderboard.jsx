@@ -108,6 +108,28 @@ const PodiumCard = ({ student, position, isMobile }) => {
   };
 
   const c = configs[position];
+
+  if (!student) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: c.mb, zIndex: position === 1 ? 2 : 1, opacity: 0.35 }}>
+      <div style={{ fontSize: isMobile ? 16 : 20, marginBottom: 4 }}>{position === 1 ? "👑" : position === 2 ? "🥈" : "🥉"}</div>
+      <div style={{
+        width: c.avatarSize, height: c.avatarSize, borderRadius: "50%",
+        background: "#e5e7eb", border: "2px dashed #d1d5db",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: isMobile ? 16 : 20, marginBottom: 6,
+      }}>?</div>
+      <div style={{ fontSize: c.nameSize, color: "#9ca3af", marginBottom: 4 }}>—</div>
+      <div style={{ fontSize: c.scoreSize, color: "#d1d5db", marginBottom: 8 }}>—%</div>
+      <div style={{
+        width: c.baseW, height: c.baseH,
+        background: "linear-gradient(180deg,#f3f4f6,#e5e7eb)",
+        borderRadius: "10px 10px 0 0",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: isMobile ? 16 : 22, fontWeight: 900, color: "#d1d5db",
+      }}>{position}</div>
+    </div>
+  );
+
   const scoreColor = position === 1 ? "#F0C040" : position === 2 ? "#A8B4C0" : "#CD7F32";
   const maxNameLen = isMobile ? 8 : 16;
   const name = `${student.firstName} ${student.lastName}`;
@@ -391,6 +413,9 @@ const Leaderboard = () => {
         });
         const lbData = await lbRes.json();
 
+        console.log("RAW LEADERBOARD:", JSON.stringify(lbData.leaderboard?.slice(0, 5), null, 2));
+        console.log("TOTAL ENTRIES:", lbData.leaderboard?.length);
+
         if (!lbRes.ok) {
           throw new Error(lbData.message || 'Unable to load leaderboard data.');
         }
@@ -406,7 +431,13 @@ const Leaderboard = () => {
           totalExams: entry.attempts ?? 0,
         }));
 
-        const sorted = studentList.sort((a, b) => {
+        
+
+        const VALID_PROGRAMS = ["BSCpE", "CE", "ECE", "EE"];
+
+        const sorted = studentList
+          .filter(s => VALID_PROGRAMS.includes(s.program) && !s.userCode.startsWith("TC-"))
+          .sort((a, b) => {
           if (a.avgScore == null && b.avgScore == null) return 0;
           if (a.avgScore == null) return 1;
           if (b.avgScore == null) return -1;
@@ -513,7 +544,7 @@ const Leaderboard = () => {
       
 
       {/* ── PODIUM ── */}
-      {!loading && !error && top3.length >= 3 && selectedProgram === "All" && !search && (
+      {!loading && !error && students.length > 0 && selectedProgram === "All" && !search && (
         <div style={{
           background: "#f9fafb",
           borderBottom: "1px solid #e5e7eb",
@@ -521,9 +552,9 @@ const Leaderboard = () => {
           display: "flex", justifyContent: "center", alignItems: "flex-end",
           gap: isMobile ? 8 : 16, flexShrink: 0,
         }}>
-          <PodiumCard student={top3[1]} position={2} isMobile={isMobile} />
-          <PodiumCard student={top3[0]} position={1} isMobile={isMobile} />
-          <PodiumCard student={top3[2]} position={3} isMobile={isMobile} />
+          <PodiumCard student={top3[1] ?? null} position={2} isMobile={isMobile} />
+          <PodiumCard student={top3[0] ?? null} position={1} isMobile={isMobile} />
+          <PodiumCard student={top3[2] ?? null} position={3} isMobile={isMobile} />
         </div>
       )}
 
