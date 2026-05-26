@@ -1033,7 +1033,7 @@ const Sidebar = ({
                       <span className="outfit-500 text-[9px] leading-4 text-center relative">
                         {item.label}
                         {item.label === "Users" && newUsersCount > 0 && (
-                          <span className="absolute -top-2 right-[-8px] flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                          <span className="absolute -top-6 right-[-14px] flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
                             {newUsersCount > 99 ? "99+" : newUsersCount}
                           </span>
                         )}

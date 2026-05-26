@@ -917,6 +917,7 @@ const AdminStudentEnhancement = () => {
   const [studentProgressData, setStudentProgressData] = useState(null);
   const [students, setStudents] = useState([]);
   const [studentCount, setStudentCount] = useState(0);
+  const [studentScores, setStudentScores] = useState({}); // { userID: average_score }
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
@@ -987,6 +988,17 @@ const AdminStudentEnhancement = () => {
         } while (page <= totalPages);
 
         setStudents(allFetchedStudents);
+
+        // Fetch per-student scores and build a lookup map
+        const scoresRes = await fetch(`${baseUrl}/admin/analytics/student-scores`, { headers });
+        if (scoresRes.ok) {
+          const scoresJson = await scoresRes.json();
+          const scoresMap = {};
+          (scoresJson.data ?? []).forEach((s) => {
+            scoresMap[s.userID] = parseFloat(s.average_score ?? 0);
+          });
+          setStudentScores(scoresMap);
+        }
 
       } catch (e) {
         console.error("Fetch error:", e);
@@ -1217,9 +1229,11 @@ const AdminStudentEnhancement = () => {
                           ) : (
                             visiblePrograms.map((prog) => {
                               const list = visibleStudents.filter((s) => normalizeProgram(s.program || s.programName) === prog);
-                              const scoreValues = list.map((s) => Number(s.score ?? s.average_score ?? 0));
-                              const avg = list.length ? parseFloat((scoreValues.reduce((a, v) => a + v, 0) / list.length).toFixed(1)) : null;
-                              const pr = list.length ? Math.round((scoreValues.filter((v) => v >= 75).length / list.length) * 100) : null;
+                              const scoreValues = list
+                                .map((s) => studentScores[s.userID] ?? studentScores[s.id] ?? null)
+                                .filter((v) => v !== null);
+                              const avg = scoreValues.length ? parseFloat((scoreValues.reduce((a, v) => a + v, 0) / scoreValues.length).toFixed(1)) : null;
+                              const pr = scoreValues.length ? Math.round((scoreValues.filter((v) => v >= 60).length / scoreValues.length) * 100) : null;
                               return (
                                 <tr key={prog} onClick={() => setView(`students:${prog}`)}
                                   className="cursor-pointer hover:bg-gray-50 transition-colors">

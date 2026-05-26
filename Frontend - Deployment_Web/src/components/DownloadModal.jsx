@@ -16,7 +16,8 @@ export default function DownloadModal({ isOpen, onClose }) {
   if (!isOpen) return null; // Don't render anything if the modal is closed
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
-  const apkUrl = `${apiUrl.replace("/api", "")}/apk/CAPS.apk`; //endpoint to download the APK file
+  //const apkUrl = `${apiUrl.replace("/api", "")}/apk/CAPS.apk`; //endpoint to download the APK file
+  const apkUrl = `${apiUrl.replace("/api", "")}/download/caps.apk`;
 
   return (
     <div
@@ -71,6 +72,7 @@ export default function DownloadModal({ isOpen, onClose }) {
           </a>
 
           {/* iOS — coming soon */}
+          {/*
           <div className="flex cursor-not-allowed items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 opacity-60">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -83,8 +85,10 @@ export default function DownloadModal({ isOpen, onClose }) {
             </div>
             <span className="outfit-400 rounded-lg bg-gray-200 px-3 py-1.5 text-xs text-gray-500">Soon</span>
           </div>
+          */}
 
           {/* Desktop — coming soon */}
+          {/*
           <div className="flex cursor-not-allowed items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 opacity-60">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -97,6 +101,7 @@ export default function DownloadModal({ isOpen, onClose }) {
             </div>
             <span className="outfit-400 rounded-lg bg-gray-200 px-3 py-1.5 text-xs text-gray-500">Soon</span>
           </div>
+          */}
 
         </div>
 
