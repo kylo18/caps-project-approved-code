@@ -249,7 +249,11 @@ export default function ClassDetailScreen({ rolePath = "/(dean)" }: { rolePath?:
         await createFacultyClass(payload);
         showToast('Class created successfully', 'success');
         setShowEditModal(false);
-        router.back(); // Go back to the classes list to see the new class
+        if (origin === 'classes') {
+          router.replace(`/(auth)${rolePath}/classes` as string);
+        } else {
+          router.back();
+        }
       }
     } catch (error) {
       console.error('Error saving class:', error);

@@ -67,6 +67,7 @@ async function rawApiRequest(
   const getTimeout = (path: string): number => {
     if (path.includes('/leaderboard')) return 60000; // 60s for leaderboard
     if (path.includes('/analytics') || path.includes('/insights')) return 45000; // 45s for analytics
+    if (path.includes('/admin/notifications')) return 120000; // 120s for announcements (N+1 inserts + Expo push)
     return 30000; // 30s default
   };
   const timeout = setTimeout(() => controller.abort(), getTimeout(path)); // heavy analytics queries need more time

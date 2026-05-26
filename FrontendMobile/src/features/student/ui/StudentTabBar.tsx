@@ -7,6 +7,7 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getStudentColors, getStudentShadow } from './studentTokens';
 
@@ -28,6 +29,7 @@ export function StudentTabBar({ state, descriptors, navigation }: BottomTabBarPr
   const isDark = theme === 'dark';
   const colors = getStudentColors(isDark);
   const shadow = getStudentShadow(isDark);
+  const insets = useSafeAreaInsets();
   const visibleRoutes = useMemo(() => {
     return state.routes.filter((route) => visibleTabNames.has(route.name));
   }, [state.routes]);
@@ -35,12 +37,13 @@ export function StudentTabBar({ state, descriptors, navigation }: BottomTabBarPr
   return (
     <View className="absolute left-0 right-0 bottom-0 bg-transparent">
       <View
-        className="w-full flex-row items-center justify-around rounded-t-[20px] pt-2.5 pb-2"
+        className="w-full flex-row items-center justify-around rounded-t-[20px] pt-2.5"
         style={[
           {
             backgroundColor: colors.tab,
             borderTopWidth: 1,
             borderTopColor: colors.border,
+            paddingBottom: Math.max(insets.bottom, 10),
           },
           shadow,
         ]}
