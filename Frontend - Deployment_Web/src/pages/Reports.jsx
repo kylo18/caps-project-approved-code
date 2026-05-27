@@ -200,8 +200,8 @@ const Reports = () => {
 
   return (
     <>
-      <div className="flex h-screen">
-        <div className="mt-10 flex h-full flex-1 flex-col gap-6 overflow-y-auto p-4 pb-0 md:p-6 lg:mt-0">
+      <div className="flex min-h-screen">
+        <div className="mt-8 mb-15 flex flex-1 flex-col gap-6 p-4 pb-11 md:p-6 lg:mt-0">
           <div className="space-y-4">
             <div>
               <h1 className="outfit-500 text-[18px] text-black">Reports</h1>

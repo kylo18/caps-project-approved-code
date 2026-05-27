@@ -95,7 +95,7 @@ const Layout = () => {
             />
           )}
         <div
-          className={`flex flex-1 flex-col ${
+          className={`flex flex-1 flex-col min-w-0 overflow-x-hidden ${
             isTutorialPage ||
             isPrintQualifyingExam ||
             isPrintPersonalQuiz ||

@@ -194,7 +194,7 @@ const KpiCard = ({ label, value, sub, accentColor, sparkData, icon, delay = 0 })
           </div>
         ) : sparkData?.length >= 2 ? (
           <div className="shrink-0 self-center pt-1.5">
-            <Sparkline data={sparkData} color={accentColor} width={72} height={30} />
+            <Sparkline data={sparkData} color={accentColor} width={56} height={24} />
           </div>
         ) : null}
       </div>
@@ -547,8 +547,8 @@ const ScoreHistory = () => {
 
   const passRateStyle = passRate == null ? { icon: "bx bx-help-circle", color: "#9ca3af" }
     : passRate >= 80 ? { icon: "bx bx-trophy", color: "#10b981" }
-    : passRate >= 60 ? { icon: "bx bx-check-shield", color: "#10b981" }
-    : passRate >= 40 ? { icon: "bx bx-error-circle", color: "#f59e0b" }
+    : passRate >= 60 ? { icon: "bx bx-check", color: "#10b981" }
+    : passRate >= 40 ? { icon: "bx bx-error", color: "#f59e0b" }
     : { icon: "bx bx-shield", color: "#ef4444" };
 
   const monthMap = {};

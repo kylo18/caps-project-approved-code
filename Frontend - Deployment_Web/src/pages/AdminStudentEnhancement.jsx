@@ -513,7 +513,10 @@ const StudentList = ({ students, programLabel, onBack }) => {
                 const av = AVATAR_PALETTE[students.indexOf(s) % AVATAR_PALETTE.length];
                 const name = `${s.firstName || ""} ${s.lastName || ""}`.trim();
                 return (
-                  <div className="flex items-center gap-2.5">
+                  <div
+                    className="flex items-center gap-2.5 px-4 py-3 cursor-pointer hover:bg-orange-50/40 transition-colors"
+                    onClick={() => setSelectedStudent(s)}
+                  >
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
                       style={{ background: av.bg, color: av.fg }}>
                       {initials(name)}
@@ -1233,7 +1236,7 @@ const AdminStudentEnhancement = () => {
         : "";
 
   return (
-    <div className="outfit-400 p-3 sm:p-5 min-h-screen pt-16 sm:pt-5 pb-28 sm:pb-6 bg-gray-50/50">
+    <div className="outfit-400 p-3 sm:p-5 min-h-screen pt-14 sm:pt-15 lg:pt-5 pb-28 sm:pb-28 bg-gray-50/50">
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between flex-wrap gap-3 mb-6">
@@ -1416,9 +1419,15 @@ const AdminStudentEnhancement = () => {
                       <table className="w-full text-[13px] border-collapse">
                         <thead>
                           <tr>
-                            {["Program", "Students", "Avg score", "Pass rate", "Status"].map((h, i) => (
-                              <th key={h} className={`text-[11px] font-medium text-gray-400 pb-2 px-2 border-b border-gray-100 whitespace-nowrap ${i === 0 ? "text-left" : "text-center"}`}>
-                                {h}
+                            {[
+                              { label: "Program",   hide: false },
+                              { label: "Students",  hide: false },
+                              { label: "Avg score", hide: false },
+                              { label: "Pass rate", hide: true  },
+                              { label: "Status",    hide: false },
+                            ].map(({ label, hide }) => (
+                              <th key={label} className={`text-[11px] font-medium text-gray-400 pb-2 px-2 border-b border-gray-100 whitespace-nowrap ${label === "Program" ? "text-left" : "text-center"} ${hide ? "hidden sm:table-cell" : ""}`}>
+                                {label}
                               </th>
                             ))}
                           </tr>
@@ -1450,7 +1459,7 @@ const AdminStudentEnhancement = () => {
                                       <span className="text-[11px] text-gray-400">N/A</span>
                                     )}
                                   </td>
-                                  <td className="py-2.5 px-2 text-center">
+                                  <td className="py-2.5 px-2 text-center hidden sm:table-cell">
                                     {pr != null ? <PassRateBar value={pr} /> : <span className="text-[11px] text-gray-400">N/A</span>}
                                   </td>
                                   <td className="py-2.5 px-2 text-center">

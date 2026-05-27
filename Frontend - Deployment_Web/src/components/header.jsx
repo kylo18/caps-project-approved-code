@@ -99,6 +99,11 @@ const AdminHeader = ({ title, className = "" }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [announcementForm, setAnnouncementForm] = useState({ title: "", message: "" });
+  const [announcementSubmitting, setAnnouncementSubmitting] = useState(false);
+  const [announcementError, setAnnouncementError] = useState("");
+
   // Refs for modal content
   const profileModalRef = useRef(null);
   const changePasswordModalRef = useRef(null);
@@ -471,18 +476,29 @@ const AdminHeader = ({ title, className = "" }) => {
                   <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm">
                     <i className="bx bx-bell text-orange-500" /> Notifications
                   </h3>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={async () => {
-                        await markAllNotificationsRead();
-                        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-                        setUnreadCount(0);
-                      }}
-                      className="text-xs font-bold text-orange-500 hover:text-orange-600"
-                    >
-                      Mark all as read
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {[2, 3, 4, 5].includes(Number(userInfo?.roleID)) && (
+                      <button
+                        onClick={() => { setShowNotifications(false); setShowAnnouncementModal(true); }}
+                        className="flex items-center justify-center h-7 w-7 rounded-full bg-orange-500 hover:bg-orange-600 transition shadow-sm"
+                        title="Create Announcement"
+                      >
+                        <i className="bx bx-plus text-white text-[16px]" />
+                      </button>
+                    )}
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={async () => {
+                          await markAllNotificationsRead();
+                          setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+                          setUnreadCount(0);
+                        }}
+                        className="text-xs font-bold text-orange-500 hover:text-orange-600"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="overflow-y-auto flex flex-col gap-2 flex-1">
                   {notifications.length === 0 ? (
@@ -1026,6 +1042,84 @@ const AdminHeader = ({ title, className = "" }) => {
           </div>
         </div>
       )}
+
+
+      {showAnnouncementModal && (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl mx-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[16px] font-bold text-gray-800">Create Announcement</h2>
+            <button onClick={() => { setShowAnnouncementModal(false); setAnnouncementError(""); setAnnouncementForm({ title: "", message: "" }); }}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100">
+              <i className="bx bx-x text-[22px]" />
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">Title</label>
+              <input
+                type="text"
+                value={announcementForm.title}
+                onChange={(e) => setAnnouncementForm(p => ({ ...p, title: e.target.value }))}
+                placeholder="Announcement title..."
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">Message</label>
+              <textarea
+                rows={4}
+                value={announcementForm.message}
+                onChange={(e) => setAnnouncementForm(p => ({ ...p, message: e.target.value }))}
+                placeholder="Write your announcement..."
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] text-gray-800 focus:border-orange-400 focus:outline-none resize-none"
+              />
+            </div>
+            {announcementError && <p className="text-[12px] text-red-500">{announcementError}</p>}
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              onClick={() => { setShowAnnouncementModal(false); setAnnouncementError(""); setAnnouncementForm({ title: "", message: "" }); }}
+              className="px-4 py-2 rounded-xl border border-gray-200 text-[13px] font-semibold text-gray-600 hover:bg-gray-50">
+              Cancel
+            </button>
+            <button
+              disabled={announcementSubmitting}
+              onClick={async () => {
+                if (!announcementForm.title.trim() || !announcementForm.message.trim()) {
+                  setAnnouncementError("Title and message are required.");
+                  return;
+                }
+                setAnnouncementSubmitting(true);
+                setAnnouncementError("");
+                try {
+                  const token = sessionStorage.getItem("token");
+                  const res = await fetch(`${apiUrl}/announcements`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    body: JSON.stringify(announcementForm),
+                  });
+                  if (res.ok) {
+                    showToast("Announcement sent!", "success");
+                    setShowAnnouncementModal(false);
+                    setAnnouncementForm({ title: "", message: "" });
+                  } else {
+                    const d = await res.json();
+                    setAnnouncementError(d.message || "Failed to send announcement.");
+                  }
+                } catch {
+                  setAnnouncementError("Something went wrong. Please try again.");
+                } finally {
+                  setAnnouncementSubmitting(false);
+                }
+              }}
+              className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-[13px] font-bold text-white disabled:opacity-50">
+              {announcementSubmitting ? "Sending..." : "Send Announcement"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
       <Toast message={toast.message} type={toast.type} show={toast.show} />
     </div>
