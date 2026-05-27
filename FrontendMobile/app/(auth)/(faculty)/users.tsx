@@ -81,9 +81,8 @@ export default function FacultyUsersScreen() {
   }, [filter]);
 
   useEffect(() => {
-    // Re-fetch users when status filter changes to load fresh data from server
     fetchUsers(true);
-  }, [activeStatusFilter]);
+  }, [activeStatusFilter, activeRoleFilter]);
 
   useEffect(() => {
     applyFilters();
@@ -110,7 +109,13 @@ export default function FacultyUsersScreen() {
         : activeStatusFilter === 'inactive'
         ? 'state=inactive'
         : '';
-      const query = `/api/users?limit=${PAGE_SIZE}&page=${currentPage}${statusParam ? '&' + statusParam : ''}`;
+      const roleNames = activeRoleFilter === 'admin'
+        ? ['Instructor', 'Program Chair', 'Dean', 'Associate Dean']
+        : activeRoleFilter === 'student'
+        ? ['Student']
+        : [];
+      const roleParam = roleNames.length > 0 ? `&role=${roleNames.map(r => encodeURIComponent(r)).join(',')}` : '';
+      const query = `/api/users?limit=${PAGE_SIZE}&page=${currentPage}${statusParam ? '&' + statusParam : ''}${roleParam}`;
       const data = await apiRequest(query);
       const userList: UserItem[] = Array.isArray(data?.users) ? data.users
         : Array.isArray(data?.data) ? data.data : [];
@@ -154,7 +159,6 @@ export default function FacultyUsersScreen() {
   };
 
   const applyFilters = useCallback(() => {
-    Animated.timing(fadeAnim, { toValue: 0.6, duration: 100, useNativeDriver: true }).start(() => {
       let filtered = [...users];
       if (activeRoleFilter === 'admin') filtered = filtered.filter((u: UserItem) => ADMIN_ROLES.includes(Number(u.roleID)));
       else if (activeRoleFilter === 'student') filtered = filtered.filter((u: UserItem) => Number(u.roleID) === STUDENT_ROLE);
@@ -170,8 +174,6 @@ export default function FacultyUsersScreen() {
         );
       }
       setFilteredUsers(filtered);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
-    });
   }, [searchQuery, activeRoleFilter, activeStatusFilter, programFilter, yearFilter, campusFilter, users]);
 
   const onRefresh = async () => {
@@ -239,11 +241,12 @@ export default function FacultyUsersScreen() {
         <Text className="text-xl font-bold flex-1" style={{ color: colors.text }}>Users</Text>
       </View>
 
-      {isLoading ? (
+      {isLoading && users.length === 0 ? (
         <View className="flex-1 justify-center items-center">
           <CapsActivityIndicator size="large" color={colors.orange} />
         </View>
       ) : (
+        <>
         <FlatList
           keyboardShouldPersistTaps="handled"
           data={filteredUsers}
@@ -267,49 +270,22 @@ export default function FacultyUsersScreen() {
           }
           ListHeaderComponent={
             <Animated.View style={{ opacity: fadeAnim }}>
-              <View className="flex-row gap-3 mb-3">
-                <TouchableOpacity className="flex-1 rounded-2xl p-4 items-center" style={{ backgroundColor: colors.card, elevation: 2, borderLeftColor: colors.blue, borderLeftWidth: 4 }} onPress={() => setActiveRoleFilter(activeRoleFilter === 'admin' ? 'all' : 'admin')} activeOpacity={0.7}>
-                  <Ionicons name="shield-checkmark" size={28} color={colors.blue} />
-                  <Text className="text-[28px] font-extrabold mt-1" style={{ color: colors.text }}>{stats.admins}</Text>
-                  <Text className="text-[13px] mt-0.5" style={{ color: colors.textSecondary }}>Admins</Text>
-                </TouchableOpacity>
-                <TouchableOpacity className="flex-1 rounded-2xl p-4 items-center" style={{ backgroundColor: colors.card, elevation: 2, borderLeftColor: colors.green, borderLeftWidth: 4 }} onPress={() => setActiveRoleFilter(activeRoleFilter === 'student' ? 'all' : 'student')} activeOpacity={0.7}>
-                  <Ionicons name="school" size={28} color={colors.green} />
-                  <Text className="text-[28px] font-extrabold mt-1" style={{ color: colors.text }}>{stats.students}</Text>
-                  <Text className="text-[13px] mt-0.5" style={{ color: colors.textSecondary }}>Students</Text>
-                </TouchableOpacity>
-              </View>
-
               <View className="flex-row items-center border rounded-xl px-3 gap-2 mb-2.5" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}>
                 <Ionicons name="search" size={18} color={colors.textSecondary} />
                 <TextInput className="flex-1 text-[15px] py-2.5" style={{ color: colors.text }} value={searchQuery} onChangeText={setSearchQuery} placeholder="Search users..." placeholderTextColor={colors.textSecondary} />
                 {searchQuery ? <TouchableOpacity onPress={() => setSearchQuery('')}><Ionicons name="close-circle" size={18} color={colors.textSecondary} /></TouchableOpacity> : null}
               </View>
 
-              <View className="flex-row gap-1.5 mb-2 items-center">
-                {[{ key: 'all', label: 'All', icon: 'people' as const }, { key: 'admin', label: 'Admins', icon: 'shield-checkmark' as const }, { key: 'student', label: 'Students', icon: 'school' as const }].map(f => (
-                  <TouchableOpacity key={f.key} className="flex-row items-center px-3 py-[7px] rounded-[18px]" style={activeRoleFilter === f.key ? { backgroundColor: colors.orange } : undefined} onPress={() => setActiveRoleFilter(f.key)} activeOpacity={0.7}>
-                    <Ionicons name={f.icon} size={16} color={activeRoleFilter === f.key ? '#fff' : colors.textSecondary} style={{ marginRight: 4 }} />
-                    <Text className="text-xs font-semibold" style={{ color: activeRoleFilter === f.key ? '#fff' : colors.textSecondary }}>{f.label}</Text>
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity className="w-[34px] h-[34px] rounded-[17px] justify-center items-center" style={{ backgroundColor: showAdvancedFilters ? colors.orange : colors.inputBg }} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)} activeOpacity={0.7}>
-                  <Ionicons name="options" size={16} color={showAdvancedFilters ? '#fff' : colors.textSecondary} />
+              <View className="flex-row gap-2 mb-2 items-center">
+                <View className="flex-1">
+                  <FilterDropdown label="" value={activeRoleFilter} onValueChange={setActiveRoleFilter} options={[{ id: 'all', label: 'Users' }, { id: 'admin', label: 'Admins' }, { id: 'student', label: 'Students' }]} colors={colors} />
+                </View>
+                <View className="flex-1">
+                  <FilterDropdown label="" value={activeStatusFilter} onValueChange={(v) => setActiveStatusFilter(v as UserStatusFilter)} options={[{ id: 'all', label: 'Status' }, { id: 'pending', label: 'Pending' }, { id: 'active', label: 'Active' }, { id: 'inactive', label: 'Inactive' }, { id: 'disapproved', label: 'Disapproved' }]} colors={colors} />
+                </View>
+                <TouchableOpacity className="w-[38px] h-[38px] rounded-[10px] justify-center items-center" style={{ backgroundColor: showAdvancedFilters ? colors.orange : colors.inputBg }} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)} activeOpacity={0.7}>
+                  <Ionicons name="options" size={18} color={showAdvancedFilters ? '#fff' : colors.textSecondary} />
                 </TouchableOpacity>
-              </View>
-
-              <View className="flex-row gap-1 mb-2 flex-wrap">
-                {[
-                  { key: 'all', label: 'All' },
-                  { key: 'pending', label: 'Pending' },
-                  { key: 'active', label: 'Active' },
-                  { key: 'inactive', label: 'Inactive' },
-                  { key: 'disapproved', label: 'Disapproved' },
-                ].map((f) => (
-                  <TouchableOpacity key={f.key} className="px-2.5 py-[5px] rounded-[14px]" style={activeStatusFilter === f.key ? { backgroundColor: f.key === 'pending' ? colors.blue : f.key === 'active' ? colors.green : f.key === 'inactive' ? colors.red : colors.orange } : undefined} onPress={() => setActiveStatusFilter(f.key as UserStatusFilter)} activeOpacity={0.7}>
-                    <Text className="text-[11px] font-semibold" style={{ color: activeStatusFilter === f.key ? '#fff' : colors.textSecondary }}>{f.label}</Text>
-                  </TouchableOpacity>
-                ))}
               </View>
 
               {showAdvancedFilters && (
@@ -330,7 +306,14 @@ export default function FacultyUsersScreen() {
               <Text className="text-sm mt-2 text-center" style={{ color: colors.textSecondary }}>Try adjusting your filters.</Text>
             </View>
           }
-        />
+          />
+
+          {isLoading && users.length > 0 && (
+            <View className="absolute inset-0 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+              <CapsActivityIndicator size="large" color={colors.orange} />
+            </View>
+          )}
+        </>
       )}
     </View>
   );
@@ -338,29 +321,59 @@ export default function FacultyUsersScreen() {
 
 function FilterDropdown({ label, value, onValueChange, options, colors }: { label: string; value: string; onValueChange: (v: string) => void; options: { id: string; label: string }[]; colors: any }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef<any>(null);
+  const animOpacity = useRef(new Animated.Value(0)).current;
+  const animTranslateY = useRef(new Animated.Value(-8)).current;
   const selected = options.find((o: any) => o.id === value);
 
+  const openDropdown = () => {
+    if (triggerRef.current) {
+      triggerRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+        setPos({ top: y + height + 2, left: x, width });
+        setOpen(true);
+        animOpacity.setValue(0);
+        animTranslateY.setValue(-8);
+        Animated.parallel([
+          Animated.timing(animOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+          Animated.timing(animTranslateY, { toValue: 0, duration: 200, useNativeDriver: true }),
+        ]).start();
+      });
+    }
+  };
+
+  const closeDropdown = () => {
+    Animated.parallel([
+      Animated.timing(animOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
+      Animated.timing(animTranslateY, { toValue: -8, duration: 120, useNativeDriver: true }),
+    ]).start(() => setOpen(false));
+  };
+
+  const handleSelect = (id: string) => {
+    onValueChange(id);
+    closeDropdown();
+  };
+
   return (
-    <View className="flex-1 mx-1">
-      <Text className="text-xs font-semibold mb-1" style={{ color: colors.text }}>{label}</Text>
-      <TouchableOpacity className="flex-row items-center justify-between border rounded-[10px] p-2" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }} onPress={() => setOpen(true)} activeOpacity={0.7}>
+    <View className="flex-1">
+      {label ? <Text className="text-xs font-semibold mb-1" style={{ color: colors.text }}>{label}</Text> : null}
+      <TouchableOpacity ref={triggerRef} className="flex-row items-center justify-between border rounded-[10px] p-2" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }} onPress={openDropdown} activeOpacity={0.7}>
         <Text className="text-[13px] flex-1 mr-1" style={{ color: selected?.id === 'all' ? colors.textSecondary : colors.text }} numberOfLines={1}>{selected?.label || label}</Text>
         <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
       </TouchableOpacity>
 
-      <Modal visible={open} transparent animationType="fade">
-        <TouchableOpacity className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={() => setOpen(false)}>
-          <View className="mx-5 rounded-t-[20px] p-4" style={{ backgroundColor: colors.card }}>
-            <Text className="text-base font-bold mb-3" style={{ color: colors.text }}>{label}</Text>
-            <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled>
+      <Modal visible={open} transparent animationType="none" onRequestClose={closeDropdown}>
+        <TouchableOpacity className="flex-1" activeOpacity={1} onPress={closeDropdown}>
+          <Animated.View style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.width, backgroundColor: colors.card, borderRadius: 12, padding: 4, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, opacity: animOpacity, transform: [{ translateY: animTranslateY }] }}>
+            <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
               {options.map((opt: any) => (
-                <TouchableOpacity key={opt.id} className="flex-row items-center justify-between py-3 border-b" style={[{ borderBottomColor: colors.border }, value === opt.id ? { backgroundColor: `${colors.orange}15` } : undefined]} onPress={() => { onValueChange(opt.id); setOpen(false); }} activeOpacity={0.7}>
+                <TouchableOpacity key={opt.id} className="flex-row items-center justify-between py-2.5 px-3 rounded-lg" style={value === opt.id ? { backgroundColor: `${colors.orange}15` } : undefined} onPress={() => handleSelect(opt.id)} activeOpacity={0.7}>
                   <Text className="text-sm flex-1" style={[{ color: colors.text }, value === opt.id ? { color: colors.orange, fontWeight: '700' } : undefined]}>{opt.label}</Text>
                   {value === opt.id && <Ionicons name="checkmark" size={18} color={colors.orange} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+          </Animated.View>
         </TouchableOpacity>
       </Modal>
     </View>

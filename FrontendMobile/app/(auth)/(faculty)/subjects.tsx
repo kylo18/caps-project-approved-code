@@ -142,9 +142,9 @@ export default function FacultySubjectsScreen() {
   const fetchQuestions = async (reset = false) => {
     if (!selectedSubject) return;
     const currentPage = reset ? 1 : questionsPage;
+    setIsLoadingQuestions(true);
 
     if (reset) {
-      setIsLoadingQuestions(true);
       setQuestionsPage(1);
       setQuestionsHasMore(true);
     } else {
@@ -152,31 +152,33 @@ export default function FacultySubjectsScreen() {
     }
 
     try {
-      const data = await apiRequest(`/api/faculty/my-questions/${selectedSubject.subjectID}?page=${currentPage}&limit=20`);
-      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data?.questions) ? data.questions : Array.isArray(data) ? data : [];
-      const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
+      const data = await apiRequest(
+        `/api/subjects/${selectedSubject.subjectID}/questions?page=${currentPage}&limit=20`
+      );
+      const items = Array.isArray(data?.questions) ? data.questions :
+        Array.isArray(data?.data) ? data.data :
+          Array.isArray(data) ? data : [];
+      const totalPages = data?.total_pages;
 
       if (reset) {
-        setQuestions(list);
-        setQuestionsHasMore(total !== undefined ? list.length < total : list.length >= 20);
+        setQuestions(items);
+        setQuestionsHasMore(totalPages ? currentPage < totalPages : items.length === 20);
       } else {
         setQuestions(prev => {
           const existing = new Set(prev.map((q: any) => q.questionID));
-          const newUnique = list.filter((q: any) => !existing.has(q.questionID));
+          const newUnique = items.filter((q: any) => !existing.has(q.questionID));
           const nextQuestions = [...prev, ...newUnique];
-          setQuestionsHasMore(total !== undefined ? nextQuestions.length < total : list.length >= 20);
+          setQuestionsHasMore(totalPages ? currentPage < totalPages : items.length === 20);
           return nextQuestions;
         });
         setQuestionsPage(prev => prev + 1);
       }
     } catch (error) {
       console.error('Error fetching questions:', error);
+      showToast('Unable to load questions', 'error');
     } finally {
-      if (reset) {
-        setIsLoadingQuestions(false);
-      } else {
-        setIsLoadingMoreQuestions(false);
-      }
+      setIsLoadingQuestions(false);
+      setIsLoadingMoreQuestions(false);
     }
   };
 
@@ -298,6 +300,9 @@ export default function FacultySubjectsScreen() {
   const onRefresh = async () => {
     setIsRefreshing(true);
     await fetchSubjects(true);
+    if (selectedSubject) {
+      await fetchQuestions(true);
+    }
     setIsRefreshing(false);
   };
 

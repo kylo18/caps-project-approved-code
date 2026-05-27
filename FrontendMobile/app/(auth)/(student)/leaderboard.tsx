@@ -327,7 +327,7 @@ export default function LeaderboardScreen() {
 
                 {/* Podium: displays ranks 1, 2, 3 with gold/silver/bronze bars */}
                 {topThree.length >= 3 ? (
-                  <View className="rounded-[30px] px-[18px] pt-[18px] pb-3.5 mb-[18px]" style={{ backgroundColor: isDark ? colors.statsCard : colors.orange, ...shadow }}>
+                  <View className="rounded-[30px] px-[18px] pb-3.5 mb-[18px]" style={{ backgroundColor: isDark ? colors.statsCard : colors.orange, ...shadow }}>
                     <StudentLeaderboardPodium topThree={topThree} />
                   </View>
                 ) : null}

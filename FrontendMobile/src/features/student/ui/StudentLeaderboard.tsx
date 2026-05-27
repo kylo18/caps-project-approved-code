@@ -55,8 +55,6 @@ function StudentLeaderboardRow({
       <View className="flex-1 gap-0.5">
         <Text 
           numberOfLines={2} 
-          adjustsFontSizeToFit 
-          minimumFontScale={0.8}
           className="font-sans text-base font-medium leading-6" 
           style={{ color: studentColors.text }}
         >
@@ -91,18 +89,18 @@ function StudentLeaderboardPodium({ topThree }: PodiumProps) {
   const studentShadow = getStudentShadow(isDark);
   const ordered = useMemo(
     () => [
-      { place: 2, entry: topThree[1], height: 92, width: 58, avatarSize: 54, avatarColor: '#F7D6F3', barColor: '#BFC0C8', topColor: '#D7D8DE' },
-      { place: 1, entry: topThree[0], height: 122, width: 74, avatarSize: 68, avatarColor: '#FFE47A', barColor: '#FFD52F', topColor: '#FFE985' },
-      { place: 3, entry: topThree[2], height: 82, width: 58, avatarSize: 54, avatarColor: '#D9E0FF', barColor: '#D89548', topColor: '#E5AB66' },
+      { place: 2, entry: topThree[1], height: 62, width: 58, avatarSize: 54, avatarColor: '#F7D6F3', barColor: '#BFC0C8' },
+      { place: 1, entry: topThree[0], height: 80, width: 74, avatarSize: 68, avatarColor: '#FFE47A', barColor: '#FFD52F' },
+      { place: 3, entry: topThree[2], height: 56, width: 58, avatarSize: 54, avatarColor: '#D9E0FF', barColor: '#D89548' },
     ],
     [topThree]
   );
 
   return (
     <View className="flex-row items-end justify-between gap-[10px]">
-      {ordered.map(({ place, entry, height, width, avatarSize, avatarColor, barColor, topColor }) => (
+      {ordered.map(({ place, entry, height, width, avatarSize, avatarColor, barColor }) => (
         <View key={place} className="flex-1 items-center">
-          <View className="h-[74px] items-center justify-end mb-2" style={place === 1 ? { height: 88 } : {}}>
+          <View className="items-center justify-end" style={place === 1 ? { height: 82 } : { height: 68 }}>
             <StudentAvatar
               label={entry?.name ?? `${place}`}
               size={avatarSize}
@@ -110,22 +108,20 @@ function StudentLeaderboardPodium({ topThree }: PodiumProps) {
               style={{ backgroundColor: avatarColor, borderWidth: 3, borderColor: studentColors.white, ...studentShadow }}
             />
           </View>
+          <View className="h-11 items-center justify-center my-1">
+            <Text 
+              numberOfLines={2} 
+              className="font-sans text-xs font-bold text-center" 
+              style={{ color: studentColors.white, width: 100 }}
+            >
+              {entry?.name ?? `#${place}`}
+            </Text>
+          </View>
           <View className="items-center justify-end" style={{ width, height }}>
-            <View className="absolute top-0 rounded-full" style={{ width: width + 6, height: 10, backgroundColor: 'rgba(12,9,42,0.14)' }} />
-            <View className="absolute rounded-full" style={{ width, height: 12, backgroundColor: topColor }} />
-            <View className="rounded-t-[10px] items-center justify-center" style={{ width, height: height - 10, backgroundColor: barColor }}>
+            <View className="rounded-t-[10px] items-center justify-center" style={{ width, height, backgroundColor: barColor }}>
               <Text className="font-sans text-[42px] font-bold" style={{ color: studentColors.white }}>{place}</Text>
             </View>
           </View>
-          <Text 
-            numberOfLines={2} 
-            adjustsFontSizeToFit 
-            minimumFontScale={0.7}
-            className="font-sans text-xs font-medium leading-4 mt-3 max-w-[88px] text-center" 
-            style={{ color: studentColors.white }}
-          >
-            {entry?.name ?? `#${place}`}
-          </Text>
           <Text className="font-sans text-xs font-medium leading-[18px]" style={{ color: 'rgba(255,255,255,0.9)' }}>
             {entry ? `${Math.round(entry.points ?? entry.score ?? 0)} pts` : '--'}
           </Text>
