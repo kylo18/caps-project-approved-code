@@ -304,6 +304,10 @@ const UserList = () => {
   }, []);
 
   useEffect(() => {
+    fetchPendingCount();
+  }, []);
+
+  useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem("user"));
     if (user && (user.roleID !== undefined || user.roleId !== undefined)) {
       setCurrentUserRole(user.roleID ?? user.roleId);
@@ -424,6 +428,13 @@ const UserList = () => {
         return nameA.localeCompare(nameB);
       });
       setUsers(sorted);
+
+      // Always track the unfiltered pending count from the full fetch
+      /*
+      if (activeView === "all" && !debouncedSearchQuery && statusFilter === "all" && !hasArrayFilters) {
+        setTotalPendingCount((sorted).filter((u) => u.status === "pending").length);
+      }*/
+
       const total = data.total || 0;
       setTotalPages(Math.ceil(total / itemsPerPage));
       setTotalUsers(total);
@@ -467,7 +478,8 @@ const UserList = () => {
   const pendingUsersCount = users.filter(
     (user) => user.status === "pending",
   ).length;   */
-  const pendingCount = users.filter((user) => user.status === "pending").length;
+  //const pendingCount = users.filter((user) => user.status === "pending").length;
+  const [totalPendingCount, setTotalPendingCount] = useState(0);
 
   // Ref for "select all" checkbox to support indeterminate state
   const selectAllRef = useRef(null);
@@ -581,6 +593,7 @@ const UserList = () => {
         ),
       );
       fetchUsers();
+      fetchPendingCount();
       setShowModal(false);
     } catch (error) {
       console.error("Error approving user:", error);
@@ -688,6 +701,7 @@ const UserList = () => {
 
       showToast("Users approved successfully!", "success");
       fetchUsers();
+      fetchPendingCount();
       setSelectedUsers([]); // clear selection
     } catch (error) {
       console.error(error);
@@ -722,6 +736,7 @@ const UserList = () => {
       }
 
       fetchUsers();
+      fetchPendingCount();
       setSelectedUsers([]);
       showToast("Users activated successfully!", "success");
     } catch (error) {
@@ -760,6 +775,7 @@ const UserList = () => {
       }
       showToast("Users deactivated successfully!", "success");
       fetchUsers();
+      fetchPendingCount();
       setSelectedUsers([]);
     } catch (error) {
       console.error(error);
@@ -769,6 +785,25 @@ const UserList = () => {
       );
     } finally {
       setIsDeactivatingMultiple(false);
+    }
+  };
+
+  const fetchPendingCount = async () => {
+    try {
+      const token = sessionStorage.getItem("token");
+      const response = await fetch(`${apiUrl}/users?page=1&limit=10000&status=pending&userType=all`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTotalPendingCount(data.total || 0);
+      }
+    } catch (err) {
+      console.error("Error fetching pending count:", err);
     }
   };
 
@@ -882,6 +917,7 @@ const UserList = () => {
       }
       showToast("User deleted successfully!", "success");
       fetchUsers(currentPage);
+      fetchPendingCount();
       setShowModal(false);
     } catch (error) {
       showToast(
@@ -924,6 +960,7 @@ const UserList = () => {
       }
       showToast("Selected users deleted successfully!", "success");
       fetchUsers(currentPage);
+      fetchPendingCount();
       setSelectedUsers([]);
     } catch (error) {
       showToast(
@@ -1154,11 +1191,6 @@ const UserList = () => {
                     }`}
                   >
                     <span>Campus</span>
-                    {campusFilter.length > 0 && (
-                      <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs text-white">
-                        {campusFilter.length}
-                      </span>
-                    )}
                     <i className="bx bx-chevron-down text-xl"></i>
                   </button>
                   {showCampusDropdown && (
@@ -1220,11 +1252,6 @@ const UserList = () => {
                     }`}
                   >
                     <span>Position</span>
-                    {positionFilter.length > 0 && (
-                      <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs text-white">
-                        {positionFilter.length}
-                      </span>
-                    )}
                     <i className="bx bx-chevron-down text-xl"></i>
                   </button>
                   {showPositionDropdown && (
@@ -1286,11 +1313,6 @@ const UserList = () => {
                     }`}
                   >
                     <span>Program</span>
-                    {programFilter.length > 0 && (
-                      <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs text-white">
-                        {programFilter.length}
-                      </span>
-                    )}
                     <i className="bx bx-chevron-down text-xl"></i>
                   </button>
                   {showProgramDropdown && (
@@ -1352,15 +1374,11 @@ const UserList = () => {
                     }`}
                   >
                     <span>Status</span>
-                    {(stateFilter.length > 0 || statusFilter !== "all") ? (
-                      <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs text-white">
-                        {stateFilter.length + (statusFilter !== "all" ? 1 : 0)}
-                      </span>
-                    ) : pendingCount > 0 ? (
+                    {totalPendingCount > 0 && statusFilter === "all" && stateFilter.length === 0 && (
                       <span className="ml-1 flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                        {pendingCount}
+                        {totalPendingCount}
                       </span>
-                    ) : null}
+                    )}
                     <i className="bx bx-chevron-down text-xl"></i>
                   </button>
 
@@ -1409,7 +1427,7 @@ const UserList = () => {
                         {[
                           { value: "all", label: "All" },
                           //{ value: "pending", label: "Pending" },
-                          { value: "pending", label: pendingCount > 0 ? `Pending (${pendingCount})` : "Pending" },
+                          { value: "pending", label: totalPendingCount > 0 ? `Pending (${totalPendingCount})` : "Pending" },
                           { value: "registered", label: "Approved" },
                           { value: "unregistered", label: "Rejected" },
                         ].map((option) => (
@@ -1716,7 +1734,7 @@ const UserList = () => {
                         {[
                           { value: "all", label: "All" },
                           //{ value: "pending", label: "Pending" },
-                          { value: "pending", label: pendingCount > 0 ? `Pending (${pendingCount})` : "Pending" },
+                          { value: "pending", label: totalPendingCount > 0 ? `Pending (${totalPendingCount})` : "Pending" },
                           { value: "registered", label: "Approved" },
                           { value: "unregistered", label: "Rejected" },
                         ].map((opt) => (

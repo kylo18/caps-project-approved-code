@@ -5,6 +5,7 @@ import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import collegeLogo from "/src/assets/college-logo.png";
 import { logoutUser } from "../utils/logoutUser";
+import { getNotifications, markNotificationRead, markAllNotificationsRead } from "../services/notificationService";
 
 // Utility to get a random color from a palette
 const AVATAR_COLORS = [
@@ -94,10 +95,15 @@ const AdminHeader = ({ title, className = "" }) => {
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+
   // Refs for modal content
   const profileModalRef = useRef(null);
   const changePasswordModalRef = useRef(null);
   const logoutModalRef = useRef(null);
+  const notifRef = useRef(null);
 
   // Close dropdown if logout modal is opened
   useEffect(() => {
@@ -385,6 +391,30 @@ const AdminHeader = ({ title, className = "" }) => {
     }
   }, [userInfo]);
 
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await getNotifications();
+        setNotifications(response.data || []);
+        setUnreadCount(response.meta?.unread_count || 0);
+      } catch (err) {}
+    };
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!showNotifications) return;
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showNotifications]);
+
   const handleOpenChangePassword = () => {
     setWasProfileModalOpen(showProfileModal);
     setShowProfileModal(false);
@@ -419,6 +449,83 @@ const AdminHeader = ({ title, className = "" }) => {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+
+          {/* Bell Notification Button */}
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => setShowNotifications((prev) => !prev)}
+              className="relative flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 transition"
+            >
+              <i className={`bx ${showNotifications ? "bxs-bell text-orange-500" : "bx-bell text-gray-500"} text-[20px]`} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {showNotifications && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 pointer-events-none">
+                <div className="pointer-events-auto w-[340px] max-w-[95vw] rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl flex flex-col max-h-[80vh]">
+                <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-3">
+                  <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm">
+                    <i className="bx bx-bell text-orange-500" /> Notifications
+                  </h3>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={async () => {
+                        await markAllNotificationsRead();
+                        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+                        setUnreadCount(0);
+                      }}
+                      className="text-xs font-bold text-orange-500 hover:text-orange-600"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+                <div className="overflow-y-auto flex flex-col gap-2 flex-1">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                      <i className="bx bx-bell-off text-3xl mb-1 text-gray-300" />
+                      <p className="text-sm text-gray-500">No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={async () => {
+                          if (!item.is_read) {
+                            await markNotificationRead(item.id);
+                            setNotifications((prev) => prev.map((n) => n.id === item.id ? { ...n, is_read: true } : n));
+                            setUnreadCount((prev) => Math.max(0, prev - 1));
+                          }
+                        }}
+                        className={`flex items-start gap-3 rounded-xl p-3 cursor-pointer transition border ${
+                          item.is_read ? "border-transparent hover:bg-gray-50" : "border-orange-50 bg-orange-50/20 hover:bg-orange-50/40"
+                        }`}
+                      >
+                        <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                          <i className="bx bx-megaphone text-base" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className={`text-[13px] font-semibold truncate ${item.is_read ? "text-gray-600" : "text-gray-900"}`}>
+                              {item.title}
+                            </p>
+                            {!item.is_read && <span className="h-2 w-2 flex-shrink-0 rounded-full bg-orange-500" />}
+                          </div>
+                          <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{item.message}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              </div>
+            )}
+          </div>
+
           <span className="text-[14px] text-gray-500">{title}</span>
 
           

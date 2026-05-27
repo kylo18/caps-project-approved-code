@@ -370,6 +370,7 @@ const Sidebar = ({
   };
 
   const handleNotificationClick = async (item) => {
+    setActiveMenu(null);
     setSelectedNotification(item);
     if (!item.is_read) {
       try {
@@ -1929,12 +1930,12 @@ const Sidebar = ({
         
         </div>
         {/* Support button at the bottom */}
-        <div className="mt-auto border-t border-gray-200 bg-white px-3 py-3">
+        <div className="mt-auto border-t border-gray-200 bg-white px-3 pb-1" style={{ marginTop: 'auto', paddingTop: '0' }}>
           {/* Notifications popup trigger */}
           <div className="relative" data-notifications-popup>
             <button
               onClick={() => setActiveMenu(activeMenu === "Notifications" ? null : "Notifications")}
-              className={`group mb-2 flex w-full cursor-pointer items-center rounded-lg py-[8px] transition-colors hover:bg-gray-100 hover:text-gray-800 ${
+              className={`group mb-0 flex w-full cursor-pointer items-center rounded-lg py-[5px] transition-colors hover:bg-gray-100 hover:text-gray-800 ${
                 isUsersPage ? "justify-center" : "justify-start"
               } ${activeMenu === "Notifications" ? "bg-gray-100 text-orange-600" : ""}`}
             >
@@ -1967,9 +1968,8 @@ const Sidebar = ({
 
             {/* Notifications Popup */}
             {activeMenu === "Notifications" && (
-              <div className="absolute bottom-full left-0 z-[70] mb-2 w-[380px] rounded-2xl border border-gray-200 bg-white p-5 shadow-xl flex flex-col max-h-[calc(100vh-270px)]">
-                {/* Arrow pointer */}
-                <div className="absolute -bottom-[7px] left-4 h-3 w-3 rotate-45 border-r border-b border-gray-200 bg-white"></div>
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/20 pointer-events-none">
+              <div className="pointer-events-auto w-[420px] max-w-[95vw] rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl flex flex-col max-h-[80vh]">
                 
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
@@ -2020,7 +2020,7 @@ const Sidebar = ({
                         iconClass = "bx-trophy";
                         bgClass = "bg-yellow-50 text-yellow-600";
                       } else if (item.type === "announcement" || item.type === "system_announcement") {
-                        iconClass = "bx-bullhorn";
+                        iconClass = "bx-megaphone";
                         bgClass = "bg-purple-50 text-purple-500";
                       }
 
@@ -2050,6 +2050,17 @@ const Sidebar = ({
                             <p className="outfit-400 text-sm text-gray-600 line-clamp-2 mt-0.5 leading-relaxed">
                               {item.message}
                             </p>
+
+                            {item.sender_name && (
+                              <span className="outfit-500 mt-1 inline-flex items-center gap-1 text-[11px] text-purple-500">
+                                <i className="bx bx-user text-[12px]"></i>
+                                {item.sender_name}
+                                {item.sender_role && (
+                                  <span className="text-gray-400">· {item.sender_role}</span>
+                                )}
+                              </span>
+                            )}
+
                             <div className="flex items-center justify-between mt-2">
                               <span className="outfit-400 text-xs text-gray-500">
                                 {formatTimeAgo(item.created_at)}
@@ -2068,6 +2079,7 @@ const Sidebar = ({
                     })
                   )}
                 </div>
+              </div>
               </div>
             )}
 
@@ -2216,22 +2228,20 @@ const Sidebar = ({
                 (selectedNotification.type === "lesson" || selectedNotification.type === "lesson_available") ? "bg-orange-50 text-orange-500" :
                 selectedNotification.type === "quiz_result" ? "bg-green-50 text-green-500" :
                 (selectedNotification.type === "achievement" || selectedNotification.type === "milestone") ? "bg-yellow-50 text-yellow-600" :
-                (selectedNotification.type === "announcement" || selectedNotification.type === "system_announcement") ? "bg-purple-50 text-purple-500" :
-                "bg-blue-50 text-blue-500"
+                "bg-purple-50 text-purple-500"
               }`}>
                 <i className={`bx ${
                   (selectedNotification.type === "lesson" || selectedNotification.type === "lesson_available") ? "bx-book-open" :
                   selectedNotification.type === "quiz_result" ? "bx-file" :
                   (selectedNotification.type === "achievement" || selectedNotification.type === "milestone") ? "bx-trophy" :
-                  (selectedNotification.type === "announcement" || selectedNotification.type === "system_announcement") ? "bx-bullhorn" :
-                  "bx-bell"
+                  "bx-megaphone"
                 } text-3xl`} />
               </div>
               <div className="min-w-0">
-                <span className="outfit-500 text-sm text-gray-400 font-semibold uppercase tracking-wider block">
+                <span className="outfit-500 text-xs text-gray-400 font-semibold uppercase tracking-wider block">
                   {selectedNotification.type ? selectedNotification.type.replace(/_/g, ' ') : "Notification"}
                 </span>
-                <h3 className="outfit-700 text-xl font-bold text-gray-900 leading-snug mt-0.5 break-words">
+                <h3 className="outfit-700 text-base font-bold text-gray-900 leading-snug mt-0.5 break-words">
                   {selectedNotification.title}
                 </h3>
               </div>
@@ -2240,9 +2250,22 @@ const Sidebar = ({
             {/* Divider */}
             <div className="h-[1px] w-full bg-gray-100 mb-5"></div>
 
+            {/* Sender Information */}
+            {selectedNotification.sender_name && (
+              <div className="mb-3 flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-600">
+                  <i className="bx bx-user-circle text-[14px]"></i>
+                  From: {selectedNotification.sender_name}
+                  {selectedNotification.sender_role && (
+                    <span className="text-purple-400">· {selectedNotification.sender_role}</span>
+                  )}
+                </span>
+              </div>
+            )}
+
             {/* Message Body */}
             <div className="mb-6 max-h-[40vh] overflow-y-auto pr-1 scrollbar-thin">
-              <p className="outfit-400 text-base text-gray-600 leading-relaxed whitespace-pre-line break-words">
+              <p className="outfit-400 text-sm text-gray-600 leading-relaxed whitespace-pre-line break-words">
                 {selectedNotification.message}
               </p>
               <span className="outfit-400 text-sm text-gray-400 mt-4 block">
@@ -2251,16 +2274,16 @@ const Sidebar = ({
             </div>
 
             {/* Footer Buttons */}
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-2">
               <button
                 onClick={(e) => handleDeleteNotification(selectedNotification.id, e)}
-                className="outfit-500 cursor-pointer rounded-lg border border-red-200 text-red-600 hover:bg-red-50 px-6 py-2.5 text-base font-semibold transition active:scale-98"
+                className="outfit-500 cursor-pointer rounded-lg border border-red-200 text-red-600 hover:bg-red-50 px-4 py-1.5 text-sm font-semibold transition active:scale-98"
               >
                 Delete
               </button>
               <button
                 onClick={() => setSelectedNotification(null)}
-                className="outfit-500 cursor-pointer rounded-lg bg-orange-500 hover:bg-orange-700 text-white px-7 py-2.5 text-base font-semibold transition active:scale-98 shadow-md"
+                className="outfit-500 cursor-pointer rounded-lg bg-orange-500 hover:bg-orange-700 text-white px-5 py-1.5 text-sm font-semibold transition active:scale-98 shadow-md"
               >
                 Close
               </button>
@@ -2292,7 +2315,7 @@ const Sidebar = ({
             {/* Header */}
             <div className="flex items-center gap-3.5 mb-4">
               <div className="flex size-11 flex-shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500">
-                <i className="bx bx-bullhorn text-2xl" />
+                <i className="bx bx-megaphone text-2xl" />
               </div>
               <div>
                 <h3 className="outfit-700 text-lg font-bold text-gray-900 leading-snug">
