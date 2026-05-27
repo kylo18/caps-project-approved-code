@@ -8,10 +8,10 @@
 // Uses NativeWind for mobile-native styling.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, Alert } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import RenderHtml from 'react-native-render-html';
@@ -30,6 +30,8 @@ export default function FacultySubjectsScreen() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { width: windowWidth } = useWindowDimensions();
+  const params = useLocalSearchParams<{ subjectID?: string }>();
+  const hasAppliedParamSubject = useRef(false);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -52,6 +54,17 @@ export default function FacultySubjectsScreen() {
     fetchPrograms();
     fetchYearLevels();
   }, []);
+
+  // Auto-select subject from URL param after subjects load
+  useEffect(() => {
+    if (subjects.length > 0 && params.subjectID && !hasAppliedParamSubject.current) {
+      const match = subjects.find((s: any) => String(s.subjectID) === params.subjectID);
+      if (match) {
+        setSelectedSubject(match);
+        hasAppliedParamSubject.current = true;
+      }
+    }
+  }, [subjects, params.subjectID]);
 
   useEffect(() => {
     fetchSubjects(true);
@@ -317,18 +330,8 @@ export default function FacultySubjectsScreen() {
               {selectedSubject ? (selectedSubject.subjectName || selectedSubject.name || 'Subject Questions') : 'My Subjects'}
             </Text>
           </View>
-          <View className="flex-row items-center" style={{ gap: 8 }}>
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/(faculty)/classes')}
-              className={`px-3 py-2 rounded-xl ${isDark ? 'bg-[#242424]' : 'bg-gray-100'}`}
-              activeOpacity={0.7}
-            >
-              <View className="flex-row items-center">
-                <Ionicons name="layers-outline" size={18} color="#FE6902" />
-                <Text className="font-semibold ml-1 text-primary">Classes</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+          <View className="flex-row items-center" style={{ gap: 8 }} />
+
         </View>
       </View>
 
@@ -413,8 +416,10 @@ export default function FacultySubjectsScreen() {
               </View>
             ) : (
               questions.map((q, idx) => (
-                <View
+                <TouchableOpacity
                   key={q.questionID || idx}
+                  onPress={() => router.push({ pathname: '/(auth)/practice-exam/edit-question', params: { questionID: q.questionID, question: JSON.stringify(q), returnTo: `/(auth)/(faculty)/subjects?subjectID=${selectedSubject?.subjectID}` } })}
+                  activeOpacity={0.7}
                   className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}
                 >
                   <View className="flex-row justify-between items-center mb-2">
@@ -424,16 +429,9 @@ export default function FacultySubjectsScreen() {
                         <Text className="text-white text-xs font-semibold">{q.status === 'approved' ? 'Approved' : 'Pending'}</Text>
                       </View>
                       <TouchableOpacity
-                        onPress={() => router.push({ pathname: '/(auth)/practice-exam/edit-question', params: { questionID: q.questionID } })}
-                        className="p-1"
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="create-outline" size={18} color={isDark ? '#9CA3AF' : '#6B7280'} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
                         onPress={() => router.push({
                           pathname: '/(auth)/practice-exam/duplicate-question',
-                          params: { questionID: q.questionID, question: JSON.stringify(q) }
+                          params: { questionID: q.questionID, question: JSON.stringify(q), returnTo: `/(auth)/(faculty)/subjects?subjectID=${selectedSubject?.subjectID}` }
                         })}
                         className="p-1"
                         activeOpacity={0.7}
@@ -453,6 +451,7 @@ export default function FacultySubjectsScreen() {
                     <RenderHtml
                       contentWidth={windowWidth - 64}
                       source={{ html: q.questionText || '<p>No question text</p>' }}
+                      baseStyle={{ color: isDark ? '#fff' : '#111827' }}
                       tagsStyles={{
                         p: { color: isDark ? '#fff' : '#111827', fontSize: 15, lineHeight: 20, marginBottom: 4 },
                         li: { color: isDark ? '#fff' : '#111827', fontSize: 14, lineHeight: 18 },
@@ -472,7 +471,7 @@ export default function FacultySubjectsScreen() {
                     <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{q.choices?.length || 4} choices</Text>
                     <Ionicons name="chevron-forward" size={18} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
                   </View>
-                </View>
+                </TouchableOpacity>
               ))
             )}
           </View>

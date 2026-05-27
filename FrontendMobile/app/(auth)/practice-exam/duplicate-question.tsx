@@ -37,6 +37,7 @@ export default function DuplicateQuestionForm() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const questionID = params.questionID;
+  const returnTo = params.returnTo as string | undefined;
   const { width } = useWindowDimensions();
 
   const [question, setQuestion] = useState<Question | null>(null);
@@ -68,7 +69,8 @@ export default function DuplicateQuestionForm() {
     try {
       await apiRequest(`/api/questions/${questionID}/duplicate`, { method: 'POST' });
       showToast('Question duplicated successfully', 'success');
-      if (router.canGoBack()) router.back();
+      if (returnTo) router.replace(returnTo);
+      else if (router.canGoBack()) router.back();
     } catch (error: unknown) {
       showToast(error instanceof Error ? error.message : 'Failed to duplicate question', 'error');
     } finally {
@@ -104,8 +106,8 @@ export default function DuplicateQuestionForm() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.bg }}>
-      <View className="flex-row items-center justify-between px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/(dean)/dashboard')} className="p-2">
+      <View className="flex-row items-center justify-between px-4 pt-12 pb-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
+        <TouchableOpacity onPress={() => { if (returnTo) { router.replace(returnTo); } else if (router.canGoBack()) { router.back(); } }} className="p-2">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text className="text-xl font-bold" style={{ color: colors.text }}>Duplicate Question</Text>

@@ -322,14 +322,14 @@ export default function ForceUpdateModal({ visible, appVersion, requiredVersion,
               </View>
 
               {isForced ? (
-                <View className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-5">
-                  <Text className="text-xs" style={{ color: '#92400e' }}>
+                <View className="rounded-xl p-3 mb-5" style={{ backgroundColor: isDark ? 'rgba(254,105,2,0.15)' : '#FFF7ED', borderWidth: 1, borderColor: isDark ? 'rgba(254,105,2,0.3)' : '#FFEDD5' }}>
+                  <Text className="text-xs" style={{ color: isDark ? '#FDBA74' : '#92400e' }}>
                     ⚠️ This update is required to continue using the app. Please download and install the latest version.
                   </Text>
                 </View>
               ) : (
-                <View className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-5">
-                  <Text className="text-xs" style={{ color: '#1e40af' }}>
+                <View className="rounded-xl p-3 mb-5" style={{ backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : '#EFF6FF', borderWidth: 1, borderColor: isDark ? 'rgba(59,130,246,0.3)' : '#DBEAFE' }}>
+                  <Text className="text-xs" style={{ color: isDark ? '#93C5FD' : '#1e40af' }}>
                     💡 You can skip this update for now, but some features may not work properly.
                   </Text>
                 </View>

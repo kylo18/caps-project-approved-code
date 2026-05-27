@@ -123,7 +123,7 @@ export default function EditProfileModal({ visible, onClose, user }: EditProfile
     <Modal visible={visible} transparent animationType="fade">
       <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.62)' }}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ width: '100%' }}
         >
           <View className="rounded-t-[28px] border px-5 pt-3 pb-5" style={{ backgroundColor: colors.bg, borderColor: colors.border, maxHeight: '84%' }}>

@@ -347,7 +347,7 @@ export default function ClassesScreen({
               paddingHorizontal: 20,
               paddingTop: 20,
               paddingBottom: 32,
-              backgroundColor: isDark ? '#111827' : '#ffffff',
+              backgroundColor: isDark ? '#1A1A1A' : '#ffffff',
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>

@@ -124,9 +124,14 @@ function normalizeUserReport(item: any): UserReportTicket {
   };
 }
 
-export async function getOverallRecentTakers(): Promise<RecentTaker[]> {
+export async function getOverallRecentTakers(filters?: { programID?: string; subjectID?: string; facultyID?: string }): Promise<RecentTaker[]> {
   try {
-    const response = await apiRequest('/api/practice-exam/overall-recent-takers');
+    const params = new URLSearchParams();
+    if (filters?.programID) params.set('programID', filters.programID);
+    if (filters?.subjectID) params.set('subjectID', filters.subjectID);
+    if (filters?.facultyID) params.set('facultyID', filters.facultyID);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const response = await apiRequest(`/api/practice-exam/overall-recent-takers${query}`);
     const items = response?.recentTakers ?? response?.data ?? response ?? [];
     return Array.isArray(items) ? items.map(normalizeRecentTaker) : [];
   } catch (error) {
@@ -135,9 +140,13 @@ export async function getOverallRecentTakers(): Promise<RecentTaker[]> {
   }
 }
 
-export async function getOverallLeaderboard(): Promise<LeaderboardEntry[]> {
+export async function getOverallLeaderboard(filters?: { programID?: string; subjectID?: string }): Promise<LeaderboardEntry[]> {
   try {
-    const response = await apiRequest('/api/practice-exam/overall-leaderboard');
+    const params = new URLSearchParams();
+    if (filters?.programID) params.set('programID', filters.programID);
+    if (filters?.subjectID) params.set('subjectID', filters.subjectID);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const response = await apiRequest(`/api/practice-exam/overall-leaderboard${query}`);
     const items = response?.leaderboard ?? response?.data ?? response ?? [];
     return Array.isArray(items) ? items.map(normalizeLeaderboardEntry) : [];
   } catch (error) {

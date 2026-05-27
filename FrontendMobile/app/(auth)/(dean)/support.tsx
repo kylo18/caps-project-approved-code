@@ -238,7 +238,7 @@ export default function AdminSupportScreen() {
       <Modal visible={showDetailModal} transparent animationType="slide" onRequestClose={closeModal}>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
             <View style={[styles.modalContent, { backgroundColor: colors.bg, paddingBottom: insets.bottom + 20 }]}>

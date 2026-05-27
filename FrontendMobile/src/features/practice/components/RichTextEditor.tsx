@@ -21,7 +21,7 @@ export default function RichTextEditor({ initialContent = '', onChange, placehol
     const [height, setHeight] = useState(200);
 
     const colors = {
-        bg: isDark ? '#111827' : '#fff',
+        bg: isDark ? '#1A1A1A' : '#fff',
         text: isDark ? '#f9fafb' : '#111827',
         border: isDark ? '#374151' : '#e5e7eb',
         toolbarBg: isDark ? '#1f2937' : '#f3f4f6',

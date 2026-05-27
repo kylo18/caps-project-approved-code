@@ -90,7 +90,11 @@ export default function RegisterScreen() {
 
   const validateStep2 = () => {
     const newErrors: Record<string, string> = {};
-    if (!userCode || !userCode.trim()) newErrors.userCode = 'User code is required';
+    if (!userCode || !userCode.trim()) {
+      newErrors.userCode = 'User code is required';
+    } else if (!/^[a-zA-Z0-9_\-]+$/.test(userCode.trim())) {
+      newErrors.userCode = 'User code can only contain letters, numbers, hyphens, and underscores';
+    }
     if (!email || !email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

@@ -151,6 +151,14 @@ export default function LoginScreen() {
       showToast('Please enter both ID Code and Password.', 'error');
       return;
     }
+    if (!/^[a-zA-Z0-9_\-]+$/.test(userCode.trim())) {
+      showToast('ID Code can only contain letters, numbers, hyphens, and underscores.', 'error');
+      return;
+    }
+    if (password.length < 6) {
+      showToast('Password must be at least 6 characters.', 'error');
+      return;
+    }
     setIsLoading(true);
     try {
       const response = await apiRequest('/api/login', { method: 'POST', body: { userCode, password } });

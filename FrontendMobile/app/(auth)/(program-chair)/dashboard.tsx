@@ -238,7 +238,7 @@ export default function ProgramChairDashboard() {
               key={idx}
               activeOpacity={0.7}
               onPress={() => stat.route && router.push(stat.route as string)}
-              className={`rounded-2xl p-3 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+              className={`rounded-2xl p-3 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
               style={[{ width: CARD_WIDTH }, cardStyle]}
             >
               <View
@@ -261,7 +261,7 @@ export default function ProgramChairDashboard() {
         <Text className="text-base font-bold mt-2" style={{ color: colors.text }}>
           Program Performance
         </Text>
-        <View className={`rounded-2xl p-5 ${isDark ? 'bg-gray-900' : 'bg-white'}`} style={cardStyle}>
+        <View className={`rounded-2xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={cardStyle}>
           <View className="flex-row justify-around mb-5">
             <View className="items-center">
               <Text className="text-3xl font-extrabold" style={{ color: colors.text }}>
@@ -324,7 +324,7 @@ export default function ProgramChairDashboard() {
         </Text>
         <View className="flex-row flex-wrap gap-3">
           <TouchableOpacity
-            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
             style={cardStyle}
             onPress={() => router.push('/(auth)/(program-chair)/subjects')}
             activeOpacity={0.7}
@@ -338,7 +338,7 @@ export default function ProgramChairDashboard() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
             style={cardStyle}
             onPress={() => router.push('/(auth)/(program-chair)/users')}
             activeOpacity={0.7}
@@ -352,7 +352,7 @@ export default function ProgramChairDashboard() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
             style={cardStyle}
             onPress={() => router.push('/(auth)/(program-chair)/classes')}
             activeOpacity={0.7}
@@ -366,7 +366,7 @@ export default function ProgramChairDashboard() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
             style={cardStyle}
             onPress={() => router.push('/(auth)/(program-chair)/reports')}
             activeOpacity={0.7}
@@ -380,7 +380,7 @@ export default function ProgramChairDashboard() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+            className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
             style={cardStyle}
             onPress={() => setShowQuizModal(true)}
             activeOpacity={0.7}
@@ -401,7 +401,7 @@ export default function ProgramChairDashboard() {
         </Text>
 
         {subjects.length === 0 ? (
-          <View className={`rounded-2xl p-8 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`} style={cardStyle}>
+          <View className={`rounded-2xl p-8 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={cardStyle}>
             <Ionicons name="book-outline" size={48} color={colors.mutedIcon} />
             <Text className="mt-3 font-semibold" style={{ color: colors.textSoft }}>
               No subjects found
@@ -412,7 +412,7 @@ export default function ProgramChairDashboard() {
             {subjects.slice(0, 5).map((subject, idx) => (
               <TouchableOpacity
                 key={subject.subjectID || idx}
-                className={`flex-row items-center rounded-xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                className={`flex-row items-center rounded-xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
                 style={cardStyle}
                 onPress={() => router.push('/(auth)/(program-chair)/subjects')}
                 activeOpacity={0.7}
@@ -444,7 +444,7 @@ export default function ProgramChairDashboard() {
 
             {subjects.length > 5 && (
               <TouchableOpacity
-                className={`flex-row items-center justify-center p-4 rounded-xl ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                className={`flex-row items-center justify-center p-4 rounded-xl ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
                 style={cardStyle}
                 onPress={() => router.push('/(auth)/(program-chair)/subjects')}
               >
@@ -460,10 +460,10 @@ export default function ProgramChairDashboard() {
       <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
-            <View className={`rounded-t-3xl px-5 pt-5 pb-8 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+            <View className={`rounded-t-3xl px-5 pt-5 pb-8 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
               <View className="flex-row items-center justify-between mb-5">
                 <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Quiz</Text>
                 <TouchableOpacity onPress={() => setShowQuizModal(false)}>
@@ -477,7 +477,7 @@ export default function ProgramChairDashboard() {
                 onChangeText={setQuizTitle}
                 placeholder="Enter quiz title"
                 placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-                className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-50 text-gray-900 border-gray-200'}`}
+                className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'bg-[#242424] text-white border-[#2A2A2A]' : 'bg-gray-50 text-gray-900 border-gray-200'}`}
               />
 
               <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Type</Text>
@@ -486,9 +486,10 @@ export default function ProgramChairDashboard() {
                   <TouchableOpacity
                     key={type.id}
                     onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
-                    className={`flex-1 rounded-xl px-4 py-3 border text-center ${quizTypeID === type.id ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                    className={`flex-1 rounded-xl px-4 py-3 border text-center ${quizTypeID === type.id ? 'border-[#FE6902]' : isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}
+                    style={{ backgroundColor: isDark && quizTypeID === type.id ? 'rgba(254,105,2,0.15)' : undefined }}
                   >
-                    <Text className={`font-semibold ${quizTypeID === type.id ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>{type.label}</Text>
+                    <Text className={`font-semibold ${quizTypeID === type.id ? 'text-[#FE6902]' : isDark ? 'text-white' : 'text-gray-900'}`}>{type.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -504,9 +505,10 @@ export default function ProgramChairDashboard() {
                           <TouchableOpacity
                             key={sid}
                             onPress={() => setQuizSubjectID(Number(sid))}
-                            className={`rounded-xl px-4 py-3 border ${quizSubjectID === sid ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                            className={`rounded-xl px-4 py-3 border ${quizSubjectID === sid ? 'border-[#FE6902]' : isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}
+                            style={{ backgroundColor: isDark && quizSubjectID === sid ? 'rgba(254,105,2,0.15)' : isDark && quizSubjectID !== sid ? '#242424' : undefined }}
                           >
-                            <Text className={`font-semibold ${quizSubjectID === sid ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                            <Text className={`font-semibold ${quizSubjectID === sid ? 'text-[#FE6902]' : isDark ? 'text-white' : 'text-gray-900'}`}>
                               {subject.subjectName || subject.name}
                             </Text>
                           </TouchableOpacity>

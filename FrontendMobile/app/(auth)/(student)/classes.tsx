@@ -75,6 +75,11 @@ export default function StudentClassesScreen() {
     loadTeachers();
     loadResults();
     loadSessions();
+    const interval = setInterval(() => {
+      loadClasses();
+      loadResults();
+    }, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
   async function loadClasses() {
@@ -587,7 +592,7 @@ export default function StudentClassesScreen() {
           }}
         >
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
             <Pressable onPress={(e) => e.stopPropagation()}>

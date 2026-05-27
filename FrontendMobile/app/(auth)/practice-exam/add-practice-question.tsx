@@ -26,6 +26,7 @@ export default function CombinedPracticeQuestionForm() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const subjectID = params.subjectID;
+  const returnTo = params.returnTo as string | undefined;
 
   const [questionText, setQuestionText] = useState('');
   const [choices, setChoices] = useState([
@@ -65,7 +66,7 @@ export default function CombinedPracticeQuestionForm() {
         await apiRequest('/api/questions/choices', { method: 'POST', body: { questionID, choices: choices.map(c => ({ choiceText: c.choiceText, isCorrect: c.isCorrect ? 1 : 0 })) } });
       }
       showToast('Practice question added', 'success');
-      router.back();
+      if (returnTo) { router.replace(returnTo); } else { router.back(); }
     } catch (error: unknown) {
       showToast(error instanceof Error ? error.message : 'Failed to add question', 'error');
     } finally {
@@ -86,14 +87,14 @@ export default function CombinedPracticeQuestionForm() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.bg }}>
-      <View className="flex-row items-center justify-between px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
-        <TouchableOpacity onPress={() => router.back()} className="p-2"><Ionicons name="arrow-back" size={24} color={colors.text} /></TouchableOpacity>
+      <View className="flex-row items-center justify-between px-4 pt-12 pb-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
+        <TouchableOpacity onPress={() => { if (returnTo) { router.replace(returnTo); } else { router.back(); } }} className="p-2"><Ionicons name="arrow-back" size={24} color={colors.text} /></TouchableOpacity>
         <Text className="text-xl font-bold" style={{ color: colors.text }}>Add Practice Question</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>

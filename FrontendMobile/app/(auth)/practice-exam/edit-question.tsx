@@ -38,6 +38,7 @@ export default function EditQuestionForm() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const questionID = params.questionID;
+  const returnTo = params.returnTo as string | undefined;
 
   const [questionText, setQuestionText] = useState('');
   const [choices, setChoices] = useState<Choice[]>([]);
@@ -95,7 +96,8 @@ export default function EditQuestionForm() {
       });
 
       showToast('Question updated', 'success');
-      if (router.canGoBack()) router.back();
+      if (returnTo) router.replace(returnTo);
+      else if (router.canGoBack()) router.back();
     } catch (error: unknown) {
       showToast('Failed to update question', 'error');
     } finally {
@@ -120,8 +122,8 @@ export default function EditQuestionForm() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.bg }}>
-      <View className="flex-row items-center justify-between px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/(dean)/dashboard')} className="p-2">
+      <View className="flex-row items-center justify-between px-4 pt-12 pb-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border }}>
+        <TouchableOpacity onPress={() => { if (returnTo) { router.replace(returnTo); } else if (router.canGoBack()) { router.back(); } }} className="p-2">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text className="text-xl font-bold" style={{ color: colors.text }}>Edit Question</Text>
@@ -129,7 +131,7 @@ export default function EditQuestionForm() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 100, gap: 16 }} showsVerticalScrollIndicator={false}>

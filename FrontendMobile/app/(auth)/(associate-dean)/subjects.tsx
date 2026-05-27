@@ -9,10 +9,10 @@
 // Uses NativeWind for mobile-native styling.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Alert, useWindowDimensions, Modal, TextInput, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import RenderHtml from 'react-native-render-html';
@@ -39,7 +39,41 @@ interface Question {
   questionID: number;
   questionText?: string;
   status?: string;
+  status_name?: string;
   choices?: unknown[];
+  subjectName?: string;
+  topic?: string;
+  difficulty?: string;
+  points?: number;
+  score?: number;
+  maxPoints?: number;
+}
+
+function getDisplayText(value: any, fallback = '') {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return String(value);
+  }
+  if (value && typeof value === 'object') {
+    if (typeof value.name === 'string') return value.name;
+    if (typeof value.subjectName === 'string') return value.subjectName;
+    if (typeof value.title === 'string') return value.title;
+  }
+  return fallback;
+}
+
+function normalizeQuestion(question: any): Question {
+  return {
+    ...question,
+    questionText: typeof question?.questionText === 'string'
+      ? question.questionText
+      : getDisplayText(question?.questionText, '<p>No question text</p>'),
+    subjectName: getDisplayText(question?.subjectName ?? question?.subject?.subjectName, 'Unknown subject'),
+    topic: getDisplayText(question?.topic ?? question?.coverage_name ?? question?.coverage?.name, ''),
+    status: getDisplayText(question?.status ?? question?.status_name, 'pending').toLowerCase(),
+    difficulty: getDisplayText(question?.difficulty ?? question?.difficulty_name, ''),
+    choices: Array.isArray(question?.choices) ? question.choices : [],
+    points: question?.points ?? question?.score ?? question?.maxPoints ?? 1,
+  };
 }
 
 export default function AssoDeanSubjectsScreen() {
@@ -48,6 +82,7 @@ export default function AssoDeanSubjectsScreen() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { width: windowWidth } = useWindowDimensions();
+  const params = useLocalSearchParams<{ subjectID?: string }>();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -73,6 +108,7 @@ export default function AssoDeanSubjectsScreen() {
   const [activeSubjectForMenu, setActiveSubjectForMenu] = useState<any>(null);
   const [filterProgramID, setFilterProgramID] = useState<string>('All');
   const [filterYearLevelID, setFilterYearLevelID] = useState<string>('All');
+  const hasAppliedParamSubject = useRef(false);
 
   useEffect(() => {
     fetchPrograms();
@@ -82,6 +118,17 @@ export default function AssoDeanSubjectsScreen() {
   useEffect(() => {
     fetchSubjects(true);
   }, [filterProgramID, filterYearLevelID]);
+
+  // Auto-select subject from URL param after subjects load
+  useEffect(() => {
+    if (subjects.length > 0 && params.subjectID && !hasAppliedParamSubject.current) {
+      const match = subjects.find((s: Subject) => String(s.subjectID) === params.subjectID);
+      if (match) {
+        setSelectedSubject(match);
+        hasAppliedParamSubject.current = true;
+      }
+    }
+  }, [subjects, params.subjectID]);
 
   useEffect(() => {
     if (selectedSubject) fetchQuestions(true);
@@ -157,7 +204,7 @@ export default function AssoDeanSubjectsScreen() {
       const data = await apiRequest(
         `/api/subjects/${selectedSubject.subjectID}/questions?page=${currentPage}&limit=20`
       );
-      const qList: Question[] = Array.isArray(data?.questions) ? data.questions : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      const qList: Question[] = (Array.isArray(data?.questions) ? data.questions : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []).map(normalizeQuestion);
       const totalPages = data?.total_pages;
 
       if (reset) {
@@ -500,7 +547,11 @@ export default function AssoDeanSubjectsScreen() {
             data={questions}
             keyExtractor={(q, idx) => q.questionID?.toString() || idx.toString()}
             renderItem={({ item: q, index: idx }) => (
-              <View className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: '/(auth)/practice-exam/edit-question', params: { questionID: q.questionID, question: JSON.stringify(q), returnTo: `/(auth)/(associate-dean)/subjects?subjectID=${selectedSubject?.subjectID}` } })}
+                className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}
+                activeOpacity={0.7}
+              >
                 <View className="flex-row justify-between items-center mb-2">
                   <Text className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Q{idx + 1}</Text>
                   <View className="flex-row items-center gap-2">
@@ -520,6 +571,7 @@ export default function AssoDeanSubjectsScreen() {
                   <RenderHtml
                     contentWidth={windowWidth - 64}
                     source={{ html: q.questionText || '<p>No question text</p>' }}
+                    baseStyle={{ color: isDark ? '#fff' : '#111827' }}
                     tagsStyles={{
                       p: { color: isDark ? '#fff' : '#111827', fontSize: 15, lineHeight: 20, marginBottom: 4 },
                       li: { color: isDark ? '#fff' : '#111827', fontSize: 14, lineHeight: 18 },
@@ -538,7 +590,7 @@ export default function AssoDeanSubjectsScreen() {
                 <View className="flex-row items-center pt-2 border-t border-gray-200 dark:border-[#2A2A2A]">
                   <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{q.choices?.length || 4} choices</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             )}
             contentContainerStyle={{ paddingBottom: 120 }}
             removeClippedSubviews={true}
@@ -570,7 +622,7 @@ export default function AssoDeanSubjectsScreen() {
       <Modal visible={showSubjectModal} transparent animationType="fade" onRequestClose={() => setShowSubjectModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
             <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
@@ -601,39 +653,23 @@ export default function AssoDeanSubjectsScreen() {
               className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'border-[#2A2A2A] text-white bg-[#242424]' : 'border-gray-200 text-gray-900 bg-white'}`}
             />
 
-            <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Program</Text>
-            <View className={`border rounded-xl mb-4 overflow-hidden ${isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, gap: 8 }}>
-                {programs.map((p: any) => (
-                  <TouchableOpacity
-                    key={p.programID || p.id}
-                    onPress={() => setProgramID(String(p.programID || p.id))}
-                    className={`px-3 py-2 rounded-lg ${String(programID) === String(p.programID || p.id) ? 'bg-primary' : isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
-                  >
-                    <Text className={`text-sm ${String(programID) === String(p.programID || p.id) ? 'text-white font-bold' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {p.programName || p.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+            <CustomDropdown
+              label="Program"
+              items={programs.map((p: any) => ({ id: p.programID || p.id, label: p.programName || p.name, value: String(p.programID || p.id) }))}
+              selectedValue={programID}
+              onSelect={(value: any) => setProgramID(value)}
+              placeholder="Select program"
+            />
 
-            <Text className={`text-sm font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Year Level</Text>
-            <View className={`border rounded-xl mb-6 overflow-hidden ${isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, gap: 8 }}>
-                {yearLevels.map((yl: any) => (
-                  <TouchableOpacity
-                    key={yl.yearLevelID || yl.id}
-                    onPress={() => setYearLevelID(String(yl.yearLevelID || yl.id))}
-                    className={`px-3 py-2 rounded-lg ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'bg-primary' : isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
-                  >
-                    <Text className={`text-sm ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'text-white font-bold' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {yl.name || yl.yearLevel}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+            <View className="mb-4" />
+
+            <CustomDropdown
+              label="Year Level"
+              items={yearLevels.map((yl: any) => ({ id: yl.yearLevelID || yl.id, label: yl.name || yl.yearLevel, value: String(yl.yearLevelID || yl.id) }))}
+              selectedValue={yearLevelID}
+              onSelect={(value: any) => setYearLevelID(value)}
+              placeholder="Select year level"
+            />
 
             <TouchableOpacity
               onPress={handleSaveSubject}

@@ -297,7 +297,7 @@ export default function AdminDashboard() {
                 <TouchableOpacity
                   key={idx}
                   onPress={() => router.push(card.route)}
-                  className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                  className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
                   activeOpacity={0.8}
                   style={[cardStyle, {
                     borderLeftWidth: 4,
@@ -331,7 +331,7 @@ export default function AdminDashboard() {
                 <TouchableOpacity
                   key={idx}
                   onPress={() => action.onPress ? action.onPress() : router.push(action.route)}
-                  className={`w-[48%] rounded-2xl p-5 items-center ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                  className={`w-[48%] rounded-2xl p-5 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
                   activeOpacity={0.8}
                   style={cardStyle}
                 >
@@ -365,7 +365,7 @@ export default function AdminDashboard() {
               <TouchableOpacity
                 key={idx}
                 onPress={() => router.push(item.route)}
-                className={`flex-row items-center rounded-2xl p-4 mb-3 ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+                className={`flex-row items-center rounded-2xl p-4 mb-3 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
                 activeOpacity={0.8}
                 style={[cardStyle, {
                   borderLeftWidth: 4,
@@ -397,10 +397,10 @@ export default function AdminDashboard() {
       <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
-            <View className={`rounded-t-3xl px-5 pt-5 pb-8 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+            <View className={`rounded-t-3xl px-5 pt-5 pb-8 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
               <View className="flex-row items-center justify-between mb-5">
                 <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Quiz</Text>
                 <TouchableOpacity onPress={() => setShowQuizModal(false)}>
@@ -414,7 +414,7 @@ export default function AdminDashboard() {
                 onChangeText={setQuizTitle}
                 placeholder="Enter quiz title"
                 placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-                className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-50 text-gray-900 border-gray-200'}`}
+                className={`border rounded-xl px-4 py-3 mb-4 ${isDark ? 'bg-[#242424] text-white border-[#2A2A2A]' : 'bg-gray-50 text-gray-900 border-gray-200'}`}
               />
 
               <Text className={`mb-2 font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Quiz Type</Text>
@@ -423,9 +423,10 @@ export default function AdminDashboard() {
                   <TouchableOpacity
                     key={type.id}
                     onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
-                    className={`flex-1 rounded-xl px-4 py-3 border text-center ${quizTypeID === type.id ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                    className={`flex-1 rounded-xl px-4 py-3 border text-center ${quizTypeID === type.id ? 'border-[#FE6902]' : isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}
+                    style={{ backgroundColor: isDark && quizTypeID === type.id ? 'rgba(254,105,2,0.15)' : undefined }}
                   >
-                    <Text className={`font-semibold ${quizTypeID === type.id ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>{type.label}</Text>
+                    <Text className={`font-semibold ${quizTypeID === type.id ? 'text-[#FE6902]' : isDark ? 'text-white' : 'text-gray-900'}`}>{type.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -441,9 +442,10 @@ export default function AdminDashboard() {
                           <TouchableOpacity
                             key={sid}
                             onPress={() => setQuizSubjectID(Number(sid))}
-                            className={`rounded-xl px-4 py-3 border ${quizSubjectID === sid ? 'border-primary bg-orange-50' : isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+                            className={`rounded-xl px-4 py-3 border ${quizSubjectID === sid ? 'border-[#FE6902]' : isDark ? 'border-[#2A2A2A] bg-[#242424]' : 'border-gray-200 bg-white'}`}
+                            style={{ backgroundColor: isDark && quizSubjectID === sid ? 'rgba(254,105,2,0.15)' : isDark && quizSubjectID !== sid ? '#242424' : undefined }}
                           >
-                            <Text className={`font-semibold ${quizSubjectID === sid ? 'text-primary' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                            <Text className={`font-semibold ${quizSubjectID === sid ? 'text-[#FE6902]' : isDark ? 'text-white' : 'text-gray-900'}`}>
                               {subject.subjectName || subject.name}
                             </Text>
                           </TouchableOpacity>

@@ -6,7 +6,7 @@
 //          (add/edit/delete). Uses NativeWind for mobile-native styling.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,7 +23,7 @@ import {
   Platform,
 } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import RenderHtml from 'react-native-render-html';
@@ -49,6 +49,8 @@ export default function ProgramChairSubjectsScreen() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { width: windowWidth } = useWindowDimensions();
+  const params = useLocalSearchParams<{ subjectID?: string }>();
+  const hasAppliedParamSubject = useRef(false);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -120,6 +122,17 @@ export default function ProgramChairSubjectsScreen() {
   useEffect(() => {
     fetchSubjects(true);
   }, [filterProgramID, filterYearLevelID]);
+
+  // Auto-select subject from URL param after subjects load
+  useEffect(() => {
+    if (subjects.length > 0 && params.subjectID && !hasAppliedParamSubject.current) {
+      const match = subjects.find((s: any) => String(s.subjectID) === params.subjectID);
+      if (match) {
+        setSelectedSubject(match);
+        hasAppliedParamSubject.current = true;
+      }
+    }
+  }, [subjects, params.subjectID]);
 
   useEffect(() => {
     // Reset questions page and refetch when a new subject is selected
@@ -513,18 +526,8 @@ export default function ProgramChairSubjectsScreen() {
               {selectedSubject ? (selectedSubject.subjectName || selectedSubject.name || 'Subject Questions') : 'Program Subjects'}
             </Text>
           </View>
-          <View className="flex-row items-center" style={{ gap: 8 }}>
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/(program-chair)/classes')}
-              className={`px-3 py-2 rounded-xl ${isDark ? 'bg-[#242424]' : 'bg-gray-100'}`}
-              activeOpacity={0.7}
-            >
-              <View className="flex-row items-center">
-                <Ionicons name="layers-outline" size={18} color="#FE6902" />
-                <Text className="font-semibold ml-1 text-primary">Classes</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+          <View className="flex-row items-center" style={{ gap: 8 }} />
+
         </View>
       </View>
 
@@ -637,8 +640,10 @@ export default function ProgramChairSubjectsScreen() {
             ) : (
               <>
                 {filteredQuestions.map((q, idx) => (
-                <View
+                <TouchableOpacity
                   key={q.questionID || idx}
+                  onPress={() => router.push({ pathname: '/(auth)/practice-exam/edit-question', params: { questionID: q.questionID, question: JSON.stringify(q), returnTo: `/(auth)/(program-chair)/subjects?subjectID=${selectedSubject?.subjectID}` } })}
+                  activeOpacity={0.7}
                   className={`rounded-2xl p-4 mb-3 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}
                 >
                   <View className="flex-row justify-between items-center mb-2">
@@ -657,16 +662,9 @@ export default function ProgramChairSubjectsScreen() {
                         </TouchableOpacity>
                       )}
                       <TouchableOpacity
-                        onPress={() => router.push({ pathname: '/(auth)/practice-exam/edit-question', params: { questionID: q.questionID } })}
-                        className="p-1"
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="create-outline" size={18} color={isDark ? '#9CA3AF' : '#6B7280'} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
                         onPress={() => router.push({
                           pathname: '/(auth)/practice-exam/duplicate-question',
-                          params: { questionID: q.questionID, question: JSON.stringify(q) }
+                          params: { questionID: q.questionID, question: JSON.stringify(q), returnTo: `/(auth)/(program-chair)/subjects?subjectID=${selectedSubject?.subjectID}` }
                         })}
                         className="p-1"
                         activeOpacity={0.7}
@@ -686,6 +684,7 @@ export default function ProgramChairSubjectsScreen() {
                     <RenderHtml
                       contentWidth={windowWidth - 64}
                       source={{ html: q.questionText || '<p>No question text</p>' }}
+                      baseStyle={{ color: isDark ? '#fff' : '#111827' }}
                       tagsStyles={{
                         p: { color: isDark ? '#fff' : '#111827', fontSize: 15, lineHeight: 20, marginBottom: 4 },
                         li: { color: isDark ? '#fff' : '#111827', fontSize: 14, lineHeight: 18 },
@@ -705,7 +704,7 @@ export default function ProgramChairSubjectsScreen() {
                     <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{q.choices?.length || 4} choices</Text>
                     <Ionicons name="chevron-forward" size={18} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
                   </View>
-                </View>
+                </TouchableOpacity>
                 ))}
                 {isLoadingMoreQuestions ? (
                     <View className="py-4 items-center">
@@ -727,7 +726,7 @@ export default function ProgramChairSubjectsScreen() {
       <Modal visible={showSubjectModal} transparent animationType="fade" onRequestClose={() => setShowSubjectModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
             <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
@@ -765,7 +764,7 @@ export default function ProgramChairSubjectsScreen() {
                   <TouchableOpacity
                     key={p.programID || p.id}
                     onPress={() => setProgramID(String(p.programID || p.id))}
-                    className={`px-3 py-2 rounded-lg ${String(programID) === String(p.programID || p.id) ? 'bg-primary' : isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
+                    className={`px-3 py-2 rounded-lg ${String(programID) === String(p.programID || p.id) ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-gray-100'}`}
                   >
                     <Text className={`text-sm ${String(programID) === String(p.programID || p.id) ? 'text-white font-bold' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                       {p.programName || p.name}
@@ -782,7 +781,7 @@ export default function ProgramChairSubjectsScreen() {
                   <TouchableOpacity
                     key={yl.yearLevelID || yl.id}
                     onPress={() => setYearLevelID(String(yl.yearLevelID || yl.id))}
-                    className={`px-3 py-2 rounded-lg ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'bg-primary' : isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
+                    className={`px-3 py-2 rounded-lg ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-gray-100'}`}
                   >
                     <Text className={`text-sm ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'text-white font-bold' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                       {yl.name || yl.yearLevel}
@@ -850,10 +849,10 @@ export default function ProgramChairSubjectsScreen() {
       <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
-            <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, backgroundColor: isDark ? '#111827' : '#ffffff' }}>
+            <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, backgroundColor: isDark ? '#1A1A1A' : '#ffffff' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <Text style={{ fontSize: 18, fontWeight: '700', color: isDark ? '#fff' : '#111827' }}>Create Quiz</Text>
               <TouchableOpacity onPress={() => setShowQuizModal(false)}>
@@ -862,12 +861,12 @@ export default function ProgramChairSubjectsScreen() {
             </View>
             <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Quiz Title</Text>
             <TextInput value={quizTitle} onChangeText={setQuizTitle} placeholder="Enter quiz title" placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-              style={{ borderWidth: 1, borderColor: isDark ? '#374151' : '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, color: isDark ? '#fff' : '#111827', backgroundColor: isDark ? '#1F2937' : '#F9FAFB' }} />
+              style={{ borderWidth: 1, borderColor: isDark ? '#2A2A2A' : '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, color: isDark ? '#fff' : '#111827', backgroundColor: isDark ? '#242424' : '#F9FAFB' }} />
             <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Quiz Type</Text>
             <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
               {[{ id: 2, label: 'Custom' }, { id: 1, label: 'Subject-based' }].map((type) => (
                 <TouchableOpacity key={type.id} onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
-                  style={{ flex: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, alignItems: 'center', borderColor: quizTypeID === type.id ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizTypeID === type.id ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                  style={{ flex: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, alignItems: 'center', borderColor: quizTypeID === type.id ? '#FE6902' : (isDark ? '#2A2A2A' : '#E5E7EB'), backgroundColor: quizTypeID === type.id ? (isDark ? 'rgba(254,105,2,0.15)' : '#FFF0E0') : (isDark ? '#242424' : '#fff') }}>
                   <Text style={{ fontWeight: '600', color: quizTypeID === type.id ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{type.label}</Text>
                 </TouchableOpacity>
               ))}
@@ -879,7 +878,7 @@ export default function ProgramChairSubjectsScreen() {
                   <View style={{ gap: 8 }}>
                     {subjects.map((subject) => (
                       <TouchableOpacity key={subject.subjectID} onPress={() => setQuizSubjectID(Number(subject.subjectID))}
-                        style={{ borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizSubjectID === subject.subjectID ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                        style={{ borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#2A2A2A' : '#E5E7EB'), backgroundColor: quizSubjectID === subject.subjectID ? (isDark ? 'rgba(254,105,2,0.15)' : '#FFF0E0') : (isDark ? '#242424' : '#fff') }}>
                         <Text style={{ fontWeight: '600', color: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{subject.subjectName || subject.name}</Text>
                       </TouchableOpacity>
                     ))}
@@ -889,7 +888,7 @@ export default function ProgramChairSubjectsScreen() {
                 <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
                   {[{ value: 'midterm', label: 'Midterm' }, { value: 'final', label: 'Finals' }, { value: 'full', label: 'Full' }].map((opt) => (
                     <TouchableOpacity key={opt.value} onPress={() => setQuizCoverage(opt.value)}
-                      style={{ flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizCoverage === opt.value ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                      style={{ flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#2A2A2A' : '#E5E7EB'), backgroundColor: quizCoverage === opt.value ? (isDark ? 'rgba(254,105,2,0.15)' : '#FFF0E0') : (isDark ? '#242424' : '#fff') }}>
                       <Text style={{ fontWeight: '600', fontSize: 13, color: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{opt.label}</Text>
                     </TouchableOpacity>
                   ))}

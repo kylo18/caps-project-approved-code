@@ -15,10 +15,10 @@
 // Uses NativeWind for mobile-native styling.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {   View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, useWindowDimensions, Switch, Alert, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import RenderHtml from 'react-native-render-html';
@@ -98,6 +98,7 @@ export default function AdminSubjectsScreen() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { width: windowWidth } = useWindowDimensions();
+  const params = useLocalSearchParams<{ subjectID?: string }>();
 
   // State
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
@@ -127,28 +128,9 @@ export default function AdminSubjectsScreen() {
   const [yearLevels, setYearLevels] = useState<any[]>([]);
   const [filterProgramID, setFilterProgramID] = useState<string>('All');
   const [filterYearLevelID, setFilterYearLevelID] = useState<string>('All');
-
-  // Subject settings modal state
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [settingsTargetSubjectIDs, setSettingsTargetSubjectIDs] = useState<number[]>([]);
-  const [isExamEnabled, setIsExamEnabled] = useState(false);
-  const [settingsLoading, setSettingsLoading] = useState(false);
-  const [settingsSaving, setSettingsSaving] = useState(false);
-  const [settingsMessage, setSettingsMessage] = useState('');
-  const [showPrintModal, setShowPrintModal] = useState(false);
-  const [practiceSettings, setPracticeSettings] = useState({
-    isEnabled: false,
-    enableTimer: false,
-    duration_minutes: 30,
-    coverage: 'midterm',
-    easy_percentage: 30,
-    moderate_percentage: 50,
-    hard_percentage: 20,
-    total_items: 100,
-  });
-  const [difficultyMode, setDifficultyMode] = useState<'default' | 'custom'>('default');
   const [showActionModal, setShowActionModal] = useState(false);
   const [activeSubjectForMenu, setActiveSubjectForMenu] = useState<any>(null);
+  const hasAppliedParamSubject = useRef(false);
 
   // Quiz creation modal state
   const [showQuizModal, setShowQuizModal] = useState(false);
@@ -209,6 +191,17 @@ export default function AdminSubjectsScreen() {
   useEffect(() => {
     fetchSubjects(true);
   }, [filterProgramID, filterYearLevelID]);
+
+  // Auto-select subject from URL param after subjects load
+  useEffect(() => {
+    if (subjects.length > 0 && params.subjectID && !hasAppliedParamSubject.current) {
+      const match = subjects.find((s: SubjectItem) => String(s.subjectID) === params.subjectID);
+      if (match) {
+        setSelectedSubject(match);
+        hasAppliedParamSubject.current = true;
+      }
+    }
+  }, [subjects, params.subjectID]);
 
   // Fetch questions when subject changes
   useEffect(() => {
@@ -874,13 +867,13 @@ export default function AdminSubjectsScreen() {
             keyExtractor={(q, idx) => q.questionID?.toString() || idx.toString()}
             renderItem={({ item: q, index: idx }) => (
               <TouchableOpacity
-                onPress={() => openDetail(q)}
+                onPress={() => router.push({ pathname: '/(auth)/practice-exam/edit-question', params: { questionID: q.questionID, question: JSON.stringify(q), returnTo: `/(auth)/(dean)/subjects?subjectID=${selectedSubject?.subjectID}` } })}
                 className={`rounded-2xl p-4 mx-4 mb-3 ${isDark ? 'bg-[#242424]' : 'bg-white'}`}
                 activeOpacity={0.7}
               >
                 <View className="flex-row justify-between items-start mb-2">
                   <View className="flex-row items-center gap-2">
-                    <View className={`w-8 h-8 rounded-full items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                    <View className={`w-8 h-8 rounded-full items-center justify-center ${isDark ? 'bg-[#242424]' : 'bg-gray-100'}`}>
                       <Text className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                         Q{idx + 1}
                       </Text>
@@ -900,6 +893,7 @@ export default function AdminSubjectsScreen() {
                   <RenderHtml
                     contentWidth={windowWidth - 96}
                     source={{ html: q.questionText || '<p>No question text</p>' }}
+                    baseStyle={{ color: isDark ? '#fff' : '#111827' }}
                     tagsStyles={{
                       p: { color: isDark ? '#fff' : '#111827', fontSize: 15, lineHeight: 20, marginBottom: 4 },
                       li: { color: isDark ? '#fff' : '#111827', fontSize: 14, lineHeight: 18 },
@@ -942,17 +936,8 @@ export default function AdminSubjectsScreen() {
                   <View className="flex-row items-center gap-2">
                     <TouchableOpacity
                       onPress={() => router.push({
-                        pathname: '/(auth)/practice-exam/edit-question',
-                        params: { questionID: q.questionID }
-                      })}
-                      className="p-2"
-                    >
-                      <Ionicons name="create-outline" size={20} color="#FE6902" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => router.push({
                         pathname: '/(auth)/practice-exam/duplicate-question',
-                        params: { questionID: q.questionID, question: JSON.stringify(q) }
+                        params: { questionID: q.questionID, question: JSON.stringify(q), returnTo: `/(auth)/(dean)/subjects?subjectID=${selectedSubject?.subjectID}` }
                       })}
                       className="p-2"
                     >
@@ -1010,7 +995,7 @@ export default function AdminSubjectsScreen() {
       <Modal visible={showSubjectModal} transparent animationType="fade" onRequestClose={() => setShowSubjectModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
             <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
@@ -1048,7 +1033,7 @@ export default function AdminSubjectsScreen() {
                   <TouchableOpacity
                     key={p.programID || p.id}
                     onPress={() => setProgramID(String(p.programID || p.id))}
-                    className={`px-3 py-2 rounded-lg ${String(programID) === String(p.programID || p.id) ? 'bg-primary' : isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
+                    className={`px-3 py-2 rounded-lg ${String(programID) === String(p.programID || p.id) ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-gray-100'}`}
                   >
                     <Text className={`text-sm ${String(programID) === String(p.programID || p.id) ? 'text-white font-bold' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                       {p.programName || p.name}
@@ -1065,7 +1050,7 @@ export default function AdminSubjectsScreen() {
                   <TouchableOpacity
                     key={yl.yearLevelID || yl.id}
                     onPress={() => setYearLevelID(String(yl.yearLevelID || yl.id))}
-                    className={`px-3 py-2 rounded-lg ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'bg-primary' : isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
+                    className={`px-3 py-2 rounded-lg ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-gray-100'}`}
                   >
                     <Text className={`text-sm ${String(yearLevelID) === String(yl.yearLevelID || yl.id) ? 'text-white font-bold' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                       {yl.name || yl.yearLevel}
@@ -1116,7 +1101,7 @@ export default function AdminSubjectsScreen() {
                 setShowDetailModal(false);
                 router.push({
                   pathname: '/(auth)/practice-exam/edit-question',
-                  params: { questionID: selectedQuestion?.questionID }
+                  params: { questionID: selectedQuestion?.questionID, question: JSON.stringify(selectedQuestion), returnTo: `/(auth)/(dean)/subjects?subjectID=${selectedSubject?.subjectID}` }
                 });
               }}
             >
@@ -1147,6 +1132,7 @@ export default function AdminSubjectsScreen() {
                   <RenderHtml
                     contentWidth={windowWidth - 64}
                     source={{ html: selectedQuestion.questionText || '<p>No question text</p>' }}
+                    baseStyle={{ color: isDark ? '#fff' : '#111827' }}
                     tagsStyles={{
                       p: { color: isDark ? '#fff' : '#111827', fontSize: 15, lineHeight: 22, marginBottom: 8 },
                       li: { color: isDark ? '#fff' : '#111827', fontSize: 14, lineHeight: 20 },
@@ -1175,7 +1161,7 @@ export default function AdminSubjectsScreen() {
                         flex-row items-center p-3 rounded-xl mb-2
                         ${choice.isCorrect || choice.is_correct
                           ? isDark ? 'bg-green-950/40 border border-green-500' : 'bg-green-100 border border-green-500'
-                          : isDark ? 'bg-gray-700' : 'bg-gray-50'
+                          : isDark ? 'bg-[#242424]' : 'bg-gray-50'
                         }
                       `}
                     >
@@ -1250,7 +1236,7 @@ export default function AdminSubjectsScreen() {
                       setShowDetailModal(false);
                       router.push({
                         pathname: '/(auth)/practice-exam/duplicate-question',
-                        params: { questionID: selectedQuestion.questionID, question: JSON.stringify(selectedQuestion) }
+                        params: { questionID: selectedQuestion.questionID, question: JSON.stringify(selectedQuestion), returnTo: `/(auth)/(dean)/subjects?subjectID=${selectedSubject?.subjectID}` }
                       });
                     }}
                     className="flex-1 py-3 rounded-xl items-center"
@@ -1327,7 +1313,7 @@ export default function AdminSubjectsScreen() {
                     </View>
                     <TouchableOpacity
                       onPress={() => setSettingsTargetSubjectIDs(subjects.map((subject) => subject.subjectID))}
-                      className={`px-3 py-2 rounded-xl ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}
+                      className={`px-3 py-2 rounded-xl ${isDark ? 'bg-[#242424]' : 'bg-gray-100'}`}
                     >
                       <Text className="text-primary font-semibold">Select All</Text>
                     </TouchableOpacity>
@@ -1409,7 +1395,7 @@ export default function AdminSubjectsScreen() {
                           onChangeText={(v) => setPracticeSettings(prev => ({ ...prev, total_items: parseInt(v) || 0 }))}
                           keyboardType="numeric"
                           editable={practiceSettings.isEnabled}
-                          className={`border rounded-xl px-3 py-2 ${isDark ? 'border-gray-600 text-white bg-gray-700' : 'border-gray-300 text-gray-900 bg-white'}`}
+                          className={`border rounded-xl px-3 py-2 ${isDark ? 'border-[#2A2A2A] text-white bg-[#242424]' : 'border-gray-300 text-gray-900 bg-white'}`}
                         />
                       </View>
                       <View className="flex-1">
@@ -1449,7 +1435,7 @@ export default function AdminSubjectsScreen() {
                           onChangeText={(v) => setPracticeSettings(prev => ({ ...prev, duration_minutes: parseInt(v) || 0 }))}
                           keyboardType="numeric"
                           editable={practiceSettings.isEnabled}
-                          className={`border rounded-xl px-3 py-2 ${isDark ? 'border-gray-600 text-white bg-gray-700' : 'border-gray-300 text-gray-900 bg-white'}`}
+                          className={`border rounded-xl px-3 py-2 ${isDark ? 'border-[#2A2A2A] text-white bg-[#242424]' : 'border-gray-300 text-gray-900 bg-white'}`}
                         />
                       </View>
                     )}
@@ -1487,7 +1473,7 @@ export default function AdminSubjectsScreen() {
                               onChangeText={(v) => setPracticeSettings(prev => ({ ...prev, [`${level}_percentage`]: parseInt(v) || 0 }))}
                               keyboardType="numeric"
                               editable={practiceSettings.isEnabled}
-                              className={`border rounded-xl px-3 py-2 text-center ${isDark ? 'border-gray-600 text-white bg-gray-700' : 'border-gray-300 text-gray-900 bg-white'}`}
+                              className={`border rounded-xl px-3 py-2 text-center ${isDark ? 'border-[#2A2A2A] text-white bg-[#242424]' : 'border-gray-300 text-gray-900 bg-white'}`}
                             />
                           </View>
                         ))}
@@ -1556,10 +1542,10 @@ export default function AdminSubjectsScreen() {
       <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
-            <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, backgroundColor: isDark ? '#111827' : '#ffffff' }}>
+            <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, backgroundColor: isDark ? '#1A1A1A' : '#ffffff' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                 <Text style={{ fontSize: 18, fontWeight: '700', color: isDark ? '#fff' : '#111827' }}>Create Quiz</Text>
                 <TouchableOpacity onPress={() => setShowQuizModal(false)}>
@@ -1568,12 +1554,12 @@ export default function AdminSubjectsScreen() {
               </View>
               <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Quiz Title</Text>
               <TextInput value={quizTitle} onChangeText={setQuizTitle} placeholder="Enter quiz title" placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-                style={{ borderWidth: 1, borderColor: isDark ? '#374151' : '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, color: isDark ? '#fff' : '#111827', backgroundColor: isDark ? '#1F2937' : '#F9FAFB' }} />
+                style={{ borderWidth: 1, borderColor: isDark ? '#2A2A2A' : '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, color: isDark ? '#fff' : '#111827', backgroundColor: isDark ? '#242424' : '#F9FAFB' }} />
               <Text style={{ marginBottom: 8, fontWeight: '600', color: isDark ? '#fff' : '#111827' }}>Quiz Type</Text>
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
                 {[{ id: 2, label: 'Custom' }, { id: 1, label: 'Subject-based' }].map((type) => (
                   <TouchableOpacity key={type.id} onPress={() => { setQuizTypeID(type.id); setQuizSubjectID(null); }}
-                    style={{ flex: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, alignItems: 'center', borderColor: quizTypeID === type.id ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizTypeID === type.id ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                    style={{ flex: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, alignItems: 'center', borderColor: quizTypeID === type.id ? '#FE6902' : (isDark ? '#2A2A2A' : '#E5E7EB'), backgroundColor: quizTypeID === type.id ? (isDark ? 'rgba(254,105,2,0.15)' : '#FFF0E0') : (isDark ? '#242424' : '#fff') }}>
                     <Text style={{ fontWeight: '600', color: quizTypeID === type.id ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{type.label}</Text>
                   </TouchableOpacity>
                 ))}
@@ -1585,7 +1571,7 @@ export default function AdminSubjectsScreen() {
                     <View style={{ gap: 8 }}>
                       {subjects.map((subject) => (
                         <TouchableOpacity key={subject.subjectID} onPress={() => setQuizSubjectID(Number(subject.subjectID))}
-                          style={{ borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizSubjectID === subject.subjectID ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                          style={{ borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#2A2A2A' : '#E5E7EB'), backgroundColor: quizSubjectID === subject.subjectID ? (isDark ? 'rgba(254,105,2,0.15)' : '#FFF0E0') : (isDark ? '#242424' : '#fff') }}>
                           <Text style={{ fontWeight: '600', color: quizSubjectID === subject.subjectID ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{subject.subjectName}</Text>
                         </TouchableOpacity>
                       ))}
@@ -1595,7 +1581,7 @@ export default function AdminSubjectsScreen() {
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
                     {[{ value: 'midterm', label: 'Midterm' }, { value: 'final', label: 'Finals' }, { value: 'full', label: 'Full' }].map((opt) => (
                       <TouchableOpacity key={opt.value} onPress={() => setQuizCoverage(opt.value)}
-                        style={{ flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#374151' : '#E5E7EB'), backgroundColor: quizCoverage === opt.value ? '#FFF0E0' : (isDark ? '#1F2937' : '#fff') }}>
+                        style={{ flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#2A2A2A' : '#E5E7EB'), backgroundColor: quizCoverage === opt.value ? (isDark ? 'rgba(254,105,2,0.15)' : '#FFF0E0') : (isDark ? '#242424' : '#fff') }}>
                         <Text style={{ fontWeight: '600', fontSize: 13, color: quizCoverage === opt.value ? '#FE6902' : (isDark ? '#fff' : '#111827') }}>{opt.label}</Text>
                       </TouchableOpacity>
                     ))}

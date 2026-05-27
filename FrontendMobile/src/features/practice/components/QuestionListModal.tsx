@@ -19,11 +19,11 @@ export default function QuestionListModal({
 }: QuestionListModalProps) {
   const colors = {
     bg: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(0,0,0,0.5)',
-    card: isDark ? '#1f2937' : '#fff',
+    card: isDark ? '#1A1A1A' : '#fff',
     text: isDark ? '#f9fafb' : '#111827',
     textSecondary: isDark ? '#9ca3af' : '#6b7280',
     border: isDark ? '#374151' : '#e5e7eb',
-    itemBg: isDark ? '#111827' : '#f9fafb',
+    itemBg: isDark ? '#1A1A1A' : '#f9fafb',
     currentItemBg: isDark ? '#1c1917' : '#fff7ed',
   };
 
@@ -46,17 +46,17 @@ export default function QuestionListModal({
           </View>
 
           <View className="flex-row gap-2 mb-4">
-            <View className="flex-row items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-full">
+            <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
               <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-              <Text className="text-xs font-medium" style={{ color: '#374151' }}>{answeredCount} Answered</Text>
+              <Text className="text-xs font-medium" style={{ color: colors.text }}>{answeredCount} Answered</Text>
             </View>
-            <View className="flex-row items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-full">
+            <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
               <Ionicons name="ellipse-outline" size={16} color="#9ca3af" />
-              <Text className="text-xs font-medium" style={{ color: '#374151' }}>{questions.length - answeredCount} Remaining</Text>
+              <Text className="text-xs font-medium" style={{ color: colors.text }}>{questions.length - answeredCount} Remaining</Text>
             </View>
-            <View className="flex-row items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-full">
+            <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
               <Ionicons name="bookmark" size={16} color="#F59E0B" />
-              <Text className="text-xs font-medium" style={{ color: '#374151' }}>{bookmarkedQuestions.length} Bookmarked</Text>
+              <Text className="text-xs font-medium" style={{ color: colors.text }}>{bookmarkedQuestions.length} Bookmarked</Text>
             </View>
           </View>
 

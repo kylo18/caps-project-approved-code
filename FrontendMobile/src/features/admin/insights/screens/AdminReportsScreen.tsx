@@ -6,6 +6,7 @@ import MobileHeader from '../../../../features/core/components/MobileHeader';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { showToast } from '../../../../hooks/useToast';
 import { useScreenFloatingTools } from '../../shared/hooks/useScreenFloatingTools';
+import { apiRequest } from '../../../../services/apiClient';
 import {
   getAllUserReports,
   getOverallLeaderboard,
@@ -184,16 +185,16 @@ function RecentTakerCard({ item, isDark }: { item: RecentTaker; isDark: boolean 
               {name}
             </Text>
             <Text className="text-[12px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-              {item.course || item.year || item.yearLevel || 'No course info'}
+              {(item.course || item.year || item.yearLevel || '') + (subject !== 'No subject' ? ` • ${subject}` : '') || 'No course info'}
             </Text>
           </View>
         </View>
         <View className="items-end">
           <Text className="text-[15px] font-bold" style={{ color: '#FE6902' }}>
-            {item.lastAttemptScore ?? 0} / {item.totalPoints ?? 0}
+            {item.highestPercentage ?? 0}%
           </Text>
           <Text className="text-[12px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-            {item.averagePercentage ?? 0}% avg
+            {item.averagePercentage ?? 0}% avg | {item.totalAttempts ?? 0} attempt{item.totalAttempts === 1 ? '' : 's'}
           </Text>
         </View>
       </View>
@@ -202,11 +203,6 @@ function RecentTakerCard({ item, isDark }: { item: RecentTaker; isDark: boolean 
         <View className="rounded-full px-3 py-1 mr-2 mb-2" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
           <Text className="text-[11px] font-medium" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
             {subject}
-          </Text>
-        </View>
-        <View className="rounded-full px-3 py-1 mr-2 mb-2" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
-          <Text className="text-[11px] font-medium" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
-            {item.totalAttempts ?? 0} attempt{item.totalAttempts === 1 ? '' : 's'}
           </Text>
         </View>
         <View className="rounded-full px-3 py-1 mb-2" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
@@ -365,12 +361,20 @@ export default function AdminReportsScreen({ role }: Props) {
   const [recentTakers, setRecentTakers] = useState<RecentTaker[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [reports, setReports] = useState<UserReportTicket[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [filterProgramID, setFilterProgramID] = useState<string>('');
+  const [filterSubjectID, setFilterSubjectID] = useState<string>('');
+  const [showProgramDropdown, setShowProgramDropdown] = useState(false);
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
 
   const fetchAll = useCallback(async () => {
     try {
+      const hasFilters = filterProgramID || filterSubjectID;
+      const filter = hasFilters ? { programID: filterProgramID || undefined, subjectID: filterSubjectID || undefined } : undefined;
       const [recentData, leaderboardData, reportsData] = await Promise.all([
-        getOverallRecentTakers(),
-        getOverallLeaderboard(),
+        getOverallRecentTakers(filter),
+        getOverallLeaderboard(filter),
         getAllUserReports(),
       ]);
       setRecentTakers(recentData);
@@ -383,10 +387,22 @@ export default function AdminReportsScreen({ role }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [filterProgramID, filterSubjectID]);
 
   useEffect(() => {
     fetchAll();
+    apiRequest('/api/programs').then(res => {
+      const list = Array.isArray(res?.programs) ? res.programs :
+        Array.isArray(res?.data) ? res.data :
+        Array.isArray(res) ? res : [];
+      setPrograms(list);
+    }).catch(() => setPrograms([]));
+    apiRequest('/api/subjects').then(res => {
+      const list = Array.isArray(res?.subjects) ? res.subjects :
+        Array.isArray(res?.data) ? res.data :
+        Array.isArray(res) ? res : [];
+      setSubjects(list);
+    }).catch(() => setSubjects([]));
   }, [fetchAll]);
 
   const onRefresh = useCallback(() => {
@@ -506,6 +522,8 @@ export default function AdminReportsScreen({ role }: Props) {
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 16 }}
         showsVerticalScrollIndicator={false}
+        onScroll={() => { setShowProgramDropdown(false); setShowSubjectDropdown(false); }}
+        scrollEventThrottle={100}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FE6902" />}
       >
         <View>
@@ -537,6 +555,77 @@ export default function AdminReportsScreen({ role }: Props) {
             <TabButton label="All Reports" icon="document-text-outline" active={activeTab === 'reports'} onPress={() => setActiveTab('reports')} />
           )}
         </ScrollView>
+
+        <View className="flex-row gap-2">
+          <View className="flex-1 relative">
+            <Pressable
+              onPress={() => { setShowProgramDropdown(!showProgramDropdown); setShowSubjectDropdown(false); }}
+              className="flex-row items-center justify-between rounded-xl px-3 py-2.5"
+              style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? '#333' : '#E5E7EB' }}
+            >
+              <Text className="text-[13px]" style={{ color: filterProgramID ? (isDark ? '#FFF' : '#111827') : '#9CA3AF' }}>
+                {filterProgramID ? (programs.find((p: any) => String(p.programID || p.id) === filterProgramID)?.programName || 'Program') : 'All Programs'}
+              </Text>
+              <Ionicons name={showProgramDropdown ? 'chevron-up' : 'chevron-down'} size={14} color="#6B7280" />
+            </Pressable>
+            {showProgramDropdown ? (
+              <View className="absolute top-full left-0 right-0 mt-1 rounded-xl z-50" style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? '#333' : '#E5E7EB', maxHeight: 200 }}>
+                <ScrollView>
+                  <Pressable
+                    onPress={() => { setFilterProgramID(''); setShowProgramDropdown(false); }}
+                    className="px-3 py-2.5"
+                  >
+                    <Text className="text-[13px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>All Programs</Text>
+                  </Pressable>
+                  {programs.map((p: any) => (
+                    <Pressable
+                      key={p.programID || p.id}
+                      onPress={() => { setFilterProgramID(String(p.programID || p.id)); setShowProgramDropdown(false); }}
+                      className="px-3 py-2.5"
+                      style={{ backgroundColor: String(p.programID || p.id) === filterProgramID ? (isDark ? '#242424' : '#FFF0E0') : 'transparent' }}
+                    >
+                      <Text className="text-[13px]" style={{ color: isDark ? '#FFF' : '#111827' }}>{p.programName}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+          </View>
+          <View className="flex-1 relative">
+            <Pressable
+              onPress={() => { setShowSubjectDropdown(!showSubjectDropdown); setShowProgramDropdown(false); }}
+              className="flex-row items-center justify-between rounded-xl px-3 py-2.5"
+              style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? '#333' : '#E5E7EB' }}
+            >
+              <Text className="text-[13px]" style={{ color: filterSubjectID ? (isDark ? '#FFF' : '#111827') : '#9CA3AF' }}>
+                {filterSubjectID ? (subjects.find((s: any) => String(s.subjectID || s.id) === filterSubjectID)?.subjectName || 'Subject') : 'All Subjects'}
+              </Text>
+              <Ionicons name={showSubjectDropdown ? 'chevron-up' : 'chevron-down'} size={14} color="#6B7280" />
+            </Pressable>
+            {showSubjectDropdown ? (
+              <View className="absolute top-full left-0 right-0 mt-1 rounded-xl z-50" style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? '#333' : '#E5E7EB', maxHeight: 200 }}>
+                <ScrollView>
+                  <Pressable
+                    onPress={() => { setFilterSubjectID(''); setShowSubjectDropdown(false); }}
+                    className="px-3 py-2.5"
+                  >
+                    <Text className="text-[13px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>All Subjects</Text>
+                  </Pressable>
+                  {subjects.map((s: any) => (
+                    <Pressable
+                      key={s.subjectID || s.id}
+                      onPress={() => { setFilterSubjectID(String(s.subjectID || s.id)); setShowSubjectDropdown(false); }}
+                      className="px-3 py-2.5"
+                      style={{ backgroundColor: String(s.subjectID || s.id) === filterSubjectID ? (isDark ? '#242424' : '#FFF0E0') : 'transparent' }}
+                    >
+                      <Text className="text-[13px]" style={{ color: isDark ? '#FFF' : '#111827' }}>{s.subjectName}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+          </View>
+        </View>
 
         {loading ? (
           <EmptyState icon="hourglass-outline" message="Loading reports..." isDark={isDark} />
