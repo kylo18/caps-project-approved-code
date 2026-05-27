@@ -363,6 +363,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::get('/admin/analytics/content', [AdminAnalyticsController::class, 'getContentAnalytics']);
     Route::get('/admin/analytics/student-scores', [AdminAnalyticsController::class, 'getStudentScores']);
     Route::get('/admin/analytics/student/{userId}/subject-scores', [AdminAnalyticsController::class, 'getStudentSubjectScores']);
+    Route::get('/admin/analytics/program-comparison', [AdminAnalyticsController::class, 'getProgramComparison']);
 
     // Dashboard quick stats (role 2-5)
     Route::get('/dashboard/stats', [AdminAnalyticsController::class, 'getDashboardStats']);

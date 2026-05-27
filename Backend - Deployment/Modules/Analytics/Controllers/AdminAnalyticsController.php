@@ -521,6 +521,55 @@ class AdminAnalyticsController extends Controller
     }
 
     /**
+     * Get program comparison data for Associate Dean dashboard.
+     *
+     * Returns per-program average scores computed from practice exam results,
+     * grouped by the program associated with each subject.
+     *
+     * GET /api/admin/analytics/program-comparison
+     * Auth: role 2, 3, 4, 5
+     *
+     * @param Request $request HTTP request object
+     * @return \Illuminate\Http\JsonResponse JSON response with program comparison data
+     */
+    public function getProgramComparison(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            $results = DB::table('practice_exam_results')
+                ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
+                ->join('subjects', 'practice_exam_results.subjectID', '=', 'subjects.subjectID')
+                ->join('programs', 'subjects.programID', '=', 'programs.programID')
+                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
+                ->select(
+                    'programs.programID',
+                    'programs.programName',
+                    'programs.programName2',
+                    DB::raw('AVG(practice_exam_results.percentage) as average_score'),
+                    DB::raw('COUNT(practice_exam_results.resultID) as exam_count'),
+                    DB::raw('COUNT(DISTINCT practice_exam_results.userID) as student_count'),
+                    DB::raw('ROUND(SUM(CASE WHEN practice_exam_results.percentage >= 60 THEN 1 ELSE 0 END) / COUNT(*) * 100, 2) as pass_rate')
+                )
+                ->groupBy('programs.programID', 'programs.programName', 'programs.programName2')
+                ->orderByDesc('average_score')
+                ->get();
+
+            return response()->json([
+                'message' => 'Program comparison data retrieved',
+                'data' => $results
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Program comparison error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error retrieving program comparison data',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get comprehensive analytics data for Dean/Associate Dean.
      * 
      * Returns all students, programs, feedback, and tickets for the campus.
