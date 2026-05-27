@@ -158,22 +158,41 @@ class AnalyticsController extends Controller
 
             // ── Send Email Notification (Point 2 in Enhancement Plan) ─────────
             try {
-                $userModel = \Modules\Users\Models\User::find($attempt->user_id);
-                if ($userModel) {
-                    $emailService = app(EmailNotificationService::class);
-                    
-                    // Fetch performance summary data (weak topics and recommendations)
-                    $performanceSummary = [
-                        'weak_topics' => ExamTopicAnalytics::where('attempt_id', $attemptId)
-                            ->where('is_weak', true)
-                            ->join('coverages', 'exam_topic_analytics.topic_id', '=', 'coverages.id')
-                            ->select('coverages.name', 'exam_topic_analytics.score_pct')
-                            ->get(),
-                        'recommendations' => ExamRecommendation::where('attempt_id', $attemptId)
-                            ->pluck('recommendation')
-                    ];
-                    
-                    $emailService->sendExamCompletionNotification($userModel, $overallScore, 'Applied Power Electronics', $performanceSummary);
+                // Guard: Only send if the attempt status is completed and there is at least one question in the exam
+                if ($attempt->status === 'completed' && $total > 0) {
+                    $userModel = \Modules\Users\Models\User::find($attempt->user_id);
+                    if ($userModel) {
+                        $emailService = app(EmailNotificationService::class);
+                        
+                        // Fetch performance summary data (weak topics and recommendations)
+                        $performanceSummary = [
+                            'weak_topics' => ExamTopicAnalytics::where('attempt_id', $attemptId)
+                                ->where('is_weak', true)
+                                ->join('coverages', 'exam_topic_analytics.topic_id', '=', 'coverages.id')
+                                ->select('coverages.name', 'exam_topic_analytics.score_pct')
+                                ->get(),
+                            'recommendations' => ExamRecommendation::where('attempt_id', $attemptId)
+                                ->pluck('recommendation')
+                        ];
+                        
+                        // Determine exam/subject name dynamically
+                        $examName = 'Practice Exam';
+                        if ($attempt->exam_id) {
+                            $exam = \Modules\PracticeExams\Models\Exam::find($attempt->exam_id);
+                            if ($exam) {
+                                if ($exam->subject_id) {
+                                    $subject = \Modules\Subjects\Models\Subject::find($exam->subject_id);
+                                    if ($subject && $subject->subjectName) {
+                                        $examName = $subject->subjectName;
+                                    }
+                                } elseif ($exam->title) {
+                                    $examName = $exam->title;
+                                }
+                            }
+                        }
+                        
+                        $emailService->sendExamCompletionNotification($userModel, $overallScore, $examName, $performanceSummary);
+                    }
                 }
             } catch (\Exception $e) {
                 Log::warning('Exam completion email failed: ' . $e->getMessage());

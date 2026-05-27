@@ -79,7 +79,7 @@ class EmailNotificationService
     /**
      * Send exam completion notification.
      */
-    public function sendExamCompletionNotification($user, $score, $examName = 'Applied Power Electronics', $performanceSummary = [])
+    public function sendExamCompletionNotification($user, $score, $examName = 'Practice Exam', $performanceSummary = [])
     {
         try {
             // Queue is used here so exam flows are not blocked by SMTP latency.
