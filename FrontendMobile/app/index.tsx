@@ -151,8 +151,8 @@ export default function LoginScreen() {
       showToast('Please enter both ID Code and Password.', 'error');
       return;
     }
-    if (!/^[a-zA-Z0-9_\-]+$/.test(userCode.trim())) {
-      showToast('ID Code can only contain letters, numbers, hyphens, and underscores.', 'error');
+    if (!/^\d{2}-[A-Za-z]-\d{5}$/.test(userCode.trim())) {
+      showToast('ID Code format must be like 00-X-00000.', 'error');
       return;
     }
     if (password.length < 6) {

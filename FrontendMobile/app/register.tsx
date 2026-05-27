@@ -92,8 +92,8 @@ export default function RegisterScreen() {
     const newErrors: Record<string, string> = {};
     if (!userCode || !userCode.trim()) {
       newErrors.userCode = 'User code is required';
-    } else if (!/^[a-zA-Z0-9_\-]+$/.test(userCode.trim())) {
-      newErrors.userCode = 'User code can only contain letters, numbers, hyphens, and underscores';
+    } else if (!/^\d{2}-[A-Za-z]-\d{5}$/.test(userCode.trim())) {
+      newErrors.userCode = 'Format must be like 00-X-00000 (2 digits, letter, 5 digits)';
     }
     if (!email || !email.trim()) {
       newErrors.email = 'Email is required';
