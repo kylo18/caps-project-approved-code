@@ -326,12 +326,17 @@ class NotificationController extends Controller
                 $createdCount++;
             }
 
+            $roleLabels = [2 => 'Faculty', 3 => 'Program Chair', 4 => 'Dean', 5 => 'Associate Dean'];
+            $roleLabel = $roleLabels[$user->roleID] ?? 'Staff';
+            $pushTitle = "{$roleLabel}: {$validated['title']}";
+
             $pushResult = $this->pushNotifications->sendToUsers(
                 $targetUsers,
-                $validated['title'],
+                $pushTitle,
                 $validated['message'],
                 array_merge($validated['data'] ?? [], [
                     'type' => $validated['type'],
+                    'sender_role' => $user->roleID,
                 ])
             );
             
