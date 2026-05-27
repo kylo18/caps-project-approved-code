@@ -1,0 +1,765 @@
+Resolved Base URL: http://localhost:8000/api
+Accounts: Student [student], Faculty [faculty], Program Chair [chair], Dean [dean], Associate Dean [associate_dean]
+Write Tests Enabled: No
+Student Login URL: http://localhost:8000/api/login
+Student Login Status: 200 OK
+Student Login Response: {"message":"Login successful","user":{"userID":1962,"userCode":"24-A-00236","firstName":"EMBRADO","lastName":"LEJANIE","email":"24-a-00236@student.university.edu","google_id":nu...
+Faculty Login URL: http://localhost:8000/api/login
+Faculty Login Status: 200 OK
+Faculty Login Response: {"message":"Login successful","user":{"userID":8,"userCode":"23-A-12347","firstName":"Updated","lastName":"Profile","email":"updated@example.com","google_id":null,"email_verifie...
+Program Chair Login URL: http://localhost:8000/api/login
+Program Chair Login Status: 200 OK
+Program Chair Login Response: {"message":"Login successful","user":{"userID":3,"userCode":"23-A-12346","firstName":"Troy","lastName":"Lasco","email":"Troy@gmail.com","google_id":null,"email_verified_at":null...
+Dean Login URL: http://localhost:8000/api/login
+Dean Login Status: 200 OK
+Dean Login Response: {"message":"Login successful","user":{"userID":2,"userCode":"23-A-12345","firstName":"Gillert","lastName":"Bongcac","email":"bongcac@gmail.com","google_id":null,"email_verified_...
+Associate Dean Login URL: http://localhost:8000/api/login
+Associate Dean Login Status: 200 OK
+Associate Dean Login Response: {"message":"Login successful","user":{"userID":2392,"userCode":"23-A-22220","firstName":"Associate","lastName":"Dean","email":"associiatedean@university.edu","google_id":null,"e...
+
+== Public Routes ==
+Request Type | Route                                              | Status | Status Code | Interpretation                        
+-------------+----------------------------------------------------+--------+-------------+---------------------------------------
+POST         | /register                                          | SKIP   | -           | Write disabled                        
+POST         | /login                                             | SKIP   | -           | Write disabled                        
+GET          | /roles                                             | PASS   | 200         | OK                                    
+POST         | /forgot-password                                   | SKIP   | -           | Write disabled                        
+POST         | /reset-password                                    | SKIP   | -           | Write disabled                        
+GET          | /app-version                                       | PASS   | 200         | OK                                    
+GET          | /auth/google                                       | PASS   | 200         | OK                                    
+GET          | /auth/google/redirect                              | PASS   | 200         | OK                                    
+GET          | /auth/google/callback                              | PASS   | 200         | OK                                    
+POST         | /auth/social/verify-link                           | SKIP   | -           | Write disabled                        
+GET          | /auth/facebook/redirect                            | PASS   | 200         | OK                                    
+GET          | /auth/facebook/callback                            | PASS   | 200         | OK                                    
+GET          | /leaderboard                                       | PASS   | 200         | OK                                    
+GET          | /clear-cache                                       | PASS   | 200         | OK                                    
+GET          | /test-redis                                        | PASS   | 200         | OK                                    
+GET          | /support/faqs                                      | PASS   | 200         | OK                                    
+GET          | /support/categories                                | PASS   | 200         | OK                                    
+GET          | /storage/question_images/{question_image_filename} | SKIP   | -           | Missing param: question_image_filename
+GET          | /storage/choices/{choice_filename}                 | SKIP   | -           | Missing param: choice_filename        
+GET          | /classes/join/{invite_token}                       | SKIP   | -           | Missing param: invite_token           
+
+== Student - Authenticated Routes (All Roles) ==
+Request Type | Route                                     | Status | Status Code | Interpretation           
+-------------+-------------------------------------------+--------+-------------+--------------------------
+POST         | /change-password                          | SKIP   | -           | Write disabled           
+GET          | /user/profile                             | PASS   | 200         | OK                       
+GET          | /leaderboard/me                           | PASS   | 200         | OK                       
+POST         | /user/update-profile                      | SKIP   | -           | Write disabled           
+GET          | /notifications                            | PASS   | 200         | OK                       
+GET          | /notifications/unread-count               | PASS   | 200         | OK                       
+PATCH        | /notifications/{notification_id}/read     | SKIP   | -           | Write disabled           
+POST         | /notifications/mark-all-read              | SKIP   | -           | Write disabled           
+DELETE       | /notifications/{notification_id}          | SKIP   | -           | Write disabled           
+GET          | /subjects/all                             | PASS   | 200         | OK                       
+GET          | /subjects                                 | PASS   | 200         | OK                       
+GET          | /practice-exam/results/{subject_id}       | SKIP   | -           | Missing param: subject_id
+GET          | /results/all-students                     | PASS   | 200         | OK                       
+GET          | /practice-exam/leaderboard/{subject_id}   | SKIP   | -           | Missing param: subject_id
+GET          | /practice-exam/recent-takers/{subject_id} | SKIP   | -           | Missing param: subject_id
+GET          | /practice-exam/overall-leaderboard        | PASS   | 200         | OK                       
+GET          | /practice-exam/overall-recent-takers      | PASS   | 200         | OK                       
+GET          | /year-levels                              | PASS   | 200         | OK                       
+GET          | /practice-exam/content-analytics          | PASS   | 200         | OK                       
+GET          | /practice-exam/difficulty-analytics       | PASS   | 200         | OK                       
+GET          | /classes/{class_id}/quizzes               | SKIP   | -           | Missing param: class_id  
+GET          | /classes/{class_id}/enrollments           | SKIP   | -           | Missing param: class_id  
+POST         | /classes/{class_id}/enrollments/remove    | SKIP   | -           | Write disabled           
+GET          | /classes/index                            | PASS   | 200         | OK                       
+POST         | /classes                                  | SKIP   | -           | Write disabled           
+GET          | /classes/{class_id}                       | SKIP   | -           | Missing param: class_id  
+PUT          | /classes/{class_id}                       | SKIP   | -           | Write disabled           
+PATCH        | /classes/{class_id}/archive               | SKIP   | -           | Write disabled           
+GET          | /classes/{class_id}/students              | SKIP   | -           | Missing param: class_id  
+POST         | /support-tickets                          | SKIP   | -           | Write disabled           
+GET          | /support-tickets/me                       | PASS   | 200         | OK                       
+POST         | /push-token                               | SKIP   | -           | Write disabled           
+DELETE       | /push-token                               | SKIP   | -           | Write disabled           
+POST         | /feedback                                 | SKIP   | -           | Write disabled           
+GET          | /feedback/issue-types                     | PASS   | 200         | OK                       
+GET          | /feedback/issue-type-details/{issue_type} | SKIP   | -           | Missing param: issue_type
+
+== Student - Student Routes (Role 1) ==
+Request Type | Route                                             | Status | Status Code | Interpretation                       
+-------------+---------------------------------------------------+--------+-------------+--------------------------------------
+GET          | /student/analytics/summary                        | PASS   | 200         | OK                                   
+GET          | /student/analytics/insights                       | PASS   | 200         | OK                                   
+GET          | /student/analytics/trends                         | PASS   | 200         | OK                                   
+GET          | /student/analytics/frequently-mistaken            | PASS   | 200         | OK                                   
+POST         | /ai/chat                                          | SKIP   | -           | Write disabled                       
+GET          | /ai/status                                        | PASS   | 200         | OK                                   
+GET          | /student/practice-subjects                        | PASS   | 200         | OK                                   
+GET          | /practice-exam/generate/{subject_id}              | SKIP   | -           | Missing param: subject_id            
+POST         | /practice-exam/submit                             | SKIP   | -           | Write disabled                       
+GET          | /practice-exam/history                            | PASS   | 200         | OK                                   
+POST         | /enroll-teacher                                   | SKIP   | -           | Write disabled                       
+GET          | /my-teachers                                      | PASS   | 200         | OK                                   
+POST         | /personal-exam/generate/{subject_id}/{teacher_id} | SKIP   | -           | Write disabled                       
+POST         | /classes/join                                     | SKIP   | -           | Write disabled                       
+POST         | /classes/join-by-code                             | SKIP   | -           | Write disabled                       
+GET          | /my-classes                                       | PASS   | 200         | OK                                   
+DELETE       | /classes/{class_id}/unenroll                      | SKIP   | -           | Write disabled                       
+GET          | /practice-exam/result/{result_id}                 | SKIP   | -           | Missing param: result_id             
+POST         | /personal-exam/submit                             | SKIP   | -           | Write disabled                       
+GET          | /student/dashboard-subjects                       | PASS   | 200         | OK                                   
+GET          | /subjects/{subject_id}/exam-preview               | SKIP   | -           | Missing param: subject_id            
+GET          | /classes/{class_id}/quizzes/student               | SKIP   | -           | Missing param: class_id              
+GET          | /quizzes/{class_personal_quiz_id}/info            | SKIP   | -           | Missing param: class_personal_quiz_id
+POST         | /quizzes/{class_personal_quiz_id}/start           | SKIP   | -           | Write disabled                       
+POST         | /quizzes/{class_personal_quiz_id}/submit          | SKIP   | -           | Write disabled                       
+GET          | /quiz-results                                     | PASS   | 200         | OK                                   
+GET          | /quiz-results/{quiz_result_id}                    | SKIP   | -           | Missing param: quiz_result_id        
+GET          | /classes/{class_id}/quiz-history                  | SKIP   | -           | Missing param: class_id              
+GET          | /quizzes/{class_personal_quiz_id}/history         | SKIP   | -           | Missing param: class_personal_quiz_id
+GET          | /quiz-sessions                                    | PASS   | 200         | OK                                   
+POST         | /analytics/score/{attempt_id}                     | SKIP   | -           | Write disabled                       
+GET          | /analytics/weak-topics/{user_id}                  | SKIP   | -           | Missing param: user_id               
+GET          | /analytics/recommendations/{attempt_id}           | SKIP   | -           | Missing param: attempt_id            
+GET          | /analytics/rank/{exam_id}/{user_id}               | SKIP   | -           | Missing param: exam_id, user_id      
+GET          | /analytics/progress/{user_id}/{subject_id}        | SKIP   | -           | Missing param: user_id, subject_id   
+POST         | /analytics/lesson-view                            | SKIP   | -           | Write disabled                       
+POST         | /analytics/question-stats                         | SKIP   | -           | Write disabled                       
+GET          | /analytics/subject-score/{user_id}/{subject_id}   | SKIP   | -           | Missing param: user_id, subject_id   
+GET          | /analytics/student-summary/{user_id}/{attempt_id} | SKIP   | -           | Missing param: user_id, attempt_id   
+
+== Student - Logout ==
+Request Type | Route   | Status | Status Code | Interpretation
+-------------+---------+--------+-------------+---------------
+POST         | /logout | SKIP   | -           | Write disabled
+
+== Faculty - Authenticated Routes (All Roles) ==
+Request Type | Route                                     | Status | Status Code | Interpretation           
+-------------+-------------------------------------------+--------+-------------+--------------------------
+POST         | /change-password                          | SKIP   | -           | Write disabled           
+GET          | /user/profile                             | PASS   | 200         | OK                       
+GET          | /leaderboard/me                           | PASS   | 200         | OK                       
+POST         | /user/update-profile                      | SKIP   | -           | Write disabled           
+GET          | /notifications                            | PASS   | 200         | OK                       
+GET          | /notifications/unread-count               | PASS   | 200         | OK                       
+PATCH        | /notifications/{notification_id}/read     | SKIP   | -           | Write disabled           
+POST         | /notifications/mark-all-read              | SKIP   | -           | Write disabled           
+DELETE       | /notifications/{notification_id}          | SKIP   | -           | Write disabled           
+GET          | /subjects/all                             | PASS   | 200         | OK                       
+GET          | /subjects                                 | PASS   | 200         | OK                       
+GET          | /practice-exam/results/{subject_id}       | SKIP   | -           | Missing param: subject_id
+GET          | /results/all-students                     | PASS   | 200         | OK                       
+GET          | /practice-exam/leaderboard/{subject_id}   | SKIP   | -           | Missing param: subject_id
+GET          | /practice-exam/recent-takers/{subject_id} | SKIP   | -           | Missing param: subject_id
+GET          | /practice-exam/overall-leaderboard        | PASS   | 200         | OK                       
+GET          | /practice-exam/overall-recent-takers      | PASS   | 200         | OK                       
+GET          | /year-levels                              | PASS   | 200         | OK                       
+GET          | /practice-exam/content-analytics          | PASS   | 200         | OK                       
+GET          | /practice-exam/difficulty-analytics       | PASS   | 200         | OK                       
+GET          | /classes/{class_id}/quizzes               | SKIP   | -           | Missing param: class_id  
+GET          | /classes/{class_id}/enrollments           | SKIP   | -           | Missing param: class_id  
+POST         | /classes/{class_id}/enrollments/remove    | SKIP   | -           | Write disabled           
+GET          | /classes/index                            | PASS   | 200         | OK                       
+POST         | /classes                                  | SKIP   | -           | Write disabled           
+GET          | /classes/{class_id}                       | SKIP   | -           | Missing param: class_id  
+PUT          | /classes/{class_id}                       | SKIP   | -           | Write disabled           
+PATCH        | /classes/{class_id}/archive               | SKIP   | -           | Write disabled           
+GET          | /classes/{class_id}/students              | SKIP   | -           | Missing param: class_id  
+POST         | /support-tickets                          | SKIP   | -           | Write disabled           
+GET          | /support-tickets/me                       | PASS   | 200         | OK                       
+POST         | /push-token                               | SKIP   | -           | Write disabled           
+DELETE       | /push-token                               | SKIP   | -           | Write disabled           
+POST         | /feedback                                 | SKIP   | -           | Write disabled           
+GET          | /feedback/issue-types                     | PASS   | 200         | OK                       
+GET          | /feedback/issue-type-details/{issue_type} | SKIP   | -           | Missing param: issue_type
+
+== Faculty - Faculty/Chair/Dean/Associate Dean Routes (Role 2-5) ==
+Request Type | Route                                                          | Status | Status Code | Interpretation                          
+-------------+----------------------------------------------------------------+--------+-------------+-----------------------------------------
+GET          | /users                                                         | PASS   | 200         | OK                                      
+PATCH        | /users/{user_id}/approve                                       | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/disapprove                                    | SKIP   | -           | Write disabled                          
+POST         | /users/approve-multiple                                        | SKIP   | -           | Write disabled                          
+POST         | /users/activate-multiple                                       | SKIP   | -           | Write disabled                          
+POST         | /users/deactivate-multiple                                     | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/deactivate                                    | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/activate                                      | SKIP   | -           | Write disabled                          
+POST         | /questions/choices                                             | SKIP   | -           | Write disabled                          
+GET          | /questions/{question_id}/choices                               | SKIP   | -           | Missing param: question_id              
+POST         | /faculty/assign-subject                                        | SKIP   | -           | Write disabled                          
+GET          | /faculty/my-subjects                                           | PASS   | 200         | OK                                      
+GET          | /faculty/availableSubjects                                     | PASS   | 200         | OK                                      
+DELETE       | /remove-assigned-subject/{subject_id}                          | SKIP   | -           | Write disabled                          
+POST         | /questions/add                                                 | SKIP   | -           | Write disabled                          
+GET          | /subjects/{subject_id}/questions                               | SKIP   | -           | Missing param: subject_id               
+POST         | /questions/update/{question_id}                                | SKIP   | -           | Write disabled                          
+DELETE       | /questions/delete/{question_id}                                | SKIP   | -           | Write disabled                          
+GET          | /faculty/my-questions/{subject_id}                             | SKIP   | -           | Missing param: subject_id               
+POST         | /choices/update                                                | SKIP   | -           | Write disabled                          
+POST         | /questions/{question_id}/duplicate                             | SKIP   | -           | Write disabled                          
+GET          | /questions/count                                               | PASS   | 200         | OK                                      
+POST         | /generate-printable-exam/{subject_id}                          | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz/{personal_quiz_id}/questions                    | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /generate-personal-quiz-pdf                                    | SKIP   | -           | Write disabled                          
+GET          | /practice-exam/preview/{subject_id}                            | SKIP   | -           | Missing param: subject_id               
+POST         | /generate-single-subject-personal-preview                      | SKIP   | -           | Write disabled                          
+GET          | /programs                                                      | PASS   | 200         | OK                                      
+POST         | /personal-quizzes                                              | SKIP   | -           | Write disabled                          
+GET          | /personal-quizzes                                              | PASS   | 200         | OK                                      
+GET          | /personal-quizzes/archived                                     | PASS   | 200         | OK                                      
+PUT          | /update-personal-quizzes/{personal_quiz_id}                    | SKIP   | -           | Write disabled                          
+PATCH        | /personal-quizzes/{personal_quiz_id}/archive                   | SKIP   | -           | Write disabled                          
+PATCH        | /personal-quizzes/{personal_quiz_id}/unarchive                 | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quizzes/{personal_quiz_id}                           | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz/{personal_quiz_id}/leaderboard                  | SKIP   | -           | Missing param: personal_quiz_id         
+GET          | /personal-quiz/{personal_quiz_id}/recent-takers                | SKIP   | -           | Missing param: personal_quiz_id         
+GET          | /personal-quiz-questions/{personal_quiz_id}                    | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /personal-quiz-questions                                       | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/import                                | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/{personal_quiz_question_id}           | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/{personal_quiz_question_id}/duplicate | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quiz-questions/{personal_quiz_question_id}           | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz-choices/{personal_quiz_question_id}             | SKIP   | -           | Missing param: personal_quiz_question_id
+POST         | /personal-quiz-choices                                         | SKIP   | -           | Write disabled                          
+PUT          | /personal-quiz-choices                                         | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-choices/update                                  | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quiz-choices/{personal_quiz_choice_id}               | SKIP   | -           | Write disabled                          
+GET          | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Missing param: class_personal_quiz_id   
+POST         | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+PUT          | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+DELETE       | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+POST         | /personal-exam-settings                                        | SKIP   | -           | Write disabled                          
+GET          | /personal-exam-settings/{subject_id}                           | SKIP   | -           | Missing param: subject_id               
+GET          | /my-students                                                   | PASS   | 200         | OK                                      
+GET          | /subjects/{subject_id}/exam-questions-status                   | SKIP   | -           | Missing param: subject_id               
+POST         | /subjects/{subject_id}/upload-image                            | SKIP   | -           | Write disabled                          
+POST         | /admin/system/notify-update                                    | SKIP   | -           | Write disabled                          
+GET          | /admin/analytics/summary                                       | PASS   | 200         | OK                                      
+GET          | /admin/analytics/average-score-per-subject                     | PASS   | 200         | OK                                      
+GET          | /admin/analytics/student-progress                              | PASS   | 200         | OK                                      
+GET          | /admin/analytics/pass-fail-rate                                | PASS   | 200         | OK                                      
+GET          | /admin/analytics/improvement-percentage                        | PASS   | 200         | OK                                      
+GET          | /admin/analytics/topic-mastery                                 | PASS   | 200         | OK                                      
+GET          | /admin/analytics/content                                       | PASS   | 200         | OK                                      
+GET          | /admin/support/tickets                                         | PASS   | 200         | OK                                      
+PATCH        | /admin/support/tickets/{ticket_id}                             | SKIP   | -           | Write disabled                          
+POST         | /admin/notifications                                           | SKIP   | -           | Write disabled                          
+GET          | /classes/{class_id}/quizzes/available                          | SKIP   | -           | Missing param: class_id                 
+POST         | /classes/quizzes                                               | SKIP   | -           | Write disabled                          
+PUT          | /classes/quizzes/{class_personal_quiz_id}                      | SKIP   | -           | Write disabled                          
+PATCH        | /classes/quizzes/{class_personal_quiz_id}/dates                | SKIP   | -           | Write disabled                          
+DELETE       | /classes/quizzes/{class_personal_quiz_id}                      | SKIP   | -           | Write disabled                          
+GET          | /personal-quizzes/{personal_quiz_id}/classes                   | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /personal-quizzes/{personal_quiz_id}/assign-classes            | SKIP   | -           | Write disabled                          
+GET          | /quiz-results                                                  | PASS   | 200         | OK                                      
+GET          | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Missing param: quiz_result_id           
+PUT          | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Write disabled                          
+DELETE       | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Write disabled                          
+GET          | /classes/{class_id}/quiz-results                               | SKIP   | -           | Missing param: class_id                 
+GET          | /quizzes/{class_personal_quiz_id}/results                      | SKIP   | -           | Missing param: class_personal_quiz_id   
+GET          | /quizzes/{class_personal_quiz_id}/non-takers                   | SKIP   | -           | Missing param: class_personal_quiz_id   
+GET          | /quiz-sessions/faculty-sessions                                | PASS   | 200         | OK                                      
+GET          | /analytics/content/lessons/{course_id}                         | SKIP   | -           | Missing param: course_id                
+GET          | /analytics/content/questions/{exam_id}                         | SKIP   | -           | Missing param: exam_id                  
+GET          | /analytics/content/skipped/{course_id}                         | SKIP   | -           | Missing param: course_id                
+GET          | /analytics/difficulty/{topic_id}                               | SKIP   | -           | Missing param: topic_id                 
+GET          | /analytics/faculty/summary/{class_id}                          | SKIP   | -           | Missing param: class_id                 
+GET          | /feedback/faculty/{user_id}                                    | SKIP   | -           | Missing param: user_id                  
+GET          | /admin/analytics/all                                           | PASS   | 200         | OK                                      
+GET          | /admin/analytics/program/{program_id}                          | SKIP   | -           | Missing param: program_id               
+GET          | /admin/analytics/faculty/{user_id}                             | SKIP   | -           | Missing param: user_id                  
+GET          | /admin/support/tickets/{ticket_id}                             | SKIP   | -           | Missing param: ticket_id                
+DELETE       | /classes/{class_id}/remove-student                             | SKIP   | -           | Write disabled                          
+
+== Faculty - Logout ==
+Request Type | Route   | Status | Status Code | Interpretation
+-------------+---------+--------+-------------+---------------
+POST         | /logout | SKIP   | -           | Write disabled
+
+== Program Chair - Authenticated Routes (All Roles) ==
+Request Type | Route                                     | Status | Status Code | Interpretation           
+-------------+-------------------------------------------+--------+-------------+--------------------------
+POST         | /change-password                          | SKIP   | -           | Write disabled           
+GET          | /user/profile                             | PASS   | 200         | OK                       
+GET          | /leaderboard/me                           | PASS   | 200         | OK                       
+POST         | /user/update-profile                      | SKIP   | -           | Write disabled           
+GET          | /notifications                            | PASS   | 200         | OK                       
+GET          | /notifications/unread-count               | PASS   | 200         | OK                       
+PATCH        | /notifications/{notification_id}/read     | SKIP   | -           | Write disabled           
+POST         | /notifications/mark-all-read              | SKIP   | -           | Write disabled           
+DELETE       | /notifications/{notification_id}          | SKIP   | -           | Write disabled           
+GET          | /subjects/all                             | PASS   | 200         | OK                       
+GET          | /subjects                                 | PASS   | 200         | OK                       
+GET          | /practice-exam/results/{subject_id}       | SKIP   | -           | Missing param: subject_id
+GET          | /results/all-students                     | PASS   | 200         | OK                       
+GET          | /practice-exam/leaderboard/{subject_id}   | SKIP   | -           | Missing param: subject_id
+GET          | /practice-exam/recent-takers/{subject_id} | SKIP   | -           | Missing param: subject_id
+GET          | /practice-exam/overall-leaderboard        | PASS   | 200         | OK                       
+GET          | /practice-exam/overall-recent-takers      | PASS   | 200         | OK                       
+GET          | /year-levels                              | PASS   | 200         | OK                       
+GET          | /practice-exam/content-analytics          | PASS   | 200         | OK                       
+GET          | /practice-exam/difficulty-analytics       | PASS   | 200         | OK                       
+GET          | /classes/{class_id}/quizzes               | SKIP   | -           | Missing param: class_id  
+GET          | /classes/{class_id}/enrollments           | SKIP   | -           | Missing param: class_id  
+POST         | /classes/{class_id}/enrollments/remove    | SKIP   | -           | Write disabled           
+GET          | /classes/index                            | PASS   | 200         | OK                       
+POST         | /classes                                  | SKIP   | -           | Write disabled           
+GET          | /classes/{class_id}                       | SKIP   | -           | Missing param: class_id  
+PUT          | /classes/{class_id}                       | SKIP   | -           | Write disabled           
+PATCH        | /classes/{class_id}/archive               | SKIP   | -           | Write disabled           
+GET          | /classes/{class_id}/students              | SKIP   | -           | Missing param: class_id  
+POST         | /support-tickets                          | SKIP   | -           | Write disabled           
+GET          | /support-tickets/me                       | PASS   | 200         | OK                       
+POST         | /push-token                               | SKIP   | -           | Write disabled           
+DELETE       | /push-token                               | SKIP   | -           | Write disabled           
+POST         | /feedback                                 | SKIP   | -           | Write disabled           
+GET          | /feedback/issue-types                     | PASS   | 200         | OK                       
+GET          | /feedback/issue-type-details/{issue_type} | SKIP   | -           | Missing param: issue_type
+
+== Program Chair - Faculty/Chair/Dean/Associate Dean Routes (Role 2-5) ==
+Request Type | Route                                                          | Status | Status Code | Interpretation                          
+-------------+----------------------------------------------------------------+--------+-------------+-----------------------------------------
+GET          | /users                                                         | PASS   | 200         | OK                                      
+PATCH        | /users/{user_id}/approve                                       | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/disapprove                                    | SKIP   | -           | Write disabled                          
+POST         | /users/approve-multiple                                        | SKIP   | -           | Write disabled                          
+POST         | /users/activate-multiple                                       | SKIP   | -           | Write disabled                          
+POST         | /users/deactivate-multiple                                     | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/deactivate                                    | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/activate                                      | SKIP   | -           | Write disabled                          
+POST         | /questions/choices                                             | SKIP   | -           | Write disabled                          
+GET          | /questions/{question_id}/choices                               | SKIP   | -           | Missing param: question_id              
+POST         | /faculty/assign-subject                                        | SKIP   | -           | Write disabled                          
+GET          | /faculty/my-subjects                                           | PASS   | 200         | OK                                      
+GET          | /faculty/availableSubjects                                     | PASS   | 200         | OK                                      
+DELETE       | /remove-assigned-subject/{subject_id}                          | SKIP   | -           | Write disabled                          
+POST         | /questions/add                                                 | SKIP   | -           | Write disabled                          
+GET          | /subjects/{subject_id}/questions                               | SKIP   | -           | Missing param: subject_id               
+POST         | /questions/update/{question_id}                                | SKIP   | -           | Write disabled                          
+DELETE       | /questions/delete/{question_id}                                | SKIP   | -           | Write disabled                          
+GET          | /faculty/my-questions/{subject_id}                             | SKIP   | -           | Missing param: subject_id               
+POST         | /choices/update                                                | SKIP   | -           | Write disabled                          
+POST         | /questions/{question_id}/duplicate                             | SKIP   | -           | Write disabled                          
+GET          | /questions/count                                               | PASS   | 200         | OK                                      
+POST         | /generate-printable-exam/{subject_id}                          | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz/{personal_quiz_id}/questions                    | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /generate-personal-quiz-pdf                                    | SKIP   | -           | Write disabled                          
+GET          | /practice-exam/preview/{subject_id}                            | SKIP   | -           | Missing param: subject_id               
+POST         | /generate-single-subject-personal-preview                      | SKIP   | -           | Write disabled                          
+GET          | /programs                                                      | PASS   | 200         | OK                                      
+POST         | /personal-quizzes                                              | SKIP   | -           | Write disabled                          
+GET          | /personal-quizzes                                              | PASS   | 200         | OK                                      
+GET          | /personal-quizzes/archived                                     | PASS   | 200         | OK                                      
+PUT          | /update-personal-quizzes/{personal_quiz_id}                    | SKIP   | -           | Write disabled                          
+PATCH        | /personal-quizzes/{personal_quiz_id}/archive                   | SKIP   | -           | Write disabled                          
+PATCH        | /personal-quizzes/{personal_quiz_id}/unarchive                 | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quizzes/{personal_quiz_id}                           | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz/{personal_quiz_id}/leaderboard                  | SKIP   | -           | Missing param: personal_quiz_id         
+GET          | /personal-quiz/{personal_quiz_id}/recent-takers                | SKIP   | -           | Missing param: personal_quiz_id         
+GET          | /personal-quiz-questions/{personal_quiz_id}                    | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /personal-quiz-questions                                       | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/import                                | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/{personal_quiz_question_id}           | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/{personal_quiz_question_id}/duplicate | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quiz-questions/{personal_quiz_question_id}           | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz-choices/{personal_quiz_question_id}             | SKIP   | -           | Missing param: personal_quiz_question_id
+POST         | /personal-quiz-choices                                         | SKIP   | -           | Write disabled                          
+PUT          | /personal-quiz-choices                                         | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-choices/update                                  | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quiz-choices/{personal_quiz_choice_id}               | SKIP   | -           | Write disabled                          
+GET          | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Missing param: class_personal_quiz_id   
+POST         | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+PUT          | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+DELETE       | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+POST         | /personal-exam-settings                                        | SKIP   | -           | Write disabled                          
+GET          | /personal-exam-settings/{subject_id}                           | SKIP   | -           | Missing param: subject_id               
+GET          | /my-students                                                   | PASS   | 200         | OK                                      
+GET          | /subjects/{subject_id}/exam-questions-status                   | SKIP   | -           | Missing param: subject_id               
+POST         | /subjects/{subject_id}/upload-image                            | SKIP   | -           | Write disabled                          
+POST         | /admin/system/notify-update                                    | SKIP   | -           | Write disabled                          
+GET          | /admin/analytics/summary                                       | PASS   | 200         | OK                                      
+GET          | /admin/analytics/average-score-per-subject                     | PASS   | 200         | OK                                      
+GET          | /admin/analytics/student-progress                              | PASS   | 200         | OK                                      
+GET          | /admin/analytics/pass-fail-rate                                | PASS   | 200         | OK                                      
+GET          | /admin/analytics/improvement-percentage                        | PASS   | 200         | OK                                      
+GET          | /admin/analytics/topic-mastery                                 | PASS   | 200         | OK                                      
+GET          | /admin/analytics/content                                       | PASS   | 200         | OK                                      
+GET          | /admin/support/tickets                                         | PASS   | 200         | OK                                      
+PATCH        | /admin/support/tickets/{ticket_id}                             | SKIP   | -           | Write disabled                          
+POST         | /admin/notifications                                           | SKIP   | -           | Write disabled                          
+GET          | /classes/{class_id}/quizzes/available                          | SKIP   | -           | Missing param: class_id                 
+POST         | /classes/quizzes                                               | SKIP   | -           | Write disabled                          
+PUT          | /classes/quizzes/{class_personal_quiz_id}                      | SKIP   | -           | Write disabled                          
+PATCH        | /classes/quizzes/{class_personal_quiz_id}/dates                | SKIP   | -           | Write disabled                          
+DELETE       | /classes/quizzes/{class_personal_quiz_id}                      | SKIP   | -           | Write disabled                          
+GET          | /personal-quizzes/{personal_quiz_id}/classes                   | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /personal-quizzes/{personal_quiz_id}/assign-classes            | SKIP   | -           | Write disabled                          
+GET          | /quiz-results                                                  | PASS   | 200         | OK                                      
+GET          | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Missing param: quiz_result_id           
+PUT          | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Write disabled                          
+DELETE       | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Write disabled                          
+GET          | /classes/{class_id}/quiz-results                               | SKIP   | -           | Missing param: class_id                 
+GET          | /quizzes/{class_personal_quiz_id}/results                      | SKIP   | -           | Missing param: class_personal_quiz_id   
+GET          | /quizzes/{class_personal_quiz_id}/non-takers                   | SKIP   | -           | Missing param: class_personal_quiz_id   
+GET          | /quiz-sessions/faculty-sessions                                | PASS   | 200         | OK                                      
+GET          | /analytics/content/lessons/{course_id}                         | SKIP   | -           | Missing param: course_id                
+GET          | /analytics/content/questions/{exam_id}                         | SKIP   | -           | Missing param: exam_id                  
+GET          | /analytics/content/skipped/{course_id}                         | SKIP   | -           | Missing param: course_id                
+GET          | /analytics/difficulty/{topic_id}                               | SKIP   | -           | Missing param: topic_id                 
+GET          | /analytics/faculty/summary/{class_id}                          | SKIP   | -           | Missing param: class_id                 
+GET          | /feedback/faculty/{user_id}                                    | SKIP   | -           | Missing param: user_id                  
+GET          | /admin/analytics/all                                           | PASS   | 200         | OK                                      
+GET          | /admin/analytics/program/{program_id}                          | SKIP   | -           | Missing param: program_id               
+GET          | /admin/analytics/faculty/{user_id}                             | SKIP   | -           | Missing param: user_id                  
+GET          | /admin/support/tickets/{ticket_id}                             | SKIP   | -           | Missing param: ticket_id                
+DELETE       | /classes/{class_id}/remove-student                             | SKIP   | -           | Write disabled                          
+
+== Program Chair - Program Chair Routes (Role 3) ==
+Request Type | Route                       | Status | Status Code | Interpretation           
+-------------+-----------------------------+--------+-------------+--------------------------
+GET          | /program/{subject_id}       | SKIP   | -           | Missing param: subject_id
+GET          | /feedback/program/{user_id} | SKIP   | -           | Missing param: user_id   
+
+== Program Chair - Program Chair/Dean/Associate Dean Routes (Role 3-5) ==
+Request Type | Route                           | Status | Status Code | Interpretation           
+-------------+---------------------------------+--------+-------------+--------------------------
+PATCH        | /questions/{question_id}/status | SKIP   | -           | Write disabled           
+GET          | /practice-settings/{subject_id} | SKIP   | -           | Missing param: subject_id
+POST         | /practice-settings              | SKIP   | -           | Write disabled           
+POST         | /generate-multi-subject-exam    | SKIP   | -           | Write disabled           
+PATCH        | /users/{user_id}/role           | SKIP   | -           | Write disabled           
+
+== Program Chair - Logout ==
+Request Type | Route   | Status | Status Code | Interpretation
+-------------+---------+--------+-------------+---------------
+POST         | /logout | SKIP   | -           | Write disabled
+
+== Dean - Authenticated Routes (All Roles) ==
+Request Type | Route                                     | Status | Status Code | Interpretation           
+-------------+-------------------------------------------+--------+-------------+--------------------------
+POST         | /change-password                          | SKIP   | -           | Write disabled           
+GET          | /user/profile                             | PASS   | 200         | OK                       
+GET          | /leaderboard/me                           | PASS   | 200         | OK                       
+POST         | /user/update-profile                      | SKIP   | -           | Write disabled           
+GET          | /notifications                            | PASS   | 200         | OK                       
+GET          | /notifications/unread-count               | PASS   | 200         | OK                       
+PATCH        | /notifications/{notification_id}/read     | SKIP   | -           | Write disabled           
+POST         | /notifications/mark-all-read              | SKIP   | -           | Write disabled           
+DELETE       | /notifications/{notification_id}          | SKIP   | -           | Write disabled           
+GET          | /subjects/all                             | PASS   | 200         | OK                       
+GET          | /subjects                                 | PASS   | 200         | OK                       
+GET          | /practice-exam/results/{subject_id}       | SKIP   | -           | Missing param: subject_id
+GET          | /results/all-students                     | PASS   | 200         | OK                       
+GET          | /practice-exam/leaderboard/{subject_id}   | SKIP   | -           | Missing param: subject_id
+GET          | /practice-exam/recent-takers/{subject_id} | SKIP   | -           | Missing param: subject_id
+GET          | /practice-exam/overall-leaderboard        | PASS   | 200         | OK                       
+GET          | /practice-exam/overall-recent-takers      | PASS   | 200         | OK                       
+GET          | /year-levels                              | PASS   | 200         | OK                       
+GET          | /practice-exam/content-analytics          | PASS   | 200         | OK                       
+GET          | /practice-exam/difficulty-analytics       | PASS   | 200         | OK                       
+GET          | /classes/{class_id}/quizzes               | SKIP   | -           | Missing param: class_id  
+GET          | /classes/{class_id}/enrollments           | SKIP   | -           | Missing param: class_id  
+POST         | /classes/{class_id}/enrollments/remove    | SKIP   | -           | Write disabled           
+GET          | /classes/index                            | PASS   | 200         | OK                       
+POST         | /classes                                  | SKIP   | -           | Write disabled           
+GET          | /classes/{class_id}                       | SKIP   | -           | Missing param: class_id  
+PUT          | /classes/{class_id}                       | SKIP   | -           | Write disabled           
+PATCH        | /classes/{class_id}/archive               | SKIP   | -           | Write disabled           
+GET          | /classes/{class_id}/students              | SKIP   | -           | Missing param: class_id  
+POST         | /support-tickets                          | SKIP   | -           | Write disabled           
+GET          | /support-tickets/me                       | PASS   | 200         | OK                       
+POST         | /push-token                               | SKIP   | -           | Write disabled           
+DELETE       | /push-token                               | SKIP   | -           | Write disabled           
+POST         | /feedback                                 | SKIP   | -           | Write disabled           
+GET          | /feedback/issue-types                     | PASS   | 200         | OK                       
+GET          | /feedback/issue-type-details/{issue_type} | SKIP   | -           | Missing param: issue_type
+
+== Dean - Faculty/Chair/Dean/Associate Dean Routes (Role 2-5) ==
+Request Type | Route                                                          | Status | Status Code | Interpretation                          
+-------------+----------------------------------------------------------------+--------+-------------+-----------------------------------------
+GET          | /users                                                         | PASS   | 200         | OK                                      
+PATCH        | /users/{user_id}/approve                                       | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/disapprove                                    | SKIP   | -           | Write disabled                          
+POST         | /users/approve-multiple                                        | SKIP   | -           | Write disabled                          
+POST         | /users/activate-multiple                                       | SKIP   | -           | Write disabled                          
+POST         | /users/deactivate-multiple                                     | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/deactivate                                    | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/activate                                      | SKIP   | -           | Write disabled                          
+POST         | /questions/choices                                             | SKIP   | -           | Write disabled                          
+GET          | /questions/{question_id}/choices                               | SKIP   | -           | Missing param: question_id              
+POST         | /faculty/assign-subject                                        | SKIP   | -           | Write disabled                          
+GET          | /faculty/my-subjects                                           | PASS   | 200         | OK                                      
+GET          | /faculty/availableSubjects                                     | PASS   | 200         | OK                                      
+DELETE       | /remove-assigned-subject/{subject_id}                          | SKIP   | -           | Write disabled                          
+POST         | /questions/add                                                 | SKIP   | -           | Write disabled                          
+GET          | /subjects/{subject_id}/questions                               | SKIP   | -           | Missing param: subject_id               
+POST         | /questions/update/{question_id}                                | SKIP   | -           | Write disabled                          
+DELETE       | /questions/delete/{question_id}                                | SKIP   | -           | Write disabled                          
+GET          | /faculty/my-questions/{subject_id}                             | SKIP   | -           | Missing param: subject_id               
+POST         | /choices/update                                                | SKIP   | -           | Write disabled                          
+POST         | /questions/{question_id}/duplicate                             | SKIP   | -           | Write disabled                          
+GET          | /questions/count                                               | PASS   | 200         | OK                                      
+POST         | /generate-printable-exam/{subject_id}                          | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz/{personal_quiz_id}/questions                    | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /generate-personal-quiz-pdf                                    | SKIP   | -           | Write disabled                          
+GET          | /practice-exam/preview/{subject_id}                            | SKIP   | -           | Missing param: subject_id               
+POST         | /generate-single-subject-personal-preview                      | SKIP   | -           | Write disabled                          
+GET          | /programs                                                      | PASS   | 200         | OK                                      
+POST         | /personal-quizzes                                              | SKIP   | -           | Write disabled                          
+GET          | /personal-quizzes                                              | PASS   | 200         | OK                                      
+GET          | /personal-quizzes/archived                                     | PASS   | 200         | OK                                      
+PUT          | /update-personal-quizzes/{personal_quiz_id}                    | SKIP   | -           | Write disabled                          
+PATCH        | /personal-quizzes/{personal_quiz_id}/archive                   | SKIP   | -           | Write disabled                          
+PATCH        | /personal-quizzes/{personal_quiz_id}/unarchive                 | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quizzes/{personal_quiz_id}                           | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz/{personal_quiz_id}/leaderboard                  | SKIP   | -           | Missing param: personal_quiz_id         
+GET          | /personal-quiz/{personal_quiz_id}/recent-takers                | SKIP   | -           | Missing param: personal_quiz_id         
+GET          | /personal-quiz-questions/{personal_quiz_id}                    | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /personal-quiz-questions                                       | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/import                                | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/{personal_quiz_question_id}           | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/{personal_quiz_question_id}/duplicate | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quiz-questions/{personal_quiz_question_id}           | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz-choices/{personal_quiz_question_id}             | SKIP   | -           | Missing param: personal_quiz_question_id
+POST         | /personal-quiz-choices                                         | SKIP   | -           | Write disabled                          
+PUT          | /personal-quiz-choices                                         | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-choices/update                                  | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quiz-choices/{personal_quiz_choice_id}               | SKIP   | -           | Write disabled                          
+GET          | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Missing param: class_personal_quiz_id   
+POST         | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+PUT          | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+DELETE       | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+POST         | /personal-exam-settings                                        | SKIP   | -           | Write disabled                          
+GET          | /personal-exam-settings/{subject_id}                           | SKIP   | -           | Missing param: subject_id               
+GET          | /my-students                                                   | PASS   | 200         | OK                                      
+GET          | /subjects/{subject_id}/exam-questions-status                   | SKIP   | -           | Missing param: subject_id               
+POST         | /subjects/{subject_id}/upload-image                            | SKIP   | -           | Write disabled                          
+POST         | /admin/system/notify-update                                    | SKIP   | -           | Write disabled                          
+GET          | /admin/analytics/summary                                       | PASS   | 200         | OK                                      
+GET          | /admin/analytics/average-score-per-subject                     | PASS   | 200         | OK                                      
+GET          | /admin/analytics/student-progress                              | PASS   | 200         | OK                                      
+GET          | /admin/analytics/pass-fail-rate                                | PASS   | 200         | OK                                      
+GET          | /admin/analytics/improvement-percentage                        | PASS   | 200         | OK                                      
+GET          | /admin/analytics/topic-mastery                                 | PASS   | 200         | OK                                      
+GET          | /admin/analytics/content                                       | PASS   | 200         | OK                                      
+GET          | /admin/support/tickets                                         | PASS   | 200         | OK                                      
+PATCH        | /admin/support/tickets/{ticket_id}                             | SKIP   | -           | Write disabled                          
+POST         | /admin/notifications                                           | SKIP   | -           | Write disabled                          
+GET          | /classes/{class_id}/quizzes/available                          | SKIP   | -           | Missing param: class_id                 
+POST         | /classes/quizzes                                               | SKIP   | -           | Write disabled                          
+PUT          | /classes/quizzes/{class_personal_quiz_id}                      | SKIP   | -           | Write disabled                          
+PATCH        | /classes/quizzes/{class_personal_quiz_id}/dates                | SKIP   | -           | Write disabled                          
+DELETE       | /classes/quizzes/{class_personal_quiz_id}                      | SKIP   | -           | Write disabled                          
+GET          | /personal-quizzes/{personal_quiz_id}/classes                   | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /personal-quizzes/{personal_quiz_id}/assign-classes            | SKIP   | -           | Write disabled                          
+GET          | /quiz-results                                                  | PASS   | 200         | OK                                      
+GET          | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Missing param: quiz_result_id           
+PUT          | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Write disabled                          
+DELETE       | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Write disabled                          
+GET          | /classes/{class_id}/quiz-results                               | SKIP   | -           | Missing param: class_id                 
+GET          | /quizzes/{class_personal_quiz_id}/results                      | SKIP   | -           | Missing param: class_personal_quiz_id   
+GET          | /quizzes/{class_personal_quiz_id}/non-takers                   | SKIP   | -           | Missing param: class_personal_quiz_id   
+GET          | /quiz-sessions/faculty-sessions                                | PASS   | 200         | OK                                      
+GET          | /analytics/content/lessons/{course_id}                         | SKIP   | -           | Missing param: course_id                
+GET          | /analytics/content/questions/{exam_id}                         | SKIP   | -           | Missing param: exam_id                  
+GET          | /analytics/content/skipped/{course_id}                         | SKIP   | -           | Missing param: course_id                
+GET          | /analytics/difficulty/{topic_id}                               | SKIP   | -           | Missing param: topic_id                 
+GET          | /analytics/faculty/summary/{class_id}                          | SKIP   | -           | Missing param: class_id                 
+GET          | /feedback/faculty/{user_id}                                    | SKIP   | -           | Missing param: user_id                  
+GET          | /admin/analytics/all                                           | PASS   | 200         | OK                                      
+GET          | /admin/analytics/program/{program_id}                          | SKIP   | -           | Missing param: program_id               
+GET          | /admin/analytics/faculty/{user_id}                             | SKIP   | -           | Missing param: user_id                  
+GET          | /admin/support/tickets/{ticket_id}                             | SKIP   | -           | Missing param: ticket_id                
+DELETE       | /classes/{class_id}/remove-student                             | SKIP   | -           | Write disabled                          
+
+== Dean - Program Chair/Dean/Associate Dean Routes (Role 3-5) ==
+Request Type | Route                           | Status | Status Code | Interpretation           
+-------------+---------------------------------+--------+-------------+--------------------------
+PATCH        | /questions/{question_id}/status | SKIP   | -           | Write disabled           
+GET          | /practice-settings/{subject_id} | SKIP   | -           | Missing param: subject_id
+POST         | /practice-settings              | SKIP   | -           | Write disabled           
+POST         | /generate-multi-subject-exam    | SKIP   | -           | Write disabled           
+PATCH        | /users/{user_id}/role           | SKIP   | -           | Write disabled           
+
+== Dean - Dean/Associate Dean Routes (Role 4-5) ==
+Request Type | Route                                         | Status | Status Code | Interpretation
+-------------+-----------------------------------------------+--------+-------------+---------------
+POST         | /add-subjects                                 | SKIP   | -           | Write disabled
+DELETE       | /subjects/{subject_id}/delete                 | SKIP   | -           | Write disabled
+PUT          | /subjects/{subject_id}/update                 | SKIP   | -           | Write disabled
+DELETE       | /users/{user_id}                              | SKIP   | -           | Write disabled
+POST         | /users/delete-multiple                        | SKIP   | -           | Write disabled
+PATCH        | /subjects/{subject_id}/enable-exam-questions  | SKIP   | -           | Write disabled
+PATCH        | /subjects/{subject_id}/disable-exam-questions | SKIP   | -           | Write disabled
+GET          | /support-tickets                              | PASS   | 200         | OK            
+GET          | /feedback/admin                               | PASS   | 200         | OK            
+GET          | /feedback/normalization-options               | PASS   | 200         | OK            
+POST         | /feedback/clear-cache                         | SKIP   | -           | Write disabled
+
+== Dean - Logout ==
+Request Type | Route   | Status | Status Code | Interpretation
+-------------+---------+--------+-------------+---------------
+POST         | /logout | SKIP   | -           | Write disabled
+
+== Associate Dean - Authenticated Routes (All Roles) ==
+Request Type | Route                                     | Status | Status Code | Interpretation           
+-------------+-------------------------------------------+--------+-------------+--------------------------
+POST         | /change-password                          | SKIP   | -           | Write disabled           
+GET          | /user/profile                             | PASS   | 200         | OK                       
+GET          | /leaderboard/me                           | PASS   | 200         | OK                       
+POST         | /user/update-profile                      | SKIP   | -           | Write disabled           
+GET          | /notifications                            | PASS   | 200         | OK                       
+GET          | /notifications/unread-count               | PASS   | 200         | OK                       
+PATCH        | /notifications/{notification_id}/read     | SKIP   | -           | Write disabled           
+POST         | /notifications/mark-all-read              | SKIP   | -           | Write disabled           
+DELETE       | /notifications/{notification_id}          | SKIP   | -           | Write disabled           
+GET          | /subjects/all                             | PASS   | 200         | OK                       
+GET          | /subjects                                 | PASS   | 200         | OK                       
+GET          | /practice-exam/results/{subject_id}       | SKIP   | -           | Missing param: subject_id
+GET          | /results/all-students                     | PASS   | 200         | OK                       
+GET          | /practice-exam/leaderboard/{subject_id}   | SKIP   | -           | Missing param: subject_id
+GET          | /practice-exam/recent-takers/{subject_id} | SKIP   | -           | Missing param: subject_id
+GET          | /practice-exam/overall-leaderboard        | PASS   | 200         | OK                       
+GET          | /practice-exam/overall-recent-takers      | PASS   | 200         | OK                       
+GET          | /year-levels                              | PASS   | 200         | OK                       
+GET          | /practice-exam/content-analytics          | PASS   | 200         | OK                       
+GET          | /practice-exam/difficulty-analytics       | PASS   | 200         | OK                       
+GET          | /classes/{class_id}/quizzes               | SKIP   | -           | Missing param: class_id  
+GET          | /classes/{class_id}/enrollments           | SKIP   | -           | Missing param: class_id  
+POST         | /classes/{class_id}/enrollments/remove    | SKIP   | -           | Write disabled           
+GET          | /classes/index                            | PASS   | 200         | OK                       
+POST         | /classes                                  | SKIP   | -           | Write disabled           
+GET          | /classes/{class_id}                       | SKIP   | -           | Missing param: class_id  
+PUT          | /classes/{class_id}                       | SKIP   | -           | Write disabled           
+PATCH        | /classes/{class_id}/archive               | SKIP   | -           | Write disabled           
+GET          | /classes/{class_id}/students              | SKIP   | -           | Missing param: class_id  
+POST         | /support-tickets                          | SKIP   | -           | Write disabled           
+GET          | /support-tickets/me                       | PASS   | 200         | OK                       
+POST         | /push-token                               | SKIP   | -           | Write disabled           
+DELETE       | /push-token                               | SKIP   | -           | Write disabled           
+POST         | /feedback                                 | SKIP   | -           | Write disabled           
+GET          | /feedback/issue-types                     | PASS   | 200         | OK                       
+GET          | /feedback/issue-type-details/{issue_type} | SKIP   | -           | Missing param: issue_type
+
+== Associate Dean - Faculty/Chair/Dean/Associate Dean Routes (Role 2-5) ==
+Request Type | Route                                                          | Status | Status Code | Interpretation                          
+-------------+----------------------------------------------------------------+--------+-------------+-----------------------------------------
+GET          | /users                                                         | PASS   | 200         | OK                                      
+PATCH        | /users/{user_id}/approve                                       | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/disapprove                                    | SKIP   | -           | Write disabled                          
+POST         | /users/approve-multiple                                        | SKIP   | -           | Write disabled                          
+POST         | /users/activate-multiple                                       | SKIP   | -           | Write disabled                          
+POST         | /users/deactivate-multiple                                     | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/deactivate                                    | SKIP   | -           | Write disabled                          
+PATCH        | /users/{user_id}/activate                                      | SKIP   | -           | Write disabled                          
+POST         | /questions/choices                                             | SKIP   | -           | Write disabled                          
+GET          | /questions/{question_id}/choices                               | SKIP   | -           | Missing param: question_id              
+POST         | /faculty/assign-subject                                        | SKIP   | -           | Write disabled                          
+GET          | /faculty/my-subjects                                           | PASS   | 200         | OK                                      
+GET          | /faculty/availableSubjects                                     | PASS   | 200         | OK                                      
+DELETE       | /remove-assigned-subject/{subject_id}                          | SKIP   | -           | Write disabled                          
+POST         | /questions/add                                                 | SKIP   | -           | Write disabled                          
+GET          | /subjects/{subject_id}/questions                               | SKIP   | -           | Missing param: subject_id               
+POST         | /questions/update/{question_id}                                | SKIP   | -           | Write disabled                          
+DELETE       | /questions/delete/{question_id}                                | SKIP   | -           | Write disabled                          
+GET          | /faculty/my-questions/{subject_id}                             | SKIP   | -           | Missing param: subject_id               
+POST         | /choices/update                                                | SKIP   | -           | Write disabled                          
+POST         | /questions/{question_id}/duplicate                             | SKIP   | -           | Write disabled                          
+GET          | /questions/count                                               | PASS   | 200         | OK                                      
+POST         | /generate-printable-exam/{subject_id}                          | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz/{personal_quiz_id}/questions                    | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /generate-personal-quiz-pdf                                    | SKIP   | -           | Write disabled                          
+GET          | /practice-exam/preview/{subject_id}                            | SKIP   | -           | Missing param: subject_id               
+POST         | /generate-single-subject-personal-preview                      | SKIP   | -           | Write disabled                          
+GET          | /programs                                                      | PASS   | 200         | OK                                      
+POST         | /personal-quizzes                                              | SKIP   | -           | Write disabled                          
+GET          | /personal-quizzes                                              | PASS   | 200         | OK                                      
+GET          | /personal-quizzes/archived                                     | PASS   | 200         | OK                                      
+PUT          | /update-personal-quizzes/{personal_quiz_id}                    | SKIP   | -           | Write disabled                          
+PATCH        | /personal-quizzes/{personal_quiz_id}/archive                   | SKIP   | -           | Write disabled                          
+PATCH        | /personal-quizzes/{personal_quiz_id}/unarchive                 | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quizzes/{personal_quiz_id}                           | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz/{personal_quiz_id}/leaderboard                  | SKIP   | -           | Missing param: personal_quiz_id         
+GET          | /personal-quiz/{personal_quiz_id}/recent-takers                | SKIP   | -           | Missing param: personal_quiz_id         
+GET          | /personal-quiz-questions/{personal_quiz_id}                    | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /personal-quiz-questions                                       | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/import                                | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/{personal_quiz_question_id}           | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-questions/{personal_quiz_question_id}/duplicate | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quiz-questions/{personal_quiz_question_id}           | SKIP   | -           | Write disabled                          
+GET          | /personal-quiz-choices/{personal_quiz_question_id}             | SKIP   | -           | Missing param: personal_quiz_question_id
+POST         | /personal-quiz-choices                                         | SKIP   | -           | Write disabled                          
+PUT          | /personal-quiz-choices                                         | SKIP   | -           | Write disabled                          
+POST         | /personal-quiz-choices/update                                  | SKIP   | -           | Write disabled                          
+DELETE       | /personal-quiz-choices/{personal_quiz_choice_id}               | SKIP   | -           | Write disabled                          
+GET          | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Missing param: class_personal_quiz_id   
+POST         | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+PUT          | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+DELETE       | /class-quizzes/{class_personal_quiz_id}/settings               | SKIP   | -           | Write disabled                          
+POST         | /personal-exam-settings                                        | SKIP   | -           | Write disabled                          
+GET          | /personal-exam-settings/{subject_id}                           | SKIP   | -           | Missing param: subject_id               
+GET          | /my-students                                                   | PASS   | 200         | OK                                      
+GET          | /subjects/{subject_id}/exam-questions-status                   | SKIP   | -           | Missing param: subject_id               
+POST         | /subjects/{subject_id}/upload-image                            | SKIP   | -           | Write disabled                          
+POST         | /admin/system/notify-update                                    | SKIP   | -           | Write disabled                          
+GET          | /admin/analytics/summary                                       | PASS   | 200         | OK                                      
+GET          | /admin/analytics/average-score-per-subject                     | PASS   | 200         | OK                                      
+GET          | /admin/analytics/student-progress                              | PASS   | 200         | OK                                      
+GET          | /admin/analytics/pass-fail-rate                                | PASS   | 200         | OK                                      
+GET          | /admin/analytics/improvement-percentage                        | PASS   | 200         | OK                                      
+GET          | /admin/analytics/topic-mastery                                 | PASS   | 200         | OK                                      
+GET          | /admin/analytics/content                                       | PASS   | 200         | OK                                      
+GET          | /admin/support/tickets                                         | PASS   | 200         | OK                                      
+PATCH        | /admin/support/tickets/{ticket_id}                             | SKIP   | -           | Write disabled                          
+POST         | /admin/notifications                                           | SKIP   | -           | Write disabled                          
+GET          | /classes/{class_id}/quizzes/available                          | SKIP   | -           | Missing param: class_id                 
+POST         | /classes/quizzes                                               | SKIP   | -           | Write disabled                          
+PUT          | /classes/quizzes/{class_personal_quiz_id}                      | SKIP   | -           | Write disabled                          
+PATCH        | /classes/quizzes/{class_personal_quiz_id}/dates                | SKIP   | -           | Write disabled                          
+DELETE       | /classes/quizzes/{class_personal_quiz_id}                      | SKIP   | -           | Write disabled                          
+GET          | /personal-quizzes/{personal_quiz_id}/classes                   | SKIP   | -           | Missing param: personal_quiz_id         
+POST         | /personal-quizzes/{personal_quiz_id}/assign-classes            | SKIP   | -           | Write disabled                          
+GET          | /quiz-results                                                  | PASS   | 200         | OK                                      
+GET          | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Missing param: quiz_result_id           
+PUT          | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Write disabled                          
+DELETE       | /quiz-results/{quiz_result_id}                                 | SKIP   | -           | Write disabled                          
+GET          | /classes/{class_id}/quiz-results                               | SKIP   | -           | Missing param: class_id                 
+GET          | /quizzes/{class_personal_quiz_id}/results                      | SKIP   | -           | Missing param: class_personal_quiz_id   
+GET          | /quizzes/{class_personal_quiz_id}/non-takers                   | SKIP   | -           | Missing param: class_personal_quiz_id   
+GET          | /quiz-sessions/faculty-sessions                                | PASS   | 200         | OK                                      
+GET          | /analytics/content/lessons/{course_id}                         | SKIP   | -           | Missing param: course_id                
+GET          | /analytics/content/questions/{exam_id}                         | SKIP   | -           | Missing param: exam_id                  
+GET          | /analytics/content/skipped/{course_id}                         | SKIP   | -           | Missing param: course_id                
+GET          | /analytics/difficulty/{topic_id}                               | SKIP   | -           | Missing param: topic_id                 
+GET          | /analytics/faculty/summary/{class_id}                          | SKIP   | -           | Missing param: class_id                 
+GET          | /feedback/faculty/{user_id}                                    | SKIP   | -           | Missing param: user_id                  
+GET          | /admin/analytics/all                                           | PASS   | 200         | OK                                      
+GET          | /admin/analytics/program/{program_id}                          | SKIP   | -           | Missing param: program_id               
+GET          | /admin/analytics/faculty/{user_id}                             | SKIP   | -           | Missing param: user_id                  
+GET          | /admin/support/tickets/{ticket_id}                             | SKIP   | -           | Missing param: ticket_id                
+DELETE       | /classes/{class_id}/remove-student                             | SKIP   | -           | Write disabled                          
+
+== Associate Dean - Program Chair/Dean/Associate Dean Routes (Role 3-5) ==
+Request Type | Route                           | Status | Status Code | Interpretation           
+-------------+---------------------------------+--------+-------------+--------------------------
+PATCH        | /questions/{question_id}/status | SKIP   | -           | Write disabled           
+GET          | /practice-settings/{subject_id} | SKIP   | -           | Missing param: subject_id
+POST         | /practice-settings              | SKIP   | -           | Write disabled           
+POST         | /generate-multi-subject-exam    | SKIP   | -           | Write disabled           
+PATCH        | /users/{user_id}/role           | SKIP   | -           | Write disabled           
+
+== Associate Dean - Dean/Associate Dean Routes (Role 4-5) ==
+Request Type | Route                                         | Status | Status Code | Interpretation
+-------------+-----------------------------------------------+--------+-------------+---------------
+POST         | /add-subjects                                 | SKIP   | -           | Write disabled
+DELETE       | /subjects/{subject_id}/delete                 | SKIP   | -           | Write disabled
+PUT          | /subjects/{subject_id}/update                 | SKIP   | -           | Write disabled
+DELETE       | /users/{user_id}                              | SKIP   | -           | Write disabled
+POST         | /users/delete-multiple                        | SKIP   | -           | Write disabled
+PATCH        | /subjects/{subject_id}/enable-exam-questions  | SKIP   | -           | Write disabled
+PATCH        | /subjects/{subject_id}/disable-exam-questions | SKIP   | -           | Write disabled
+GET          | /support-tickets                              | PASS   | 200         | OK            
+GET          | /feedback/admin                               | PASS   | 200         | OK            
+GET          | /feedback/normalization-options               | PASS   | 200         | OK            
+POST         | /feedback/clear-cache                         | SKIP   | -           | Write disabled
+
+== Associate Dean - Logout ==
+Request Type | Route   | Status | Status Code | Interpretation
+-------------+---------+--------+-------------+---------------
+POST         | /logout | SKIP   | -           | Write disabled

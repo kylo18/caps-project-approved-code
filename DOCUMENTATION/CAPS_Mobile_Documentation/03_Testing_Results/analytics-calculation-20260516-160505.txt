@@ -1,0 +1,221 @@
+CAPS Analytics Calculation Test
+================================
+Generated: 2026-05-16 16:05:05
+Base URL: http://localhost:8000/api
+
+Role | Status | Check | Expected | Actual | Note
+-----+--------+-------+----------+--------+-----
+Student | PASS | login | token | received | 
+Student | PASS | student analytics summary returns 200 | 200 | 200 | 
+Student | PASS | student analytics trends returns 200 | 200 | 200 | 
+Student | PASS | student analytics insights returns 200 | 200 | 200 | 
+Student | PASS | student frequently mistaken returns 200 | 200 | 200 | 
+Student | PASS | summary total_exams is zero when no trend rows | 0 | None | 
+Faculty | PASS | login | token | received | 
+Faculty | PASS | admin analytics summary returns 200 | 200 | 200 | 
+Faculty | PASS | admin pass/fail rate returns 200 | 200 | 200 | 
+Faculty | PASS | admin average score per subject returns 200 | 200 | 200 | 
+Faculty | PASS | admin improvement percentage returns 200 | 200 | 200 | 
+Faculty | PASS | pass + fail equals total | 36 | 36 | 
+Faculty | FAIL | summary total_exams matches pass/fail total | 36 | None | 
+Faculty | PASS | pass/fail pass_rate matches passed/total | 100.0 | 100 | 
+Faculty | FAIL | summary pass_rate decimal matches pass/fail percent | 100 | 0.0 | 
+Faculty | PASS | summary fail_rate decimal matches failed/total | 0.0 | 0.0 | 
+Faculty | PASS | subject #1 average score is 0..100 | 0..100 | 96.25 | 
+Faculty | PASS | subject #1 exam_count is non-negative | >= 0 | 12 | 
+Faculty | PASS | subject #2 average score is 0..100 | 0..100 | 95.16666666666667 | 
+Faculty | PASS | subject #2 exam_count is non-negative | >= 0 | 12 | 
+Faculty | PASS | subject #3 average score is 0..100 | 0..100 | 94.25 | 
+Faculty | PASS | subject #3 exam_count is non-negative | >= 0 | 12 | 
+Faculty | PASS | improvement percentage matches month averages | -100.0 | -100 | 
+Program Chair | PASS | login | token | received | 
+Program Chair | PASS | admin analytics summary returns 200 | 200 | 200 | 
+Program Chair | PASS | admin pass/fail rate returns 200 | 200 | 200 | 
+Program Chair | PASS | admin average score per subject returns 200 | 200 | 200 | 
+Program Chair | PASS | admin improvement percentage returns 200 | 200 | 200 | 
+Program Chair | PASS | pass + fail equals total | 36 | 36 | 
+Program Chair | FAIL | summary total_exams matches pass/fail total | 36 | None | 
+Program Chair | PASS | pass/fail pass_rate matches passed/total | 100.0 | 100 | 
+Program Chair | FAIL | summary pass_rate decimal matches pass/fail percent | 100 | 0.0 | 
+Program Chair | PASS | summary fail_rate decimal matches failed/total | 0.0 | 0.0 | 
+Program Chair | PASS | subject #1 average score is 0..100 | 0..100 | 96.25 | 
+Program Chair | PASS | subject #1 exam_count is non-negative | >= 0 | 12 | 
+Program Chair | PASS | subject #2 average score is 0..100 | 0..100 | 95.16666666666667 | 
+Program Chair | PASS | subject #2 exam_count is non-negative | >= 0 | 12 | 
+Program Chair | PASS | subject #3 average score is 0..100 | 0..100 | 94.25 | 
+Program Chair | PASS | subject #3 exam_count is non-negative | >= 0 | 12 | 
+Program Chair | PASS | improvement percentage matches month averages | -100.0 | -100 | 
+Dean | PASS | login | token | received | 
+Dean | PASS | admin analytics summary returns 200 | 200 | 200 | 
+Dean | PASS | admin pass/fail rate returns 200 | 200 | 200 | 
+Dean | PASS | admin average score per subject returns 200 | 200 | 200 | 
+Dean | PASS | admin improvement percentage returns 200 | 200 | 200 | 
+Dean | PASS | pass + fail equals total | 843 | 843 | 
+Dean | FAIL | summary total_exams matches pass/fail total | 843 | None | 
+Dean | PASS | pass/fail pass_rate matches passed/total | 74.38 | 74.38 | 
+Dean | FAIL | summary pass_rate decimal matches pass/fail percent | 74.38 | 0.0 | 
+Dean | FAIL | summary fail_rate decimal matches failed/total | 25.62 | 0.0 | 
+Dean | PASS | subject #1 average score is 0..100 | 0..100 | 95.16666666666667 | 
+Dean | PASS | subject #1 exam_count is non-negative | >= 0 | 12 | 
+Dean | PASS | subject #2 average score is 0..100 | 0..100 | 94.25 | 
+Dean | PASS | subject #2 exam_count is non-negative | >= 0 | 12 | 
+Dean | PASS | subject #3 average score is 0..100 | 0..100 | 94.03703703703704 | 
+Dean | PASS | subject #3 exam_count is non-negative | >= 0 | 27 | 
+Dean | PASS | subject #4 average score is 0..100 | 0..100 | 91.6 | 
+Dean | PASS | subject #4 exam_count is non-negative | >= 0 | 15 | 
+Dean | PASS | subject #5 average score is 0..100 | 0..100 | 86.5 | 
+Dean | PASS | subject #5 exam_count is non-negative | >= 0 | 18 | 
+Dean | PASS | subject #6 average score is 0..100 | 0..100 | 85.88461538461539 | 
+Dean | PASS | subject #6 exam_count is non-negative | >= 0 | 26 | 
+Dean | PASS | subject #7 average score is 0..100 | 0..100 | 85.2 | 
+Dean | PASS | subject #7 exam_count is non-negative | >= 0 | 20 | 
+Dean | PASS | subject #8 average score is 0..100 | 0..100 | 80.21428571428571 | 
+Dean | PASS | subject #8 exam_count is non-negative | >= 0 | 14 | 
+Dean | PASS | subject #9 average score is 0..100 | 0..100 | 79.9375 | 
+Dean | PASS | subject #9 exam_count is non-negative | >= 0 | 16 | 
+Dean | PASS | subject #10 average score is 0..100 | 0..100 | 79.45454545454545 | 
+Dean | PASS | subject #10 exam_count is non-negative | >= 0 | 11 | 
+Dean | PASS | subject #11 average score is 0..100 | 0..100 | 78.21153846153847 | 
+Dean | PASS | subject #11 exam_count is non-negative | >= 0 | 52 | 
+Dean | PASS | subject #12 average score is 0..100 | 0..100 | 78.14285714285714 | 
+Dean | PASS | subject #12 exam_count is non-negative | >= 0 | 28 | 
+Dean | PASS | subject #13 average score is 0..100 | 0..100 | 78.0909090909091 | 
+Dean | PASS | subject #13 exam_count is non-negative | >= 0 | 11 | 
+Dean | PASS | subject #14 average score is 0..100 | 0..100 | 75.26315789473684 | 
+Dean | PASS | subject #14 exam_count is non-negative | >= 0 | 19 | 
+Dean | PASS | subject #15 average score is 0..100 | 0..100 | 73.28571428571429 | 
+Dean | PASS | subject #15 exam_count is non-negative | >= 0 | 70 | 
+Dean | PASS | subject #16 average score is 0..100 | 0..100 | 72.92307692307692 | 
+Dean | PASS | subject #16 exam_count is non-negative | >= 0 | 13 | 
+Dean | PASS | subject #17 average score is 0..100 | 0..100 | 72.73913043478261 | 
+Dean | PASS | subject #17 exam_count is non-negative | >= 0 | 23 | 
+Dean | PASS | subject #18 average score is 0..100 | 0..100 | 69.65853658536585 | 
+Dean | PASS | subject #18 exam_count is non-negative | >= 0 | 41 | 
+Dean | PASS | subject #19 average score is 0..100 | 0..100 | 69.52941176470588 | 
+Dean | PASS | subject #19 exam_count is non-negative | >= 0 | 17 | 
+Dean | PASS | subject #20 average score is 0..100 | 0..100 | 68.82352941176471 | 
+Dean | PASS | subject #20 exam_count is non-negative | >= 0 | 17 | 
+Dean | PASS | subject #21 average score is 0..100 | 0..100 | 67.575 | 
+Dean | PASS | subject #21 exam_count is non-negative | >= 0 | 40 | 
+Dean | PASS | subject #22 average score is 0..100 | 0..100 | 66.90625 | 
+Dean | PASS | subject #22 exam_count is non-negative | >= 0 | 32 | 
+Dean | PASS | subject #23 average score is 0..100 | 0..100 | 66.89189189189189 | 
+Dean | PASS | subject #23 exam_count is non-negative | >= 0 | 37 | 
+Dean | PASS | subject #24 average score is 0..100 | 0..100 | 65.54545454545455 | 
+Dean | PASS | subject #24 exam_count is non-negative | >= 0 | 22 | 
+Dean | PASS | subject #25 average score is 0..100 | 0..100 | 64.27777777777777 | 
+Dean | PASS | subject #25 exam_count is non-negative | >= 0 | 18 | 
+Dean | PASS | subject #26 average score is 0..100 | 0..100 | 63.375 | 
+Dean | PASS | subject #26 exam_count is non-negative | >= 0 | 8 | 
+Dean | PASS | subject #27 average score is 0..100 | 0..100 | 61.75675675675676 | 
+Dean | PASS | subject #27 exam_count is non-negative | >= 0 | 37 | 
+Dean | PASS | subject #28 average score is 0..100 | 0..100 | 60.28 | 
+Dean | PASS | subject #28 exam_count is non-negative | >= 0 | 25 | 
+Dean | PASS | subject #29 average score is 0..100 | 0..100 | 60.09756097560975 | 
+Dean | PASS | subject #29 exam_count is non-negative | >= 0 | 41 | 
+Dean | PASS | subject #30 average score is 0..100 | 0..100 | 59.88 | 
+Dean | PASS | subject #30 exam_count is non-negative | >= 0 | 25 | 
+Dean | PASS | subject #31 average score is 0..100 | 0..100 | 58.0 | 
+Dean | PASS | subject #31 exam_count is non-negative | >= 0 | 9 | 
+Dean | PASS | subject #32 average score is 0..100 | 0..100 | 55.4375 | 
+Dean | PASS | subject #32 exam_count is non-negative | >= 0 | 16 | 
+Dean | PASS | subject #33 average score is 0..100 | 0..100 | 54.92857142857143 | 
+Dean | PASS | subject #33 exam_count is non-negative | >= 0 | 14 | 
+Dean | PASS | subject #34 average score is 0..100 | 0..100 | 49.9 | 
+Dean | PASS | subject #34 exam_count is non-negative | >= 0 | 20 | 
+Dean | PASS | subject #35 average score is 0..100 | 0..100 | 49.9 | 
+Dean | PASS | subject #35 exam_count is non-negative | >= 0 | 20 | 
+Dean | PASS | subject #36 average score is 0..100 | 0..100 | 48.333333333333336 | 
+Dean | PASS | subject #36 exam_count is non-negative | >= 0 | 6 | 
+Dean | PASS | subject #37 average score is 0..100 | 0..100 | 48.333333333333336 | 
+Dean | PASS | subject #37 exam_count is non-negative | >= 0 | 6 | 
+Dean | PASS | subject #38 average score is 0..100 | 0..100 | 43.0 | 
+Dean | PASS | subject #38 exam_count is non-negative | >= 0 | 5 | 
+Dean | PASS | improvement percentage matches month averages | -100.0 | -100 | 
+Associate Dean | PASS | login | token | received | 
+Associate Dean | PASS | admin analytics summary returns 200 | 200 | 200 | 
+Associate Dean | PASS | admin pass/fail rate returns 200 | 200 | 200 | 
+Associate Dean | PASS | admin average score per subject returns 200 | 200 | 200 | 
+Associate Dean | PASS | admin improvement percentage returns 200 | 200 | 200 | 
+Associate Dean | PASS | pass + fail equals total | 843 | 843 | 
+Associate Dean | FAIL | summary total_exams matches pass/fail total | 843 | None | 
+Associate Dean | PASS | pass/fail pass_rate matches passed/total | 74.38 | 74.38 | 
+Associate Dean | FAIL | summary pass_rate decimal matches pass/fail percent | 74.38 | 0.0 | 
+Associate Dean | FAIL | summary fail_rate decimal matches failed/total | 25.62 | 0.0 | 
+Associate Dean | PASS | subject #1 average score is 0..100 | 0..100 | 95.16666666666667 | 
+Associate Dean | PASS | subject #1 exam_count is non-negative | >= 0 | 12 | 
+Associate Dean | PASS | subject #2 average score is 0..100 | 0..100 | 94.25 | 
+Associate Dean | PASS | subject #2 exam_count is non-negative | >= 0 | 12 | 
+Associate Dean | PASS | subject #3 average score is 0..100 | 0..100 | 94.03703703703704 | 
+Associate Dean | PASS | subject #3 exam_count is non-negative | >= 0 | 27 | 
+Associate Dean | PASS | subject #4 average score is 0..100 | 0..100 | 91.6 | 
+Associate Dean | PASS | subject #4 exam_count is non-negative | >= 0 | 15 | 
+Associate Dean | PASS | subject #5 average score is 0..100 | 0..100 | 86.5 | 
+Associate Dean | PASS | subject #5 exam_count is non-negative | >= 0 | 18 | 
+Associate Dean | PASS | subject #6 average score is 0..100 | 0..100 | 85.88461538461539 | 
+Associate Dean | PASS | subject #6 exam_count is non-negative | >= 0 | 26 | 
+Associate Dean | PASS | subject #7 average score is 0..100 | 0..100 | 85.2 | 
+Associate Dean | PASS | subject #7 exam_count is non-negative | >= 0 | 20 | 
+Associate Dean | PASS | subject #8 average score is 0..100 | 0..100 | 80.21428571428571 | 
+Associate Dean | PASS | subject #8 exam_count is non-negative | >= 0 | 14 | 
+Associate Dean | PASS | subject #9 average score is 0..100 | 0..100 | 79.9375 | 
+Associate Dean | PASS | subject #9 exam_count is non-negative | >= 0 | 16 | 
+Associate Dean | PASS | subject #10 average score is 0..100 | 0..100 | 79.45454545454545 | 
+Associate Dean | PASS | subject #10 exam_count is non-negative | >= 0 | 11 | 
+Associate Dean | PASS | subject #11 average score is 0..100 | 0..100 | 78.21153846153847 | 
+Associate Dean | PASS | subject #11 exam_count is non-negative | >= 0 | 52 | 
+Associate Dean | PASS | subject #12 average score is 0..100 | 0..100 | 78.14285714285714 | 
+Associate Dean | PASS | subject #12 exam_count is non-negative | >= 0 | 28 | 
+Associate Dean | PASS | subject #13 average score is 0..100 | 0..100 | 78.0909090909091 | 
+Associate Dean | PASS | subject #13 exam_count is non-negative | >= 0 | 11 | 
+Associate Dean | PASS | subject #14 average score is 0..100 | 0..100 | 75.26315789473684 | 
+Associate Dean | PASS | subject #14 exam_count is non-negative | >= 0 | 19 | 
+Associate Dean | PASS | subject #15 average score is 0..100 | 0..100 | 73.28571428571429 | 
+Associate Dean | PASS | subject #15 exam_count is non-negative | >= 0 | 70 | 
+Associate Dean | PASS | subject #16 average score is 0..100 | 0..100 | 72.92307692307692 | 
+Associate Dean | PASS | subject #16 exam_count is non-negative | >= 0 | 13 | 
+Associate Dean | PASS | subject #17 average score is 0..100 | 0..100 | 72.73913043478261 | 
+Associate Dean | PASS | subject #17 exam_count is non-negative | >= 0 | 23 | 
+Associate Dean | PASS | subject #18 average score is 0..100 | 0..100 | 69.65853658536585 | 
+Associate Dean | PASS | subject #18 exam_count is non-negative | >= 0 | 41 | 
+Associate Dean | PASS | subject #19 average score is 0..100 | 0..100 | 69.52941176470588 | 
+Associate Dean | PASS | subject #19 exam_count is non-negative | >= 0 | 17 | 
+Associate Dean | PASS | subject #20 average score is 0..100 | 0..100 | 68.82352941176471 | 
+Associate Dean | PASS | subject #20 exam_count is non-negative | >= 0 | 17 | 
+Associate Dean | PASS | subject #21 average score is 0..100 | 0..100 | 67.575 | 
+Associate Dean | PASS | subject #21 exam_count is non-negative | >= 0 | 40 | 
+Associate Dean | PASS | subject #22 average score is 0..100 | 0..100 | 66.90625 | 
+Associate Dean | PASS | subject #22 exam_count is non-negative | >= 0 | 32 | 
+Associate Dean | PASS | subject #23 average score is 0..100 | 0..100 | 66.89189189189189 | 
+Associate Dean | PASS | subject #23 exam_count is non-negative | >= 0 | 37 | 
+Associate Dean | PASS | subject #24 average score is 0..100 | 0..100 | 65.54545454545455 | 
+Associate Dean | PASS | subject #24 exam_count is non-negative | >= 0 | 22 | 
+Associate Dean | PASS | subject #25 average score is 0..100 | 0..100 | 64.27777777777777 | 
+Associate Dean | PASS | subject #25 exam_count is non-negative | >= 0 | 18 | 
+Associate Dean | PASS | subject #26 average score is 0..100 | 0..100 | 63.375 | 
+Associate Dean | PASS | subject #26 exam_count is non-negative | >= 0 | 8 | 
+Associate Dean | PASS | subject #27 average score is 0..100 | 0..100 | 61.75675675675676 | 
+Associate Dean | PASS | subject #27 exam_count is non-negative | >= 0 | 37 | 
+Associate Dean | PASS | subject #28 average score is 0..100 | 0..100 | 60.28 | 
+Associate Dean | PASS | subject #28 exam_count is non-negative | >= 0 | 25 | 
+Associate Dean | PASS | subject #29 average score is 0..100 | 0..100 | 60.09756097560975 | 
+Associate Dean | PASS | subject #29 exam_count is non-negative | >= 0 | 41 | 
+Associate Dean | PASS | subject #30 average score is 0..100 | 0..100 | 59.88 | 
+Associate Dean | PASS | subject #30 exam_count is non-negative | >= 0 | 25 | 
+Associate Dean | PASS | subject #31 average score is 0..100 | 0..100 | 58.0 | 
+Associate Dean | PASS | subject #31 exam_count is non-negative | >= 0 | 9 | 
+Associate Dean | PASS | subject #32 average score is 0..100 | 0..100 | 55.4375 | 
+Associate Dean | PASS | subject #32 exam_count is non-negative | >= 0 | 16 | 
+Associate Dean | PASS | subject #33 average score is 0..100 | 0..100 | 54.92857142857143 | 
+Associate Dean | PASS | subject #33 exam_count is non-negative | >= 0 | 14 | 
+Associate Dean | PASS | subject #34 average score is 0..100 | 0..100 | 49.9 | 
+Associate Dean | PASS | subject #34 exam_count is non-negative | >= 0 | 20 | 
+Associate Dean | PASS | subject #35 average score is 0..100 | 0..100 | 49.9 | 
+Associate Dean | PASS | subject #35 exam_count is non-negative | >= 0 | 20 | 
+Associate Dean | PASS | subject #36 average score is 0..100 | 0..100 | 48.333333333333336 | 
+Associate Dean | PASS | subject #36 exam_count is non-negative | >= 0 | 6 | 
+Associate Dean | PASS | subject #37 average score is 0..100 | 0..100 | 48.333333333333336 | 
+Associate Dean | PASS | subject #37 exam_count is non-negative | >= 0 | 6 | 
+Associate Dean | PASS | subject #38 average score is 0..100 | 0..100 | 43.0 | 
+Associate Dean | PASS | subject #38 exam_count is non-negative | >= 0 | 5 | 
+Associate Dean | PASS | improvement percentage matches month averages | -100.0 | -100 | 
