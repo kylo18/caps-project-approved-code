@@ -364,13 +364,13 @@ export default function AssoDeanSubjectsScreen() {
   };
 
   const handleToggleStatus = async (questionID: number, currentStatus: string) => {
+    const newStatus = currentStatus === 'approved' ? 'pending' : 'approved';
     try {
-      const newStatus = currentStatus === 'approved' ? 'pending' : 'approved';
       await apiRequest(`/api/questions/${questionID}/status`, { method: 'PATCH', body: { status: newStatus } });
       setQuestions(prev => prev.map(q => q.questionID === questionID ? { ...q, status: newStatus } : q));
-      showToast(`Question ${newStatus}`, 'success');
+      showToast(`Question ${newStatus === 'approved' ? 'approved' : 'reverted to pending'}`, 'success');
     } catch (error) {
-      showToast('Failed to update', 'error');
+      showToast('Failed to update question status', 'error');
     }
   };
 

@@ -88,6 +88,54 @@ export default function FacultyUsersScreen() {
     applyFilters();
   }, [searchQuery, activeRoleFilter, activeStatusFilter, programFilter, yearFilter, campusFilter, users]);
 
+  useEffect(() => {
+    const loadMeta = async () => {
+      try {
+        const [progRes, campRes] = await Promise.allSettled([
+          apiRequest("/api/programs"),
+          apiRequest("/api/campuses"),
+        ]);
+        if (progRes.status === "fulfilled") {
+          const raw = progRes.value;
+          const list = Array.isArray(raw?.programs) ? raw.programs
+            : Array.isArray(raw?.data) ? raw.data
+            : Array.isArray(raw) ? raw : [];
+          setProgramOptions(list.map((p: any) => ({
+            id: String(p.programID ?? p.id),
+            label: p.programName ?? p.name ?? "",
+          })).filter((o: any) => o.label));
+        }
+        if (campRes.status === "fulfilled") {
+          setCampusOptions(parseCampuses(campRes.value));
+        }
+      } catch { /* non-critical */ }
+    };
+    loadMeta();
+  }, []);
+
+  const parseCampuses = (raw: any) => {
+    const list = Array.isArray(raw?.campuses) ? raw.campuses
+      : Array.isArray(raw?.data) ? raw.data
+      : Array.isArray(raw) ? raw : [];
+    return list.map((c: any) => ({
+      id: String(c.campusID ?? c.id),
+      label: c.campusName ?? c.name ?? "",
+    })).filter((o: any) => o.label);
+  };
+
+  const fetchCampuses = async () => {
+    try {
+      const raw = await apiRequest("/api/campuses");
+      setCampusOptions(parseCampuses(raw));
+    } catch { /* non-critical */ }
+  };
+
+  const handleToggleFilters = () => {
+    const next = !showAdvancedFilters;
+    setShowAdvancedFilters(next);
+    if (next && campusOptions.length === 0) fetchCampuses();
+  };
+
   const fetchUsers = async (reset = false) => {
     const currentPage = reset ? 1 : page;
 
@@ -254,7 +302,7 @@ export default function FacultyUsersScreen() {
           renderItem={renderUser}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[colors.orange]} tintColor={colors.orange} />}
-          removeClippedSubviews={true}
+          removeClippedSubviews={false}
           maxToRenderPerBatch={10}
           windowSize={5}
           initialNumToRender={15}
@@ -283,8 +331,9 @@ export default function FacultyUsersScreen() {
                 <View className="flex-1">
                   <FilterDropdown label="" value={activeStatusFilter} onValueChange={(v) => setActiveStatusFilter(v as UserStatusFilter)} options={[{ id: 'all', label: 'Status' }, { id: 'pending', label: 'Pending' }, { id: 'active', label: 'Active' }, { id: 'inactive', label: 'Inactive' }, { id: 'disapproved', label: 'Disapproved' }]} colors={colors} />
                 </View>
-                <TouchableOpacity className="w-[38px] h-[38px] rounded-[10px] justify-center items-center" style={{ backgroundColor: showAdvancedFilters ? colors.orange : colors.inputBg }} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)} activeOpacity={0.7}>
-                  <Ionicons name="options" size={18} color={showAdvancedFilters ? '#fff' : colors.textSecondary} />
+                <TouchableOpacity className="flex-row items-center gap-1.5 px-3 h-[38px] rounded-[10px]" style={{ backgroundColor: showAdvancedFilters ? colors.orange : colors.inputBg }} onPress={handleToggleFilters} activeOpacity={0.7}>
+                  <Ionicons name="options" size={16} color={showAdvancedFilters ? '#fff' : colors.textSecondary} />
+                  <Text className="text-xs font-semibold" style={{ color: showAdvancedFilters ? '#fff' : colors.textSecondary }}>Filter</Text>
                 </TouchableOpacity>
               </View>
 
@@ -363,8 +412,8 @@ function FilterDropdown({ label, value, onValueChange, options, colors }: { labe
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="none" onRequestClose={closeDropdown}>
-        <TouchableOpacity className="flex-1" activeOpacity={1} onPress={closeDropdown}>
-          <Animated.View style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.width, backgroundColor: colors.card, borderRadius: 12, padding: 4, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, opacity: animOpacity, transform: [{ translateY: animTranslateY }] }}>
+        <TouchableOpacity className="flex-1" activeOpacity={1} onPress={closeDropdown} style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+          <Animated.View style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.width, backgroundColor: colors.card, borderRadius: 12, padding: 4, elevation: 9999, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, opacity: animOpacity, transform: [{ translateY: animTranslateY }] }}>
             <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
               {options.map((opt: any) => (
                 <TouchableOpacity key={opt.id} className="flex-row items-center justify-between py-2.5 px-3 rounded-lg" style={value === opt.id ? { backgroundColor: `${colors.orange}15` } : undefined} onPress={() => handleSelect(opt.id)} activeOpacity={0.7}>

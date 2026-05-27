@@ -4,7 +4,7 @@
 //
 // Features:
 // - Greeting with user name
-// - Stats cards (students, subjects, quizzes)
+// - Stats grid (students, faculty, subjects, questions)
 // - Class average with progress bar
 // - Quick action cards
 // - Assigned subjects list
@@ -13,7 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +25,9 @@ import MobileHeader from '../../../src/features/core/components/MobileHeader';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2;
 
 export default function FacultyDashboard() {
   const router = useRouter();
@@ -40,12 +43,13 @@ export default function FacultyDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [subjects, setSubjects] = useState<any[]>([]);
-  const [stats, setStats] = useState({ totalStudents: 0, totalQuizzes: 0, avgScore: 0 });
+  const [stats, setStats] = useState({ totalStudents: 0, totalFaculty: 0, totalSubjects: 0, totalQuestions: 0, avgScore: 0 });
 
   const firstName = user?.firstName || 'Faculty';
   const lastName = user?.lastName || '';
 
   const [showQuizModal, setShowQuizModal] = useState(false);
+  const [programScores, setProgramScores] = useState<any[]>([]);
   const [quizTitle, setQuizTitle] = useState('');
   const [quizTypeID, setQuizTypeID] = useState<number>(2); // 1 = subject-based, 2 = custom
   const [quizSubjectID, setQuizSubjectID] = useState<number | null>(null);
@@ -96,36 +100,49 @@ export default function FacultyDashboard() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch subjects assigned to this faculty member
-      const subjectsRes = await apiRequest('/api/faculty/my-subjects');
-      const subjectList = subjectsRes?.subjects || subjectsRes?.data || subjectsRes || [];
-      setSubjects(Array.isArray(subjectList) ? subjectList : []);
+      const [subjectsRes, statsRes, studentsRes, comparisonRes] = await Promise.allSettled([
+        apiRequest('/api/faculty/my-subjects'),
+        apiRequest('/api/dashboard/stats'),
+        apiRequest('/api/my-students'),
+        apiRequest('/api/admin/analytics/program-comparison'),
+      ]);
 
-      // Fetch real analytics data
-      let avgScore = 0;
-      let totalStudents = 0;
-      let totalQuizzes = 0;
-      try {
-        const [summaryRes, myStudentsRes] = await Promise.allSettled([
-          apiRequest('/api/admin/analytics/summary'),
-          apiRequest('/api/my-students'),
-        ]);
-        const summary = summaryRes.status === 'fulfilled' ? (summaryRes.value?.data || summaryRes.value || {}) : {};
-        avgScore = Math.round(Number(summary.average_score ?? 0));
-        totalQuizzes = Number(summary.total_exams ?? 0);
-
-        const myStudents = myStudentsRes.status === 'fulfilled' ? (myStudentsRes.value?.data || myStudentsRes.value || []) : [];
-        totalStudents = Array.isArray(myStudents) ? myStudents.length : Number(summary.active_students ?? 0);
-      } catch (analyticsError) {
-        console.error('Error fetching faculty analytics:', analyticsError);
-        totalQuizzes = subjectList.length * 2;
+      // Subjects and questions count from my-subjects
+      if (subjectsRes.status === 'fulfilled') {
+        const subjectList = subjectsRes.value?.subjects || subjectsRes.value?.data || subjectsRes.value || [];
+        setSubjects(Array.isArray(subjectList) ? subjectList : []);
       }
+
+      // Faculty count + avg score from dashboard/stats
+      let totalFaculty = 0;
+      let avgScore = 0;
+      if (statsRes.status === 'fulfilled') {
+        const data = statsRes.value?.data || statsRes.value || {};
+        totalFaculty = Number(data.faculty ?? 0);
+        avgScore = Math.round(Number(data.average_score ?? 0));
+      }
+
+      // Students count from my-students
+      const myStudents = studentsRes.status === 'fulfilled' ? (studentsRes.value?.data || studentsRes.value || []) : [];
+      const totalStudents = Array.isArray(myStudents) ? myStudents.length : 0;
+
+      const subjectList = subjectsRes.status === 'fulfilled'
+        ? (subjectsRes.value?.subjects || subjectsRes.value?.data || subjectsRes.value || [])
+        : [];
+      const subjectArray = Array.isArray(subjectList) ? subjectList : [];
 
       setStats({
         totalStudents,
-        totalQuizzes,
+        totalFaculty,
+        totalSubjects: subjectArray.length,
+        totalQuestions: Number(subjectsRes.status === 'fulfilled' ? (subjectsRes.value?.totalQuestions ?? 0) : 0),
         avgScore,
       });
+
+      if (comparisonRes.status === 'fulfilled') {
+        const comp = comparisonRes.value?.data || comparisonRes.value || [];
+        setProgramScores(Array.isArray(comp) ? comp : []);
+      }
     } catch (error) {
       console.error('Error fetching faculty data:', error);
       showToast('Failed to load data', 'error');
@@ -224,56 +241,33 @@ export default function FacultyDashboard() {
           </Text>
         </View>
 
-        {/* Stats Row */}
-        <View className="flex-row gap-3">
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push('/(auth)/(faculty)/users?filter=student')}
-            className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
-            style={cardStyle}
-          >
-            <View className="w-12 h-12 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: `${colors.orange}18` }}>
-              <Ionicons name="people" size={24} color={colors.orange} />
+        {/* Stats Grid */}
+        <View className="flex-row flex-wrap gap-3">
+          {[
+            { icon: 'people' as const, value: stats.totalStudents, label: 'Students', color: '#3B82F6' },
+            { icon: 'person' as const, value: stats.totalFaculty, label: 'Faculty', color: '#8B5CF6' },
+            { icon: 'book' as const, value: stats.totalSubjects, label: 'Subjects', color: colors.orange },
+            { icon: 'help-circle' as const, value: stats.totalQuestions, label: 'Questions', color: '#10B981' },
+          ].map((stat, idx) => (
+            <View
+              key={idx}
+              className={`rounded-2xl p-3 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
+              style={[{ width: CARD_WIDTH }, cardStyle]}
+            >
+              <View
+                className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                style={{ backgroundColor: `${stat.color}15` }}
+              >
+                <Ionicons name={stat.icon} size={20} color={stat.color} />
+              </View>
+              <Text className="text-xl font-extrabold" style={{ color: colors.text }}>
+                {stat.value}
+              </Text>
+              <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
+                {stat.label}
+              </Text>
             </View>
-            <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
-              {stats.totalStudents}
-            </Text>
-            <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
-              Students
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push('/(auth)/(faculty)/subjects')}
-            className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
-            style={cardStyle}
-          >
-            <View className="w-12 h-12 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: '#3B82F618' }}>
-              <Ionicons name="book" size={24} color="#3B82F6" />
-            </View>
-            <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
-              {subjects.length}
-            </Text>
-            <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
-              Subjects
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push('/(auth)/(faculty)/subjects')}
-            className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
-            style={cardStyle}
-          >
-            <View className="w-12 h-12 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: '#10B98118' }}>
-              <Ionicons name="clipboard" size={24} color="#10B981" />
-            </View>
-            <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
-              {stats.totalQuizzes}
-            </Text>
-            <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
-              Quizzes
-            </Text>
-          </TouchableOpacity>
+          ))}
         </View>
 
         {/* Average Score Card */}
@@ -297,6 +291,47 @@ export default function FacultyDashboard() {
               style={{ width: `${stats.avgScore}%`, backgroundColor: colors.orange }}
             />
           </View>
+        </View>
+
+        {/* Program Comparison */}
+        <Text className="text-base font-bold mt-2" style={{ color: colors.text }}>
+          Program Comparison
+        </Text>
+        <View className={`rounded-2xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={cardStyle}>
+          {programScores.length === 0 ? (
+            <View className="items-center py-4">
+              <Ionicons name="bar-chart-outline" size={32} color={colors.mutedIcon} />
+              <Text className="mt-2 text-sm" style={{ color: colors.textSoft }}>
+                No exam data available yet
+              </Text>
+            </View>
+          ) : (
+            programScores.map((program, idx) => {
+              const score = Math.round(Number(program.average_score ?? 0));
+              return (
+                <View
+                  key={program.programID ?? program.programName}
+                  className={`flex-row items-center py-3 ${idx !== programScores.length - 1 ? 'border-b' : ''}`}
+                  style={{ borderBottomColor: idx !== programScores.length - 1 ? colors.border : 'transparent' }}
+                >
+                  <Text className="w-20 font-semibold text-sm" style={{ color: colors.text }}>
+                    {program.programName}
+                  </Text>
+                  <View className="flex-1 mx-3">
+                    <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
+                      <View
+                        className="h-full rounded-full"
+                        style={{ width: `${score}%`, backgroundColor: colors.orange }}
+                      />
+                    </View>
+                  </View>
+                  <Text className="w-12 text-right font-semibold text-xs" style={{ color: colors.text }}>
+                    {score}%
+                  </Text>
+                </View>
+              );
+            })
+          )}
         </View>
 
         {/* Quick Actions */}

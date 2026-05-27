@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Alert, Modal, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import CapsActivityIndicator from '../../../features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
@@ -65,8 +66,13 @@ export default function ClassesScreen({
     }
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadClasses();
+    }, [loadClasses])
+  );
+
   useEffect(() => {
-    loadClasses();
     const interval = setInterval(loadClasses, 30_000);
     return () => clearInterval(interval);
   }, [loadClasses]);

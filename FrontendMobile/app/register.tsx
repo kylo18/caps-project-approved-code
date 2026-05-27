@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,12 +20,6 @@ const allPrograms = [
   { id: '3', name: 'BS Civil Engineering' },
   { id: '4', name: 'BS Electronics Engineering' },
   { id: '5', name: 'BS Agricultural Biosystem Engineering' },
-];
-
-const campuses = [
-  { id: '1', name: 'Main Campus' },
-  { id: '2', name: 'Satellite Campus 1' },
-  { id: '3', name: 'Satellite Campus 2' },
 ];
 
 const roles = [
@@ -52,6 +46,25 @@ export default function RegisterScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isRegistering, setIsRegistering] = useState(false);
   const [message, setMessage] = useState('');
+  const [campuses, setCampuses] = useState<{ id: string; name: string }[]>([
+    { id: '1', name: 'Main Campus' },
+    { id: '2', name: 'Katipunan Campus' },
+    { id: '3', name: 'Tampilisan Campus' },
+  ]);
+
+  useEffect(() => {
+    apiRequest('/api/campuses')
+      .then((res: any) => {
+        const list = res?.campuses || res?.data || [];
+        if (Array.isArray(list) && list.length > 0) {
+          setCampuses(list.map((c: any) => ({
+            id: String(c.campusID || c.id),
+            name: c.campusName || c.name || '',
+          })));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();

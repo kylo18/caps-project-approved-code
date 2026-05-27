@@ -4,7 +4,7 @@
 //
 // Features:
 // - Greeting with user name
-// - Stats grid (students, faculty, programs, subjects)
+// - Stats grid (students, faculty, subjects, questions)
 // - College performance with progress bars
 // - Program comparison chart
 // - Quick action cards (including Create Quiz)
@@ -27,7 +27,7 @@ import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTool
 import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 56) / 3;
+const CARD_WIDTH = (width - 48) / 2;
 
 export default function AssoDeanDashboard() {
   const router = useRouter();
@@ -46,13 +46,15 @@ export default function AssoDeanDashboard() {
     totalFaculty: 0,
     totalPrograms: 0,
     totalSubjects: 0,
+    totalQuestions: 0,
     collegeAvgScore: 0,
     collegePassRate: 0,
     monthlyGrowth: 0,
+    currentMonthAvg: 0,
+    previousMonthAvg: 0,
   });
 
   const [programScores, setProgramScores] = useState<any[]>([]);
-  const [programs, setPrograms] = useState<any[]>([]);
 
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [quizTitle, setQuizTitle] = useState('');
@@ -70,36 +72,37 @@ export default function AssoDeanDashboard() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [subjectsRes, usersRes, programsRes, summaryRes, comparisonRes] = await Promise.all([
+      const [statsRes, subjectsRes, comparisonRes] = await Promise.allSettled([
+        apiRequest('/api/dashboard/stats'),
         apiRequest('/api/subjects'),
-        apiRequest('/api/users?limit=10000&status=registered'),
-        apiRequest('/api/programs'),
-        apiRequest('/api/admin/analytics/summary'),
         apiRequest('/api/admin/analytics/program-comparison'),
       ]);
 
-      const subjectList = subjectsRes?.data || subjectsRes?.subjects || subjectsRes || [];
-      const users = usersRes?.users || usersRes?.data || [];
-      const programList = programsRes?.data || programsRes?.programs || programsRes || [];
-      const summary = summaryRes?.data || summaryRes || {};
-      const comparison = comparisonRes?.data || comparisonRes || [];
+      if (statsRes.status === 'fulfilled') {
+        const data = statsRes.value?.data || statsRes.value || {};
+        setStats({
+          totalStudents: Number(data.students ?? 0),
+          totalFaculty: Number(data.faculty ?? 0),
+          totalPrograms: Number(data.programs ?? 0),
+          totalSubjects: Number(data.subjects ?? 0),
+          totalQuestions: Number(data.questions ?? 0),
+          collegeAvgScore: Number(data.average_score ?? 0),
+          collegePassRate: Number(data.pass_rate ?? 0) * 100,
+          monthlyGrowth: Number(data.improvement_percentage ?? 0) * 100,
+          currentMonthAvg: Number(data.current_month_avg ?? 0),
+          previousMonthAvg: Number(data.previous_month_avg ?? 0),
+        });
+      }
 
-      setSubjects(Array.isArray(subjectList) ? subjectList : []);
-      setPrograms(Array.isArray(programList) ? programList : []);
-      setProgramScores(Array.isArray(comparison) ? comparison : []);
+      if (subjectsRes.status === 'fulfilled') {
+        const list = subjectsRes.value?.data || subjectsRes.value?.subjects || subjectsRes.value || [];
+        setSubjects(Array.isArray(list) ? list : []);
+      }
 
-      const facultyCount = Array.isArray(users) ? users.filter((u: any) => [2, 3, 4, 5].includes(u.roleID)).length : 0;
-      const studentCount = Array.isArray(users) ? users.filter((u: any) => u.roleID === 1).length : 0;
-
-      setStats({
-        totalStudents: Number(summary.total_students ?? studentCount),
-        totalFaculty: facultyCount,
-        totalPrograms: Array.isArray(programList) ? programList.length : 0,
-        totalSubjects: subjectList.length,
-        collegeAvgScore: Math.round(Number(summary.average_score ?? 0)),
-        collegePassRate: Math.round(Number(summary.pass_rate ?? 0) * 100),
-        monthlyGrowth: Math.round(Number(summary.improvement_percentage ?? 0) * 100),
-      });
+      if (comparisonRes.status === 'fulfilled') {
+        const comparison = comparisonRes.value?.data || comparisonRes.value || [];
+        setProgramScores(Array.isArray(comparison) ? comparison : []);
+      }
     } catch (error) {
       console.error('Error fetching associate dean data:', error);
       showToast('Failed to load data', 'error');
@@ -162,8 +165,8 @@ export default function AssoDeanDashboard() {
   const mainStats = [
     { icon: 'people' as const, value: stats.totalStudents, label: 'Students', color: '#3B82F6' },
     { icon: 'person' as const, value: stats.totalFaculty, label: 'Faculty', color: '#8B5CF6' },
-    { icon: 'school' as const, value: stats.totalPrograms, label: 'Programs', color: colors.orange },
     { icon: 'book' as const, value: stats.totalSubjects, label: 'Subjects', color: '#10B981' },
+    { icon: 'help-circle' as const, value: stats.totalQuestions, label: 'Questions', color: '#FE6902' },
   ];
 
   const cardStyle = {
@@ -286,25 +289,25 @@ export default function AssoDeanDashboard() {
           <View className="flex-row justify-between mb-5">
             <View className="items-center">
               <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
-                {stats.collegeAvgScore}%
+                {stats.currentMonthAvg.toFixed(2)}%
               </Text>
               <Text className="text-sm mt-1" style={{ color: colors.textSoft }}>
-                College Avg
+                Current Month
               </Text>
             </View>
             <View className="items-center">
-              <Text className="text-2xl font-extrabold text-green-500">
-                {stats.collegePassRate}%
+              <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
+                {stats.previousMonthAvg.toFixed(2)}%
               </Text>
               <Text className="text-sm mt-1" style={{ color: colors.textSoft }}>
-                Pass Rate
+                Previous Month
               </Text>
             </View>
             <View className="items-center">
               <View className="flex-row items-baseline gap-1">
                 <Ionicons name="arrow-up" size={16} color="#10B981" />
                 <Text className="text-2xl font-extrabold text-green-500">
-                  {stats.monthlyGrowth}%
+                  {stats.monthlyGrowth.toFixed(2)}%
                 </Text>
               </View>
               <Text className="text-sm mt-1" style={{ color: colors.textSoft }}>
@@ -320,7 +323,7 @@ export default function AssoDeanDashboard() {
                   Average Score
                 </Text>
                 <Text className="text-xs font-semibold" style={{ color: colors.text }}>
-                  {stats.collegeAvgScore}%
+                  {stats.collegeAvgScore.toFixed(2)}%
                 </Text>
               </View>
               <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
@@ -336,7 +339,7 @@ export default function AssoDeanDashboard() {
                   Pass Rate
                 </Text>
                 <Text className="text-xs font-semibold" style={{ color: colors.text }}>
-                  {stats.collegePassRate}%
+                  {stats.collegePassRate.toFixed(2)}%
                 </Text>
               </View>
               <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>

@@ -426,6 +426,18 @@ export default function FacultySubjectsScreen() {
               </View>
             </View>
 
+            <TouchableOpacity
+              onPress={openAssignModal}
+              className="flex-row items-center justify-center rounded-2xl p-3 mb-4"
+              style={{ backgroundColor: '#FE6902' }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="bookmark-outline" size={20} color="#FFFFFF" />
+              <Text className="ml-2 font-semibold text-white">
+                Assign Subject
+              </Text>
+            </TouchableOpacity>
+
             {subjects.length === 0 ? (
               <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                 <Ionicons name="book-outline" size={64} color="#FE6902" />

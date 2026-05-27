@@ -12,7 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +27,9 @@ import { getStudentColors, getStudentShadow } from '../../../src/features/studen
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2;
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { theme } = useTheme();
@@ -38,10 +41,22 @@ export default function AdminDashboard() {
 
   const insets = useSafeAreaInsets();
 
-  const [stats, setStats] = useState({ questions: 0, users: 0, subjects: 0 });
+  const [stats, setStats] = useState({
+    students: 0,
+    faculty: 0,
+    subjects: 0,
+    questions: 0,
+    programs: 0,
+    collegeAvgScore: 0,
+    collegePassRate: 0,
+    monthlyGrowth: 0,
+    currentMonthAvg: 0,
+    previousMonthAvg: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [subjects, setSubjects] = useState<any[]>([]);
+  const [programScores, setProgramScores] = useState<any[]>([]);
 
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [quizTitle, setQuizTitle] = useState('');
@@ -55,17 +70,25 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const [statsRes, subjectsRes] = await Promise.allSettled([
+      const [statsRes, subjectsRes, comparisonRes] = await Promise.allSettled([
         apiRequest('/api/dashboard/stats'),
         apiRequest('/api/subjects'),
+        apiRequest('/api/admin/analytics/program-comparison'),
       ]);
 
       if (statsRes.status === 'fulfilled') {
-        const statsData = statsRes.value;
+        const data = statsRes.value?.data || statsRes.value || {};
         setStats({
-          users: statsData?.data?.users ?? 0,
-          subjects: statsData?.data?.subjects ?? 0,
-          questions: statsData?.data?.questions ?? 0,
+          students: Number(data.students ?? 0),
+          faculty: Number(data.faculty ?? 0),
+          subjects: Number(data.subjects ?? 0),
+          questions: Number(data.questions ?? 0),
+          programs: Number(data.programs ?? 0),
+          collegeAvgScore: Number(data.average_score ?? 0),
+          collegePassRate: Number(data.pass_rate ?? 0) * 100,
+          monthlyGrowth: Number(data.improvement_percentage ?? 0) * 100,
+          currentMonthAvg: Number(data.current_month_avg ?? 0),
+          previousMonthAvg: Number(data.previous_month_avg ?? 0),
         });
       }
 
@@ -73,8 +96,13 @@ export default function AdminDashboard() {
         const subjectList = subjectsRes.value?.subjects || subjectsRes.value?.data || subjectsRes.value || [];
         setSubjects(Array.isArray(subjectList) ? subjectList : []);
       }
+
+      if (comparisonRes.status === 'fulfilled') {
+        const comp = comparisonRes.value?.data || comparisonRes.value || [];
+        setProgramScores(Array.isArray(comp) ? comp : []);
+      }
     } catch {
-      setStats({ users: 0, subjects: 0, questions: 0 });
+      setStats({ students: 0, faculty: 0, subjects: 0, questions: 0, programs: 0, collegeAvgScore: 0, collegePassRate: 0, monthlyGrowth: 0, currentMonthAvg: 0, previousMonthAvg: 0 });
     } finally {
       setIsLoading(false);
     }
@@ -156,10 +184,11 @@ export default function AdminDashboard() {
     },
   ];
 
-  const statCards: { icon: IoniconName; label: string; value: number; color: string; route: any }[] = [
-    { icon: 'help-circle', label: 'Questions', value: stats.questions, color: colors.orange, route: '/(auth)/(dean)/subjects' },
-    { icon: 'people', label: 'Users', value: stats.users, color: '#10B981', route: '/(auth)/(dean)/users' },
-    { icon: 'book', label: 'Subjects', value: stats.subjects, color: '#3B82F6', route: '/(auth)/(dean)/subjects' },
+  const statCards: { icon: IoniconName; value: number; label: string; color: string }[] = [
+    { icon: 'people', value: stats.students, label: 'Students', color: '#3B82F6' },
+    { icon: 'person', value: stats.faculty, label: 'Faculty', color: '#8B5CF6' },
+    { icon: 'book', value: stats.subjects, label: 'Subjects', color: '#10B981' },
+    { icon: 'help-circle', value: stats.questions, label: 'Questions', color: colors.orange },
   ];
 
   const cardStyle = {
@@ -290,34 +319,142 @@ export default function AdminDashboard() {
             </View>
           </View>
 
-          {/* Stats Row */}
+          {/* Stats Grid */}
           <View className="px-4 pt-4">
-            <View className="flex-row gap-3">
-              {statCards.map((card, idx) => (
-                <TouchableOpacity
+            <View className="flex-row flex-wrap gap-3">
+              {statCards.map((stat, idx) => (
+                <View
                   key={idx}
-                  onPress={() => router.push(card.route)}
-                  className={`flex-1 rounded-2xl p-4 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
-                  activeOpacity={0.8}
-                  style={[cardStyle, {
-                    borderLeftWidth: 4,
-                    borderLeftColor: card.color,
-                  }]}
+                  className={`rounded-2xl p-3 items-center ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
+                  style={[{ width: CARD_WIDTH }, cardStyle]}
                 >
                   <View
-                    className="w-14 h-14 rounded-2xl items-center justify-center mb-2"
-                    style={{ backgroundColor: `${card.color}15` }}
+                    className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                    style={{ backgroundColor: `${stat.color}15` }}
                   >
-                    <Ionicons name={card.icon} size={28} color={card.color} />
+                    <Ionicons name={stat.icon} size={20} color={stat.color} />
                   </View>
-                  <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
-                    {card.value ?? '--'}
+                  <Text className="text-xl font-extrabold" style={{ color: colors.text }}>
+                    {stat.value}
                   </Text>
                   <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
-                    {card.label}
+                    {stat.label}
                   </Text>
-                </TouchableOpacity>
+                </View>
               ))}
+            </View>
+          </View>
+
+          {/* College Performance */}
+          <View className="px-4 pt-6">
+            <View className={`rounded-2xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={cardStyle}>
+              <View className="flex-row justify-between mb-5">
+                <View className="items-center">
+                  <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
+                    {stats.currentMonthAvg.toFixed(2)}%
+                  </Text>
+                  <Text className="text-sm mt-1" style={{ color: colors.textSoft }}>
+                    Current Month
+                  </Text>
+                </View>
+                <View className="items-center">
+                  <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
+                    {stats.previousMonthAvg.toFixed(2)}%
+                  </Text>
+                  <Text className="text-sm mt-1" style={{ color: colors.textSoft }}>
+                    Previous Month
+                  </Text>
+                </View>
+                <View className="items-center">
+                  <View className="flex-row items-baseline gap-1">
+                    <Ionicons name="arrow-up" size={16} color="#10B981" />
+                    <Text className="text-2xl font-extrabold text-green-500">
+                      {stats.monthlyGrowth.toFixed(2)}%
+                    </Text>
+                  </View>
+                  <Text className="text-sm mt-1" style={{ color: colors.textSoft }}>
+                    Growth
+                  </Text>
+                </View>
+              </View>
+
+              <View className="gap-3">
+                <View>
+                  <View className="flex-row justify-between mb-1">
+                    <Text className="text-xs" style={{ color: colors.textSoft }}>
+                      Average Score
+                    </Text>
+                    <Text className="text-xs font-semibold" style={{ color: colors.text }}>
+                      {stats.collegeAvgScore.toFixed(2)}%
+                    </Text>
+                  </View>
+                  <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
+                    <View
+                      className="h-full rounded-full"
+                      style={{ width: `${stats.collegeAvgScore}%`, backgroundColor: colors.orange }}
+                    />
+                  </View>
+                </View>
+                <View>
+                  <View className="flex-row justify-between mb-1">
+                    <Text className="text-xs" style={{ color: colors.textSoft }}>
+                      Pass Rate
+                    </Text>
+                    <Text className="text-xs font-semibold" style={{ color: colors.text }}>
+                      {stats.collegePassRate.toFixed(2)}%
+                    </Text>
+                  </View>
+                  <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
+                    <View
+                      className="h-full rounded-full"
+                      style={{ width: `${stats.collegePassRate}%`, backgroundColor: '#10B981' }}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Program Comparison */}
+          <View className="px-4 pt-6">
+            <Text className="text-base font-bold mb-3" style={{ color: colors.text }}>
+              Program Comparison
+            </Text>
+            <View className={`rounded-2xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={cardStyle}>
+              {programScores.length === 0 ? (
+                <View className="items-center py-4">
+                  <Ionicons name="bar-chart-outline" size={32} color={colors.mutedIcon} />
+                  <Text className="mt-2 text-sm" style={{ color: colors.textSoft }}>
+                    No exam data available yet
+                  </Text>
+                </View>
+              ) : (
+                programScores.map((program, idx) => {
+                  const score = Math.round(Number(program.average_score ?? 0));
+                  return (
+                    <View
+                      key={program.programID ?? program.programName}
+                      className={`flex-row items-center py-3 ${idx !== programScores.length - 1 ? 'border-b' : ''}`}
+                      style={{ borderBottomColor: idx !== programScores.length - 1 ? colors.border : 'transparent' }}
+                    >
+                      <Text className="w-20 font-semibold text-sm" style={{ color: colors.text }}>
+                        {program.programName}
+                      </Text>
+                      <View className="flex-1 mx-3">
+                        <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
+                          <View
+                            className="h-full rounded-full"
+                            style={{ width: `${score}%`, backgroundColor: colors.orange }}
+                          />
+                        </View>
+                      </View>
+                      <Text className="w-12 text-right font-semibold text-xs" style={{ color: colors.text }}>
+                        {score}%
+                      </Text>
+                    </View>
+                  );
+                })
+              )}
             </View>
           </View>
 

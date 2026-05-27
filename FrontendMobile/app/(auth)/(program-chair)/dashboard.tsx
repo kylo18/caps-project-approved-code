@@ -26,7 +26,7 @@ import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTool
 import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 56) / 3;
+const CARD_WIDTH = (width - 48) / 2;
 
 export default function ProgramChairDashboard() {
   const router = useRouter();
@@ -44,12 +44,13 @@ export default function ProgramChairDashboard() {
     totalStudents: 0,
     totalFaculty: 0,
     totalSubjects: 0,
+    totalQuestions: 0,
     avgScore: 0,
     passRate: 0,
-    activeQuizzes: 0,
   });
 
   const [showQuizModal, setShowQuizModal] = useState(false);
+  const [programScores, setProgramScores] = useState<any[]>([]);
   const [quizTitle, setQuizTitle] = useState('');
   const [quizTypeID, setQuizTypeID] = useState<number>(2); // 1 = subject-based, 2 = custom
   const [quizSubjectID, setQuizSubjectID] = useState<number | null>(null);
@@ -65,44 +66,31 @@ export default function ProgramChairDashboard() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch subjects for this program
+      // Fetch subjects for quiz modal
       const subjectsRes = await apiRequest('/api/subjects');
       const subjectList = subjectsRes?.subjects || subjectsRes?.data || subjectsRes || [];
       setSubjects(Array.isArray(subjectList) ? subjectList : []);
 
-      // Fetch users count (faculty and students)
-      const usersRes = await apiRequest('/api/users?limit=10000&status=registered');
-      const users = usersRes?.users || usersRes?.data || [];
-
-      const facultyCount = Array.isArray(users) ? users.filter((u: any) => [2, 3, 4, 5].includes(u.roleID)).length : 0;
-      const studentCount = Array.isArray(users) ? users.filter((u: any) => u.roleID === 1).length : 0;
-
-      // Fetch real analytics data
-      let avgScore = 0;
-      let passRate = 0;
-      let activeQuizzes = 0;
-      try {
-        const [summaryRes, passFailRes] = await Promise.all([
-          apiRequest('/api/admin/analytics/summary'),
-          apiRequest('/api/admin/analytics/pass-fail-rate'),
-        ]);
-        const summary = summaryRes?.data || summaryRes || {};
-        const passFail = passFailRes?.data || passFailRes || {};
-        avgScore = Math.round(Number(summary.average_score ?? 0));
-        passRate = Math.round(Number(passFail.pass_rate ?? 0));
-        activeQuizzes = Number(summary.total_exams ?? 0);
-      } catch (analyticsError) {
-        console.error('Error fetching analytics:', analyticsError);
-      }
+      // Fetch all stats from unified dashboard endpoint
+      const [statsRes, comparisonRes] = await Promise.allSettled([
+        apiRequest('/api/dashboard/stats'),
+        apiRequest('/api/admin/analytics/program-comparison'),
+      ]);
+      const statsData = statsRes.status === 'fulfilled' ? (statsRes.value?.data || statsRes.value || {}) : {};
 
       setStats({
-        totalStudents: studentCount,
-        totalFaculty: facultyCount,
-        totalSubjects: subjectList.length,
-        avgScore,
-        passRate,
-        activeQuizzes,
+        totalStudents: Number(statsData.students ?? 0),
+        totalFaculty: Number(statsData.faculty ?? 0),
+        totalSubjects: Number(statsData.subjects ?? subjectList.length),
+        totalQuestions: Number(statsData.questions ?? 0),
+        avgScore: Math.round(Number(statsData.average_score ?? 0)),
+        passRate: Math.round(Number(statsData.pass_rate ?? 0) * 100),
       });
+
+      if (comparisonRes.status === 'fulfilled') {
+        const comp = comparisonRes.value?.data || comparisonRes.value || [];
+        setProgramScores(Array.isArray(comp) ? comp : []);
+      }
     } catch (error) {
       console.error('Error fetching program chair data:', error);
       showToast('Failed to load data', 'error');
@@ -166,7 +154,7 @@ export default function ProgramChairDashboard() {
     { icon: 'people' as const, value: stats.totalStudents, label: 'Students', color: '#3B82F6', route: '/(auth)/(program-chair)/users?filter=student' },
     { icon: 'person' as const, value: stats.totalFaculty, label: 'Faculty', color: '#8B5CF6', route: '/(auth)/(program-chair)/users?filter=admin' },
     { icon: 'book' as const, value: stats.totalSubjects, label: 'Subjects', color: colors.orange, route: '/(auth)/(program-chair)/subjects' },
-    { icon: 'clipboard' as const, value: stats.activeQuizzes, label: 'Quizzes', color: '#10B981', route: '/(auth)/(program-chair)/subjects' },
+    { icon: 'help-circle' as const, value: stats.totalQuestions, label: 'Questions', color: '#10B981', route: '/(auth)/(program-chair)/subjects' },
   ];
 
   const cardStyle = {
@@ -316,6 +304,47 @@ export default function ProgramChairDashboard() {
               </View>
             </View>
           </View>
+        </View>
+
+        {/* Program Comparison */}
+        <Text className="text-base font-bold mt-2" style={{ color: colors.text }}>
+          Program Comparison
+        </Text>
+        <View className={`rounded-2xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={cardStyle}>
+          {programScores.length === 0 ? (
+            <View className="items-center py-4">
+              <Ionicons name="bar-chart-outline" size={32} color={colors.mutedIcon} />
+              <Text className="mt-2 text-sm" style={{ color: colors.textSoft }}>
+                No exam data available yet
+              </Text>
+            </View>
+          ) : (
+            programScores.map((program, idx) => {
+              const score = Math.round(Number(program.average_score ?? 0));
+              return (
+                <View
+                  key={program.programID ?? program.programName}
+                  className={`flex-row items-center py-3 ${idx !== programScores.length - 1 ? 'border-b' : ''}`}
+                  style={{ borderBottomColor: idx !== programScores.length - 1 ? colors.border : 'transparent' }}
+                >
+                  <Text className="w-20 font-semibold text-sm" style={{ color: colors.text }}>
+                    {program.programName}
+                  </Text>
+                  <View className="flex-1 mx-3">
+                    <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
+                      <View
+                        className="h-full rounded-full"
+                        style={{ width: `${score}%`, backgroundColor: colors.orange }}
+                      />
+                    </View>
+                  </View>
+                  <Text className="w-12 text-right font-semibold text-xs" style={{ color: colors.text }}>
+                    {score}%
+                  </Text>
+                </View>
+              );
+            })
+          )}
         </View>
 
         {/* Quick Actions */}

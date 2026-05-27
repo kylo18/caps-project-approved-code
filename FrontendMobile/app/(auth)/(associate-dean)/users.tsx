@@ -15,7 +15,6 @@ import { getRoleThemeColors } from '../../../src/features/core/styles/roleTheme'
 import { showToast } from '../../../src/hooks/useToast';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UserDetailModal from '../../../src/features/profile/components/UserDetailModal';
-import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 import {
   applyUserActionLocally,
   canApproveUser,
@@ -76,10 +75,15 @@ export default function AssociateDeanUsersScreen() {
   const [detailUser, setDetailUser] = useState<UserItem | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [isBulkActing, setIsBulkActing] = useState(false);
+  const [bulkExpanded, setBulkExpanded] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [isFetchingAllIds, setIsFetchingAllIds] = useState(false);
+  const [showActionModal, setShowActionModal] = useState(false);
   const [programOptions, setProgramOptions] = useState<{id: string; label: string}[]>([]);
   const [campusOptions, setCampusOptions] = useState<{id: string; label: string}[]>([]);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const expandOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchUsers(true);
@@ -92,6 +96,10 @@ export default function AssociateDeanUsersScreen() {
   useEffect(() => {
     applyFilters();
   }, [searchQuery, activeRoleFilter, activeStatusFilter, programFilter, yearFilter, campusFilter, users]);
+
+  useEffect(() => {
+    if (!selectionMode) setBulkExpanded(false);
+  }, [selectionMode]);
 
   useEffect(() => {
     const loadMeta = async () => {
@@ -111,19 +119,35 @@ export default function AssociateDeanUsersScreen() {
           })).filter((o: any) => o.label));
         }
         if (campRes.status === "fulfilled") {
-          const raw = campRes.value;
-          const list = Array.isArray(raw?.campuses) ? raw.campuses
-            : Array.isArray(raw?.data) ? raw.data
-            : Array.isArray(raw) ? raw : [];
-          setCampusOptions(list.map((c: any) => ({
-            id: String(c.campusID ?? c.id),
-            label: c.campusName ?? c.name ?? "",
-          })).filter((o: any) => o.label));
+          setCampusOptions(parseCampuses(campRes.value));
         }
       } catch { /* non-critical */ }
     };
     loadMeta();
   }, []);
+
+  const parseCampuses = (raw: any) => {
+    const list = Array.isArray(raw?.campuses) ? raw.campuses
+      : Array.isArray(raw?.data) ? raw.data
+      : Array.isArray(raw) ? raw : [];
+    return list.map((c: any) => ({
+      id: String(c.campusID ?? c.id),
+      label: c.campusName ?? c.name ?? "",
+    })).filter((o: any) => o.label);
+  };
+
+  const fetchCampuses = async () => {
+    try {
+      const raw = await apiRequest("/api/campuses");
+      setCampusOptions(parseCampuses(raw));
+    } catch { /* non-critical */ }
+  };
+
+  const handleToggleFilters = () => {
+    const next = !showAdvancedFilters;
+    setShowAdvancedFilters(next);
+    if (next && campusOptions.length === 0) fetchCampuses();
+  };
 
   const fetchUsers = async (reset = false) => {
     const currentPage = reset ? 1 : page;
@@ -292,18 +316,62 @@ export default function AssociateDeanUsersScreen() {
   };
 
   const selectAllAdmins = () => {
-    const ids = filteredUsers.filter(u => ADMIN_ROLES.includes(Number(u.roleID))).map(u => u.userID);
+    const ids = users.filter(u => ADMIN_ROLES.includes(Number(u.roleID))).map(u => u.userID);
     setSelectedUserIDs(new Set(ids));
   };
 
   const selectAllStudents = () => {
-    const ids = filteredUsers.filter(u => Number(u.roleID) === STUDENT_ROLE).map(u => u.userID);
+    const ids = users.filter(u => Number(u.roleID) === STUDENT_ROLE).map(u => u.userID);
     setSelectedUserIDs(new Set(ids));
   };
 
   const deselectAll = () => {
     setSelectedUserIDs(new Set());
     setSelectionMode(false);
+    setBulkExpanded(false);
+  };
+
+  const fetchAndSelect = async (type: 'student' | 'admin') => {
+    setShowBulkModal(false);
+    setIsFetchingAllIds(true);
+    try {
+      const roleNames = type === 'admin'
+        ? ['Instructor', 'Program Chair', 'Dean', 'Associate Dean']
+        : ['Student'];
+      const roleParam = `role=${roleNames.map(r => encodeURIComponent(r)).join(',')}`;
+      const statusParam = activeStatusFilter === 'active'
+        ? '&status=registered'
+        : activeStatusFilter === 'pending'
+        ? '&status=pending'
+        : activeStatusFilter === 'disapproved'
+        ? '&status=disapproved'
+        : activeStatusFilter === 'inactive'
+        ? '&state=inactive'
+        : '';
+      const data = await apiRequest(`/api/users?ids_only=1&${roleParam}${statusParam}`);
+      const ids: any[] = data?.userIDs ?? [];
+      setSelectedUserIDs(new Set(ids));
+      if (ids.length > 0) {
+        setSelectionMode(true);
+        setShowActionModal(true);
+      } else {
+        showToast('No matching users found', 'info');
+      }
+    } catch {
+      showToast('Failed to fetch users', 'error');
+    } finally {
+      setIsFetchingAllIds(false);
+    }
+  };
+
+  const toggleBulkExpand = () => {
+    if (bulkExpanded) {
+      Animated.timing(expandOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setBulkExpanded(false));
+    } else {
+      setBulkExpanded(true);
+      expandOpacity.setValue(0);
+      Animated.timing(expandOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    }
   };
 
   const handleBulkAction = async (action: 'approve' | 'activate' | 'deactivate') => {
@@ -431,28 +499,29 @@ export default function AssociateDeanUsersScreen() {
 
   const pendingCount = users.filter((u: any) => canApproveUser(u)).length;
 
-  useScreenFloatingTools(
-    [
-      {
-        key: 'bulk',
-        icon: 'checkbox-outline',
-        label: 'Bulk Actions',
-        onPress: () => setSelectionMode(true),
-      },
-    ],
-    !selectionMode
-  );
-
   return (
     <View className="flex-1" style={{ backgroundColor: colors.bg, paddingBottom: insets.bottom + 12 }}>
       <View className="flex-row items-center px-4 py-3 border-b" style={{ backgroundColor: colors.card, borderBottomColor: colors.border, paddingTop: insets.top + 8 }}>
         <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/(associate-dean)/dashboard'); }} className="p-2 mr-3"><Ionicons name="arrow-back" size={24} color={colors.text} /></TouchableOpacity>
         <Text className="text-xl font-bold flex-1" style={{ color: colors.text }}>User Management</Text>
-        {pendingCount > 0 && (
-          <TouchableOpacity className="flex-row items-center px-2.5 py-1.5 rounded-2xl gap-1" style={{ backgroundColor: colors.green }} onPress={handleApproveAll} activeOpacity={0.7}>
-            <Ionicons name="checkmark-done" size={18} color="#fff" />
-            <Text className="text-white text-xs font-bold">{pendingCount}</Text>
+        {selectionMode ? (
+          <TouchableOpacity className="flex-row items-center px-3 py-1.5 rounded-xl gap-1.5" style={{ backgroundColor: colors.red }} onPress={deselectAll} activeOpacity={0.7}>
+            <Ionicons name="close" size={16} color="#fff" />
+            <Text className="text-white text-xs font-semibold">Done</Text>
           </TouchableOpacity>
+        ) : (
+          <View className="flex-row items-center gap-2">
+            {pendingCount > 0 && (
+              <TouchableOpacity className="flex-row items-center px-2.5 py-1.5 rounded-2xl gap-1" style={{ backgroundColor: colors.green }} onPress={handleApproveAll} activeOpacity={0.7}>
+                <Ionicons name="checkmark-done" size={18} color="#fff" />
+                <Text className="text-white text-xs font-bold">{pendingCount}</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity className="flex-row items-center px-3 py-1.5 rounded-xl gap-1.5" style={{ backgroundColor: colors.orange }} onPress={() => setShowBulkModal(true)} activeOpacity={0.7}>
+              <Ionicons name="checkbox-outline" size={16} color="#fff" />
+              <Text className="text-white text-xs font-semibold">Bulk</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -462,109 +531,118 @@ export default function AssociateDeanUsersScreen() {
         </View>
       ) : (
         <>
-          <FlatList
-            keyboardShouldPersistTaps="handled"
-            data={filteredUsers}
-            keyExtractor={(item) => String(item.userID)}
-            renderItem={renderUser}
-            contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-            refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[colors.orange]} tintColor={colors.orange} />}
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            initialNumToRender={15}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={
-              isLoadingMore ? (
-                <View className="py-4 items-center">
-                  <CapsActivityIndicator size="small" color={colors.orange} />
-                  <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Loading more...</Text>
-                </View>
-              ) : null
-            }
-            ListHeaderComponent={
-              <Animated.View style={{ opacity: fadeAnim }}>
-                <View className="flex-row items-center border rounded-xl px-3 gap-2 mb-2.5" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}>
-                  <Ionicons name="search" size={18} color={colors.textSecondary} />
-                  <TextInput className="flex-1 text-[15px] py-2.5" style={{ color: colors.text }} value={searchQuery} onChangeText={setSearchQuery} placeholder="Search users..." placeholderTextColor={colors.textSecondary} />
-                  {searchQuery ? <TouchableOpacity onPress={() => setSearchQuery('')}><Ionicons name="close-circle" size={18} color={colors.textSecondary} /></TouchableOpacity> : null}
-                </View>
+          <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12 }}>
+            <View className="flex-row items-center border rounded-xl px-3 gap-2 mb-2.5" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}>
+              <Ionicons name="search" size={18} color={colors.textSecondary} />
+              <TextInput className="flex-1 text-[15px] py-2.5" style={{ color: colors.text }} value={searchQuery} onChangeText={setSearchQuery} placeholder="Search users..." placeholderTextColor={colors.textSecondary} />
+              {searchQuery ? <TouchableOpacity onPress={() => setSearchQuery('')}><Ionicons name="close-circle" size={18} color={colors.textSecondary} /></TouchableOpacity> : null}
+            </View>
 
-                <View className="flex-row gap-2 mb-2 items-center">
-                  <View className="flex-1">
-                    <FilterDropdown label="" value={activeRoleFilter} onValueChange={setActiveRoleFilter} options={[{ id: 'all', label: 'Users' }, { id: 'admin', label: 'Admins' }, { id: 'student', label: 'Students' }]} colors={colors} />
-                  </View>
-                  <View className="flex-1">
-                    <FilterDropdown label="" value={activeStatusFilter} onValueChange={(v) => setActiveStatusFilter(v as UserStatusFilter)} options={[{ id: 'all', label: 'Status' }, { id: 'pending', label: 'Pending' }, { id: 'active', label: 'Active' }, { id: 'inactive', label: 'Inactive' }, { id: 'disapproved', label: 'Disapproved' }]} colors={colors} />
-                  </View>
-                  <TouchableOpacity className="w-[38px] h-[38px] rounded-[10px] justify-center items-center" style={{ backgroundColor: showAdvancedFilters ? colors.orange : colors.inputBg }} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)} activeOpacity={0.7}>
-                    <Ionicons name="options" size={18} color={showAdvancedFilters ? '#fff' : colors.textSecondary} />
-                  </TouchableOpacity>
-                </View>
+            <View className="flex-row gap-2 mb-2 items-center">
+              <View className="flex-1">
+                <FilterDropdown label="" value={activeRoleFilter} onValueChange={setActiveRoleFilter} options={[{ id: 'all', label: 'Users (All)' }, { id: 'admin', label: 'Admins' }, { id: 'student', label: 'Students' }]} colors={colors} />
+              </View>
+              <View className="flex-1">
+                <FilterDropdown label="" value={activeStatusFilter} onValueChange={(v) => setActiveStatusFilter(v as UserStatusFilter)} options={[{ id: 'all', label: 'Status (All)' }, { id: 'pending', label: 'Pending' }, { id: 'active', label: 'Active' }, { id: 'inactive', label: 'Inactive' }, { id: 'disapproved', label: 'Disapproved' }]} colors={colors} />
+              </View>
+              <TouchableOpacity className="flex-row items-center gap-1.5 px-3 h-[38px] rounded-[10px]" style={{ backgroundColor: showAdvancedFilters ? colors.orange : colors.inputBg }} onPress={handleToggleFilters} activeOpacity={0.7}>
+                <Ionicons name="options" size={16} color={showAdvancedFilters ? '#fff' : colors.textSecondary} />
+                <Text className="text-xs font-semibold" style={{ color: showAdvancedFilters ? '#fff' : colors.textSecondary }}>Filter</Text>
+              </TouchableOpacity>
+            </View>
 
-                {showAdvancedFilters && (
-                  <View className="mb-3">
-                    <View className="flex-row gap-1">
-                      <FilterDropdown label="Program" value={programFilter} onValueChange={setProgramFilter} options={[{ id: 'all', label: 'All Programs' }, ...programOptions]} colors={colors} />
-                      <FilterDropdown label="Year" value={yearFilter} onValueChange={setYearFilter} options={[{ id: 'all', label: 'All Years' }, ...years.map(y => ({ id: String(y), label: `Year ${y}` }))]} colors={colors} />
+            {showAdvancedFilters && (
+              <View>
+                <View className="flex-row gap-1 mb-1">
+                  <FilterDropdown label="Program" value={programFilter} onValueChange={setProgramFilter} options={[{ id: 'all', label: 'All Programs' }, ...programOptions]} colors={colors} />
+                  <FilterDropdown label="Year" value={yearFilter} onValueChange={setYearFilter} options={[{ id: 'all', label: 'All Years' }, ...years.map(y => ({ id: String(y), label: `Year ${y}` }))]} colors={colors} />
+                </View>
+                <FilterDropdown label="Campus" value={campusFilter} onValueChange={setCampusFilter} options={[{ id: 'all', label: 'All Campuses' }, ...campusOptions]} colors={colors} />
+              </View>
+            )}
+
+            {selectionMode && (
+              <View className="mt-2 mb-2 rounded-2xl p-3" style={{ backgroundColor: colors.card }}>
+                <TouchableOpacity className="flex-row items-center justify-between" onPress={toggleBulkExpand} activeOpacity={0.7}>
+                  <View className="flex-row items-center gap-3 flex-1 mr-2">
+                    <Text className="text-base font-bold" style={{ color: colors.text }}>{selectedUserIDs.size} selected</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                      <TouchableOpacity className="rounded-full px-3 py-1.5" style={{ backgroundColor: colors.orange }} onPress={selectAllVisible} activeOpacity={0.7}>
+                        <Text className="text-white text-[11px] font-semibold">All Visible</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity className="rounded-full px-3 py-1.5" style={{ backgroundColor: colors.blue }} onPress={selectAllAdmins} activeOpacity={0.7}>
+                        <Text className="text-white text-[11px] font-semibold">Admins</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity className="rounded-full px-3 py-1.5" style={{ backgroundColor: colors.green }} onPress={selectAllStudents} activeOpacity={0.7}>
+                        <Text className="text-white text-[11px] font-semibold">Students</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity className="rounded-full px-3 py-1.5" style={{ backgroundColor: colors.red }} onPress={deselectAll} activeOpacity={0.7}>
+                        <Text className="text-white text-[11px] font-semibold">Clear</Text>
+                      </TouchableOpacity>
+                    </ScrollView>
+                  </View>
+                  <Ionicons name={bulkExpanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+                {bulkExpanded && (
+                  <Animated.View style={{ opacity: expandOpacity }}>
+                    <View className="flex-row gap-2 justify-between mt-3">
+                      <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 py-3 rounded-xl" style={{ backgroundColor: colors.green }} onPress={() => handleBulkAction('approve')} disabled={isBulkActing} activeOpacity={0.8}>
+                        <Ionicons name="checkmark-done" size={18} color="#fff" />
+                        <Text className="text-white text-xs font-semibold">Approve</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 py-3 rounded-xl" style={{ backgroundColor: colors.blue }} onPress={() => handleBulkAction('activate')} disabled={isBulkActing} activeOpacity={0.8}>
+                        <Ionicons name="play" size={18} color="#fff" />
+                        <Text className="text-white text-xs font-semibold">Activate</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 py-3 rounded-xl" style={{ backgroundColor: colors.red }} onPress={() => handleBulkAction('deactivate')} disabled={isBulkActing} activeOpacity={0.8}>
+                        <Ionicons name="pause" size={18} color="#fff" />
+                        <Text className="text-white text-xs font-semibold">Deactivate</Text>
+                      </TouchableOpacity>
                     </View>
-                    <FilterDropdown label="Campus" value={campusFilter} onValueChange={setCampusFilter} options={[{ id: 'all', label: 'All Campuses' }, ...campusOptions]} colors={colors} />
-                  </View>
+                    {isBulkActing && <CapsActivityIndicator className="mt-3" size="small" color={colors.orange} />}
+                  </Animated.View>
                 )}
-              </Animated.View>
-            }
-            ListEmptyComponent={
-              <View className="rounded-3xl p-8 items-center mt-5" style={{ backgroundColor: colors.card }}>
-                <Ionicons name="people" size={48} color={colors.orange} />
-                <Text className="text-lg font-bold mt-4" style={{ color: colors.text }}>No Users Found</Text>
-                <Text className="text-sm mt-2 text-center" style={{ color: colors.textSecondary }}>Try adjusting your filters.</Text>
               </View>
-            }
-          />
+            )}
+          </ScrollView>
 
-          {isLoading && users.length > 0 && (
-            <View className="absolute inset-0 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-              <CapsActivityIndicator size="large" color={colors.orange} />
-            </View>
-          )}
+          <View className="flex-1">
+            <FlatList
+              keyboardShouldPersistTaps="handled"
+              data={filteredUsers}
+              keyExtractor={(item) => String(item.userID)}
+              renderItem={renderUser}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+              refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[colors.orange]} tintColor={colors.orange} />}
+              removeClippedSubviews={false}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              initialNumToRender={15}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={
+                isLoadingMore ? (
+                  <View className="py-4 items-center">
+                    <CapsActivityIndicator size="small" color={colors.orange} />
+                    <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>Loading more...</Text>
+                  </View>
+                ) : null
+              }
+              ListEmptyComponent={
+                <View className="rounded-3xl p-8 items-center mt-5" style={{ backgroundColor: colors.card }}>
+                  <Ionicons name="people" size={48} color={colors.orange} />
+                  <Text className="text-lg font-bold mt-4" style={{ color: colors.text }}>No Users Found</Text>
+                  <Text className="text-sm mt-2 text-center" style={{ color: colors.textSecondary }}>Try adjusting your filters.</Text>
+                </View>
+              }
+            />
 
-          {selectionMode && (
-            <View className="absolute left-0 right-0 bottom-0 border-t p-4 pb-8" style={{ backgroundColor: colors.card, borderTopColor: colors.border }}>
-              <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-base font-bold" style={{ color: colors.text }}>{selectedUserIDs.size} selected</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                  <TouchableOpacity className="rounded-full px-3.5 py-2" style={{ backgroundColor: colors.orange }} onPress={selectAllVisible} activeOpacity={0.7}>
-                    <Text className="text-white text-[12px] font-semibold">All Visible</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity className="rounded-full px-3.5 py-2" style={{ backgroundColor: colors.blue }} onPress={selectAllAdmins} activeOpacity={0.7}>
-                    <Text className="text-white text-[12px] font-semibold">Admins</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity className="rounded-full px-3.5 py-2" style={{ backgroundColor: colors.green }} onPress={selectAllStudents} activeOpacity={0.7}>
-                    <Text className="text-white text-[12px] font-semibold">Students</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity className="rounded-full px-3.5 py-2" style={{ backgroundColor: colors.red }} onPress={deselectAll} activeOpacity={0.7}>
-                    <Text className="text-white text-[12px] font-semibold">Clear</Text>
-                  </TouchableOpacity>
-                </ScrollView>
+            {isLoading && users.length > 0 && (
+              <View className="absolute inset-0 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                <CapsActivityIndicator size="large" color={colors.orange} />
               </View>
-              <View className="flex-row gap-2 justify-between">
-                <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 py-3.5 rounded-xl" style={{ backgroundColor: colors.green }} onPress={() => handleBulkAction('approve')} disabled={isBulkActing} activeOpacity={0.8}>
-                  <Ionicons name="checkmark-done" size={20} color="#fff" />
-                  <Text className="text-white text-sm font-semibold">Approve</Text>
-                </TouchableOpacity>
-                <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 py-3.5 rounded-xl" style={{ backgroundColor: colors.blue }} onPress={() => handleBulkAction('activate')} disabled={isBulkActing} activeOpacity={0.8}>
-                  <Ionicons name="play" size={20} color="#fff" />
-                  <Text className="text-white text-sm font-semibold">Activate</Text>
-                </TouchableOpacity>
-                <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 py-3.5 rounded-xl" style={{ backgroundColor: colors.red }} onPress={() => handleBulkAction('deactivate')} disabled={isBulkActing} activeOpacity={0.8}>
-                  <Ionicons name="pause" size={20} color="#fff" />
-                  <Text className="text-white text-sm font-semibold">Deactivate</Text>
-                </TouchableOpacity>
-              </View>
-              {isBulkActing && <CapsActivityIndicator className="mt-3" size="small" color={colors.orange} />}
-            </View>
-          )}
+            )}
+          </View>
 
           <UserDetailModal
             visible={showDetailModal}
@@ -572,6 +650,62 @@ export default function AssociateDeanUsersScreen() {
             onClose={() => setShowDetailModal(false)}
             onUserUpdated={fetchUsers}
           />
+
+          <Modal visible={showBulkModal} transparent animationType="fade" onRequestClose={() => setShowBulkModal(false)}>
+            <TouchableOpacity className="flex-1 justify-center items-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={() => setShowBulkModal(false)}>
+              <View className="mx-8 rounded-2xl p-5 w-full" style={{ backgroundColor: colors.card, maxWidth: 320 }}>
+                <Text className="text-lg font-bold mb-1 text-center" style={{ color: colors.text }}>Bulk Actions</Text>
+                <Text className="text-xs mb-4 text-center" style={{ color: colors.textSecondary }}>Select a group: {activeStatusFilter === 'all' ? 'All' : activeStatusFilter.charAt(0).toUpperCase() + activeStatusFilter.slice(1)}</Text>
+                <TouchableOpacity className="flex-row items-center justify-center gap-2 py-3 rounded-xl mb-2" style={{ backgroundColor: colors.green }} onPress={() => fetchAndSelect('student')} disabled={isFetchingAllIds} activeOpacity={0.8}>
+                  <Ionicons name="school" size={20} color="#fff" />
+                  <Text className="text-white text-sm font-semibold">Select Students ({activeStatusFilter === 'all' ? 'All' : activeStatusFilter.charAt(0).toUpperCase() + activeStatusFilter.slice(1)})</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="flex-row items-center justify-center gap-2 py-3 rounded-xl mb-2" style={{ backgroundColor: colors.blue }} onPress={() => fetchAndSelect('admin')} disabled={isFetchingAllIds} activeOpacity={0.8}>
+                  <Ionicons name="shield-checkmark" size={20} color="#fff" />
+                  <Text className="text-white text-sm font-semibold">Select Admins ({activeStatusFilter === 'all' ? 'All' : activeStatusFilter.charAt(0).toUpperCase() + activeStatusFilter.slice(1)})</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="flex-row items-center justify-center gap-2 py-3 rounded-xl mb-3" style={{ backgroundColor: colors.orange }} onPress={() => { setShowBulkModal(false); setSelectionMode(true); selectAllVisible(); }} activeOpacity={0.8}>
+                  <Ionicons name="people" size={20} color="#fff" />
+                  <Text className="text-white text-sm font-semibold">Select All Visible</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="flex-row items-center justify-center py-2.5 rounded-xl border" style={{ borderColor: colors.border }} onPress={() => setShowBulkModal(false)} activeOpacity={0.7}>
+                  <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
+          <Modal visible={showActionModal} transparent animationType="fade" onRequestClose={() => setShowActionModal(false)}>
+            <TouchableOpacity className="flex-1 justify-center items-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={() => setShowActionModal(false)}>
+              <View className="mx-8 rounded-2xl p-5 w-full" style={{ backgroundColor: colors.card, maxWidth: 320 }}>
+                <Text className="text-lg font-bold mb-1 text-center" style={{ color: colors.text }}>{selectedUserIDs.size} selected</Text>
+                <Text className="text-xs mb-4 text-center" style={{ color: colors.textSecondary }}>
+                  {activeStatusFilter === 'all' ? 'Choose an action:' : `Status: ${activeStatusFilter.charAt(0).toUpperCase() + activeStatusFilter.slice(1)}`}
+                </Text>
+                {(activeStatusFilter === 'all' || activeStatusFilter === 'pending') && (
+                  <TouchableOpacity className="flex-row items-center justify-center gap-2 py-3 rounded-xl mb-2" style={{ backgroundColor: colors.green }} onPress={() => { setShowActionModal(false); handleBulkAction('approve'); }} disabled={isBulkActing} activeOpacity={0.8}>
+                    <Ionicons name="checkmark-done" size={20} color="#fff" />
+                    <Text className="text-white text-sm font-semibold">Approve All</Text>
+                  </TouchableOpacity>
+                )}
+                {(activeStatusFilter === 'all' || activeStatusFilter === 'inactive') && (
+                  <TouchableOpacity className="flex-row items-center justify-center gap-2 py-3 rounded-xl mb-2" style={{ backgroundColor: colors.blue }} onPress={() => { setShowActionModal(false); handleBulkAction('activate'); }} disabled={isBulkActing} activeOpacity={0.8}>
+                    <Ionicons name="play" size={20} color="#fff" />
+                    <Text className="text-white text-sm font-semibold">Activate All</Text>
+                  </TouchableOpacity>
+                )}
+                {(activeStatusFilter === 'all' || activeStatusFilter === 'active') && (
+                  <TouchableOpacity className="flex-row items-center justify-center gap-2 py-3 rounded-xl mb-3" style={{ backgroundColor: colors.red }} onPress={() => { setShowActionModal(false); handleBulkAction('deactivate'); }} disabled={isBulkActing} activeOpacity={0.8}>
+                    <Ionicons name="pause" size={20} color="#fff" />
+                    <Text className="text-white text-sm font-semibold">Deactivate All</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity className="flex-row items-center justify-center py-2.5 rounded-xl border" style={{ borderColor: colors.border }} onPress={() => setShowActionModal(false)} activeOpacity={0.7}>
+                  <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </Modal>
         </>
       )}
 
@@ -624,8 +758,8 @@ function FilterDropdown({ label, value, onValueChange, options, colors }: { labe
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="none" onRequestClose={closeDropdown}>
-        <TouchableOpacity className="flex-1" activeOpacity={1} onPress={closeDropdown}>
-          <Animated.View style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.width, backgroundColor: colors.card, borderRadius: 12, padding: 4, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, opacity: animOpacity, transform: [{ translateY: animTranslateY }] }}>
+        <TouchableOpacity className="flex-1" activeOpacity={1} onPress={closeDropdown} style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+          <Animated.View style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.width, backgroundColor: colors.card, borderRadius: 12, padding: 4, elevation: 9999, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, opacity: animOpacity, transform: [{ translateY: animTranslateY }] }}>
             <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
               {options.map((opt: any) => (
                 <TouchableOpacity key={opt.id} className="flex-row items-center justify-between py-2.5 px-3 rounded-lg" style={value === opt.id ? { backgroundColor: `${colors.orange}15` } : undefined} onPress={() => handleSelect(opt.id)} activeOpacity={0.7}>
