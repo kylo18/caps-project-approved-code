@@ -51,6 +51,12 @@ class UserController extends Controller
             }
 
             $query = $this->buildUserQuery($request);
+
+            if ($request->input('ids_only') == '1') {
+                $ids = $query->pluck('userID')->toArray();
+                return response()->json(['userIDs' => $ids, 'total' => count($ids)], 200);
+            }
+
             $pagination = $this->paginateResults($query, $request);
 
             return response()->json([
@@ -734,7 +740,7 @@ class UserController extends Controller
         $page = max((int) $request->input('page', 1), 1);
         $total = $query->count();
 
-        $users = $query->orderBy('userID', 'desc')
+        $users = $query->with('student')->orderBy('userID', 'desc')
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
             ->get()
@@ -773,6 +779,7 @@ class UserController extends Controller
                     'status' => $user->status ? $user->status->name : 'Unknown',
                     'remarks' => $remarks,
                     'curriculum' => $curriculum,
+                    'yearLevel' => $user->student?->yearLevel ?? null,
                 ];
             });
 
