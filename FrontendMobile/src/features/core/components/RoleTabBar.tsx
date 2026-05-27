@@ -28,6 +28,37 @@ const ICONS: Record<string, IconPair> = {
   enhancement: { focused: 'trending-up', unfocused: 'trending-up-outline' },
 };
 
+const ROUTE_TAB_MAP: Record<string, string> = {
+  // Home (dashboard) related sub-routes
+  dashboard: 'dashboard',
+  insights: 'dashboard',
+  reports: 'dashboard',
+  analytics: 'dashboard',
+  users: 'dashboard',
+  'create-announcement': 'dashboard',
+  
+  // Subjects related
+  subjects: 'subjects',
+  
+  // Classes related
+  classes: 'classes',
+  'class-detail': 'classes',
+  'archived-classes': 'classes',
+  
+  // Enhancement related
+  enhancement: 'enhancement',
+  
+  // Profile related
+  profile: 'profile',
+  support: 'profile',
+};
+
+const showTabRoutes = new Set([
+  'dashboard', 'subjects', 'classes', 'enhancement', 'profile',
+  'users', 'class-detail', 'analytics', 'reports', 'insights',
+  'support', 'create-announcement', 'archived-classes'
+]);
+
 export default function RoleTabBar({
   state,
   descriptors,
@@ -36,7 +67,8 @@ export default function RoleTabBar({
 }: RoleTabBarProps) {
   const activeRouteName = state.routes[state.index]?.name;
   const visibleRouteSet = new Set(visibleRoutes);
-  if (!visibleRouteSet.has(activeRouteName)) {
+  
+  if (!visibleRouteSet.has(activeRouteName) && !showTabRoutes.has(activeRouteName)) {
     return null;
   }
 
@@ -70,7 +102,8 @@ export default function RoleTabBar({
         }}
       >
         {routes.map((route: any) => {
-          const focused = activeRouteName === route.name;
+          const activeTabName = ROUTE_TAB_MAP[activeRouteName] || activeRouteName;
+          const focused = activeTabName === route.name;
           const options = descriptors[route.key]?.options ?? {};
           const label = options.title ?? options.tabBarLabel ?? route.name;
           const iconPair = ICONS[route.name] ?? ICONS.dashboard;

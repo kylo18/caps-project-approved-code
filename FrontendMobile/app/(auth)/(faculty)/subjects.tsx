@@ -22,6 +22,7 @@ import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTool
 import type { AdminToolAction } from '../../../src/features/admin/shared/components/AdminFloatingTools';
 import SubjectCard from '../../../src/features/subjects/components/SubjectCard';
 import BottomModal from '../../../src/features/core/components/BottomModal';
+import CustomDropdown from '../../../src/features/core/components/CustomDropdown';
 
 export default function FacultySubjectsScreen() {
   const router = useRouter();
@@ -266,6 +267,24 @@ export default function FacultySubjectsScreen() {
 
   useScreenFloatingTools(fabActions);
 
+  const programItems = useMemo(() => [
+    { id: 'All', label: 'All Programs', value: 'All' },
+    ...programs.map(p => ({
+      id: String(p.programID || p.id),
+      label: p.programName || p.name || '',
+      value: String(p.programID || p.id)
+    }))
+  ], [programs]);
+
+  const yearItems = useMemo(() => [
+    { id: 'All', label: 'All Years', value: 'All' },
+    ...yearLevels.map(yl => ({
+      id: String(yl.yearLevelID || yl.id),
+      label: yl.name || yl.yearLevel || '',
+      value: String(yl.yearLevelID || yl.id)
+    }))
+  ], [yearLevels]);
+
   // Render loading state
   if (isLoading) {
     return (
@@ -326,67 +345,24 @@ export default function FacultySubjectsScreen() {
             </Text>
 
             {/* Filters */}
-            <View className="mb-4 gap-2">
-              {/* Program Filter */}
-              <View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                  <TouchableOpacity
-                    onPress={() => setFilterProgramID('All')}
-                    className={`px-3 py-1.5 rounded-full ${filterProgramID === 'All' ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
-                    activeOpacity={0.7}
-                  >
-                    <Text className={`text-xs ${filterProgramID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                      All Programs
-                    </Text>
-                  </TouchableOpacity>
-                  {programs.map((p: any) => {
-                    const id = String(p.programID || p.id);
-                    const name = p.programName || p.name || '';
-                    return (
-                      <TouchableOpacity
-                        key={id}
-                        onPress={() => setFilterProgramID(id)}
-                        className={`px-3 py-1.5 rounded-full ${filterProgramID === id ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
-                        activeOpacity={0.7}
-                      >
-                        <Text className={`text-xs ${filterProgramID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+            <View className="flex-row gap-3 mb-4 z-50">
+              <View className="flex-1">
+                <CustomDropdown
+                  label="Program"
+                  items={programItems}
+                  selectedValue={filterProgramID}
+                  onSelect={(val) => setFilterProgramID(val)}
+                  placeholder="Select Program"
+                />
               </View>
-
-              {/* Year Level Filter */}
-              <View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                  <TouchableOpacity
-                    onPress={() => setFilterYearLevelID('All')}
-                    className={`px-3 py-1.5 rounded-full ${filterYearLevelID === 'All' ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
-                    activeOpacity={0.7}
-                  >
-                    <Text className={`text-xs ${filterYearLevelID === 'All' ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                      All Years
-                    </Text>
-                  </TouchableOpacity>
-                  {yearLevels.map((yl: any) => {
-                    const id = String(yl.yearLevelID || yl.id);
-                    const name = yl.name || yl.yearLevel || '';
-                    return (
-                      <TouchableOpacity
-                        key={id}
-                        onPress={() => setFilterYearLevelID(id)}
-                        className={`px-3 py-1.5 rounded-full ${filterYearLevelID === id ? 'bg-primary' : isDark ? 'bg-[#242424]' : 'bg-white border border-gray-200'}`}
-                        activeOpacity={0.7}
-                      >
-                        <Text className={`text-xs ${filterYearLevelID === id ? 'text-white font-bold' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+              <View className="flex-1">
+                <CustomDropdown
+                  label="Year Level"
+                  items={yearItems}
+                  selectedValue={filterYearLevelID}
+                  onSelect={(val) => setFilterYearLevelID(val)}
+                  placeholder="Select Year"
+                />
               </View>
             </View>
 
