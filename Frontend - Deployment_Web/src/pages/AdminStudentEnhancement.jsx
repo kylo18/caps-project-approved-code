@@ -87,17 +87,15 @@ const PassRateBar = ({ value }) => (
 const KpiCard = ({ label, val, color, icon, sub }) => (
   <div className="bg-white border border-gray-100 rounded-2xl p-4 relative overflow-hidden shadow-sm hover:shadow-md transition-shadow">
     <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: color }} />
-    <div className="flex items-start justify-between">
-      <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">{label}</p>
-        <p className="text-[22px] font-bold leading-none" style={{ color }}>{val}</p>
-        {sub && <p className="text-[11px] text-gray-400 mt-1">{sub}</p>}
-      </div>
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl flex-shrink-0 ml-2"
+    <div className="flex items-center justify-between mb-3">
+      <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider leading-tight">{label}</p>
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl flex-shrink-0"
         style={{ background: color + "15" }}>
         <i className={`bx ${icon} text-[18px]`} style={{ color }}></i>
       </div>
     </div>
+    <p className="text-[22px] font-bold leading-none" style={{ color }}>{val}</p>
+    {sub && <p className="text-[11px] text-gray-400 mt-1">{sub}</p>}
   </div>
 );
 
@@ -373,7 +371,7 @@ const StudentDetail = ({ student, studentIndex, onBack }) => {
         ].map((m) => (
           <div key={m.label} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
             <p className="text-[11px] text-gray-400 mb-1">{m.label}</p>
-            <p className="text-[13px] font-semibold text-gray-700 truncate">{m.val}</p>
+            <p className="text-[13px] font-semibold text-gray-700 break-words">{m.val}</p>
           </div>
         ))}
       </div>
@@ -515,19 +513,28 @@ const StudentList = ({ students, programLabel, onBack }) => {
                 const av = AVATAR_PALETTE[students.indexOf(s) % AVATAR_PALETTE.length];
                 const name = `${s.firstName || ""} ${s.lastName || ""}`.trim();
                 return (
-                  <div key={s.userID || s.id} onClick={() => setSelectedStudent(s)}
-                    className="px-4 py-3 cursor-pointer hover:bg-orange-50/40 transition-colors">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
-                        style={{ background: av.bg, color: av.fg }}>
-                        {initials(name)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-gray-800 truncate">{name || "Unnamed"}</p>
-                        <p className="text-[11px] text-gray-400 truncate">{s.email || "No email"}</p>
-                      </div>
-                      <ProgramTag program={s.program || "Unknown"} />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                      style={{ background: av.bg, color: av.fg }}>
+                      {initials(name)}
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-gray-800 truncate">{name || "Unnamed"}</p>
+                      <p className="text-[11px] text-gray-400 truncate">{s.email || "No email"}</p>
+                    </div>
+                    {(() => {
+                      const score = s.average_score ?? s.score ?? null;
+                      const total = Number(s.totalQuizzes ?? 0);
+                      const pct = score !== null
+                        ? Number(score)
+                        : total > 0
+                          ? Math.round((Number(s.quizzesCompleted ?? 0) / total) * 100)
+                          : null;
+                      if (pct === null) return <span className="text-gray-400 text-[10px] w-[72px]">No exam yet</span>;
+                      const { background, color } = pillStyle(pct);
+                      const label = pct >= 90 ? "Excellent" : pct >= 80 ? "Good" : pct >= 75 ? "Average" : "Needs Support";
+                      return <span style={{ background, color }} className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold">{label}</span>;
+                    })()}
                   </div>
                 );
               })}
@@ -1281,7 +1288,7 @@ const AdminStudentEnhancement = () => {
         <>
           {/* ── KPI Cards — hide when viewing a program's students ── */}
           {!viewingProgramStudents && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 items-stretch">
               <KpiCard label="Total Students" val={total} color={ORANGE} icon="bx-group" />
               <KpiCard label="Avg. Score" val={`${avgScore}%`} color="#555" icon="bx-discount" />
               <KpiCard label="Pass Rate" val={`${passRate}%`} color="#0f6e56" icon="bx-check-circle" />

@@ -131,9 +131,7 @@ const PodiumCard = ({ student, position, isMobile }) => {
   );
 
   const scoreColor = position === 1 ? "#F0C040" : position === 2 ? "#A8B4C0" : "#CD7F32";
-  const maxNameLen = isMobile ? 8 : 16;
-  const name = `${student.firstName} ${student.lastName}`;
-  const displayName = name.length > maxNameLen ? name.slice(0, maxNameLen) + "…" : name;
+  
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: c.mb, zIndex: position === 1 ? 2 : 1 }}>
@@ -156,8 +154,8 @@ const PodiumCard = ({ student, position, isMobile }) => {
           fontSize: isMobile ? 8 : 10, fontWeight: 900, border: "2px solid #fff",
         }}>{position}</div>
       </div>
-      <div style={{ fontSize: c.nameSize, fontWeight: 700, color: "#111", textAlign: "center", marginBottom: 2, maxWidth: c.baseW }}>
-        {displayName}
+      <div style={{ fontSize: c.nameSize, fontWeight: 700, color: "#111", textAlign: "center", marginBottom: 2, maxWidth: c.baseW + 20, wordBreak: "break-word", lineHeight: 1.3 }}>
+        {student.firstName} {student.lastName}
       </div>
       <div style={{ fontSize: isMobile ? 9 : 10, color: "#9ca3af", textAlign: "center", marginBottom: 4 }}>
         {student.program?.replace("BS-", "") || "—"}
@@ -168,11 +166,12 @@ const PodiumCard = ({ student, position, isMobile }) => {
       <div style={{
         width: c.baseW, height: c.baseH,
         background: position === 1 ? "linear-gradient(180deg,#fef3c7,#fde68a)"
-          : position === 2 ? "linear-gradient(180deg,#f3f4f6,#e5e7eb)"
-          : "linear-gradient(180deg,#fef9c3,#fde68a55)",
+          : position === 2 ? "linear-gradient(180deg,#d6dfe8,#a8b4c0)"
+          : "linear-gradient(180deg,#f5dfc0,#cd7f32aa)",
         borderRadius: "10px 10px 0 0",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: isMobile ? 16 : 22, fontWeight: 900, color: position === 1 ? "#92400e" : "#9ca3af",
+        fontSize: isMobile ? 16 : 22, fontWeight: 900, 
+        color: position === 1 ? "#92400e" : position === 2 ? "#2c3e4a" : "#6b3a10",
       }}>
         {position}
       </div>
