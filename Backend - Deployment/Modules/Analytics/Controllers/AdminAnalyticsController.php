@@ -174,6 +174,11 @@ class AdminAnalyticsController extends Controller
                         $q->where('programID', $user->programID)->orWhere('programID', 6);
                     });
                 }
+            } elseif ($user->roleID === 2) {
+                if ($user->campusID && $user->programID) {
+                    $usersQuery->where('campusID', $user->campusID)->where('programID', $user->programID);
+                    $subjectsQuery->where('programID', $user->programID);
+                }
             }
             // Dean (roleID 4) — no extra filters, sees all campus data
 
@@ -232,6 +237,8 @@ class AdminAnalyticsController extends Controller
                     'average_score' => round($avgScore, 2),
                     'pass_rate' => round($passRate, 4),
                     'improvement_percentage' => round($improvement, 2),
+                    'current_month_avg' => round($currentMonthAvg, 2),
+                    'previous_month_avg' => round($previousMonthAvg, 2),
                 ]
             ], 200);
         } catch (\Exception $e) {
@@ -564,13 +571,10 @@ class AdminAnalyticsController extends Controller
     public function getProgramComparison(Request $request)
     {
         try {
-            $user = Auth::user();
-
             $results = DB::table('practice_exam_results')
                 ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
                 ->join('subjects', 'practice_exam_results.subjectID', '=', 'subjects.subjectID')
                 ->join('programs', 'subjects.programID', '=', 'programs.programID')
-                ->when(true, fn ($query) => $this->applyRoleBasedScope($query, $user))
                 ->select(
                     'programs.programID',
                     'programs.programName',

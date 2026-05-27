@@ -247,10 +247,18 @@ class FacultySubjectController extends Controller
                 ];
             });
 
+            // Count approved questions across the faculty's assigned subjects
+            $totalQuestions = DB::table('questions')
+                ->join('faculty_subjects', 'questions.subjectID', '=', 'faculty_subjects.subjectID')
+                ->where('faculty_subjects.facultyID', $user->userID)
+                ->where('questions.status_id', 2)
+                ->count();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Subjects retrieved successfully',
                 'subjects' => $formattedSubjects,
+                'totalQuestions' => $totalQuestions,
                 'total' => $total,
                 'page' => $page,
                 'per_page' => $perPage,
@@ -384,6 +392,7 @@ class FacultySubjectController extends Controller
                     'yl.name as yearLevel',
                     DB::raw('CASE WHEN fs.subjectID IS NOT NULL THEN true ELSE false END as isAssigned')
                 )
+                ->whereNull('fs.subjectID')
                 ->where(function ($query) use ($userProgramID) {
                     $query->where('s.programID', $userProgramID)
                           ->orWhere('s.programID', 6); // Include general subjects
