@@ -59,24 +59,14 @@ export default function NotificationPanel({ visible, onClose }: { visible: boole
   };
 
   const getSenderLabel = (notification: any): string => {
-    const raw = notification?.data;
-    const data = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
-    const roleLabel = (() => {
-      const v = notification?.senderRole || data?.senderRole || '';
-      if (!v) return null;
-      const s = String(v).toLowerCase();
-      if (s === '4' || s.includes('dean')) return 'Dean';
-      if (s === '5' || s.includes('associate dean')) return 'Associate Dean';
-      if (s === '3' || s.includes('program chair') || s.includes('chair')) return 'Program Chair';
-      if (s === '2' || s.includes('faculty') || s.includes('teacher')) return 'Faculty';
-      if (s === '1' || s.includes('student')) return 'Student';
-      return null;
-    })();
-    const senderName = notification?.senderName || data?.senderName || '';
-    if (senderName && roleLabel) return `${senderName} (${roleLabel})`;
-    if (senderName) return senderName;
-    if (roleLabel) return roleLabel;
-    if (notification?.type === 'system_announcement') return 'Administration';
+    const v = notification?.senderRole;
+    if (!v) return 'System';
+    const s = String(v).toLowerCase();
+    if (s === '4' || s.includes('dean')) return 'Dean';
+    if (s === '5' || s.includes('associate dean')) return 'Associate Dean';
+    if (s === '3' || s.includes('program chair') || s.includes('chair')) return 'Program Chair';
+    if (s === '2' || s.includes('faculty') || s.includes('teacher')) return 'Faculty';
+    if (s === '1' || s.includes('student')) return 'Student';
     return 'System';
   };
 

@@ -29,6 +29,7 @@ export interface Notification {
     message: string;
     isRead: boolean;
     actionUrl?: string;
+    senderRole?: string | number | null;
     created_at: string;
 }
 
@@ -136,19 +137,22 @@ interface NotificationApiItem {
     actionUrl?: string;
     action_url?: string;
     data?: Record<string, unknown>;
+    sender_role?: string | number;
     created_at?: string;
     createdAt?: string;
 }
 
 function normalizeNotification(item: NotificationApiItem): Notification {
+    const type = (item.type || 'general') as NotificationType;
     return {
         notificationID: item.notificationID ?? item.id ?? item.notification_id ?? 0,
         userID: item.userID ?? item.user_id ?? 0,
-        type: (item.type || 'general') as NotificationType,
+        type,
         title: item.title || item.message?.slice(0, 50) || 'Notification',
         message: item.message || '',
         isRead: Boolean(item.isRead ?? item.is_read ?? item.read),
         actionUrl: (item.actionUrl || item.action_url || (item.type ? resolveNotificationActionUrl(item.type, item.data) : undefined)) ?? undefined,
+        senderRole: item.sender_role ?? null,
         created_at: item.created_at || item.createdAt || '',
     };
 }
