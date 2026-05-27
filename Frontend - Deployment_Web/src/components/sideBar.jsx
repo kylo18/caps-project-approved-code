@@ -8,7 +8,7 @@ import useToast from "../hooks/useToast";
 import Toast from "./Toast";
 import CollegeLogo from "/src/assets/college-logo.png";
 import AppVersion from "./appVersion";
-import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification, createAnnouncement } from "../services/notificationService";
+import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification, createAnnouncement, getSentAnnouncements, deleteSentAnnouncement, deleteAllSentAnnouncements } from "../services/notificationService";
 
 import DashboardIcon from "/src/assets/symbols/dashboard.svg";
 import DashboardIconH from "/src/assets/symbols/dashboardhover.svg";
@@ -146,6 +146,119 @@ const Sidebar = ({
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementMessage, setAnnouncementMessage] = useState("");
   const [isAnnouncing, setIsAnnouncing] = useState(false);
+  const [showSentHistoryModal, setShowSentHistoryModal] = useState(false);
+  const [sentAnnouncements, setSentAnnouncements] = useState([]);
+  const [sentMeta, setSentMeta] = useState({ total_count: 0, current_page: 1, last_page: 1 });
+  const [loadingSent, setLoadingSent] = useState(false);
+  const [activeNotificationTab, setActiveNotificationTab] = useState("notifications");
+  const [targetType, setTargetType] = useState("all");
+  const [selectedProgramId, setSelectedProgramId] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [availablePrograms, setAvailablePrograms] = useState([]);
+  const [availableClasses, setAvailableClasses] = useState([]);
+  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+  // duplicate apiUrl removed
+
+  // Fetch programs or classes when the announcement modal opens
+  useEffect(() => {
+    if (!showAddAnnouncementModal) return;
+
+    const token = sessionStorage.getItem("token");
+    const parsedRoleId = Number(role_id);
+
+    if (parsedRoleId === 4 || parsedRoleId === 5) {
+      // Fetch programs
+      const fetchPrograms = async () => {
+        try {
+          const res = await fetch(`${apiUrl}/programs`, {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (res.ok) {
+            const result = await res.json();
+            setAvailablePrograms(result.data || []);
+            setTargetType("all");
+          }
+        } catch (err) {
+          console.error("Error fetching programs:", err);
+        }
+      };
+      fetchPrograms();
+    } else if (parsedRoleId === 2) {
+      // Fetch classes
+      const fetchClasses = async () => {
+        try {
+          const res = await fetch(`${apiUrl}/classes/index`, {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (res.ok) {
+            const result = await res.json();
+            setAvailableClasses(result.classes || []);
+            setTargetType("enrolled"); // default for Faculty
+          }
+        } catch (err) {
+          console.error("Error fetching classes:", err);
+        }
+      };
+      fetchClasses();
+    } else if (parsedRoleId === 3) {
+      setTargetType("program_students");
+    }
+  }, [showAddAnnouncementModal, role_id, apiUrl]);
+
+  // Fetch sent announcements when history modal opens
+  const fetchSentAnnouncements = async (page = 1) => {
+    setLoadingSent(true);
+    try {
+      const res = await getSentAnnouncements(page, 20);
+      console.log('DEBUG: Sent announcements response:', res);
+      // Expecting { data: [], meta: { total_count, current_page, last_page } } or similar
+      setSentAnnouncements(res.data || []);
+      setSentMeta({
+        total_count: res.meta?.total_count ?? res.total_count ?? 0,
+        current_page: res.meta?.current_page ?? res.current_page ?? page,
+        last_page: res.meta?.last_page ?? res.last_page ?? 1,
+      });
+      console.log('DEBUG: Announcements set to:', res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch sent announcements', err);
+      setSentAnnouncements([]);
+    } finally {
+      setLoadingSent(false);
+    }
+  };
+
+  // Delete a single sent announcement
+  const handleDeleteAnnouncement = async (id) => {
+    try {
+      await deleteSentAnnouncement(id);
+      showToast("Announcement deleted successfully", "success");
+      fetchSentAnnouncements(1);
+    } catch (err) {
+      console.error("Failed to delete announcement:", err);
+      showToast(err.message || "Failed to delete announcement", "error");
+    }
+  };
+
+  // Delete all sent announcements
+  const handleDeleteAllAnnouncements = async () => {
+    if (!confirm("Are you sure you want to delete all announcements? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      await deleteAllSentAnnouncements();
+      showToast("All announcements deleted successfully", "success");
+      fetchSentAnnouncements(1);
+    } catch (err) {
+      console.error("Failed to delete all announcements:", err);
+      showToast(err.message || "Failed to delete all announcements", "error");
+    }
+  };
 
 
   const analyticsRef = useRef(null);
@@ -154,7 +267,7 @@ const Sidebar = ({
   const profileModalRef = useRef(null);
   const changePasswordModalRef = useRef(null);
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
+
   const { toast, showToast } = useToast();
 
   const location = useLocation();
@@ -239,36 +352,13 @@ const Sidebar = ({
           const data = await response.json();
           console.log("Pending users count:", data.count);
           setNewUsersCount(data.count || 0);
-        } else {
-          console.warn("Failed to fetch pending users count. Status:", response.status);
-          const errorData = await response.json().catch(() => ({}));
-          console.warn("Error response:", errorData);
         }
-      } catch (error) {
-        console.error("Error fetching pending users count:", error);
+      } catch (err) {
+        console.error("Error fetching pending users count:", err);
       }
     };
 
-    // Only fetch if user has admin role (role_id >= 2)
-    if (role_id && Number(role_id) >= 2) {
-      console.log("Fetching pending users count for role:", role_id);
-      fetchPendingUsersCount();
-      // Optionally refresh the count periodically
-      const interval = setInterval(fetchPendingUsersCount, 30000); // Refresh every 30 seconds
-      return () => clearInterval(interval);
-    }
-  }, [apiUrl, role_id]);
-
-  // Set avatar color based on user info
-  useEffect(() => {
-    if (userInfo) {
-      let color = getPersistedAvatarColor(userInfo);
-      if (!color) {
-        color = getRandomAvatarColor();
-        setPersistedAvatarColor(userInfo, color);
-      }
-      setAvatarColor(color);
-    }
+    fetchPendingUsersCount();
   }, [userInfo]);
 
   // Close dropdown when clicking outside
@@ -415,36 +505,68 @@ const Sidebar = ({
 
     setIsAnnouncing(true);
     try {
-      let target_type = "all";
-      let target_id = null;
+      let finalTargetType = targetType;
+      let finalTargetId = null;
+
+      const parsedRoleId = Number(role_id);
 
       if (parsedRoleId === 4 || parsedRoleId === 5) {
-        // Dean / Associate Dean targets all students (role 1)
-        target_type = "role";
-        target_id = 1;
+        // Dean / Associate Dean
+        if (targetType === "program") {
+          finalTargetType = "program_students";
+          finalTargetId = Number(selectedProgramId);
+        } else if (targetType === "role_student") {
+          finalTargetType = "role";
+          finalTargetId = 1; // Student roleID
+        } else if (targetType === "role_faculty") {
+          finalTargetType = "role";
+          finalTargetId = 2; // Faculty roleID
+        } else if (targetType === "role_chair") {
+          finalTargetType = "role";
+          finalTargetId = 3; // Program Chair roleID
+        } else {
+          finalTargetType = "all";
+        }
       } else if (parsedRoleId === 3) {
         // Program Chair targets students in their program
-        target_type = "program_students";
-        target_id = userInfo?.programID || null;
+        finalTargetType = "program_students";
+        finalTargetId = userInfo?.programID || null;
       } else if (parsedRoleId === 2) {
-        // Faculty targets their enrolled students
-        target_type = "enrolled";
-        target_id = null;
+        // Faculty
+        if (targetType === "class_students") {
+          finalTargetType = "class_students";
+          finalTargetId = Number(selectedClassId);
+        } else {
+          finalTargetType = "enrolled";
+        }
+      }
+
+      // Validation check
+      if ((finalTargetType === "program_students" || finalTargetType === "class_students") && !finalTargetId) {
+        showToast("Please select a valid target option.", "error");
+        setIsAnnouncing(false);
+        return;
       }
 
       await createAnnouncement({
         type: "system_announcement",
         title: announcementTitle.trim(),
         message: announcementMessage.trim(),
-        target_type,
-        target_id,
+        target_type: finalTargetType,
+        target_id: finalTargetId,
       });
 
       showToast("Announcement created successfully!", "success");
       setAnnouncementTitle("");
       setAnnouncementMessage("");
+      setSelectedProgramId("");
+      setSelectedClassId("");
       setShowAddAnnouncementModal(false);
       fetchNotifications();
+      // Switch to History tab and fetch to show the new announcement
+      setActiveNotificationTab("history");
+      setActiveMenu("Notifications");
+      fetchSentAnnouncements(1);
     } catch (err) {
       console.error("Failed to create announcement:", err);
       showToast(err.message || "Failed to create announcement", "error");
@@ -1969,114 +2091,228 @@ const Sidebar = ({
             {/* Notifications Popup */}
             {activeMenu === "Notifications" && (
             <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/20 pointer-events-none">
-              <div className="pointer-events-auto w-[420px] max-w-[95vw] rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl flex flex-col max-h-[80vh]">
+              <div className="pointer-events-auto w-[520px] max-w-[95vw] rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl flex flex-col max-h-[80vh]">
                 
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <h3 className="outfit-700 text-lg font-bold text-gray-800 flex items-center gap-2">
-                      <i className="bx bx-bell text-orange-500 text-lg" />
-                      Notifications
-                    </h3>
+                {/* Header with Tabs */}
+                <div className="flex items-center justify-between border-b border-gray-100 pb-0 mb-0">
+                  {/* Tabs Section */}
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => {
+                        setActiveNotificationTab("notifications");
+                        setSelectedNotification(null);
+                      }}
+                      className={`outfit-600 text-sm px-4 py-3 font-medium flex items-center gap-2 transition-colors border-b-2 ${
+                        activeNotificationTab === "notifications"
+                          ? "text-orange-600 border-b-orange-600"
+                          : "text-gray-600 border-b-transparent hover:text-gray-800"
+                      }`}
+                    >
+                      <i className="bx bx-bell text-base" />
+                      <span>Notifications</span>
+                      {unreadCount > 0 && (
+                        <span className="ml-1 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </button>
                     {parsedRoleId > 1 && (
                       <button
-                        onClick={() => setShowAddAnnouncementModal(true)}
-                        className="flex items-center justify-center rounded-full bg-orange-500 hover:bg-orange-600 text-white size-6 transition active:scale-95 shadow-sm"
-                        title="Add announcement"
+                        onClick={() => {
+                          setActiveNotificationTab("history");
+                          fetchSentAnnouncements(1);
+                        }}
+                        className={`outfit-600 text-sm px-4 py-3 font-medium transition-colors border-b-2 ${
+                          activeNotificationTab === "history"
+                            ? "text-orange-600 border-b-orange-600"
+                            : "text-gray-600 border-b-transparent hover:text-gray-800"
+                        }`}
                       >
-                        <i className="bx bx-plus text-base"></i>
+                        History
                       </button>
                     )}
                   </div>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={handleMarkAllRead}
-                      className="outfit-500 text-sm font-bold text-orange-500 hover:text-orange-600 transition-colors"
-                    >
-                      Mark all as read
-                    </button>
-                  )}
+
+                  {/* Action Buttons Section */}
+                  <div className="flex items-center gap-2">
+                    {activeNotificationTab === "notifications" && unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="outfit-500 text-xs font-bold text-orange-500 hover:text-orange-600 transition-colors px-2 py-1 rounded hover:bg-orange-50"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                    {activeNotificationTab === "history" && sentAnnouncements.length > 0 && parsedRoleId > 1 && (
+                      <button
+                        onClick={handleDeleteAllAnnouncements}
+                        className="outfit-500 text-xs font-bold text-red-500 hover:text-red-600 transition-colors px-2 py-1 rounded hover:bg-red-50"
+                        title="Delete all announcements"
+                      >
+                        Delete all
+                      </button>
+                    )}
+                    {parsedRoleId > 1 && (
+                      <button
+                        onClick={() => setShowAddAnnouncementModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white transition active:scale-95 shadow-sm outfit-600 text-sm"
+                        title="Add announcement"
+                      >
+                        <i className="bx bx-plus text-base" />
+                        <span>Add</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {/* List container */}
+                {/* Content Container */}
                 <div className="overflow-y-auto pr-1 flex-1 flex flex-col gap-3 scrollbar-thin">
-                  {notifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                      <i className="bx bx-bell-off text-4xl mb-2 text-gray-300" />
-                      <p className="outfit-500 text-base text-gray-500">No notifications yet</p>
-                    </div>
-                  ) : (
-                    notifications.map((item) => {
-                      let iconClass = "bx-bell";
-                      let bgClass = "bg-blue-50 text-blue-500";
-                      
-                      if (item.type === "lesson" || item.type === "lesson_available") {
-                        iconClass = "bx-book-open";
-                        bgClass = "bg-orange-50 text-orange-500";
-                      } else if (item.type === "quiz_result") {
-                        iconClass = "bx-file";
-                        bgClass = "bg-green-50 text-green-500";
-                      } else if (item.type === "achievement" || item.type === "milestone") {
-                        iconClass = "bx-trophy";
-                        bgClass = "bg-yellow-50 text-yellow-600";
-                      } else if (item.type === "announcement" || item.type === "system_announcement") {
-                        iconClass = "bx-megaphone";
-                        bgClass = "bg-purple-50 text-purple-500";
-                      }
-
-                      return (
-                        <div
-                          key={item.id}
-                          onClick={() => handleNotificationClick(item)}
-                          className={`flex items-start gap-4 rounded-2xl p-3.5 cursor-pointer transition-all duration-200 border text-left ${
-                            item.is_read
-                              ? "border-transparent hover:bg-gray-50"
-                              : "border-orange-50 bg-orange-50/20 hover:bg-orange-50/45"
-                          }`}
-                        >
-                          <div className={`flex size-10 flex-shrink-0 items-center justify-center rounded-full ${bgClass}`}>
-                            <i className={`bx ${iconClass} text-xl`} />
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1.5">
-                              <h4 className={`outfit-700 text-[15px] font-bold truncate ${item.is_read ? "text-gray-600" : "text-gray-900"}`}>
-                                {item.title}
-                              </h4>
-                              {!item.is_read && (
-                                <span className="h-2 w-2 flex-shrink-0 rounded-full bg-orange-500" />
-                              )}
-                            </div>
-                            <p className="outfit-400 text-sm text-gray-600 line-clamp-2 mt-0.5 leading-relaxed">
-                              {item.message}
-                            </p>
-
-                            {item.sender_name && (
-                              <span className="outfit-500 mt-1 inline-flex items-center gap-1 text-[11px] text-purple-500">
-                                <i className="bx bx-user text-[12px]"></i>
-                                {item.sender_name}
-                                {item.sender_role && (
-                                  <span className="text-gray-400">· {item.sender_role}</span>
-                                )}
-                              </span>
-                            )}
-
-                            <div className="flex items-center justify-between mt-2">
-                              <span className="outfit-400 text-xs text-gray-500">
-                                {formatTimeAgo(item.created_at)}
-                              </span>
-                              <button
-                                onClick={(e) => handleDeleteNotification(item.id, e)}
-                                className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors p-1.5 rounded-md"
-                                title="Delete notification"
-                              >
-                                <i className="bx bx-trash text-[16px]"></i>
-                              </button>
-                            </div>
-                          </div>
+                  {/* Notifications Tab Content */}
+                  {activeNotificationTab === "notifications" && (
+                    <>
+                      {notifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                          <i className="bx bx-bell-off text-4xl mb-2 text-gray-300" />
+                          <p className="outfit-500 text-base text-gray-500">No notifications yet</p>
                         </div>
-                      );
-                    })
+                      ) : (
+                        notifications.map((item) => {
+                          let iconClass = "bx-bell";
+                          let bgClass = "bg-blue-50 text-blue-500";
+                          
+                          if (item.type === "lesson" || item.type === "lesson_available") {
+                            iconClass = "bx-book-open";
+                            bgClass = "bg-orange-50 text-orange-500";
+                          } else if (item.type === "quiz_result") {
+                            iconClass = "bx-file";
+                            bgClass = "bg-green-50 text-green-500";
+                          } else if (item.type === "achievement" || item.type === "milestone") {
+                            iconClass = "bx-trophy";
+                            bgClass = "bg-yellow-50 text-yellow-600";
+                          } else if (item.type === "announcement" || item.type === "system_announcement") {
+                            iconClass = "bx-megaphone";
+                            bgClass = "bg-purple-50 text-purple-500";
+                          }
+
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => handleNotificationClick(item)}
+                              className={`flex items-start gap-4 rounded-2xl p-3.5 cursor-pointer transition-all duration-200 border text-left ${
+                                item.is_read
+                                  ? "border-transparent hover:bg-gray-50"
+                                  : "border-orange-50 bg-orange-50/20 hover:bg-orange-50/45"
+                              }`}
+                            >
+                              <div className={`flex size-10 flex-shrink-0 items-center justify-center rounded-full ${bgClass}`}>
+                                <i className={`bx ${iconClass} text-xl`} />
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <h4 className={`outfit-700 text-[15px] font-bold truncate ${item.is_read ? "text-gray-600" : "text-gray-900"}`}>
+                                    {item.title}
+                                  </h4>
+                                  {!item.is_read && (
+                                    <span className="h-2 w-2 flex-shrink-0 rounded-full bg-orange-500" />
+                                  )}
+                                </div>
+                                <p className="outfit-400 text-sm text-gray-600 line-clamp-2 mt-0.5 leading-relaxed">
+                                  {item.message}
+                                </p>
+
+                                {item.sender_name && (
+                                  <span className="outfit-500 mt-1 inline-flex items-center gap-1 text-[11px] text-purple-500">
+                                    <i className="bx bx-user text-[12px]"></i>
+                                    {item.sender_name}
+                                    {item.sender_role && (
+                                      <span className="text-gray-400">· {item.sender_role}</span>
+                                    )}
+                                  </span>
+                                )}
+
+                                <div className="flex items-center justify-between mt-2">
+                                  <span className="outfit-400 text-xs text-gray-500">
+                                    {formatTimeAgo(item.created_at)}
+                                  </span>
+                                  <button
+                                    onClick={(e) => handleDeleteNotification(item.id, e)}
+                                    className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors p-1.5 rounded-md"
+                                    title="Delete notification"
+                                  >
+                                    <i className="bx bx-trash text-[16px]"></i>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </>
+                  )}
+
+                  {/* History Tab Content */}
+                  {activeNotificationTab === "history" && (
+                    <>
+                      {loadingSent ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                          <div className="animate-spin">
+                            <i className="bx bx-loader-alt text-4xl text-gray-300" />
+                          </div>
+                          <p className="outfit-500 text-base text-gray-500 mt-2">Loading announcements...</p>
+                        </div>
+                      ) : sentAnnouncements.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                          <i className="bx bx-inbox text-4xl mb-2 text-gray-300" />
+                          <p className="outfit-500 text-base text-gray-500">No announcements sent yet</p>
+                        </div>
+                      ) : (
+                        sentAnnouncements.map((ann) => (
+                          <div
+                            key={ann.id}
+                            className="flex items-start gap-4 rounded-2xl p-3.5 bg-purple-50/30 border border-purple-100 hover:bg-purple-50/60 transition-all duration-200"
+                          >
+                            <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-600">
+                              <i className="bx bx-megaphone text-xl" />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1.5">
+                                <h4 className="outfit-700 text-[15px] font-bold text-gray-900 truncate">
+                                  {ann.title}
+                                </h4>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium outfit-600">
+                                  Sent
+                                </span>
+                              </div>
+                              <p className="outfit-400 text-sm text-gray-600 line-clamp-2 mt-0.5 leading-relaxed">
+                                {ann.message}
+                              </p>
+
+                              {ann.target_type && (
+                                <span className="outfit-500 mt-1 inline-flex items-center gap-1 text-[11px] text-gray-500">
+                                  <i className="bx bx-target-lock text-[12px]"></i>
+                                  Target: <span className="capitalize">{ann.target_type.replace(/_/g, " ")}</span>
+                                </span>
+                              )}
+
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="outfit-400 text-xs text-gray-500">
+                                  {formatTimeAgo(ann.created_at)}
+                                </span>
+                                <button
+                                  onClick={() => handleDeleteAnnouncement(ann.id)}
+                                  className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors p-1.5 rounded-md"
+                                  title="Delete announcement"
+                                >
+                                  <i className="bx bx-trash text-[16px]"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -2244,6 +2480,9 @@ const Sidebar = ({
                 <h3 className="outfit-700 text-base font-bold text-gray-900 leading-snug mt-0.5 break-words">
                   {selectedNotification.title}
                 </h3>
+                {selectedNotification?.sender_role && (
+                  <p className="outfit-400 text-sm text-gray-500">Sent by {getRoleName(selectedNotification.sender_role)}</p>
+                )}
               </div>
             </div>
 
@@ -2306,6 +2545,8 @@ const Sidebar = ({
                 setShowAddAnnouncementModal(false);
                 setAnnouncementTitle("");
                 setAnnouncementMessage("");
+                setSelectedProgramId("");
+                setSelectedClassId("");
               }}
               className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
             >
@@ -2322,7 +2563,7 @@ const Sidebar = ({
                   Create Announcement
                 </h3>
                 <span className="outfit-400 text-xs text-gray-400 block mt-0.5">
-                  {parsedRoleId === 4 || parsedRoleId === 5 ? "Send announcement to all students" :
+                  {parsedRoleId === 4 || parsedRoleId === 5 ? "Send announcement" :
                    parsedRoleId === 3 ? `Send announcement to students in ${userInfo?.programName || "assigned program"}` :
                    "Send announcement to all your enrolled students"}
                 </span>
@@ -2334,6 +2575,101 @@ const Sidebar = ({
 
             {/* Inputs */}
             <div className="space-y-4 mb-6">
+              {/* Target Selector */}
+              {parsedRoleId === 4 || parsedRoleId === 5 ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                      Target Audience
+                    </label>
+                    <select
+                      value={targetType}
+                      onChange={(e) => {
+                        setTargetType(e.target.value);
+                        setSelectedProgramId("");
+                      }}
+                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200"
+                    >
+                      <option value="all">All Users</option>
+                      <option value="role_student">All Students</option>
+                      <option value="role_faculty">All Faculty</option>
+                      <option value="role_chair">All Program Chairs</option>
+                      <option value="program">Students in a Specific Program</option>
+                    </select>
+                  </div>
+
+                  {targetType === "program" && (
+                    <div className="animate-fade-in">
+                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                        Select Program
+                      </label>
+                      <select
+                        required
+                        value={selectedProgramId}
+                        onChange={(e) => setSelectedProgramId(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200"
+                      >
+                        <option value="">-- Select Program (e.g. CpE, ECE, EE, CE) --</option>
+                        {availablePrograms.map((prog) => (
+                          <option key={prog.programID} value={prog.programID}>
+                            {prog.programName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              ) : parsedRoleId === 2 ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                      Target Audience
+                    </label>
+                    <select
+                      value={targetType}
+                      onChange={(e) => {
+                        setTargetType(e.target.value);
+                        setSelectedClassId("");
+                      }}
+                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200"
+                    >
+                      <option value="enrolled">All My Enrolled Students</option>
+                      <option value="class_students">Students in a Specific Class</option>
+                    </select>
+                  </div>
+
+                  {targetType === "class_students" && (
+                    <div className="animate-fade-in">
+                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                        Select Class
+                      </label>
+                      <select
+                        required
+                        value={selectedClassId}
+                        onChange={(e) => setSelectedClassId(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200"
+                      >
+                        <option value="">-- Select Class --</option>
+                        {availableClasses.map((cls) => (
+                          <option key={cls.classID} value={cls.classID}>
+                            {cls.className} ({cls.classCode})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              ) : parsedRoleId === 3 ? (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                    Target Audience
+                  </label>
+                  <div className="w-full rounded-lg border border-orange-200 bg-orange-50/50 px-4 py-2.5 text-sm text-orange-800 font-medium">
+                    Students in your program: {userInfo?.programName || "Assigned Program"}
+                  </div>
+                </div>
+              ) : null}
+
               <div>
                 <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
                   Title
@@ -2371,6 +2707,8 @@ const Sidebar = ({
                   setShowAddAnnouncementModal(false);
                   setAnnouncementTitle("");
                   setAnnouncementMessage("");
+                  setSelectedProgramId("");
+                  setSelectedClassId("");
                 }}
                 className="outfit-500 cursor-pointer rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 px-5 py-2 text-sm font-semibold transition active:scale-98"
               >
@@ -2394,6 +2732,8 @@ const Sidebar = ({
           </form>
         </div>
       )}
+
+      {/* Sent Announcements (History) Modal - Removed, integrated into Notifications popup tabs */}
 
       <PrintExamModal
         isOpen={showPrintModal === true}

@@ -106,3 +106,64 @@ export async function createAnnouncement(payload) {
   }
 }
 
+// Get announcements sent by the authenticated staff user (paginated)
+export async function getSentAnnouncements(page = 1, perPage = 20) {
+  try {
+    const url = new URL(`${apiUrl}/admin/notifications/sent`);
+    url.searchParams.set('page', page);
+    url.searchParams.set('per_page', perPage);
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch sent announcements: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error in getSentAnnouncements service:', error);
+    throw error;
+  }
+}
+
+// Delete a sent announcement
+export async function deleteSentAnnouncement(id) {
+  try {
+    const response = await fetch(`${apiUrl}/admin/notifications/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete announcement: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error in deleteSentAnnouncement service:', error);
+    throw error;
+  }
+}
+
+// Delete all sent announcements
+export async function deleteAllSentAnnouncements() {
+  try {
+    const response = await fetch(`${apiUrl}/admin/notifications/all`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete all announcements: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error in deleteAllSentAnnouncements service:', error);
+    throw error;
+  }
+}
+

@@ -381,6 +381,12 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
 
     // Admin Notification Creation Routes (staff roles 2-5)
     Route::post('/admin/notifications', [NotificationController::class, 'create']);
+    // Staff: view announcements they have sent
+    Route::get('/admin/notifications/sent', [NotificationController::class, 'sent']);
+    // Staff: delete all sent announcements (must come before {id} route)
+    Route::delete('/admin/notifications/all', [NotificationController::class, 'deleteAllSent']);
+    // Staff: delete a single sent announcement
+    Route::delete('/admin/notifications/{id}', [NotificationController::class, 'deleteSent']);
 
     // Class Personal Quizzes (Faculty)
     Route::get('/classes/{classID}/quizzes/available', [ClassPersonalQuizController::class, 'availablePersonalQuizzes']);
