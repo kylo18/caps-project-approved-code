@@ -26,14 +26,12 @@ const ICONS: Record<string, IconPair> = {
   support: { focused: 'help-circle', unfocused: 'help-circle-outline' },
   profile: { focused: 'person', unfocused: 'person-outline' },
   enhancement: { focused: 'trending-up', unfocused: 'trending-up-outline' },
+  insights: { focused: 'grid', unfocused: 'grid-outline' },
 };
 
 const ROUTE_TAB_MAP: Record<string, string> = {
   // Home (dashboard) related sub-routes
   dashboard: 'dashboard',
-  insights: 'dashboard',
-  reports: 'dashboard',
-  analytics: 'dashboard',
   users: 'dashboard',
   'create-announcement': 'dashboard',
   
@@ -45,12 +43,15 @@ const ROUTE_TAB_MAP: Record<string, string> = {
   'class-detail': 'classes',
   'archived-classes': 'classes',
   
-  // Enhancement related
-  enhancement: 'enhancement',
+  // Insights related
+  insights: 'insights',
+  enhancement: 'insights',
+  analytics: 'insights',
+  reports: 'insights',
+  support: 'insights',
   
   // Profile related
   profile: 'profile',
-  support: 'profile',
 };
 
 const showTabRoutes = new Set([

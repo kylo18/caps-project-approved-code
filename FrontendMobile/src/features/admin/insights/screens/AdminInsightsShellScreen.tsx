@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MobileHeader from '../../../../features/core/components/MobileHeader';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useScreenFloatingTools } from '../../shared/hooks/useScreenFloatingTools';
+import PrintExamModal from '../../../practice/components/PrintExamModal';
 
 type InsightsRole = 'dean' | 'associate-dean' | 'program-chair' | 'faculty';
 
@@ -31,23 +32,15 @@ const ROLE_CONTENT: Record<
 > = {
   dean: {
     title: 'Insights',
-    subtitle: 'Centralize the merged enhancement workspace, reports, support, and export shortcuts.',
+    subtitle: 'Centralize workspace analytics, reports, support, and export shortcuts.',
     cards: [
       {
         key: 'analytics',
         title: 'Analytics Overview',
         description: 'Open the merged workspace directly on the analytics tab.',
-        icon: 'analytics-outline',
+        icon: 'trending-up-outline',
         color: '#8B5CF6',
         route: '/(auth)/(dean)/analytics',
-      },
-      {
-        key: 'enhancement',
-        title: 'Student Enhancement',
-        description: 'Open the merged enhancement workspace on the overview tab.',
-        icon: 'trending-up-outline',
-        color: '#10B981',
-        route: '/(auth)/(dean)/enhancement',
       },
       {
         key: 'reports',
@@ -77,23 +70,15 @@ const ROLE_CONTENT: Record<
   },
   'associate-dean': {
     title: 'Insights',
-    subtitle: 'Keep the merged enhancement workspace, reports, and export shortcuts in one role-aware hub.',
+    subtitle: 'Keep workspace analytics, reports, and export shortcuts in one role-aware hub.',
     cards: [
       {
         key: 'analytics',
         title: 'Analytics Overview',
         description: 'Open the merged workspace directly on the analytics tab.',
-        icon: 'analytics-outline',
+        icon: 'trending-up-outline',
         color: '#8B5CF6',
         route: '/(auth)/(associate-dean)/analytics',
-      },
-      {
-        key: 'enhancement',
-        title: 'Student Enhancement',
-        description: 'Open the merged enhancement workspace on the overview tab.',
-        icon: 'trending-up-outline',
-        color: '#10B981',
-        route: '/(auth)/(associate-dean)/enhancement',
       },
       {
         key: 'reports',
@@ -199,6 +184,20 @@ const ROLE_CONTENT: Record<
   },
 };
 
+// ─── Card shadow ──────────────────────────────────────────────────────────────
+function cardShadow(isDark: boolean) {
+  return Platform.select({
+    android: { elevation: isDark ? 6 : 4 },
+    default: {
+      shadowColor: isDark ? '#000000' : '#062B2D',
+      shadowOffset: { width: 0, height: isDark ? 8 : 6 },
+      shadowOpacity: isDark ? 0.4 : 0.1,
+      shadowRadius: 16,
+    },
+  });
+}
+
+// ─── Card ─────────────────────────────────────────────────────────────────────
 function InsightCard({
   card,
   isDark,
@@ -208,6 +207,10 @@ function InsightCard({
   isDark: boolean;
   onPress: () => void;
 }) {
+  const borderColor = isDark ? '#2A2A2A' : '#EFEEFC';
+  const bgColor = isDark ? '#1A1A1A' : '#FFFFFF';
+  const pressedBg = isDark ? '#242424' : '#FFF1E9';
+
   return (
     <Pressable
       onPress={onPress}
@@ -215,88 +218,211 @@ function InsightCard({
       accessibilityLabel={card.title}
       accessibilityHint={card.description}
       style={({ pressed }) => ({
-        borderRadius: 28,
-        padding: 18,
-        backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
-        opacity: pressed ? 0.92 : 1,
-        transform: [{ scale: pressed ? 0.985 : 1 }],
-        borderWidth: 1,
-        borderColor: isDark ? '#2A2A2A' : '#E5E7EB',
-        shadowColor: '#000',
-        shadowOpacity: isDark ? 0.18 : 0.08,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 8 },
-        elevation: 3,
+        borderRadius: 22,
+        borderWidth: 2,
+        borderColor: borderColor,
+        backgroundColor: pressed ? pressedBg : bgColor,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        ...cardShadow(isDark),
       })}
     >
-      <View className="flex-row items-start justify-between">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
         <View
-          className="w-12 h-12 rounded-2xl items-center justify-center"
-          style={{ backgroundColor: `${card.color}20`, borderWidth: 1, borderColor: `${card.color}30` }}
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 16,
+            backgroundColor: isDark ? `${card.color}33` : `${card.color}18`,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
         >
-          <Ionicons name={card.icon} size={24} color={card.color} />
+          <Ionicons name={card.icon} size={22} color={card.color} />
         </View>
-        <Ionicons name="chevron-forward" size={18} color={isDark ? '#6B7280' : '#9CA3AF'} />
+
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: '600',
+              color: isDark ? '#F5F5F5' : '#0C092A',
+              lineHeight: 22,
+            }}
+            numberOfLines={1}
+          >
+            {card.title}
+          </Text>
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: '400',
+              color: isDark ? '#9CA3AF' : '#858494',
+              lineHeight: 18,
+              marginTop: 2,
+            }}
+            numberOfLines={1}
+          >
+            {card.description}
+          </Text>
+        </View>
+
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color={isDark ? '#9CA3AF' : '#858494'}
+          style={{ flexShrink: 0 }}
+        />
       </View>
-      <Text className="text-[17px] font-bold mt-4" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-        {card.title}
-      </Text>
-      <Text className="text-[13px] mt-2 leading-5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-        {card.description}
-      </Text>
     </Pressable>
   );
 }
 
+// ─── Section ──────────────────────────────────────────────────────────────────
+type SectionProps = {
+  label: string;
+  cards: HubCard[];
+  isDark: boolean;
+  onCardPress: (route: string, key: string) => void;
+};
+
+function HubSection({ label, cards, isDark, onCardPress }: SectionProps) {
+  if (cards.length === 0) return null;
+
+  return (
+    <View style={{ marginBottom: 20, marginHorizontal: 16 }}>
+        <Text
+          style={{
+            fontSize: 11,
+            fontWeight: '600',
+            color: isDark ? '#9CA3AF' : '#6B7280',
+            letterSpacing: 0.9,
+            textTransform: 'uppercase',
+            paddingHorizontal: 4,
+            marginBottom: 10,
+          }}
+        >
+        {label}
+      </Text>
+
+      <View style={{ gap: 10 }}>
+        {cards.map(card => (
+          <InsightCard
+            key={card.key}
+            card={card}
+            isDark={isDark}
+            onPress={() => onCardPress(card.route, card.key)}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export default function AdminInsightsShellScreen({ role }: Props) {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const content = ROLE_CONTENT[role];
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
+  // ── Section bucketing ──────────────────────────────────────────────────────
+  const workspaceCards = useMemo(
+    () => content.cards.filter(c => ['analytics', 'enhancement'].includes(c.key)),
+    [content.cards]
+  );
+  const dataCards = useMemo(
+    () => content.cards.filter(c => ['reports', 'support'].includes(c.key)),
+    [content.cards]
+  );
+  const toolCards = useMemo(
+    () => content.cards.filter(c => !['analytics', 'enhancement', 'reports', 'support'].includes(c.key)),
+    [content.cards]
+  );
+
+  // ── FAB ────────────────────────────────────────────────────────────────────
   const fabActions = useMemo(
     () =>
-      content.cards.slice(0, 4).map((card) => ({
+      content.cards.slice(0, 4).map(card => ({
         key: `insight-${card.key}`,
         icon: card.icon,
         label: card.title,
-        onPress: () => router.push(card.route as string),
+        onPress: card.key === 'export'
+          ? () => setShowPrintModal(true)
+          : () => router.push(card.route as string),
         backgroundColor: card.color,
       })),
-    [content.cards, router]
+    [content.cards, router, setShowPrintModal]
   );
 
   useScreenFloatingTools(fabActions);
 
+  const handleCardPress = (route: string, key: string) => {
+    if (key === 'export') {
+      setShowPrintModal(true);
+    } else {
+      router.push(route as any);
+    }
+  };
+
   return (
-    <View className={`flex-1 ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#0F0F0F' : '#F4F5F7' }}>
       <MobileHeader title={content.title} />
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 16 }}
+        contentContainerStyle={{ paddingTop: 8, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        <View>
-          <Text className="text-[24px] font-bold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-            {content.title} Hub
-          </Text>
-          <Text className="text-[13px] mt-2 leading-5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-            {content.subtitle}
-          </Text>
+        {/* Page header */}
+        <View style={{ marginBottom: 24, paddingHorizontal: 20 }}>
+            <Text
+              style={{
+                fontSize: 26,
+                fontWeight: '700',
+                color: isDark ? '#F5F5F5' : '#111318',
+                letterSpacing: -0.5,
+                marginBottom: 6,
+                lineHeight: 32,
+              }}
+            >
+              Insights Hub
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: isDark ? '#9CA3AF' : '#6B7280',
+                lineHeight: 21,
+                maxWidth: 320,
+              }}
+            >
+              {content.subtitle}
+            </Text>
         </View>
 
-        <View className="gap-4">
-          {content.cards.map((card) => (
-            <InsightCard
-              key={card.key}
-              card={card}
-              isDark={isDark}
-              onPress={() => router.push(card.route as string)}
-            />
-          ))}
-        </View>
+        {/* Sections */}
+        <HubSection
+          label="Workspace"
+          cards={workspaceCards}
+          isDark={isDark}
+          onCardPress={(route, key) => handleCardPress(route, key)}
+        />
+        <HubSection
+          label="Data & Support"
+          cards={dataCards}
+          isDark={isDark}
+          onCardPress={(route, key) => handleCardPress(route, key)}
+        />
+        <HubSection
+          label="Tools"
+          cards={toolCards}
+          isDark={isDark}
+          onCardPress={(route, key) => handleCardPress(route, key)}
+        />
       </ScrollView>
+
+      <PrintExamModal visible={showPrintModal} onClose={() => setShowPrintModal(false)} />
     </View>
   );
 }

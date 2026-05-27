@@ -132,6 +132,26 @@ export default function AdminSubjectsScreen() {
   const [activeSubjectForMenu, setActiveSubjectForMenu] = useState<any>(null);
   const hasAppliedParamSubject = useRef(false);
 
+  // Print & settings modal state
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settingsTargetSubjectIDs, setSettingsTargetSubjectIDs] = useState<number[]>([]);
+  const [isExamEnabled, setIsExamEnabled] = useState(false);
+  const [practiceSettings, setPracticeSettings] = useState({
+    isEnabled: false,
+    enableTimer: false,
+    duration_minutes: 30,
+    coverage: 'midterm',
+    easy_percentage: 30,
+    moderate_percentage: 50,
+    hard_percentage: 20,
+    total_items: 100,
+  });
+  const [difficultyMode, setDifficultyMode] = useState('default');
+  const [settingsMessage, setSettingsMessage] = useState('');
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+
   // Quiz creation modal state
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [quizTitle, setQuizTitle] = useState('');
@@ -746,7 +766,7 @@ export default function AdminSubjectsScreen() {
               }}
               className="p-2 -ml-2 mr-2"
             >
-              <Ionicons name="arrow-back" size={24} className={isDark ? 'text-white' : 'text-gray-900'} />
+              <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#111827'} />
             </TouchableOpacity>
             <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
               {selectedSubject?.subjectName || 'Subjects'}

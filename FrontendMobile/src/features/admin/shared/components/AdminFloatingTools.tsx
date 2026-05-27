@@ -35,7 +35,7 @@ const FLOAT_SHADOW = {
 };
 
 const contentKeys = ['add-subject', 'add-question', 'create-quiz', 'quiz', 'assign-subject'];
-const manageKeys = ['configure-subject', 'print-export', 'insights', 'reports', 'classes', 'profile'];
+const manageKeys = ['configure-subject', 'configure', 'print-export', 'insights', 'reports', 'classes', 'profile'];
 
 const getActionColors = (key: string, customColor?: string) => {
   if (key === 'create-quiz' || key === 'quiz') {
@@ -44,7 +44,7 @@ const getActionColors = (key: string, customColor?: string) => {
   if (key === 'add-question' || key === 'print-export') {
     return { solid: '#10B981', tint: 'rgba(16, 185, 129, 0.08)' };
   }
-  if (key === 'add-subject' || key === 'assign-subject' || key === 'configure-subject') {
+  if (key === 'add-subject' || key === 'assign-subject' || key === 'configure-subject' || key === 'configure') {
     return { solid: '#FE6902', tint: 'rgba(254, 105, 2, 0.08)' };
   }
   if (key === 'classes') {
@@ -57,7 +57,7 @@ const getActionColors = (key: string, customColor?: string) => {
 };
 
 const getActionLabel = (key: string, originalLabel: string) => {
-  if (key === 'configure-subject') return 'Configure';
+  if (key === 'configure-subject' || key === 'configure') return 'Configure';
   return originalLabel;
 };
 
@@ -197,9 +197,9 @@ export default function AdminFloatingTools({
           borderRadius: 22,
           paddingVertical: 18,
           paddingHorizontal: 6,
-          backgroundColor: isDark ? colors.surfaceSoft : WHITE,
-          borderWidth: 1,
-          borderColor: colors.border,
+          backgroundColor: isDark ? colors.surfaceSoft : '#FAFAFA',
+          borderWidth: 1.5,
+          borderColor: isDark ? '#3A3A3A' : '#E2E8F0',
           opacity: isDisabled ? 0.45 : pressed ? 0.86 : 1,
           transform: [{ scale: pressed ? 0.98 : 1 }],
         })}
@@ -397,10 +397,10 @@ export default function AdminFloatingTools({
                   >
                     Manage
                   </Text>
-                  {chunkArray(manageActions, 2).map((row, rowIndex) => (
+                  {chunkArray(manageActions, 3).map((row, rowIndex) => (
                     <View key={`manage-row-${rowIndex}`} style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-                      {row.map(action => renderActionItem(action, 2))}
-                      {row.length < 2 && Array.from({ length: 2 - row.length }).map((_, dummyIndex) => (
+                      {row.map(action => renderActionItem(action, 3))}
+                      {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, dummyIndex) => (
                         <View key={`manage-dummy-${dummyIndex}`} style={{ flex: 1 }} />
                       ))}
                     </View>

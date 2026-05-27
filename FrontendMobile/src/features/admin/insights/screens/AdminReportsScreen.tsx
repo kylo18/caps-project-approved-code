@@ -516,7 +516,7 @@ export default function AdminReportsScreen({ role }: Props) {
 
   return (
     <View className={`flex-1 ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
-      <MobileHeader title={meta.title} />
+      <MobileHeader title={meta.title} showBack onBack={() => router.push(`/(auth)/(${role})/insights` as string)} />
 
       <ScrollView
         className="flex-1"

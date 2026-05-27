@@ -460,7 +460,7 @@ export default function AssoDeanSubjectsScreen() {
             }
             if (router.canGoBack()) router.back(); else router.replace('/(auth)/(associate-dean)/dashboard');
           }} className="p-2 -ml-2 mr-2">
-            <Ionicons name="arrow-back" size={24} className={isDark ? 'text-white' : 'text-gray-900'} />
+            <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#111827'} />
           </TouchableOpacity>
           <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{selectedSubject?.subjectName || 'Subjects'}</Text>
           </View>

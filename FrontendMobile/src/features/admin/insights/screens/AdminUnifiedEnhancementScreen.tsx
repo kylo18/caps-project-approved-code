@@ -658,7 +658,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     if (error) {
         return (
             <View className={`flex-1 items-center justify-center px-6 ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
-                <MobileHeader title="Enhancement & Analytics" />
+                <MobileHeader title="Analytics Overview" />
                 <View className="flex-1 items-center justify-center">
                     <Ionicons name="alert-circle-outline" size={56} color="#EF4444" />
                     <Text className="mt-4 text-[16px] font-semibold text-center" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
@@ -687,16 +687,6 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
     // ── Render ───────────────────────────────────────────────────────────────
     const renderHeaderAndTabs = () => (
         <View style={{ gap: 16 }}>
-            {/* Header */}
-            <View>
-                <Text className="text-[24px] font-bold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-                    {role === 'dean' ? 'Dean' : 'Associate Dean'} Workspace
-                </Text>
-                <Text className="text-[13px] mt-2 leading-5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                    Unified mobile workspace for student enhancement, oversight, and analytics review.
-                </Text>
-            </View>
-
             {/* Tab pills */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                 {(
@@ -734,7 +724,7 @@ export default function AdminUnifiedEnhancementScreen({ role, initialTab = 'over
 
     return (
         <View className={`flex-1 ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-100'}`}>
-            <MobileHeader title="Enhancement & Analytics" />
+            <MobileHeader title="Analytics Overview" showBack onBack={() => router.push(`${roleBaseRoute}/insights` as string)} />
 
             {activeTab === 'overview' || activeTab === 'analytics' ? (
                 <ScrollView

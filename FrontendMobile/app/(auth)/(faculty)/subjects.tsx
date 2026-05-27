@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, Alert, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,6 +40,10 @@ export default function FacultySubjectsScreen() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [questionsPage, setQuestionsPage] = useState(1);
+  const [questionsHasMore, setQuestionsHasMore] = useState(true);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+  const [isLoadingMoreQuestions, setIsLoadingMoreQuestions] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [availableSubjects, setAvailableSubjects] = useState<any[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
@@ -72,7 +76,9 @@ export default function FacultySubjectsScreen() {
 
   useEffect(() => {
     if (selectedSubject) {
-      fetchQuestions();
+      setQuestionsPage(1);
+      setQuestionsHasMore(true);
+      fetchQuestions(true);
     }
   }, [selectedSubject]);
 
@@ -133,14 +139,58 @@ export default function FacultySubjectsScreen() {
     fetchSubjects(false);
   };
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = async (reset = false) => {
     if (!selectedSubject) return;
+    const currentPage = reset ? 1 : questionsPage;
+
+    if (reset) {
+      setIsLoadingQuestions(true);
+      setQuestionsPage(1);
+      setQuestionsHasMore(true);
+    } else {
+      setIsLoadingMoreQuestions(true);
+    }
+
     try {
-      const data = await apiRequest(`/api/faculty/my-questions/${selectedSubject.subjectID}`);
-      setQuestions(Array.isArray(data?.data) ? data.data : Array.isArray(data?.questions) ? data.questions : Array.isArray(data) ? data : []);
+      const data = await apiRequest(`/api/faculty/my-questions/${selectedSubject.subjectID}?page=${currentPage}&limit=20`);
+      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data?.questions) ? data.questions : Array.isArray(data) ? data : [];
+      const total: number | undefined = data?.total ?? data?.count ?? data?.totalCount;
+
+      if (reset) {
+        setQuestions(list);
+        setQuestionsHasMore(total !== undefined ? list.length < total : list.length >= 20);
+      } else {
+        setQuestions(prev => {
+          const existing = new Set(prev.map((q: any) => q.questionID));
+          const newUnique = list.filter((q: any) => !existing.has(q.questionID));
+          const nextQuestions = [...prev, ...newUnique];
+          setQuestionsHasMore(total !== undefined ? nextQuestions.length < total : list.length >= 20);
+          return nextQuestions;
+        });
+        setQuestionsPage(prev => prev + 1);
+      }
     } catch (error) {
       console.error('Error fetching questions:', error);
+    } finally {
+      if (reset) {
+        setIsLoadingQuestions(false);
+      } else {
+        setIsLoadingMoreQuestions(false);
+      }
     }
+  };
+
+  const handleLoadMoreQuestions = () => {
+    if (!questionsHasMore || isLoadingMoreQuestions || isLoadingQuestions || !selectedSubject) return;
+    fetchQuestions(false);
+  };
+
+  const handleQuestionsScroll = ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const distanceFromBottom =
+      nativeEvent.contentSize.height -
+      (nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y);
+    if (distanceFromBottom > 96) return;
+    handleLoadMoreQuestions();
   };
 
   const fetchPrograms = async () => {
@@ -339,6 +389,8 @@ export default function FacultySubjectsScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 96 }}
         showsVerticalScrollIndicator={false}
+        onScroll={selectedSubject ? handleQuestionsScroll : undefined}
+        scrollEventThrottle={250}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#FE6902" />}
       >
         {!selectedSubject ? (
@@ -406,7 +458,11 @@ export default function FacultySubjectsScreen() {
               </Text>
             </View>
 
-            {questions.length === 0 ? (
+            {isLoadingQuestions ? (
+              <View className="py-8 items-center">
+                <CapsActivityIndicator size="large" color="#FE6902" />
+              </View>
+            ) : questions.length === 0 ? (
               <View className={`rounded-3xl p-8 items-center ${isDark ? 'bg-[#242424]' : 'bg-white'}`}>
                 <Ionicons name="help-circle-outline" size={64} color="#FE6902" />
                 <Text className={`text-lg font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>No Questions Yet</Text>
@@ -473,6 +529,12 @@ export default function FacultySubjectsScreen() {
                   </View>
                 </TouchableOpacity>
               ))
+            )}
+            {isLoadingMoreQuestions && (
+              <View className="py-4 items-center">
+                <CapsActivityIndicator size="small" color="#FE6902" />
+                <Text className="text-xs mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Loading more questions...</Text>
+              </View>
             )}
           </View>
         )}

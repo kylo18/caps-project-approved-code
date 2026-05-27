@@ -127,7 +127,7 @@ export default function MobileHeader({ title, showTitle = true, showBack = false
                 <View className="flex-row items-center gap-2">
                     {/* Help Button */}
                     <Pressable
-                        className="w-9 h-9 rounded-full items-center justify-center"
+                        className="px-2.5 py-2 rounded-xl items-center justify-center"
                         style={{ backgroundColor: colors.surface }}
                         onPress={() => setShowHelp(true)}
                     >
@@ -140,7 +140,7 @@ export default function MobileHeader({ title, showTitle = true, showBack = false
 
                     {/* Notifications Button */}
                     <Pressable
-                        className="w-9 h-9 rounded-full items-center justify-center relative"
+                        className="px-2.5 py-2 rounded-xl items-center justify-center relative"
                         style={{ backgroundColor: colors.surface }}
                         onPress={() => setShowNotifications(true)}
                     >
@@ -160,7 +160,7 @@ export default function MobileHeader({ title, showTitle = true, showBack = false
 
                     {/* Theme Toggle */}
                     <Pressable
-                        className="w-9 h-9 rounded-full items-center justify-center"
+                        className="px-2.5 py-2 rounded-xl items-center justify-center"
                         style={{ backgroundColor: colors.surface }}
                         onPress={toggleTheme}
                     >

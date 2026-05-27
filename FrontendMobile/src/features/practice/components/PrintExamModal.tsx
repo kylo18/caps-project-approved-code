@@ -165,11 +165,11 @@ export default function PrintExamModal({ visible, onClose }: { visible: boolean;
   };
 
   const colors = {
-    bg: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(0,0,0,0.5)',
-    card: isDark ? '#1f2937' : '#fff',
-    text: isDark ? '#f9fafb' : '#111827',
-    textSecondary: isDark ? '#9ca3af' : '#6b7280',
-    border: isDark ? '#374151' : '#e5e7eb',
+    bg: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)',
+    card: isDark ? '#1A1A1A' : '#fff',
+    text: isDark ? '#F5F5F5' : '#111827',
+    textSecondary: isDark ? '#9CA3AF' : '#6b7280',
+    border: isDark ? '#2A2A2A' : '#e5e7eb',
     orange: '#FE6902',
   };
 
@@ -180,7 +180,7 @@ export default function PrintExamModal({ visible, onClose }: { visible: boolean;
     paddingHorizontal: 12,
     paddingVertical: 8,
     color: colors.text,
-    backgroundColor: isDark ? '#111827' : '#f9fafb',
+    backgroundColor: isDark ? '#242424' : '#f9fafb',
     fontSize: 14,
     minWidth: 60,
     textAlign: 'center',

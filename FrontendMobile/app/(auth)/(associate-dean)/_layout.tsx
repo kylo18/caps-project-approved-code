@@ -23,19 +23,19 @@ export default function AssociateDeanLayout() {
         <Tabs
           screenOptions={{ headerShown: false }}
           tabBar={(props) => (
-            <RoleTabBar {...props} visibleRoutes={['dashboard', 'subjects', 'classes', 'enhancement', 'profile']} />
+            <RoleTabBar {...props} visibleRoutes={['dashboard', 'subjects', 'classes', 'insights', 'profile']} />
           )}
         >
           <Tabs.Screen name="dashboard" options={{ title: 'Home' }} />
           <Tabs.Screen name="subjects" options={{ title: 'Subjects' }} />
           <Tabs.Screen name="classes" options={{ title: 'Classes' }} />
-          <Tabs.Screen name="enhancement" options={{ title: 'Enhancement' }} />
-          <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+          <Tabs.Screen name="enhancement" options={{ href: null }} />
           <Tabs.Screen name="users" options={{ href: null }} />
           <Tabs.Screen name="class-detail" options={{ href: null }} />
           <Tabs.Screen name="analytics" options={{ href: null }} />
           <Tabs.Screen name="reports" options={{ href: null }} />
-          <Tabs.Screen name="insights" options={{ href: null }} />
+          <Tabs.Screen name="insights" options={{ title: 'Insights' }} />
+          <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
           <Tabs.Screen name="create-announcement" options={{ href: null }} />
           <Tabs.Screen name="archived-classes" options={{ href: null }} />
         </Tabs>
