@@ -51,6 +51,9 @@ export default function AssoDeanDashboard() {
     monthlyGrowth: 0,
   });
 
+  const [programScores, setProgramScores] = useState<any[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
+
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [quizTitle, setQuizTitle] = useState('');
   const [quizTypeID, setQuizTypeID] = useState<number>(2); // 1 = subject-based, 2 = custom
@@ -67,27 +70,35 @@ export default function AssoDeanDashboard() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [subjectsRes, usersRes] = await Promise.all([
+      const [subjectsRes, usersRes, programsRes, summaryRes, comparisonRes] = await Promise.all([
         apiRequest('/api/subjects'),
         apiRequest('/api/users?limit=10000&status=registered'),
+        apiRequest('/api/programs'),
+        apiRequest('/api/admin/analytics/summary'),
+        apiRequest('/api/admin/analytics/program-comparison'),
       ]);
 
       const subjectList = subjectsRes?.data || subjectsRes?.subjects || subjectsRes || [];
       const users = usersRes?.users || usersRes?.data || [];
+      const programList = programsRes?.data || programsRes?.programs || programsRes || [];
+      const summary = summaryRes?.data || summaryRes || {};
+      const comparison = comparisonRes?.data || comparisonRes || [];
 
       setSubjects(Array.isArray(subjectList) ? subjectList : []);
+      setPrograms(Array.isArray(programList) ? programList : []);
+      setProgramScores(Array.isArray(comparison) ? comparison : []);
 
       const facultyCount = Array.isArray(users) ? users.filter((u: any) => [2, 3, 4, 5].includes(u.roleID)).length : 0;
       const studentCount = Array.isArray(users) ? users.filter((u: any) => u.roleID === 1).length : 0;
 
       setStats({
-        totalStudents: studentCount,
+        totalStudents: Number(summary.total_students ?? studentCount),
         totalFaculty: facultyCount,
-        totalPrograms: 4, // Placeholder
+        totalPrograms: Array.isArray(programList) ? programList.length : 0,
         totalSubjects: subjectList.length,
-        collegeAvgScore: 74,
-        collegePassRate: 80,
-        monthlyGrowth: 12,
+        collegeAvgScore: Math.round(Number(summary.average_score ?? 0)),
+        collegePassRate: Math.round(Number(summary.pass_rate ?? 0) * 100),
+        monthlyGrowth: Math.round(Number(summary.improvement_percentage ?? 0) * 100),
       });
     } catch (error) {
       console.error('Error fetching associate dean data:', error);
@@ -161,13 +172,6 @@ export default function AssoDeanDashboard() {
     borderWidth: 1,
     ...shadow,
   };
-
-  const programScores = [
-    { name: 'BSIT', score: 78 },
-    { name: 'BSCS', score: 72 },
-    { name: 'BSIS', score: 81 },
-    { name: 'BSCpE', score: 75 },
-  ];
 
   useScreenFloatingTools([
     {
@@ -452,28 +456,40 @@ export default function AssoDeanDashboard() {
           Program Comparison
         </Text>
         <View className={`rounded-2xl p-4 ${isDark ? 'bg-gray-900' : 'bg-white'}`} style={cardStyle}>
-          {programScores.map((program, idx) => (
-            <View
-              key={program.name}
-              className={`flex-row items-center py-3 ${idx !== programScores.length - 1 ? 'border-b' : ''}`}
-              style={{ borderBottomColor: idx !== programScores.length - 1 ? colors.border : 'transparent' }}
-            >
-              <Text className="w-16 font-semibold" style={{ color: colors.text }}>
-                {program.name}
-              </Text>
-              <View className="flex-1 mx-3">
-                <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
-                  <View
-                    className="h-full rounded-full"
-                    style={{ width: `${program.score}%`, backgroundColor: colors.orange }}
-                  />
-                </View>
-              </View>
-              <Text className="w-12 text-right font-semibold" style={{ color: colors.text }}>
-                {program.score}%
+          {programScores.length === 0 ? (
+            <View className="items-center py-4">
+              <Ionicons name="bar-chart-outline" size={32} color={colors.mutedIcon} />
+              <Text className="mt-2 text-sm" style={{ color: colors.textSoft }}>
+                No exam data available yet
               </Text>
             </View>
-          ))}
+          ) : (
+            programScores.map((program, idx) => {
+              const score = Math.round(Number(program.average_score ?? 0));
+              return (
+                <View
+                  key={program.programID ?? program.programName}
+                  className={`flex-row items-center py-3 ${idx !== programScores.length - 1 ? 'border-b' : ''}`}
+                  style={{ borderBottomColor: idx !== programScores.length - 1 ? colors.border : 'transparent' }}
+                >
+                  <Text className="w-16 font-semibold" style={{ color: colors.text }}>
+                    {program.programName}
+                  </Text>
+                  <View className="flex-1 mx-3">
+                    <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.cardSoft }}>
+                      <View
+                        className="h-full rounded-full"
+                        style={{ width: `${score}%`, backgroundColor: colors.orange }}
+                      />
+                    </View>
+                  </View>
+                  <Text className="w-12 text-right font-semibold" style={{ color: colors.text }}>
+                    {score}%
+                  </Text>
+                </View>
+              );
+            })
+          )}
         </View>
 
         {/* Subject Oversight */}
