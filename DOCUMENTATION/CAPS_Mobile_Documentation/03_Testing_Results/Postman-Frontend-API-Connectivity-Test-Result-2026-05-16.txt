@@ -1,0 +1,139 @@
+# CAPS React Native Mobile API Connectivity Test Result
+
+## Test Summary
+- **Date**: 2026-05-16T09:11:16.853Z
+- **Runner**: Newman (node newman.js) — run-postman-txt-report.cjs
+- **Environment**: Local.json (http://localhost:8000/api)
+- **Endpoints Tested**: 47
+- **Assertions**: 64/64 (100% pass rate)
+
+---
+
+## General API Connectivity Tests
+
+| Route | Method | Status | Code | Meaning |
+|-------|--------|--------|------|---------|
+| /app-version                                  | GET     | PASS   | 200 | OK |
+| /login                                        | POST    | PASS   | 200 | OK |
+| /user/profile                                 | GET     | PASS   | 200 | OK |
+| /student/practice-subjects                    | GET     | PASS   | 200 | OK |
+| /student/analytics/summary                    | GET     | PASS   | 200 | OK |
+| /student/analytics/trends                     | GET     | PASS   | 200 | OK |
+| /student/analytics/insights                   | GET     | PASS   | 200 | OK |
+| /my-classes                                   | GET     | PASS   | 200 | OK |
+| /notifications/unread-count                   | GET     | PASS   | 200 | OK |
+| /logout                                       | POST    | PASS   | 200 | OK |
+| /login                                        | POST    | PASS   | 200 | OK |
+| /user/profile                                 | GET     | PASS   | 200 | OK |
+| /subjects                                     | GET     | PASS   | 200 | OK |
+| /admin/analytics/summary                      | GET     | PASS   | 200 | OK |
+| /my-students                                  | GET     | PASS   | 200 | OK |
+| /faculty/my-subjects                          | GET     | PASS   | 200 | OK |
+| /users                                        | GET     | PASS   | 200 | OK |
+| /classes/index                                | GET     | PASS   | 200 | OK |
+| /logout                                       | POST    | PASS   | 200 | OK |
+| /login                                        | POST    | PASS   | 200 | OK |
+| /user/profile                                 | GET     | PASS   | 200 | OK |
+| /subjects                                     | GET     | PASS   | 200 | OK |
+| /users                                        | GET     | PASS   | 200 | OK |
+| /admin/analytics/summary                      | GET     | PASS   | 200 | OK |
+| /admin/analytics/pass-fail-rate               | GET     | PASS   | 200 | OK |
+| /programs                                     | GET     | PASS   | 200 | OK |
+| /year-levels                                  | GET     | PASS   | 200 | OK |
+| /classes/index                                | GET     | PASS   | 200 | OK |
+| /logout                                       | POST    | PASS   | 200 | OK |
+| /login                                        | POST    | PASS   | 200 | OK |
+| /user/profile                                 | GET     | PASS   | 200 | OK |
+| /users                                        | GET     | PASS   | 200 | OK |
+| /subjects                                     | GET     | PASS   | 200 | OK |
+| /admin/analytics/summary                      | GET     | PASS   | 200 | OK |
+| /admin/analytics/pass-fail-rate               | GET     | PASS   | 200 | OK |
+| /classes/index                                | GET     | PASS   | 200 | OK |
+| /admin/support/tickets                        | GET     | PASS   | 200 | OK |
+| /logout                                       | POST    | PASS   | 200 | OK |
+| /login                                        | POST    | PASS   | 200 | OK |
+| /user/profile                                 | GET     | PASS   | 200 | OK |
+| /subjects                                     | GET     | PASS   | 200 | OK |
+| /users                                        | GET     | PASS   | 200 | OK |
+| /admin/analytics/summary                      | GET     | PASS   | 200 | OK |
+| /programs                                     | GET     | PASS   | 200 | OK |
+| /year-levels                                  | GET     | PASS   | 200 | OK |
+| /classes/index                                | GET     | PASS   | 200 | OK |
+| /logout                                       | POST    | PASS   | 200 | OK |
+
+---
+
+## Mobile-Called APIs (FrontendMobile/src)
+
+| Endpoint | Method | Used In | Status Code | Description (STATUS_MEANINGS) |
+|----------|--------|---------|-------------|------------------------------|
+| /api/app-version                     | GET     | connectionTest.ts            |         200 | OK (200) — request succeeded |
+| /api/login                           | POST    | apiClient.ts                 |         200 | OK (200) — request succeeded |
+| /api/user/profile                    | GET     | apiClient.ts (auth)          |         200 | OK (200) — request succeeded |
+| /api/student/practice-subjects       | GET     | Subject selection            |         200 | OK (200) — request succeeded |
+| /api/student/analytics/summary       | GET     | studentAnalyticsService.ts   |         200 | OK (200) — request succeeded |
+| /api/student/analytics/trends        | GET     | Backend API                  |         200 | OK (200) — request succeeded |
+| /api/student/analytics/insights      | GET     | studentAnalyticsService.ts   |         200 | OK (200) — request succeeded |
+| /api/my-classes                      | GET     | Class enrollment             |         200 | OK (200) — request succeeded |
+| /api/notifications/unread-count      | GET     | Authenticated routes         |         200 | OK (200) — request succeeded |
+| /api/logout                          | POST    | Auth                         |         200 | OK (200) — request succeeded |
+| /api/login                           | POST    | apiClient.ts                 |         200 | OK (200) — request succeeded |
+| /api/user/profile                    | GET     | apiClient.ts (auth)          |         200 | OK (200) — request succeeded |
+| /api/subjects                        | GET     | Student dashboard            |         200 | OK (200) — request succeeded |
+| /api/admin/analytics/summary         | GET     | studentAnalyticsService.ts   |         200 | OK (200) — request succeeded |
+| /api/my-students                     | GET     | Backend API                  |         200 | OK (200) — request succeeded |
+| /api/faculty/my-subjects             | GET     | Student dashboard            |         200 | OK (200) — request succeeded |
+| /api/users                           | GET     | Admin overview               |         200 | OK (200) — request succeeded |
+| /api/classes/index                   | GET     | Admin/reference              |         200 | OK (200) — request succeeded |
+| /api/logout                          | POST    | Auth                         |         200 | OK (200) — request succeeded |
+| /api/login                           | POST    | apiClient.ts                 |         200 | OK (200) — request succeeded |
+| /api/user/profile                    | GET     | apiClient.ts (auth)          |         200 | OK (200) — request succeeded |
+| /api/subjects                        | GET     | Student dashboard            |         200 | OK (200) — request succeeded |
+| /api/users                           | GET     | Admin overview               |         200 | OK (200) — request succeeded |
+| /api/admin/analytics/summary         | GET     | studentAnalyticsService.ts   |         200 | OK (200) — request succeeded |
+| /api/admin/analytics/pass-fail-rate  | GET     | Backend API                  |         200 | OK (200) — request succeeded |
+| /api/programs                        | GET     | Admin/reference              |         200 | OK (200) — request succeeded |
+| /api/year-levels                     | GET     | Admin/reference              |         200 | OK (200) — request succeeded |
+| /api/classes/index                   | GET     | Admin/reference              |         200 | OK (200) — request succeeded |
+| /api/logout                          | POST    | Auth                         |         200 | OK (200) — request succeeded |
+| /api/login                           | POST    | apiClient.ts                 |         200 | OK (200) — request succeeded |
+| /api/user/profile                    | GET     | apiClient.ts (auth)          |         200 | OK (200) — request succeeded |
+| /api/users                           | GET     | Admin overview               |         200 | OK (200) — request succeeded |
+| /api/subjects                        | GET     | Student dashboard            |         200 | OK (200) — request succeeded |
+| /api/admin/analytics/summary         | GET     | studentAnalyticsService.ts   |         200 | OK (200) — request succeeded |
+| /api/admin/analytics/pass-fail-rate  | GET     | Backend API                  |         200 | OK (200) — request succeeded |
+| /api/classes/index                   | GET     | Admin/reference              |         200 | OK (200) — request succeeded |
+| /api/admin/support/tickets           | GET     | Admin support                |         200 | OK (200) — request succeeded |
+| /api/logout                          | POST    | Auth                         |         200 | OK (200) — request succeeded |
+| /api/login                           | POST    | apiClient.ts                 |         200 | OK (200) — request succeeded |
+| /api/user/profile                    | GET     | apiClient.ts (auth)          |         200 | OK (200) — request succeeded |
+| /api/subjects                        | GET     | Student dashboard            |         200 | OK (200) — request succeeded |
+| /api/users                           | GET     | Admin overview               |         200 | OK (200) — request succeeded |
+| /api/admin/analytics/summary         | GET     | studentAnalyticsService.ts   |         200 | OK (200) — request succeeded |
+| /api/programs                        | GET     | Admin/reference              |         200 | OK (200) — request succeeded |
+| /api/year-levels                     | GET     | Admin/reference              |         200 | OK (200) — request succeeded |
+| /api/classes/index                   | GET     | Admin/reference              |         200 | OK (200) — request succeeded |
+| /api/logout                          | POST    | Auth                         |         200 | OK (200) — request succeeded |
+
+---
+
+## CAPS React Native Mobile API Test Report v1.0
+
+- **Endpoints Tested**: 47 (all backend routes)
+- **Mobile Core Endpoints**: 47
+- **Pass Rate**: 100%
+- **Date**: 2026-05-16T09:11:16.853Z
+- **Runner**: Newman (node newman.js) — run-postman-txt-report.cjs
+- **Environment**: Local.json (http://localhost:8000/api)
+- **Average Response Time**: 16s
+- **Total Data Received**: 1458KB
+
+---
+
+## Notes
+
+1. All 47 requests from `CAPS-API-Postman-Collection.json` returned **HTTP 200**.
+2. 64/64 assertions passed across all 5 role handshakes (Public, Student, Faculty, Program Chair, Dean, Associate Dean).
+3. `Local.json` credentials used as-is: Student (24-A-00236), Faculty (23-A-12347), Program Chair (23-A-12346), Dean (23-A-12345), Associate Dean (23-A-22220).
+4. Backend socket is `http://localhost:8000/api` (Docker local), matching Local.json base_url.
+5. No migration warnings or 500 errors observed in any role.
