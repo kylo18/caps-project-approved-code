@@ -294,18 +294,29 @@ class QuestionController extends Controller
             ], 404);
         }
 
-        $questions = Question::with(['subject', 'choices', 'status', 'difficulty', 'coverage', 'purpose'])
+        $perPage = min((int) request()->input('limit', 20), 50);
+        $page = max((int) request()->input('page', 1), 1);
+
+        $query = Question::with(['subject', 'choices', 'status', 'difficulty', 'coverage', 'purpose'])
             ->where('subjectID', $subjectID)
-            ->where('userID', $user->userID)
+            ->where('userID', $user->userID);
+
+        $total = (clone $query)->count();
+
+        $questions = $query->orderBy('created_at', 'desc')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
             ->get()
-            ->map(function ($question) {
-                return $this->formatQuestion($question);
-            });
+            ->map(fn($q) => $this->formatQuestion($q));
 
         return response()->json([
             'message' => 'Your questions for this subject retrieved successfully!',
             'subject' => $subject->subjectName,
-            'data'    => $questions
+            'data'    => $questions,
+            'total'   => $total,
+            'page'    => $page,
+            'per_page' => $perPage,
+            'total_pages' => ceil($total / $perPage),
         ], 200);
     }
 
