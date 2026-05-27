@@ -788,10 +788,10 @@ const Sessions = () => {
                                     viewBox="0 0 24 24"
                                     fill="none"
                                     stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    class="lucide lucide-calendar-clock-icon lucide-calendar-clock"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="lucide lucide-calendar-clock-icon lucide-calendar-clock"
                                   >
                                     <path d="M16 14v2.2l1.6 1" />
                                     <path d="M16 2v4" />

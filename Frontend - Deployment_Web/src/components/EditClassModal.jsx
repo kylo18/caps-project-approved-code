@@ -367,7 +367,7 @@ const EditClassModal = ({ isOpen, onClose, onSuccess, classData }) => {
         return;
       }
 
-      const response = await fetch(`${apiUrl}/classes/update/${classID}`, {
+      const response = await fetch(`${apiUrl}/classes/${classID}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -389,7 +389,20 @@ const EditClassModal = ({ isOpen, onClose, onSuccess, classData }) => {
         return;
       }
 
-      const data = await response.json();
+      let data = null;
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        try {
+          data = await response.json();
+        } catch (err) {
+          console.error("Invalid JSON from server:", err);
+          data = null;
+        }
+      } else {
+        // Non-JSON response (likely HTML error page)
+        const text = await response.text();
+        console.error("Non-JSON response from server:", text);
+      }
 
       if (!response.ok) {
         if (response.status === 422 && data.errors) {
@@ -399,10 +412,10 @@ const EditClassModal = ({ isOpen, onClose, onSuccess, classData }) => {
             "error",
           );
         } else if (response.status === 404) {
-          showToast(data.message || "Class not found", "error");
+          showToast((data && data.message) || "Class not found", "error");
         } else {
           showToast(
-            data.message || "Failed to update class. Please try again.",
+            (data && data.message) || "Failed to update class. Please try again.",
             "error",
           );
         }

@@ -380,10 +380,10 @@ function LandingPage() {
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="lucide lucide-newspaper-icon lucide-newspaper"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-newspaper-icon lucide-newspaper"
                   >
                     <path d="M15 18h-5" />
                     <path d="M18 14h-8" />
@@ -410,10 +410,10 @@ function LandingPage() {
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="lucide lucide-file-pen-line-icon lucide-file-pen-line"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-file-pen-line-icon lucide-file-pen-line"
                   >
                     <path d="M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z" />
                     <path d="M14.487 7.858A1 1 0 0 1 14 7V2" />

@@ -358,10 +358,10 @@ const ImageSelectionModal = ({
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="lucide lucide-upload-icon lucide-upload"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="lucide lucide-upload-icon lucide-upload"
             >
               <path d="M12 3v12" />
               <path d="m17 8-5-5-5 5" />

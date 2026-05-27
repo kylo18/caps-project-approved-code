@@ -763,10 +763,10 @@ const Class = () => {
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                class="lucide lucide-square-arrow-right-exit-icon lucide-square-arrow-right-exit"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="lucide lucide-square-arrow-right-exit-icon lucide-square-arrow-right-exit"
                               >
                                 <path d="M10 12h11" />
                                 <path d="m17 16 4-4-4-4" />
