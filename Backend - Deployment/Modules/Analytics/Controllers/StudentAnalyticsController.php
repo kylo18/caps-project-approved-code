@@ -73,7 +73,7 @@ class StudentAnalyticsController extends Controller
                 $mistakeStats = $this->buildQuestionMistakeStats($user->userID);
                 $frequentlyMistakenCount = $mistakeStats
                     ->filter(function ($item) {
-                        return (int) ($item['consecutive_wrong_count'] ?? 0) >= 3;
+                        return (int) ($item['consecutive_wrong_count'] ?? 0) >= 1;
                     })
                     ->count();
             } catch (\Exception $e) {
@@ -367,7 +367,7 @@ class StudentAnalyticsController extends Controller
 
             $mistaken = $this->buildQuestionMistakeStats($user->userID)
                 ->filter(function ($item) {
-                    return (int) ($item['consecutive_wrong_count'] ?? 0) >= 3;
+                    return (int) ($item['consecutive_wrong_count'] ?? 0) >= 1;
                 })
                 ->sort(function ($a, $b) {
                     $streakCompare = (int) ($b['consecutive_wrong_count'] ?? 0) <=> (int) ($a['consecutive_wrong_count'] ?? 0);
