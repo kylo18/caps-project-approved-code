@@ -292,11 +292,16 @@ class PracticeExamLeaderboardController extends Controller
             $limit = (int) $request->query('limit', 50);
             $limitWithBuffer = $limit * 3;
 
+            $programID = $request->query('programID');
+            $subjectID = $request->query('subjectID');
+
             $aggregated = DB::table('practice_exam_results')
                 ->join('users', 'practice_exam_results.userID', '=', 'users.userID')
                 ->leftJoin('programs', 'users.programID', '=', 'programs.programID')
                 ->leftJoin('students', 'users.userCode', '=', 'students.userCode')
                 ->where('users.roleID', 1)
+                ->when($programID, fn ($q) => $q->where('users.programID', $programID))
+                ->when($subjectID, fn ($q) => $q->where('practice_exam_results.subjectID', $subjectID))
                 ->select([
                     'practice_exam_results.userID',
                     'users.userCode',
@@ -399,6 +404,11 @@ class PracticeExamLeaderboardController extends Controller
             // Calculate date 7 days ago
             $sevenDaysAgo = now()->subDays(7)->startOfDay();
 
+            // Optional filter parameters
+            $programID = $request->query('programID');
+            $subjectID = $request->query('subjectID');
+            $facultyID = $request->query('facultyID');
+
             // Use database-level aggregation with GROUP BY and LIMIT
             $limit = (int) $request->query('limit', 50);
             $limitWithBuffer = $limit * 3;
@@ -412,6 +422,20 @@ class PracticeExamLeaderboardController extends Controller
             // Students can only see their own results
             if ($user->roleID == 1) {
                 $aggregated->where('practice_exam_results.userID', $user->userID);
+            }
+
+            // Apply optional filters
+            if ($programID) {
+                $aggregated->where('users.programID', $programID);
+            }
+            if ($subjectID) {
+                $aggregated->where('practice_exam_results.subjectID', $subjectID);
+            }
+            if ($facultyID) {
+                $teacherStudentIds = DB::table('student_teacher_enrollments')
+                    ->where('teacherID', $facultyID)
+                    ->pluck('studentID');
+                $aggregated->whereIn('practice_exam_results.userID', $teacherStudentIds);
             }
 
             $aggregated = $aggregated
