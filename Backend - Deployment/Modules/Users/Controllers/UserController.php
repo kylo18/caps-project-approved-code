@@ -695,13 +695,15 @@ class UserController extends Controller
                 });
             },
             'role' => function ($q, $value) {
-                $q->whereHas('role', function ($q) use ($value) {
-                    $q->where('roleName', $value);
+                $roles = explode(',', $value);
+                $q->whereHas('role', function ($q) use ($roles) {
+                    $q->whereIn('roleName', $roles);
                 });
             },
             'position' => function ($q, $value) {
-                $q->whereHas('role', function ($q) use ($value) {
-                    $q->where('roleName', $value);
+                $roles = explode(',', $value);
+                $q->whereHas('role', function ($q) use ($roles) {
+                    $q->whereIn('roleName', $roles);
                 });
             },
             'program' => function ($q, $value) {

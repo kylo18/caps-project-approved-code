@@ -320,8 +320,8 @@ class QuestionController extends Controller
         ], 200);
     }
 
-    // Approve a question if it's pending and not edited by the current user
-    public function updateStatus($questionID)
+    // Update question status (approve, reject, or revert)
+    public function updateStatus(Request $request, $questionID)
     {
         $this->authorizeRoles([3, 4, 5]);
 
@@ -330,33 +330,33 @@ class QuestionController extends Controller
             return response()->json(['message' => 'Question not found.'], 404);
         }
 
-        $pendingStatus = Status::where('name', 'pending')->first();
-        if (!$pendingStatus || $question->status_id !== $pendingStatus->id) {
-            return response()->json([
-                'message' => 'Only questions with pending status can be approved.',
-                'current_status' => optional($question->status)->name
-            ], 400);
+        $requestedStatus = $request->input('status', 'approved');
+        $targetStatus = Status::where('name', $requestedStatus)->first();
+        if (!$targetStatus) {
+            return response()->json(['message' => "Invalid status '{$requestedStatus}'."], 400);
         }
 
-        // Check if the current user is the creator and the question hasn't been edited yet
-        if (Auth::id() === $question->userID && !$question->editedBy) {
-            return response()->json(['message' => 'You cannot approve your own question.'], 403);
-        }
-
-        // Check if the current user is the one who last edited the question
-        if (Auth::id() === $question->editedBy) {
-            return response()->json(['message' => 'You cannot approve a question you last edited.'], 403);
-        }
-
-        $approvedStatus = Status::where('name', 'approved')->first();
-        if ($approvedStatus) {
-            $question->status_id = $approvedStatus->id;
-            // Update the approvedBy field with the current user
+        // Allow transition to approved regardless of current status
+        if ($requestedStatus === 'approved') {
+            // Check if the current user is the creator and the question hasn't been edited yet
+            if (Auth::id() === $question->userID && !$question->editedBy) {
+                return response()->json(['message' => 'You cannot approve your own question.'], 403);
+            }
+            if (Auth::id() === $question->editedBy) {
+                return response()->json(['message' => 'You cannot approve a question you last edited.'], 403);
+            }
             $question->approvedBy = Auth::id();
-            $question->save();
         }
 
-        return response()->json(['message' => 'Question approved.', 'question' => $this->formatQuestion($question)]);
+        $question->status_id = $targetStatus->id;
+        $question->save();
+
+        $statusName = $targetStatus->name;
+
+        return response()->json([
+            'message' => "Question {$statusName}.",
+            'question' => $this->formatQuestion($question)
+        ]);
     }
 
     // Show questions by subject and filter them by the program of the logged-in Program Chair

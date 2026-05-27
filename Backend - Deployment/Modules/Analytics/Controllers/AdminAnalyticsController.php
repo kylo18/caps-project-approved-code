@@ -177,14 +177,15 @@ class AdminAnalyticsController extends Controller
             }
             // Dean (roleID 4) — no extra filters, sees all campus data
 
-            $activeUsers = (clone $usersQuery)->whereIn('roleID', [1, 2, 3, 4, 5])->count();
+            // Split counts: students vs faculty
+            $students = (clone $usersQuery)->where('roleID', 1)->count();
+            $faculty = (clone $usersQuery)->whereIn('roleID', [2, 3, 4, 5])->count();
             $totalSubjects = (clone $subjectsQuery)->count();
 
             // Count approved questions scoped to the same subject filters.
-            // Uses a subquery to avoid loading 1M+ subjectIDs into PHP memory.
             $approvedQuestions = DB::table('questions')
                 ->where('status_id', 2)
-                ->where(function ($q) use ($user, $subjectsQuery) {
+                ->where(function ($q) use ($user) {
                     if ($user->roleID === 3 && $user->campusID && $user->programID) {
                         $q->whereIn('subjectID', function ($sub) use ($user) {
                             $sub->select('subjectID')
@@ -193,16 +194,44 @@ class AdminAnalyticsController extends Controller
                                 ->orWhere('programID', 6);
                         });
                     }
-                    // Dean (roleID 4) — no extra filter, counts all approved questions
                 })
                 ->count();
+
+            // Program count scoped by campus
+            $programsQuery = DB::table('programs');
+            if ($user->roleID === 5 && $user->campusID) {
+                $programsQuery->where('campusID', $user->campusID);
+            } elseif ($user->roleID === 3 && $user->programID) {
+                $programsQuery->where('programID', $user->programID);
+            }
+            $totalPrograms = $programsQuery->count();
+
+            // Exam analytics scoped by role
+            $examQuery = DB::table('practice_exam_results')
+                ->join('users', 'practice_exam_results.userID', '=', 'users.userID');
+            $examQuery = $this->applyRoleBasedScope($examQuery, $user);
+
+            $totalExams = (clone $examQuery)->count();
+            $avgScore = (clone $examQuery)->avg('percentage') ?? 0;
+
+            $passCount = (clone $examQuery)->where('percentage', '>=', 60)->count();
+            $passRate = $totalExams > 0 ? ($passCount / $totalExams) : 0;
+
+            $currentMonthAvg = (clone $examQuery)->whereMonth('practice_exam_results.created_at', now()->month)->avg('percentage') ?? 0;
+            $previousMonthAvg = (clone $examQuery)->whereMonth('practice_exam_results.created_at', now()->subMonth()->month)->avg('percentage') ?? 0;
+            $improvement = $previousMonthAvg > 0 ? (($currentMonthAvg - $previousMonthAvg) / $previousMonthAvg) : 0;
 
             return response()->json([
                 'message' => 'Dashboard stats retrieved successfully',
                 'data' => [
-                    'users' => $activeUsers,
+                    'students' => $students,
+                    'faculty' => $faculty,
                     'subjects' => $totalSubjects,
                     'questions' => $approvedQuestions,
+                    'programs' => $totalPrograms,
+                    'average_score' => round($avgScore, 2),
+                    'pass_rate' => round($passRate, 4),
+                    'improvement_percentage' => round($improvement, 2),
                 ]
             ], 200);
         } catch (\Exception $e) {

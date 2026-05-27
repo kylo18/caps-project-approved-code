@@ -231,7 +231,7 @@ class PracticeExamLeaderboardController extends Controller
                     'highestScore' => $row->highestScore,
                     'totalPoints' => $row->totalPoints,
                     'highestPercentage' => round($row->highestPercentage, 2),
-                    'attempts' => $row->attempts,
+                    'totalAttempts' => $row->attempts,
                     'lastAttemptDate' => $row->lastAttemptDate,
                     'lastAttemptScore' => $row->lastAttemptScore,
                     'lastAttemptPercentage' => $row->lastAttemptPercentage !== null ? round($row->lastAttemptPercentage, 2) : null,
