@@ -186,6 +186,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/year-levels', [YearLevelController::class, 'index']);
     Route::get('/practice-exam/content-analytics', [AnalyticsController::class, 'getPracticeContentAnalytics']);
     Route::get('/practice-exam/difficulty-analytics', [AnalyticsController::class, 'getPracticeDifficultyAnalytics']);
+    Route::get('/practice-exam/skipped-questions/{subjectId}', [AnalyticsController::class, 'getSkippedQuestionsBySubject']);
 
     // Classes & Quizzes
     Route::get('/classes/{classID}/quizzes', [ClassPersonalQuizController::class, 'index']);

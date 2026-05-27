@@ -4,15 +4,15 @@ import { useNavigate } from "react-router-dom";
 // new added: moved TABS config outside component to avoid re-creation on every render
 const TABS = [
   {
-    id:    "viewed",
-    label: "Most Viewed",
-    icon:  "👁",
-    accent: "#FF6014",
-    soft:   "#FEF0EA",
-    softText: "#C44A0C",
-    unit:  "views",
-    hint:  "Lessons you opened the most",
-  },
+  id:    "weakest",
+  label: "Weakest Questions",
+  icon:  "🧠",
+  accent: "#DC2626",
+  soft:   "#FEF2F2",
+  softText: "#991B1B",
+  unit:  "wrong",
+  hint:  "Questions you get wrong most often",
+},
   {
     id:    "attempted",
     label: "Most Attempted",
@@ -52,7 +52,8 @@ const ContentAnalytics = () => {
   const apiUrl     = import.meta.env.VITE_API_BASE_URL;
   const [loading, setLoading]   = useState(true);
   const [data,    setData]      = useState(null);
-  const [tab,     setTab]       = useState("viewed");
+  const [mistakesData, setMistakesData] = useState([]);
+  const [tab, setTab] = useState("weakest");
 
   // new added: added mobile detection state for responsive layout
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -60,6 +61,10 @@ const ContentAnalytics = () => {
   const [refreshing,  setRefreshing]  = useState(false);
   const [error,       setError]       = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [page, setPage] = useState({});
+  const [skippedModal, setSkippedModal] = useState(null);
+  const [skippedQuestions, setSkippedQuestions] = useState([]);
+  const [skippedLoading, setSkippedLoading] = useState(false);
   const apiUrlRef = useRef(apiUrl);
   useEffect(() => { apiUrlRef.current = apiUrl; }, [apiUrl]);
 
@@ -77,18 +82,28 @@ const ContentAnalytics = () => {
     let cancelled = false;
     try {
       const token = sessionStorage.getItem("token");
-      const res   = await fetch(`${apiUrlRef.current}/practice-exam/content-analytics`, {
+      
+      const res = await fetch(`${apiUrlRef.current}/practice-exam/content-analytics`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const json = await res.json();
 
       console.log("API response:", json);
+      console.log("mostSkipped sample:", json.mostSkipped?.[0]);
+      
+
+      const mistakesRes = await fetch(`${apiUrlRef.current}/student/analytics/frequently-mistaken`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const mistakesJson = await mistakesRes.json();
+      if (!cancelled) setMistakesData(mistakesJson.data ?? []);
 
       if (!cancelled) {
         setData(json);
         setLastUpdated(new Date());
       }
+
     } catch (e) {
       if (!cancelled) setError(e.message || "Failed to load data");
     } finally {
@@ -116,14 +131,13 @@ const ContentAnalytics = () => {
   const itemsMap = {
 
     // new added: added fallback display names when API returns null/undefined
-    viewed: (data?.mostViewed || []).map(i => ({
-      name:    i.lessonName || "Unknown Lesson",  // viewed
-      value:   i.views,
-
-      // new added: added sub (secondary label) and display (formatted value pill text) per item
-      sub:     `${i.views} view${i.views !== 1 ? "s" : ""}`,  
-      display: String(i.views),
+    weakest: mistakesData.map(i => ({
+      name:    i.questionText || `Question #${i.questionID}`,
+      value:   i.wrong_count ?? 0,
+      sub:     `${i.subjectName} · ${i.wrong_count} wrong`,
+      display: String(i.wrong_count ?? 0),
     })),
+
     attempted: (data?.mostAttempted || []).map(i => ({
       //name:    `Question #${i.questionId}`,
       name:    i.questionText || `Question #${i.questionId}`, // attempted & errors
@@ -139,10 +153,11 @@ const ContentAnalytics = () => {
       display: `${(i.rate * 100).toFixed(1)}%`,
     })),
     skipped: (data?.mostSkipped || []).map(i => ({
-      name:    i.name || "Unknown Topic",   // skipped
+      name:    i.name || "Unknown Topic",
       value:   i.skipped_count,
       sub:     `${i.skipped_count} skip${i.skipped_count !== 1 ? "s" : ""}`,
       display: String(i.skipped_count),
+      topicId: i.topicId,
     })),
   };
 
@@ -151,7 +166,7 @@ const ContentAnalytics = () => {
   // data source: GET /practice-exam/content-analytics
   //   → totalViews, totalAttempts, avgErrorRate, totalSkipped
   const stats = [
-    { label: "Lessons Viewed",      value: data?.totalViews    ?? 0, icon: "📖", accent: "#FF6014", soft: "#FEF0EA" },
+    { label: "Weak Questions", value: mistakesData.length, icon: "🧠", accent: "#DC2626", soft: "#FEF2F2" },
     { label: "Questions Attempted", value: data?.totalAttempts ?? 0, icon: "✏️", accent: "#3B8BD4", soft: "#EBF4FD" },
     { label: "Avg Error Rate",      value: data?.avgErrorRate != null 
     ? `${(data.avgErrorRate <= 1 ? data.avgErrorRate * 100 : data.avgErrorRate).toFixed(1)}%` 
@@ -160,9 +175,39 @@ const ContentAnalytics = () => {
   ];
 
   // new added: added fallback to TABS[0] if tab not found; items now pulled from itemsMap
-  const current = TABS.find(t => t.id === tab) ?? TABS[0];
-  const items   = itemsMap[tab] ?? [];
-  const maxVal  = items.length ? Math.max(...items.map(i => i.value ?? 0)) : 1;
+  const current    = TABS.find(t => t.id === tab) ?? TABS[0];
+  const allItems   = itemsMap[tab] ?? [];
+  const PAGE_SIZE  = 20;
+  const currentPage = page[tab] ?? 0;
+  const totalPages  = Math.ceil(allItems.length / PAGE_SIZE);
+  const items       = allItems.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const maxVal      = allItems.length ? Math.max(...allItems.map(i => i.value ?? 0)) : 1;
+
+  const goNext = () => setPage(p => ({ ...p, [tab]: Math.min((p[tab] ?? 0) + 1, totalPages - 1) }));
+  const goPrev = () => setPage(p => ({ ...p, [tab]: Math.max((p[tab] ?? 0) - 1, 0) }));
+
+  const handleTabChange = (id) => {
+    setTab(id);
+    setPage(p => ({ ...p, [id]: 0 }));
+  };
+
+  const openSkippedDetail = async (subjectId, subjectName) => {
+    setSkippedModal({ subjectId, subjectName });
+    setSkippedLoading(true);
+    setSkippedQuestions([]);
+    try {
+      const token = sessionStorage.getItem("token");
+      const res = await fetch(`${apiUrl}/practice-exam/skipped-questions/${subjectId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      setSkippedQuestions(json.data ?? []);
+    } catch (e) {
+      console.error("Failed to load skipped questions:", e);
+    } finally {
+      setSkippedLoading(false);
+    }
+  };
 
   return (
     <div style={{
@@ -285,7 +330,7 @@ const ContentAnalytics = () => {
           {TABS.map(t => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => handleTabChange(t.id)}
               style={{
                 padding:       "12px 6px",
                 borderRadius:  12,
@@ -374,8 +419,9 @@ const ContentAnalytics = () => {
             ) : (
               items.map((item, i) => {
                 const barPct = maxVal > 0 ? Math.round((item.value / maxVal) * 100) : 0;
-                const rankBg = i < 3 ? RANK_COLORS[i] : "#F0EDE8";
-                const rankTx = i < 3 ? "#fff" : "#9B9790";
+                const globalIndex = currentPage * PAGE_SIZE + i;
+                const rankBg = globalIndex < 3 ? RANK_COLORS[globalIndex] : "#F0EDE8";
+                const rankTx = globalIndex < 3 ? "#fff" : "#9B9790";
 
                 return (
                   <div
@@ -387,9 +433,12 @@ const ContentAnalytics = () => {
                       padding:      "13px 20px",
                       borderBottom: i < items.length - 1 ? "1px solid #F8F6F3" : "none",
                       transition:   "background 0.1s",
+                      cursor:       tab === "skipped" ? "pointer" : "default",
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = "#FAFAF8"}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    onClick={() => tab === "skipped" ? openSkippedDetail(item.topicId, item.name) : null}
+              
                   >
                     {/* Rank badge */}
                     <div style={{
@@ -399,7 +448,7 @@ const ContentAnalytics = () => {
                       fontSize: 12, fontWeight: 700, color: rankTx,
                       flexShrink: 0,
                     }}>
-                      {i + 1}
+                      {globalIndex + 1}
                     </div>
 
                     {/* Name + bar */}
@@ -448,8 +497,132 @@ const ContentAnalytics = () => {
               })
             )}
           </div>
+          {/* Pagination bar */}
+          {allItems.length > 0 && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "10px 20px", borderTop: "1px solid #F0EDE8",
+              background: current.soft + "33",
+            }}>
+              <button
+                onClick={goPrev}
+                disabled={currentPage === 0}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "6px 14px", borderRadius: 8, cursor: currentPage === 0 ? "not-allowed" : "pointer",
+                  border: "1px solid #EAE8E2", background: currentPage === 0 ? "#F5F3EF" : "#fff",
+                  fontSize: 12, fontWeight: 600, color: currentPage === 0 ? "#C4C0B8" : "#5C5955",
+                  fontFamily: "inherit",
+                }}
+              >
+                ← Prev
+              </button>
+              <span style={{ fontSize: 12, color: "#9B9790", fontWeight: 500 }}>
+                Page {currentPage + 1}
+              </span>
+              <button
+                onClick={goNext}
+                disabled={currentPage >= totalPages - 1}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "6px 14px", borderRadius: 8, cursor: currentPage >= totalPages - 1 ? "not-allowed" : "pointer",
+                  border: "1px solid #EAE8E2", background: currentPage >= totalPages - 1 ? "#F5F3EF" : "#fff",
+                  fontSize: 12, fontWeight: 600, color: currentPage >= totalPages - 1 ? "#C4C0B8" : "#5C5955",
+                  fontFamily: "inherit",
+                }}
+              >
+                Next →
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Skipped Questions Modal */}
+      {skippedModal && (
+        <div
+          onClick={() => setSkippedModal(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 50,
+            background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#fff", borderRadius: 20, width: "100%",
+              maxWidth: 560, maxHeight: "80vh", display: "flex",
+              flexDirection: "column", overflow: "hidden",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+            }}
+          >
+            <div style={{
+              padding: "16px 20px", borderBottom: "1px solid #F0EDE8",
+              display: "flex", alignItems: "center", gap: 12,
+              background: "#F0EFFD",
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10, background: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 18, flexShrink: 0,
+              }}>⏭️</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1814",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {skippedModal.subjectName}
+                </div>
+                <div style={{ fontSize: 11, color: "#9B9790" }}>Skipped questions in this subject</div>
+              </div>
+              <button
+                onClick={() => setSkippedModal(null)}
+                style={{
+                  background: "none", border: "1px solid #EAE8E2", borderRadius: 8,
+                  padding: "4px 10px", cursor: "pointer", fontSize: 12,
+                  color: "#9B9790", fontFamily: "inherit",
+                }}
+              >✕ Close</button>
+            </div>
+            <div style={{ overflowY: "auto", flex: 1, padding: "12px 20px" }}>
+              {skippedLoading ? (
+                <SkeletonList />
+              ) : skippedQuestions.length === 0 ? (
+                <EmptyState label="Skipped Questions" />
+              ) : (
+                skippedQuestions.map((q, i) => (
+                  <div key={q.questionId} style={{
+                    display: "flex", alignItems: "flex-start", gap: 12,
+                    padding: "12px 0",
+                    borderBottom: i < skippedQuestions.length - 1 ? "1px solid #F8F6F3" : "none",
+                  }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                      background: i < 3 ? RANK_COLORS[i] : "#F0EDE8",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 12, fontWeight: 700,
+                      color: i < 3 ? "#fff" : "#9B9790",
+                    }}>{i + 1}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "#1A1814", lineHeight: 1.5 }}>
+                        {q.questionText}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#9B9790", marginTop: 4 }}>
+                        Skipped {q.skip_count} time{q.skip_count !== 1 ? "s" : ""}
+                      </div>
+                    </div>
+                    <div style={{
+                      padding: "4px 10px", borderRadius: 20,
+                      background: "#F0EFFD", fontSize: 12,
+                      fontWeight: 700, color: "#7F77DD", flexShrink: 0,
+                    }}>{q.skip_count}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* new added: slightly reduced pulse animation low opacity for subtler skeleton effect*/}
       <style>{`

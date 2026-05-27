@@ -478,7 +478,7 @@ class AnalyticsController extends Controller
                 )
                 ->groupBy('exam_results.question_id', 'questions.questionText')
                 ->orderByDesc('count')
-                ->limit(10)
+                ->limit(20)
                 ->get()
                 ->map(fn($item) => [
                     'questionId'   => $item->question_id,
@@ -499,7 +499,7 @@ class AnalyticsController extends Controller
                 )
                 ->groupBy('exam_results.question_id', 'questions.questionText')
                 ->orderByDesc('rate')
-                ->limit(10)
+                ->limit(20)
                 ->get()
                 ->map(fn($item) => [
                     'questionId'   => $item->question_id,
@@ -511,20 +511,21 @@ class AnalyticsController extends Controller
 
             $mostSkipped = DB::table('exam_results')
                 ->join('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
-                ->join('coverages', 'exam_results.topic_id', '=', 'coverages.id')
+                ->join('questions', 'exam_results.question_id', '=', 'questions.questionID')
+                ->join('subjects', 'questions.subjectID', '=', 'subjects.subjectID')
                 ->where('exam_attempts.user_id', $userId)
                 ->where('exam_results.is_skipped', 1)
                 ->select(
-                    'exam_results.topic_id',
+                    'subjects.subjectID',
                     DB::raw('COUNT(*) as skipped_count'),
-                    'coverages.name as topicName'
+                    'subjects.subjectName as topicName'
                 )
-                ->groupBy('exam_results.topic_id', 'coverages.name')
+                ->groupBy('subjects.subjectID', 'subjects.subjectName')
                 ->orderByDesc('skipped_count')
-                ->limit(10)
+                ->limit(20)
                 ->get()
                 ->map(fn($item) => [
-                    'topicId'       => $item->topic_id,
+                    'topicId'       => $item->subjectID,
                     'name'          => $item->topicName,
                     'skipped_count' => (int) $item->skipped_count,
                 ]);
@@ -1005,6 +1006,50 @@ class AnalyticsController extends Controller
             return \Illuminate\Support\Facades\Crypt::decryptString($value);
         } catch (\Exception $e) {
             return $value;
+        }
+    }
+
+    /**
+     * Get skipped questions for a specific subject.
+     * GET /api/practice-exam/skipped-questions/{subjectId}
+     */
+    public function getSkippedQuestionsBySubject(int $subjectId)
+    {
+        try {
+            $userId = auth()->id();
+
+            $questions = DB::table('exam_results')
+                ->join('exam_attempts', 'exam_results.attempt_id', '=', 'exam_attempts.id')
+                ->join('questions', 'exam_results.question_id', '=', 'questions.questionID')
+                ->join('subjects', 'questions.subjectID', '=', 'subjects.subjectID')
+                ->where('exam_attempts.user_id', $userId)
+                ->where('exam_results.is_skipped', 1)
+                ->where('questions.subjectID', $subjectId)
+                ->select(
+                    'exam_results.question_id',
+                    'questions.questionText',
+                    'subjects.subjectName',
+                    DB::raw('COUNT(*) as skip_count')
+                )
+                ->groupBy('exam_results.question_id', 'questions.questionText', 'subjects.subjectName')
+                ->orderByDesc('skip_count')
+                ->limit(50)
+                ->get()
+                ->map(fn($item) => [
+                    'questionId'   => $item->question_id,
+                    'questionText' => self::safeDecrypt($item->questionText),
+                    'subjectName'  => $item->subjectName,
+                    'skip_count'   => (int) $item->skip_count,
+                ]);
+
+            return response()->json([
+                'subjectId' => $subjectId,
+                'data'      => $questions,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('getSkippedQuestionsBySubject failed: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
