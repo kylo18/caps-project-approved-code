@@ -5,7 +5,10 @@ This folder contains technical documentation for the CAPS mobile application. Th
 
 ## Contents
 - `Admin Analytics Dashboard Guide.md` — mobile admin analytics dashboard behavior and user guide
-- `API Documentation.md` — mobile API client behavior, endpoint usage, caching, and offline handling
+- `API Setup and Environment Configuration.md` — environment variables, API base URL setup, and mobile startup config
+- `Authentication Flow and Navigation Logic.md` — auth state, login/logout flow, and authenticated routing
+- `Frontend Data Models and Type Definitions.md` — mobile data models, API types, and frontend TypeScript interfaces
+- `Role-Based Navigation and Fallback Handling.md` — role guards, route validation, and fallback handling
 - `Help Center and Support Documentation.md` — Help Center workflows, support ticket submission, and admin review
 - `Implemented UI Components and Layout.md` — UI components, layout structure, and shared mobile patterns
 - `Issue Reporting Guide.md` — issue reporting process, supported categories, and admin handling
@@ -18,7 +21,10 @@ This folder contains technical documentation for the CAPS mobile application. Th
 
 ## How to use
 - Read `Mobile Setup, Architecture, and Features.md` first for the app structure and service layer.
-- Use `API Documentation.md` when implementing or debugging mobile backend integration.
+- Use `API Setup and Environment Configuration.md` when configuring the mobile backend and runtime environment.
+- Use `Authentication Flow and Navigation Logic.md` for auth routing and role-based navigation behavior.
+- Use `Frontend Data Models and Type Definitions.md` for mobile model and API type definitions.
+- Use `Role-Based Navigation and Fallback Handling.md` for role guard and fallback handling details.
 - Use `Help Center and Support Documentation.md` and `Issue Reporting Guide.md` for support workflows.
 - Use `Mobile Analytics and Comparison Features.md` and `Admin Analytics Dashboard Guide.md` for analytics-related work.
 
