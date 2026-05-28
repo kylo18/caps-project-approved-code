@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { Alert, Modal, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../features/core/components/CapsActivityIndicator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -346,13 +346,17 @@ export default function ClassesScreen({
       {/* Create Quiz Modal */}
       <Modal visible={showQuizModal} transparent animationType="slide" onRequestClose={() => setShowQuizModal(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ width: '100%' }}
+          >
           <View
             style={{
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               paddingHorizontal: 20,
               paddingTop: 20,
-              paddingBottom: 32,
+              paddingBottom: Math.max(insets.bottom + 16, 34),
               backgroundColor: isDark ? '#1A1A1A' : '#ffffff',
             }}
           >
@@ -474,6 +478,7 @@ export default function ClassesScreen({
               )}
             </TouchableOpacity>
           </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>

@@ -537,7 +537,7 @@ export default function AdminDashboard() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
-            <View className={`rounded-t-3xl px-5 pt-5 pb-8 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
+            <View className={`rounded-t-3xl px-5 pt-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={{ paddingBottom: Math.max(insets.bottom + 16, 34) }}>
               <View className="flex-row items-center justify-between mb-5">
                 <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Quiz</Text>
                 <TouchableOpacity onPress={() => setShowQuizModal(false)}>

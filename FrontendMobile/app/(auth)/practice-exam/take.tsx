@@ -608,6 +608,7 @@ export default function PracticeExamScreen() {
                   contentWidth={windowWidth - 48}
                   source={{ html: currentQuestion.questionText || '<p></p>' }}
                   tagsStyles={questionTagsStyles}
+                  baseStyle={{ color: colors.text }}
                   ignoredStyles={['color', 'backgroundColor']}
                 />
               </View>

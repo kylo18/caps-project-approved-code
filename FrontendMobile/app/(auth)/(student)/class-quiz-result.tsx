@@ -5,12 +5,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { studentColors } from '../../../src/features/student/ui/StudentUI';
+import { useTheme } from '../../../src/contexts/ThemeContext';
+import { getStudentColors } from '../../../src/features/student/ui/StudentUI';
 import { getQuizResult } from '../../../src/services/studentClassService';
 
 export default function ClassQuizResultScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const studentColors = getStudentColors(isDark);
   const { resultID, quizName } = useLocalSearchParams();
   const resultId = String(resultID);
 
@@ -40,15 +44,15 @@ export default function ClassQuizResultScreen() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: studentColors.surface }}>
-        <StatusBar style="light" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <CapsActivityIndicator size="large" color={studentColors.orange} />
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-white">
-      <StatusBar style="light" />
+    <View className="flex-1" style={{ backgroundColor: studentColors.page }}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <View className="px-6 pb-6 items-center" style={{ paddingTop: insets.top + 20, backgroundColor: studentColors.orange }}>
@@ -103,8 +107,9 @@ export default function ClassQuizResultScreen() {
       </View>
 
       <ScrollView
-        className="flex-1 bg-white rounded-t-[24px] -mt-4"
+        className="flex-1 rounded-t-[24px] -mt-4"
         contentContainerStyle={{ padding: 24, paddingBottom: 120 }}
+        style={{ backgroundColor: studentColors.card }}
         showsVerticalScrollIndicator={false}
       >
         <Text
@@ -131,7 +136,7 @@ export default function ClassQuizResultScreen() {
                 className="rounded-2xl border-2 p-4 mb-3"
                 style={{
                   borderColor: isCorrect ? studentColors.success : isWrong ? '#EF4444' : studentColors.border,
-                  backgroundColor: isCorrect ? '#F0FDF4' : isWrong ? '#FEF2F2' : studentColors.white,
+                  backgroundColor: isCorrect ? (isDark ? '#064E3B' : '#F0FDF4') : isWrong ? (isDark ? '#7F1D1D' : '#FEF2F2') : studentColors.card,
                 }}
               >
                 <View className="flex-row items-start gap-2">
@@ -200,8 +205,9 @@ export default function ClassQuizResultScreen() {
 
       {/* Done Button */}
       <View
-        className="absolute bottom-0 left-0 right-0 px-6 py-4 bg-white"
+        className="absolute bottom-0 left-0 right-0 px-6 py-4"
         style={{
+          backgroundColor: studentColors.card,
           borderTopWidth: 1,
           borderTopColor: studentColors.border,
           paddingBottom: insets.bottom + 16,

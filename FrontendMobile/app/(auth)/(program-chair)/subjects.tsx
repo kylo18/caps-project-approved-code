@@ -6,7 +6,7 @@
 //          (add/edit/delete). Uses NativeWind for mobile-native styling.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -23,7 +23,7 @@ import {
   Platform,
 } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import RenderHtml from 'react-native-render-html';
@@ -122,6 +122,13 @@ export default function ProgramChairSubjectsScreen() {
   useEffect(() => {
     fetchSubjects(true);
   }, [filterProgramID, filterYearLevelID]);
+
+  // Re-fetch subjects when screen regains focus (e.g. after editing a subject)
+  useFocusEffect(
+    useCallback(() => {
+      fetchSubjects(true);
+    }, [filterProgramID, filterYearLevelID])
+  );
 
   // Auto-select subject from URL param after subjects load
   useEffect(() => {
@@ -729,7 +736,7 @@ export default function ProgramChairSubjectsScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
-            <View className={`rounded-t-3xl p-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
+            <View className={`rounded-t-3xl px-5 pt-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={{ paddingBottom: Math.max(insets.bottom + 16, 34) }}>
             <View className="flex-row justify-between items-center mb-4">
               <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {editingSubject ? 'Edit Subject' : 'Add Subject'}
@@ -852,7 +859,7 @@ export default function ProgramChairSubjectsScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
-            <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, backgroundColor: isDark ? '#1A1A1A' : '#ffffff' }}>
+            <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: Math.max(insets.bottom + 16, 34), backgroundColor: isDark ? '#1A1A1A' : '#ffffff' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <Text style={{ fontSize: 18, fontWeight: '700', color: isDark ? '#fff' : '#111827' }}>Create Quiz</Text>
               <TouchableOpacity onPress={() => setShowQuizModal(false)}>

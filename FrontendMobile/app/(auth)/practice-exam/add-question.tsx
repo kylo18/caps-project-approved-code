@@ -98,7 +98,15 @@ export default function AddQuestionForm() {
           });
         }
         showToast('Question added to quiz', 'success');
-        if (returnTo) { router.replace(returnTo); } else { router.back(); }
+        setQuestionText('');
+        setChoices([
+          { choiceText: '', isCorrect: false },
+          { choiceText: '', isCorrect: false },
+          { choiceText: '', isCorrect: false },
+          { choiceText: '', isCorrect: false },
+        ]);
+        richText.current?.setContentHTML('');
+        return;
       } else {
         // ── Legacy standalone question flow ──
         const questionRes = await apiRequest('/api/questions/add', {
@@ -109,7 +117,7 @@ export default function AddQuestionForm() {
             coverage_id: 1,
             score: 1,
             difficulty_id: 1,
-            status_id: 2,
+            status_id: 1,
             purpose_id: 1,
           },
         });
@@ -223,22 +231,36 @@ export default function AddQuestionForm() {
           <Text className="text-xs mt-2" style={{ color: colors.textSecondary }}>Tap the circle to mark correct answer</Text>
         </View>
 
-        <TouchableOpacity
-          className="flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl gap-2"
-          style={{ opacity: isSubmitting ? 0.6 : 1 }}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-          activeOpacity={0.8}
-        >
-          {isSubmitting ? (
-            <CapsActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={20} color="#fff" />
-              <Text className="text-white text-base font-bold">Add Question</Text>
-            </>
+        <View className="flex-row gap-3">
+          {personalQuizID && (
+            <TouchableOpacity
+              className="flex-1 flex-row items-center justify-center bg-[#6b7280] py-3.5 rounded-xl gap-2"
+              onPress={() => {
+                if (returnTo) { router.replace(returnTo); } else { router.back(); }
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="checkmark-done" size={20} color="#fff" />
+              <Text className="text-white text-base font-bold">Done</Text>
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            className={`${personalQuizID ? 'flex-1' : 'w-full'} flex-row items-center justify-center bg-[#FE6902] py-3.5 rounded-xl gap-2`}
+            style={{ opacity: isSubmitting ? 0.6 : 1 }}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+            activeOpacity={0.8}
+          >
+            {isSubmitting ? (
+              <CapsActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="add-circle" size={20} color="#fff" />
+                <Text className="text-white text-base font-bold">{personalQuizID ? 'Add Another Question' : 'Add Question'}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

@@ -23,6 +23,7 @@ import { useTheme } from '../../../src/contexts/ThemeContext';
 import { showToast } from '../../../src/hooks/useToast';
 import MobileHeader from '../../../src/features/core/components/MobileHeader';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
 
 const { width } = Dimensions.get('window');
@@ -34,6 +35,7 @@ export default function ProgramChairDashboard() {
   const isDark = theme === 'dark';
   const colors = getStudentColors(isDark);
   const shadow = getStudentShadow(isDark);
+  const insets = useSafeAreaInsets();
   const auth = useSelector((state: any) => state.auth);
   const user = auth?.user;
 
@@ -492,7 +494,7 @@ export default function ProgramChairDashboard() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
-            <View className={`rounded-t-3xl px-5 pt-5 pb-8 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}>
+            <View className={`rounded-t-3xl px-5 pt-5 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`} style={{ paddingBottom: Math.max(insets.bottom + 16, 34) }}>
               <View className="flex-row items-center justify-between mb-5">
                 <Text className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Quiz</Text>
                 <TouchableOpacity onPress={() => setShowQuizModal(false)}>

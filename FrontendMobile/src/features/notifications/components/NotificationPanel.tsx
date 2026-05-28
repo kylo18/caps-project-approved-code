@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import CapsActivityIndicator from '../../../features/core/components/CapsActivityIndicator';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
 import { getRoleThemeColors } from '../../../../src/features/core/styles/roleTheme';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../../../../src/services/notificationService';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function NotificationPanel({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -176,7 +178,7 @@ export default function NotificationPanel({ visible, onClose }: { visible: boole
 
       <Modal visible={showDetailModal} transparent animationType="slide" onRequestClose={() => setShowDetailModal(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View className="rounded-t-3xl p-5" style={{ backgroundColor: colors.card }}>
+          <View className="rounded-t-3xl px-5 pt-5" style={{ backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom + 16, 34) }}>
             <View className="flex-row justify-between items-center pb-4 border-b mb-4" style={{ borderBottomColor: colors.border }}>
               <Text className="text-lg font-bold" style={{ color: colors.text }}>Notification Details</Text>
               <TouchableOpacity onPress={() => setShowDetailModal(false)}>

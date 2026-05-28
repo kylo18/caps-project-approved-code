@@ -173,6 +173,14 @@ const ROLE_CONTENT: Record<
         route: '/(auth)/(faculty)/subjects',
       },
       {
+        key: 'export',
+        title: 'Export & Print',
+        description: 'Generate and export exam PDFs for printing.',
+        icon: 'print-outline',
+        color: '#8B5CF6',
+        route: '/(auth)/(faculty)/subjects',
+      },
+      {
         key: 'create-quiz',
         title: 'Create Quiz',
         description: 'Go directly to quiz creation and question authoring.',

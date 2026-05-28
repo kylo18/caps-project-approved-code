@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -45,6 +45,12 @@ export default function ClassDetailScreen() {
   useEffect(() => {
     loadQuizzes();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadQuizzes();
+    }, [classId])
+  );
 
   useEffect(() => {
     if (segment === 'history' && history.length === 0) {

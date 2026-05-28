@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput, Alert, TextStyle } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput, Alert, TextStyle, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../../src/services/apiClient';
 import { useTheme } from '../../../../src/contexts/ThemeContext';
@@ -7,10 +7,12 @@ import { showToast } from '../../../../src/hooks/useToast';
 import CapsActivityIndicator from '../../../features/core/components/CapsActivityIndicator';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PrintExamModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const [subjects, setSubjects] = useState<any[]>([]);
   const [selectedSubjects, setSelectedSubjects] = useState<any[]>([]);
@@ -129,7 +131,7 @@ export default function PrintExamModal({ visible, onClose }: { visible: boolean;
         },
       });
 
-      const htmlContent = generateExamHTML(response);
+      const htmlContent = generateExamHTML(response?.previewData);
       const { uri } = await Print.printToFileAsync({ html: htmlContent });
       await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
 
@@ -189,7 +191,11 @@ export default function PrintExamModal({ visible, onClose }: { visible: boolean;
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View className="flex-1 justify-end" style={{ backgroundColor: colors.bg }}>
-        <View className="rounded-t-3xl p-5" style={{ backgroundColor: colors.card }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ width: '100%' }}
+        >
+        <View className="rounded-t-3xl px-5 pt-5" style={{ backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom + 16, 34) }}>
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-xl font-bold" style={{ color: colors.text }}>Generate Exam</Text>
             <TouchableOpacity onPress={onClose}>
@@ -341,6 +347,7 @@ export default function PrintExamModal({ visible, onClose }: { visible: boolean;
             </>
           )}
         </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

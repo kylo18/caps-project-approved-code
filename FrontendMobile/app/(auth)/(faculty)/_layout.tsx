@@ -23,7 +23,7 @@ export default function FacultyLayout() {
         <Tabs
           screenOptions={{ headerShown: false }}
           tabBar={(props) => (
-            <RoleTabBar {...props} visibleRoutes={['dashboard', 'subjects', 'classes', 'profile']} />
+            <RoleTabBar {...props} visibleRoutes={['dashboard', 'subjects', 'classes', 'insights', 'profile']} />
           )}
         >
           <Tabs.Screen name="dashboard" options={{ title: 'Home' }} />
@@ -34,7 +34,7 @@ export default function FacultyLayout() {
           <Tabs.Screen name="create-announcement" options={{ href: null }} />
           <Tabs.Screen name="class-detail" options={{ href: null }} />
           <Tabs.Screen name="reports" options={{ href: null }} />
-          <Tabs.Screen name="insights" options={{ href: null }} />
+          <Tabs.Screen name="insights" options={{ title: 'Insights' }} />
           <Tabs.Screen name="archived-classes" options={{ href: null }} />
         </Tabs>
         <FacultyFloatingTools />

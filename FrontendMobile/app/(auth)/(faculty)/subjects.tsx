@@ -8,10 +8,10 @@
 // Uses NativeWind for mobile-native styling.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Modal, Alert, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import RenderHtml from 'react-native-render-html';
@@ -23,6 +23,7 @@ import type { AdminToolAction } from '../../../src/features/admin/shared/compone
 import SubjectCard from '../../../src/features/subjects/components/SubjectCard';
 import BottomModal from '../../../src/features/core/components/BottomModal';
 import CustomDropdown from '../../../src/features/core/components/CustomDropdown';
+import PrintExamModal from '../../../src/features/practice/components/PrintExamModal';
 
 export default function FacultySubjectsScreen() {
   const router = useRouter();
@@ -53,6 +54,7 @@ export default function FacultySubjectsScreen() {
   const [yearLevels, setYearLevels] = useState<any[]>([]);
   const [filterProgramID, setFilterProgramID] = useState<string>('All');
   const [filterYearLevelID, setFilterYearLevelID] = useState<string>('All');
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   useEffect(() => {
     fetchPrograms();
@@ -81,6 +83,21 @@ export default function FacultySubjectsScreen() {
       fetchQuestions(true);
     }
   }, [selectedSubject]);
+
+  // Re-fetch subjects when screen regains focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchSubjects(true);
+    }, [filterProgramID, filterYearLevelID])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedSubject) {
+        fetchQuestions(true);
+      }
+    }, [selectedSubject])
+  );
 
   const fetchSubjects = async (reset = false) => {
     const currentPage = reset ? 1 : page;
@@ -331,6 +348,13 @@ export default function FacultySubjectsScreen() {
       disabled: !selectedSubject,
       backgroundColor: '#10B981',
     },
+    {
+      key: 'print-export',
+      icon: 'print-outline',
+      label: 'Export & Print',
+      onPress: () => setShowPrintModal(true),
+      backgroundColor: '#8B5CF6',
+    },
   ], [selectedSubject, router, openAssignModal]);
 
   useScreenFloatingTools(fabActions);
@@ -498,8 +522,8 @@ export default function FacultySubjectsScreen() {
                   <View className="flex-row justify-between items-center mb-2">
                     <Text className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Q{idx + 1}</Text>
                     <View className="flex-row items-center gap-2">
-                      <View className={`px-2 py-1 rounded-lg ${q.status === 'approved' ? 'bg-green-500' : 'bg-yellow-500'}`}>
-                        <Text className="text-white text-xs font-semibold">{q.status === 'approved' ? 'Approved' : 'Pending'}</Text>
+                      <View className={`px-2 py-1 rounded-lg ${q.status === 'approved' || q.status_id === 2 ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                        <Text className="text-white text-xs font-semibold">{q.status === 'approved' || q.status_id === 2 ? 'Approved' : 'Pending'}</Text>
                       </View>
                       <TouchableOpacity
                         onPress={() => router.push({
@@ -633,6 +657,8 @@ export default function FacultySubjectsScreen() {
           <Text className="text-base font-semibold ml-3" style={{ color: '#EF4444', marginLeft: 12 }}>Unassign Subject</Text>
         </TouchableOpacity>
       </BottomModal>
+
+      <PrintExamModal visible={showPrintModal} onClose={() => setShowPrintModal(false)} />
     </View>
   );
 }
