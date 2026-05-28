@@ -230,24 +230,25 @@ class StudentAnalyticsController extends Controller
                 $weakTopics = collect([]);
             }
 
-            // Average time spent (Mapped to topic shape)
-            // Check if content_analytics table exists
+            // Average time spent per topic — sourced from student_quiz_results
             try {
-                $timeSpent = DB::table('content_analytics')
-                    ->join('subjects', 'content_analytics.subject_id', '=', 'subjects.subjectID')
-                    ->where('content_analytics.user_id', $user->userID)
-                    ->whereIn('content_analytics.interaction_type', ['lesson_view', 'quiz_attempt'])
+                $timeSpent = DB::table('student_quiz_results')
+                    ->join('class_personal_quizzes', 'student_quiz_results.class_quiz_assignment_id', '=', 'class_personal_quizzes.classPersonalQuizID')
+                    ->join('personal_quizzes', 'class_personal_quizzes.personalQuizID', '=', 'personal_quizzes.personalQuizID')
+                    ->leftJoin('subjects', 'personal_quizzes.subjectID', '=', 'subjects.subjectID')
+                    ->where('student_quiz_results.studentID', $user->userID)
+                    ->whereNotNull('student_quiz_results.time_taken_seconds')
                     ->select(
-                        'subjects.subjectName as topic',
-                        DB::raw('AVG(content_analytics.time_spent_seconds) as avg_time'),
-                        DB::raw('SUM(content_analytics.time_spent_seconds) as total_time'),
+                        DB::raw('COALESCE(subjects.subjectName, personal_quizzes.title) as topic'),
+                        DB::raw('AVG(student_quiz_results.time_taken_seconds) as avg_time'),
+                        DB::raw('SUM(student_quiz_results.time_taken_seconds) as total_time'),
                         DB::raw('COUNT(*) as interaction_count')
                     )
-                    ->groupBy('subjects.subjectID', 'subjects.subjectName')
+                    ->groupBy('subjects.subjectName', 'personal_quizzes.title')
                     ->orderByDesc('total_time')
                     ->get();
             } catch (\Exception $e) {
-                // Table doesn't exist, return empty collection
+                // Table doesn't exist or no data, return empty collection
                 $timeSpent = collect([]);
             }
 

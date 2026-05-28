@@ -470,6 +470,7 @@ class PrintController extends Controller
                 $allCorrectAnswers[$qIndex] = $correctChoices;
             }
             $previewData = [
+                'questionsBySubject' => $questionsBySubject,
                 'questions' => $allQuestionsFlat,
                 'totalItems' => count($allQuestionsFlat),
                 'requestedItems' => $totalItems,
