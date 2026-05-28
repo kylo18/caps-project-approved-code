@@ -25,6 +25,7 @@ import MobileHeader from '../../../src/features/core/components/MobileHeader';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
+import GenerateReportModal from '../../../src/features/support/components/GenerateReportModal';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -57,6 +58,7 @@ export default function ProgramChairDashboard() {
   const [quizTypeID, setQuizTypeID] = useState<number>(2); // 1 = subject-based, 2 = custom
   const [quizSubjectID, setQuizSubjectID] = useState<number | null>(null);
   const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const firstName = user?.firstName || 'Program Chair';
   const lastName = user?.lastName || '';
@@ -399,15 +401,15 @@ export default function ProgramChairDashboard() {
           <TouchableOpacity
             className={`w-[48%] rounded-2xl p-4 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
             style={cardStyle}
-            onPress={() => router.push('/(auth)/(program-chair)/reports')}
+            onPress={() => setShowReportModal(true)}
             activeOpacity={0.7}
           >
             <Ionicons name="document-text" size={28} color="#8B5CF6" />
             <Text className="font-semibold mt-3" style={{ color: colors.text }}>
-              Reports
+              Generate Report
             </Text>
             <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
-              Export analytics
+              Submit to admin
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -566,6 +568,8 @@ export default function ProgramChairDashboard() {
           </KeyboardAvoidingView>
         </View>
       </Modal>
+
+      <GenerateReportModal visible={showReportModal} onClose={() => setShowReportModal(false)} />
     </View>
   );
 }

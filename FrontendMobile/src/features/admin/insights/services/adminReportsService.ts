@@ -107,6 +107,7 @@ function normalizeLeaderboardEntry(item: any): LeaderboardEntry {
 }
 
 function normalizeUserReport(item: any): UserReportTicket {
+  const reporter = item.user || item.student || null;
   return {
     id: item.id ?? item.ticketID ?? item.ticketId,
     category: item.category ?? 'General',
@@ -114,13 +115,13 @@ function normalizeUserReport(item: any): UserReportTicket {
     description: item.description ?? item.message ?? '',
     status: item.status ?? 'Open',
     created_at: item.created_at ?? item.createdAt,
-    user: item.user
+    user: reporter
       ? {
-          firstName: item.user.firstName,
-          lastName: item.user.lastName,
-          email: item.user.email,
-          roleID: item.user.roleID,
-          roleId: item.user.roleId,
+          firstName: reporter.firstName,
+          lastName: reporter.lastName,
+          email: reporter.email,
+          roleID: reporter.roleID,
+          roleId: reporter.roleId,
         }
       : null,
   };
@@ -159,7 +160,7 @@ export async function getOverallLeaderboard(filters?: { programID?: string; subj
 
 export async function getAllUserReports(): Promise<UserReportTicket[]> {
   try {
-    const response = await apiRequest('/api/support-tickets');
+    const response = await apiRequest('/api/admin/support/tickets');
     const items = response?.data ?? response ?? [];
     return Array.isArray(items) ? items.map(normalizeUserReport) : [];
   } catch (error) {

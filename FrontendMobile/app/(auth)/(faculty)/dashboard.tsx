@@ -25,6 +25,7 @@ import MobileHeader from '../../../src/features/core/components/MobileHeader';
 import { useScreenFloatingTools } from '../../../src/hooks/useScreenFloatingTools';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStudentColors, getStudentShadow } from '../../../src/features/student/ui/StudentUI';
+import GenerateReportModal from '../../../src/features/support/components/GenerateReportModal';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -54,6 +55,7 @@ export default function FacultyDashboard() {
   const [quizTypeID, setQuizTypeID] = useState<number>(2); // 1 = subject-based, 2 = custom
   const [quizSubjectID, setQuizSubjectID] = useState<number | null>(null);
   const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -168,7 +170,7 @@ export default function FacultyDashboard() {
     { icon: 'layers' as const, label: 'My Classes', route: '/(auth)/(faculty)/classes', color: colors.orange },
     { icon: 'people' as const, label: 'Students', route: '/(auth)/(faculty)/users', color: '#3B82F6' },
     { icon: 'create' as const, label: 'Create Quiz', color: '#10B981', onPress: () => setShowQuizModal(true) },
-    { icon: 'stats-chart' as const, label: 'Reports', route: '/(auth)/(faculty)/reports', color: '#8B5CF6' },
+    { icon: 'document-text' as const, label: 'Generate Report', color: '#8B5CF6', onPress: () => setShowReportModal(true) },
   ];
 
   const cardStyle = {
@@ -498,6 +500,8 @@ export default function FacultyDashboard() {
           </KeyboardAvoidingView>
         </View>
       </Modal>
+
+      <GenerateReportModal visible={showReportModal} onClose={() => setShowReportModal(false)} />
     </View>
   );
 }
