@@ -734,12 +734,19 @@ class PracticeExamController extends Controller
             'answers' => 'required|array',
             'answers.*.questionID' => 'required|exists:questions,questionID',
             'answers.*.selectedChoiceID' => 'nullable|exists:choices,choiceID',
+            'time_taken_seconds' => 'nullable|integer|min:0',
         ]);
 
         $attemptId = $validated['attempt_id'] ?? null;
 
         // Auto-create attempt if frontend didn't send one
         if (!$attemptId) {
+            $startedAt = now();
+            $timeTaken = $validated['time_taken_seconds'] ?? null;
+            if ($timeTaken !== null && $timeTaken > 0) {
+                $startedAt = now()->subSeconds($timeTaken);
+            }
+
             $exam = \Modules\PracticeExams\Models\Exam::firstOrCreate(
                 ['subject_id' => $validated['subjectID']],
                 ['title' => 'Practice Exam', 'total_items' => 0, 'status' => 'active']
@@ -748,7 +755,7 @@ class PracticeExamController extends Controller
                 'user_id'        => $user->userID,
                 'exam_id'        => $exam->id,
                 'attempt_number' => ExamAttempt::where('user_id', $user->userID)->where('exam_id', $exam->id)->count() + 1,
-                'started_at'     => now(),
+                'started_at'     => $startedAt,
                 'finished_at'    => now(),
                 'status'         => 'completed',
             ]);

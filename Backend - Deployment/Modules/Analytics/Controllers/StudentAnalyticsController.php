@@ -252,6 +252,44 @@ class StudentAnalyticsController extends Controller
                 $timeSpent = collect([]);
             }
 
+            // Also include practice exam time from exam_attempts (started_at / finished_at)
+            try {
+                $practiceTimeSpent = DB::table('exam_attempts')
+                    ->join('exams', 'exam_attempts.exam_id', '=', 'exams.id')
+                    ->leftJoin('subjects', 'exams.subject_id', '=', 'subjects.subjectID')
+                    ->where('exam_attempts.user_id', $user->userID)
+                    ->whereNotNull('exam_attempts.started_at')
+                    ->whereNotNull('exam_attempts.finished_at')
+                    ->select(
+                        DB::raw('COALESCE(subjects.subjectName, CONCAT("Subject #", exams.subject_id)) as topic'),
+                        DB::raw('AVG(TIMESTAMPDIFF(SECOND, exam_attempts.started_at, exam_attempts.finished_at)) as avg_time'),
+                        DB::raw('COALESCE(SUM(TIMESTAMPDIFF(SECOND, exam_attempts.started_at, exam_attempts.finished_at)), 0) as total_time'),
+                        DB::raw('COUNT(*) as interaction_count')
+                    )
+                    ->groupBy('exams.subject_id', 'subjects.subjectName')
+                    ->orderByDesc('total_time')
+                    ->get();
+
+                // Merge with class quiz data, summing totals and averaging avgs by topic
+                $merged = collect([]);
+                $allTopics = $timeSpent->pluck('topic')->merge($practiceTimeSpent->pluck('topic'))->unique();
+                foreach ($allTopics as $topic) {
+                    $quizEntry = $timeSpent->firstWhere('topic', $topic);
+                    $practiceEntry = $practiceTimeSpent->firstWhere('topic', $topic);
+                    $totalTime = ($quizEntry->total_time ?? 0) + ($practiceEntry->total_time ?? 0);
+                    $count = ($quizEntry->interaction_count ?? 0) + ($practiceEntry->interaction_count ?? 0);
+                    $merged->push((object) [
+                        'topic' => $topic,
+                        'avg_time' => $count > 0 ? $totalTime / $count : 0,
+                        'total_time' => $totalTime,
+                        'interaction_count' => $count,
+                    ]);
+                }
+                $timeSpent = $merged->sortByDesc('total_time')->values();
+            } catch (\Exception $e) {
+                // exam_attempts or related tables may not exist
+            }
+
             // Get strongest subject (highest score, reused for summary + insights)
             $strongestSubject = null;
             if ($strongTopics->count() > 0) {

@@ -474,11 +474,17 @@ class PracticeExamLeaderboardController extends Controller
 
             // Get subject info for the last attempt
             $userIds = $aggregated->pluck('userID')->toArray();
-            $lastAttemptSubject = DB::table('practice_exam_results')
-                ->join('subjects', 'practice_exam_results.subjectID', '=', 'subjects.subjectID')
+            $lastAttemptSubjectQuery = DB::table('practice_exam_results')
+                ->leftJoin('subjects', 'practice_exam_results.subjectID', '=', 'subjects.subjectID')
                 ->whereIn('practice_exam_results.userID', $userIds)
-                ->where('practice_exam_results.created_at', '>=', $sevenDaysAgo)
-                ->select('practice_exam_results.userID', 'subjects.subjectID', 'subjects.subjectCode', 'subjects.subjectName', 'practice_exam_results.earnedPoints', 'practice_exam_results.percentage', 'practice_exam_results.created_at')
+                ->where('practice_exam_results.created_at', '>=', $sevenDaysAgo);
+
+            if ($subjectID) {
+                $lastAttemptSubjectQuery->where('practice_exam_results.subjectID', $subjectID);
+            }
+
+            $lastAttemptSubject = $lastAttemptSubjectQuery
+                ->select('practice_exam_results.userID', 'practice_exam_results.subjectID as rawSubjectID', 'subjects.subjectID', 'subjects.subjectCode', 'subjects.subjectName', 'practice_exam_results.earnedPoints', 'practice_exam_results.percentage', 'practice_exam_results.created_at')
                 ->get()
                 ->groupBy('practice_exam_results.userID');
 
@@ -505,9 +511,9 @@ class PracticeExamLeaderboardController extends Controller
                     'subjectsCount' => $row->subjectsCount,
                     'lastAttemptDate' => $row->lastAttemptDate,
                     'lastAttemptSubject' => $lastSubject ? [
-                        'subjectID' => $lastSubject->subjectID,
+                        'subjectID' => $lastSubject->subjectID ?? $lastSubject->rawSubjectID,
                         'subjectCode' => $lastSubject->subjectCode,
-                        'subjectName' => $lastSubject->subjectName,
+                        'subjectName' => $lastSubject->subjectName ?? ($lastSubject->rawSubjectID ? 'Subject #' . $lastSubject->rawSubjectID : null),
                     ] : null,
                     'lastAttemptScore' => $lastSubject ? $lastSubject->earnedPoints : null,
                     'lastAttemptPercentage' => $lastSubject ? round($lastSubject->percentage, 2) : null,
