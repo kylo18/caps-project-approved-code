@@ -592,10 +592,15 @@ export default function StudentClassesScreen() {
           }}
         >
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior="padding"
             style={{ width: '100%' }}
           >
             <Pressable onPress={(e) => e.stopPropagation()}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ flexGrow: 1 }}
+              >
               <View
                 className="rounded-t-[32px] px-6 pt-5 pb-8"
                 style={{ paddingBottom: insets.bottom + 24, backgroundColor: colors.card }}
@@ -673,6 +678,7 @@ export default function StudentClassesScreen() {
                   )}
                 </Pressable>
               </View>
+              </ScrollView>
             </Pressable>
           </KeyboardAvoidingView>
         </Pressable>

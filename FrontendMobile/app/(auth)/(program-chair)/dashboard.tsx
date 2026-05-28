@@ -404,7 +404,7 @@ export default function ProgramChairDashboard() {
           >
             <Ionicons name="document-text" size={28} color="#8B5CF6" />
             <Text className="font-semibold mt-3" style={{ color: colors.text }}>
-              Generate Reports
+              Reports
             </Text>
             <Text className="text-xs mt-1" style={{ color: colors.textSoft }}>
               Export analytics

@@ -148,6 +148,7 @@ export default function PracticeExamScreen() {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerActiveRef = useRef(false); // prevents duplicate timer intervals
+  const examStartTime = useRef(Date.now());
   const examKey = `exam_${subjectID}`;
 
   // Fetch exam questions from API
@@ -405,6 +406,7 @@ export default function PracticeExamScreen() {
             questionID: q.questionID,
             selectedChoiceID: answers[q.questionID] ? parseInt(answers[q.questionID]) : null,
           })),
+          time_taken_seconds: Math.round((Date.now() - examStartTime.current) / 1000),
         },
       });
 

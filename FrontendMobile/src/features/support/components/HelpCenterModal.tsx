@@ -17,8 +17,10 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const isStudent = !userRole || userRole === 1;
+  const isFaculty = userRole === 2;
+  const canUseSupport = isStudent || isFaculty;
 
-  const [activeTab, setActiveTab] = useState(isStudent ? 'faq' : 'announcement');
+  const [activeTab, setActiveTab] = useState(canUseSupport ? 'faq' : 'announcement');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [category, setCategory] = useState('general');
@@ -36,20 +38,20 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
   ];
 
   useEffect(() => {
-    if (visible && isStudent) {
+    if (visible && canUseSupport) {
       loadFAQs();
     }
-  }, [visible, isStudent]);
+  }, [visible, canUseSupport]);
 
   useEffect(() => {
     if (visible) {
-      setActiveTab(isStudent ? 'faq' : 'announcement');
+      setActiveTab(canUseSupport ? 'faq' : 'announcement');
       setSubject('');
       setMessage('');
       setCategory('general');
       setExpandedFaq(null);
     }
-  }, [visible, isStudent]);
+  }, [visible, canUseSupport]);
 
   const loadFAQs = async () => {
     setIsLoadingFaqs(true);
@@ -107,8 +109,8 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
     orange: roleColors.accent,
   };
 
-  const title = isStudent ? 'Help Center' : 'Create Announcement';
-  const submitLabel = isStudent ? 'Submit Request' : 'Post Announcement';
+  const title = canUseSupport ? 'Help Center' : 'Create Announcement';
+  const submitLabel = canUseSupport ? 'Submit Request' : 'Post Announcement';
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -121,7 +123,7 @@ export default function HelpCenterModal({ visible, onClose, userRole }: HelpCent
             </TouchableOpacity>
           </View>
 
-          {isStudent ? (
+          {canUseSupport ? (
             <>
               <View className="flex-row gap-2 mb-4">
                 <TouchableOpacity

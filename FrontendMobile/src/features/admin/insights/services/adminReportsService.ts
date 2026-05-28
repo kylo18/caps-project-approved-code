@@ -21,6 +21,7 @@ export interface RecentTaker {
   lastAttemptSubject?: {
     subjectName?: string;
     subjectCode?: string;
+    subjectID?: number | string;
   } | null;
 }
 
@@ -80,6 +81,7 @@ function normalizeRecentTaker(item: any): RecentTaker {
       ? {
           subjectName: item.lastAttemptSubject.subjectName,
           subjectCode: item.lastAttemptSubject.subjectCode,
+          subjectID: item.lastAttemptSubject.subjectID,
         }
       : null,
   };

@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import {   View, Text, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CapsActivityIndicator from '../../../src/features/core/components/CapsActivityIndicator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +33,7 @@ export default function PracticeExamResults() {
   const themeColors = getStudentColors(isDark);
   const shadow = getStudentShadow(isDark);
   const { width: windowWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const resultId = params.resultId as string;
   const origin = (params.origin as string) || 'home';
@@ -160,6 +162,16 @@ export default function PracticeExamResults() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.bg }}>
+      <View style={{ paddingTop: insets.top + 8, paddingBottom: 4, paddingHorizontal: 16 }}>
+        <TouchableOpacity
+          className="flex-row items-center"
+          onPress={() => router.replace('/(auth)/(student)/dashboard')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
+          <Text className="text-base font-semibold ml-1" style={{ color: colors.text }}>Back to Home</Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* Score Header */}
         <View className="items-center p-8 rounded-[20px] mb-4 border" style={{ backgroundColor: colors.card, borderColor: colors.border, ...shadow }}>

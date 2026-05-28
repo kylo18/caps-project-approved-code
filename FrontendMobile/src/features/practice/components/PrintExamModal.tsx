@@ -137,8 +137,21 @@ export default function PrintExamModal({ visible, onClose }: { visible: boolean;
 
       showToast('Exam generated successfully', 'success');
       onClose();
-    } catch (error: unknown) {
-      showToast(error instanceof Error ? error.message : 'Failed to generate exam', 'error');
+    } catch (error: any) {
+      const errData = error?.data || error?.response?.data;
+      if (errData?.message?.toLowerCase().includes('insufficient')) {
+        let detailMsg = errData.details || '';
+        const subjectName = errData.subject || '';
+        Alert.alert(
+          'Insufficient Questions Available',
+          `Subject: ${subjectName}\n\n${detailMsg}` +
+          `\n\nRequired: ${errData.total_required ?? '?'} | Available: ${errData.total_available ?? '?'} | Deficit: ${errData.deficit ?? '?'}` +
+          (errData.action ? `\n\n${errData.action.replace(/\\n/g, '\n')}` : '') +
+          '\n\nTry: reducing total items, adjusting difficulty distribution, or selecting more subjects.'
+        );
+      } else {
+        showToast(error instanceof Error ? error.message : 'Failed to generate exam', 'error');
+      }
     } finally {
       setIsGenerating(false);
     }

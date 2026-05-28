@@ -184,12 +184,12 @@ export async function submitSupportRequest(
             return { success: false, message: 'Please enter at least 10 characters in your message' };
         }
 
-        // Role 1 = student, sends to support tickets
-        // Other roles = staff/admin, sends as announcement
-        const isStudent = !userRole || userRole === 1;
+        // Roles 1-2 (student, faculty) → support tickets
+        // Roles 3-5 (chair, dean, asso dean) → announcement
+        const canSubmitTicket = !userRole || userRole === 1 || userRole === 2;
 
-        if (isStudent) {
-            // Student submits support ticket
+        if (canSubmitTicket) {
+            // Submit support ticket
             await apiRequest('/api/support-tickets', {
                 method: 'POST',
                 body: {
@@ -201,7 +201,7 @@ export async function submitSupportRequest(
 
             return { success: true, message: 'Support request submitted successfully' };
         } else {
-            // Staff/admin creates system announcement
+            // Create system announcement
             await apiRequest('/api/admin/notifications', {
                 method: 'POST',
                 body: {

@@ -57,7 +57,7 @@ export default function ClassQuizResultScreen() {
       {/* Header */}
       <View className="px-6 pb-6 items-center" style={{ paddingTop: insets.top + 20, backgroundColor: studentColors.orange }}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.replace('/(auth)/(student)/dashboard')}
           className="absolute left-5 h-10 w-10 items-center justify-center rounded-full"
           style={{ top: insets.top + 12, backgroundColor: 'rgba(255,255,255,0.2)' }}
         >
@@ -214,12 +214,12 @@ export default function ClassQuizResultScreen() {
         }}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.replace('/(auth)/(student)/dashboard')}
           className="rounded-2xl py-4 items-center"
           style={{ backgroundColor: studentColors.orange }}
         >
           <Text style={{ color: '#fff', fontFamily: 'Rubik', fontSize: 16, fontWeight: '600' }}>
-            Done
+            Back to Home
           </Text>
         </Pressable>
       </View>

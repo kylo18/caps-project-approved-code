@@ -137,8 +137,8 @@ export default function LeaderboardScreen() {
 
   // Weekly view: skip the top 3 (shown in podium) and show ranks 4-10
   const weeklyRows = useMemo(
-    () => entries.filter((entry) => entry.rank > 3 && entry.userID !== viewer?.userID).slice(0, 7),
-    [entries, viewer?.userID]
+    () => entries.filter((entry) => entry.rank > 3).slice(0, 7),
+    [entries]
   );
 
   const viewerOutsideVisibleWeekly =

@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import MobileHeader from '../../../../features/core/components/MobileHeader';
+import CustomDropdown from '../../../../features/core/components/CustomDropdown';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { showToast } from '../../../../hooks/useToast';
 import { useScreenFloatingTools } from '../../shared/hooks/useScreenFloatingTools';
@@ -170,6 +171,8 @@ function SummaryCard({
 function RecentTakerCard({ item, isDark }: { item: RecentTaker; isDark: boolean }) {
   const name = getDisplayName(item);
   const subject = item.lastAttemptSubject?.subjectName || item.lastAttemptSubject?.subjectCode || 'No subject';
+  const hasSubject = subject.length > 0;
+  const courseInfo = [item.course, item.year || item.yearLevel].filter(Boolean).join(' ');
 
   return (
     <View className="rounded-[24px] p-4" style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF' }}>
@@ -185,7 +188,7 @@ function RecentTakerCard({ item, isDark }: { item: RecentTaker; isDark: boolean 
               {name}
             </Text>
             <Text className="text-[12px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-              {(item.course || item.year || item.yearLevel || '') + (subject !== 'No subject' ? ` • ${subject}` : '') || 'No course info'}
+              {courseInfo + (courseInfo && hasSubject ? ' • ' : '') + subject || 'No course info'}
             </Text>
           </View>
         </View>
@@ -200,11 +203,13 @@ function RecentTakerCard({ item, isDark }: { item: RecentTaker; isDark: boolean 
       </View>
 
       <View className="mt-4 flex-row flex-wrap">
-        <View className="rounded-full px-3 py-1 mr-2 mb-2" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
-          <Text className="text-[11px] font-medium" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
-            {subject}
-          </Text>
-        </View>
+        {hasSubject && (
+          <View className="rounded-full px-3 py-1 mr-2 mb-2" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
+            <Text className="text-[11px] font-medium" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
+              {subject}
+            </Text>
+          </View>
+        )}
         <View className="rounded-full px-3 py-1 mb-2" style={{ backgroundColor: isDark ? '#242424' : '#F3F4F6' }}>
           <Text className="text-[11px] font-medium" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
             {formatDate(item.lastAttemptDate)}
@@ -365,8 +370,6 @@ export default function AdminReportsScreen({ role }: Props) {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [filterProgramID, setFilterProgramID] = useState<string>('');
   const [filterSubjectID, setFilterSubjectID] = useState<string>('');
-  const [showProgramDropdown, setShowProgramDropdown] = useState(false);
-  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -512,6 +515,24 @@ export default function AdminReportsScreen({ role }: Props) {
     ];
   }, [activeTab, role, router]);
 
+  const programItems = useMemo(() => [
+    { id: '', label: 'All Programs', value: '' },
+    ...programs.map(p => ({
+      id: String(p.programID || p.id),
+      label: p.programName || '',
+      value: String(p.programID || p.id)
+    }))
+  ], [programs]);
+
+  const subjectItems = useMemo(() => [
+    { id: '', label: 'All Subjects', value: '' },
+    ...subjects.map(s => ({
+      id: String(s.subjectID || s.id),
+      label: s.subjectName || '',
+      value: String(s.subjectID || s.id)
+    }))
+  ], [subjects]);
+
   useScreenFloatingTools(fabActions);
 
   return (
@@ -522,7 +543,6 @@ export default function AdminReportsScreen({ role }: Props) {
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 16 }}
         showsVerticalScrollIndicator={false}
-        onScroll={() => { setShowProgramDropdown(false); setShowSubjectDropdown(false); }}
         scrollEventThrottle={100}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FE6902" />}
       >
@@ -551,79 +571,25 @@ export default function AdminReportsScreen({ role }: Props) {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           <TabButton label="Recent Takers" icon="time-outline" active={activeTab === 'recent'} onPress={() => setActiveTab('recent')} />
           <TabButton label="Leaderboard" icon="trophy-outline" active={activeTab === 'leaderboard'} onPress={() => setActiveTab('leaderboard')} />
-          {role !== 'faculty' && (
             <TabButton label="All Reports" icon="document-text-outline" active={activeTab === 'reports'} onPress={() => setActiveTab('reports')} />
-          )}
         </ScrollView>
 
         <View className="flex-row gap-2">
-          <View className="flex-1 relative">
-            <Pressable
-              onPress={() => { setShowProgramDropdown(!showProgramDropdown); setShowSubjectDropdown(false); }}
-              className="flex-row items-center justify-between rounded-xl px-3 py-2.5"
-              style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? '#333' : '#E5E7EB' }}
-            >
-              <Text className="text-[13px]" style={{ color: filterProgramID ? (isDark ? '#FFF' : '#111827') : '#9CA3AF' }}>
-                {filterProgramID ? (programs.find((p: any) => String(p.programID || p.id) === filterProgramID)?.programName || 'Program') : 'All Programs'}
-              </Text>
-              <Ionicons name={showProgramDropdown ? 'chevron-up' : 'chevron-down'} size={14} color="#6B7280" />
-            </Pressable>
-            {showProgramDropdown ? (
-              <View className="absolute top-full left-0 right-0 mt-1 rounded-xl z-50" style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? '#333' : '#E5E7EB', maxHeight: 200 }}>
-                <ScrollView>
-                  <Pressable
-                    onPress={() => { setFilterProgramID(''); setShowProgramDropdown(false); }}
-                    className="px-3 py-2.5"
-                  >
-                    <Text className="text-[13px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>All Programs</Text>
-                  </Pressable>
-                  {programs.map((p: any) => (
-                    <Pressable
-                      key={p.programID || p.id}
-                      onPress={() => { setFilterProgramID(String(p.programID || p.id)); setShowProgramDropdown(false); }}
-                      className="px-3 py-2.5"
-                      style={{ backgroundColor: String(p.programID || p.id) === filterProgramID ? (isDark ? '#242424' : '#FFF0E0') : 'transparent' }}
-                    >
-                      <Text className="text-[13px]" style={{ color: isDark ? '#FFF' : '#111827' }}>{p.programName}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-            ) : null}
+          <View className="flex-1">
+            <CustomDropdown
+              items={programItems}
+              selectedValue={filterProgramID}
+              onSelect={(val: any) => setFilterProgramID(val)}
+              placeholder="All Programs"
+            />
           </View>
-          <View className="flex-1 relative">
-            <Pressable
-              onPress={() => { setShowSubjectDropdown(!showSubjectDropdown); setShowProgramDropdown(false); }}
-              className="flex-row items-center justify-between rounded-xl px-3 py-2.5"
-              style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? '#333' : '#E5E7EB' }}
-            >
-              <Text className="text-[13px]" style={{ color: filterSubjectID ? (isDark ? '#FFF' : '#111827') : '#9CA3AF' }}>
-                {filterSubjectID ? (subjects.find((s: any) => String(s.subjectID || s.id) === filterSubjectID)?.subjectName || 'Subject') : 'All Subjects'}
-              </Text>
-              <Ionicons name={showSubjectDropdown ? 'chevron-up' : 'chevron-down'} size={14} color="#6B7280" />
-            </Pressable>
-            {showSubjectDropdown ? (
-              <View className="absolute top-full left-0 right-0 mt-1 rounded-xl z-50" style={{ backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? '#333' : '#E5E7EB', maxHeight: 200 }}>
-                <ScrollView>
-                  <Pressable
-                    onPress={() => { setFilterSubjectID(''); setShowSubjectDropdown(false); }}
-                    className="px-3 py-2.5"
-                  >
-                    <Text className="text-[13px]" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>All Subjects</Text>
-                  </Pressable>
-                  {subjects.map((s: any) => (
-                    <Pressable
-                      key={s.subjectID || s.id}
-                      onPress={() => { setFilterSubjectID(String(s.subjectID || s.id)); setShowSubjectDropdown(false); }}
-                      className="px-3 py-2.5"
-                      style={{ backgroundColor: String(s.subjectID || s.id) === filterSubjectID ? (isDark ? '#242424' : '#FFF0E0') : 'transparent' }}
-                    >
-                      <Text className="text-[13px]" style={{ color: isDark ? '#FFF' : '#111827' }}>{s.subjectName}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-            ) : null}
+          <View className="flex-1">
+            <CustomDropdown
+              items={subjectItems}
+              selectedValue={filterSubjectID}
+              onSelect={(val: any) => setFilterSubjectID(val)}
+              placeholder="All Subjects"
+            />
           </View>
         </View>
 

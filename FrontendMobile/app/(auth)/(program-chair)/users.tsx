@@ -77,7 +77,6 @@ export default function ProgramChairUsersScreen() {
   const [detailUser, setDetailUser] = useState<UserItem | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [isBulkActing, setIsBulkActing] = useState(false);
-  const [bulkExpanded, setBulkExpanded] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [isFetchingAllIds, setIsFetchingAllIds] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
@@ -85,7 +84,6 @@ export default function ProgramChairUsersScreen() {
   const [campusOptions, setCampusOptions] = useState<{id: string; label: string}[]>([]);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const expandOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchUsers(true);
@@ -103,10 +101,6 @@ export default function ProgramChairUsersScreen() {
   useEffect(() => {
     applyFilters();
   }, [searchQuery, activeRoleFilter, activeStatusFilter, programFilter, yearFilter, campusFilter, users]);
-
-  useEffect(() => {
-    if (!selectionMode) setBulkExpanded(false);
-  }, [selectionMode]);
 
   useEffect(() => {
     const loadMeta = async () => {
@@ -337,7 +331,6 @@ export default function ProgramChairUsersScreen() {
   const deselectAll = () => {
     setSelectedUserIDs(new Set());
     setSelectionMode(false);
-    setBulkExpanded(false);
   };
 
   const fetchAndSelect = async (type: 'student' | 'admin') => {
@@ -370,16 +363,6 @@ export default function ProgramChairUsersScreen() {
       showToast('Failed to fetch users', 'error');
     } finally {
       setIsFetchingAllIds(false);
-    }
-  };
-
-  const toggleBulkExpand = () => {
-    if (bulkExpanded) {
-      Animated.timing(expandOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setBulkExpanded(false));
-    } else {
-      setBulkExpanded(true);
-      expandOpacity.setValue(0);
-      Animated.timing(expandOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
     }
   };
 
@@ -571,49 +554,6 @@ export default function ProgramChairUsersScreen() {
               </View>
             )}
 
-            {selectionMode && (
-              <View className="mt-2 mb-2 rounded-2xl p-3" style={{ backgroundColor: colors.card }}>
-                <TouchableOpacity className="flex-row items-center justify-between" onPress={toggleBulkExpand} activeOpacity={0.7}>
-                  <View className="flex-row items-center gap-3 flex-1 mr-2">
-                    <Text className="text-base font-bold" style={{ color: colors.text }}>{selectedUserIDs.size} selected</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                      <TouchableOpacity className="rounded-full px-3 py-1.5" style={{ backgroundColor: colors.orange }} onPress={selectAllVisible} activeOpacity={0.7}>
-                        <Text className="text-white text-[11px] font-semibold">All Visible</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity className="rounded-full px-3 py-1.5" style={{ backgroundColor: colors.blue }} onPress={selectAllAdmins} activeOpacity={0.7}>
-                        <Text className="text-white text-[11px] font-semibold">Admins</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity className="rounded-full px-3 py-1.5" style={{ backgroundColor: colors.green }} onPress={selectAllStudents} activeOpacity={0.7}>
-                        <Text className="text-white text-[11px] font-semibold">Students</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity className="rounded-full px-3 py-1.5" style={{ backgroundColor: colors.red }} onPress={deselectAll} activeOpacity={0.7}>
-                        <Text className="text-white text-[11px] font-semibold">Clear</Text>
-                      </TouchableOpacity>
-                    </ScrollView>
-                  </View>
-                  <Ionicons name={bulkExpanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textSecondary} />
-                </TouchableOpacity>
-                {bulkExpanded && (
-                  <Animated.View style={{ opacity: expandOpacity }}>
-                    <View className="flex-row gap-2 justify-between mt-3">
-                      <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 py-3 rounded-xl" style={{ backgroundColor: colors.green }} onPress={() => handleBulkAction('approve')} disabled={isBulkActing} activeOpacity={0.8}>
-                        <Ionicons name="checkmark-done" size={18} color="#fff" />
-                        <Text className="text-white text-xs font-semibold">Approve</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 py-3 rounded-xl" style={{ backgroundColor: colors.blue }} onPress={() => handleBulkAction('activate')} disabled={isBulkActing} activeOpacity={0.8}>
-                        <Ionicons name="play" size={18} color="#fff" />
-                        <Text className="text-white text-xs font-semibold">Activate</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 py-3 rounded-xl" style={{ backgroundColor: colors.red }} onPress={() => handleBulkAction('deactivate')} disabled={isBulkActing} activeOpacity={0.8}>
-                        <Ionicons name="pause" size={18} color="#fff" />
-                        <Text className="text-white text-xs font-semibold">Deactivate</Text>
-                      </TouchableOpacity>
-                    </View>
-                    {isBulkActing && <CapsActivityIndicator className="mt-3" size="small" color={colors.orange} />}
-                  </Animated.View>
-                )}
-              </View>
-            )}
           </ScrollView>
 
           <View className="flex-1">

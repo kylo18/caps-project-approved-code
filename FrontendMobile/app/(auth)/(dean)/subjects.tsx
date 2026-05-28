@@ -97,7 +97,7 @@ export default function AdminSubjectsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: screenHeight } = useWindowDimensions();
   const params = useLocalSearchParams<{ subjectID?: string }>();
 
   // State
@@ -151,6 +151,7 @@ export default function AdminSubjectsScreen() {
   const [settingsMessage, setSettingsMessage] = useState('');
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [subjectsDropdownOpen, setSubjectsDropdownOpen] = useState(false);
 
   // Quiz creation modal state
   const [showQuizModal, setShowQuizModal] = useState(false);
@@ -1300,23 +1301,24 @@ export default function AdminSubjectsScreen() {
       {/* Subject Settings Modal */}
       <Modal
         visible={showSettingsModal}
+        transparent
         animationType="slide"
-        presentationStyle="pageSheet"
         onRequestClose={() => setShowSettingsModal(false)}
       >
-        <View className={`flex-1 ${isDark ? 'bg-[#1A1A1A]' : 'bg-gray-50'}`}>
-          <View
-            className={`flex-row justify-between items-center px-4 py-3 border-b ${isDark ? 'bg-[#1A1A1A] border-[#2A2A2A]' : 'bg-white border-gray-200'}`}
-            style={{ paddingTop: Math.max(insets.top, 16) }}
-          >
-            <TouchableOpacity onPress={() => setShowSettingsModal(false)}>
-              <Text className="text-primary font-semibold">Cancel</Text>
-            </TouchableOpacity>
-            <Text className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`} numberOfLines={1}>
-              {selectedSubject?.subjectName || 'Subject Settings'}
-            </Text>
-            <TouchableOpacity onPress={saveSubjectSettings} disabled={settingsSaving}>
-              <Text className={`font-semibold ${settingsSaving ? 'text-gray-400' : 'text-primary'}`}>
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ height: screenHeight * 0.75 }} className={`rounded-t-3xl ${isDark ? 'bg-[#1A1A1A]' : 'bg-gray-50'}`}>
+            <View
+              className={`flex-row justify-between items-center px-4 py-3 border-b ${isDark ? 'bg-[#1A1A1A] border-[#2A2A2A]' : 'bg-white border-gray-200'}`}
+              style={{ paddingTop: Math.max(insets.top, 16) }}
+            >
+              <TouchableOpacity onPress={() => setShowSettingsModal(false)}>
+                <Text className="text-primary font-semibold">Cancel</Text>
+              </TouchableOpacity>
+              <Text className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`} numberOfLines={1}>
+                {selectedSubject?.subjectName || 'Subject Settings'}
+              </Text>
+              <TouchableOpacity onPress={saveSubjectSettings} disabled={settingsSaving}>
+                <Text className={`font-semibold ${settingsSaving ? 'text-gray-400' : 'text-primary'}`}>
                 {settingsSaving ? 'Saving...' : 'Save'}
               </Text>
             </TouchableOpacity>
@@ -1346,24 +1348,38 @@ export default function AdminSubjectsScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  <View className="flex-row flex-wrap gap-2">
-                    {subjects.map((subject) => {
-                      const selected = settingsTargetSubjectIDs.includes(subject.subjectID);
-                      return (
-                        <TouchableOpacity
-                          key={subject.subjectID}
-                          onPress={() => toggleSettingsTargetSubject(subject.subjectID)}
-                          className={`px-3 py-2 rounded-full border ${selected ? 'bg-primary border-primary' : isDark ? 'bg-[#1A1A1A] border-[#2A2A2A]' : 'bg-white border-gray-200'}`}
-                          activeOpacity={0.7}
-                        >
-                          <Text className={`text-sm font-semibold ${selected ? 'text-white' : isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {subject.subjectName}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-
+                  <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={true} nestedScrollEnabled>
+                    <View className="gap-1">
+                      {subjects.map((subject) => {
+                        const selected = settingsTargetSubjectIDs.includes(subject.subjectID);
+                        return (
+                          <TouchableOpacity
+                            key={subject.subjectID}
+                            onPress={() => toggleSettingsTargetSubject(subject.subjectID)}
+                            className="flex-row items-center px-3 py-3 rounded-xl border"
+                            style={{
+                              borderColor: selected ? '#FE6902' : (isDark ? '#2A2A2A' : '#E5E7EB'),
+                              backgroundColor: selected ? 'rgba(254,105,2,0.1)' : 'transparent',
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <View
+                              className="w-5 h-5 rounded border-2 items-center justify-center mr-3"
+                              style={{
+                                borderColor: selected ? '#FE6902' : (isDark ? '#6B7280' : '#9CA3AF'),
+                                backgroundColor: selected ? '#FE6902' : 'transparent',
+                              }}
+                            >
+                              {selected && <Ionicons name="checkmark" size={12} color="#fff" />}
+                            </View>
+                            <Text className="text-lg font-medium flex-1" style={{ color: isDark ? '#FFF' : '#111827' }}>
+                              {subject.subjectName}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
                   {settingsTargetSubjectIDs.length === 0 ? (
                     <Text className={`text-xs mt-3 ${isDark ? 'text-yellow-300' : 'text-yellow-700'}`}>
                       Select at least one subject before saving.
@@ -1511,6 +1527,7 @@ export default function AdminSubjectsScreen() {
               </>
             )}
           </ScrollView>
+        </View>
         </View>
       </Modal>
 
