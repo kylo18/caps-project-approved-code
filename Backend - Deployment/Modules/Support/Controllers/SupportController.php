@@ -311,7 +311,8 @@ class SupportController extends Controller
                     'users.firstName',
                     'users.lastName',
                     'users.email',
-                    'users.userCode'
+                    'users.userCode',
+                    'users.roleID'
                 )
                 ->orderBy('support_tickets.created_at', 'desc');
             
@@ -345,8 +346,9 @@ class SupportController extends Controller
                     'lastName' => $ticket->lastName,
                     'email' => $ticket->email,
                     'userCode' => $ticket->userCode,
+                    'roleID' => $ticket->roleID,
                 ];
-                unset($ticket->firstName, $ticket->lastName, $ticket->email, $ticket->userCode);
+                unset($ticket->firstName, $ticket->lastName, $ticket->email, $ticket->userCode, $ticket->roleID);
                 return $ticket;
             });
             
