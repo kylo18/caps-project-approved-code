@@ -229,7 +229,7 @@ const Reports = () => {
               ) : (
                 <>
                   {/* Mobile expandable list - Recent Takers */}
-                  <div className="outfit-400 mb-6 space-y-0 overflow-hidden rounded-xl border border-gray-200 bg-white xl:hidden">
+                  <div className="outfit-400 mb-6 space-y-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
                     {recentTakers.map((row, idx) => {
                       const rowId = row.userID ?? `recent-${idx}`;
                       const isExpanded = expandedId === rowId;
@@ -371,112 +371,6 @@ const Reports = () => {
                       );
                     })}
                   </div>
-
-                  {/* Desktop table - Recent Takers */}
-                  <div className="outfit mb-6 hidden overflow-hidden rounded-xl border border-gray-200 bg-white xl:block">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="outfit-400 border-b border-gray-200 bg-white">
-                          <tr>
-                            <th className="px-3 py-3 text-left text-[12px] font-medium text-gray-600 uppercase">
-                              #
-                            </th>
-                            {isFaculty && (
-                              <>
-                                <th className="px-3 py-3 text-left text-[12px] font-medium text-gray-600 uppercase">
-                                  Name
-                                </th>
-                                <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                                  Course
-                                </th>
-                                <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                                  Year
-                                </th>
-                                <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                                  Student ID
-                                </th>
-                              </>
-                            )}
-                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                              Last Subject
-                            </th>
-                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                              Last Score
-                            </th>
-                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                              Last %
-                            </th>
-                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                              Highest %
-                            </th>
-                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                              Avg %
-                            </th>
-                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                              Attempts
-                            </th>
-                            <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                              Last Attempt
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
-                          {recentTakers.map((row, idx) => (
-                            <tr
-                              key={row.userID || idx}
-                              className="outfit-400 group cursor-pointer transition-colors hover:bg-gray-50"
-                            >
-                              <td className="px-3 py-3 text-sm text-gray-900">
-                                {idx + 1}
-                              </td>
-                              {isFaculty && (
-                                <>
-                                  <td className="px-3 py-3 text-sm text-gray-900">
-                                    {row.name ||
-                                      `${row.firstName || ""} ${row.lastName || ""}`.trim() ||
-                                      "-"}
-                                  </td>
-                                  <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-900">
-                                    {row.course || "-"}
-                                  </td>
-                                  <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-900">
-                                    {row.year || row.yearLevel || "-"}
-                                  </td>
-                                  <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-900">
-                                    {row.studentID || "-"}
-                                  </td>
-                                </>
-                              )}
-                              <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-900">
-                                {row.lastAttemptSubject?.subjectName ||
-                                  row.lastAttemptSubject?.subjectCode ||
-                                  "-"}
-                              </td>
-                              <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-900">
-                                {row.lastAttemptScore || 0} /{" "}
-                                {row.totalPoints || 0}
-                              </td>
-                              <td className="px-3 py-3 text-center text-sm font-medium whitespace-nowrap text-gray-900">
-                                {row.lastAttemptPercentage || 0}%
-                              </td>
-                              <td className="px-3 py-3 text-center text-sm font-medium whitespace-nowrap text-gray-900">
-                                {row.highestPercentage || 0}%
-                              </td>
-                              <td className="px-3 py-3 text-center text-sm font-medium whitespace-nowrap text-gray-900">
-                                {row.averagePercentage || 0}%
-                              </td>
-                              <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-900">
-                                {row.totalAttempts || 0}
-                              </td>
-                              <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-600">
-                                {formatDate(row.lastAttemptDate)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
                 </>
               )
             ) : leaderboardLoading ? (
@@ -502,7 +396,7 @@ const Reports = () => {
             ) : (
               <>
                 {/* Mobile expandable list - Leaderboard */}
-                <div className="outfit-400 space-y-0 overflow-hidden rounded-xl border border-gray-200 bg-white xl:hidden">
+                <div className="outfit-400 space-y-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
                   {leaderboard.map((row, idx) => {
                     const rowId = row.userID ?? `leaderboard-${idx}`;
                     const isExpanded = expandedId === rowId;
@@ -603,86 +497,6 @@ const Reports = () => {
                       </div>
                     );
                   })}
-                </div>
-
-                {/* Desktop table - Leaderboard */}
-                <div className="outfit hidden overflow-hidden rounded-xl border border-gray-200 bg-white xl:block">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="outfit-400 border-b border-gray-200 bg-white">
-                        <tr>
-                          <th className="px-3 py-3 text-left text-[12px] font-medium text-gray-600 uppercase">
-                            Rank
-                          </th>
-                          <th className="px-3 py-3 text-left text-[12px] font-medium text-gray-600 uppercase">
-                            Name
-                          </th>
-                          <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                            Course
-                          </th>
-                          <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                            Year
-                          </th>
-                          <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                            Student ID
-                          </th>
-                          <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                            Avg %
-                          </th>
-                          <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                            Highest %
-                          </th>
-                          <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                            Attempts
-                          </th>
-                          <th className="px-3 py-3 text-center text-[12px] font-medium text-gray-600 uppercase">
-                            Last Attempt
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 bg-white">
-                        {leaderboard.map((row, idx) => (
-                          <tr
-                            key={row.userID || idx}
-                            className="outfit-400 group cursor-pointer transition-colors hover:bg-gray-50"
-                          >
-                            <td className="px-3 py-3 text-sm text-gray-900">
-                              {idx === 0 && (
-                                <i className="bx bx-trophy mr-1 text-yellow-500"></i>
-                              )}
-                              {idx + 1}
-                            </td>
-                            <td className="px-3 py-3 text-sm text-gray-900">
-                              {row.name ||
-                                `${row.firstName || ""} ${row.lastName || ""}`.trim() ||
-                                "-"}
-                            </td>
-                            <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-900">
-                              {row.course || "-"}
-                            </td>
-                            <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-900">
-                              {row.year || row.yearLevel || "-"}
-                            </td>
-                            <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-900">
-                              {row.studentID || "-"}
-                            </td>
-                            <td className="px-3 py-3 text-center text-sm font-medium whitespace-nowrap text-gray-900">
-                              {row.averagePercentage || 0}%
-                            </td>
-                            <td className="px-3 py-3 text-center text-sm font-medium whitespace-nowrap text-gray-900">
-                              {row.highestPercentage || 0}%
-                            </td>
-                            <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-900">
-                              {row.totalAttempts || 0}
-                            </td>
-                            <td className="px-3 py-3 text-center text-sm whitespace-nowrap text-gray-600">
-                              {formatDate(row.lastAttemptDate)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
                 </div>
               </>
             )}
