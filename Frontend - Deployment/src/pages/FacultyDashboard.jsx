@@ -43,7 +43,7 @@ export default function FacultyDashboard() {
           {/* Changelog button */}
           <button
             onClick={() => setShowChangelog(true)}
-            className="outfit-600 mt-2 flex cursor-pointer items-center gap-2 rounded-2xl bg-orange-500 px-6 py-3 text-[14px] font-bold text-white shadow-lg shadow-orange-200 transition hover:bg-orange-600 hover:shadow-orange-300 active:scale-95"
+            className="outfit-600 mt-2 hidden cursor-pointer items-center gap-2 rounded-2xl bg-orange-500 px-6 py-3 text-[14px] font-bold text-white shadow-lg shadow-orange-200 transition hover:bg-orange-600 hover:shadow-orange-300 active:scale-95 lg:flex"
           >
             <i className="bx bx-news text-[17px]" />
             See What&apos;s New
