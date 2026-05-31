@@ -175,13 +175,12 @@ class SubjectController extends Controller
     }
 
     /**
-     * Retrieve all subjects without role-based restrictions,
-     * except that user with userID = 1 is not allowed to access this.
+     * Retrieve all subjects without role-based restrictions.
+     * Accessible to any authenticated user (Dean, Associate Dean, etc.).
      */
     public function allSubjects(Request $request)
     {
         try {
-            // The auth:sanctum middleware should have already authenticated the user
             $user = Auth::user();
 
             if (!$user) {
@@ -197,13 +196,6 @@ class SubjectController extends Controller
                     'success' => false,
                     'message' => 'Unauthorized. Please log in again.',
                 ], 401);
-            }
-
-            if ((int) $user->userID === 1) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Forbidden. This endpoint is not available for this user.',
-                ], 403);
             }
 
             $subjects = DB::table('subjects as s')

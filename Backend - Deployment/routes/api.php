@@ -54,7 +54,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user/profile', [UserController::class, 'getProfile']);
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
 
-    // All subjects (no role restriction, but blocks userID 1)
+    // All subjects (no role restriction; any authenticated user)
     Route::get('/subjects/all', [SubjectController::class, 'allSubjects']);
 
     // Allow all authenticated users to access their exam results for a subject
