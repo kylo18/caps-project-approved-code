@@ -4,16 +4,39 @@ NOTE: THIS IS THE INSTRUCTIONS FROM V.1.6 - 2.0 TRANSITION
 
     cd /home/ubuntu/CAPS/Testing_final
 
-2. Navigate to the backend container and randomize first the answer
+2. Type This command:
+
+    - git branch 
+
+    - Ensure you are currently in this branch:
+
+    * Environments/Test
+
+    - If you are inside that branch, proceed to step 3. If not proceed to the next step below
+
+    - If you are not inside that branch, type this command:
+
+    git switch Environments/Test
+
+    - Recheck by typing, <git branch>
+
+    - You should be inside, <* Environments/Test>
+
+    - Proceed to step 3
+
+3. (SKIP THIS PART IN PRODUCTION!!) Navigate to the backend container and randomize first the answer
 
     docker exec -it caps_backend bash
 
     (NOTE: SKIP THIS PART IN PRODUCTION!!): php artisan choices:randomize-correct 
 
 
-3. Type this command:
+4. Run the script for migrating and seeding the necessary data in the database:
 
-    php artisan migrate
+
+    - chmod u+x db_update.sh (NOTE: make sure this command runs first!!!!)
+ 
+    - ./db_update.sh
    
     NOTE: THIS IS THE CHANGES ADDED IN V1.6
 
@@ -133,14 +156,9 @@ student_quiz_results:
     -isRecorded
     -isPassed
 
-4. Seed the database for the new migrations: 
-    php artisan db:seed
+5. Check the mentioned table in the database.
 
-5. It should show errors only in the users table:
-
- - Duplicate Data (Due to test accounts.) This error is acceptable
- - We will Remove the test accounts after user acceptance test is over.
-
+6. If all exist, then the migration and normalization is complete
 
 
 

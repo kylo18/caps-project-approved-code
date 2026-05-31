@@ -172,9 +172,13 @@ const ClassContent = () => {
               const lastName = parts.slice(1).join(" ") || "";
 
               const answered =
-                typeof s?.quizzesAnswered === "number" ? s.quizzesAnswered : null;
+                typeof s?.quizzesAnswered === "number"
+                  ? s.quizzesAnswered
+                  : null;
               const completedPct =
-                typeof s?.completedQuizzes === "number" ? s.completedQuizzes : null;
+                typeof s?.completedQuizzes === "number"
+                  ? s.completedQuizzes
+                  : null;
 
               const quizProgress =
                 answered != null && completedPct != null
@@ -215,9 +219,7 @@ const ClassContent = () => {
           : [];
         setAssignedQuizzes(normalizedQuizzes);
       } catch (err) {
-        setError(
-          err.message || "Failed to load class. Please try again.",
-        );
+        setError(err.message || "Failed to load class. Please try again.");
         console.error("Error loading class:", err);
       } finally {
         setIsLoading(false);
@@ -945,8 +947,7 @@ const ClassContent = () => {
                   <div className="outfit-400 mt-8 flex items-end justify-between">
                     <div className="inline-flex max-w-full items-center overflow-hidden rounded-full bg-white px-2 py-0.5">
                       <span className="truncate text-[12px] font-semibold whitespace-nowrap text-black uppercase">
-                        Class Code -{" "}
-                        {classInfo?.classCode ?? "—"}
+                        Class Code - {classInfo?.classCode ?? "—"}
                       </span>
                     </div>
 
@@ -1807,16 +1808,38 @@ const ClassContent = () => {
                   className="flex items-start justify-between border-b border-gray-200 px-6 py-5"
                   style={{ background: "#fff8f5" }}
                 >
-                  <div>
-                    <h2 className="outfit-700 text-[18px] font-bold text-gray-900">
-                      Assign Quiz
-                    </h2>
-                    <p className="mt-0.5 text-[13px] text-gray-500">
-                      Select a quiz to assign to{" "}
-                      <span className="font-semibold text-gray-700">
-                        {classInfo?.className || "this class"}
-                      </span>
-                    </p>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500 text-white">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="lucide lucide-layers-plus-icon lucide-layers-plus"
+                      >
+                        <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 .83.18 2 2 0 0 0 .83-.18l8.58-3.9a1 1 0 0 0 0-1.831z" />
+                        <path d="M16 17h6" />
+                        <path d="M19 14v6" />
+                        <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 .825.178" />
+                        <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l2.116-.962" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="outfit-700 text-[16px] text-gray-900">
+                        Assign Quiz
+                      </h2>
+                      <p className="text-xs text-gray-500">
+                        Select a quiz to assign to{" "}
+                        <span className="font-semibold text-gray-700">
+                          {classInfo?.className || "this class"}
+                        </span>
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"

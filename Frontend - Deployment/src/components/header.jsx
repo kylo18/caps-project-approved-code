@@ -5,6 +5,7 @@ import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import collegeLogo from "/src/assets/college-logo.png";
 import { logoutUser } from "../utils/logoutUser";
+import ChangelogModal from "./ChangelogModal";
 
 // Utility to get a random color from a palette
 const AVATAR_COLORS = [
@@ -43,12 +44,15 @@ function clearPersistedAvatarColor(userInfo) {
 }
 
 // Web App Header
+const CHANGELOG_KEY = "changelog_v2.0.0_seen";
+
 const AdminHeader = ({ title, className = "" }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isTutorialPage = location.pathname.includes("/help");
@@ -539,6 +543,17 @@ const AdminHeader = ({ title, className = "" }) => {
                 </button>
 
                 <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setShowChangelog(true);
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
+                >
+                  <i className="bx bx-news mr-2 text-[16px]"></i>{" "}
+                  Changelog
+                </button>
+
+                <button
                   onClick={() => setShowLogoutModal(true)}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
@@ -556,6 +571,10 @@ const AdminHeader = ({ title, className = "" }) => {
           </div>
         </div>
       </div>
+
+      {showChangelog && (
+        <ChangelogModal onClose={() => setShowChangelog(false)} />
+      )}
 
       {showProfileModal && (
         <>

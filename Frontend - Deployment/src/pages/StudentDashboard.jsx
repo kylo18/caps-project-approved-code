@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
+import ChangelogModal from "../components/ChangelogModal";
 
 /* ── Colour palette cycling for the left-panel icon bg ─────── */
 const ICON_COLORS = [
@@ -172,6 +173,18 @@ const StudentDashboard = () => {
   const [classCode, setClassCode] = useState("");
   const [classCodeError, setClassCodeError] = useState("");
   const [isJoining, setIsJoining] = useState(false);
+
+  /* changelog modal */
+  const [showChangelog, setShowChangelog] = useState(false);
+
+  /* Auto-open changelog once per version */
+  const CHANGELOG_KEY = "changelog_v2.0.0_seen";
+  useEffect(() => {
+    if (!localStorage.getItem(CHANGELOG_KEY)) {
+      setShowChangelog(true);
+      localStorage.setItem(CHANGELOG_KEY, "true");
+    }
+  }, []);
 
   /* ── Load user from session ─────────────────────────── */
   useEffect(() => {
@@ -424,7 +437,17 @@ const StudentDashboard = () => {
 
       <div className="outfit-400 relative mt-8 min-h-screen bg-white pb-12 lg:mt-0">
         {/* HERO — no gradient, plain white */}
-        <div className="px-5 pt-10 pb-4 text-center md:px-6 md:pt-14 md:pb-6">
+        <div className="relative px-5 pt-10 pb-4 text-center md:px-6 md:pt-14 md:pb-6">
+          {/* Changelog button — top right */}
+          <button
+            onClick={() => setShowChangelog(true)}
+            title="What's new"
+            className="outfit-600 absolute top-3 right-4 hidden cursor-pointer items-center gap-1.5 rounded-xl bg-orange-500 px-4 py-2 text-[12px] font-bold text-white shadow shadow-orange-200 transition hover:bg-orange-600 active:scale-95 md:top-5 md:right-6 lg:flex"
+          >
+            <i className="bx bx-news text-[14px]" />
+            What&apos;s New
+          </button>
+
           <h1 className="outfit-700 text-[28px] leading-tight font-extrabold text-gray-900 md:text-[36px]">
             Hello, <span className="text-orange-500">{userName}!</span>
           </h1>
@@ -600,6 +623,11 @@ const StudentDashboard = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* CHANGELOG MODAL */}
+      {showChangelog && (
+        <ChangelogModal onClose={() => setShowChangelog(false)} />
       )}
     </>
   );

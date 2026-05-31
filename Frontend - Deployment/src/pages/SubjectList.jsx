@@ -303,7 +303,8 @@ function SubjectList() {
   const { toast, showToast } = useToast();
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
-  // Get unique program names for sidebar buttons
+  // Get unique program names for sidebar buttons — derived from actual subjects
+  // so only programs that have at least one subject are shown.
   const uniquePrograms = Array.from(
     new Set(subjects.map((s) => s.programName).filter(Boolean)),
   ).sort();

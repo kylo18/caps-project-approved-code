@@ -505,16 +505,77 @@ export default function PrintPersonalQuiz() {
     quizInfo?.instruction ||
     "";
 
-  // Function to force all oklch colors to safe values before PDF
-  const forceSafeColors = (element) => {
-    const all = element.querySelectorAll("*");
-    for (let el of all) {
-      const style = getComputedStyle(el);
-      if (style.color && style.color.includes("oklch")) {
-        el.style.color = "#222";
+  // Sanitize a cloned document to remove oklch() colors before html2canvas renders it.
+  // This runs inside html2canvas's `onclone` callback so the live DOM is never touched.
+  const sanitizeClonedDoc = (clonedDoc) => {
+    // Replace oklch() values in stylesheets with safe fallbacks (keeps all layout rules intact)
+    const oklchRegex = /oklch\([^)]*\)/gi;
+    for (const sheet of clonedDoc.styleSheets) {
+      try {
+        const rules = sheet.cssRules || sheet.rules;
+        if (!rules) continue;
+
+        let hasOklch = false;
+        let sanitizedCss = "";
+
+        for (const rule of rules) {
+          if (rule.cssText && rule.cssText.includes("oklch")) {
+            hasOklch = true;
+            sanitizedCss +=
+              rule.cssText.replace(oklchRegex, "transparent") + "\n";
+          } else {
+            sanitizedCss += (rule.cssText || "") + "\n";
+          }
+        }
+
+        if (hasOklch) {
+          // Disable the original stylesheet and inject a cleaned copy
+          sheet.disabled = true;
+          const cleanStyle = clonedDoc.createElement("style");
+          cleanStyle.textContent = sanitizedCss;
+          clonedDoc.head.appendChild(cleanStyle);
+        }
+      } catch (e) {
+        // Cross-origin stylesheets will throw - skip them
       }
-      if (style.backgroundColor && style.backgroundColor.includes("oklch")) {
-        el.style.backgroundColor = "#fff";
+    }
+
+    // Also fix any computed oklch values on elements (belt-and-suspenders)
+    const colorProps = [
+      "color",
+      "backgroundColor",
+      "borderColor",
+      "borderTopColor",
+      "borderRightColor",
+      "borderBottomColor",
+      "borderLeftColor",
+      "outlineColor",
+      "textDecorationColor",
+      "caretColor",
+      "columnRuleColor",
+      "fill",
+      "stroke",
+    ];
+
+    const elements = clonedDoc.querySelectorAll("*");
+    for (const el of elements) {
+      const style = clonedDoc.defaultView.getComputedStyle(el);
+
+      for (const prop of colorProps) {
+        const val = style[prop];
+        if (val && val.includes("oklch")) {
+          if (prop === "color" || prop === "fill") {
+            el.style[prop] = "#222";
+          } else if (prop === "backgroundColor") {
+            el.style[prop] = "transparent";
+          } else {
+            el.style[prop] = "#d1d5db";
+          }
+        }
+      }
+
+      if (style.boxShadow && style.boxShadow.includes("oklch")) {
+        el.style.boxShadow = "none";
       }
     }
   };
@@ -610,8 +671,16 @@ export default function PrintPersonalQuiz() {
       const element = pdfContentRef.current;
       if (!element) throw new Error("Content not found");
 
-      forceSafeColors(element);
       await waitForImagesToLoad(element);
+
+      const html2canvasOptions = {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        letterRendering: true,
+        backgroundColor: "#ffffff",
+        onclone: sanitizeClonedDoc,
+      };
 
       const pdf = new jsPDF("p", "mm", "a4");
       const imgWidth = 210;
@@ -621,6 +690,7 @@ export default function PrintPersonalQuiz() {
       const contentHeight = pageHeight - margin * 2;
 
       const headerSection = element.querySelector(".exam-header");
+      const instructionsSection = element.querySelector(".exam-instructions");
       const questionContainers = element.querySelectorAll(
         ".question-container",
       );
@@ -630,13 +700,10 @@ export default function PrintPersonalQuiz() {
 
       // Add header to first page
       if (headerSection) {
-        const headerCanvas = await html2canvas(headerSection, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          letterRendering: true,
-          backgroundColor: "#ffffff",
-        });
+        const headerCanvas = await html2canvas(
+          headerSection,
+          html2canvasOptions,
+        );
 
         const headerHeight =
           (headerCanvas.height * contentWidth) / headerCanvas.width;
@@ -650,20 +717,36 @@ export default function PrintPersonalQuiz() {
           headerHeight,
         );
 
-        currentY += headerHeight + 10;
+        currentY += headerHeight + 5;
+      }
+
+      // Add instructions
+      if (instructionsSection) {
+        const instrCanvas = await html2canvas(
+          instructionsSection,
+          html2canvasOptions,
+        );
+
+        const instrHeight =
+          (instrCanvas.height * contentWidth) / instrCanvas.width;
+
+        pdf.addImage(
+          instrCanvas.toDataURL("image/png"),
+          "PNG",
+          margin,
+          currentY,
+          contentWidth,
+          instrHeight,
+        );
+
+        currentY += instrHeight + 2;
       }
 
       // Process each question container
       for (let i = 0; i < questionContainers.length; i++) {
         const questionContainer = questionContainers[i];
 
-        const canvas = await html2canvas(questionContainer, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          letterRendering: true,
-          backgroundColor: "#ffffff",
-        });
+        const canvas = await html2canvas(questionContainer, html2canvasOptions);
 
         const questionHeight = (canvas.height * contentWidth) / canvas.width;
 
@@ -682,7 +765,7 @@ export default function PrintPersonalQuiz() {
           questionHeight,
         );
 
-        currentY += questionHeight + 5;
+        currentY += questionHeight + 2;
       }
 
       pdf.save(`${quizTitle.replace(/[^a-z0-9]/gi, "_")}_worksheet.pdf`);
@@ -726,8 +809,16 @@ export default function PrintPersonalQuiz() {
       const element = pdfContentRef.current;
       if (!element) throw new Error("Content not found");
 
-      forceSafeColors(element);
       await waitForImagesToLoad(element);
+
+      const html2canvasOptions = {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        letterRendering: true,
+        backgroundColor: "#ffffff",
+        onclone: sanitizeClonedDoc,
+      };
 
       const pdf = new jsPDF("p", "mm", "a4");
       const imgWidth = 210;
@@ -746,13 +837,10 @@ export default function PrintPersonalQuiz() {
 
       // Add header to first page
       if (headerSection) {
-        const headerCanvas = await html2canvas(headerSection, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          letterRendering: true,
-          backgroundColor: "#ffffff",
-        });
+        const headerCanvas = await html2canvas(
+          headerSection,
+          html2canvasOptions,
+        );
 
         const headerHeight =
           (headerCanvas.height * contentWidth) / headerCanvas.width;
@@ -770,13 +858,10 @@ export default function PrintPersonalQuiz() {
       }
 
       // Add answer key
-      const answerCanvas = await html2canvas(answerKeySection, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        letterRendering: true,
-        backgroundColor: "#ffffff",
-      });
+      const answerCanvas = await html2canvas(
+        answerKeySection,
+        html2canvasOptions,
+      );
 
       const answerHeight =
         (answerCanvas.height * contentWidth) / answerCanvas.width;
@@ -1040,13 +1125,31 @@ export default function PrintPersonalQuiz() {
                 margin: 1cm 0.8cm;
               }
               
+              /* Override oklch colors from Tailwind CSS v4 - html2canvas cannot parse oklch() */
+              .pdf-preview, .pdf-preview * {
+                --tw-ring-color: transparent !important;
+                --tw-ring-offset-color: transparent !important;
+                --tw-shadow-color: transparent !important;
+                --tw-gradient-from: #000 !important;
+                --tw-gradient-to: #fff !important;
+                --tw-divide-color: #e5e7eb !important;
+                --tw-border-color: #e5e7eb !important;
+                border-color: #e5e7eb !important;
+                outline-color: transparent !important;
+                text-decoration-color: currentColor !important;
+                caret-color: auto !important;
+                accent-color: auto !important;
+                box-shadow: none !important;
+              }
+              
               .pdf-preview {
                 width: 210mm;
                 margin: 0 auto;
-                background: white;
-                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                background: white !important;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1) !important;
                 position: relative;
                 font-family: 'Times New Roman', Times, serif !important;
+                color: #000 !important;
               }
               
               .question-container {
@@ -1063,12 +1166,12 @@ export default function PrintPersonalQuiz() {
                 width: 210mm;
                 margin: 0 auto;
                 padding: 10mm 8mm;
-                background: white;
-                border: none;
+                background: white !important;
+                border: none !important;
                 position: relative;
                 box-sizing: border-box;
                 font-family: 'Times New Roman', Times, serif !important;
-                box-shadow: none;
+                box-shadow: none !important;
               }
               
               .pdf-text {
@@ -1165,16 +1268,16 @@ export default function PrintPersonalQuiz() {
 
                   {/* Instructions */}
                   {quizInstructions && (
-                    <div className="mb-4 px-8">
-                      <div className="pdf-text font-semibold">
-                        Instructions:
-                      </div>
-                      <div className="pdf-text mt-1">{quizInstructions}</div>
+                    <div className="exam-instructions px-4 pb-4">
+                      <p className="pdf-text">
+                        <span className="font-semibold">Instructions: </span>
+                        {quizInstructions}
+                      </p>
                     </div>
                   )}
 
                   {/* Questions */}
-                  <div className="mt-8 space-y-4">
+                  <div className="mt-4 space-y-4">
                     {displayedQuestions.map((question, index) => (
                       <div key={index} className="question-container">
                         <div className="pdf-text flex items-start">
@@ -1521,7 +1624,7 @@ export default function PrintPersonalQuiz() {
         <div className="pdf-preview w-full">
           <div className="space-y-2">
             <div className="a4-page">
-              <div className="exam-header flex items-center justify-between px-8 pb-6">
+              <div className="exam-header flex items-center justify-between px-8 pb-2">
                 <div className="flex w-32 flex-col items-center">
                   <img
                     src={univLogo}
@@ -1584,13 +1687,15 @@ export default function PrintPersonalQuiz() {
               </div>
 
               {quizInstructions && (
-                <div className="mb-4 px-8">
-                  <div className="pdf-text font-semibold">Instructions:</div>
-                  <div className="pdf-text mt-1">{quizInstructions}</div>
+                <div className="exam-instructions px-4 pb-1">
+                  <p className="pdf-text">
+                    <span className="font-semibold">Instructions: </span>
+                    {quizInstructions}
+                  </p>
                 </div>
               )}
 
-              <div className="mt-8 space-y-4">
+              <div className="space-y-2">
                 {displayedQuestions.map((question, index) => (
                   <div key={index} className="question-container">
                     <div className="pdf-text flex items-start">
