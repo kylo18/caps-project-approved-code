@@ -131,11 +131,7 @@ function LandingPage() {
               Download
             </a>
           </li>
-          <li>
-            <a href="#feedback" className="hover:text-gray-900">
-              Feedback
-            </a>
-          </li>
+
           <li>
             <a href="/team-caps" className="hover:text-gray-900">
               Developers
@@ -147,10 +143,9 @@ function LandingPage() {
               href="https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&pli=1&gid=1756766640#gid=1756766640"
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => setIsSidebarOpen(false)}
               className="hover:text-gray-900"
             >
-              Help
+              Feedback
             </a>
           </li>
         </ul>
@@ -199,13 +194,7 @@ function LandingPage() {
               >
                 Download
               </a>
-              <a
-                href="#feedback"
-                onClick={() => setIsSidebarOpen(false)}
-                className="text-[14px] font-medium text-gray-700 hover:text-gray-900"
-              >
-                Feedback
-              </a>
+
               <a
                 href="/team-caps"
                 onClick={() => setIsSidebarOpen(false)}
@@ -221,7 +210,7 @@ function LandingPage() {
                 onClick={() => setIsSidebarOpen(false)}
                 className="text-[14px] font-medium text-gray-700 hover:text-gray-900"
               >
-                Help
+                Feedback
               </a>
             </nav>
           </div>
@@ -616,10 +605,9 @@ function LandingPage() {
                       href="https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&pli=1&gid=1756766640#gid=1756766640"
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={() => setIsSidebarOpen(false)}
                       className="outfit-400 hover:text-gray-800"
                     >
-                      Help Center
+                      Feedback
                     </a>
                   </li>
                 </ul>
@@ -644,19 +632,6 @@ function LandingPage() {
                       className="outfit-400 hover:text-gray-800"
                     >
                       Contact
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="outfit-700 mb-2 text-xs tracking-wide text-gray-700 uppercase">
-                  Feedback
-                </h4>
-                <ul className="outfit-400 space-y-1 text-xs md:text-sm">
-                  <li>
-                    <a href="#feedback" className="hover:text-gray-800">
-                      Share Feedback
                     </a>
                   </li>
                 </ul>

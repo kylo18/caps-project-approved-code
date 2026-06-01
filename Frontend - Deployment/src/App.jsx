@@ -113,10 +113,8 @@ function App() {
           <Route index element={<Reports />} />
         </Route>
 
-        <Route path="/help" element={<ProtectedRoute element={<Layout />} />}>
-          <Route index element={<TutorialLayout />} />
-          <Route path="content" element={<TutorialLayout />} />
-        </Route>
+        {/* Public Documentation Page */}
+        <Route path="/help" element={<TutorialLayout />} />
 
         {/* Protected Routes */}
         <Route

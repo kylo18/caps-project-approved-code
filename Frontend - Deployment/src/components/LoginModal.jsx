@@ -257,32 +257,9 @@ export default function LoginModal({
               )}
             </button>
 
-            {/* OR divider */}
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-gray-200" />
-              <span className="outfit-400 text-xs text-gray-400">OR</span>
-              <div className="h-px flex-1 bg-gray-200" />
-            </div>
+       
 
-            <button
-              onClick={() => alert("Google Sign-In is coming soon.")}
-              type="button"
-              className="outfit-400 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 py-2.5 text-sm text-gray-700 transition hover:bg-gray-100"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 488 512"
-              >
-                <path
-                  fill="#4285F4"
-                  d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C326.6 103.1 289.1 87 248 87c-93.5 0-170.5 73.4-170.5 169S154.5 425 248 425c85.9 0 148.7-56.5 155.8-132H248v-85.8h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
-                />
-              </svg>
-              Continue with Google
-            </button>
-
+            
             {/* Register link */}
             <p className="outfit-400 text-center text-sm text-gray-500">
               Don't have an account?{" "}

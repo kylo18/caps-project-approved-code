@@ -37,6 +37,9 @@ import SupportIconH from "/src/assets/symbols/supporthover.svg";
 import SubjectsIcon from "/src/assets/symbols/subjects.svg";
 import SubjectsIconH from "/src/assets/symbols/subjectshover.svg";
 
+import MyQuizIcon from "/src/assets/symbols/myquiz.svg";
+import MyQuizIconH from "/src/assets/symbols/myquizhover.svg";
+
 // Utility to get a random color from a palette
 const AVATAR_COLORS = [
   "bg-orange-500",
@@ -545,7 +548,7 @@ const Sidebar = ({
               : "/";
 
   const baseMenuItems = [
-    { icon: "bx-home-alt-3", label: "Home", path: homePath },
+    { icon: parsedRoleId === 1 ? "bx-file-detail" : "bx-home-alt-3", label: parsedRoleId === 1 ? "Exams" : "Home", path: homePath },
   ];
   const librariesItem = {
     label: "Quizzes",
@@ -624,7 +627,7 @@ const Sidebar = ({
 
   // Mobile bottom navigation
   if (isMobile) {
-    const homeItem = menuItems.find((item) => item.label === "Home");
+    const homeItem = menuItems.find((item) => item.label === "Home" || item.label === "Exams");
 
     return (
       <>
@@ -672,12 +675,8 @@ const Sidebar = ({
                         className="flex flex-col items-center"
                       >
                         <span className="mb-1 flex items-center justify-center">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 shadow-lg">
-                            <img
-                              src={DashboardIconW}
-                              alt="Dashboard"
-                              className="h-5 w-5 object-contain"
-                            />
+                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 shadow-lg text-white">
+                            <i className="bx bx-file-detail text-[20px]"></i>
                           </span>
                         </span>
                         <span
@@ -687,7 +686,7 @@ const Sidebar = ({
                               : "text-gray-700"
                           }`}
                         >
-                          Home
+                          {homeItem.label}
                         </span>
                       </Link>
                     </div>
@@ -789,7 +788,7 @@ const Sidebar = ({
                               : "text-gray-700"
                           }`}
                         >
-                          Home
+                          {homeItem.label}
                         </span>
                       </Link>
                     </div>
@@ -886,21 +885,12 @@ const Sidebar = ({
       </>
     );
   }
-
   // Desktop sidebar
   const handleSupportClick = () => {
-    const roleName = getRoleName(role_id);
-    if (roleName === "Student") {
-      window.open(
-        "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&gid=1756766640#gid=1756766640",
-        "_blank",
-      );
-    } else {
-      window.open(
-        "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
-        "_blank",
-      );
-    }
+    window.open(
+      "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&pli=1&gid=1756766640#gid=1756766640",
+      "_blank",
+    );
   };
 
   return (
@@ -1067,14 +1057,14 @@ const Sidebar = ({
                   <Link
                     to={item.path}
                     onClick={handleMenuClick}
-                    className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-800 ${
+                    className={`group flex cursor-pointer items-center rounded-lg transition-colors hover:bg-gray-100 ${
                       isUsersPage
                         ? "justify-center py-[10px]"
                         : "justify-start py-[6px]"
                     } ${
                       isItemActive
                         ? "bg-gray-100 text-orange-600"
-                        : "hover:text-gray-800"
+                        : "text-gray-600 hover:text-gray-800"
                     }`}
                   >
                     {/* Icon + label wrapper with padding */}
@@ -1093,6 +1083,12 @@ const Sidebar = ({
                             } flex-shrink-0`}
                           />
                         </span>
+                      ) : item.label === "Exams" ? (
+                        <i
+                          className={`bx bx-file-detail flex-shrink-0 ${
+                            isUsersPage ? "text-[20px]" : "text-[18px]"
+                          }`}
+                        ></i>
                       ) : item.label === "Quizzes" ? (
                         <span className="outfit-500 relative flex-shrink-0">
                           <img
@@ -1147,7 +1143,7 @@ const Sidebar = ({
                         <i
                           className={`bx ${item.icon} flex-shrink-0 ${
                             isUsersPage ? "text-[20px]" : "text-[18px]"
-                          } hover:text-gray-800`}
+                          }`}
                         ></i>
                       )}
 

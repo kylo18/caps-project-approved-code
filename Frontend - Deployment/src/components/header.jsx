@@ -438,7 +438,7 @@ const AdminHeader = ({ title, className = "" }) => {
 
   return (
     <div className={className}>
-      <div className="outfit-400 border-color fixed top-0 left-0 z-49 flex h-[44px] w-full items-center justify-between border-b bg-white px-6 py-[10px] sm:z-52">
+      <div className="outfit-500 border-color fixed top-0 left-0 z-49 flex h-[44px] w-full items-center justify-between border-b bg-white px-6 py-[10px] sm:z-52">
         <div className="-ml-3 flex items-center gap-2">
           <img src={collegeLogo} alt="College Logo" className="size-[30px]" />
         </div>
@@ -524,17 +524,10 @@ const AdminHeader = ({ title, className = "" }) => {
 
                 <button
                   onClick={() => {
-                    if (title !== "Student") {
-                      window.open(
-                        "https://docs.google.com/spreadsheets/d/1G3-PccAywmrd9QU94p9DJ58JYBg5jeyB/edit?gid=1756766640#gid=1756766640",
-                        "_blank",
-                      );
-                    } else {
-                      window.open(
-                        "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&gid=1756766640#gid=1756766640",
-                        "_blank",
-                      );
-                    }
+                    window.open(
+                      "https://docs.google.com/spreadsheets/d/1YzHRRk4Y_LSc9-fazPL4tDginLq_V1-6/edit?fbclid=IwY2xjawLBQ-5leHRuA2FlbQIxMABicmlkETFzMFZMckszUTBuMzFWYTIyAR7sVSVjXMwMZEQr9U0iCvDgzORURS9UFfOmPEEVEJxgxnAegPuUAeN99-GXBQ_aem_3VnqJNYrAHDz_RMtVx_Ssg&pli=1&gid=1756766640#gid=1756766640",
+                      "_blank",
+                    );
                   }}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
@@ -549,8 +542,7 @@ const AdminHeader = ({ title, className = "" }) => {
                   }}
                   className="flex w-full cursor-pointer items-center justify-start rounded-sm px-4 py-3 text-left text-[14px] text-black transition duration-200 ease-in-out hover:bg-gray-200"
                 >
-                  <i className="bx bx-news mr-2 text-[16px]"></i>{" "}
-                  Changelog
+                  <i className="bx bx-news mr-2 text-[16px]"></i> Changelog
                 </button>
 
                 <button

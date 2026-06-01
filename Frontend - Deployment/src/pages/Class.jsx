@@ -679,7 +679,7 @@ const Class = () => {
                   return (
                     <div
                       key={classItem.classID || classItem.id}
-                      className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[250px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
+                      className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[270px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
                     >
                       {/* Background Image Header Section */}
                       <div

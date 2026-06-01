@@ -651,9 +651,15 @@ const StudentClasses = () => {
                 {/* Cards */}
                 <div className="flex flex-col gap-4">
                   {assignedQuizzes.map((quiz) => {
-                    // Prefer class-level dates (set by teacher), fall back to quiz settings dates
-                    const displayStart = quiz.startDate ?? quiz.settings?.startTime;
-                    const displayEnd = quiz.deadlineDate ?? quiz.settings?.endTime;
+                    // Prefer settings dates (updated by teacher via QuizSettingsModal), fall back to class-level assignment dates
+                    const displayStart =
+                      quiz.settings?.startTime ??
+                      quiz.startTime ??
+                      quiz.startDate;
+                    const displayEnd =
+                      quiz.settings?.endTime ??
+                      quiz.endTime ??
+                      quiz.deadlineDate;
                     const start = formatDate(displayStart);
                     let isDeadlineNear = false;
 

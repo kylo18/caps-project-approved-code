@@ -644,13 +644,13 @@ const QuizSettingsModal = ({
       }
 
       // Prepare quiz settings payload (per class-quiz)
-      // Use local date from input to avoid UTC conversion shifting the day (e.g. -1 day)
+      // Send full datetime (YYYY-MM-DD HH:MM) so the time portion is preserved
       const payload = {};
       if (effectiveStartTime) {
-        payload.startTime = effectiveStartTime.slice(0, 10);
+        payload.startTime = effectiveStartTime.replace("T", " ");
       }
       if (effectiveEndTime) {
-        payload.endTime = effectiveEndTime.slice(0, 10);
+        payload.endTime = effectiveEndTime.replace("T", " ");
       }
       if (settings.quizAttempts)
         payload.quizAttempts = parseInt(settings.quizAttempts, 10);
