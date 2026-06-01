@@ -553,13 +553,6 @@ const SubjectCard = ({
               </button>
 
               <button
-                onClick={handleRefresh}
-                className="border-color mb-6 flex cursor-pointer items-center justify-center rounded-xl border px-2 py-[7px] text-gray-700 transition-all duration-100 hover:bg-gray-100 min-[500px]:hidden md:hidden"
-              >
-                <i className="bx bx-refresh-ccw text-2xl"></i>
-              </button>
-
-              <button
                 className="border-color mb-6 flex items-center justify-center gap-1 rounded-xl border bg-white px-4 py-2 text-[14px] text-gray-700 transition hover:bg-gray-100"
                 onClick={() => {
                   setWorksheetSubject({

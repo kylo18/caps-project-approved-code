@@ -1224,7 +1224,7 @@ function SubjectList() {
                             <>
                               <div
                                 key={subject.subjectID}
-                                className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[250px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
+                                className="group outfit-400 relative flex w-full flex-col overflow-hidden rounded-xl bg-transparent transition-all md:h-[270px] md:w-80 md:border md:border-gray-200 md:bg-white md:shadow-sm md:hover:shadow-xl"
                               >
                                 {/* Background Image Header Section */}
                                 <div
@@ -1239,7 +1239,10 @@ function SubjectList() {
                                     decoding="async"
                                     className="absolute inset-0 h-full w-full object-cover"
                                   />
-                                  <div className="absolute inset-0 bg-black/10" aria-hidden="true" />
+                                  <div
+                                    className="absolute inset-0 bg-black/10"
+                                    aria-hidden="true"
+                                  />
                                   <div className="relative z-10 pr-16 md:flex md:h-full md:flex-col md:justify-between md:pr-0">
                                     <div>
                                       <div className="mb-4 hidden text-xs font-medium text-white opacity-90 md:block">

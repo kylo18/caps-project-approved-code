@@ -442,7 +442,7 @@ const StudentDashboard = () => {
           <button
             onClick={() => setShowChangelog(true)}
             title="What's new"
-            className="outfit-600 absolute top-3 right-4 flex cursor-pointer items-center gap-1.5 rounded-xl bg-orange-500 px-4 py-2 text-[12px] font-bold text-white shadow shadow-orange-200 transition hover:bg-orange-600 active:scale-95 md:top-5 md:right-6 lg:hidden"
+            className="outfit-600 absolute top-3 right-4 hidden cursor-pointer items-center gap-1.5 rounded-xl bg-orange-500 px-4 py-2 text-[12px] font-bold text-white shadow shadow-orange-200 transition hover:bg-orange-600 active:scale-95 md:top-5 md:right-6 lg:flex"
           >
             <i className="bx bx-news text-[14px]" />
             What&apos;s New

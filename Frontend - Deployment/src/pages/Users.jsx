@@ -25,6 +25,30 @@ import FacultyPfp from "/src/assets/symbols/faculty.png";
 import ProgramChairPfp from "/src/assets/symbols/progchair.png";
 import DeanPfp from "/src/assets/symbols/dean.png";
 
+const getSearchTerms = (query) =>
+  (query || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+
+const userMatchesSearch = (user, query) => {
+  const terms = getSearchTerms(query);
+  if (terms.length === 0) return true;
+
+  const haystack = [
+    user.firstName,
+    user.lastName,
+    `${user.firstName || ""} ${user.lastName || ""}`,
+    user.email,
+    user.userCode,
+    user.role,
+    user.program,
+    user.campus,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return terms.every((term) => haystack.includes(term));
+};
+
 const UserList = () => {
   // State for user data and loading
   const [users, setUsers] = useState([]);
@@ -248,6 +272,13 @@ const UserList = () => {
       });
     }
 
+    // Multi-word search (e.g. "john doe"): backend matches one field at a time
+    if (getSearchTerms(debouncedSearchQuery).length > 1) {
+      filteredUsers = filteredUsers.filter((user) =>
+        userMatchesSearch(user, debouncedSearchQuery),
+      );
+    }
+
     return filteredUsers;
   };
 
@@ -260,9 +291,15 @@ const UserList = () => {
     );
   };
 
+  const isMultiWordSearch = () =>
+    getSearchTerms(debouncedSearchQuery).length > 1;
+
+  const usesClientSidePagination = () =>
+    hasArrayFiltersActive() || isMultiWordSearch();
+
   const getDisplayedUsers = () => {
     const filteredUsers = getFilteredUsers();
-    if (!hasArrayFiltersActive()) return filteredUsers;
+    if (!usesClientSidePagination()) return filteredUsers;
 
     return filteredUsers.slice(
       (currentPage - 1) * itemsPerPage,
@@ -361,10 +398,15 @@ const UserList = () => {
         (Array.isArray(programFilter) && programFilter.length > 0) ||
         (Array.isArray(stateFilter) && stateFilter.length > 0);
 
+      const searchTerms = getSearchTerms(debouncedSearchQuery);
+      const multiWordSearch = searchTerms.length > 1;
+      const clientSideFetch = hasArrayFilters || multiWordSearch;
+      const apiSearch = multiWordSearch ? searchTerms[0] : debouncedSearchQuery;
+
       const queryParams = new URLSearchParams({
-        page: hasArrayFilters ? 1 : page, // Reset to page 1 when using array filters (client-side pagination)
-        limit: hasArrayFilters ? 10000 : itemsPerPage, // Fetch more if we need to filter client-side
-        search: debouncedSearchQuery,
+        page: clientSideFetch ? 1 : page,
+        limit: clientSideFetch ? 10000 : itemsPerPage,
+        search: apiSearch,
         // When array filters are active, skip backend filters and do client-side filtering
         status: hasArrayFilters ? "all" : statusFilter,
         campus: hasArrayFilters
@@ -782,7 +824,7 @@ const UserList = () => {
   // Function to handle page change
   const handlePageChange = (newPage) => {
     const filteredUsersCount = getFilteredUsers().length;
-    const isClientSidePagination = hasArrayFiltersActive();
+    const isClientSidePagination = usesClientSidePagination();
     const effectiveTotalPages = isClientSidePagination
       ? Math.max(1, Math.ceil(filteredUsersCount / itemsPerPage))
       : totalPages;
@@ -948,7 +990,7 @@ const UserList = () => {
 
   const renderPagination = () => {
     const filteredUsersCount = getFilteredUsers().length;
-    const isClientSidePagination = hasArrayFiltersActive();
+    const isClientSidePagination = usesClientSidePagination();
     const effectiveTotalPages = isClientSidePagination
       ? Math.max(1, Math.ceil(filteredUsersCount / itemsPerPage))
       : totalPages;
@@ -2311,7 +2353,9 @@ const UserList = () => {
                           />
                         </th>
                       )}
-                      <th className={`py-3 text-left text-[12px] font-medium tracking-wider text-gray-600 uppercase ${(!canManageUsers) ? "pl-4" : ""}`}>
+                      <th
+                        className={`py-3 text-left text-[12px] font-medium tracking-wider text-gray-600 uppercase ${!canManageUsers ? "pl-4" : ""}`}
+                      >
                         User Information
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-medium tracking-wider text-gray-600 uppercase">
@@ -2362,7 +2406,9 @@ const UserList = () => {
                             />
                           </td>
                         )}
-                        <td className={`py-2 whitespace-nowrap ${(!canManageUsers) ? "pl-4" : ""}`}>
+                        <td
+                          className={`py-2 whitespace-nowrap ${!canManageUsers ? "pl-4" : ""}`}
+                        >
                           <div className="flex items-center gap-3">
                             <div className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-gray-100">
                               <img

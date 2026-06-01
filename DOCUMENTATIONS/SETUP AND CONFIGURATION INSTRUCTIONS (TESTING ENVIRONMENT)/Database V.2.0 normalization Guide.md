@@ -33,6 +33,9 @@ NOTE: THIS IS THE INSTRUCTIONS FROM V.1.6 - 2.0 TRANSITION
 
 4. Run the script for migrating and seeding the necessary data in the database:
 
+
+    - chmod u+x db_update.sh (NOTE: make sure this command runs first!!!!)
+ 
     - ./db_update.sh
    
     NOTE: THIS IS THE CHANGES ADDED IN V1.6

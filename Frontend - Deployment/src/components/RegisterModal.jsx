@@ -66,6 +66,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
   const [isRegistering, setIsRegistering] = useState(false);
   const [message, setMessage] = useState("");
   const [showTooltip, setShowTooltip] = useState(false);
+  const [isSubmitReady, setIsSubmitReady] = useState(false);
   const tooltipRef = useRef(null);
   const { toast, showToast } = useToast();
 
@@ -101,6 +102,19 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
       document.body.style.overflow = "";
     };
   }, [isOpen]);
+
+  // Submit button delay to prevent double-click bleed-through
+  useEffect(() => {
+    if (currentStep === 4) {
+      const timer = setTimeout(() => setIsSubmitReady(true), 400);
+      return () => {
+        clearTimeout(timer);
+        setIsSubmitReady(false);
+      };
+    } else {
+      setIsSubmitReady(false);
+    }
+  }, [currentStep]);
 
   // Reset when closed
   useEffect(() => {
@@ -193,6 +207,11 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (currentStep !== 4) {
+      handleNextStep();
+      return;
+    }
+
     const result = validateStep4();
     if (!result.isValid) {
       setErrors(result.errors);
@@ -231,9 +250,35 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
           onSwitchToLogin?.();
         }, 3000);
       } else {
-        const msg = data.message || "Registration failed";
-        setErrors((prev) => ({ ...prev, general: msg }));
-        showToast(msg, "error");
+        if (data.errors) {
+          const newErrors = {};
+          let targetStep = 4;
+          const stepMapping = {
+            firstName: 1,
+            lastName: 1,
+            userCode: 2,
+            email: 2,
+            roleID: 3,
+            campusID: 3,
+            programID: 3,
+            password: 4,
+          };
+
+          for (const [key, messages] of Object.entries(data.errors)) {
+            newErrors[key] = Array.isArray(messages) ? messages[0] : messages;
+            if (stepMapping[key] && stepMapping[key] < targetStep) {
+              targetStep = stepMapping[key];
+            }
+          }
+
+          setErrors(newErrors);
+          setCurrentStep(targetStep);
+          showToast("Please correct the errors in the form.", "error");
+        } else {
+          const msg = data.message || "Registration failed";
+          setErrors((prev) => ({ ...prev, general: msg }));
+          showToast(msg, "error");
+        }
       }
     } catch {
       const msg = "An error occurred. Please try again later.";
@@ -305,14 +350,20 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
               <StepInput
                 label="First Name"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                onChange={(e) => {
+                  setFirstName(e.target.value);
+                  if (errors.firstName) setErrors((prev) => ({ ...prev, firstName: null }));
+                }}
                 error={errors.firstName}
                 placeholder="e.g. Juan"
               />
               <StepInput
                 label="Last Name"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                onChange={(e) => {
+                  setLastName(e.target.value);
+                  if (errors.lastName) setErrors((prev) => ({ ...prev, lastName: null }));
+                }}
                 error={errors.lastName}
                 placeholder="e.g. Dela Cruz"
               />
@@ -346,7 +397,10 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                 <input
                   type="text"
                   value={userCode}
-                  onChange={(e) => setUserCode(e.target.value)}
+                  onChange={(e) => {
+                    setUserCode(e.target.value);
+                    if (errors.userCode) setErrors((prev) => ({ ...prev, userCode: null }));
+                  }}
                   placeholder="e.g. 23-A-12345"
                   className={`outfit-400 w-full rounded-lg border bg-gray-50 px-4 py-2.5 text-sm text-gray-900 transition outline-none placeholder:text-gray-400 hover:border-gray-300 focus:bg-white focus:ring-2 ${
                     errors.userCode
@@ -362,7 +416,10 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                 label="Email Address"
                 type="text"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((prev) => ({ ...prev, email: null }));
+                }}
                 error={errors.email}
                 placeholder="you@example.com"
               />
@@ -387,6 +444,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                     onChange={(e) => {
                       setCampusID(e.target.value);
                       setProgramID("");
+                      if (errors.campusID) setErrors((prev) => ({ ...prev, campusID: null }));
                     }}
                     placeholder="Select Campus"
                     options={[
@@ -413,7 +471,10 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                   <RegisterDropDownSmall
                     name="Position"
                     value={roleID}
-                    onChange={(e) => setRoleID(e.target.value)}
+                    onChange={(e) => {
+                      setRoleID(e.target.value);
+                      if (errors.roleID) setErrors((prev) => ({ ...prev, roleID: null }));
+                    }}
                     placeholder="Select Position"
                     options={[
                       { value: "1", label: "Student" },
@@ -441,7 +502,10 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                   <RegisterDropDownSmall
                     name="Program"
                     value={programID}
-                    onChange={(e) => setProgramID(e.target.value)}
+                    onChange={(e) => {
+                      setProgramID(e.target.value);
+                      if (errors.programID) setErrors((prev) => ({ ...prev, programID: null }));
+                    }}
                     placeholder="Select Program"
                     options={getFilteredPrograms()}
                   />
@@ -462,7 +526,10 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                 label="Password"
                 type={passwordVisible ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors((prev) => ({ ...prev, password: null }));
+                }}
                 error={errors.password}
                 placeholder="Min. 8 characters"
               >
@@ -481,7 +548,10 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                 label="Confirm Password"
                 type={confirmPasswordVisible ? "text" : "password"}
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: null }));
+                }}
                 error={errors.confirmPassword}
                 placeholder="Re-enter password"
               >
@@ -540,7 +610,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
             ) : (
               <button
                 type="submit"
-                disabled={isRegistering || !!message}
+                disabled={!isSubmitReady || isRegistering || !!message}
                 className="outfit-400 flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-green-500 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-600 active:scale-[0.98] disabled:opacity-60"
               >
                 {isRegistering ? (
@@ -552,30 +622,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-gray-200" />
-            <span className="text-xs text-gray-400">OR</span>
-            <div className="h-px flex-1 bg-gray-200" />
-          </div>
-
-          <button
-            onClick={() => alert("Google Sign-In is coming soon.")}
-            type="button"
-            className="outfit-400 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 py-2.5 text-sm text-gray-700 transition hover:bg-gray-100"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 488 512"
-            >
-              <path
-                fill="#4285F4"
-                d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C326.6 103.1 289.1 87 248 87c-93.5 0-170.5 73.4-170.5 169S154.5 425 248 425c85.9 0 148.7-56.5 155.8-132H248v-85.8h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
-              />
-            </svg>
-            Register with Google
-          </button>
+          
 
           {/* Login link */}
           <p className="outgit-400 text-center text-sm text-gray-500">

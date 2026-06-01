@@ -185,16 +185,24 @@ class QuestionController extends Controller
             ->where('subjectID', $subjectID)
             ->whereHas('choices');
 
-        // Apply program-based filtering for Program Chairs, but also include questions added by the Dean (roleID 4)
+        // Apply role-based filtering for Program Chairs
         if ($isProgramChair) {
-            $query->where(function($q) use ($user) {
-                $q->whereHas('user', function($q2) use ($user) {
-                    $q2->where('programID', $user->programID);
-                })
-                ->orWhereHas('user', function($q2) {
-                    $q2->where('roleID', 4); // Dean
+            if ($subject->programID === 6) {
+                // General subject: show all questions from the same campus, regardless of program
+                $query->whereHas('user', function ($q) use ($user) {
+                    $q->where('campusID', $user->campusID);
                 });
-            });
+            } else {
+                // Program-specific subject: filter by program, but also include questions added by the Dean (roleID 4)
+                $query->where(function ($q) use ($user) {
+                    $q->whereHas('user', function ($q2) use ($user) {
+                        $q2->where('programID', $user->programID);
+                    })
+                    ->orWhereHas('user', function ($q2) {
+                        $q2->where('roleID', 4); // Dean
+                    });
+                });
+            }
         }
 
         // Apply campus-based filtering for Associate Deans
