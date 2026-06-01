@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 require_once base_path('Modules/Users/Database/Seeders/RolesTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/CampusesTableSeeder.php');
-require_once base_path('Modules/Users/Database/Seeders/UsersTableSeeder.php');
+//require_once base_path('Modules/Users/Database/Seeders/UsersTableSeeder.php');
 require_once base_path('Modules/Users/Database/Seeders/ProgramSeeder.php');
 //require_once base_path('Modules/Subjects/Database/Seeders/SubjectsTableSeeder.php');
 require_once base_path('Modules/Subjects/Database/Seeders/YearLevelsTableSeeder.php');
