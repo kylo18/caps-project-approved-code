@@ -1,8 +1,8 @@
 ## Purpose
-This folder contains archived older versions of selected Markdown files from:
+This folder contains archived older versions of files from:
 
 ```text
-DOCUMENTATION/CAPS_Mobile_Documentation/02_Technical_Documentation/
+DOCUMENTATION/CAPS_Mobile_Documentation/
 ```
 
 These files can be used to show the application of the **Version Control** skill by demonstrating that documentation was tracked across versions, compared, and updated instead of being overwritten without history.
