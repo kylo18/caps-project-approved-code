@@ -1,5 +1,3 @@
-# Version Control Evidence
-
 ## Purpose
 This folder contains archived older versions of selected Markdown files from:
 
