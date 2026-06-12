@@ -56,6 +56,14 @@ paths:
       tags: [Public]
       summary: List available roles
       security: []
+  /campuses:
+    get:
+      tags: [Public]
+      summary: List all campuses
+      security: []
+    post:
+      tags: [Dean]
+      summary: Create a campus (Dean only)
   /forgot-password:
     post:
       tags: [Public]
@@ -905,10 +913,10 @@ paths:
     post:
       tags: [ChairDean]
       summary: Multi-subject exam PDF
-  /users/{userID}/role:
+  /users/{userID}/credentials:
     patch:
-      tags: [ChairDean]
-      summary: Change user role
+      tags: [Dean]
+      summary: Update subordinate user credentials (Dean or Associate Dean)
       parameters:
         - name: userID
           in: path

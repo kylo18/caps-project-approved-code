@@ -343,40 +343,199 @@ class QuestionController extends Controller
     // Approve a question if it's pending and not edited by the current user
     public function updateStatus($questionID)
     {
-        $this->authorizeRoles([3, 4, 5]);
+        try {
+            $this->authorizeRoles([3, 4, 5]);
 
-        $question = Question::find($questionID);
-        if (!$question) {
-            return response()->json(['message' => 'Question not found.'], 404);
-        }
+            $question = Question::with([
+                'subject',
+                'choices',
+                'user',
+                'status',
+                'difficulty',
+                'coverage',
+                'purpose',
+                'editor' => fn ($query) => $query->select('userID', 'firstName', 'lastName'),
+                'approver' => fn ($query) => $query->select('userID', 'firstName', 'lastName'),
+            ])->find($questionID);
 
-        $pendingStatus = Status::where('name', 'pending')->first();
-        if (!$pendingStatus || $question->status_id !== $pendingStatus->id) {
+            if (!$question) {
+                return response()->json(['message' => 'Question not found.'], 404);
+            }
+
+            $statusIds = $this->resolveApprovalStatusIds();
+            if (!$statusIds['pending'] || !$statusIds['approved']) {
+                return response()->json([
+                    'message' => 'Required question statuses are not configured.',
+                ], 500);
+            }
+
+            $failureReason = $this->getQuestionApprovalFailureReason(
+                $question,
+                Auth::id(),
+                $statusIds['pending']
+            );
+
+            if ($failureReason) {
+                return response()->json([
+                    'message' => $failureReason,
+                    'current_status' => optional($question->status)->name,
+                ], $this->resolveApprovalFailureStatusCode($failureReason));
+            }
+
+            $question->update([
+                'status_id' => $statusIds['approved'],
+                'approvedBy' => Auth::id(),
+            ]);
+
             return response()->json([
-                'message' => 'Only questions with pending status can be approved.',
-                'current_status' => optional($question->status)->name
-            ], 400);
-        }
+                'message' => 'Question approved.',
+                'question' => $this->formatQuestion($question->fresh([
+                    'subject',
+                    'choices',
+                    'user',
+                    'status',
+                    'difficulty',
+                    'coverage',
+                    'purpose',
+                    'editor',
+                    'approver',
+                ])),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Question approval error', [
+                'question_id' => $questionID,
+                'user_id' => optional(Auth::user())->userID,
+                'error' => $e->getMessage(),
+            ]);
 
-        // Check if the current user is the creator and the question hasn't been edited yet
-        if (Auth::id() === $question->userID && !$question->editedBy) {
-            return response()->json(['message' => 'You cannot approve your own question.'], 403);
+            return response()->json([
+                'message' => 'An error occurred while approving the question.',
+                'error' => app()->environment('local') ? $e->getMessage() : null,
+            ], 500);
         }
+    }
 
-        // Check if the current user is the one who last edited the question
-        if (Auth::id() === $question->editedBy) {
-            return response()->json(['message' => 'You cannot approve a question you last edited.'], 403);
+    /**
+     * Approve multiple pending questions in a single request.
+     * Applies the same approval rules as updateStatus for each question.
+     */
+    public function approveMultipleQuestions(Request $request)
+    {
+        try {
+            $this->authorizeRoles([3, 4, 5]);
+
+            $validated = $request->validate([
+                'questionIDs' => 'required|array|min:1',
+                'questionIDs.*' => 'integer|distinct|exists:questions,questionID',
+            ]);
+
+            $approverId = Auth::id();
+            $statusIds = $this->resolveApprovalStatusIds();
+
+            if (!$statusIds['pending'] || !$statusIds['approved']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Required question statuses are not configured.',
+                ], 500);
+            }
+
+            $questions = Question::with(['status'])
+                ->whereIn('questionID', $validated['questionIDs'])
+                ->get()
+                ->keyBy('questionID');
+
+            $approvableIds = [];
+            $skipped = [];
+
+            foreach ($validated['questionIDs'] as $questionID) {
+                $question = $questions->get($questionID);
+
+                if (!$question) {
+                    $skipped[] = [
+                        'questionID' => $questionID,
+                        'reason' => 'Question not found.',
+                    ];
+                    continue;
+                }
+
+                $failureReason = $this->getQuestionApprovalFailureReason(
+                    $question,
+                    $approverId,
+                    $statusIds['pending']
+                );
+
+                if ($failureReason) {
+                    $skipped[] = [
+                        'questionID' => $questionID,
+                        'reason' => $failureReason,
+                        'current_status' => optional($question->status)->name,
+                    ];
+                    continue;
+                }
+
+                $approvableIds[] = $questionID;
+            }
+
+            $approvedQuestions = collect();
+
+            if (!empty($approvableIds)) {
+                DB::transaction(function () use ($approvableIds, $statusIds, $approverId) {
+                    Question::whereIn('questionID', $approvableIds)->update([
+                        'status_id' => $statusIds['approved'],
+                        'approvedBy' => $approverId,
+                        'updated_at' => now(),
+                    ]);
+                });
+
+                $approvedQuestions = Question::with([
+                    'subject',
+                    'choices',
+                    'user',
+                    'status',
+                    'difficulty',
+                    'coverage',
+                    'purpose',
+                    'editor' => fn ($query) => $query->select('userID', 'firstName', 'lastName'),
+                    'approver' => fn ($query) => $query->select('userID', 'firstName', 'lastName'),
+                ])
+                    ->whereIn('questionID', $approvableIds)
+                    ->get()
+                    ->map(fn ($question) => $this->formatQuestion($question))
+                    ->values();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bulk question approval completed.',
+                'summary' => [
+                    'requested' => count($validated['questionIDs']),
+                    'approved' => count($approvableIds),
+                    'skipped' => count($skipped),
+                ],
+                'approved_questions' => $approvedQuestions,
+                'skipped_questions' => $skipped,
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Bulk question approval error', [
+                'user_id' => optional(Auth::user())->userID,
+                'question_ids' => $request->input('questionIDs'),
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while approving the selected questions.',
+                'error' => app()->environment('local') ? $e->getMessage() : null,
+            ], 500);
         }
-
-        $approvedStatus = Status::where('name', 'approved')->first();
-        if ($approvedStatus) {
-            $question->status_id = $approvedStatus->id;
-            // Update the approvedBy field with the current user
-            $question->approvedBy = Auth::id();
-            $question->save();
-        }
-
-        return response()->json(['message' => 'Question approved.', 'question' => $this->formatQuestion($question)]);
     }
 
     // Show questions by subject and filter them by the program of the logged-in Program Chair
@@ -822,6 +981,36 @@ class QuestionController extends Controller
     }
 
     // ============ PRIVATE HELPERS ============
+
+    private function resolveApprovalStatusIds(): array
+    {
+        return [
+            'pending' => Status::where('name', 'pending')->value('id'),
+            'approved' => Status::where('name', 'approved')->value('id'),
+        ];
+    }
+
+    private function getQuestionApprovalFailureReason(Question $question, int $approverId, int $pendingStatusId): ?string
+    {
+        if ($question->status_id !== $pendingStatusId) {
+            return 'Only questions with pending status can be approved.';
+        }
+
+        if ($approverId === $question->userID && !$question->editedBy) {
+            return 'You cannot approve your own question.';
+        }
+
+        if ($approverId === $question->editedBy) {
+            return 'You cannot approve a question you last edited.';
+        }
+
+        return null;
+    }
+
+    private function resolveApprovalFailureStatusCode(string $reason): int
+    {
+        return str_contains($reason, 'pending status') ? 400 : 403;
+    }
 
     // Ensure only users with certain roles can access specific methods
     private function authorizeRoles(array $allowed)

@@ -149,12 +149,13 @@ Because the faculty routes are registered **before** the student routes, student
 | DELETE | `/remove-assigned-subject/{subjectID}` | `FacultySubjectController@removeAssignedSubject` |
 | GET | `/subjects/{subjectID}/exam-questions-status` | `SubjectController@getExamQuestionsStatus` |
 
-### Year levels & programs
+### Year levels, programs & campuses
 
 | Method | Path | Controller action |
 |--------|------|---------------------|
 | GET | `/year-levels` | `YearLevelController@index` |
 | GET | `/programs` | `ProgramController@index` |
+| GET | `/campuses` | `CampusController@index` | Public; list all campuses |
 
 ### Questions (bank)
 
@@ -343,16 +344,26 @@ These paths are **also** registered here for roles 2–5 (alongside the authenti
 | GET | `/practice-settings/{subjectID}` | `PracticeExamSettingController@show` |
 | POST | `/practice-settings` | `PracticeExamSettingController@store` |
 | POST | `/generate-multi-subject-exam` | `PrintController@generateMultiSubjectExam` |
-| PATCH | `/users/{userID}/role` | `UserController@changeUserRole` |
 
 ---
 
-## 7. Dean & Associate Dean only (`role:4,5`)
+## 7. Dean only (`role:4`)
+
+**Middleware:** `auth:sanctum`, `role:4`.
+
+| Method | Path | Controller action |
+|--------|------|---------------------|
+| POST | `/campuses` | `CampusController@store` | Create a new campus |
+
+---
+
+## 8. Dean & Associate Dean only (`role:4,5`)
 
 **Middleware:** `auth:sanctum`, `role:4,5`.
 
 | Method | Path | Controller action |
 |--------|------|---------------------|
+| PATCH | `/users/{userID}/credentials` | `UserController@updateUserCredentials` | Update subordinate user credentials |
 | POST | `/add-subjects` | `SubjectController@store` |
 | DELETE | `/subjects/{subjectID}/delete` | `SubjectController@destroy` |
 | PUT | `/subjects/{subjectID}/update` | `SubjectController@update` |
@@ -363,7 +374,7 @@ These paths are **also** registered here for roles 2–5 (alongside the authenti
 
 ---
 
-## 8. Static files (CORS-enabled)
+## 9. Static files (CORS-enabled)
 
 No Bearer token required unless you add global middleware. These routes live on the same API route file; confirm whether your reverse proxy maps them under `/api` or only at application root (Laravel default attaches `api` routes with the API prefix—so these are typically `/api/storage/...`).
 

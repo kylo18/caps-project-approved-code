@@ -18,6 +18,7 @@ use Modules\PersonalExams\Models\PersonalQuiz;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Auth\Notifications\ResetPassword;
 use App\Notifications\CustomResetPassword;
+use App\Notifications\CustomResetUserCode;
 use Modules\PersonalClasses\Models\ClassModel;
 use Modules\PersonalClasses\Models\ClassEnrollment;
 use Modules\Users\Models\Campus;
@@ -171,5 +172,10 @@ class User extends Authenticatable
     {
         $url = url('/password/reset/' . $token);
         $this->notifyNow(new CustomResetPassword($token, $url));
+    }
+
+    public function sendUserCodeResetNotification(string $token): void
+    {
+        $this->notifyNow(new CustomResetUserCode($token));
     }
 }
