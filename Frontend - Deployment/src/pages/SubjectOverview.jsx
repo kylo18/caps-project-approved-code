@@ -53,6 +53,10 @@ const SubjectOverview = () => {
   const [yearLevelData, setYearLevelData] = useState([]);
   const { toast, showToast } = useToast();
 
+  const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+  const roleID = user?.roleID ?? user?.roleId;
+  const isFaculty = Number(roleID) === 2 || Number(roleID) === 3;
+
   const yearLevelOptions = ["1", "2", "3", "4"];
 
   // Fetch programs and year levels
@@ -177,7 +181,7 @@ const SubjectOverview = () => {
     return (
       <>
         {/* Desktop skeleton */}
-        <div className="border-color relative z-51 mx-auto mt-8 hidden h-38 max-w-[1200px] overflow-hidden border-b bg-white px-6 pt-2 sm:block lg:h-[190px]">
+        <div className="border-color relative z-51 mx-auto mt-15 hidden h-38 max-w-[1200px] overflow-hidden border-b bg-white px-6 pt-2 sm:block lg:h-[190px]">
           <div className="flex animate-pulse items-center space-x-4">
             <div className="skeleton shimmer size-20 rounded-md"></div>
             <div className="flex-1">
@@ -371,7 +375,7 @@ const SubjectOverview = () => {
         <div className="border-color relative z-48 mt-15 overflow-visible border bg-white px-4 pt-6 sm:mx-0 sm:rounded-md sm:pt-4 md:hidden">
           <div className="flex flex-wrap items-start justify-between sm:hidden">
             <div className="flex max-w-[calc(100%-100px)] flex-col flex-wrap">
-              <h1 className="outfit-700 mt-2 ml-2 text-[18px]  break-words">
+              <h1 className="outfit-700 mt-2 ml-2 text-[18px] break-words">
                 {subject.subjectName}
               </h1>
               <div className="mt-2 ml-2 flex gap-1 text-gray-500">
@@ -505,8 +509,10 @@ const SubjectOverview = () => {
 
       {/* Desktop version: leave as is below */}
       <div className="hidden py-8 md:block">
-        <div className="border-color relative mx-auto -mt-4 flex h-[190px] max-w-[1200px] flex-row items-start justify-between overflow-visible border-b bg-white p-6">
-          <div className="flex w-full flex-col items-center md:flex-row md:flex-nowrap md:items-center">
+        <div className="border-color relative mx-auto mt-5 flex h-[190px] max-w-[1200px] flex-row items-start justify-between overflow-visible border-b bg-white p-6 lg:-mt-4">
+          <div
+            className={`flex w-full flex-col items-center md:flex-row md:flex-nowrap md:items-center ${isFaculty ? "mt-5" : ""}`}
+          >
             <div className="relative flex flex-col items-center md:mr-5">
               <img
                 src={SubPhoto}
@@ -552,50 +558,54 @@ const SubjectOverview = () => {
               </div>
 
               {/* Bottom left buttons */}
-              <div className="absolute bottom-4 left-4 flex gap-2">
-                <button
-                  className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100"
-                  onClick={handleWorksheetClick}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.25"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="lucide lucide-download-icon lucide-download"
+              {!isFaculty && (
+                <div className="absolute bottom-4 left-4 flex gap-2">
+                  <button
+                    className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100"
+                    onClick={handleWorksheetClick}
                   >
-                    <path d="M12 15V3" />
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <path d="m7 10 5 5 5-5" />
-                  </svg>
-                  <span className="outfit-500">Worksheet</span>
-                </button>
-                <button
-                  className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100"
-                  onClick={handleEditClick}
-                >
-                  <i className="bx bx-edit text-lg"></i>
-                  <span className="outfit-500">Edit</span>
-                </button>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.25"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-download-icon lucide-download"
+                    >
+                      <path d="M12 15V3" />
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <path d="m7 10 5 5 5-5" />
+                    </svg>
+                    <span className="outfit-500">Worksheet</span>
+                  </button>
+                  <button
+                    className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-100"
+                    onClick={handleEditClick}
+                  >
+                    <i className="bx bx-edit text-lg"></i>
+                    <span className="outfit-500">Edit</span>
+                  </button>
 
-                <button
-                  className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
-                  onClick={handleDeleteClick}
-                >
-                  <i className="bx bx-trash text-lg"></i>
-                  <span className="outfit-500">Remove</span>
-                </button>
-              </div>
+                  <button
+                    className="border-color flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-2 text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
+                    onClick={handleDeleteClick}
+                  >
+                    <i className="bx bx-trash text-lg"></i>
+                    <span className="outfit-500">Remove</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
           {/* End subject photo/info row */}
-          <div className="relative mt-[51px] flex h-full flex-col">
+          <div
+            className={`relative flex h-full flex-col ${isFaculty ? "mt-[40px]" : "mt-[51px]"}`}
+          >
             <div className="relative mt-2 flex items-center justify-center">
               <button
                 className="relative z-20 mt-5 mr-15 hidden w-37 cursor-pointer rounded-xl bg-orange-500 px-5 py-2 font-semibold text-white shadow-lg transition duration-100 hover:bg-orange-600 md:block lg:w-50"

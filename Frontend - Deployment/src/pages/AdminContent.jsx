@@ -57,6 +57,8 @@ const AdminContent = () => {
   // State for approval modal
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [selectedQuestionID, setSelectedQuestionID] = useState(null);
+  const [showBulkApproveModal, setShowBulkApproveModal] = useState(false);
+  const [pendingBulkApproveIds, setPendingBulkApproveIds] = useState([]);
 
   // State for loading and actions
   const [isDeleting, setIsDeleting] = useState(false);
@@ -69,6 +71,40 @@ const AdminContent = () => {
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showQuestionInfoId, setShowQuestionInfoId] = useState(null);
+
+  // State for multi-select
+  const [selectedQuestions, setSelectedQuestions] = useState([]);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const selectAllRef = useRef(null);
+
+  // Clear selections when switching tabs
+  useEffect(() => {
+    setSelectedQuestions([]);
+    setIsMultiSelectMode(false);
+  }, [activeTab]);
+
+  // Hide mobile sidebar when banner is displayed (only on mobile)
+  useEffect(() => {
+    const mobileNav = document.getElementById("mobile-bottom-nav");
+    if (!mobileNav) return;
+
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 1025;
+      if (activeTab === 4 && selectedQuestions.length > 0 && isMobile) {
+        mobileNav.style.display = "none";
+      } else {
+        mobileNav.style.display = "";
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      mobileNav.style.display = "";
+    };
+  }, [activeTab, selectedQuestions.length]);
 
   const dropdownRef = useRef(null);
 
@@ -89,6 +125,7 @@ const AdminContent = () => {
   // State for exam questions availability
   const [isExamQuestionsEnabled, setIsExamQuestionsEnabled] = useState({});
   const [practiceExamSettings, setPracticeExamSettings] = useState({});
+  const [isBannerClosed, setIsBannerClosed] = useState(false);
 
   // Fetch QE enabled status and practice exam settings when subject changes
   useEffect(() => {
@@ -138,9 +175,40 @@ const AdminContent = () => {
     }
   }, [selectedSubject, apiUrl]);
 
+  // Re-fetch settings when subjects list is refreshed (e.g. after saving settings)
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (selectedSubject && selectedSubject.subjectID) {
+        const fetchUpdatedSettings = async () => {
+          const token = sessionStorage.getItem("token");
+          try {
+            const practiceResponse = await fetch(
+              `${apiUrl}/practice-settings/${selectedSubject.subjectID}`,
+              { headers: { Authorization: `Bearer ${token}` } },
+            );
+            if (practiceResponse.ok) {
+              const practiceData = await practiceResponse.json();
+              setPracticeExamSettings((prev) => ({
+                ...prev,
+                [selectedSubject.subjectID]: practiceData.data || null,
+              }));
+            }
+          } catch (err) {
+            console.error("Error re-fetching practice settings:", err);
+          }
+        };
+        fetchUpdatedSettings();
+      }
+    };
+    window.addEventListener("refreshSubjectsList", handleRefresh);
+    return () =>
+      window.removeEventListener("refreshSubjectsList", handleRefresh);
+  }, [selectedSubject, apiUrl]);
+
   // Effect to fetch questions when subject changes
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
+      setIsBannerClosed(false);
       fetchQuestions();
       setSubmittedQuestion(null);
       setSearchQuery("");
@@ -347,6 +415,78 @@ const AdminContent = () => {
     }
   };
 
+  const getPendingQuestionIds = () =>
+    filteredQuestions
+      .filter((question) => question.status_id === 1)
+      .map((question) => question.questionID);
+
+  const approveMultipleQuestions = async (questionIDs) => {
+    if (!questionIDs.length) {
+      showToast("Please select questions to approve.", "error");
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem("token");
+      setIsApproving(true);
+
+      const response = await fetch(`${apiUrl}/questions/approve-multiple`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ questionIDs }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to approve the selected questions.",
+        );
+      }
+
+      const summary = data.summary || {
+        requested: questionIDs.length,
+        approved: 0,
+        skipped: 0,
+      };
+
+      fetchQuestions();
+      setSelectedQuestions([]);
+      setIsMultiSelectMode(false);
+
+      if (summary.approved === summary.requested) {
+        showToast(
+          `${summary.approved} question${summary.approved === 1 ? "" : "s"} approved successfully!`,
+          "success",
+        );
+      } else if (summary.approved > 0) {
+        showToast(
+          `${summary.approved} approved, ${summary.skipped} skipped.`,
+          "info",
+        );
+      } else {
+        showToast(
+          data.message || "No questions could be approved.",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Error approving questions:", error);
+      showToast(
+        error.message ||
+          "An error occurred while approving the selected questions.",
+        "error",
+      );
+    } finally {
+      setIsApproving(false);
+      setShowBulkApproveModal(false);
+      setPendingBulkApproveIds([]);
+    }
+  };
+
   useEffect(() => {
     if (listViewOnly) {
       setShowChoices(true);
@@ -425,7 +565,7 @@ const AdminContent = () => {
   const [hoveredQuestionId, setHoveredQuestionId] = useState(null);
 
   return (
-    <div className="relative mt-10 flex min-h-screen w-full flex-1 flex-col justify-center py-2 pb-24 md:mt-2 md:pb-2">
+    <div className="relative mt-10 flex min-h-screen w-full flex-1 flex-col justify-center py-2 pb-24 md:pb-2 lg:mt-2">
       <div className="flex-1">
         {selectedSubject ? (
           <div className="w-full py-3">
@@ -460,46 +600,34 @@ const AdminContent = () => {
                     [selectedSubject?.subjectID]: value,
                   }));
                 }}
+                pendingCount={questions.filter((q) => q.status_id === 1).length}
               />
-              {/* Desktop Sort controls (tabs are rendered inside SubjectCard now) */}
-              {!isLoading && (
-                <div className="outfit-400 mx-auto max-w-3xl md:mt-4">
-                  <div className="flex w-full items-center justify-end">
-                    {activeTab === 4 && (
-                      <SortType
-                        name="pendingSort"
-                        value={pendingSort}
-                        onChange={(e) => setPendingSort(e.target.value)}
-                        placeholder="Type"
-                        options={[
-                          { value: "", label: "All types" },
-                          {
-                            value: "practiceQuestions",
-                            label: "Practice Exam",
-                          },
-                          {
-                            value: "examQuestions",
-                            label: "Qualifying Exam",
-                          },
-                        ]}
-                        className="sm:w-35"
-                      />
-                    )}
-                    {activeTab === 4 && (
-                      <div className="mx-2 h-5 w-px bg-gray-300"></div>
-                    )}
-                    <div className="w-auto">
-                      <Sort
-                        sortOption={sortOption}
-                        setSortOption={setSortOption}
-                        subSortOption={subSortOption}
-                        setSubSortOption={setSubSortOption}
-                      />
-                    </div>
+
+              {/* Practice Exam Disabled Banner */}
+              {!isLoading &&
+                !isBannerClosed &&
+                !practiceExamSettings[selectedSubject?.subjectID]
+                  ?.isEnabled && (
+                  <div className="outfit-400 mx-0 mt-3 flex w-full items-center gap-2 border border-amber-200 bg-amber-50 px-4 py-2 sm:mx-auto sm:max-w-[1200px] sm:rounded-xl">
+                    <i className="bx bx-info-circle text-lg text-amber-600"></i>
+                    <p className="flex-1 text-[13px] text-amber-800">
+                      <span className="font-semibold">
+                        Practice Exam is not enabled.
+                      </span>{" "}
+                      Students won't be able to take practice exams for this
+                      subject.
+                    </p>
+                    <button
+                      onClick={() => setIsBannerClosed(true)}
+                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-amber-600 transition-colors hover:bg-amber-100 hover:text-amber-800 focus:outline-none"
+                      title="Close"
+                    >
+                      <i className="bx bx-x text-xl"></i>
+                    </button>
                   </div>
-                </div>
-              )}
+                )}
             </div>
+
             {/* Add Question Section */}
             {(activeTab === 0 || activeTab === 1) && (
               <div>
@@ -564,104 +692,220 @@ const AdminContent = () => {
                     </div>
                   ) : filteredQuestions.length > 0 ? (
                     <>
-                      <div className="outfit-400 relative mx-0 mt-3 flex w-full max-w-3xl flex-row items-center rounded-t-3xl border border-b-0 border-gray-200 bg-white sm:mx-auto sm:mt-[2px] sm:rounded-t-xl md:rounded-t-xl">
-                        <div className="flex h-full items-center gap-2 px-4 py-2">
-                          {/* Question Count */}
-                          <div className="outfit-400 flex items-center justify-center gap-2 text-[14px] text-nowrap text-gray-600">
-                            <span>
-                              {
-                                filteredQuestions.filter(
-                                  (question) =>
-                                    (activeTab === 4 &&
-                                      question.status_id === 1) || // 1 is pending
-                                    (activeTab === 0 &&
-                                      question.purpose_id === 2 && // 1 for practice questions
-                                      question.status_id === 2) || // 2 is approved
-                                    (activeTab === 1 &&
-                                      question.purpose_id === 1 && // 2 for exam questions
-                                      question.status_id === 2), // 2 is approved
-                                ).length
-                              }{" "}
-                              {filteredQuestions.filter(
-                                (question) =>
-                                  (activeTab === 4 &&
-                                    question.status_id === 1) || // 1 is pending
-                                  (activeTab === 0 &&
-                                    question.purpose_id === 2 && // 1 for practice questions
-                                    question.status_id === 2) || // 2 is approved
-                                  (activeTab === 1 &&
-                                    question.purpose_id === 1 && // 2 for exam questions
-                                    question.status_id === 2), // 2 is approved
-                              ).length === 1
-                                ? "QUESTION"
-                                : "QUESTIONS"}
-                            </span>
-                            <span
-                              ref={difficultyIconRef}
-                              className="outfit-400 relative flex items-center"
-                            >
-                              <i
-                                className="bx bx-chevron-right cursor-pointer text-2xl text-gray-400 hover:text-gray-500"
-                                title="Show difficulty counter"
-                                onClick={() =>
-                                  setShowDifficultyCounter((v) => !v)
-                                }
-                              ></i>
-                              {showDifficultyCounter && (
-                                <div className="fade-in outfit-400 absolute left-33 z-50 mt-2 w-48 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-4 py-[14px] shadow-md">
-                                  <div className="mb-3 text-center text-xs font-semibold text-gray-700">
-                                    Difficulty Count
-                                  </div>
-                                  {(() => {
-                                    const counts = getDifficultyCounts(
-                                      filteredQuestions.filter(
-                                        (question) =>
-                                          (activeTab === 4 &&
-                                            question.status_id === 1) ||
-                                          (activeTab === 0 &&
-                                            question.purpose_id === 2 &&
-                                            question.status_id === 2) ||
-                                          (activeTab === 1 &&
-                                            question.purpose_id === 1 &&
-                                            question.status_id === 2),
-                                      ),
-                                    );
-                                    return (
-                                      <div className="flex flex-col gap-2 text-xs text-gray-700">
-                                        <span className="rounded bg-white py-1 font-semibold">
-                                          Easy: {counts.easy || 0}
-                                        </span>
-                                        <span className="rounded bg-white py-1 font-semibold">
-                                          Moderate: {counts.moderate || 0}
-                                        </span>
-                                        <span className="rounded bg-white py-1 font-semibold">
-                                          Hard: {counts.hard || 0}
-                                        </span>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              )}
-                            </span>
-                          </div>
-                        </div>
+                      {(() => {
+                        const activeQuestions = filteredQuestions.filter(
+                          (question) =>
+                            (activeTab === 4 && question.status_id === 1) || // 1 is pending
+                            (activeTab === 0 &&
+                              question.purpose_id === 2 &&
+                              question.status_id === 2) || // 2 is approved
+                            (activeTab === 1 &&
+                              question.purpose_id === 1 &&
+                              question.status_id === 2), // 2 is approved
+                        );
+                        const total = activeQuestions.length;
+                        const counts = getDifficultyCounts(activeQuestions);
+                        const easyCount = counts.easy || 0;
+                        const modCount = counts.moderate || 0;
+                        const hardCount = counts.hard || 0;
+                        const easyPct =
+                          total > 0 ? (easyCount / total) * 100 : 0;
+                        const modPct = total > 0 ? (modCount / total) * 100 : 0;
+                        const hardPct =
+                          total > 0 ? (hardCount / total) * 100 : 0;
 
-                        <div className="ml-auto flex items-center px-4 py-3">
-                          <span className="outfit-400 mr-4 ml-2 items-center text-sm text-nowrap text-gray-500">
-                            Show Details
-                          </span>
-                          <label className="relative inline-flex cursor-pointer items-center">
-                            <input
-                              type="checkbox"
-                              checked={!listViewOnly}
-                              onChange={() => {
-                                setListViewOnly((prev) => !prev);
-                                setExpandedQuestionId(null); // Reset expanded state when switching view
-                              }}
-                              className="peer sr-only"
+                        return (
+                          <div className="outfit-400 border-color relative mx-0 mt-4 mb-0 flex w-full max-w-3xl flex-col border bg-white p-4 sm:mx-auto sm:mt-4 sm:rounded-xl md:mb-0 md:rounded-xl">
+                            {/* Top row */}
+                            <div className="flex w-full items-center justify-between">
+                              <div className="flex items-center gap-1 text-[14px] font-semibold text-gray-700">
+                                <span>{total}</span>
+                                <span>
+                                  {total === 1 ? "QUESTION" : "QUESTIONS"}
+                                </span>
+                              </div>
+                              <div className="flex items-center">
+                                <span className="outfit-400 mr-3 text-[14px] font-medium text-gray-600">
+                                  Show Details
+                                </span>
+                                <label className="relative inline-flex cursor-pointer items-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={!listViewOnly}
+                                    onChange={() => {
+                                      setListViewOnly((prev) => !prev);
+                                      setExpandedQuestionId(null);
+                                    }}
+                                    className="peer sr-only"
+                                  />
+                                  <div className="peer h-6 w-11 rounded-full bg-gray-300 peer-checked:bg-orange-500 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
+                                </label>
+                              </div>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="mt-4 flex h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                              <div
+                                style={{ width: `${easyPct}%` }}
+                                className="bg-[#65A338] transition-all duration-500"
+                              ></div>
+                              <div
+                                style={{ width: `${modPct}%` }}
+                                className="bg-[#E68A19] transition-all duration-500"
+                              ></div>
+                              <div
+                                style={{ width: `${hardPct}%` }}
+                                className="bg-[#E14343] transition-all duration-500"
+                              ></div>
+                            </div>
+
+                            {/* Bottom row */}
+                            <div className="mt-3 flex items-center justify-start sm:justify-between">
+                              <div className="hidden text-[12px] font-medium tracking-wide text-gray-500 uppercase sm:block">
+                                Difficulty Distribution
+                              </div>
+                              <div className="flex items-center gap-3 text-[10px] text-gray-600 sm:gap-5 sm:text-[12px]">
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <span className="h-2.5 w-2.5 rounded-full bg-[#65A338] sm:h-3 sm:w-3"></span>
+                                  <span>Easy · {easyCount}</span>
+                                </div>
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <span className="h-2.5 w-2.5 rounded-full bg-[#E68A19] sm:h-3 sm:w-3"></span>
+                                  <span>Moderate · {modCount}</span>
+                                </div>
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <span className="h-2.5 w-2.5 rounded-full bg-[#E14343] sm:h-3 sm:w-3"></span>
+                                  <span>Hard · {hardCount}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Sort controls - below the difficulty box */}
+                      <div className="outfit-400 mx-0 my-3 flex w-full max-w-3xl items-center justify-between sm:mx-auto sm:my-4">
+                        <div className="ml-2 flex items-center sm:ml-0">
+                          {activeTab === 4 &&
+                            filteredQuestions.some(
+                              (q) => q.status_id === 1,
+                            ) && (
+                              <div className="flex items-center">
+                                {isMultiSelectMode ? (
+                                  <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[14px] text-gray-700 transition-colors hover:bg-gray-50">
+                                    <input
+                                      type="checkbox"
+                                      onChange={(e) => {
+                                        const displayedIds = filteredQuestions
+                                          .filter((q) => q.status_id === 1)
+                                          .map((q) => q.questionID);
+                                        if (e.target.checked) {
+                                          setSelectedQuestions((prev) => {
+                                            const set = new Set(prev);
+                                            displayedIds.forEach((id) =>
+                                              set.add(id),
+                                            );
+                                            return Array.from(set);
+                                          });
+                                        } else {
+                                          setSelectedQuestions((prev) =>
+                                            prev.filter(
+                                              (id) =>
+                                                !displayedIds.includes(id),
+                                            ),
+                                          );
+                                          // Since they unchecked "Select All", we can turn off multi-select mode if everything gets cleared
+                                          setIsMultiSelectMode(false);
+                                        }
+                                      }}
+                                      checked={
+                                        filteredQuestions.filter(
+                                          (q) => q.status_id === 1,
+                                        ).length > 0 &&
+                                        filteredQuestions
+                                          .filter((q) => q.status_id === 1)
+                                          .every((q) =>
+                                            selectedQuestions.includes(
+                                              q.questionID,
+                                            ),
+                                          )
+                                      }
+                                      ref={(el) => {
+                                        if (el) {
+                                          const displayedIds = filteredQuestions
+                                            .filter((q) => q.status_id === 1)
+                                            .map((q) => q.questionID);
+                                          const selectedOnPageCount =
+                                            displayedIds.filter((id) =>
+                                              selectedQuestions.includes(id),
+                                            ).length;
+                                          if (
+                                            displayedIds.length === 0 ||
+                                            selectedOnPageCount === 0
+                                          ) {
+                                            el.indeterminate = false;
+                                          } else if (
+                                            selectedOnPageCount ===
+                                            displayedIds.length
+                                          ) {
+                                            el.indeterminate = false;
+                                          } else {
+                                            el.indeterminate = true;
+                                          }
+                                        }
+                                      }}
+                                      className="border-color h-4 w-4 cursor-pointer rounded border-orange-300 text-orange-500"
+                                    />
+                                    <span className="font-medium">
+                                      Select All
+                                    </span>
+                                  </label>
+                                ) : (
+                                  <button
+                                    onClick={() => setIsMultiSelectMode(true)}
+                                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[14px] text-gray-700 transition-colors hover:bg-gray-50"
+                                  >
+                                    <i className="bx bx-checklist text-lg"></i>
+                                    <span className="font-medium">
+                                      Multi-Select
+                                    </span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                        </div>
+                        <div className="flex items-center justify-end">
+                          {activeTab === 4 && (
+                            <SortType
+                              name="pendingSort"
+                              value={pendingSort}
+                              onChange={(e) => setPendingSort(e.target.value)}
+                              placeholder="Type"
+                              options={[
+                                { value: "", label: "All types" },
+                                {
+                                  value: "practiceQuestions",
+                                  label: "Practice Exam",
+                                },
+                                {
+                                  value: "examQuestions",
+                                  label: "Qualifying Exam",
+                                },
+                              ]}
+                              className="sm:w-35"
                             />
-                            <div className="peer h-6 w-11 rounded-full bg-gray-300 peer-checked:bg-orange-500 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
-                          </label>
+                          )}
+                          {activeTab === 4 && (
+                            <div className="mx-2 h-5 w-px bg-gray-300"></div>
+                          )}
+                          <div className="w-auto">
+                            <Sort
+                              sortOption={sortOption}
+                              setSortOption={setSortOption}
+                              subSortOption={subSortOption}
+                              setSubSortOption={setSubSortOption}
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -699,37 +943,71 @@ const AdminContent = () => {
                               } ${
                                 listViewOnly
                                   ? expandedQuestionId === question.questionID
-                                    ? `${index === 0 ? "rounded-b-xl" : "mt-2 mb-2 rounded-xl"}`
+                                    ? `mt-2 mb-2 rounded-xl`
                                     : index > 0 &&
                                         filteredQuestions[index - 1]
                                           ?.questionID === expandedQuestionId
                                       ? `${
                                           index === filteredQuestions.length - 1
-                                            ? "mt-2 rounded-t-xl rounded-b-xl"
-                                            : index === 1 &&
-                                                filteredQuestions[0]
-                                                  ?.questionID ===
-                                                  expandedQuestionId
-                                              ? "mt-2 rounded-t-xl"
-                                              : "rounded-t-xl"
+                                            ? "mt-2 rounded-xl"
+                                            : "mt-2 rounded-t-xl"
                                         }`
                                       : index !==
                                             filteredQuestions.length - 1 &&
                                           filteredQuestions[index + 1]
                                             ?.questionID === expandedQuestionId
-                                        ? "rounded-b-xl"
+                                        ? `${index === 0 ? "rounded-xl" : "rounded-b-xl"}`
                                         : index === filteredQuestions.length - 1
-                                          ? "rounded-b-xl"
-                                          : ""
-                                  : `${index === 0 ? "rounded-t-none" : "rounded-t-xl"} mb-2 rounded-xl`
+                                          ? `${index === 0 ? "rounded-xl" : "rounded-b-xl"}`
+                                          : `${index === 0 ? "rounded-t-xl" : ""}`
+                                  : `mb-3 rounded-xl`
                               } `}
                             >
                               <div className="w-full max-w-full overflow-hidden break-words">
                                 <div className="flex items-center justify-between text-[14px] text-gray-500">
                                   {/* Always show points, coverage, and difficulty in list view */}
-                                  <span className="outfit-400 text-[12px]">
-                                    {index + 1}. MULTIPLE CHOICE
-                                  </span>
+                                  <div className="flex items-center gap-3">
+                                    {activeTab === 4 && isMultiSelectMode && (
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedQuestions.includes(
+                                          question.questionID,
+                                        )}
+                                        onChange={(e) => {
+                                          e.stopPropagation();
+                                          const isCurrentlySelected =
+                                            selectedQuestions.includes(
+                                              question.questionID,
+                                            );
+                                          if (
+                                            isCurrentlySelected &&
+                                            selectedQuestions.length === 1
+                                          ) {
+                                            setSelectedQuestions([]);
+                                            setIsMultiSelectMode(false);
+                                          } else {
+                                            setSelectedQuestions((prev) =>
+                                              prev.includes(question.questionID)
+                                                ? prev.filter(
+                                                    (id) =>
+                                                      id !==
+                                                      question.questionID,
+                                                  )
+                                                : [
+                                                    ...prev,
+                                                    question.questionID,
+                                                  ],
+                                            );
+                                          }
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                                      />
+                                    )}
+                                    <span className="outfit-400 outfit-700 text-[12px]">
+                                      {index + 1}. MULTIPLE CHOICE
+                                    </span>
+                                  </div>
                                   <div className="relative flex min-h-[32px] items-center">
                                     {/* Badges */}
                                     <div
@@ -1344,6 +1622,17 @@ const AdminContent = () => {
         />
 
         <ConfirmModal
+          isOpen={showBulkApproveModal}
+          onClose={() => {
+            setShowBulkApproveModal(false);
+            setPendingBulkApproveIds([]);
+          }}
+          onConfirm={() => approveMultipleQuestions(pendingBulkApproveIds)}
+          message={`Are you sure you want to approve ${pendingBulkApproveIds.length} question${pendingBulkApproveIds.length === 1 ? "" : "s"}?`}
+          isLoading={isApproving}
+        />
+
+        <ConfirmModal
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
           onConfirm={() => handleDeleteQuestion(deleteQuestionID)}
@@ -1402,6 +1691,62 @@ const AdminContent = () => {
           />
         )}
       </div>
+
+      {/* Selection Overlay Banner */}
+      {activeTab === 4 && selectedQuestions.length > 0 && (
+        <div className="outfit-400 fixed right-0 bottom-0 left-0 z-[60] lg:bottom-5 lg:left-[220px] lg:z-50">
+          <div className="px-0 lg:px-6">
+            <div className="rounded-none bg-gray-800 px-5 py-4 pb-8 shadow-lg lg:rounded-xl lg:pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span className="text-[14px] font-medium text-white">
+                    {selectedQuestions.length}{" "}
+                    {selectedQuestions.length === 1 ? "question" : "questions"}{" "}
+                    selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setPendingBulkApproveIds(selectedQuestions);
+                      setShowBulkApproveModal(true);
+                    }}
+                    disabled={isApproving}
+                    className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
+                    aria-label="Approve selected questions"
+                  >
+                    <i className="bx bx-check text-lg"></i>
+                    <span className="hidden md:inline">Approve Selected</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPendingBulkApproveIds(getPendingQuestionIds());
+                      setShowBulkApproveModal(true);
+                    }}
+                    disabled={isApproving}
+                    className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
+                    aria-label="Approve all questions"
+                  >
+                    <i className="bx bx-copy-check text-lg"></i>
+                    <span className="hidden md:inline">Approve All</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedQuestions([]);
+                      setIsMultiSelectMode(false);
+                    }}
+                    className="flex cursor-pointer items-center justify-center rounded-lg p-2 text-white transition-colors hover:bg-gray-700"
+                    aria-label="Close"
+                  >
+                    <i className="bx bx-x text-xl"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Toast message={toast.message} type={toast.type} show={toast.show} />
       {!isLoading && <ScrollToTopButton />}
     </div>

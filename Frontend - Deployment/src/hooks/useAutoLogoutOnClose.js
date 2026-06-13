@@ -1,11 +1,14 @@
 import { useEffect } from "react";
+import { clearAuth, getToken, isRememberMeEnabled } from "../utils/authStorage";
 
 const useAutoLogoutOnClose = () => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     const handleUnload = () => {
-      const token = sessionStorage.getItem("token");
+      if (isRememberMeEnabled()) return;
+
+      const token = getToken();
 
       if (token) {
         const logoutData = JSON.stringify({ token });
@@ -14,9 +17,7 @@ const useAutoLogoutOnClose = () => {
         const blob = new Blob([logoutData], { type: "application/json" });
         navigator.sendBeacon(`${apiUrl}/logout`, blob);
 
-        // Clean up sessionStorage
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("user");
+        clearAuth();
       }
     };
 

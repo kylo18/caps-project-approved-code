@@ -6,6 +6,7 @@ import Toast from "../components/Toast";
 import QuestionListModal from "../components/QuestionListModal";
 import TimerCompletionModal from "../components/TimerCompletionModal";
 import WarningModal from "../components/WarningModal";
+import { normalizeUserProfile } from "../utils/userProfileUtils";
 
 const collegeLogo = new URL("../assets/college-logo.png", import.meta.url).href;
 
@@ -451,7 +452,8 @@ const StudentQuiz = () => {
           },
         });
         if (!res.ok) throw new Error("Failed to fetch user info");
-        setUserInfo(await res.json());
+        const body = await res.json();
+        setUserInfo(normalizeUserProfile(body));
       } catch {
         /* silent */
       }

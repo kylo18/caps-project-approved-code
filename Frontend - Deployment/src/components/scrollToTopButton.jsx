@@ -25,7 +25,7 @@ const ScrollToTopButton = () => {
       onClick={scrollToTop}
       aria-label="Back to top"
       title="Back to top"
-      className={`outfit-400 fixed bottom-22 left-1/2 z-49 flex -translate-x-1/2 transform cursor-pointer items-center justify-center rounded-full border border-gray-300 bg-white text-gray-700 shadow-lg ring-1 ring-black/5 transition-all duration-300 hover:bg-gray-100 hover:shadow-xl sm:bottom-4 md:left-[calc(50%+32px)] ${
+      className={`outfit-400 fixed bottom-26 left-1/2 z-49 flex -translate-x-1/2 transform cursor-pointer items-center justify-center rounded-full border border-gray-300 bg-white text-gray-700 shadow-lg ring-1 ring-black/5 transition-all duration-300 hover:bg-gray-100 hover:shadow-xl sm:bottom-4 md:left-[calc(50%+32px)] ${
         isVisible
           ? "pointer-events-auto opacity-100"
           : "pointer-events-none opacity-0"

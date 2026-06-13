@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { clearAuth } from '../utils/authStorage';
 import useToast from "../hooks/useToast";
 import Toast from "./Toast";
 
@@ -63,7 +64,7 @@ const ImportQuestionModal = ({
 
       if (response.status === 401) {
         showToast("You are not authenticated. Please log in again.", "error");
-        sessionStorage.removeItem("token");
+        clearAuth();
         setIsLoading(false);
         return;
       }

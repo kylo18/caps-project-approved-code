@@ -1,4 +1,5 @@
 import React from "react";
+import { clearAuth } from "../utils/authStorage";
 
 const Toast = ({ message, type, show, onClose, onReport }) => {
   if (!message) return null;
@@ -58,8 +59,7 @@ const Toast = ({ message, type, show, onClose, onReport }) => {
 
 export default Toast;
 export function logoutUser(showToast, navigate, message) {
-  sessionStorage.removeItem("token");
-  sessionStorage.removeItem("user");
+  clearAuth();
   // Remove any other user data if needed
   if (showToast && message) showToast(message, "error");
   setTimeout(() => {

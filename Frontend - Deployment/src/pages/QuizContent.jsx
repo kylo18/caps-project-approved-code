@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { clearAuth } from "../utils/authStorage";
 import { useLocation, useNavigate } from "react-router-dom";
 import AddQuestionForm from "../components/AddQuestionForm";
 import ImportQuestionModal from "../components/ImportQuestionModal";
@@ -194,7 +195,7 @@ const QuizContent = () => {
 
       if (response.status === 401) {
         showToast("You are not authenticated. Please log in again.", "error");
-        sessionStorage.removeItem("token");
+        clearAuth();
         setIsLoadingQuestions(false);
         isFetchingRef.current = false;
         return;
@@ -551,7 +552,7 @@ const QuizContent = () => {
           "There was a problem deleting the question. Please try again.";
 
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           message = "Your session has expired. Please log in again.";
         } else if (response.status === 403) {
           message = "You do not have permission to remove this question.";

@@ -1,4 +1,5 @@
 import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { clearAuth } from '../utils/authStorage';
 import { useEffect, useState } from "react";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
@@ -76,7 +77,7 @@ const QuizInfo = () => {
 
         if (!response.ok) {
           if (response.status === 401) {
-            sessionStorage.removeItem("token");
+            clearAuth();
             throw new Error("Your session has expired. Please log in again.");
           }
           let msg = "Failed to load quiz information.";
@@ -187,7 +188,7 @@ const QuizInfo = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           throw new Error("Your session has expired. Please log in again.");
         }
         let msg = "Failed to start quiz.";

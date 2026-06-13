@@ -5,6 +5,9 @@ import { registerSW } from "virtual:pwa-register";
 import "./styles/index.css";
 import App from "./App.jsx";
 import "./i18n.js";
+import { syncPersistedSession } from "./utils/authStorage";
+
+syncPersistedSession();
 
 registerSW({
   immediate: true,

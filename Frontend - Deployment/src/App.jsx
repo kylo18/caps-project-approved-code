@@ -25,6 +25,8 @@ import PracticeExamPreview from "./pages/PracticeExamPreview";
 
 import ResetPasswordPage from "./components/resetPassForm";
 import ForgotPasswordForm from "./components/forgotPassForm";
+import ResetUserCodePage from "./components/resetUserCodeForm";
+import ForgotUserCodeForm from "./components/forgotUserCodeForm";
 import PracticeExamInfo from "./pages/PracticeExamInfo";
 
 import PrintQualifyingExam from "./pages/PrintQualifyingExam";
@@ -61,6 +63,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+        <Route path="/reset-user-code" element={<ResetUserCodePage />} />
+        <Route path="/forgot-user-code" element={<ForgotUserCodeForm />} />
         <Route path="/team-caps" element={<Credits />} />
 
         {/* Public Landing Page */}

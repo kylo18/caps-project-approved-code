@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { clearAuth } from '../utils/authStorage';
 import { useNavigate } from "react-router-dom";
 
 import ArchiveIcon from "/src/assets/symbols/archive.svg";
@@ -156,7 +157,7 @@ const Class = () => {
 
         if (!response.ok) {
           if (response.status === 401) {
-            sessionStorage.removeItem("token");
+            clearAuth();
             throw new Error("Your session has expired. Please log in again.");
           }
 
@@ -297,7 +298,7 @@ const Class = () => {
 
       if (response.status === 401) {
         showToast("You are not authenticated. Please log in again.", "error");
-        sessionStorage.removeItem("token");
+        clearAuth();
         setIsJoining(false);
         return;
       }
@@ -483,7 +484,7 @@ const Class = () => {
           "There was a problem unenrolling from the class. Please try again.";
 
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           message = "Your session has expired. Please log in again.";
         } else if (response.status === 403) {
           message = "Only students can unenroll from classes.";

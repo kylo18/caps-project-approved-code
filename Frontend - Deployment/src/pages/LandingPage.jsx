@@ -12,12 +12,34 @@ import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import ResetPasswordModal from "../components/ResetPasswordModal";
+import ForgotUserCodeModal from "../components/ForgotUserCodeModal";
+import ResetUserCodeModal from "../components/ResetUserCodeModal";
 import AppVersion from "../components/appVersion";
+import LoadingOverlay from "../components/loadingOverlay";
 
 import {
   clearDeferredInstallPrompt,
   getDeferredInstallPrompt,
 } from "../pwaDeferredInstall.js";
+import {
+  getDashboardPathForRole,
+  getToken,
+  getUser,
+  syncPersistedSession,
+} from "../utils/authStorage";
+
+const getInitialAutoLoginState = () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("token")) return false;
+
+  syncPersistedSession();
+
+  const token = getToken();
+  const user = getUser();
+  if (!token || !user) return false;
+
+  return !!getDashboardPathForRole(user.roleID);
+};
 
 function LandingPage() {
   const navigate = useNavigate();
@@ -25,10 +47,14 @@ function LandingPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [isForgotUserCodeOpen, setIsForgotUserCodeOpen] = useState(false);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(() => {
-    // Auto-open if the URL contains a reset token (redirected from email link)
     const params = new URLSearchParams(window.location.search);
-    return !!params.get("token");
+    return !!params.get("token") && params.get("reset") !== "user-code";
+  });
+  const [isResetUserCodeOpen, setIsResetUserCodeOpen] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return !!params.get("token") && params.get("reset") === "user-code";
   });
   const [secureContext, setSecureContext] = useState(
     () => typeof window !== "undefined" && window.isSecureContext,
@@ -37,10 +63,38 @@ function LandingPage() {
   const [hasDeferredPrompt, setHasDeferredPrompt] = useState(() =>
     typeof window !== "undefined" ? !!getDeferredInstallPrompt() : false,
   );
+  const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(
+    getInitialAutoLoginState,
+  );
 
   useEffect(() => {
     setSecureContext(window.isSecureContext);
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("token")) {
+      setIsAutoLoggingIn(false);
+      return;
+    }
+
+    syncPersistedSession();
+
+    const token = getToken();
+    const user = getUser();
+    if (!token || !user) {
+      setIsAutoLoggingIn(false);
+      return;
+    }
+
+    const dashboardPath = getDashboardPathForRole(user.roleID);
+    if (dashboardPath) {
+      setIsAutoLoggingIn(true);
+      navigate(dashboardPath, { replace: true });
+    } else {
+      setIsAutoLoggingIn(false);
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -663,6 +717,10 @@ function LandingPage() {
           setIsLoginOpen(false);
           setIsForgotPasswordOpen(true);
         }}
+        onSwitchToForgotUserCode={() => {
+          setIsLoginOpen(false);
+          setIsForgotUserCodeOpen(true);
+        }}
       />
       <RegisterModal
         isOpen={isRegisterOpen}
@@ -680,11 +738,18 @@ function LandingPage() {
           setIsLoginOpen(true);
         }}
       />
+      <ForgotUserCodeModal
+        isOpen={isForgotUserCodeOpen}
+        onClose={() => setIsForgotUserCodeOpen(false)}
+        onSwitchToLogin={() => {
+          setIsForgotUserCodeOpen(false);
+          setIsLoginOpen(true);
+        }}
+      />
       <ResetPasswordModal
         isOpen={isResetPasswordOpen}
         onClose={() => {
           setIsResetPasswordOpen(false);
-          // Clean the token/email params from the URL without a page reload
           window.history.replaceState({}, "", window.location.pathname);
         }}
         onSwitchToLogin={() => {
@@ -693,6 +758,20 @@ function LandingPage() {
           setIsLoginOpen(true);
         }}
       />
+      <ResetUserCodeModal
+        isOpen={isResetUserCodeOpen}
+        onClose={() => {
+          setIsResetUserCodeOpen(false);
+          window.history.replaceState({}, "", window.location.pathname);
+        }}
+        onSwitchToLogin={() => {
+          setIsResetUserCodeOpen(false);
+          window.history.replaceState({}, "", window.location.pathname);
+          setIsLoginOpen(true);
+        }}
+      />
+
+      <LoadingOverlay show={isAutoLoggingIn} message="Logging in..." />
     </>
   );
 }

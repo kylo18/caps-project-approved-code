@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { clearAuth } from '../utils/authStorage';
 import { useNavigate } from "react-router-dom";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
@@ -87,7 +88,7 @@ const Sessions = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           throw new Error("Your session has expired. Please log in again.");
         }
 

@@ -5,6 +5,12 @@ import { useNavigate } from "react-router-dom";
 import AppVersion from "../components/appVersion";
 import Toast from "../components/Toast";
 import useToast from "../hooks/useToast";
+import {
+  getRememberedUserCode,
+  isRememberMeEnabled,
+  setAuth,
+  setRememberedUserCode,
+} from "../utils/authStorage";
 
 export default function LoginPage() {
   const [idCode, setIdCode] = useState("");
@@ -18,6 +24,16 @@ export default function LoginPage() {
   const { toast, showToast } = useToast();
 
   const [isLogIn, setIsLogIn] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => isRememberMeEnabled());
+
+  useEffect(() => {
+    if (isRememberMeEnabled()) {
+      setIdCode(getRememberedUserCode());
+    } else {
+      setIdCode("");
+      setRememberMe(false);
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -59,8 +75,12 @@ export default function LoginPage() {
         return;
       }
 
-      sessionStorage.setItem("token", data.token);
-      sessionStorage.setItem("user", JSON.stringify(data.user));
+      setRememberedUserCode(rememberMe ? idCode.trim() : "");
+      setAuth({
+        token: data.token,
+        user: data.user,
+        rememberMe,
+      });
 
       // Redirect to /dashboard/:userId after login
       navigate(
@@ -217,6 +237,16 @@ export default function LoginPage() {
                       </p>
                     )}
                   </div>
+
+                  <label className="outfit-400 mb-2 flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="h-4 w-4 cursor-pointer rounded border-gray-300 accent-orange-500"
+                    />
+                    Remember me
+                  </label>
 
                   {/* Login Button */}
                   <div className="mx-auto flex w-full items-center justify-center text-sm">
@@ -397,6 +427,17 @@ export default function LoginPage() {
             {error && (
               <p className="text-center text-xs text-red-500">{error}</p>
             )}
+
+            <label className="outfit-400 flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 cursor-pointer rounded border-gray-300 accent-orange-500"
+              />
+              Remember me
+            </label>
+
             <button
               type="submit"
               onClick={handleLogin}

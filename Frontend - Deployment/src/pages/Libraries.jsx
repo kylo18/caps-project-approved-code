@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { clearAuth } from '../utils/authStorage';
 import { Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 
@@ -346,7 +347,7 @@ function Libraries() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           throw new Error("Your session has expired. Please log in again.");
         }
 
@@ -481,7 +482,7 @@ function Libraries() {
           // If 401, token might be expired or invalid
           if (response.status === 401) {
             // Clear token and show error
-            sessionStorage.removeItem("token");
+            clearAuth();
             throw new Error("Your session has expired. Please log in again.");
           }
 
