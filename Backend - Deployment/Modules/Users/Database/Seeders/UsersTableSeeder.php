@@ -34,7 +34,7 @@ class UsersTableSeeder extends Seeder
                     'email' => 'cpe.chair@university.edu',
                     'roleID' => 3,
                     'campusID' => 1,
-                    'isActive' => 0,
+                    'isActive' => 1,
                     'programID' => 1,
                 ],
                 [
@@ -44,7 +44,7 @@ class UsersTableSeeder extends Seeder
                     'email' => 'ee.chair@university.edu',
                     'roleID' => 3,
                     'campusID' => 1,
-                    'isActive' => 0,
+                    'isActive' => 1,
                     'programID' => 2,
                 ],
                 [
@@ -76,7 +76,7 @@ class UsersTableSeeder extends Seeder
                     'email' => 'cpe.faculty@university.edu',
                     'roleID' => 2,
                     'campusID' => 1,
-                    'isActive' => 0,
+                    'isActive' => 1,
                     'programID' => 1,
                 ],
                 [
@@ -86,7 +86,7 @@ class UsersTableSeeder extends Seeder
                     'email' => 'ee.faculty@university.edu',
                     'roleID' => 2,
                     'campusID' => 1,
-                    'isActive' => 0,
+                    'isActive' => 1,
                     'programID' => 2,
                 ],
                 [
