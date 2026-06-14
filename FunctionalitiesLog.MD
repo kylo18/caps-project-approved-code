@@ -170,4 +170,12 @@
         - Optimized the Quiz and Practice exam modules
         - Quiz Settings are now independent to each class
         - Optimized Student Home page
+
+   [V2.1] 06-14-26 
+
+   Bug Fixes & Improvements:
+        - Edit user credentials (email, name, user code, program, campus etc)
+        - Change user code (through gmail)
+        - Change question difficulty
+        - Multi select questions for approval
         
