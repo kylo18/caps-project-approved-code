@@ -59,6 +59,9 @@ const expandProgram = (name) => {
   return name;
 };
 
+const hasPracticeQuestions = (subject) =>
+  Number(subject?.questionCount ?? subject?.totalQuestions ?? 0) > 0;
+
 /* ── Subject card ───────────────────────────────────────────── */
 const SubjectCard = ({ subject, onExplore }) => {
   const rows = [
@@ -216,7 +219,9 @@ const StudentDashboard = () => {
           },
         });
         const data = await res.json();
-        if (data.data) setSubjects(data.data);
+        if (data.data) {
+          setSubjects(data.data.filter(hasPracticeQuestions));
+        }
       } catch (err) {
         console.error("Error fetching subjects:", err);
       } finally {
@@ -423,12 +428,15 @@ const StudentDashboard = () => {
   };
 
   /* ── Filtered subjects ──────────────────────────────── */
-  const filtered = subjects.filter((s) =>
-    searchQuery.trim()
-      ? s.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.subjectCode.toLowerCase().includes(searchQuery.toLowerCase())
-      : true,
-  );
+  const filtered = subjects.filter((s) => {
+    if (!hasPracticeQuestions(s)) return false;
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      s.subjectName.toLowerCase().includes(query) ||
+      s.subjectCode.toLowerCase().includes(query)
+    );
+  });
 
   /* ── Render ─────────────────────────────────────────── */
   return (
