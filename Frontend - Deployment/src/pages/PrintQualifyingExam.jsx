@@ -972,6 +972,7 @@ export default function PrintQualifyingExam() {
                                       gap: "32px",
                                       alignItems: "flex-start",
                                       flexWrap: "wrap",
+                                      marginTop: "0.75rem",
                                     }}
                                   >
                                     {question.choices.map(
@@ -1020,12 +1021,14 @@ export default function PrintQualifyingExam() {
                                 );
                               } else {
                                 // Default layout: stacked
-                                return question.choices.map(
-                                  (choice, choiceIndex) => (
-                                    <div
-                                      key={choiceIndex}
-                                      className="mb-2 flex items-center gap-4"
-                                    >
+                                return (
+                                  <div className="mt-3">
+                                    {question.choices.map(
+                                      (choice, choiceIndex) => (
+                                        <div
+                                          key={choiceIndex}
+                                          className="mb-2 flex items-center gap-4"
+                                        >
                                       <div>
                                         <span className="mr-2 ml-5 text-black">
                                           {String.fromCharCode(
@@ -1055,7 +1058,9 @@ export default function PrintQualifyingExam() {
                                         />
                                       )}
                                     </div>
-                                  ),
+                                      )
+                                    )}
+                                  </div>
                                 );
                               }
                             }
@@ -1480,6 +1485,7 @@ export default function PrintQualifyingExam() {
                                   gap: "32px",
                                   alignItems: "flex-start",
                                   flexWrap: "wrap",
+                                  marginTop: "0.75rem",
                                 }}
                               >
                                 {question.choices.map((choice, choiceIndex) => (
@@ -1523,12 +1529,13 @@ export default function PrintQualifyingExam() {
                             );
                           } else {
                             // Default layout: stacked
-                            return question.choices.map(
-                              (choice, choiceIndex) => (
-                                <div
-                                  key={choiceIndex}
-                                  className="mb-2 flex items-center gap-4"
-                                >
+                            return (
+                              <div className="mt-3">
+                                {question.choices.map((choice, choiceIndex) => (
+                                  <div
+                                    key={choiceIndex}
+                                    className="mb-2 flex items-center gap-4"
+                                  >
                                   <div>
                                     <span className="mr-2 ml-5 text-black">
                                       {String.fromCharCode(65 + choiceIndex)}.
@@ -1555,9 +1562,11 @@ export default function PrintQualifyingExam() {
                                     />
                                   )}
                                 </div>
-                              ),
-                            );
-                          }
+                                )
+                              )}
+                            </div>
+                          );
+                        }
                         }
                       })()}
                   </div>

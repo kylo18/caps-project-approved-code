@@ -24,6 +24,7 @@ export default function ExamGenerator({
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [mode, setMode] = useState("default");
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [difficultyCounts, setDifficultyCounts] = useState({});
   const [settings, setSettings] = useState({
     total_items: 10,
     easy_percentage: 30,
@@ -36,6 +37,7 @@ export default function ExamGenerator({
 
   useEffect(() => {
     fetchSubjects();
+    fetchDifficultyCounts();
   }, []);
 
   useEffect(() => {
@@ -132,6 +134,70 @@ export default function ExamGenerator({
     } catch (err) {
       showToast("Failed to load subjects", "error");
     }
+  };
+
+  const fetchDifficultyCounts = async () => {
+    try {
+      const response = await fetch(
+        `${apiUrl}/subjects/question-difficulty-counts`,
+        {
+          headers: {
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          },
+        },
+      );
+      const data = await response.json();
+      if (data.status === "success" && data.data) {
+        const countsMap = {};
+        data.data.forEach((subject) => {
+          countsMap[subject.subjectID] = subject.difficulty_counts;
+        });
+        setDifficultyCounts(countsMap);
+      }
+    } catch (err) {
+      console.error("Failed to fetch difficulty counts", err);
+    }
+  };
+
+  // Calculate how many questions of each difficulty are needed for a subject
+  const getSubjectDifficultyBreakdown = (subject) => {
+    const totalItems = parseInt(settings.total_items) || 0;
+    const subjectPct = parseInt(subject.percentage) || 0;
+    const subjectItems = Math.round((totalItems * subjectPct) / 100);
+
+    const easyPct = parseInt(settings.easy_percentage) || 0;
+    const moderatePct = parseInt(settings.moderate_percentage) || 0;
+    const hardPct = parseInt(settings.hard_percentage) || 0;
+
+    const easyNeeded = Math.round((subjectItems * easyPct) / 100);
+    const moderateNeeded = Math.round((subjectItems * moderatePct) / 100);
+    const hardNeeded = subjectItems - easyNeeded - moderateNeeded;
+
+    const counts = difficultyCounts[subject.subjectID] || {
+      easy: 0,
+      moderate: 0,
+      hard: 0,
+      total: 0,
+    };
+
+    return {
+      subjectItems,
+      easy: {
+        needed: easyNeeded,
+        available: counts.easy,
+        insufficient: easyNeeded > counts.easy,
+      },
+      moderate: {
+        needed: moderateNeeded,
+        available: counts.moderate,
+        insufficient: moderateNeeded > counts.moderate,
+      },
+      hard: {
+        needed: hardNeeded,
+        available: counts.hard,
+        insufficient: hardNeeded > counts.hard,
+      },
+    };
   };
 
   const handleSubjectAdd = (e) => {
@@ -301,21 +367,33 @@ export default function ExamGenerator({
 
   if (!isOpen) return null;
 
+  const hasAnyInsufficient =
+    settings.exam_type !== "personal" &&
+    selectedSubjects.some((subject) => {
+      const breakdown = getSubjectDifficultyBreakdown(subject);
+      return (
+        breakdown.subjectItems > 0 &&
+        (breakdown.easy.insufficient ||
+          breakdown.moderate.insufficient ||
+          breakdown.hard.insufficient)
+      );
+    });
+
   return (
     <>
       {/* Mobile Modal: visible on small screens only */}
       <div className="block sm:hidden">
         {/* Form Modal */}
-        <div className="outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center min-[448px]:items-center">
+        <div className="outfit outfit-300 bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center">
           {/* Overlay click handler for closing modal on outside click */}
           <div
             className="absolute inset-0 z-0"
             onClick={handleClose}
             style={{ background: "transparent" }}
           />
-          <div className="animate-fade-in-up relative z-10 mx-0 w-full max-w-[480px] rounded-t-2xl bg-white shadow-2xl min-[448px]:mx-2 min-[448px]:rounded-md">
+          <div className="animate-fade-in-up relative z-10 mx-0 w-full rounded-t-2xl bg-white shadow-2xl">
             <div className="border-color flex items-center justify-between border-b px-4 py-2">
-              <h2 className="text-[16px] font-semibold text-black sm:text-[14px]">
+              <h2 className="text-[16px] outfit-500 text-black sm:text-[14px]">
                 Generate Qualifying Exam
               </h2>
               <button
@@ -329,7 +407,7 @@ export default function ExamGenerator({
               <form className="px-5 py-4" onSubmit={handleSubmit}>
                 {settings.exam_type !== "personal" && (
                   <div>
-                    <span className="mb-2 block text-[16px] text-gray-900">
+                    <span className="mb-2 block text-[16px] outfit-500 text-gray-900">
                       Select Subject(s)
                     </span>
                     <SubjectSearchInput
@@ -370,61 +448,219 @@ export default function ExamGenerator({
                         <div className="absolute top-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
                         <div className="mb-3 flex items-center justify-between">
-                          <h3 className="text-[14px] text-gray-700">
+                          <h3 className="text-[14px] outfit-500 text-gray-700">
                             Subjects Included
                           </h3>
-                          <span className="mr-6 text-[12px] text-gray-500">
-                            Percentage (%)
-                          </span>
                         </div>
 
-                        <div className="max-h-[200px] space-y-1 overflow-y-auto">
-                          {selectedSubjects.map((subject) => (
-                            <div
-                              key={subject.subjectID}
-                              className="flex items-center justify-between px-3 py-1"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="max-w-[160px] truncate text-[12px] min-[415px]:max-w-[200px] lg:max-w-[240px]">
-                                  {subject.subjectCode} - {subject.subjectName}
+                        <div className="edit-profile-modal-scrollbar max-h-[400px] space-y-2.5 overflow-y-auto">
+                          {selectedSubjects.map((subject) => {
+                            const breakdown =
+                              getSubjectDifficultyBreakdown(subject);
+                            const counts = difficultyCounts[
+                              subject.subjectID
+                            ] || { easy: 0, moderate: 0, hard: 0, total: 0 };
+                            const totalAvailable = counts.total;
+                            const totalGap = Math.max(
+                              0,
+                              breakdown.subjectItems - totalAvailable,
+                            );
+                            const hasInsufficient =
+                              breakdown.subjectItems > 0 &&
+                              (breakdown.easy.insufficient ||
+                                breakdown.moderate.insufficient ||
+                                breakdown.hard.insufficient);
+                            const gapCount = hasInsufficient
+                              ? [
+                                  breakdown.easy,
+                                  breakdown.moderate,
+                                  breakdown.hard,
+                                ].reduce(
+                                  (sum, d) =>
+                                    sum + Math.max(0, d.needed - d.available),
+                                  0,
+                                )
+                              : 0;
+
+                            return (
+                              <div
+                                key={subject.subjectID}
+                                className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                              >
+                                {/* Card Header */}
+                                <div className="outfit-300 border-b border-gray-200 px-4 pt-3.5 pb-3">
+                                  <div className="flex items-center justify-between">
+                                    {/* LEFT SIDE */}
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2.5">
+                                        <span className="outfit-500 truncate text-[14px] text-gray-600">
+                                          {subject.subjectCode} —{" "}
+                                          {subject.subjectName}
+                                        </span>
+
+                                        {hasInsufficient ? (
+                                          <span className="inline-flex shrink-0 items-center rounded-full text-[10px] outfit-500 tracking-wide text-red-400 uppercase">
+                                            Insufficient
+                                          </span>
+                                        ) : null}
+                                      </div>
+
+                                      <div className="mt-[3px] text-[12px] text-gray-500">
+                                        {totalAvailable} created ·{" "}
+                                        {breakdown.subjectItems} needed
+                                      </div>
+                                    </div>
+
+                                    {/* RIGHT SIDE */}
+                                    <div className="ml-3 flex items-center gap-3">
+                                      <span className="text-[12px] outfit-500 tracking-wider text-[#6a6a6a] uppercase">
+                                        Percentage
+                                      </span>
+
+                                      <div className="flex items-center rounded-xl border border-gray-200 bg-white px-3 py-1 shadow-sm">
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          max="100"
+                                          value={subject.percentage}
+                                          onChange={(e) =>
+                                            handleSubjectPercentageChange(
+                                              subject.subjectID,
+                                              e.target.value === ""
+                                                ? ""
+                                                : parseInt(
+                                                    e.target.value,
+                                                  ) || 0,
+                                            )
+                                          }
+                                          className="w-[32px] [appearance:textfield] bg-transparent text-right text-[16px] outfit-500 text-gray-700 outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                        />
+
+                                        <span className="ml-1 text-[16px] outfit-500 text-gray-700">
+                                          %
+                                        </span>
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleRemoveSubject(
+                                            subject.subjectID,
+                                          )
+                                        }
+                                        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-[#6a6a6a] transition-colors hover:bg-gray-100"
+                                      >
+                                        <i className="bx bx-x text-[18px]"></i>
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
-                                {subject.subjectName.length > 15 && (
-                                  <button
-                                    type="button"
-                                    className="text-gray-500 hover:text-gray-700"
-                                  >
-                                    <i className="bx bx-show text-[16px]"></i>
-                                  </button>
+
+                                {/* Progress Bars */}
+                                {breakdown.subjectItems > 0 && (
+                                  <div className="mt-2 px-4 pb-3">
+                                    <div className="space-y-[8px]">
+                                      {[
+                                        {
+                                          label: "Easy",
+                                          color: "#4ade80",
+                                          data: breakdown.easy,
+                                          available: counts.easy,
+                                        },
+                                        {
+                                          label: "Moderate",
+                                          color: "#facc15",
+                                          data: breakdown.moderate,
+                                          available: counts.moderate,
+                                        },
+                                        {
+                                          label: "Hard",
+                                          color: "#f87171",
+                                          data: breakdown.hard,
+                                          available: counts.hard,
+                                        },
+                                      ].map((diff) => {
+                                        const pct =
+                                          diff.data.needed > 0
+                                            ? Math.min(
+                                                100,
+                                                (diff.available /
+                                                  diff.data.needed) *
+                                                  100,
+                                              )
+                                            : 100;
+                                        const gap = Math.max(
+                                          0,
+                                          diff.data.needed - diff.available,
+                                        );
+                                        return (
+                                          <div
+                                            key={diff.label}
+                                            className="outfit-300 flex items-center gap-2.5"
+                                          >
+                                            <span
+                                              className="inline-block h-[7px] w-[7px] shrink-0 rounded-full"
+                                              style={{
+                                                backgroundColor: diff.color,
+                                              }}
+                                            ></span>
+                                            <span className="w-[70px] shrink-0 text-[12px] text-gray-600">
+                                              {diff.label}
+                                            </span>
+                                            <div className="h-[7px] flex-1 overflow-hidden rounded-full bg-gray-300">
+                                              <div
+                                                className="h-full rounded-full transition-all duration-500"
+                                                style={{
+                                                  width: `${diff.data.needed > 0 ? pct : 0}%`,
+                                                  backgroundColor:
+                                                    diff.color,
+                                                }}
+                                              />
+                                            </div>
+                                            <div className="flex shrink-0 items-center gap-1.5">
+                                              <span className="text-[14px] text-[#b0b0b0]">
+                                                {diff.available}
+                                              </span>
+                                              <span className="text-[12px] text-[#555]">
+                                                /
+                                              </span>
+                                              <span className="text-[14px] text-[#b0b0b0]">
+                                                {diff.data.needed}
+                                              </span>
+                                              {gap > 0 ? (
+                                                <span className="ml-0.5 inline-flex items-center justify-center rounded px-1.5 py-[1px] text-[12px] outfit-500 text-red-400">
+                                                  −{gap}
+                                                </span>
+                                              ) : (
+                                                <span className="ml-0.5 inline-flex h-[18px] w-[18px] items-center justify-center rounded-full">
+                                                  <i className="bx bx-check text-[14px] text-green-400"></i>
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Warning Footer */}
+                                {hasInsufficient && (
+                                  <div className="flex items-center justify-between bg-red-100 px-4 py-2.5">
+                                    <div className="flex items-center gap-2 text-[11px] text-red-600">
+                                      <i className="bx bx-alert-circle text-[14px]"></i>
+                                      <span>
+                                        Insufficient question pool —{" "}
+                                        {gapCount} of{" "}
+                                        {breakdown.subjectItems} needed
+                                        items cannot be filled.
+                                      </span>
+                                    </div>
+                                  </div>
                                 )}
                               </div>
-                              <div className="flex items-center gap-3">
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="100"
-                                  value={subject.percentage}
-                                  onChange={(e) =>
-                                    handleSubjectPercentageChange(
-                                      subject.subjectID,
-                                      e.target.value === ""
-                                        ? ""
-                                        : parseInt(e.target.value) || 0,
-                                    )
-                                  }
-                                  className="w-[60px] rounded-lg border border-gray-300 px-[9px] py-[5px] text-[12px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleRemoveSubject(subject.subjectID)
-                                  }
-                                  className="flex h-[25px] cursor-pointer items-center justify-center rounded-full px-1 py-[1px] text-red-600 hover:bg-red-50"
-                                >
-                                  <i className="bx bx-x text-[18px]"></i>
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                         <div className="absolute bottom-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
                       </div>
@@ -434,7 +670,7 @@ export default function ExamGenerator({
                 <div className="mt-2 mb-3 text-start">
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <span className="mb-[6px] block text-[14px] text-gray-700">
+                      <span className="mb-[6px] block text-[14px] outfit-500 text-gray-700">
                         Total Items
                       </span>
                       <input
@@ -463,7 +699,7 @@ export default function ExamGenerator({
                 <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
 
                 <div>
-                  <span className="mt-2 mb-2 block text-[14px] text-gray-700">
+                  <span className="mt-2 mb-2 block text-[14px] outfit-500 text-gray-700">
                     Difficulty Distribution
                   </span>
                   <div className="flex items-center gap-2">
@@ -504,7 +740,7 @@ export default function ExamGenerator({
                     <div className="grid grid-cols-3 gap-4">
                       {["easy", "moderate", "hard"].map((level) => (
                         <div key={level}>
-                          <span className="mb-2 block text-[12px] text-nowrap text-gray-700 capitalize">
+                          <span className="mb-2 block text-[12px] text-nowrap outfit-500 text-gray-700 capitalize">
                             {level} (%)
                           </span>
                           <input
@@ -538,8 +774,8 @@ export default function ExamGenerator({
                 <div>
                   <button
                     type="submit"
-                    disabled={loading}
-                    className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] font-semibold text-white transition-all duration-100 ease-in-out ${loading ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                    disabled={loading || hasAnyInsufficient}
+                    className={`mt-2 w-full cursor-pointer rounded-lg py-2 text-[14px] outfit-500 text-white transition-all duration-100 ease-in-out ${loading || hasAnyInsufficient ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
                   >
                     {loading ? (
                       <div className="flex items-center justify-center">
@@ -556,10 +792,10 @@ export default function ExamGenerator({
         </div>
       </div>
       {/* Desktop Modal: hidden on small screens, visible on sm+ */}
-      <div className="outfit hidden sm:flex">
+      <div className="outfit outfit-300 hidden sm:flex">
         {/* Form Modal */}
         <div
-          className={`outfit bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex justify-end transition-opacity duration-200 ${isOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+          className={`outfit outfit-300 bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex justify-end transition-opacity duration-200 ${isOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
         >
           {/* Overlay click handler for closing modal on outside click */}
           <div
@@ -569,11 +805,11 @@ export default function ExamGenerator({
           />
           {/* Modal with full-width header */}
           <div
-            className={`slide-in-right relative z-10 flex h-full w-[700px] min-w-[350px] transform flex-col bg-white shadow-2xl transition-all duration-300 ${isOpen ? "" : "pointer-events-none translate-x-8 opacity-0"}`}
+            className={`slide-in-right relative z-10 flex h-full w-[850px] min-w-[350px] transform flex-col bg-white shadow-2xl transition-all duration-300 ${isOpen ? "" : "pointer-events-none translate-x-8 opacity-0"}`}
           >
             {/* Compact Header across the whole modal */}
             <div className="border-color flex w-full items-center justify-between border-b px-5 py-2">
-              <h2 className="text-[17px] leading-none font-semibold text-black">
+              <h2 className="text-[17px] leading-none outfit-500 text-black">
                 Generate Qualifying Exam
               </h2>
               <button
@@ -588,14 +824,14 @@ export default function ExamGenerator({
             <div className="flex h-0 flex-1">
               <div className="practice-config-scrollable custom-scrollbar flex min-h-screen flex-1 flex-col overflow-y-auto px-5 py-4 pb-24">
                 <form
-                  className="mx-auto max-w-xl"
+                  className="mx-auto max-w-[726px]"
                   onSubmit={handleSubmit}
                   id="printExamForm"
                 >
                   {settings.exam_type !== "personal" && (
                     <div className="mt-1 mb-6 flex items-center justify-between gap-2">
                       <div className="flex min-w-0 flex-1 flex-col">
-                        <span className="text-[14px] font-semibold text-gray-900">
+                        <span className="text-[14px] outfit-500 text-gray-900">
                           Select Subject(s)
                         </span>
                         <div className="text-[12px] text-gray-500">
@@ -638,62 +874,221 @@ export default function ExamGenerator({
                           <div className="relative -mx-[57px] bg-gray-50 px-[57px] py-4">
                             <div className="absolute top-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
                             <div className="mb-3 flex items-center justify-between">
-                              <h3 className="text-[14px] font-medium text-gray-900">
+                              <h3 className="text-[14px] outfit-500 text-gray-900">
                                 Subjects included
                               </h3>
-                              <span className="mr-10 text-[14px] text-gray-500">
-                                Percentage (%)
-                              </span>
                             </div>
 
-                            <div className="custom-scrollbar max-h-[230px] overflow-y-auto">
-                              {selectedSubjects.map((subject) => (
-                                <div
-                                  key={subject.subjectID}
-                                  className="flex items-center justify-between px-3 py-1"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <div className="max-w-[160px] truncate text-[14px] min-[415px]:max-w-[200px] lg:max-w-[240px]">
-                                      {subject.subjectCode} -{" "}
-                                      {subject.subjectName}
+                            <div className="edit-profile-modal-scrollbar max-h-[450px] space-y-3 overflow-y-auto">
+                              {selectedSubjects.map((subject) => {
+                                const breakdown =
+                                  getSubjectDifficultyBreakdown(subject);
+                                const counts = difficultyCounts[
+                                  subject.subjectID
+                                ] || {
+                                  easy: 0,
+                                  moderate: 0,
+                                  hard: 0,
+                                  total: 0,
+                                };
+                                const totalAvailable = counts.total;
+                                const hasInsufficient =
+                                  breakdown.subjectItems > 0 &&
+                                  (breakdown.easy.insufficient ||
+                                    breakdown.moderate.insufficient ||
+                                    breakdown.hard.insufficient);
+                                const gapCount = hasInsufficient
+                                  ? [
+                                      breakdown.easy,
+                                      breakdown.moderate,
+                                      breakdown.hard,
+                                    ].reduce(
+                                      (sum, d) =>
+                                        sum +
+                                        Math.max(0, d.needed - d.available),
+                                      0,
+                                    )
+                                  : 0;
+
+                                return (
+                                  <div
+                                    key={subject.subjectID}
+                                    className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                                  >
+                                    {/* Card Header */}
+                                    <div className="outfit-300 border-b border-gray-200 px-4 pt-3.5 pb-3">
+                                      <div className="flex items-center justify-between">
+                                        {/* LEFT SIDE */}
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-2.5">
+                                            <span className="outfit-500 truncate text-[14px] outfit-500 text-gray-600">
+                                              {subject.subjectCode} —{" "}
+                                              {subject.subjectName}
+                                            </span>
+
+                                            {hasInsufficient ? (
+                                              <span className="inline-flex shrink-0 items-center rounded-full text-[10px] outfit-500 tracking-wide text-red-400 uppercase">
+                                                Insufficient
+                                              </span>
+                                            ) : null}
+                                          </div>
+
+                                          <div className="mt-[3px] text-[12px] text-gray-500">
+                                            {totalAvailable} created ·{" "}
+                                            {breakdown.subjectItems} needed
+                                          </div>
+                                        </div>
+
+                                        {/* RIGHT SIDE */}
+                                        <div className="ml-3 flex items-center gap-3">
+                                          <span className="text-[12px] outfit-500 tracking-wider text-[#6a6a6a] uppercase">
+                                            Percentage
+                                          </span>
+
+                                          <div className="flex items-center rounded-xl border border-gray-200 bg-white px-3 py-1 shadow-sm">
+                                            <input
+                                              type="number"
+                                              min="1"
+                                              max="100"
+                                              value={subject.percentage}
+                                              onChange={(e) =>
+                                                handleSubjectPercentageChange(
+                                                  subject.subjectID,
+                                                  e.target.value === ""
+                                                    ? ""
+                                                    : parseInt(
+                                                        e.target.value,
+                                                      ) || 0,
+                                                )
+                                              }
+                                              className="w-[32px] [appearance:textfield] bg-transparent text-right text-[16px] outfit-500 text-gray-700 outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                            />
+
+                                            <span className="ml-1 text-[16px] outfit-500 text-gray-700">
+                                              %
+                                            </span>
+                                          </div>
+
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleRemoveSubject(
+                                                subject.subjectID,
+                                              )
+                                            }
+                                            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-[#6a6a6a] transition-colors hover:bg-gray-100"
+                                          >
+                                            <i className="bx bx-x text-[18px]"></i>
+                                          </button>
+                                        </div>
+                                      </div>
                                     </div>
-                                    {subject.subjectName.length > 15 && (
-                                      <button
-                                        type="button"
-                                        className="text-gray-500 hover:text-gray-700"
-                                      >
-                                        <i className="bx bx-show text-[16px]"></i>
-                                      </button>
+
+                                    {/* Progress Bars */}
+                                    {breakdown.subjectItems > 0 && (
+                                      <div className="mt-2 px-4 pb-3">
+                                        <div className="space-y-[8px]">
+                                          {[
+                                            {
+                                              label: "Easy",
+                                              color: "#4ade80",
+                                              data: breakdown.easy,
+                                              available: counts.easy,
+                                            },
+                                            {
+                                              label: "Moderate",
+                                              color: "#facc15",
+                                              data: breakdown.moderate,
+                                              available: counts.moderate,
+                                            },
+                                            {
+                                              label: "Hard",
+                                              color: "#f87171",
+                                              data: breakdown.hard,
+                                              available: counts.hard,
+                                            },
+                                          ].map((diff) => {
+                                            const pct =
+                                              diff.data.needed > 0
+                                                ? Math.min(
+                                                    100,
+                                                    (diff.available /
+                                                      diff.data.needed) *
+                                                      100,
+                                                  )
+                                                : 100;
+                                            const gap = Math.max(
+                                              0,
+                                              diff.data.needed - diff.available,
+                                            );
+                                            return (
+                                              <div
+                                                key={diff.label}
+                                                className="outfit-300 flex items-center gap-2.5"
+                                              >
+                                                <span
+                                                  className="inline-block h-[7px] w-[7px] shrink-0 rounded-full"
+                                                  style={{
+                                                    backgroundColor: diff.color,
+                                                  }}
+                                                ></span>
+                                                <span className="w-[70px] shrink-0 text-[12px] text-gray-600">
+                                                  {diff.label}
+                                                </span>
+                                                <div className="h-[7px] flex-1 overflow-hidden rounded-full bg-gray-300">
+                                                  <div
+                                                    className="h-full rounded-full transition-all duration-500"
+                                                    style={{
+                                                      width: `${diff.data.needed > 0 ? pct : 0}%`,
+                                                      backgroundColor:
+                                                        diff.color,
+                                                    }}
+                                                  />
+                                                </div>
+                                                <div className="flex shrink-0 items-center gap-1.5">
+                                                  <span className="text-[14px] text-[#b0b0b0]">
+                                                    {diff.available}
+                                                  </span>
+                                                  <span className="text-[12px] text-[#555]">
+                                                    /
+                                                  </span>
+                                                  <span className="text-[14px] text-[#b0b0b0]">
+                                                    {diff.data.needed}
+                                                  </span>
+                                                  {gap > 0 ? (
+                                                    <span className="ml-0.5 inline-flex items-center justify-center rounded px-1.5 py-[1px] text-[12px] outfit-500 text-red-400">
+                                                      −{gap}
+                                                    </span>
+                                                  ) : (
+                                                    <span className="ml-0.5 inline-flex h-[18px] w-[18px] items-center justify-center rounded-full">
+                                                      <i className="bx bx-check text-[14px] text-green-400"></i>
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Warning Footer */}
+                                    {hasInsufficient && (
+                                      <div className="flex items-center justify-between bg-red-100 px-4 py-2.5">
+                                        <div className="flex items-center gap-2 text-[11px] text-red-600">
+                                          <i className="bx bx-alert-circle text-[14px]"></i>
+                                          <span>
+                                            Insufficient question pool —{" "}
+                                            {gapCount} of{" "}
+                                            {breakdown.subjectItems} needed
+                                            items cannot be filled.
+                                          </span>
+                                        </div>
+                                      </div>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-3">
-                                    <input
-                                      type="number"
-                                      min="1"
-                                      max="100"
-                                      value={subject.percentage}
-                                      onChange={(e) =>
-                                        handleSubjectPercentageChange(
-                                          subject.subjectID,
-                                          e.target.value === ""
-                                            ? ""
-                                            : parseInt(e.target.value) || 0,
-                                        )
-                                      }
-                                      className="w-[60px] rounded-lg border border-gray-300 px-[9px] py-[5px] text-[14px] text-gray-900 transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleRemoveSubject(subject.subjectID)
-                                      }
-                                      className="flex h-[25px] cursor-pointer items-center justify-center rounded-full px-1 py-[1px] text-red-600 transition duration-100 hover:bg-red-50"
-                                    >
-                                      <i className="bx bx-x text-[18px]"></i>
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                             <div className="absolute bottom-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
                           </div>
@@ -707,7 +1102,7 @@ export default function ExamGenerator({
                   {/* Total Items Section (copied and adapted) */}
                   <div className="mb-6 flex items-center justify-between gap-4">
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <div className="text-[14px] font-semibold text-gray-900">
+                      <div className="text-[14px] outfit-500 text-gray-900">
                         Total Items
                       </div>
                       <div className="text-[12px] text-gray-500">
@@ -734,7 +1129,7 @@ export default function ExamGenerator({
                   {/* Difficulty Distribution Section (copied and adapted) */}
                   <div className="mb-6 flex items-center justify-between gap-4">
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <div className="text-[14px] font-semibold text-gray-900">
+                      <div className="text-[14px] outfit-500 text-gray-900">
                         Difficulty
                       </div>
                       <div className="text-[12px] text-gray-500">
@@ -802,7 +1197,7 @@ export default function ExamGenerator({
                   <div
                     className={`mb-6 flex flex-col gap-2 ${!settings.isEnabled || mode !== "custom" ? "pointer-events-none opacity-50" : settings.isEnabled ? "" : "pointer-events-none opacity-50"}`}
                   >
-                    <div className="mb-1 text-[14px] font-semibold text-gray-900">
+                    <div className="mb-1 text-[14px] outfit-500 text-gray-900">
                       Custom Difficulty Percentages
                     </div>
                     <div className="-mt-2 mb-2 text-[12px] text-gray-500">
@@ -851,8 +1246,8 @@ export default function ExamGenerator({
               <button
                 type="submit"
                 form="printExamForm"
-                disabled={loading}
-                className={`flex h-9 w-36 items-center justify-center rounded-lg text-[16px] font-semibold text-white transition-all duration-100 ease-in-out ${loading ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
+                disabled={loading || hasAnyInsufficient}
+                className={`flex h-9 w-36 items-center justify-center rounded-lg text-[16px] outfit-500 text-white transition-all duration-100 ease-in-out ${loading || hasAnyInsufficient ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
               >
                 {loading ? <span className="loader-white" /> : "Generate Exam"}
               </button>
