@@ -125,6 +125,7 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
 
     // Printable exam (PDF preview/download)
     Route::post('/generate-printable-exam/{subjectID}', [PrintController::class, 'generatePrintableExam']);
+    Route::get('/subjects/question-difficulty-counts', [PrintController::class, 'getSubjectQuestionDifficultyCounts']);
     
     // Personal Quiz PDF Generation (Faculty only)
     Route::get('/personal-quiz/{personalQuizID}/questions', [PrintController::class, 'getPersonalQuizQuestions']);
