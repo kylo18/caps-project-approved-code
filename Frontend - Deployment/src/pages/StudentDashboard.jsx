@@ -59,18 +59,30 @@ const expandProgram = (name) => {
   return name;
 };
 
-const hasPracticeQuestions = (subject) =>
-  Number(subject?.questionCount ?? subject?.totalQuestions ?? 0) > 0;
+const getExamItemCount = (subject) =>
+  Number(
+    subject?.total_items ?? subject?.totalItems ?? subject?.totalQuestions ?? 0,
+  );
+
+const getAvailableQuestionCount = (subject) =>
+  Number(
+    subject?.availableQuestionCount ??
+      subject?.approvedQuestionCount ??
+      subject?.bankQuestionCount ??
+      subject?.questionCount ??
+      0,
+  );
+
+const isAvailablePracticeSubject = (subject) =>
+  Boolean(subject?.isPracticeExamEnabled) &&
+  getExamItemCount(subject) > 0 &&
+  getAvailableQuestionCount(subject) > 0;
 
 /* ── Subject card ───────────────────────────────────────────── */
 const SubjectCard = ({ subject, onExplore }) => {
+  const examItemCount = getExamItemCount(subject);
+
   const rows = [
-    {
-      label: "TOTAL QUESTIONS",
-      value: subject.questionCount
-        ? `${subject.questionCount} Practice Questions`
-        : "—",
-    },
     {
       label: "DURATION",
       value: subject.durationMinutes
@@ -220,7 +232,7 @@ const StudentDashboard = () => {
         });
         const data = await res.json();
         if (data.data) {
-          setSubjects(data.data.filter(hasPracticeQuestions));
+          setSubjects(data.data.filter(isAvailablePracticeSubject));
         }
       } catch (err) {
         console.error("Error fetching subjects:", err);
@@ -429,7 +441,7 @@ const StudentDashboard = () => {
 
   /* ── Filtered subjects ──────────────────────────────── */
   const filtered = subjects.filter((s) => {
-    if (!hasPracticeQuestions(s)) return false;
+    if (!isAvailablePracticeSubject(s)) return false;
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
     return (

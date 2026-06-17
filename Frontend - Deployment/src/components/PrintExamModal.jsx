@@ -848,17 +848,14 @@ export default function ExamGenerator({
             </div>
             {/* Absolute Footer with Generate Exam button */}
             <div className="border-color absolute right-0 bottom-0 left-0 flex w-full items-center justify-end bg-white px-8 py-3">
-            < button
+              <button
                 type="submit"
                 form="printExamForm"
                 disabled={loading}
-                className={`flex h-9 w-36 items-center justify-center rounded-lg text-[16px] font-semibold text-white transition-all duration-100 ease-in-out
-                  ${loading ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"}
-                  disabled:opacity-50`}
+                className={`flex h-9 w-36 items-center justify-center rounded-lg text-[16px] font-semibold text-white transition-all duration-100 ease-in-out ${loading ? "cursor-not-allowed bg-gray-500" : "bg-orange-500 hover:bg-orange-700 active:scale-98"} disabled:opacity-50`}
               >
                 {loading ? <span className="loader-white" /> : "Generate Exam"}
               </button>
-
             </div>
           </div>
         </div>

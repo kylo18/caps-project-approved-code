@@ -15,11 +15,18 @@ function shuffleArray(array) {
   return arr;
 }
 
+function stripHtml(html) {
+  if (!html) return "";
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return (tmp.textContent || tmp.innerText || "").replace(/\s+/g, " ").trim();
+}
+
 function shuffleChoicesKeepNoneAtEnd(choices) {
   if (!choices || choices.length < 2) return choices;
   const idx = choices.findIndex(
     (c) =>
-      (typeof c === "string" ? c : c.choiceText)?.toLowerCase() ===
+      stripHtml(typeof c === "string" ? c : c.choiceText)?.toLowerCase() ===
       "none of the above",
   );
   if (idx === -1) return shuffleArray(choices);
@@ -909,7 +916,7 @@ export default function PrintQualifyingExam() {
                           (() => {
                             const allShort = question.choices.every(
                               (choice) =>
-                                (choice.choiceText?.length || 0) < 20 &&
+                                (stripHtml(choice.choiceText)?.length || 0) < 20 &&
                                 !choice.choiceImage,
                             );
                             if (allShort) {
@@ -930,7 +937,7 @@ export default function PrintQualifyingExam() {
                                       >
                                         <p className="pdf-choice ml-5">
                                           {String.fromCharCode(65 + idx)}.{" "}
-                                          {question.choices[idx].choiceText}
+                                          {stripHtml(question.choices[idx].choiceText)}
                                         </p>
                                       </div>,
                                     );
@@ -1004,7 +1011,7 @@ export default function PrintQualifyingExam() {
                                             {String.fromCharCode(
                                               65 + choiceIndex,
                                             )}
-                                            . {choice.choiceText}
+                                            . {stripHtml(choice.choiceText)}
                                           </p>
                                         </div>
                                       ),
@@ -1027,7 +1034,7 @@ export default function PrintQualifyingExam() {
                                           .
                                         </span>
                                         <span className="pdf-choice">
-                                          {choice.choiceText}
+                                          {stripHtml(choice.choiceText)}
                                         </span>
                                       </div>
                                       {choice.choiceImage && (
@@ -1420,7 +1427,7 @@ export default function PrintQualifyingExam() {
                       (() => {
                         const allShort = question.choices.every(
                           (choice) =>
-                            (choice.choiceText?.length || 0) < 20 &&
+                            (stripHtml(choice.choiceText)?.length || 0) < 20 &&
                             !choice.choiceImage,
                         );
                         if (allShort) {
@@ -1438,7 +1445,7 @@ export default function PrintQualifyingExam() {
                                   <div key={col} className="flex items-center">
                                     <p className="pdf-choice ml-5">
                                       {String.fromCharCode(65 + idx)}.{" "}
-                                      {question.choices[idx].choiceText}
+                                      {stripHtml(question.choices[idx].choiceText)}
                                     </p>
                                   </div>,
                                 );
@@ -1508,7 +1515,7 @@ export default function PrintQualifyingExam() {
                                       }}
                                     >
                                       {String.fromCharCode(65 + choiceIndex)}.{" "}
-                                      {choice.choiceText}
+                                      {stripHtml(choice.choiceText)}
                                     </p>
                                   </div>
                                 ))}
@@ -1527,7 +1534,7 @@ export default function PrintQualifyingExam() {
                                       {String.fromCharCode(65 + choiceIndex)}.
                                     </span>
                                     <span className="pdf-choice">
-                                      {choice.choiceText}
+                                      {stripHtml(choice.choiceText)}
                                     </span>
                                   </div>
                                   {choice.choiceImage && (
