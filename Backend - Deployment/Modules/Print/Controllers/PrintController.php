@@ -175,9 +175,7 @@ class PrintController extends Controller
     }
 
     /**
-     * Generate a multi-subject examination in two steps:
-     * 1. preview=true (default) — returns difficulty counts, deficits, and totals per subject.
-     * 2. preview=false + previewKey — generates and returns the exam questions.
+     * Generate a multi-subject examination preview (JSON only)
      */
     public function generateMultiSubjectExam(Request $request)
     {
@@ -218,8 +216,8 @@ class PrintController extends Controller
                     'difficulty_distribution.easy' => 'required|integer|min:0|max:100',
                     'difficulty_distribution.moderate' => 'required|integer|min:0|max:100',
                     'difficulty_distribution.hard' => 'required|integer|min:0|max:100',
-                    'preview' => 'sometimes|boolean',
-                    'previewKey' => 'required_if:preview,false|nullable|string',
+                    'preview' => 'boolean',
+                    'previewKey' => 'nullable|string'
                 ]);
             } catch (\Illuminate\Validation\ValidationException $e) {
                 Log::error('Validation Error:', [
@@ -281,125 +279,182 @@ class PrintController extends Controller
                     'action' => 'Please ensure that all percentages add up to exactly 100%.'
                 ], 422);
             }
-            $isPreview = $validated['preview'] ?? true;
+            $formattedQuestions = [];
             $totalItems = $validated['total_items'];
-
-            if (!$isPreview) {
-                if (empty($validated['previewKey'])) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Preview Required',
-                        'details' => 'Please review the exam preview first before generating the exam.',
-                        'code' => 'PREVIEW_REQUIRED',
-                        'action' => 'Submit the same configuration with preview set to true, then generate again using the returned previewKey.',
-                    ], 422);
-                }
-
-                $cachedPreview = Cache::get($validated['previewKey']);
-                if (!$cachedPreview || ($cachedPreview['user_id'] ?? null) !== Auth::id()) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Preview Expired',
-                        'details' => 'Your exam preview has expired or is invalid. Please generate a new preview first.',
-                        'code' => 'PREVIEW_EXPIRED',
-                        'action' => 'Run the preview step again before generating the exam.',
-                    ], 422);
-                }
-            }
-
-            $subjectAnalyses = [];
+            $questionsBySubject = [];
             foreach ($validated['subjects'] as $subjectData) {
                 try {
-                    $subjectAnalyses[] = $this->analyzeMultiSubjectExamSubject(
-                        $user,
-                        $subjectData,
-                        $purpose,
-                        $totalItems,
-                        $validated['difficulty_distribution']
-                    );
+                    $subject = Subject::find($subjectData['subjectID']);
+                    if (!$subject) {
+                        throw new \Exception("Subject not found with ID: {$subjectData['subjectID']}");
+                    }
+                    $subjectItemCount = round($totalItems * ($subjectData['percentage'] / 100));
+                    Log::info('Processing subject:', [
+                        'subject' => $subject->subjectName,
+                        'itemCount' => $subjectItemCount,
+                        'percentage' => $subjectData['percentage']
+                    ]);
+                    try {
+                        $baseQuery = Question::with(['choices', 'difficulty', 'status', 'purpose'])
+                            ->where('subjectID', $subjectData['subjectID'])
+                            ->where('purpose_id', $purpose->id)
+                            ->whereHas('status', function($query) {
+                                $query->where('name', 'approved');
+                            });
+                        // Role-based filtering
+                        if ($user->roleID === 2) { // Faculty/Instructor
+                            $baseQuery->where('userID', $user->userID);
+                        } elseif ($user->roleID === 3) { // Program Chair
+                            $validUserIDs = User::where('programID', $user->programID)->pluck('userID');
+                            $baseQuery->whereIn('userID', $validUserIDs);
+                        } elseif ($user->roleID === 5) { // Associate Dean
+                            $validUserIDs = User::where('campusID', $user->campusID)->pluck('userID');
+                            $baseQuery->whereIn('userID', $validUserIDs);
+                        } else if ($user->roleID === 4) {
+                            // Dean: no additional filtering, can access all questions for the subject
+                        }
+                        $allQuestions = $baseQuery->get();
+                        if ($allQuestions->isEmpty()) {
+                            throw new \Exception("No questions found for subject: {$subject->subjectName}");
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Question Query Error:', [
+                            'subject' => $subject->subjectName,
+                            'error' => $e->getMessage(),
+                            'sql' => $baseQuery->toSql(),
+                            'bindings' => $baseQuery->getBindings()
+                        ]);
+                        throw new \Exception("Failed to retrieve questions for {$subject->subjectName}: " . $e->getMessage());
+                    }
+                    try {
+                        $easyQuestions = $allQuestions->filter(fn($q) => $q->difficulty && $q->difficulty->name === 'easy')->shuffle();
+                        $moderateQuestions = $allQuestions->filter(fn($q) => $q->difficulty && $q->difficulty->name === 'moderate')->shuffle();
+                        $hardQuestions = $allQuestions->filter(fn($q) => $q->difficulty && $q->difficulty->name === 'hard')->shuffle();
+                        $numEasy = round($subjectItemCount * ($validated['difficulty_distribution']['easy'] / 100));
+                        $numModerate = round($subjectItemCount * ($validated['difficulty_distribution']['moderate'] / 100));
+                        $numHard = $subjectItemCount - ($numEasy + $numModerate);
+                        $insufficientQuestions = [];
+                        $totalAvailable = 0;
+                        $totalRequired = 0;
+                        if ($easyQuestions->count() < $numEasy) {
+                            $insufficientQuestions[] = [
+                                'difficulty' => 'Easy',
+                                'required' => $numEasy,
+                                'available' => $easyQuestions->count(),
+                                'deficit' => $numEasy - $easyQuestions->count()
+                            ];
+                        }
+                        if ($moderateQuestions->count() < $numModerate) {
+                            $insufficientQuestions[] = [
+                                'difficulty' => 'Moderate',
+                                'required' => $numModerate,
+                                'available' => $moderateQuestions->count(),
+                                'deficit' => $numModerate - $moderateQuestions->count()
+                            ];
+                        }
+                        if ($hardQuestions->count() < $numHard) {
+                            $insufficientQuestions[] = [
+                                'difficulty' => 'Hard',
+                                'required' => $numHard,
+                                'available' => $hardQuestions->count(),
+                                'deficit' => $numHard - $hardQuestions->count()
+                            ];
+                        }
+                        if (!empty($insufficientQuestions)) {
+                            $totalAvailable = $easyQuestions->count() + $moderateQuestions->count() + $hardQuestions->count();
+                            $totalRequired = $numEasy + $numModerate + $numHard;
+                            $details = "Insufficient questions available for {$subject->subjectName}:\n";
+                            foreach ($insufficientQuestions as $insufficient) {
+                                $details .= "- {$insufficient['difficulty']}: Required {$insufficient['required']}, Available {$insufficient['available']} (Missing {$insufficient['deficit']})\n";
+                            }
+                            $suggestions = [];
+                            if ($totalAvailable < $totalRequired) {
+                                $suggestions[] = "Reduce the total number of questions for this subject";
+                            }
+                            if (!empty($insufficientQuestions)) {
+                                $suggestions[] = "Adjust the difficulty distribution percentages";
+                            }
+                            $suggestions[] = "Add more questions to the question bank";
+                            return response()->json([
+                                'status' => 'error',
+                                'message' => 'Insufficient Questions Available',
+                                'details' => $details,
+                                'code' => 'INSUFFICIENT_QUESTIONS',
+                                'action' => 'Please try the following:\n' . implode('\n', $suggestions),
+                                'insufficient_questions' => $insufficientQuestions,
+                                'subject' => $subject->subjectName,
+                                'total_required' => $totalRequired,
+                                'total_available' => $totalAvailable,
+                                'deficit' => $totalRequired - $totalAvailable,
+                                'difficulty_distribution' => [
+                                    'easy' => [
+                                        'required' => $numEasy,
+                                        'available' => $easyQuestions->count()
+                                    ],
+                                    'moderate' => [
+                                        'required' => $numModerate,
+                                        'available' => $moderateQuestions->count()
+                                    ],
+                                    'hard' => [
+                                        'required' => $numHard,
+                                        'available' => $hardQuestions->count()
+                                    ]
+                                ]
+                            ], 422);
+                        }
+                        if ($easyQuestions->count() < $numEasy || 
+                            $moderateQuestions->count() < $numModerate || 
+                            $hardQuestions->count() < $numHard) {
+                            throw new \Exception("Insufficient questions of required difficulty levels");
+                        }
+                        $selectedQuestions = collect()
+                            ->merge($easyQuestions->take($numEasy))
+                            ->merge($moderateQuestions->take($numModerate))
+                            ->merge($hardQuestions->take($numHard))
+                            ->shuffle();
+                        $subjectQuestions = $this->formatQuestions($selectedQuestions, $subject);
+                        if (empty($subjectQuestions)) {
+                            throw new \Exception("Failed to format questions for subject");
+                        }
+                        $questionsBySubject[$subject->subjectName] = [
+                            'subject' => $subject->subjectName,
+                            'questions' => $subjectQuestions,
+                            'totalItems' => count($subjectQuestions)
+                        ];
+                    } catch (\Exception $e) {
+                        Log::error('Question Processing Error:', [
+                            'subject' => $subject->subjectName,
+                            'error' => $e->getMessage(),
+                            'available_questions' => [
+                                'easy' => $easyQuestions->count(),
+                                'moderate' => $moderateQuestions->count(),
+                                'hard' => $hardQuestions->count()
+                            ],
+                            'required_questions' => [
+                                'easy' => $numEasy ?? 0,
+                                'moderate' => $numModerate ?? 0,
+                                'hard' => $numHard ?? 0
+                            ]
+                        ]);
+                        throw $e;
+                    }
                 } catch (\Exception $e) {
-                    Log::error('Subject analysis error', [
+                    Log::error('Subject Processing Error:', [
                         'subject_id' => $subjectData['subjectID'],
                         'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
                     ]);
-
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Error analyzing subject for exam generation.',
-                        'details' => $e->getMessage(),
-                        'code' => 'SUBJECT_ANALYSIS_ERROR',
+                        'message' => "Error processing subject: " . ($subject ? $subject->subjectName : 'Unknown'),
+                        'error' => $e->getMessage(),
+                        'code' => 'SUBJECT_PROCESSING_ERROR'
                     ], 422);
                 }
             }
-
-            $previewSummary = $this->buildMultiSubjectExamPreviewSummary($subjectAnalyses, $totalItems);
-
-            if ($isPreview) {
-                $previewKey = 'exam_preview_' . Auth::id() . '_' . now()->timestamp;
-
-                Cache::put($previewKey, [
-                    'user_id' => Auth::id(),
-                    'config' => $validated,
-                    'summary' => $previewSummary,
-                    'created_at' => now()->timestamp,
-                ], $this->sessionLifetime);
-
-                return response()->json([
-                    'status' => 'preview',
-                    'message' => $previewSummary['canGenerate']
-                        ? 'Preview generated successfully. You have enough questions. Press generate again to create the exam.'
-                        : 'Preview generated successfully. Some subjects need more questions before you can generate the exam.',
-                    'previewKey' => $previewKey,
-                    'canGenerate' => $previewSummary['canGenerate'],
-                    'totalItems' => $previewSummary['totalItems'],
-                    'difficultyTotals' => $previewSummary['difficultyTotals'],
-                    'subjects' => $previewSummary['subjects'],
-                    'subjectsNeedingQuestions' => $previewSummary['subjectsNeedingQuestions'],
-                ]);
-            }
-
-            if (!$previewSummary['canGenerate']) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Cannot generate exam. Some subjects still need more questions.',
-                    'details' => 'Add the required number of approved exam questions to the subjects listed below, then try generating again.',
-                    'code' => 'INSUFFICIENT_QUESTIONS',
-                    'action' => 'Add the missing questions by difficulty for each subject, then press generate again.',
-                    'totalItems' => $previewSummary['totalItems'],
-                    'difficultyTotals' => $previewSummary['difficultyTotals'],
-                    'subjectsNeedingQuestions' => $previewSummary['subjectsNeedingQuestions'],
-                ], 422);
-            }
-
-            $questionsBySubject = [];
-            foreach ($subjectAnalyses as $analysis) {
-                $selectedQuestions = collect()
-                    ->merge($analysis['questionPools']['easy']->take($analysis['requirements']['easy']))
-                    ->merge($analysis['questionPools']['moderate']->take($analysis['requirements']['moderate']))
-                    ->merge($analysis['questionPools']['hard']->take($analysis['requirements']['hard']))
-                    ->shuffle();
-
-                $subjectQuestions = $this->formatQuestions($selectedQuestions, $analysis['subject']);
-
-                if (empty($subjectQuestions)) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Failed to format questions for ' . $analysis['subject']->subjectName . '.',
-                        'code' => 'QUESTION_FORMAT_ERROR',
-                    ], 422);
-                }
-
-                $questionsBySubject[$analysis['subject']->subjectName] = [
-                    'subject' => $analysis['subject']->subjectName,
-                    'questions' => $subjectQuestions,
-                    'totalItems' => count($subjectQuestions),
-                ];
-            }
-
             if (empty($questionsBySubject)) {
                 throw new \Exception('No questions were successfully processed for any subject');
             }
-
             $leftLogoPath = public_path('storage/logo/JRMSU.jpg');
             $rightLogoPath = public_path('storage/logo/COE.jpg');
             $leftLogoBase64 = $this->getBase64Image($leftLogoPath);
@@ -413,16 +468,15 @@ class PrintController extends Controller
                 $leftLogoBase64 = $this->getBase64Image(resource_path('assets/images/default-left-logo.jpg'));
                 $rightLogoBase64 = $this->getBase64Image(resource_path('assets/images/default-right-logo.jpg'));
             }
-
             $allQuestionsFlat = [];
             $allCorrectAnswers = [];
-            foreach ($questionsBySubject as $subjectData) {
+            foreach ($questionsBySubject as $subjectName => $subjectData) {
                 foreach ($subjectData['questions'] as $q) {
                     $allQuestionsFlat[] = $q;
                 }
             }
             shuffle($allQuestionsFlat);
-
+            // Collect correct answers for all questions (flat)
             foreach ($allQuestionsFlat as $qIndex => $question) {
                 $correctChoices = [];
                 foreach ($question['choices'] as $choiceIndex => $choice) {
@@ -430,51 +484,45 @@ class PrintController extends Controller
                         $correctChoices[] = [
                             'choiceIndex' => $choiceIndex,
                             'choiceText' => $choice['choiceText'],
-                            'choiceImage' => $choice['choiceImage'] ?? null,
+                            'choiceImage' => $choice['choiceImage'] ?? null
                         ];
                     }
                 }
                 $allCorrectAnswers[$qIndex] = $correctChoices;
             }
-
             $previewData = [
                 'questions' => $allQuestionsFlat,
                 'totalItems' => count($allQuestionsFlat),
                 'requestedItems' => $totalItems,
                 'purpose' => $validated['purpose'],
-                'examTitle' => match ($validated['purpose']) {
+                'examTitle' => match($validated['purpose']) {
                     'examQuestions' => 'Qualifying Examination',
                     'practiceQuestions' => 'Practice Examination',
                     'personalQuestions' => 'Quiz',
-                    default => 'Multi-Subject Questions',
+                    default => 'Multi-Subject Questions'
                 },
                 'logos' => [
                     'left' => $leftLogoBase64,
-                    'right' => $rightLogoBase64,
+                    'right' => $rightLogoBase64
                 ],
                 'timestamp' => now()->timestamp,
                 'user_id' => Auth::id(),
-                'correctAnswers' => $allCorrectAnswers,
-                'generationSummary' => $previewSummary,
+                'correctAnswers' => $allCorrectAnswers
             ];
-
-            $previewKey = $validated['previewKey'];
+            $previewKey = 'exam_preview_' . Auth::id() . '_' . now()->timestamp;
             session([$previewKey => $previewData]);
-            Cache::put($previewKey, array_merge(Cache::get($previewKey, []), ['generated' => $previewData]), $this->sessionLifetime);
+            Cache::put($previewKey, $previewData, $this->sessionLifetime);
             session()->save();
-
-            Log::info('Multi-subject exam generated', [
+            Log::info('Preview data stored:', [
                 'previewKey' => $previewKey,
+                'session_id' => session()->getId(),
+                'data_size' => strlen(json_encode($previewData)),
                 'user_id' => Auth::id(),
-                'totalItems' => count($allQuestionsFlat),
+                'timestamp' => now()->timestamp
             ]);
-
             return response()->json([
-                'status' => 'generated',
-                'message' => 'Exam generated successfully.',
-                'previewKey' => $previewKey,
                 'previewData' => $previewData,
-                'generationSummary' => $previewSummary,
+                'previewKey' => $previewKey
             ]);
         } catch (\Exception $e) {
             Log::error('Multi-Subject Exam Print Error:', [
@@ -490,182 +538,6 @@ class PrintController extends Controller
                 'action' => 'Please try again later. If the problem persists, contact system administrator.'
             ], 500);
         }
-    }
-
-    private function buildMultiSubjectExamQuestionQuery(User $user, int $subjectID, $purpose)
-    {
-        $baseQuery = Question::with(['choices', 'difficulty', 'status', 'purpose'])
-            ->where('subjectID', $subjectID)
-            ->where('purpose_id', $purpose->id)
-            ->whereHas('status', function ($query) {
-                $query->where('name', 'approved');
-            });
-
-        if ($user->roleID === 2) {
-            $baseQuery->where('userID', $user->userID);
-        } elseif ($user->roleID === 3) {
-            $validUserIDs = User::where('programID', $user->programID)->pluck('userID');
-            $baseQuery->whereIn('userID', $validUserIDs);
-        } elseif ($user->roleID === 5) {
-            $validUserIDs = User::where('campusID', $user->campusID)->pluck('userID');
-            $baseQuery->whereIn('userID', $validUserIDs);
-        }
-
-        return $baseQuery;
-    }
-
-    private function calculateMultiSubjectDifficultyRequirements(int $subjectItemCount, array $difficultyDistribution): array
-    {
-        $numEasy = (int) round($subjectItemCount * ($difficultyDistribution['easy'] / 100));
-        $numModerate = (int) round($subjectItemCount * ($difficultyDistribution['moderate'] / 100));
-        $numHard = $subjectItemCount - ($numEasy + $numModerate);
-
-        return [
-            'easy' => $numEasy,
-            'moderate' => $numModerate,
-            'hard' => $numHard,
-        ];
-    }
-
-    private function analyzeMultiSubjectExamSubject(
-        User $user,
-        array $subjectData,
-        $purpose,
-        int $totalItems,
-        array $difficultyDistribution
-    ): array {
-        $subject = Subject::find($subjectData['subjectID']);
-        if (!$subject) {
-            throw new \Exception("Subject not found with ID: {$subjectData['subjectID']}");
-        }
-
-        $subjectItemCount = (int) round($totalItems * ($subjectData['percentage'] / 100));
-        $requirements = $this->calculateMultiSubjectDifficultyRequirements($subjectItemCount, $difficultyDistribution);
-
-        $allQuestions = $this->buildMultiSubjectExamQuestionQuery($user, $subjectData['subjectID'], $purpose)->get();
-
-        $easyQuestions = $allQuestions->filter(fn ($q) => $q->difficulty && $q->difficulty->name === 'easy')->shuffle();
-        $moderateQuestions = $allQuestions->filter(fn ($q) => $q->difficulty && $q->difficulty->name === 'moderate')->shuffle();
-        $hardQuestions = $allQuestions->filter(fn ($q) => $q->difficulty && $q->difficulty->name === 'hard')->shuffle();
-
-        $availability = [
-            'easy' => $easyQuestions->count(),
-            'moderate' => $moderateQuestions->count(),
-            'hard' => $hardQuestions->count(),
-        ];
-
-        $needed = [
-            'easy' => max(0, $requirements['easy'] - $availability['easy']),
-            'moderate' => max(0, $requirements['moderate'] - $availability['moderate']),
-            'hard' => max(0, $requirements['hard'] - $availability['hard']),
-        ];
-
-        $totalRequired = $requirements['easy'] + $requirements['moderate'] + $requirements['hard'];
-        $totalAvailable = $availability['easy'] + $availability['moderate'] + $availability['hard'];
-        $totalNeeded = $needed['easy'] + $needed['moderate'] + $needed['hard'];
-
-        return [
-            'subject' => $subject,
-            'subjectID' => $subject->subjectID,
-            'subjectName' => $subject->subjectName,
-            'subjectCode' => $subject->subjectCode,
-            'subjectPercentage' => (int) $subjectData['percentage'],
-            'totalItemsForSubject' => $subjectItemCount,
-            'requirements' => $requirements,
-            'availability' => $availability,
-            'needed' => $needed,
-            'difficulties' => [
-                'easy' => [
-                    'required' => $requirements['easy'],
-                    'available' => $availability['easy'],
-                    'needed' => $needed['easy'],
-                ],
-                'moderate' => [
-                    'required' => $requirements['moderate'],
-                    'available' => $availability['moderate'],
-                    'needed' => $needed['moderate'],
-                ],
-                'hard' => [
-                    'required' => $requirements['hard'],
-                    'available' => $availability['hard'],
-                    'needed' => $needed['hard'],
-                ],
-            ],
-            'hasEnoughQuestions' => $totalNeeded === 0,
-            'totalRequired' => $totalRequired,
-            'totalAvailable' => $totalAvailable,
-            'totalNeeded' => $totalNeeded,
-            'questionPools' => [
-                'easy' => $easyQuestions,
-                'moderate' => $moderateQuestions,
-                'hard' => $hardQuestions,
-            ],
-        ];
-    }
-
-    private function buildMultiSubjectExamPreviewSummary(array $subjectAnalyses, int $totalItems): array
-    {
-        $difficultyTotals = [
-            'easy' => ['required' => 0, 'available' => 0, 'needed' => 0],
-            'moderate' => ['required' => 0, 'available' => 0, 'needed' => 0],
-            'hard' => ['required' => 0, 'available' => 0, 'needed' => 0],
-        ];
-
-        $subjects = [];
-        $subjectsNeedingQuestions = [];
-
-        foreach ($subjectAnalyses as $analysis) {
-            foreach (['easy', 'moderate', 'hard'] as $difficulty) {
-                $difficultyTotals[$difficulty]['required'] += $analysis['requirements'][$difficulty];
-                $difficultyTotals[$difficulty]['available'] += $analysis['availability'][$difficulty];
-                $difficultyTotals[$difficulty]['needed'] += $analysis['needed'][$difficulty];
-            }
-
-            $subjects[] = [
-                'subjectID' => $analysis['subjectID'],
-                'subjectName' => $analysis['subjectName'],
-                'subjectCode' => $analysis['subjectCode'],
-                'subjectPercentage' => $analysis['subjectPercentage'],
-                'totalItemsForSubject' => $analysis['totalItemsForSubject'],
-                'difficulties' => $analysis['difficulties'],
-                'hasEnoughQuestions' => $analysis['hasEnoughQuestions'],
-                'totalRequired' => $analysis['totalRequired'],
-                'totalAvailable' => $analysis['totalAvailable'],
-                'totalNeeded' => $analysis['totalNeeded'],
-            ];
-
-            if (!$analysis['hasEnoughQuestions']) {
-                $subjectsNeedingQuestions[] = [
-                    'subjectID' => $analysis['subjectID'],
-                    'subjectName' => $analysis['subjectName'],
-                    'subjectCode' => $analysis['subjectCode'],
-                    'neededByDifficulty' => $analysis['needed'],
-                    'totalNeeded' => $analysis['totalNeeded'],
-                    'message' => $this->buildSubjectDeficitMessage($analysis),
-                ];
-            }
-        }
-
-        return [
-            'canGenerate' => empty($subjectsNeedingQuestions),
-            'totalItems' => $totalItems,
-            'difficultyTotals' => $difficultyTotals,
-            'subjects' => $subjects,
-            'subjectsNeedingQuestions' => $subjectsNeedingQuestions,
-        ];
-    }
-
-    private function buildSubjectDeficitMessage(array $analysis): string
-    {
-        $parts = [];
-
-        foreach (['easy' => 'Easy', 'moderate' => 'Moderate', 'hard' => 'Hard'] as $key => $label) {
-            if ($analysis['needed'][$key] > 0) {
-                $parts[] = "{$label}: add {$analysis['needed'][$key]} more";
-            }
-        }
-
-        return $analysis['subjectName'] . ' needs ' . implode(', ', $parts) . '.';
     }
 
     /**
