@@ -953,7 +953,7 @@ class UserController extends Controller
 
     private function validateProfileUpdate(Request $request, $user)
     {
-        return $request->validate([
+        $rules = [
             'firstName' => 'sometimes|required|string|max:100',
             'lastName' => 'sometimes|required|string|max:100',
             'email' => [
@@ -969,7 +969,16 @@ class UserController extends Controller
                 'max:50',
                 Rule::unique('users', 'userCode')->ignore($user->userID, 'userID')
             ],
-        ]);
+        ];
+
+        if ($user->roleID === 4) {
+            $rules['campusID'] = 'sometimes|required|integer|exists:campuses,campusID';
+            $rules['programID'] = 'sometimes|required|integer|exists:programs,programID';
+            $rules['roleID'] = 'sometimes|required|integer|exists:roles,roleID';
+            $rules['replacementUserID'] = 'sometimes|integer|exists:users,userID';
+        }
+
+        return $request->validate($rules);
     }
 
     private function updateUserProfile($user, $validated)
