@@ -196,13 +196,6 @@ class UserController extends Controller
                 ], 422);
             }
 
-            if ($user->roleID === 1) {
-                $studentMatch = DB::table('students')
-                    ->where('userCode', $validated['userCode'])
-                    ->where('lastName', strtoupper($user->lastName))
-                    ->exists();
-            }
-
             DB::transaction(function () use ($user, $validated) {
                 $oldUserCode = $user->userCode;
                 $newUserCode = $validated['userCode'];
@@ -212,9 +205,10 @@ class UserController extends Controller
 
                 // Only sync if the new userCode doesn't already exist in the students table
                 // (e.g. the student is linking to an existing student record)
-                $newCodeExistsInStudents = DB::table('students')
-                    ->where('userCode', $newUserCode)
-                    ->exists();
+                $newCodeExistsInStudents = Schema::hasTable('students')
+                    && DB::table('students')
+                        ->where('userCode', $newUserCode)
+                        ->exists();
 
                 if (!$newCodeExistsInStudents) {
                     $this->syncUserCodeAcrossTables($oldUserCode, $newUserCode);
@@ -238,6 +232,9 @@ class UserController extends Controller
             Log::error('User code reset error', [
                 'email' => $request->input('email'),
                 'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -617,19 +614,6 @@ class UserController extends Controller
             }
 
             $resultingRoleID = $authUser->roleID === 4 ? $effectiveRoleID : $targetUser->roleID;
-            if ($resultingRoleID === 1 && isset($validated['userCode']) && $validated['userCode'] !== $targetUser->userCode) {
-                $studentMatch = DB::table('students')
-                    ->where('userCode', $validated['userCode'])
-                    ->where('lastName', strtoupper($targetUser->lastName))
-                    ->exists();
-
-                if (!$studentMatch) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'The user code does not match our student records for this account.',
-                    ], 422);
-                }
-            }
 
             DB::transaction(function () use ($targetUser, $validated) {
                 $oldUserCode = $targetUser->userCode;

@@ -1198,6 +1198,7 @@ const QuizContent = () => {
           }}
           personalQuizID={quizId}
           subjectID={quiz.subjectID || quiz.subject?.subjectID || null}
+          existingQuestionIds={questions.map((q) => q.questionID || (q.question && q.question.questionID)).filter(Boolean)}
         />
       )}
       {isSettingsOpen && (

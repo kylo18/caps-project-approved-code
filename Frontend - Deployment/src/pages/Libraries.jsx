@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { clearAuth } from '../utils/authStorage';
+import { clearAuth } from "../utils/authStorage";
 import { Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 

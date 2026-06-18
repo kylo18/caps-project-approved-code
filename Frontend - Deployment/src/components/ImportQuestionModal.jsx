@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { clearAuth } from '../utils/authStorage';
+import { clearAuth } from "../utils/authStorage";
 import useToast from "../hooks/useToast";
 import Toast from "./Toast";
+
+function stripHtml(html) {
+  if (!html) return "";
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return (tmp.textContent || tmp.innerText || "").replace(/\s+/g, " ").trim();
+}
 
 const ImportQuestionModal = ({
   isOpen,
@@ -9,6 +16,7 @@ const ImportQuestionModal = ({
   onImport,
   personalQuizID,
   subjectID,
+  existingQuestionIds = [],
 }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const { toast, showToast } = useToast();
@@ -52,7 +60,15 @@ const ImportQuestionModal = ({
         return;
       }
 
-      const url = `${apiUrl}/faculty/my-questions/${numericSubjectID}`;
+      const userStr = sessionStorage.getItem("user");
+      const currentUser = userStr ? JSON.parse(userStr) : null;
+      const roleID = currentUser ? currentUser.roleID : null;
+
+      let url = `${apiUrl}/faculty/my-questions/${numericSubjectID}`;
+
+      if (roleID === 3 || roleID === 4 || roleID === 5) {
+        url = `${apiUrl}/subjects/${numericSubjectID}/questions`;
+      }
 
       const response = await fetch(url, {
         method: "GET",
@@ -99,7 +115,9 @@ const ImportQuestionModal = ({
 
       const data = await response.json();
 
-      if (!data.success) {
+      // Different endpoints return different response structures.
+      // my-questions returns success: true, others just return data.
+      if (data.success === false || (!data.success && !data.data)) {
         showToast(
           data.message || "Failed to fetch questions. Please try again.",
           "error",
@@ -200,6 +218,10 @@ const ImportQuestionModal = ({
 
   // Filter questions based on active tab (purpose_id) and search query
   const filteredQuestions = allQuestions.filter((question) => {
+    if (existingQuestionIds.includes(question.questionID)) {
+      return false;
+    }
+
     const purposeId = question.purpose_id;
     const matchesTab =
       (activeTab === "qualifying" && purposeId === 1) ||
@@ -341,12 +363,9 @@ const ImportQuestionModal = ({
                           className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-gray-300 text-orange-500 focus:ring-orange-500"
                         />
                         <div className="min-w-0 flex-1">
-                          <div
-                            className="line-clamp-2 text-sm text-gray-900"
-                            dangerouslySetInnerHTML={{
-                              __html: question.questionText || "",
-                            }}
-                          />
+                          <div className="line-clamp-2 text-sm text-gray-900">
+                            {stripHtml(question.questionText || "")}
+                          </div>
                           {question.choices && (
                             <div className="mt-1.5 space-y-0.5">
                               {question.choices.map((choice, idx) => (
@@ -359,7 +378,7 @@ const ImportQuestionModal = ({
                                   }`}
                                 >
                                   {String.fromCharCode(65 + idx)}.{" "}
-                                  {choice.choiceText || (
+                                  {choice.choiceText ? stripHtml(choice.choiceText) : (
                                     <img
                                       src={choice.image}
                                       alt={`Choice ${idx + 1}`}

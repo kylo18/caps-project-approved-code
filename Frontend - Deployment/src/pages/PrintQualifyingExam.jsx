@@ -886,12 +886,9 @@ export default function PrintQualifyingExam() {
                       <div key={index} className="question-container">
                         <div className="pdf-text flex items-start">
                           <span className="mr-2 min-w-[2ch]">{index + 1}.</span>
-                          <span
-                            className="break-words"
-                            dangerouslySetInnerHTML={{
-                              __html: question.questionText,
-                            }}
-                          />
+                          <span className="break-words">
+                            {stripHtml(question.questionText)}
+                          </span>
                         </div>
                         {question.questionImage && (
                           <div className="mt-2">
@@ -1402,12 +1399,9 @@ export default function PrintQualifyingExam() {
                   <div key={index} className="question-container">
                     <div className="pdf-text flex items-start">
                       <span className="mr-2 min-w-[2ch]">{index + 1}.</span>
-                      <span
-                        className="break-words"
-                        dangerouslySetInnerHTML={{
-                          __html: question.questionText,
-                        }}
-                      />
+                      <span className="break-words">
+                        {stripHtml(question.questionText)}
+                      </span>
                     </div>
                     {question.questionImage && (
                       <div className="mt-2">

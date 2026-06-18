@@ -107,6 +107,9 @@ export default function ResetUserCodeModal({
         } else if (data.errors) {
           errorMessage = Object.values(data.errors).flat()[0] || errorMessage;
         }
+        if (data.error) {
+          console.error("Backend error detail:", data.error);
+        }
         showToast(errorMessage, "error");
       }
     } catch {

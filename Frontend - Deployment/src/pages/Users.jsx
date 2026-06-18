@@ -132,7 +132,7 @@ const UserList = () => {
   const [isActivating, setIsActivating] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState(null);
-  const canManageUsers = currentUserRole === 4 || currentUserRole === 5;
+  const canManageUsers = currentUserRole === 3 || currentUserRole === 4 || currentUserRole === 5;
   const canEditCredentials = currentUserRole === 4 || currentUserRole === 5;
   const canEditRoleAndLocation = currentUserRole === 4;
   const canApproveUsers =
@@ -2384,28 +2384,32 @@ const UserList = () => {
                             {showApproveAction && (
                           <button
                                 type="button"
-                                onClick={() =>
-                              openWarning({
-                                title: "Approve Account",
-                                subtitle:
-                                  "This will grant the user access to the system.",
-                                description: (
-                                  <>
-                                    Approve{" "}
-                                    <span className="font-semibold text-gray-900">
-                                      {selectedUser.firstName}{" "}
-                                      {selectedUser.lastName}
-                                    </span>
-                                        ? They will be granted access based on
-                                        their assigned position.
-                                  </>
-                                ),
-                                confirmLabel: "Approve",
-                                confirmIcon: <i className="bx bx-check" />,
-                                onConfirm: () =>
-                                  handleApproveUser(selectedUser.userID),
-                                  })
-                                }
+                                onClick={() => {
+                                  if (selectedUser.status === "registered") {
+                                    showToast("User is already approved.", "error");
+                                    return;
+                                  }
+                                  openWarning({
+                                    title: "Approve Account",
+                                    subtitle:
+                                      "This will grant the user access to the system.",
+                                    description: (
+                                      <>
+                                        Approve{" "}
+                                        <span className="font-semibold text-gray-900">
+                                          {selectedUser.firstName}{" "}
+                                          {selectedUser.lastName}
+                                        </span>
+                                            ? They will be granted access based on
+                                            their assigned position.
+                                      </>
+                                    ),
+                                    confirmLabel: "Approve",
+                                    confirmIcon: <i className="bx bx-check" />,
+                                    onConfirm: () =>
+                                      handleApproveUser(selectedUser.userID),
+                                  });
+                                }}
                                 className="min-w-[120px] cursor-pointer rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100"
                           >
                             Approve
@@ -2414,27 +2418,35 @@ const UserList = () => {
                             {showDeactivateAction && (
                           <button
                                 type="button"
-                                onClick={() =>
-                              openWarning({
-                                title: "Deactivate Account",
-                                subtitle:
-                                  "The user will lose access to the system.",
-                                description: (
-                                  <>
-                                    Deactivate{" "}
-                                    <span className="font-semibold text-gray-900">
-                                      {selectedUser.firstName}{" "}
-                                      {selectedUser.lastName}
-                                    </span>
-                                        ? Their access will be disabled.
-                                  </>
-                                ),
-                                confirmLabel: "Deactivate",
-                                confirmIcon: <i className="bx bx-block" />,
-                                onConfirm: () =>
-                                  handleDeactivateUser(selectedUser.userID),
-                                  })
-                                }
+                                onClick={() => {
+                                  if (!selectedUser.isActive && selectedUser.status === "unregistered") {
+                                    showToast("User is already deactivated.", "error");
+                                    return;
+                                  }
+                                  if (!selectedUser.isActive) {
+                                    showToast("User is already deactivated.", "error");
+                                    return;
+                                  }
+                                  openWarning({
+                                    title: "Deactivate Account",
+                                    subtitle:
+                                      "The user will lose access to the system.",
+                                    description: (
+                                      <>
+                                        Deactivate{" "}
+                                        <span className="font-semibold text-gray-900">
+                                          {selectedUser.firstName}{" "}
+                                          {selectedUser.lastName}
+                                        </span>
+                                            ? Their access will be disabled.
+                                      </>
+                                    ),
+                                    confirmLabel: "Deactivate",
+                                    confirmIcon: <i className="bx bx-block" />,
+                                    onConfirm: () =>
+                                      handleDeactivateUser(selectedUser.userID),
+                                  });
+                                }}
                                 className="min-w-[120px] cursor-pointer rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
                           >
                             Deactivate
@@ -2443,29 +2455,33 @@ const UserList = () => {
                             {showActivateAction && (
                           <button
                                 type="button"
-                                onClick={() =>
-                              openWarning({
-                                title: "Activate Account",
-                                subtitle:
-                                  "The user will regain access to the system.",
-                                description: (
-                                  <>
-                                    Activate{" "}
-                                    <span className="font-semibold text-gray-900">
-                                      {selectedUser.firstName}{" "}
-                                      {selectedUser.lastName}
-                                    </span>
-                                    ? Their access will be restored.
-                                  </>
-                                ),
-                                confirmLabel: "Activate",
-                                confirmIcon: (
-                                  <i className="bx bx-check-circle" />
-                                ),
-                                onConfirm: () =>
-                                  handleActivateUser(selectedUser.userID),
-                                  })
-                                }
+                                onClick={() => {
+                                  if (selectedUser.isActive) {
+                                    showToast("User is already active.", "error");
+                                    return;
+                                  }
+                                  openWarning({
+                                    title: "Activate Account",
+                                    subtitle:
+                                      "The user will regain access to the system.",
+                                    description: (
+                                      <>
+                                        Activate{" "}
+                                        <span className="font-semibold text-gray-900">
+                                          {selectedUser.firstName}{" "}
+                                          {selectedUser.lastName}
+                                        </span>
+                                        ? Their access will be restored.
+                                      </>
+                                    ),
+                                    confirmLabel: "Activate",
+                                    confirmIcon: (
+                                      <i className="bx bx-check-circle" />
+                                    ),
+                                    onConfirm: () =>
+                                      handleActivateUser(selectedUser.userID),
+                                  });
+                                }}
                                 className="min-w-[120px] cursor-pointer rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100"
                           >
                             Activate
@@ -2879,7 +2895,15 @@ const UserList = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() =>
+                    onClick={() => {
+                      const allApproved = selectedUsers.every((id) => {
+                        const u = users.find((user) => user.userID === id);
+                        return u && u.status === "registered";
+                      });
+                      if (allApproved) {
+                        showToast("All selected users are already approved.", "error");
+                        return;
+                      }
                       openWarning({
                         title: "Approve Selected Users",
                         subtitle: `Approve ${selectedUsers.length} selected user(s).`,
@@ -2888,8 +2912,8 @@ const UserList = () => {
                         confirmLabel: "Approve All",
                         confirmIcon: <i className="bx bx-check" />,
                         onConfirm: handleApproveSelectedUsers,
-                      })
-                    }
+                      });
+                    }}
                     disabled={isApprovingMultiple || isDeleting}
                     className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
                     aria-label="Approve selected users"
@@ -2897,46 +2921,66 @@ const UserList = () => {
                     <i className="bx bx-check text-lg"></i>
                     <span className="hidden md:inline">Approve</span>
                   </button>
-                  <button
-                    onClick={() =>
-                      openWarning({
-                        title: "Activate Selected Users",
-                        subtitle: `Activate ${selectedUsers.length} selected user(s).`,
-                        description:
-                          "Their accounts will be re-enabled and they will regain access to the system.",
-                        confirmLabel: "Activate All",
-                        confirmIcon: <i className="bx bx-arrow-big-up-line" />,
-                        onConfirm: handleActivateSelectedUsers,
-                      })
-                    }
-                    disabled={isActivatingMultiple || isDeleting}
-                    className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
-                    aria-label="Activate selected users"
-                  >
-                    <i className="bx bx-arrow-big-up-line text-lg"></i>
-                    <span className="hidden md:inline">Activate</span>
-                  </button>
-                  <button
-                    onClick={() =>
-                      openWarning({
-                        title: "Deactivate Selected Users",
-                        subtitle: `Deactivate ${selectedUsers.length} selected user(s).`,
-                        description:
-                          "Their access will be disabled. You can reactivate them at any time.",
-                        confirmLabel: "Deactivate All",
-                        confirmIcon: (
-                          <i className="bx bx-arrow-big-down-line" />
-                        ),
-                        onConfirm: handleDeactivateSelectedUsers,
-                      })
-                    }
-                    disabled={isDeactivatingMultiple || isDeleting}
-                    className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
-                    aria-label="Deactivate selected users"
-                  >
-                    <i className="bx bx-arrow-big-down-line text-lg"></i>
-                    <span className="hidden md:inline">Deactivate</span>
-                  </button>
+                  {canActivateDeactivateUsers && (
+                    <>
+                      <button
+                        onClick={() => {
+                          const allActive = selectedUsers.every((id) => {
+                            const u = users.find((user) => user.userID === id);
+                            return u && u.isActive === true;
+                          });
+                          if (allActive) {
+                            showToast("All selected users are already active.", "error");
+                            return;
+                          }
+                          openWarning({
+                            title: "Activate Selected Users",
+                            subtitle: `Activate ${selectedUsers.length} selected user(s).`,
+                            description:
+                              "Their accounts will be re-enabled and they will regain access to the system.",
+                            confirmLabel: "Activate All",
+                            confirmIcon: <i className="bx bx-arrow-big-up-line" />,
+                            onConfirm: handleActivateSelectedUsers,
+                          });
+                        }}
+                        disabled={isActivatingMultiple || isDeleting}
+                        className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
+                        aria-label="Activate selected users"
+                      >
+                        <i className="bx bx-arrow-big-up-line text-lg"></i>
+                        <span className="hidden md:inline">Activate</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          const allDeactivated = selectedUsers.every((id) => {
+                            const u = users.find((user) => user.userID === id);
+                            return u && !u.isActive;
+                          });
+                          if (allDeactivated) {
+                            showToast("All selected users are already deactivated.", "error");
+                            return;
+                          }
+                          openWarning({
+                            title: "Deactivate Selected Users",
+                            subtitle: `Deactivate ${selectedUsers.length} selected user(s).`,
+                            description:
+                              "Their access will be disabled. You can reactivate them at any time.",
+                            confirmLabel: "Deactivate All",
+                            confirmIcon: (
+                              <i className="bx bx-arrow-big-down-line" />
+                            ),
+                            onConfirm: handleDeactivateSelectedUsers,
+                          });
+                        }}
+                        disabled={isDeactivatingMultiple || isDeleting}
+                        className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
+                        aria-label="Deactivate selected users"
+                      >
+                        <i className="bx bx-arrow-big-down-line text-lg"></i>
+                        <span className="hidden md:inline">Deactivate</span>
+                      </button>
+                    </>
+                  )}
                   {(currentUserRole === 4 || currentUserRole === 5) && (
                     <button
                       onClick={() => {
