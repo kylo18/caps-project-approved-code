@@ -173,9 +173,24 @@
 
    [V2.1] 06-14-26 
 
+    Dean Functionalities:
+        - Change other accounts name, email, usercode, program, and campus
+
+    Associate Dean Functionalities:
+        - Change question difficulty
+        - Multi select questions for approval
+
+    Program Chair Functionalities:
+        - Change question difficulty
+        - Multi select questions for approval
+
+    Instructor Functionalities:
+        - Change question difficulty
+        - Multi select questions for approval
+
    Bug Fixes & Improvements:
         - Edit user credentials (email, name, user code, program, campus etc)
         - Change user code (through gmail)
-        - Change question difficulty
-        - Multi select questions for approval
+        
+       
         
