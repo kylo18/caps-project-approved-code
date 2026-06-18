@@ -210,7 +210,15 @@ class UserController extends Controller
                 $user->userCode = $newUserCode;
                 $user->save();
 
-                $this->syncUserCodeAcrossTables($oldUserCode, $newUserCode);
+                // Only sync if the new userCode doesn't already exist in the students table
+                // (e.g. the student is linking to an existing student record)
+                $newCodeExistsInStudents = DB::table('students')
+                    ->where('userCode', $newUserCode)
+                    ->exists();
+
+                if (!$newCodeExistsInStudents) {
+                    $this->syncUserCodeAcrossTables($oldUserCode, $newUserCode);
+                }
 
                 DB::table('user_code_reset_tokens')->where('email', $validated['email'])->delete();
             });
@@ -1022,6 +1030,39 @@ class UserController extends Controller
             4 => [1, 2, 3, 5],
             default => [],
         };
+    }
+
+    private function rejectUnauthorizedProfileFields(Request $request, User $user): ?\Illuminate\Http\JsonResponse
+    {
+        $alwaysRestricted = ['password', 'status_id', 'status', 'isActive'];
+
+        foreach ($alwaysRestricted as $field) {
+            if ($request->has($field)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "The {$field} field cannot be updated through this endpoint.",
+                ], 422);
+            }
+        }
+
+        // Fields all users can edit on their own profile
+        $allowedFields = ['firstName', 'lastName', 'email', 'userCode'];
+
+        // Dean can also edit campus, program, role, and specify a replacement
+        if ($user->roleID === 4) {
+            $allowedFields = array_merge($allowedFields, ['campusID', 'programID', 'roleID', 'replacementUserID']);
+        }
+
+        foreach (array_keys($request->all()) as $field) {
+            if (!in_array($field, $allowedFields, true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "You are not allowed to update the {$field} field.",
+                ], 422);
+            }
+        }
+
+        return null;
     }
 
     private function getAlwaysRestrictedCredentialFields(): array
