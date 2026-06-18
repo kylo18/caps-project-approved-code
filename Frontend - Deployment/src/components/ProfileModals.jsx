@@ -204,7 +204,8 @@ const ProfileModals = ({
         const campusesData = await campusesRes.json();
 
         if (programsRes.ok) {
-          setPrograms(programsData.data || []);
+          const fetchedPrograms = programsData.data || [];
+          setPrograms(fetchedPrograms.filter((p) => p.programName?.toUpperCase() !== "GE"));
         }
 
         if (campusesRes.ok) {
@@ -279,6 +280,9 @@ const ProfileModals = ({
 
   const buildProfilePayload = () => {
     const payload = {
+      firstName: profileFormData.firstName.trim(),
+      lastName: profileFormData.lastName.trim(),
+      email: profileFormData.email.trim(),
       userCode: profileFormData.userCode.trim(),
     };
 
@@ -329,7 +333,13 @@ const ProfileModals = ({
         setTimeout(() => setShowProfileModal(false), 0);
       } else {
         setShowSaveConfirm(false);
-        setProfileError(profileData.message || "Failed to update profile.");
+        let errorMessage = profileData.message || "Failed to update profile.";
+        if (profileData.errors && profileData.errors.userCode) {
+          errorMessage = profileData.errors.userCode[0];
+        } else if (profileData.errors) {
+          errorMessage = Object.values(profileData.errors).flat()[0] || errorMessage;
+        }
+        setProfileError(errorMessage);
       }
     } catch (err) {
       console.error("Profile update error:", err);
@@ -507,8 +517,9 @@ const ProfileModals = ({
                           type="text"
                           name="firstName"
                           value={profileFormData.firstName}
-                          readOnly
-                          className={readOnlyInputClass}
+                          onChange={handleProfileChange}
+                          required
+                          className={fieldInputClass}
                         />
                       </div>
                       <div>
@@ -517,8 +528,9 @@ const ProfileModals = ({
                           type="text"
                           name="lastName"
                           value={profileFormData.lastName}
-                          readOnly
-                          className={readOnlyInputClass}
+                          onChange={handleProfileChange}
+                          required
+                          className={fieldInputClass}
                         />
                       </div>
                     </div>
@@ -529,8 +541,9 @@ const ProfileModals = ({
                         type="email"
                         name="email"
                         value={profileFormData.email}
-                        readOnly
-                        className={readOnlyInputClass}
+                        onChange={handleProfileChange}
+                        required
+                        className={fieldInputClass}
                       />
                     </div>
 

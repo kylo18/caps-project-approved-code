@@ -101,7 +101,13 @@ export default function ResetUserCodeModal({
           onSwitchToLogin?.();
         }, 2500);
       } else {
-        showToast(data.message || "ID code reset failed.", "error");
+        let errorMessage = data.message || "ID code reset failed.";
+        if (data.errors && data.errors.userCode) {
+          errorMessage = data.errors.userCode[0];
+        } else if (data.errors) {
+          errorMessage = Object.values(data.errors).flat()[0] || errorMessage;
+        }
+        showToast(errorMessage, "error");
       }
     } catch {
       showToast(
