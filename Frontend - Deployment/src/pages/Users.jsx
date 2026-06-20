@@ -1128,8 +1128,16 @@ const UserList = () => {
       const data = await response.json();
 
       if (!response.ok) {
+        // Extract specific field errors if available (e.g. "The user code is already taken.")
+        let errorMessage = data.message;
+        if (data.errors) {
+          const fieldErrors = Object.values(data.errors).flat();
+          if (fieldErrors.length > 0) {
+            errorMessage = fieldErrors.join(" ");
+          }
+        }
         throw new Error(
-          data.message ||
+          errorMessage ||
             (isDeanEditingSelf
               ? "Failed to update profile"
               : "Failed to update user credentials"),

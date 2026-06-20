@@ -442,19 +442,7 @@ class UserController extends Controller
                 ], 422);
             }
 
-            if ($user->roleID === 1 && isset($validated['userCode']) && $validated['userCode'] !== $user->userCode) {
-                $studentMatch = DB::table('students')
-                    ->where('userCode', $validated['userCode'])
-                    ->where('lastName', strtoupper($user->lastName))
-                    ->exists();
 
-                if (!$studentMatch) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'The user code does not match our student records for your account.',
-                    ], 422);
-                }
-            }
 
             $replacementUserID = $request->input('replacementUserID');
             $isDeanSelfDemotion = $user->roleID === 4
@@ -987,14 +975,17 @@ class UserController extends Controller
     private function handleValidationError($e)
     {
         $customErrors = [];
+        $topMessage = 'Validation failed.';
         if (isset($e->errors()['email'])) {
             $customErrors['email'] = ['The email is already in use by another account.'];
+            $topMessage = 'The email is already in use by another account.';
         }
         if (isset($e->errors()['userCode'])) {
             $customErrors['userCode'] = ['The user code is already taken.'];
+            $topMessage = 'The user code is already taken.';
         }
         return response()->json([
-            'message' => 'Validation failed.',
+            'message' => $topMessage,
             'errors' => count($customErrors) ? $customErrors : $e->errors()
         ], 422);
     }
