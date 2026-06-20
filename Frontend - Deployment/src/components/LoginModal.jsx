@@ -184,7 +184,7 @@ export default function LoginModal({
                 <label className="outfit-500 text-sm text-gray-700">
                   ID Code
                 </label>
-                <button
+                {/* <button
                   type="button"
                   onClick={() => {
                     onClose();
@@ -193,7 +193,7 @@ export default function LoginModal({
                   className="outfit-400 text-sm text-orange-500 hover:underline"
                 >
                   Forgot ID code?
-                </button>
+                </button> */}
               </div>
               <input
                 type="text"

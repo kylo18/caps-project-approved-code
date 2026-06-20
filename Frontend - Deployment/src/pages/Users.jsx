@@ -28,6 +28,15 @@ import DeanPfp from "/src/assets/symbols/dean.png";
 const getSearchTerms = (query) =>
   (query || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
 
+const getStoredUser = () => {
+  try {
+    const raw = sessionStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 const userMatchesSearch = (user, query) => {
   const terms = getSearchTerms(query);
   if (terms.length === 0) return true;
@@ -187,6 +196,13 @@ const UserList = () => {
   // State for user details modal
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
+
+  const isEditingSelf =
+    selectedUser != null &&
+    getStoredUser()?.userID === selectedUser.userID;
+  const isDeanTarget = Number(selectedUser?.roleID) === 4;
+  const canEditUserCode =
+    canEditCredentials && (!isDeanTarget || isEditingSelf);
 
   // State for filters
   const [statusFilter, setStatusFilter] = useState("all");
@@ -1061,8 +1077,28 @@ const UserList = () => {
     return payload;
   };
 
+  const buildSelfProfilePayload = () => {
+    const payload = {
+      firstName: credentialForm.firstName.trim(),
+      lastName: credentialForm.lastName.trim(),
+      email: credentialForm.email.trim(),
+      userCode: credentialForm.userCode.trim(),
+    };
+
+    if (credentialForm.campusID) {
+      payload.campusID = Number(credentialForm.campusID);
+    }
+    if (credentialForm.programID) {
+      payload.programID = Number(credentialForm.programID);
+    }
+
+    return payload;
+  };
+
   const saveUserCredentials = async () => {
     if (!selectedUser || !canEditCredentials) return;
+
+    const isDeanEditingSelf = isEditingSelf && currentUserRole === 4;
 
     setIsSavingCredentials(true);
     setCredentialError("");
@@ -1071,25 +1107,46 @@ const UserList = () => {
     try {
       const token = sessionStorage.getItem("token");
       const response = await fetch(
-        `${apiUrl}/users/${selectedUser.userID}/credentials`,
+        isDeanEditingSelf
+          ? `${apiUrl}/user/update-profile`
+          : `${apiUrl}/users/${selectedUser.userID}/credentials`,
         {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-          body: JSON.stringify(buildCredentialPayload()),
+          method: isDeanEditingSelf ? "POST" : "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(
+            isDeanEditingSelf
+              ? buildSelfProfilePayload()
+              : buildCredentialPayload(),
+          ),
         },
       );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to update user credentials");
+        throw new Error(
+          data.message ||
+            (isDeanEditingSelf
+              ? "Failed to update profile"
+              : "Failed to update user credentials"),
+        );
       }
 
       const updatedUser = mapProfileToListUser(data.data, selectedUser);
+
+      if (isDeanEditingSelf) {
+        const storedUser = getStoredUser();
+        if (storedUser) {
+          sessionStorage.setItem(
+            "user",
+            JSON.stringify(mapProfileToListUser(data.data, storedUser)),
+          );
+        }
+      }
 
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
@@ -1102,7 +1159,10 @@ const UserList = () => {
       resetCredentialForm(updatedUser);
       closeWarning();
       showToast(
-        data.message || "User credentials updated successfully!",
+        data.message ||
+          (isDeanEditingSelf
+            ? "Profile updated successfully!"
+            : "User credentials updated successfully!"),
         "success",
       );
       fetchUsers(currentPage);
@@ -2227,7 +2287,7 @@ const UserList = () => {
 
                         <div>
                           <label className={fieldLabelClass}>User Code</label>
-                          {canEditCredentials ? (
+                          {canEditUserCode ? (
                             <input
                               type="text"
                               name="userCode"
