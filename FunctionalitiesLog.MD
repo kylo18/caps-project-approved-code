@@ -174,7 +174,7 @@
    [V2.1] 06-14-26 
 
     Dean Functionalities:
-        - Change other accounts name, email, usercode, program, and campus
+        - Change other accounts name, email, program, and campus
 
     Associate Dean Functionalities:
         - Change question difficulty
