@@ -189,8 +189,8 @@
         - Multi select questions for approval
 
    Bug Fixes & Improvements:
-        - Edit user credentials (email, name, user code, program, campus etc)
-        - Change user code (through gmail)
+        - Edit user credentials (email, name, program, campus etc)
+        
         
        
         
