@@ -192,7 +192,7 @@
 
    Bug Fixes & Improvements:
         - Added the ability to edit credentials (email, name, password, and User Code) for all user accounts.
-        
+        - Remember me option in Logging in
         
        
         
