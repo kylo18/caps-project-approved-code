@@ -141,7 +141,8 @@ const UserList = () => {
   const [isActivating, setIsActivating] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState(null);
-  const canManageUsers = currentUserRole === 3 || currentUserRole === 4 || currentUserRole === 5;
+  const canManageUsers =
+    currentUserRole === 3 || currentUserRole === 4 || currentUserRole === 5;
   const canEditCredentials = currentUserRole === 4 || currentUserRole === 5;
   const canEditRoleAndLocation = currentUserRole === 4;
   const canApproveUsers =
@@ -169,7 +170,7 @@ const UserList = () => {
   useEffect(() => {
     const mobileNav = document.getElementById("mobile-bottom-nav");
     if (!mobileNav) return;
-    
+
     const handleResize = () => {
       const isMobile = window.innerWidth < 1025;
       if (canManageUsers && selectedUsers.length > 0 && isMobile) {
@@ -181,7 +182,7 @@ const UserList = () => {
 
     handleResize();
     window.addEventListener("resize", handleResize);
-    
+
     return () => {
       window.removeEventListener("resize", handleResize);
       mobileNav.style.display = "";
@@ -198,8 +199,7 @@ const UserList = () => {
   const [showModal, setShowModal] = useState(false);
 
   const isEditingSelf =
-    selectedUser != null &&
-    getStoredUser()?.userID === selectedUser.userID;
+    selectedUser != null && getStoredUser()?.userID === selectedUser.userID;
   const isDeanTarget = Number(selectedUser?.roleID) === 4;
   const canEditUserCode =
     canEditCredentials && (!isDeanTarget || isEditingSelf);
@@ -1229,12 +1229,12 @@ const UserList = () => {
         setModalPrograms(programs);
         setModalCampuses(campuses);
         syncCredentialIdsFromNames(campuses, programs);
-    } catch (error) {
+      } catch (error) {
         console.error("Error fetching modal options:", error);
-    } finally {
+      } finally {
         setIsLoadingModalOptions(false);
-    }
-  };
+      }
+    };
 
     fetchModalOptions();
   }, [showModal, selectedUser?.userID, canEditCredentials]);
@@ -2214,15 +2214,15 @@ const UserList = () => {
                             ? "User Information"
                             : "User Information"}
                       </h2>
-                    <button
+                      <button
                         type="button"
                         onClick={handleCloseUserModal}
                         className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
                         aria-label="Close"
                       >
                         <i className="bx bx-x text-2xl"></i>
-                    </button>
-                  </div>
+                      </button>
+                    </div>
 
                     <form
                       onSubmit={handleCredentialSubmit}
@@ -2230,7 +2230,7 @@ const UserList = () => {
                     >
                       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
                         <div className="grid grid-cols-2 gap-4">
-                      <div>
+                          <div>
                             <label className={fieldLabelClass}>Name</label>
                             {canEditCredentials ? (
                               <input
@@ -2249,8 +2249,8 @@ const UserList = () => {
                                 className={readOnlyInputClass}
                               />
                             )}
-                      </div>
-                      <div>
+                          </div>
+                          <div>
                             <label className={fieldLabelClass}>Last Name</label>
                             {canEditCredentials ? (
                               <input
@@ -2269,10 +2269,10 @@ const UserList = () => {
                                 className={readOnlyInputClass}
                               />
                             )}
+                          </div>
                         </div>
-                      </div>
 
-                      <div>
+                        <div>
                           <label className={fieldLabelClass}>Gmail</label>
                           {canEditCredentials ? (
                             <input
@@ -2295,36 +2295,28 @@ const UserList = () => {
 
                         <div>
                           <label className={fieldLabelClass}>User Code</label>
-                          {canEditUserCode ? (
-                            <input
-                              type="text"
-                              name="userCode"
-                              value={credentialForm.userCode}
-                              onChange={handleCredentialChange}
-                              required
-                              className={fieldInputClass}
-                            />
-                          ) : (
-                            <input
-                              type="text"
-                              value={selectedUser.userCode || ""}
-                              readOnly
-                              className={readOnlyInputClass}
-                            />
-                          )}
-                      </div>
+                          <input
+                            type="text"
+                            value={selectedUser?.userCode || ""}
+                            readOnly
+                            className={readOnlyInputClass}
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            User code is non-editable.
+                          </p>
+                        </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                      <div>
+                          <div>
                             <label className={fieldLabelClass}>Campus</label>
                             {canEditRoleAndLocation ? (
                               isLoadingModalOptions ? (
                                 <div className={readOnlyFieldClass}>
                                   <span className="text-gray-500">
                                     Loading campuses...
-                        </span>
+                                  </span>
                                   <i className="bx bx-loader-alt animate-spin text-lg text-gray-400"></i>
-                        </div>
+                                </div>
                               ) : (
                                 <CustomSelect
                                   required="campusID"
@@ -2342,20 +2334,20 @@ const UserList = () => {
                               <div className={readOnlyFieldClass}>
                                 <span className="truncate">
                                   {selectedUser.campus || "—"}
-                      </span>
-                      </div>
+                                </span>
+                              </div>
                             )}
-                      </div>
-                        <div>
+                          </div>
+                          <div>
                             <label className={fieldLabelClass}>Program</label>
                             {canEditRoleAndLocation ? (
                               isLoadingModalOptions ? (
                                 <div className={readOnlyFieldClass}>
                                   <span className="text-gray-500">
                                     Loading programs...
-                          </span>
+                                  </span>
                                   <i className="bx bx-loader-alt animate-spin text-lg text-gray-400"></i>
-                                  </div>
+                                </div>
                               ) : (
                                 <CustomSelect
                                   required="programID"
@@ -2373,11 +2365,11 @@ const UserList = () => {
                               <div className={readOnlyFieldClass}>
                                 <span className="truncate">
                                   {selectedUser.program || "—"}
-                          </span>
-                          </div>
+                                </span>
+                              </div>
                             )}
+                          </div>
                         </div>
-                      </div>
 
                         <div>
                           <label className={fieldLabelClass}>Position</label>
@@ -2396,9 +2388,9 @@ const UserList = () => {
                                 {selectedUser.role ||
                                   getRoleLabel(selectedUser.roleID)}
                               </span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
@@ -2406,43 +2398,43 @@ const UserList = () => {
                               Approval Status
                             </label>
                             <div className={readOnlyFieldClass}>
-                        <span
+                              <span
                                 className={`font-medium capitalize ${
-                            selectedUser.status === "registered"
-                              ? "text-green-700"
-                              : selectedUser.status === "pending"
-                                ? "text-yellow-600"
-                                : "text-red-600"
-                          }`}
-                        >
+                                  selectedUser.status === "registered"
+                                    ? "text-green-700"
+                                    : selectedUser.status === "pending"
+                                      ? "text-yellow-600"
+                                      : "text-red-600"
+                                }`}
+                              >
                                 {selectedUser.status || "—"}
-                        </span>
-                      </div>
+                              </span>
+                            </div>
                           </div>
                           <div>
                             <label className={fieldLabelClass}>
                               Account Status
                             </label>
                             <div className={readOnlyFieldClass}>
-                        <span
+                              <span
                                 className={`font-medium ${
-                            selectedUser.isActive
-                              ? "text-green-700"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {selectedUser.isActive ? "Active" : "Inactive"}
-                        </span>
+                                  selectedUser.isActive
+                                    ? "text-green-700"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {selectedUser.isActive ? "Active" : "Inactive"}
+                              </span>
                             </div>
-                      </div>
-                    </div>
+                          </div>
+                        </div>
 
                         {credentialError && (
                           <div className="rounded-lg bg-red-50 p-2 text-center text-xs text-red-500">
                             {credentialError}
                           </div>
                         )}
-                          </div>
+                      </div>
 
                       {hasModalFooter && (
                         <div className="flex flex-row flex-wrap items-center justify-between gap-4 border-t border-gray-100 px-6 py-4">
@@ -2450,11 +2442,14 @@ const UserList = () => {
                             className={`flex flex-wrap gap-2 ${!canEditCredentials ? "w-full justify-end" : ""}`}
                           >
                             {showApproveAction && (
-                          <button
+                              <button
                                 type="button"
                                 onClick={() => {
                                   if (selectedUser.status === "registered") {
-                                    showToast("User is already approved.", "error");
+                                    showToast(
+                                      "User is already approved.",
+                                      "error",
+                                    );
                                     return;
                                   }
                                   openWarning({
@@ -2468,8 +2463,8 @@ const UserList = () => {
                                           {selectedUser.firstName}{" "}
                                           {selectedUser.lastName}
                                         </span>
-                                            ? They will be granted access based on
-                                            their assigned position.
+                                        ? They will be granted access based on
+                                        their assigned position.
                                       </>
                                     ),
                                     confirmLabel: "Approve",
@@ -2479,20 +2474,29 @@ const UserList = () => {
                                   });
                                 }}
                                 className="min-w-[120px] cursor-pointer rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100"
-                          >
-                            Approve
-                          </button>
-                        )}
+                              >
+                                Approve
+                              </button>
+                            )}
                             {showDeactivateAction && (
-                          <button
+                              <button
                                 type="button"
                                 onClick={() => {
-                                  if (!selectedUser.isActive && selectedUser.status === "unregistered") {
-                                    showToast("User is already deactivated.", "error");
+                                  if (
+                                    !selectedUser.isActive &&
+                                    selectedUser.status === "unregistered"
+                                  ) {
+                                    showToast(
+                                      "User is already deactivated.",
+                                      "error",
+                                    );
                                     return;
                                   }
                                   if (!selectedUser.isActive) {
-                                    showToast("User is already deactivated.", "error");
+                                    showToast(
+                                      "User is already deactivated.",
+                                      "error",
+                                    );
                                     return;
                                   }
                                   openWarning({
@@ -2506,7 +2510,7 @@ const UserList = () => {
                                           {selectedUser.firstName}{" "}
                                           {selectedUser.lastName}
                                         </span>
-                                            ? Their access will be disabled.
+                                        ? Their access will be disabled.
                                       </>
                                     ),
                                     confirmLabel: "Deactivate",
@@ -2516,16 +2520,19 @@ const UserList = () => {
                                   });
                                 }}
                                 className="min-w-[120px] cursor-pointer rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
-                          >
-                            Deactivate
-                          </button>
-                        )}
+                              >
+                                Deactivate
+                              </button>
+                            )}
                             {showActivateAction && (
-                          <button
+                              <button
                                 type="button"
                                 onClick={() => {
                                   if (selectedUser.isActive) {
-                                    showToast("User is already active.", "error");
+                                    showToast(
+                                      "User is already active.",
+                                      "error",
+                                    );
                                     return;
                                   }
                                   openWarning({
@@ -2551,53 +2558,53 @@ const UserList = () => {
                                   });
                                 }}
                                 className="min-w-[120px] cursor-pointer rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100"
-                          >
-                            Activate
-                          </button>
-                        )}
+                              >
+                                Activate
+                              </button>
+                            )}
                             {showRemoveAction && (
-                        <button
+                              <button
                                 type="button"
                                 onClick={() => {
-                            const currentUser = JSON.parse(
-                              sessionStorage.getItem("user"),
-                            );
-                            if (
-                              currentUser &&
-                              selectedUser.userID === currentUser.userID
-                            ) {
-                              showToast(
-                                "You can't delete your own account.",
-                                "error",
-                              );
-                              return;
-                            }
-                            openWarning({
-                              title: "Remove User",
-                              subtitle:
-                                "This action is permanent and cannot be undone.",
-                              description: (
-                                <>
-                                  Permanently remove{" "}
-                                  <span className="font-semibold text-gray-900">
-                                    {selectedUser.firstName}{" "}
-                                    {selectedUser.lastName}
-                                  </span>
+                                  const currentUser = JSON.parse(
+                                    sessionStorage.getItem("user"),
+                                  );
+                                  if (
+                                    currentUser &&
+                                    selectedUser.userID === currentUser.userID
+                                  ) {
+                                    showToast(
+                                      "You can't delete your own account.",
+                                      "error",
+                                    );
+                                    return;
+                                  }
+                                  openWarning({
+                                    title: "Remove User",
+                                    subtitle:
+                                      "This action is permanent and cannot be undone.",
+                                    description: (
+                                      <>
+                                        Permanently remove{" "}
+                                        <span className="font-semibold text-gray-900">
+                                          {selectedUser.firstName}{" "}
+                                          {selectedUser.lastName}
+                                        </span>
                                         ? All their data will be deleted.
-                                </>
-                              ),
-                              confirmLabel: "Remove",
-                              confirmIcon: <i className="bx bx-trash" />,
-                              onConfirm: () =>
-                                handleDeleteUser(selectedUser.userID),
-                            });
-                          }}
+                                      </>
+                                    ),
+                                    confirmLabel: "Remove",
+                                    confirmIcon: <i className="bx bx-trash" />,
+                                    onConfirm: () =>
+                                      handleDeleteUser(selectedUser.userID),
+                                  });
+                                }}
                                 className="min-w-[120px] cursor-pointer rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
-                        >
-                          Remove User
-                        </button>
-                      )}
-                    </div>
+                              >
+                                Remove User
+                              </button>
+                            )}
+                          </div>
 
                           {canEditCredentials && (
                             <button
@@ -2614,9 +2621,9 @@ const UserList = () => {
                           )}
                         </div>
                       )}
-                  </form>
+                    </form>
+                  </div>
                 </div>
-              </div>
               );
             })()}
 
@@ -2969,7 +2976,10 @@ const UserList = () => {
                         return u && u.status === "registered";
                       });
                       if (allApproved) {
-                        showToast("All selected users are already approved.", "error");
+                        showToast(
+                          "All selected users are already approved.",
+                          "error",
+                        );
                         return;
                       }
                       openWarning({
@@ -2998,7 +3008,10 @@ const UserList = () => {
                             return u && u.isActive === true;
                           });
                           if (allActive) {
-                            showToast("All selected users are already active.", "error");
+                            showToast(
+                              "All selected users are already active.",
+                              "error",
+                            );
                             return;
                           }
                           openWarning({
@@ -3007,7 +3020,9 @@ const UserList = () => {
                             description:
                               "Their accounts will be re-enabled and they will regain access to the system.",
                             confirmLabel: "Activate All",
-                            confirmIcon: <i className="bx bx-arrow-big-up-line" />,
+                            confirmIcon: (
+                              <i className="bx bx-arrow-big-up-line" />
+                            ),
                             onConfirm: handleActivateSelectedUsers,
                           });
                         }}
@@ -3025,7 +3040,10 @@ const UserList = () => {
                             return u && !u.isActive;
                           });
                           if (allDeactivated) {
-                            showToast("All selected users are already deactivated.", "error");
+                            showToast(
+                              "All selected users are already deactivated.",
+                              "error",
+                            );
                             return;
                           }
                           openWarning({
