@@ -6,8 +6,7 @@ import {
   setPersistedAvatarColor,
 } from "../components/ProfileModals";
 import { normalizeUserProfile } from "../utils/userProfileUtils";
-import { getToken } from "../utils/authStorage";
-
+import { isAuthenticated } from "../utils/authStorage";
 export function useUserProfile() {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [userInfo, setUserInfo] = useState(null);
@@ -20,12 +19,11 @@ export function useUserProfile() {
     const fetchUserInfo = async () => {
       setIsLoadingProfile(true);
       try {
-        const token = getToken();
         const response = await fetch(`${apiUrl}/user/profile`, {
+          credentials: "include",
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
         });
 

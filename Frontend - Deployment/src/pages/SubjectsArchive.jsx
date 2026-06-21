@@ -53,12 +53,11 @@ function SubjectsArchive() {
     } else if (subjectID && !selectedSubject) {
       // If we have subjectID but no subject in state, fetch it
       const fetchSubject = async () => {
-        const token = sessionStorage.getItem("token");
         const apiUrl = import.meta.env.VITE_API_BASE_URL;
         try {
           const response = await fetch(`${apiUrl}/subjects/${subjectID}`, {
+          credentials: "include",
             headers: {
-              Authorization: `Bearer ${token}`,
             },
           });
           if (response.ok) {
@@ -92,12 +91,11 @@ function SubjectsArchive() {
     if (subjectID) {
       // If we have subjectID but no subject in state, fetch it first
       const fetchSubject = async () => {
-        const token = sessionStorage.getItem("token");
         const apiUrl = import.meta.env.VITE_API_BASE_URL;
         try {
           const response = await fetch(`${apiUrl}/subjects/${subjectID}`, {
+          credentials: "include",
             headers: {
-              Authorization: `Bearer ${token}`,
             },
           });
           if (response.ok) {
@@ -241,17 +239,16 @@ function SubjectsArchive() {
   }, []);
 
   const fetchSubjects = async () => {
-    const token = sessionStorage.getItem("token");
     setSubjectLoading(true);
     setNetworkError(false);
 
     try {
       // Fetch archived subjects - adjust endpoint as needed
       const response = await fetch(`${apiUrl}/subjects?archived=true`, {
+          credentials: "include",
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 

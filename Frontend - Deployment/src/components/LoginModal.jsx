@@ -75,6 +75,7 @@ export default function LoginModal({
 
     try {
       const response = await fetch(`${apiUrl}/login`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,6 +84,7 @@ export default function LoginModal({
         body: JSON.stringify({
           userCode: idCode,
           password: password,
+          rememberMe,
         }),
       });
 
@@ -102,7 +104,6 @@ export default function LoginModal({
 
       setRememberedUserCode(rememberMe ? idCode.trim() : "");
       setAuth({
-        token: data.token,
         user: data.user,
         rememberMe,
       });

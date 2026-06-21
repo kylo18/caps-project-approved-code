@@ -443,12 +443,11 @@ const StudentQuiz = () => {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const token = sessionStorage.getItem("token");
         const res = await fetch(`${apiUrl}/user/profile`, {
+          credentials: "include",
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
         });
         if (!res.ok) throw new Error("Failed to fetch user info");
@@ -888,14 +887,10 @@ const StudentQuiz = () => {
       const attemptNumber = parseInt(quizData.attemptNumber, 10);
       const safeAttemptNumber =
         !isNaN(attemptNumber) && attemptNumber >= 1 ? attemptNumber : 1;
-
-      const token = sessionStorage.getItem("token");
-
       const response = await fetch(`${apiUrl}/quizzes/${quizID}/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         credentials: "include",
         body: JSON.stringify({

@@ -81,6 +81,7 @@ export default function ResetUserCodeModal({
     setLoading(true);
     try {
       const response = await fetch(`${apiUrl}/reset-user-code`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -497,8 +497,6 @@ const DuplicateQuestionForm = ({
     }
 
     setIsLoading(true);
-    const token = sessionStorage.getItem("token");
-
     try {
       const submitData = new FormData();
       submitData.append("questionText", formattedQuestionText);
@@ -531,8 +529,9 @@ const DuplicateQuestionForm = ({
       const response = await fetch(
         `${apiUrl}/questions/${question.questionID}/duplicate`,
         {
+          credentials: "include",
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { },
           body: submitData,
         },
       );

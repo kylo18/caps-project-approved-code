@@ -66,17 +66,14 @@ const AssignedSubjectsDropDown = ({
     fetchSubjects();
   }, []);
 
-  const fetchSubjects = async () => {
-    const token = localStorage.getItem("token");
-    setLoading(true);
+  const fetchSubjects = async () => {    setLoading(true);
 
     try {
       const response = await fetch(`${apiUrl}/faculty/availableSubjects`, {
+          credentials: "include",
         method: "GET",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+          "Content-Type": "application/json",        },
       });
 
       if (!response.ok) {
@@ -114,16 +111,13 @@ const AssignedSubjectsDropDown = ({
     }
   };
 
-  const fetchAssignedSubjects = async () => {
-    const token = localStorage.getItem("token");
-    setSubjectLoading(true);
+  const fetchAssignedSubjects = async () => {    setSubjectLoading(true);
     try {
       const response = await fetch(`${apiUrl}/faculty/my-subjects`, {
+          credentials: "include",
         method: "GET",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+          "Content-Type": "application/json",        },
       });
 
       if (response.ok) {
@@ -204,19 +198,15 @@ const AssignedSubjectsDropDown = ({
     setLocalSelectedSubject(subject);
   };
 
-  const handleDeleteSubject = async (subjectID) => {
-    const token = localStorage.getItem("token");
-
-    setIsDeleting(true);
+  const handleDeleteSubject = async (subjectID) => {    setIsDeleting(true);
 
     try {
       const response = await fetch(
         `${apiUrl}/remove-assigned-subject/${subjectID}`,
         {
+          credentials: "include",
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: {          },
         },
       );
 
@@ -246,18 +236,13 @@ const AssignedSubjectsDropDown = ({
   };
 
   const handleAssignSubject = async (subject) => {
-    if (!subject) return;
-
-    const token = localStorage.getItem("token");
-
-    setIsAssigning(true);
+    if (!subject) return;    setIsAssigning(true);
     try {
       const response = await fetch(`${apiUrl}/faculty/assign-subject`, {
+          credentials: "include",
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+          "Content-Type": "application/json",        },
         body: JSON.stringify({
           subjectID: subject.subjectID,
         }),

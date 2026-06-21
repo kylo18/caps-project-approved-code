@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { clearAuth } from '../utils/authStorage';
+import { clearAuth, isAuthenticated } from "../utils/authStorage";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/confirmModal";
 import EditClassModal from "../components/EditClassModal";
@@ -124,9 +124,7 @@ const ClassContent = () => {
       setError(null);
 
       try {
-        const token = sessionStorage.getItem("token");
-
-        if (!token) {
+        if (!isAuthenticated()) {
           throw new Error("You are not authenticated. Please log in again.");
         }
 
@@ -134,7 +132,6 @@ const ClassContent = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         });
@@ -252,9 +249,7 @@ const ClassContent = () => {
       setError(null);
 
       try {
-        const token = sessionStorage.getItem("token");
-
-        if (!token) {
+        if (!isAuthenticated()) {
           return;
         }
 
@@ -262,7 +257,6 @@ const ClassContent = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         });
@@ -348,8 +342,7 @@ const ClassContent = () => {
 
     setIsRemoving(true);
     try {
-      const token = sessionStorage.getItem("token");
-      if (!token) {
+      if (!isAuthenticated()) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsRemoving(false);
         setIsRemoveModalOpen(false);
@@ -363,7 +356,6 @@ const ClassContent = () => {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
           body: JSON.stringify({
@@ -457,9 +449,7 @@ const ClassContent = () => {
     setQuizError(null);
 
     try {
-      const token = sessionStorage.getItem("token");
-
-      if (!token) {
+      if (!isAuthenticated()) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -469,7 +459,6 @@ const ClassContent = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -523,9 +512,7 @@ const ClassContent = () => {
     setAssignedError(null);
 
     try {
-      const token = sessionStorage.getItem("token");
-
-      if (!token) {
+      if (!isAuthenticated()) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -533,7 +520,6 @@ const ClassContent = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         credentials: "include",
       });
@@ -602,9 +588,7 @@ const ClassContent = () => {
 
     setIsAssigningQuiz(true);
     try {
-      const token = sessionStorage.getItem("token");
-
-      if (!token) {
+      if (!isAuthenticated()) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -612,7 +596,6 @@ const ClassContent = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         credentials: "include",
         body: JSON.stringify({
@@ -679,8 +662,7 @@ const ClassContent = () => {
 
     setIsArchiving(true);
     try {
-      const token = sessionStorage.getItem("token");
-      if (!token) {
+      if (!isAuthenticated()) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsArchiving(false);
         setIsArchiveModalOpen(false);
@@ -701,7 +683,6 @@ const ClassContent = () => {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         credentials: "include",
       });
@@ -762,9 +743,7 @@ const ClassContent = () => {
 
     setIsUnassigningQuiz(true);
     try {
-      const token = sessionStorage.getItem("token");
-
-      if (!token) {
+      if (!isAuthenticated()) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -774,7 +753,6 @@ const ClassContent = () => {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -822,9 +800,7 @@ const ClassContent = () => {
     setQuizResultsError(null);
 
     try {
-      const token = sessionStorage.getItem("token");
-
-      if (!token) {
+      if (!isAuthenticated()) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -834,7 +810,6 @@ const ClassContent = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },

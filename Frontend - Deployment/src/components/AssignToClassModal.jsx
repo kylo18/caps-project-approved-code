@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { clearAuth } from "../utils/authStorage";
+import { clearAuth, isAuthenticated } from "../utils/authStorage";
 import useToast from "../hooks/useToast";
 import Toast from "./Toast";
 
@@ -36,9 +36,7 @@ const AssignToClassModal = ({
 
   const fetchClasses = async () => {
     setIsLoading(true);
-    try {
-      const token = sessionStorage.getItem("token");
-      if (!token) {
+    try {      if (!isAuthenticated()) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsLoading(false);
         return;
@@ -47,11 +45,10 @@ const AssignToClassModal = ({
       const response = await fetch(
         `${apiUrl}/personal-quizzes/${personalQuizID}/classes`,
         {
+          credentials: "include",
           method: "GET",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+            "Content-Type": "application/json",          },
         },
       );
 
@@ -134,9 +131,7 @@ const AssignToClassModal = ({
     }
 
     setIsAssigning(true);
-    try {
-      const token = sessionStorage.getItem("token");
-      if (!token) {
+    try {      if (!isAuthenticated()) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsAssigning(false);
         return;
@@ -149,11 +144,10 @@ const AssignToClassModal = ({
       const response = await fetch(
         `${apiUrl}/personal-quizzes/${personalQuizID}/assign-classes`,
         {
+          credentials: "include",
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+            "Content-Type": "application/json",          },
           body: JSON.stringify(payload),
         },
       );

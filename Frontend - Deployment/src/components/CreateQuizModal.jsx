@@ -36,14 +36,11 @@ const CreateQuestionnaireForm = ({
   }, [subjectID, subjectData]);
 
   const fetchSemesters = async () => {
-    try {
-      const token = sessionStorage.getItem("token");
-      const response = await fetch(`${apiUrl}/semester`, {
+    try {      const response = await fetch(`${apiUrl}/semester`, {
+          credentials: "include",
         method: "GET",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+          "Content-Type": "application/json",        },
       });
 
       if (response.ok) {
@@ -61,14 +58,11 @@ const CreateQuestionnaireForm = ({
   };
 
   const fetchCoverages = async () => {
-    try {
-      const token = sessionStorage.getItem("token");
-      const response = await fetch(`${apiUrl}/coverages`, {
+    try {      const response = await fetch(`${apiUrl}/coverages`, {
+          credentials: "include",
         method: "GET",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+          "Content-Type": "application/json",        },
       });
 
       if (response.ok) {
@@ -86,14 +80,11 @@ const CreateQuestionnaireForm = ({
   };
 
   const fetchSubjects = async () => {
-    try {
-      const token = sessionStorage.getItem("token");
-      const response = await fetch(`${apiUrl}/faculty/my-subjects`, {
+    try {      const response = await fetch(`${apiUrl}/faculty/my-subjects`, {
+          credentials: "include",
         method: "GET",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+          "Content-Type": "application/json",        },
       });
 
       if (response.ok) {
@@ -138,10 +129,7 @@ const CreateQuestionnaireForm = ({
     }
 
     setLoading(true);
-    try {
-      const token = sessionStorage.getItem("token");
-
-      // Automatically determine facultySubjectsID and subjectID
+    try {      // Automatically determine facultySubjectsID and subjectID
       let facultySubjectsID, finalSubjectID;
 
       if (selectedSubject) {
@@ -182,11 +170,10 @@ const CreateQuestionnaireForm = ({
       const response = await fetch(
         `${apiUrl}/personal-exam/create-questionnaire`,
         {
+          credentials: "include",
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+            "Content-Type": "application/json",          },
           body: JSON.stringify(requestBody),
         },
       );

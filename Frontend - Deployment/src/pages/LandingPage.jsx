@@ -21,22 +21,14 @@ import {
   clearDeferredInstallPrompt,
   getDeferredInstallPrompt,
 } from "../pwaDeferredInstall.js";
-import {
-  getDashboardPathForRole,
-  getToken,
-  getUser,
-  syncPersistedSession,
-} from "../utils/authStorage";
+import { getDashboardPathForRole, getUser, isAuthenticated } from "../utils/authStorage";
 
 const getInitialAutoLoginState = () => {
   const params = new URLSearchParams(window.location.search);
   if (params.get("token")) return false;
 
-  syncPersistedSession();
-
-  const token = getToken();
   const user = getUser();
-  if (!token || !user) return false;
+  if (!isAuthenticated() || !user) return false;
 
   return !!getDashboardPathForRole(user.roleID);
 };
@@ -78,11 +70,8 @@ function LandingPage() {
       return;
     }
 
-    syncPersistedSession();
-
-    const token = getToken();
     const user = getUser();
-    if (!token || !user) {
+    if (!isAuthenticated() || !user) {
       setIsAutoLoggingIn(false);
       return;
     }

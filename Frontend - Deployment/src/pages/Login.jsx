@@ -48,6 +48,7 @@ export default function LoginPage() {
 
     try {
       const response = await fetch(`${apiUrl}/login`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -56,6 +57,7 @@ export default function LoginPage() {
         body: JSON.stringify({
           userCode: idCode,
           password: password,
+          rememberMe,
         }),
       });
 
@@ -77,7 +79,6 @@ export default function LoginPage() {
 
       setRememberedUserCode(rememberMe ? idCode.trim() : "");
       setAuth({
-        token: data.token,
         user: data.user,
         rememberMe,
       });

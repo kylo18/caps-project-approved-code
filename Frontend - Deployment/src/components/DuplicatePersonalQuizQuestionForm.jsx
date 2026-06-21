@@ -3,6 +3,7 @@ import WarnOnExit from "../hooks/WarnOnExit";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import ImageSelectionModal from "./ImageSelectionModal";
+import { isAuthenticated } from "../utils/authStorage";
 
 const HeaderDropdown = ({
   name,
@@ -228,16 +229,15 @@ const DuplicatePersonalQuizQuestionForm = ({
       }
 
       try {
-        const token = sessionStorage.getItem("token");
-        if (!token) return;
+        if (!isAuthenticated()) return;
 
         const choicesResponse = await fetch(
           `${apiUrl}/personal-quiz-choices/${personalQuizQuestionID}`,
           {
+          credentials: "include",
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
           },
         );
@@ -679,8 +679,6 @@ const DuplicatePersonalQuizQuestionForm = ({
     }
 
     setIsLoading(true);
-    const token = sessionStorage.getItem("token");
-
     try {
       const personalQuizQuestionID =
         quizQuestion.personalQuizQuestionID || quizQuestion.id;
@@ -734,8 +732,9 @@ const DuplicatePersonalQuizQuestionForm = ({
       const response = await fetch(
         `${apiUrl}/personal-quiz-questions/${personalQuizQuestionID}/duplicate`,
         {
+          credentials: "include",
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { },
           body: submitData,
         },
       );

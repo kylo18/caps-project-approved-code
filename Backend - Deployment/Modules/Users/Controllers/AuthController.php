@@ -245,7 +245,8 @@ class AuthController extends Controller
             // Validate userCode and password
             $credentials = $request->validate([
                 'userCode' => 'required',
-                'password' => 'required'
+                'password' => 'required',
+                'rememberMe' => 'sometimes|boolean',
             ]);
 
             // Look up the user
@@ -290,19 +291,32 @@ class AuthController extends Controller
                 return response()->json(['message' => 'This user is already logged in.'], 403);
             }
 
-            // Generate new token valid for 3 hours
-            $tokenResult = $user->createToken('auth_token', ['*'], now()->addHours(3));
+            $rememberMe = $request->boolean('rememberMe');
+            $expiresAt = $rememberMe ? now()->addDays(30) : now()->addHours(3);
+
+            $tokenResult = $user->createToken('auth_token', ['*'], $expiresAt);
             $plainTextToken = $tokenResult->plainTextToken;
 
             Log::info('Successful login for user: ' . $request->userCode);
 
-            // Return user data with token
+            $cookieMinutes = $rememberMe ? 60 * 24 * 30 : 60 * 3;
+            $secureCookie = app()->environment('production');
+
             return response()->json([
                 'message' => 'Login successful',
                 'user' => $user,
-                'token' => $plainTextToken,
-                'expires_at' => now()->addHours(3)->toDateTimeString(),
-            ], 200);
+                'expires_at' => $expiresAt->toDateTimeString(),
+            ], 200)->cookie(
+                'auth_token',
+                $plainTextToken,
+                $cookieMinutes,
+                '/',
+                null,
+                $secureCookie,
+                true,
+                false,
+                'Lax'
+            );
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Login validation failed: ' . json_encode($e->errors()));
@@ -333,7 +347,9 @@ class AuthController extends Controller
             $request->user()->currentAccessToken()->delete();
 
             Log::info('Successful logout for user: ' . $user->userCode);
-            return response()->json(['message' => 'Logged out successfully']);
+
+            return response()->json(['message' => 'Logged out successfully'])
+                ->withoutCookie('auth_token');
 
         } catch (\Exception $e) {
             Log::error('Logout failed: ' . $e->getMessage());

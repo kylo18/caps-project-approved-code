@@ -93,18 +93,17 @@ const FacultyContent = () => {
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
       const fetchSubjectSettings = async () => {
-        const token = sessionStorage.getItem("token");
         try {
           // Fetch QE status
           const qeResponse = await fetch(
             `${apiUrl}/subjects/${selectedSubject.subjectID}/exam-questions-status`,
-            { headers: { Authorization: `Bearer ${token}` } },
+            { headers: { } },
           );
 
           // Fetch practice exam settings
           const practiceResponse = await fetch(
             `${apiUrl}/practice-settings/${selectedSubject.subjectID}`,
-            { headers: { Authorization: `Bearer ${token}` } },
+            { headers: { } },
           );
 
           if (qeResponse.ok) {
@@ -178,12 +177,11 @@ const FacultyContent = () => {
 
   const saveEdit = async (questionID) => {
     try {
-      const token = sessionStorage.getItem("token");
       const response = await fetch(`${apiUrl}/questions/update/${questionID}`, {
+          credentials: "include",
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ questionText: editText }),
       });
@@ -208,13 +206,12 @@ const FacultyContent = () => {
   // Function to handle question deletion
   const handleDeleteQuestion = async (questionID) => {
     try {
-      const token = sessionStorage.getItem("token");
       setIsDeleting(true);
       const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
+          credentials: "include",
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -242,8 +239,6 @@ const FacultyContent = () => {
     setQuestions([]);
 
     try {
-      const token = sessionStorage.getItem("token");
-
       if (!selectedSubject || !selectedSubject.subjectID) {
         console.error("No subject selected");
         return;
@@ -252,10 +247,10 @@ const FacultyContent = () => {
       const response = await fetch(
         `${apiUrl}/faculty/my-questions/${selectedSubject.subjectID}`,
         {
+          credentials: "include",
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
         },
       );

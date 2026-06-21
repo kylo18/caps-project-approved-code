@@ -246,16 +246,15 @@ const SideBarDropDown = ({
   }, []);
 
   const fetchSubjects = async () => {
-    const token = sessionStorage.getItem("token");
     setSubjectLoading(true);
     setNetworkError(false);
 
     try {
       const response = await fetch(`${apiUrl}/subjects`, {
+          credentials: "include",
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -298,16 +297,14 @@ const SideBarDropDown = ({
 
   const handleAddSubject = async () => {
     if (!newSubjectCode.trim() || !newSubjectName.trim()) return;
-    const token = sessionStorage.getItem("token");
-
     setIsAdding(true);
 
     try {
       const response = await fetch(`${apiUrl}/add-subjects`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           subjectCode: newSubjectCode,
@@ -441,12 +438,10 @@ const SideBarDropDown = ({
 
   useEffect(() => {
     const fetchPrograms = async () => {
-      const token = sessionStorage.getItem("token");
-
       try {
         const res = await fetch(`${apiUrl}/programs`, {
+          credentials: "include",
           headers: {
-            Authorization: `Bearer ${token}`,
           },
         });
         const data = await res.json();
@@ -459,12 +454,10 @@ const SideBarDropDown = ({
     };
 
     const fetchYearLevels = async () => {
-      const token = sessionStorage.getItem("token");
-
       try {
         const res = await fetch(`${apiUrl}/year-levels`, {
+          credentials: "include",
           headers: {
-            Authorization: `Bearer ${token}`,
           },
         });
         const data = await res.json();

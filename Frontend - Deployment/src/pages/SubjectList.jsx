@@ -101,12 +101,11 @@ function SubjectList() {
     } else if (subjectID && !selectedSubject) {
       // If we have subjectID but no subject in state, fetch it
       const fetchSubject = async () => {
-        const token = sessionStorage.getItem("token");
         const apiUrl = import.meta.env.VITE_API_BASE_URL;
         try {
           const response = await fetch(`${apiUrl}/subjects/${subjectID}`, {
+          credentials: "include",
             headers: {
-              Authorization: `Bearer ${token}`,
             },
           });
           if (response.ok) {
@@ -147,12 +146,11 @@ function SubjectList() {
     if (subjectID) {
       // If we have subjectID but no subject in state, fetch it first
       const fetchSubject = async () => {
-        const token = sessionStorage.getItem("token");
         const apiUrl = import.meta.env.VITE_API_BASE_URL;
         try {
           const response = await fetch(`${apiUrl}/subjects/${subjectID}`, {
+          credentials: "include",
             headers: {
-              Authorization: `Bearer ${token}`,
             },
           });
           if (response.ok) {
@@ -378,7 +376,6 @@ function SubjectList() {
   }, []);
 
   const fetchSubjects = async () => {
-    const token = sessionStorage.getItem("token");
     setSubjectLoading(true);
     setNetworkError(false);
 
@@ -390,10 +387,10 @@ function SubjectList() {
           : `${apiUrl}/subjects`;
 
       const response = await fetch(endpoint, {
+          credentials: "include",
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -452,12 +449,10 @@ function SubjectList() {
   // Fetch programs and year levels
   useEffect(() => {
     const fetchPrograms = async () => {
-      const token = sessionStorage.getItem("token");
-
       try {
         const res = await fetch(`${apiUrl}/programs`, {
+          credentials: "include",
           headers: {
-            Authorization: `Bearer ${token}`,
           },
         });
         const data = await res.json();
@@ -470,12 +465,10 @@ function SubjectList() {
     };
 
     const fetchYearLevels = async () => {
-      const token = sessionStorage.getItem("token");
-
       try {
         const res = await fetch(`${apiUrl}/year-levels`, {
+          credentials: "include",
           headers: {
-            Authorization: `Bearer ${token}`,
           },
         });
         const data = await res.json();
@@ -493,16 +486,14 @@ function SubjectList() {
 
   const handleAddSubject = async () => {
     if (!newSubjectCode.trim() || !newSubjectName.trim()) return;
-    const token = sessionStorage.getItem("token");
-
     setIsAdding(true);
 
     try {
       const response = await fetch(`${apiUrl}/add-subjects`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           subjectCode: newSubjectCode,
@@ -595,8 +586,6 @@ function SubjectList() {
       setValidationError("Code must be 20 characters or less");
       return;
     }
-
-    const token = sessionStorage.getItem("token");
     setIsEditing(true);
     setValidationError("");
 
@@ -604,10 +593,10 @@ function SubjectList() {
       const response = await fetch(
         `${apiUrl}/subjects/${editingSubject}/update`,
         {
+          credentials: "include",
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             subjectCode: editedSubject.subjectCode,
@@ -650,18 +639,16 @@ function SubjectList() {
 
   const handleDeleteSubject = async () => {
     if (!subjectToDelete) return;
-
-    const token = sessionStorage.getItem("token");
     setIsDeleting(true);
 
     try {
       const response = await fetch(
         `${apiUrl}/subjects/${subjectToDelete.subjectID}/delete`,
         {
+          credentials: "include",
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
         },
       );
@@ -684,15 +671,14 @@ function SubjectList() {
 
   // Faculty assign subject functions
   const fetchAvailableSubjects = async () => {
-    const token = sessionStorage.getItem("token");
     setLoadingAvailableSubjects(true);
 
     try {
       const response = await fetch(`${apiUrl}/faculty/availableSubjects`, {
+          credentials: "include",
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -732,16 +718,13 @@ function SubjectList() {
 
   const handleAssignSubject = async (subject) => {
     if (!subject) return;
-
-    const token = sessionStorage.getItem("token");
-
     setIsAssigning(true);
     try {
       const response = await fetch(`${apiUrl}/faculty/assign-subject`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           subjectID: subject.subjectID,

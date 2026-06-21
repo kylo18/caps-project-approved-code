@@ -143,7 +143,6 @@ const CombinedQuestionForm = ({
       if (!subjectID) return;
       setIsExamQuestionsLoading(true);
       try {
-        const token = sessionStorage.getItem("token");
         const response = await fetch(`${apiUrl}/subjects/${subjectID}`);
         if (response.ok) {
           const result = await response.json();
@@ -480,8 +479,6 @@ const CombinedQuestionForm = ({
 
     // Directly proceed with submission
     setIsLoading(true);
-    const token = sessionStorage.getItem("token");
-
     try {
       if (mode === "quiz") {
         // Personal/custom quiz question path
@@ -505,8 +502,9 @@ const CombinedQuestionForm = ({
         const questionResponse = await fetch(
           `${apiUrl}/personal-quiz-questions`,
           {
+          credentials: "include",
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { },
             body: quizQuestionFormData,
           },
         );
@@ -563,8 +561,9 @@ const CombinedQuestionForm = ({
         });
 
         const choicesResponse = await fetch(`${apiUrl}/personal-quiz-choices`, {
+          credentials: "include",
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { },
           body: choicesFormData,
         });
 
@@ -596,8 +595,9 @@ const CombinedQuestionForm = ({
         }
 
         const questionResponse = await fetch(`${apiUrl}/questions/add`, {
+          credentials: "include",
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { },
           body: questionFormData,
         });
 
@@ -627,8 +627,9 @@ const CombinedQuestionForm = ({
         });
 
         const choicesResponse = await fetch(`${apiUrl}/questions/choices`, {
+          credentials: "include",
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { },
           body: choicesFormData,
         });
 

@@ -1,15 +1,12 @@
 import { Navigate } from "react-router-dom";
-import { getToken } from "../utils/authStorage";
+import { isAuthenticated } from "../utils/authStorage";
 
 /*
- * It checks if a valid token exists in session or persisted storage. If the
- * user is authenticated, it renders the given `element`. Otherwise, it
- * redirects the user to the login page ("/").
+ * Checks whether the user has an active session (httpOnly cookie + cached profile).
+ * Redirects unauthenticated users to the landing page.
  */
 const ProtectedRoute = ({ element, ...rest }) => {
-  const isAuthenticated = getToken();
-
-  return isAuthenticated ? element : <Navigate to="/" replace />;
+  return isAuthenticated() ? element : <Navigate to="/" replace />;
 };
 
 export default ProtectedRoute;

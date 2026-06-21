@@ -226,9 +226,9 @@ const StudentDashboard = () => {
     const fetchSubjects = async () => {
       try {
         const res = await fetch(`${apiUrl}/student/practice-subjects`, {
+          credentials: "include",
           headers: {
-            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-          },
+                      },
         });
         const data = await res.json();
         if (data.data) {
@@ -342,10 +342,10 @@ const StudentDashboard = () => {
       const res = await fetch(
         `${apiUrl}/practice-exam/generate/${subject.subjectID}`,
         {
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-          },
+                      },
         },
       );
       const contentType = res.headers.get("content-type");
@@ -420,11 +420,11 @@ const StudentDashboard = () => {
     setClassCodeError("");
     try {
       const res = await fetch(`${apiUrl}/classes/join`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
+                  },
         body: JSON.stringify({ code: classCode.trim() }),
       });
       const data = await res.json();

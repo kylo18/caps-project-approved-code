@@ -144,8 +144,6 @@ const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
 
     // Directly proceed with submission
     setIsLoading(true);
-    const token = sessionStorage.getItem("token");
-
     try {
       // First, submit the question
       const questionFormData = new FormData();
@@ -165,8 +163,9 @@ const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
       }
 
       const questionResponse = await fetch(`${apiUrl}/questions/add`, {
+          credentials: "include",
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { },
         body: questionFormData,
       });
 
@@ -196,8 +195,9 @@ const CombinedPracticeQuestionForm = ({ subjectID, onComplete, onCancel }) => {
       });
 
       const choicesResponse = await fetch(`${apiUrl}/questions/choices`, {
+          credentials: "include",
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { },
         body: choicesFormData,
       });
 

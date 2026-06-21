@@ -143,10 +143,7 @@ const CombinedExamQuestionForm = ({ subjectID, onComplete, onCancel }) => {
     }
 
     // Directly proceed with submission
-    setIsLoading(true);
-    const token = sessionStorage.getItem("token");
-
-    try {
+    setIsLoading(true);    try {
       // First, submit the question
       const questionFormData = new FormData();
       questionFormData.append("subjectID", formData.subjectID);
@@ -165,8 +162,9 @@ const CombinedExamQuestionForm = ({ subjectID, onComplete, onCancel }) => {
       }
 
       const questionResponse = await fetch(`${apiUrl}/questions/add`, {
+          credentials: "include",
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { },
         body: questionFormData,
       });
 
@@ -196,8 +194,9 @@ const CombinedExamQuestionForm = ({ subjectID, onComplete, onCancel }) => {
       });
 
       const choicesResponse = await fetch(`${apiUrl}/questions/choices`, {
+          credentials: "include",
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { },
         body: choicesFormData,
       });
 

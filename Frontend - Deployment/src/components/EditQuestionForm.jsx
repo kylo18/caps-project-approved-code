@@ -480,8 +480,6 @@ const EditQuestionForm = ({
     }
 
     setIsLoading(true);
-    const token = sessionStorage.getItem("token");
-
     try {
       const questionData = new FormData();
       questionData.append("questionText", formattedQuestionText);
@@ -498,8 +496,9 @@ const EditQuestionForm = ({
       const questionResponse = await fetch(
         `${apiUrl}/questions/update/${question.questionID}`,
         {
+          credentials: "include",
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { },
           body: questionData,
         }
       );
@@ -532,8 +531,9 @@ const EditQuestionForm = ({
       });
 
       const choicesResponse = await fetch(`${apiUrl}/choices/update`, {
+          credentials: "include",
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { },
         body: choicesData,
       });
 

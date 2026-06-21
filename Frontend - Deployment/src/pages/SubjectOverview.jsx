@@ -62,12 +62,11 @@ const SubjectOverview = () => {
   // Fetch programs and year levels
   useEffect(() => {
     const fetchPrograms = async () => {
-      const token = sessionStorage.getItem("token");
       const apiUrl = import.meta.env.VITE_API_BASE_URL;
       try {
         const res = await fetch(`${apiUrl}/programs`, {
+          credentials: "include",
           headers: {
-            Authorization: `Bearer ${token}`,
           },
         });
         const data = await res.json();
@@ -80,12 +79,11 @@ const SubjectOverview = () => {
     };
 
     const fetchYearLevels = async () => {
-      const token = sessionStorage.getItem("token");
       const apiUrl = import.meta.env.VITE_API_BASE_URL;
       try {
         const res = await fetch(`${apiUrl}/year-levels`, {
+          credentials: "include",
           headers: {
-            Authorization: `Bearer ${token}`,
           },
         });
         const data = await res.json();
@@ -105,23 +103,22 @@ const SubjectOverview = () => {
     const fetchAllData = async () => {
       if (!subject?.subjectID) return;
       setLoading(true);
-      const token = sessionStorage.getItem("token");
       const apiUrl = import.meta.env.VITE_API_BASE_URL;
       try {
         // Fetch questions and results in parallel
         const [questionsRes, resultsRes] = await Promise.all([
           fetch(`${apiUrl}/subjects/${subject.subjectID}/questions`, {
+          credentials: "include",
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
           }),
           fetch(`${apiUrl}/practice-exam/results/${subject.subjectID}`, {
+          credentials: "include",
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
           }),
         ]);
@@ -256,8 +253,6 @@ const SubjectOverview = () => {
       setValidationError("Code must be 20 characters or less");
       return;
     }
-
-    const token = sessionStorage.getItem("token");
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
     setIsEditing(true);
     setValidationError("");
@@ -266,10 +261,10 @@ const SubjectOverview = () => {
       const response = await fetch(
         `${apiUrl}/subjects/${subject.subjectID}/update`,
         {
+          credentials: "include",
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             subjectCode: editedSubject.subjectCode,
@@ -324,8 +319,6 @@ const SubjectOverview = () => {
 
   const handleDeleteSubject = async () => {
     if (!subjectToDelete) return;
-
-    const token = sessionStorage.getItem("token");
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
     setIsDeleting(true);
 
@@ -333,10 +326,10 @@ const SubjectOverview = () => {
       const response = await fetch(
         `${apiUrl}/subjects/${subjectToDelete.subjectID}/delete`,
         {
+          credentials: "include",
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
         },
       );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { clearAuth } from "../utils/authStorage";
+import { clearAuth, isAuthenticated } from "../utils/authStorage";
 import useToast from "../hooks/useToast";
 import Toast from "./Toast";
 
@@ -39,9 +39,7 @@ const ImportQuestionModal = ({
     setSelectedQuestions([]);
 
     try {
-      const token = sessionStorage.getItem("token");
-
-      if (!token) {
+      if (!isAuthenticated()) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsLoading(false);
         return;
@@ -71,10 +69,10 @@ const ImportQuestionModal = ({
       }
 
       const response = await fetch(url, {
+          credentials: "include",
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -179,12 +177,11 @@ const ImportQuestionModal = ({
 
     setIsLoading(true);
     try {
-      const token = sessionStorage.getItem("token");
       const response = await fetch(`${apiUrl}/personal-quiz-questions/import`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           personalQuizID,

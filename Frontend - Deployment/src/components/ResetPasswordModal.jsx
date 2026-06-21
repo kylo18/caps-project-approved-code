@@ -65,6 +65,7 @@ export default function ResetPasswordModal({ isOpen, onClose, onSwitchToLogin })
     setLoading(true);
     try {
       const response = await fetch(`${apiUrl}/reset-password`, {
+          credentials: "include",
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ token, email, password, password_confirmation: passwordConfirmation }),

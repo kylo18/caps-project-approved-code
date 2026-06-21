@@ -1,7 +1,8 @@
 const REMEMBER_KEY = "rememberMe";
-const TOKEN_KEY = "token";
 const USER_KEY = "user";
 const REMEMBERED_USER_CODE_KEY = "rememberedUserCode";
+
+const LEGACY_TOKEN_KEY = "token";
 
 export function getRememberedUserCode() {
   return localStorage.getItem(REMEMBERED_USER_CODE_KEY) || "";
@@ -19,13 +20,19 @@ export function isRememberMeEnabled() {
   return localStorage.getItem(REMEMBER_KEY) === "true";
 }
 
+export function isAuthenticated() {
+  return Boolean(getUser());
+}
+
+/** @deprecated Tokens are stored in httpOnly cookies; use isAuthenticated() instead. */
 export function getToken() {
-  return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+  return null;
 }
 
 export function getUser() {
   const raw =
-    sessionStorage.getItem(USER_KEY) || localStorage.getItem(USER_KEY);
+    sessionStorage.getItem(USER_KEY) ||
+    (isRememberMeEnabled() ? localStorage.getItem(USER_KEY) : null);
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -34,38 +41,31 @@ export function getUser() {
   }
 }
 
-export function setAuth({ token, user, rememberMe }) {
-  sessionStorage.setItem(TOKEN_KEY, token);
+export function setAuth({ user, rememberMe }) {
   sessionStorage.setItem(USER_KEY, JSON.stringify(user));
 
   if (rememberMe) {
-    localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     localStorage.setItem(REMEMBER_KEY, "true");
   } else {
-    localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(REMEMBER_KEY);
   }
+
+  purgeLegacyTokens();
 }
 
 export function clearAuth() {
-  sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(USER_KEY);
-  localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(REMEMBER_KEY);
   localStorage.removeItem(REMEMBERED_USER_CODE_KEY);
+  purgeLegacyTokens();
 }
 
-export function syncPersistedSession() {
-  if (!isRememberMeEnabled()) return;
-
-  const token = localStorage.getItem(TOKEN_KEY);
-  const user = localStorage.getItem(USER_KEY);
-
-  if (token) sessionStorage.setItem(TOKEN_KEY, token);
-  if (user) sessionStorage.setItem(USER_KEY, user);
+export function purgeLegacyTokens() {
+  sessionStorage.removeItem(LEGACY_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
 }
 
 export function getDashboardPathForRole(roleId) {

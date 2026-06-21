@@ -123,9 +123,9 @@ export default function ExamGenerator({
   const fetchSubjects = async () => {
     try {
       const response = await fetch(`${apiUrl}/subjects`, {
+          credentials: "include",
         headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
+                  },
       });
       const data = await response.json();
       if (data.subjects) {
@@ -141,9 +141,9 @@ export default function ExamGenerator({
       const response = await fetch(
         `${apiUrl}/subjects/question-difficulty-counts`,
         {
+          credentials: "include",
           headers: {
-            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-          },
+                      },
         },
       );
       const data = await response.json();
@@ -310,11 +310,11 @@ export default function ExamGenerator({
       );
 
       const response = await fetch(endpoint, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
+                  },
         body: JSON.stringify(requestBody),
       });
 

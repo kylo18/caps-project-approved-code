@@ -9,6 +9,7 @@ import {
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import RegisterDropDownSmall from "./registerDropDownSmall";
+import { isAuthenticated } from "../utils/authStorage";
 const PracticeExamConfig = ({
   subjectID,
   isFormOpen,
@@ -83,14 +84,12 @@ const PracticeExamConfig = ({
       if (isFormOpen && subjectID) {
         try {
           setLoading(true);
-          const token = sessionStorage.getItem("token");
-
           // Fetch practice settings
           const practiceResponse = await fetch(
             `${apiUrl}/practice-settings/${subjectID}`,
             {
+          credentials: "include",
               headers: {
-                Authorization: `Bearer ${token}`,
               },
             },
           );
@@ -202,8 +201,7 @@ const PracticeExamConfig = ({
     // setErrorMessage("");
 
     try {
-      const token = sessionStorage.getItem("token");
-      if (!token) {
+      if (!isAuthenticated()) {
         showToast(
           "Authentication token not found. Please log in again.",
           "error",
@@ -219,10 +217,10 @@ const PracticeExamConfig = ({
       };
 
       const res = await fetch(`${apiUrl}/practice-settings`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });

@@ -82,7 +82,6 @@ const QuizOverview = () => {
   useEffect(() => {
     const fetchAllData = async () => {
       setLoading(true);
-      const token = sessionStorage.getItem("token");
       const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
       try {
@@ -92,10 +91,10 @@ const QuizOverview = () => {
             const questionsRes = await fetch(
               `${apiUrl}/personal-quiz-questions/${quizId}`,
               {
+          credentials: "include",
                 method: "GET",
                 headers: {
                   "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
                 },
               },
             );
@@ -150,8 +149,6 @@ const QuizOverview = () => {
       showToast("Quiz ID not found", "error");
       return;
     }
-
-    const token = sessionStorage.getItem("token");
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
     setIsEditing(true);
     setValidationError("");
@@ -160,10 +157,10 @@ const QuizOverview = () => {
       const response = await fetch(
         `${apiUrl}/update-personal-quizzes/${quizId}`,
         {
+          credentials: "include",
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             title: editedQuiz.title.trim(),
@@ -216,8 +213,6 @@ const QuizOverview = () => {
 
   const handleArchiveQuiz = async () => {
     if (!quizToArchive || !quizId) return;
-
-    const token = sessionStorage.getItem("token");
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
     setIsArchiving(true);
 
@@ -228,7 +223,6 @@ const QuizOverview = () => {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -260,8 +254,6 @@ const QuizOverview = () => {
 
   const handleRestoreFromArchive = async () => {
     if (!quizState || !quizId) return;
-
-    const token = sessionStorage.getItem("token");
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
     setIsRestoring(true);
 
@@ -272,7 +264,6 @@ const QuizOverview = () => {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },

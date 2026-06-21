@@ -170,13 +170,12 @@ const Sidebar = ({
   // Handle logout
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    const token = sessionStorage.getItem("token");
     try {
       await fetch(`${apiUrl}/logout`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
     } catch (error) {

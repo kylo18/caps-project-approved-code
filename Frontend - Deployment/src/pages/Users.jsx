@@ -24,6 +24,7 @@ import StudentPfp from "/src/assets/symbols/student.png";
 import FacultyPfp from "/src/assets/symbols/faculty.png";
 import ProgramChairPfp from "/src/assets/symbols/progchair.png";
 import DeanPfp from "/src/assets/symbols/dean.png";
+import { isAuthenticated } from "../utils/authStorage";
 
 const getSearchTerms = (query) =>
   (query || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -476,9 +477,7 @@ const UserList = () => {
 
   // Update fetchUsers to include filters
   const fetchUsers = async (page = 1) => {
-    const token = sessionStorage.getItem("token");
-
-    if (!token) {
+    if (!isAuthenticated()) {
       setError("No token found, please log in.");
       setLoading(false);
       setSearchLoading(false);
@@ -547,7 +546,6 @@ const UserList = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
         },
       );
@@ -708,15 +706,14 @@ const UserList = () => {
   // Function to approve a single user
   const handleApproveUser = async (userID) => {
     closeWarning();
-    const token = sessionStorage.getItem("token");
     setIsApproving(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/approve`, {
+          credentials: "include",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -749,15 +746,14 @@ const UserList = () => {
   // Function to activate a single user
   const handleActivateUser = async (userID) => {
     closeWarning();
-    const token = sessionStorage.getItem("token");
     setIsActivating(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/activate`, {
+          credentials: "include",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -787,15 +783,14 @@ const UserList = () => {
   // Function to deactivate a single user
   const handleDeactivateUser = async (userID) => {
     closeWarning();
-    const token = sessionStorage.getItem("token");
     setIsDeactivating(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/deactivate`, {
+          credentials: "include",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -821,7 +816,6 @@ const UserList = () => {
 
   // Function to approve multiple selected users
   const handleApproveSelectedUsers = async () => {
-    const token = sessionStorage.getItem("token");
     setIsApprovingMultiple(true);
     if (selectedUsers.length === 0) {
       showToast("Please select users to approve.", "error");
@@ -830,10 +824,10 @@ const UserList = () => {
 
     try {
       const response = await fetch(`${apiUrl}/users/approve-multiple`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ userIDs: selectedUsers }), // assuming backend expects this shape
       });
@@ -855,7 +849,6 @@ const UserList = () => {
 
   // Function to activate multiple selected users
   const handleActivateSelectedUsers = async () => {
-    const token = sessionStorage.getItem("token");
     setIsActivatingMultiple(true);
 
     if (selectedUsers.length === 0) {
@@ -865,10 +858,10 @@ const UserList = () => {
 
     try {
       const response = await fetch(`${apiUrl}/users/activate-multiple`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ userIDs: selectedUsers }),
       });
@@ -893,7 +886,6 @@ const UserList = () => {
 
   // Function to deactivate multiple selected users
   const handleDeactivateSelectedUsers = async () => {
-    const token = sessionStorage.getItem("token");
     setIsDeactivatingMultiple(true);
 
     if (selectedUsers.length === 0) {
@@ -903,10 +895,10 @@ const UserList = () => {
 
     try {
       const response = await fetch(`${apiUrl}/users/deactivate-multiple`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ userIDs: selectedUsers }),
       });
@@ -1105,17 +1097,16 @@ const UserList = () => {
     setWarningLoading(true);
 
     try {
-      const token = sessionStorage.getItem("token");
       const response = await fetch(
         isDeanEditingSelf
           ? `${apiUrl}/user/update-profile`
           : `${apiUrl}/users/${selectedUser.userID}/credentials`,
         {
+          credentials: "include",
           method: isDeanEditingSelf ? "POST" : "PATCH",
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(
             isDeanEditingSelf
@@ -1209,15 +1200,15 @@ const UserList = () => {
 
     const fetchModalOptions = async () => {
       setIsLoadingModalOptions(true);
-      const token = sessionStorage.getItem("token");
-
       try {
         const [programsRes, campusesRes] = await Promise.all([
           fetch(`${apiUrl}/programs`, {
-            headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
+            headers: { },
           }),
           fetch(`${apiUrl}/campuses`, {
-            headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
+            headers: { },
           }),
         ]);
 
@@ -1242,14 +1233,13 @@ const UserList = () => {
   // Add delete user function
   const handleDeleteUser = async (userID) => {
     closeWarning();
-    const token = sessionStorage.getItem("token");
     setIsDeleting(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}`, {
+          credentials: "include",
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
       if (!response.ok) {
@@ -1272,7 +1262,6 @@ const UserList = () => {
   // Add delete multiple users function
   const handleDeleteSelectedUsers = async () => {
     closeWarning();
-    const token = sessionStorage.getItem("token");
     const currentUser = JSON.parse(sessionStorage.getItem("user"));
     if (selectedUsers.length === 0) {
       showToast("Please select users to delete.", "error");
@@ -1285,10 +1274,10 @@ const UserList = () => {
     setIsDeletingMultiple(true);
     try {
       const response = await fetch(`${apiUrl}/users/delete-multiple`, {
+          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ userIDs: selectedUsers }),
       });

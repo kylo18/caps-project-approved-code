@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { clearAuth } from '../utils/authStorage';
+import { clearAuth, isAuthenticated } from "../utils/authStorage";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 
@@ -66,9 +66,7 @@ const ArchivedQuiz = () => {
       setIsLoading(true);
 
       try {
-        const token = sessionStorage.getItem("token");
-
-        if (!token) {
+        if (!isAuthenticated()) {
           throw new Error("You are not authenticated. Please log in again.");
         }
 
@@ -78,7 +76,6 @@ const ArchivedQuiz = () => {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
             credentials: "include",
           },
@@ -173,10 +170,7 @@ const ArchivedQuiz = () => {
         showToast("Unable to determine quiz ID for restoring.", "error");
         return;
       }
-
-      const token = sessionStorage.getItem("token");
-
-      if (!token) {
+      if (!isAuthenticated()) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -188,7 +182,6 @@ const ArchivedQuiz = () => {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -243,10 +236,7 @@ const ArchivedQuiz = () => {
         showToast("Unable to determine quiz ID for deletion.", "error");
         return;
       }
-
-      const token = sessionStorage.getItem("token");
-
-      if (!token) {
+      if (!isAuthenticated()) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -258,7 +248,6 @@ const ArchivedQuiz = () => {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -360,8 +349,6 @@ const ArchivedQuiz = () => {
   // Handle restore selected quizzes
   const handleRestoreSelected = async () => {
     if (selectedQuizzes.length === 0) return;
-
-    const token = sessionStorage.getItem("token");
     const countToRestore = selectedQuizzes.length;
     setRestoringQuizId("bulk");
 
@@ -374,7 +361,6 @@ const ArchivedQuiz = () => {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
             credentials: "include",
           },
@@ -391,14 +377,12 @@ const ArchivedQuiz = () => {
 
       // Refetch quizzes to update the list
       const fetchArchivedQuizzes = async () => {
-        const token = sessionStorage.getItem("token");
         const response = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes/archived`,
           {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
             credentials: "include",
           },
