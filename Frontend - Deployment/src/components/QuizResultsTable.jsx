@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import emptyImage from "/src/assets/icons/empty.png";
-import { isAuthenticated } from "../utils/authStorage";
 
 const QuizResultsTable = ({ classPersonalQuizID, personalQuizID }) => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
@@ -29,7 +28,8 @@ const QuizResultsTable = ({ classPersonalQuizID, personalQuizID }) => {
       setLoading(true);
       setError(null);
       try {
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+        if (!token) {
           throw new Error(
             "Authentication token not found. Please log in again.",
           );
@@ -43,6 +43,7 @@ const QuizResultsTable = ({ classPersonalQuizID, personalQuizID }) => {
               method: "GET",
               headers: {
                 "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
               },
               credentials: "include",
             },
@@ -111,10 +112,10 @@ const QuizResultsTable = ({ classPersonalQuizID, personalQuizID }) => {
           const recentResponse = await fetch(
             `${apiUrl}/personal-quiz/${personalQuizID}/recent-takers`,
             {
-          credentials: "include",
               method: "GET",
               headers: {
                 "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
               },
             },
           );
@@ -168,10 +169,10 @@ const QuizResultsTable = ({ classPersonalQuizID, personalQuizID }) => {
           const leaderboardResponse = await fetch(
             `${apiUrl}/personal-quiz/${personalQuizID}/leaderboard`,
             {
-          credentials: "include",
               method: "GET",
               headers: {
                 "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
               },
             },
           );
@@ -241,7 +242,8 @@ const QuizResultsTable = ({ classPersonalQuizID, personalQuizID }) => {
       setNonTakersLoading(true);
       setNonTakersError(null);
       try {
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+        if (!token) {
           throw new Error(
             "Authentication token not found. Please log in again.",
           );
@@ -253,6 +255,7 @@ const QuizResultsTable = ({ classPersonalQuizID, personalQuizID }) => {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             credentials: "include",
           },

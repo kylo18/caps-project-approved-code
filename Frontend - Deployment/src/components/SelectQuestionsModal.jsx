@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { clearAuth, isAuthenticated } from "../utils/authStorage";
+import { clearAuth } from '../utils/authStorage';
 import { useNavigate } from "react-router-dom";
 
 const SelectQuestionsModal = ({
@@ -86,17 +86,18 @@ const SelectQuestionsModal = ({
 
     setIsLoading(true);
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
       const response = await fetch(
         `${apiUrl}/personal-quiz/${personalQuizID}/questions`,
         {
-          credentials: "include",
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         },
       );
@@ -179,15 +180,16 @@ const SelectQuestionsModal = ({
 
     setIsGeneratingPDF(true);
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
       const response = await fetch(`${apiUrl}/generate-personal-quiz-pdf`, {
-          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           personalQuizID: personalQuizID,
@@ -362,6 +364,7 @@ const SelectQuestionsModal = ({
                     rows={2}
                   />
                 </div>
+
 
               </div>
             </div>

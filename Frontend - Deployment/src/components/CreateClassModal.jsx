@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { clearAuth, isAuthenticated } from "../utils/authStorage";
+import { clearAuth } from '../utils/authStorage';
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 
@@ -57,17 +57,18 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess }) => {
 
     setLoading(true);
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setLoading(false);
         return;
       }
 
       const response = await fetch(`${apiUrl}/classes`, {
-          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           className: formData.className.trim(),

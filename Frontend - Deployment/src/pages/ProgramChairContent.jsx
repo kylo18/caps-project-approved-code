@@ -119,17 +119,18 @@ const ProgramChairContent = () => {
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
       const fetchSubjectSettings = async () => {
+        const token = sessionStorage.getItem("token");
         try {
           // Fetch QE status
           const qeResponse = await fetch(
             `${apiUrl}/subjects/${selectedSubject.subjectID}/exam-questions-status`,
-            { headers: { } },
+            { headers: { Authorization: `Bearer ${token}` } },
           );
 
           // Fetch practice exam settings
           const practiceResponse = await fetch(
             `${apiUrl}/practice-settings/${selectedSubject.subjectID}`,
-            { headers: { } },
+            { headers: { Authorization: `Bearer ${token}` } },
           );
 
           if (qeResponse.ok) {
@@ -208,11 +209,12 @@ const ProgramChairContent = () => {
   // Function to save edited question text to the server
   const saveEdit = async (questionID) => {
     try {
+      const token = sessionStorage.getItem("token");
       const response = await fetch(`${apiUrl}/questions/update/${questionID}`, {
-          credentials: "include",
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ questionText: editText }),
       });
@@ -238,12 +240,13 @@ const ProgramChairContent = () => {
   // Function to delete a question from the server
   const handleDeleteQuestion = async (questionID) => {
     try {
+      const token = sessionStorage.getItem("token");
       setIsDeleting(true);
       const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
-          credentials: "include",
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -271,6 +274,8 @@ const ProgramChairContent = () => {
     setQuestions([]);
 
     try {
+      const token = sessionStorage.getItem("token");
+
       if (!selectedSubject || !selectedSubject.subjectID) {
         console.error("No subject selected");
         return;
@@ -279,10 +284,10 @@ const ProgramChairContent = () => {
       const response = await fetch(
         `${apiUrl}/subjects/${selectedSubject.subjectID}/questions`,
         {
-          credentials: "include",
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         },
       );
@@ -387,13 +392,14 @@ const ProgramChairContent = () => {
   // Function to approve a pending question
   const approveQuestion = async (questionID) => {
     try {
+      const token = sessionStorage.getItem("token");
       setIsApproving(true);
 
       const response = await fetch(`${apiUrl}/questions/${questionID}/status`, {
-          credentials: "include",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -429,13 +435,14 @@ const ProgramChairContent = () => {
     }
 
     try {
+      const token = sessionStorage.getItem("token");
       setIsApproving(true);
 
       const response = await fetch(`${apiUrl}/questions/approve-multiple`, {
-          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ questionIDs }),
       });

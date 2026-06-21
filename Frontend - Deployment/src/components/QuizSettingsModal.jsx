@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import AssignToClassModal from "./AssignToClassModal";
-import { isAuthenticated } from "../utils/authStorage";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 const toDatetimeLocal = (d) =>
@@ -227,7 +226,9 @@ const QuizSettingsModal = ({
 
       try {
         setLoading(true);
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) {
           showToast(
             "Authentication token not found. Please log in again.",
             "error",
@@ -239,9 +240,8 @@ const QuizSettingsModal = ({
         const response = await fetch(
           `${apiUrl}/class-quizzes/${viewOnlyClassPersonalQuizID}/settings`,
           {
-          credentials: "include",
             method: "GET",
-            headers: { },
+            headers: { Authorization: `Bearer ${token}` },
           },
         );
 
@@ -350,7 +350,9 @@ const QuizSettingsModal = ({
 
       try {
         setLoading(true);
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) {
           showToast(
             "Authentication token not found. Please log in again.",
             "error",
@@ -362,9 +364,9 @@ const QuizSettingsModal = ({
         const response = await fetch(
           `${apiUrl}/class-quizzes/${selectedClassPersonalQuizID}/settings`,
           {
-          credentials: "include",
             method: "GET",
             headers: {
+              Authorization: `Bearer ${token}`,
             },
           },
         );
@@ -558,7 +560,8 @@ const QuizSettingsModal = ({
     }
 
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         showToast(
           "Authentication token not found. Please log in again.",
           "error",
@@ -586,10 +589,10 @@ const QuizSettingsModal = ({
         const assignRes = await fetch(
           `${apiUrl}/personal-quizzes/${personalQuizID}/assign-classes`,
           {
-          credentials: "include",
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(assignPayload),
           },
@@ -613,9 +616,8 @@ const QuizSettingsModal = ({
           const classesRes = await fetch(
             `${apiUrl}/personal-quizzes/${personalQuizID}/classes`,
             {
-          credentials: "include",
               method: "GET",
-              headers: { },
+              headers: { Authorization: `Bearer ${token}` },
             },
           );
           const classesData = await classesRes.json();
@@ -669,10 +671,10 @@ const QuizSettingsModal = ({
       const res = await fetch(
         `${apiUrl}/class-quizzes/${classPersonalQuizIDToUse}/settings`,
         {
-          credentials: "include",
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(payload),
         },

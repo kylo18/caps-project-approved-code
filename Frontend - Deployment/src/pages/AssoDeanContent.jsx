@@ -93,17 +93,18 @@ const AdminContent = () => {
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
       const fetchSubjectSettings = async () => {
+        const token = sessionStorage.getItem("token");
         try {
           // Fetch QE status
           const qeResponse = await fetch(
             `${apiUrl}/subjects/${selectedSubject.subjectID}/exam-questions-status`,
-            { headers: { } },
+            { headers: { Authorization: `Bearer ${token}` } },
           );
 
           // Fetch practice exam settings
           const practiceResponse = await fetch(
             `${apiUrl}/practice-settings/${selectedSubject.subjectID}`,
-            { headers: { } },
+            { headers: { Authorization: `Bearer ${token}` } },
           );
 
           if (qeResponse.ok) {
@@ -169,12 +170,13 @@ const AdminContent = () => {
   // Function to handle question deletion
   const handleDeleteQuestion = async (questionID) => {
     try {
+      const token = sessionStorage.getItem("token");
       setIsDeleting(true);
       const response = await fetch(`${apiUrl}/questions/delete/${questionID}`, {
-          credentials: "include",
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -202,6 +204,8 @@ const AdminContent = () => {
     setQuestions([]);
 
     try {
+      const token = sessionStorage.getItem("token");
+
       if (!selectedSubject || !selectedSubject.subjectID) {
         console.error("No subject selected");
         return;
@@ -210,10 +214,10 @@ const AdminContent = () => {
       const response = await fetch(
         `${apiUrl}/subjects/${selectedSubject.subjectID}/questions`,
         {
-          credentials: "include",
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         },
       );
@@ -311,13 +315,14 @@ const AdminContent = () => {
   // Function to handle question approval
   const approveQuestion = async (questionID) => {
     try {
+      const token = sessionStorage.getItem("token");
       setIsApproving(true);
 
       const response = await fetch(`${apiUrl}/questions/${questionID}/status`, {
-          credentials: "include",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 

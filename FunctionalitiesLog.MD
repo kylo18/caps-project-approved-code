@@ -174,25 +174,23 @@
    [V2.1] 06-14-26 
 
     Dean Functionalities:
-        - Multi select questions for approval
-        - Change other accounts name, email, program, and campus
-        - QE generation now displays the available question count per difficulty level for each subject and Subjects that require additional questions are automatically identified and highlighted.
+        - Change other accounts name, email, usercode, program, and campus
 
     Associate Dean Functionalities:
+        - Change question difficulty
         - Multi select questions for approval
-        - Added question counts by difficulty level (Easy, Moderate, and Hard) for each subject.
 
     Program Chair Functionalities:
+        - Change question difficulty
         - Multi select questions for approval
-        - Added question counts by difficulty level (Easy, Moderate, and Hard) for each subject.
 
     Instructor Functionalities:
+        - Change question difficulty
         - Multi select questions for approval
-        - Added question counts by difficulty level (Easy, Moderate, and Hard) for each subject.
 
    Bug Fixes & Improvements:
-        - Added the ability to edit credentials (email, name, password, and User Code) for all user accounts.
-        - Remember me option in Logging in
+        - Edit user credentials (email, name, user code, program, campus etc)
+        - Change user code (through gmail)
         
        
         

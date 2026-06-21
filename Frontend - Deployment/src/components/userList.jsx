@@ -5,8 +5,6 @@ import LoadingOverlay from "./loadingOverlay";
 import RegisterDropDownSmall from "./registerDropDownSmall";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
-import { isAuthenticated } from "../utils/authStorage";
-
 // Component to display and manage user list with filtering and actions
 // Features:
 // - Separate tabs for Students and Other users
@@ -200,7 +198,10 @@ const UserList = () => {
   }, [searchQuery]);
 
   // Update fetchUsers to include filters
-  const fetchUsers = async (page = 1) => {    if (!isAuthenticated()) {
+  const fetchUsers = async (page = 1) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
       setError("No token found, please log in.");
       setLoading(false);
       setSearchLoading(false);
@@ -229,7 +230,9 @@ const UserList = () => {
         {
           method: "GET",
           headers: {
-            "Content-Type": "application/json",          },
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         },
       );
 
@@ -296,14 +299,17 @@ const UserList = () => {
   };
 
   // Function to approve a single user
-  const handleApproveUser = async (userID) => {    setIsApproving(true);
+  const handleApproveUser = async (userID) => {
+    const token = localStorage.getItem("token");
+    setIsApproving(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/approve`, {
-          credentials: "include",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",        },
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -333,14 +339,17 @@ const UserList = () => {
   };
 
   // Function to activate a single user
-  const handleActivateUser = async (userID) => {    setIsActivating(true);
+  const handleActivateUser = async (userID) => {
+    const token = localStorage.getItem("token");
+    setIsActivating(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/activate`, {
-          credentials: "include",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",        },
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -367,14 +376,17 @@ const UserList = () => {
   };
 
   // Function to deactivate a single user
-  const handleDeactivateUser = async (userID) => {    setIsDeactivating(true);
+  const handleDeactivateUser = async (userID) => {
+    const token = localStorage.getItem("token");
+    setIsDeactivating(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}/deactivate`, {
-          credentials: "include",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",        },
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -398,7 +410,9 @@ const UserList = () => {
   };
 
   // Function to approve multiple selected users
-  const handleApproveSelectedUsers = async () => {    setIsApprovingMultiple(true);
+  const handleApproveSelectedUsers = async () => {
+    const token = localStorage.getItem("token");
+    setIsApprovingMultiple(true);
     if (selectedUsers.length === 0) {
       showToast("Please select users to approve.", "error");
       return;
@@ -406,10 +420,11 @@ const UserList = () => {
 
     try {
       const response = await fetch(`${apiUrl}/users/approve-multiple`, {
-          credentials: "include",
         method: "POST",
         headers: {
-          "Content-Type": "application/json",        },
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ userIDs: selectedUsers }), // assuming backend expects this shape
       });
 
@@ -429,7 +444,9 @@ const UserList = () => {
   };
 
   // Function to activate multiple selected users
-  const handleActivateSelectedUsers = async () => {    setIsActivatingMultiple(true);
+  const handleActivateSelectedUsers = async () => {
+    const token = localStorage.getItem("token");
+    setIsActivatingMultiple(true);
 
     if (selectedUsers.length === 0) {
       showToast("Please select users to activate.", "error");
@@ -438,10 +455,11 @@ const UserList = () => {
 
     try {
       const response = await fetch(`${apiUrl}/users/activate-multiple`, {
-          credentials: "include",
         method: "POST",
         headers: {
-          "Content-Type": "application/json",        },
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ userIDs: selectedUsers }),
       });
 
@@ -464,7 +482,9 @@ const UserList = () => {
   };
 
   // Function to deactivate multiple selected users
-  const handleDeactivateSelectedUsers = async () => {    setIsDeactivatingMultiple(true);
+  const handleDeactivateSelectedUsers = async () => {
+    const token = localStorage.getItem("token");
+    setIsDeactivatingMultiple(true);
 
     if (selectedUsers.length === 0) {
       showToast("Please select users to deactivate.", "error");
@@ -473,10 +493,11 @@ const UserList = () => {
 
     try {
       const response = await fetch(`${apiUrl}/users/deactivate-multiple`, {
-          credentials: "include",
         method: "POST",
         headers: {
-          "Content-Type": "application/json",        },
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ userIDs: selectedUsers }),
       });
 
@@ -525,7 +546,9 @@ const UserList = () => {
   };
 
   // Function to handle role update
-  const handleRoleUpdate = async (userID, newRoleID) => {    setIsUpdatingRole(true);
+  const handleRoleUpdate = async (userID, newRoleID) => {
+    const token = localStorage.getItem("token");
+    setIsUpdatingRole(true);
     setRoleError(""); // Clear any previous errors
     try {
       // Check if current user is trying to demote themselves from Dean
@@ -543,11 +566,12 @@ const UserList = () => {
       }
 
       const response = await fetch(`${apiUrl}/users/${userID}/role`, {
-          credentials: "include",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",        },
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ roleID: newRoleID }),
       });
 
@@ -592,7 +616,9 @@ const UserList = () => {
   };
 
   // Add delete user function
-  const handleDeleteUser = async (userID) => {    const currentUser = JSON.parse(localStorage.getItem("user"));
+  const handleDeleteUser = async (userID) => {
+    const token = localStorage.getItem("token");
+    const currentUser = JSON.parse(localStorage.getItem("user"));
     if (currentUser && userID === currentUser.userID) {
       showToast("You can't delete your own account.", "error");
       return;
@@ -601,10 +627,11 @@ const UserList = () => {
     setIsDeleting(true);
     try {
       const response = await fetch(`${apiUrl}/users/${userID}`, {
-          credentials: "include",
         method: "DELETE",
         headers: {
-          "Content-Type": "application/json",        },
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -624,7 +651,9 @@ const UserList = () => {
   };
 
   // Add delete multiple users function
-  const handleDeleteSelectedUsers = async () => {    const currentUser = JSON.parse(localStorage.getItem("user"));
+  const handleDeleteSelectedUsers = async () => {
+    const token = localStorage.getItem("token");
+    const currentUser = JSON.parse(localStorage.getItem("user"));
     if (selectedUsers.length === 0) {
       showToast("Please select users to delete.", "error");
       return;
@@ -638,10 +667,11 @@ const UserList = () => {
     setIsDeletingMultiple(true);
     try {
       const response = await fetch(`${apiUrl}/users/delete-multiple`, {
-          credentials: "include",
         method: "POST",
         headers: {
-          "Content-Type": "application/json",        },
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ userIDs: selectedUsers }),
       });
       if (!response.ok) {

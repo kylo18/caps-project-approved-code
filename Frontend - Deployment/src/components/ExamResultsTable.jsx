@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import emptyImage from "/src/assets/icons/empty.png";
-import { isAuthenticated } from "../utils/authStorage";
 const ExamResultsTable = ({
   subjectID,
   results: propResults,
@@ -46,7 +45,8 @@ const ExamResultsTable = ({
 
     const fetchRecentTakers = async () => {
       try {
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+        if (!token) {
           throw new Error(
             "Authentication token not found. Please log in again.",
           );
@@ -55,9 +55,9 @@ const ExamResultsTable = ({
         const response = await fetch(
           `${apiUrl}/practice-exam/recent-takers/${subjectID}`,
           {
-          credentials: "include",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
           },
         );
@@ -94,10 +94,11 @@ const ExamResultsTable = ({
     if (activeTab !== "leaderboard" || !subjectID) return;
     setLeaderboardLoading(true);
     setLeaderboardError(null);
+    const token = sessionStorage.getItem("token");
     fetch(`${apiUrl}/practice-exam/leaderboard/${subjectID}`, {
-          credentials: "include",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
     })
       .then(async (res) => {

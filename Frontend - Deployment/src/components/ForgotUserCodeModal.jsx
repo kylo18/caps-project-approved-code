@@ -18,7 +18,6 @@ export default function ForgotUserCodeModal({
     setLoading(true);
     try {
       const res = await fetch(`${apiUrl}/forgot-user-code`, {
-          credentials: "include",
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

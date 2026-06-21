@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { clearAuth, isAuthenticated } from "../utils/authStorage";
+import { clearAuth } from "../utils/authStorage";
 import { useLocation, useNavigate } from "react-router-dom";
 import AddQuestionForm from "../components/AddQuestionForm";
 import ImportQuestionModal from "../components/ImportQuestionModal";
@@ -173,7 +173,9 @@ const QuizContent = () => {
     setChoicesMap({}); // Clear previous choices
 
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+
+      if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsLoadingQuestions(false);
         isFetchingRef.current = false;
@@ -183,10 +185,10 @@ const QuizContent = () => {
       const response = await fetch(
         `${apiUrl}/personal-quiz-questions/${quizId}`,
         {
-          credentials: "include",
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         },
       );
@@ -246,10 +248,10 @@ const QuizContent = () => {
               const choicesResponse = await fetch(
                 `${apiUrl}/personal-quiz-choices/${personalQuizQuestionID}`,
                 {
-          credentials: "include",
                   method: "GET",
                   headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
                   },
                 },
               );
@@ -273,10 +275,10 @@ const QuizContent = () => {
                 const originalQuestionResponse = await fetch(
                   `${apiUrl}/questions/${questionID}`,
                   {
-          credentials: "include",
                     method: "GET",
                     headers: {
                       "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
                     },
                   },
                 );
@@ -386,7 +388,8 @@ const QuizContent = () => {
 
     setIsUpdatingQuiz(true);
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -396,6 +399,7 @@ const QuizContent = () => {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
           body: JSON.stringify({
@@ -453,7 +457,8 @@ const QuizContent = () => {
     if (!quizId || isArchivingQuiz) return;
 
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -465,6 +470,7 @@ const QuizContent = () => {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -520,7 +526,8 @@ const QuizContent = () => {
 
     setIsDeleting(true);
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsDeleting(false);
         setIsDeleteModalOpen(false);
@@ -534,6 +541,7 @@ const QuizContent = () => {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { clearAuth, isAuthenticated } from "../utils/authStorage";
+import { clearAuth } from '../utils/authStorage';
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/confirmModal";
 import SearchBar, { SearchBarTrigger } from "../components/SearchBar";
@@ -54,7 +54,9 @@ const ArchivedClass = () => {
       setIsLoading(true);
 
       try {
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) {
           throw new Error("You are not authenticated. Please log in again.");
         }
 
@@ -62,6 +64,7 @@ const ArchivedClass = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         });
@@ -126,7 +129,9 @@ const ArchivedClass = () => {
       setIsLoading(true);
 
       try {
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) {
           return;
         }
 
@@ -134,6 +139,7 @@ const ArchivedClass = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         });
@@ -165,7 +171,8 @@ const ArchivedClass = () => {
 
     setIsRestoring(true);
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsRestoring(false);
         setIsRestoreModalOpen(false);
@@ -186,6 +193,7 @@ const ArchivedClass = () => {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         credentials: "include",
       });
@@ -242,7 +250,8 @@ const ArchivedClass = () => {
 
     setIsDeleting(true);
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsDeleting(false);
         setIsDeleteModalOpen(false);
@@ -263,6 +272,7 @@ const ArchivedClass = () => {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         credentials: "include",
       });

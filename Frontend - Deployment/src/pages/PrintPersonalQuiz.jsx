@@ -4,7 +4,6 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import univLogo from "../assets/univLogo.png";
 import collegeLogo from "/src/assets/college-logo.png";
-import { isAuthenticated } from "../utils/authStorage";
 
 function shuffleArray(array) {
   const arr = array.slice();
@@ -160,7 +159,10 @@ export default function PrintPersonalQuiz() {
       try {
         setIsLoading(true);
         setError(null);
-        if (!isAuthenticated()) {
+        const token =
+          localStorage.getItem("token") || sessionStorage.getItem("token");
+
+        if (!token) {
           throw new Error("You are not authenticated. Please log in again.");
         }
 
@@ -168,10 +170,10 @@ export default function PrintPersonalQuiz() {
         const questionsResponse = await fetch(
           `${apiUrl}/personal-quiz-questions/${quizInfo.personalQuizID}`,
           {
-          credentials: "include",
             method: "GET",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
           },
         );
@@ -226,10 +228,10 @@ export default function PrintPersonalQuiz() {
                 const choicesResponse = await fetch(
                   `${apiUrl}/personal-quiz-choices/${personalQuizQuestionID}`,
                   {
-          credentials: "include",
                     method: "GET",
                     headers: {
                       "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
                     },
                   },
                 );
@@ -252,10 +254,10 @@ export default function PrintPersonalQuiz() {
                   const originalQuestionResponse = await fetch(
                     `${apiUrl}/questions/${questionID}`,
                     {
-          credentials: "include",
                       method: "GET",
                       headers: {
                         "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
                       },
                     },
                   );

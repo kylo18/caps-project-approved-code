@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { clearAuth, isAuthenticated } from "../utils/authStorage";
+import { clearAuth } from "../utils/authStorage";
 import { Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 
@@ -327,7 +327,9 @@ function Libraries() {
     setError(null);
 
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+
+      if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -337,6 +339,7 @@ function Libraries() {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -457,7 +460,9 @@ function Libraries() {
 
       try {
         // Get the token from localStorage (matching your pattern)
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) {
           throw new Error("You are not authenticated. Please log in again.");
         }
 
@@ -467,6 +472,7 @@ function Libraries() {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             credentials: "include", // Still include for potential session fallback
           },
@@ -636,7 +642,9 @@ function Libraries() {
 
     try {
       // Get the token from localStorage (matching your pattern)
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+
+      if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -658,6 +666,7 @@ function Libraries() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
           body: JSON.stringify(payload),
@@ -736,7 +745,10 @@ function Libraries() {
         setIsUpdating(false);
         return;
       }
-      if (!isAuthenticated()) {
+
+      const token = sessionStorage.getItem("token");
+
+      if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -748,6 +760,7 @@ function Libraries() {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
           body: JSON.stringify({
@@ -817,7 +830,10 @@ function Libraries() {
         setError("Unable to determine quiz ID for archiving.");
         return;
       }
-      if (!isAuthenticated()) {
+
+      const token = sessionStorage.getItem("token");
+
+      if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -829,6 +845,7 @@ function Libraries() {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -932,6 +949,8 @@ function Libraries() {
   // Handle archive selected quizzes
   const handleArchiveSelected = async () => {
     if (selectedQuizzes.length === 0) return;
+
+    const token = sessionStorage.getItem("token");
     const countToArchive = selectedQuizzes.length;
     setArchivingQuizId("bulk");
 
@@ -944,6 +963,7 @@ function Libraries() {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             credentials: "include",
           },
@@ -960,12 +980,14 @@ function Libraries() {
 
       // Refetch quizzes to update the list
       const fetchQuizzes = async () => {
+        const token = sessionStorage.getItem("token");
         const response = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes`,
           {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             credentials: "include",
           },

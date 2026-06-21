@@ -3,7 +3,6 @@ import WarnOnExit from "../hooks/WarnOnExit";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 import ImageSelectionModal from "./ImageSelectionModal";
-import { isAuthenticated } from "../utils/authStorage";
 
 const HeaderDropdown = ({
   name,
@@ -236,15 +235,16 @@ const EditPersonalQuizQuestionForm = ({
       }
 
       try {
-        if (!isAuthenticated()) return;
+        const token = sessionStorage.getItem("token");
+        if (!token) return;
 
         const choicesResponse = await fetch(
           `${apiUrl}/personal-quiz-choices/${personalQuizQuestionID}`,
           {
-          credentials: "include",
             method: "GET",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
           },
         );
@@ -705,6 +705,8 @@ const EditPersonalQuizQuestionForm = ({
     }
 
     setIsLoading(true);
+    const token = sessionStorage.getItem("token");
+
     try {
       const personalQuizQuestionID =
         quizQuestion.personalQuizQuestionID || quizQuestion.id;
@@ -733,9 +735,9 @@ const EditPersonalQuizQuestionForm = ({
       const questionResponse = await fetch(
         `${apiUrl}/personal-quiz-questions/${personalQuizQuestionID}`,
         {
-          credentials: "include",
           method: "POST",
           headers: {
+            Authorization: `Bearer ${token}`,
           },
           body: questionData,
         },
@@ -820,9 +822,9 @@ const EditPersonalQuizQuestionForm = ({
       const choicesResponse = await fetch(
         `${apiUrl}/personal-quiz-choices/update`,
         {
-          credentials: "include",
           method: "POST",
           headers: {
+            Authorization: `Bearer ${token}`,
           },
           body: choicesFormData,
         },

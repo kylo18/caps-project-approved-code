@@ -237,14 +237,15 @@ const SideBarDropDown = ({
   }, []);
 
   const fetchSubjects = async () => {
+    const token = sessionStorage.getItem("token");
     setLoading(true);
 
     try {
       const response = await fetch(`${apiUrl}/faculty/availableSubjects`, {
-          credentials: "include",
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -283,13 +284,14 @@ const SideBarDropDown = ({
   };
 
   const fetchAssignedSubjects = async () => {
+    const token = sessionStorage.getItem("token");
     setSubjectLoading(true);
     try {
       const response = await fetch(`${apiUrl}/faculty/my-subjects`, {
-          credentials: "include",
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -419,13 +421,16 @@ const SideBarDropDown = ({
 
   const handleAssignSubject = async (subject) => {
     if (!subject) return;
+
+    const token = sessionStorage.getItem("token");
+
     setIsAssigning(true);
     try {
       const response = await fetch(`${apiUrl}/faculty/assign-subject`, {
-          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           subjectID: subject.subjectID,
@@ -455,10 +460,12 @@ const SideBarDropDown = ({
 
   useEffect(() => {
     const fetchPrograms = async () => {
+      const token = sessionStorage.getItem("token");
+
       try {
         const res = await fetch(`${apiUrl}/programs`, {
-          credentials: "include",
           headers: {
+            Authorization: `Bearer ${token}`,
           },
         });
         const data = await res.json();
@@ -471,10 +478,12 @@ const SideBarDropDown = ({
     };
 
     const fetchYearLevels = async () => {
+      const token = sessionStorage.getItem("token");
+
       try {
         const res = await fetch(`${apiUrl}/year-levels`, {
-          credentials: "include",
           headers: {
+            Authorization: `Bearer ${token}`,
           },
         });
         const data = await res.json();

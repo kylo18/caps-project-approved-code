@@ -78,9 +78,9 @@ const PracticeExamPreview = () => {
     fetch(
       `${import.meta.env.VITE_API_BASE_URL}/practice-exam/preview/${subjectID}`,
       {
-          credentials: "include",
         headers: {
-                  },
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+        },
       },
     )
       .then(async (res) => {

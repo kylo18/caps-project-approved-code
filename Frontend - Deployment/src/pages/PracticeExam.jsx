@@ -382,11 +382,12 @@ const PracticeExam = () => {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
+        const token = sessionStorage.getItem("token");
         const res = await fetch(`${apiUrl}/user/profile`, {
-          credentials: "include",
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         });
         if (!res.ok) throw new Error("Failed to fetch user info");
@@ -685,11 +686,11 @@ const PracticeExam = () => {
           : null,
       }));
       const response = await fetch(`${apiUrl}/practice-exam/submit`, {
-          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-                  },
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+        },
         body: JSON.stringify({ subjectID, answers: allAnswers }),
       });
       const result = await response.json();

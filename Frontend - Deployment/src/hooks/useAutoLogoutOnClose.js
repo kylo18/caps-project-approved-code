@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { clearAuth, isRememberMeEnabled, isAuthenticated } from "../utils/authStorage";
+import { clearAuth, getToken, isRememberMeEnabled } from "../utils/authStorage";
 
 const useAutoLogoutOnClose = () => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
@@ -8,13 +8,14 @@ const useAutoLogoutOnClose = () => {
     const handleUnload = () => {
       if (isRememberMeEnabled()) return;
 
-      if (isAuthenticated()) {
-        fetch(`${apiUrl}/logout`, {
-          method: "POST",
-          credentials: "include",
-          keepalive: true,
-          headers: { "Content-Type": "application/json" },
-        });
+      const token = getToken();
+
+      if (token) {
+        const logoutData = JSON.stringify({ token });
+
+        // Send a logout request using sendBeacon
+        const blob = new Blob([logoutData], { type: "application/json" });
+        navigator.sendBeacon(`${apiUrl}/logout`, blob);
 
         clearAuth();
       }
@@ -25,7 +26,7 @@ const useAutoLogoutOnClose = () => {
     return () => {
       window.removeEventListener("beforeunload", handleUnload);
     };
-  }, [apiUrl]);
+  }, []);
 };
 
 export default useAutoLogoutOnClose;

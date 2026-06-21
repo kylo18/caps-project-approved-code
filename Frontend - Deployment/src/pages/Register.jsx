@@ -208,7 +208,6 @@ export default function Register() {
     setIsRegistering(true);
     try {
       const res = await fetch(`${apiUrl}/register`, {
-          credentials: "include",
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { clearAuth, isAuthenticated } from "../utils/authStorage";
+import { clearAuth } from '../utils/authStorage';
 import WarningModal from "../components/WarningModal";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import useToast from "../hooks/useToast";
@@ -158,7 +158,8 @@ const StudentClasses = () => {
   const handleUnenrollConfirm = async () => {
     setIsUnenrolling(true);
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setShowUnenrollModal(false);
         setIsUnenrolling(false);
@@ -169,6 +170,7 @@ const StudentClasses = () => {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         credentials: "include",
       });
@@ -219,7 +221,9 @@ const StudentClasses = () => {
     setError(null);
 
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+
+      if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -229,6 +233,7 @@ const StudentClasses = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
           cache: "no-store",
@@ -277,8 +282,7 @@ const StudentClasses = () => {
             const res = await fetch(
               `${apiUrl}/quizzes/${quiz.classPersonalQuizID}/info`,
               {
-          credentials: "include",
-                headers: { },
+                headers: { Authorization: `Bearer ${token}` },
               },
             );
             if (res.ok) {
@@ -383,7 +387,9 @@ const StudentClasses = () => {
     setError(null);
 
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+
+      if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -393,6 +399,7 @@ const StudentClasses = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -431,15 +438,13 @@ const StudentClasses = () => {
       }
 
       // Enrich each history item with all attempts from the /info endpoint
+      const token2 = sessionStorage.getItem("token");
       const enriched = await Promise.all(
         data.history.map(async (item) => {
           try {
             const res = await fetch(
               `${apiUrl}/quizzes/${item.classPersonalQuizID}/info`,
-              {
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-              },
+              { headers: { Authorization: `Bearer ${token2}` } },
             );
             if (res.ok) {
               const infoData = await res.json();

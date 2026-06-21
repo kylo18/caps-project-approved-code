@@ -5,10 +5,9 @@ import { registerSW } from "virtual:pwa-register";
 import "./styles/index.css";
 import App from "./App.jsx";
 import "./i18n.js";
-import AuthInit from "./components/AuthInit.jsx";
-import { purgeLegacyTokens } from "./utils/authStorage";
+import { syncPersistedSession } from "./utils/authStorage";
 
-purgeLegacyTokens();
+syncPersistedSession();
 
 registerSW({
   immediate: true,
@@ -22,8 +21,6 @@ registerSW({
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <AuthInit>
-      <App />
-    </AuthInit>
+    <App />
   </StrictMode>,
 );

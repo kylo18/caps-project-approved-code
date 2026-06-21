@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { isAuthenticated } from "../utils/authStorage";
+import { getToken } from "../utils/authStorage";
 import { normalizeUserProfile } from "../utils/userProfileUtils";
 import LoadingOverlay from "./loadingOverlay";
 import WarningModal from "./WarningModal";
@@ -188,15 +188,15 @@ const ProfileModals = ({
 
     const fetchDeanOptions = async () => {
       setIsLoadingOptions(true);
+      const token = getToken();
+
       try {
         const [programsRes, campusesRes] = await Promise.all([
           fetch(`${apiUrl}/programs`, {
-          credentials: "include",
-            headers: { },
+            headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${apiUrl}/campuses`, {
-          credentials: "include",
-            headers: { },
+            headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
 
@@ -310,11 +310,13 @@ const ProfileModals = ({
 
     try {
       const profilePayload = buildProfilePayload();
+
+      const token = getToken();
       const profileResponse = await fetch(`${apiUrl}/user/update-profile`, {
-          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(profilePayload),
       });
@@ -395,11 +397,11 @@ const ProfileModals = ({
 
     try {
       const response = await fetch(`${apiUrl}/change-password`, {
-          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-                  },
+          Authorization: `Bearer ${getToken()}`,
+        },
         body: JSON.stringify(formData),
       });
 

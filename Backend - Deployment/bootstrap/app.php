@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\AuthenticateFromCookie;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,7 +23,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // Ensure CORS is handled for API routes
         $middleware->api(prepend: [
             HandleCors::class,
-            AuthenticateFromCookie::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

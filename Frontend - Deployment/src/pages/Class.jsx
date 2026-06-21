@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { clearAuth, isAuthenticated } from "../utils/authStorage";
+import { clearAuth } from '../utils/authStorage';
 import { useNavigate } from "react-router-dom";
 
 import ArchiveIcon from "/src/assets/symbols/archive.svg";
@@ -134,7 +134,9 @@ const Class = () => {
       setError(null);
 
       try {
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) {
           throw new Error("You are not authenticated. Please log in again.");
         }
 
@@ -148,6 +150,7 @@ const Class = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         });
@@ -212,7 +215,9 @@ const Class = () => {
       setError(null);
 
       try {
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) {
           return;
         }
 
@@ -226,6 +231,7 @@ const Class = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         });
@@ -272,17 +278,18 @@ const Class = () => {
     }
 
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsJoining(false);
         return;
       }
 
       const response = await fetch(`${apiUrl}/classes/join-by-code`, {
-          credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           classCode: trimmedCode,
@@ -366,7 +373,8 @@ const Class = () => {
 
     setIsArchiving(true);
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsArchiving(false);
         setIsArchiveModalOpen(false);
@@ -387,6 +395,7 @@ const Class = () => {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         credentials: "include",
       });
@@ -443,7 +452,8 @@ const Class = () => {
 
     setIsUnenrolling(true);
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
         showToast("You are not authenticated. Please log in again.", "error");
         setIsUnenrolling(false);
         setIsUnenrollModalOpen(false);
@@ -464,6 +474,7 @@ const Class = () => {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         credentials: "include",
       });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { clearAuth, isAuthenticated } from "../utils/authStorage";
+import { clearAuth } from '../utils/authStorage';
 import { useNavigate } from "react-router-dom";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
@@ -60,7 +60,9 @@ const Sessions = () => {
     setError(null);
 
     try {
-      if (!isAuthenticated()) {
+      const token = sessionStorage.getItem("token");
+
+      if (!token) {
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -79,6 +81,7 @@ const Sessions = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         credentials: "include",
       });

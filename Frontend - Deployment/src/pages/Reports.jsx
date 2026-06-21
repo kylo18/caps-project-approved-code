@@ -4,7 +4,6 @@ import StudentPfp from "/src/assets/symbols/student.png";
 import FacultyPfp from "/src/assets/symbols/faculty.png";
 import ProgramChairPfp from "/src/assets/symbols/progchair.png";
 import DeanPfp from "/src/assets/symbols/dean.png";
-import { isAuthenticated } from "../utils/authStorage";
 
 const roleImages = {
   1: StudentPfp,
@@ -46,7 +45,8 @@ const Reports = () => {
 
     const fetchRecentTakers = async () => {
       try {
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+        if (!token) {
           throw new Error(
             "Authentication token not found. Please log in again.",
           );
@@ -55,9 +55,9 @@ const Reports = () => {
         const response = await fetch(
           `${apiUrl}/practice-exam/overall-recent-takers`,
           {
-          credentials: "include",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
           },
         );
@@ -95,7 +95,8 @@ const Reports = () => {
 
     const fetchLeaderboard = async () => {
       try {
-        if (!isAuthenticated()) {
+        const token = sessionStorage.getItem("token");
+        if (!token) {
           throw new Error(
             "Authentication token not found. Please log in again.",
           );
@@ -104,9 +105,9 @@ const Reports = () => {
         const response = await fetch(
           `${apiUrl}/practice-exam/overall-leaderboard`,
           {
-          credentials: "include",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
           },
         );

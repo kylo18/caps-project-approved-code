@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, useParams } from "react-router-dom";
-import { clearAuth, isAuthenticated } from "../utils/authStorage";
+import { clearAuth } from '../utils/authStorage';
 import { useEffect, useState } from "react";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
@@ -62,13 +62,15 @@ const QuizInfo = () => {
       setIsLoading(true);
       setError(null);
       try {
-        if (!isAuthenticated())
+        const token = sessionStorage.getItem("token");
+        if (!token)
           throw new Error("You are not authenticated. Please log in again.");
 
         const response = await fetch(`${apiUrl}/quizzes/${quizID}/info`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         });
@@ -172,12 +174,14 @@ const QuizInfo = () => {
     setLoadingAction(actionType);
     setStartError(null);
     try {
-      if (!isAuthenticated()) throw new Error("You are not authenticated.");
+      const token = sessionStorage.getItem("token");
+      if (!token) throw new Error("You are not authenticated.");
 
       const response = await fetch(`${apiUrl}/quizzes/${quizID}/start`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         credentials: "include",
       });

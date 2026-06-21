@@ -215,12 +215,12 @@ const SubjectCard = ({
   // Fetch programs and year levels
   useEffect(() => {
     const fetchPrograms = async () => {
+      const token = sessionStorage.getItem("token");
       try {
         const res = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/programs`,
           {
-          credentials: "include",
-            headers: { },
+            headers: { Authorization: `Bearer ${token}` },
           },
         );
         const data = await res.json();
@@ -249,6 +249,7 @@ const SubjectCard = ({
 
   // Save edit handler
   const handleSaveEdit = async () => {
+    const token = sessionStorage.getItem("token");
     setIsEditing(true);
     try {
       const updateData = {
@@ -260,10 +261,10 @@ const SubjectCard = ({
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/subjects/${subjectID}/update`,
         {
-          credentials: "include",
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(updateData),
         },
@@ -395,15 +396,16 @@ const SubjectCard = ({
 
   // Delete subject handler
   const handleDeleteSubject = async (subjectID) => {
+    const token = sessionStorage.getItem("token");
     setIsDeleting(true);
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/subjects/${subjectID}/delete`,
         {
-          credentials: "include",
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         },
       );

@@ -221,12 +221,12 @@ const SubjectCard = ({
   // Fetch programs and year levels
   useEffect(() => {
     const fetchPrograms = async () => {
+      const token = sessionStorage.getItem("token");
       try {
         const res = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/programs`,
           {
-          credentials: "include",
-            headers: { },
+            headers: { Authorization: `Bearer ${token}` },
           },
         );
         const data = await res.json();
@@ -340,14 +340,15 @@ const SubjectCard = ({
 
   // Delete subject handler
   const handleDeleteSubject = async (subjectID) => {
+    const token = sessionStorage.getItem("token");
     setIsDeleting(true);
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/remove-assigned-subject/${subjectID}`,
         {
-          credentials: "include",
           method: "DELETE",
           headers: {
+            Authorization: `Bearer ${token}`,
           },
         },
       );
