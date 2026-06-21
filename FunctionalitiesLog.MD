@@ -174,20 +174,16 @@
    [V2.1] 06-14-26 
 
     Dean Functionalities:
-        - Change question difficulty
         - Multi select questions for approval
         - Change other accounts name, email, program, and campus
 
     Associate Dean Functionalities:
-        - Change question difficulty
         - Multi select questions for approval
 
     Program Chair Functionalities:
-        - Change question difficulty
         - Multi select questions for approval
 
     Instructor Functionalities:
-        - Change question difficulty
         - Multi select questions for approval
 
    Bug Fixes & Improvements:
