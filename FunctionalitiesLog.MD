@@ -171,7 +171,7 @@
         - Quiz Settings are now independent to each class
         - Optimized Student Home page
 
-   [V2.1] 06-21-26 
+   [V2.1] 06-14-26 
 
     Dean Functionalities:
         - Multi select questions for approval
@@ -192,7 +192,6 @@
 
    Bug Fixes & Improvements:
         - Added the ability to edit credentials (email, name, password, and User Code) for all user accounts.
-
         
         
        
