@@ -203,16 +203,7 @@ class UserController extends Controller
                 $user->userCode = $newUserCode;
                 $user->save();
 
-                // Only sync if the new userCode doesn't already exist in the students table
-                // (e.g. the student is linking to an existing student record)
-                $newCodeExistsInStudents = Schema::hasTable('students')
-                    && DB::table('students')
-                        ->where('userCode', $newUserCode)
-                        ->exists();
-
-                if (!$newCodeExistsInStudents) {
-                    $this->syncUserCodeAcrossTables($oldUserCode, $newUserCode);
-                }
+                $this->syncUserCodeAcrossTables($oldUserCode, $newUserCode);
 
                 DB::table('user_code_reset_tokens')->where('email', $validated['email'])->delete();
             });
@@ -1227,12 +1218,18 @@ class UserController extends Controller
 
     private function syncUserCodeAcrossTables(string $oldUserCode, string $newUserCode): void
     {
-        if (DB::table('students')->where('userCode', $oldUserCode)->exists()) {
-            DB::table('students')->where('userCode', $oldUserCode)->update(['userCode' => $newUserCode]);
+        if (Schema::hasTable('students')) {
+            $newCodeExistsInStudents = DB::table('students')->where('userCode', $newUserCode)->exists();
+            if (!$newCodeExistsInStudents && DB::table('students')->where('userCode', $oldUserCode)->exists()) {
+                DB::table('students')->where('userCode', $oldUserCode)->update(['userCode' => $newUserCode]);
+            }
         }
 
-        if (Schema::hasTable('student_grades') && DB::table('student_grades')->where('userCode', $oldUserCode)->exists()) {
-            DB::table('student_grades')->where('userCode', $oldUserCode)->update(['userCode' => $newUserCode]);
+        if (Schema::hasTable('student_grades')) {
+            $newCodeExistsInGrades = DB::table('student_grades')->where('userCode', $newUserCode)->exists();
+            if (!$newCodeExistsInGrades && DB::table('student_grades')->where('userCode', $oldUserCode)->exists()) {
+                DB::table('student_grades')->where('userCode', $oldUserCode)->update(['userCode' => $newUserCode]);
+            }
         }
     }
 }
