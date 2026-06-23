@@ -19,22 +19,28 @@ class Handler extends ExceptionHandler
         });
     }
 
+    /*
     public function render($request, Throwable $exception)
     {
-        // Specific, safe (hardcoded) hint for a common misconfiguration.
-        if ($exception instanceof CacheException && str_contains($exception->getMessage(), 'Please provide a valid cache path')) {
+        if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Cache directory is missing or not writable. Please ensure bootstrap/cache exists and is writable.'
+                'message' => $exception->getMessage(),
+                'code' => $exception->getCode()
+            ], 500);
+        }
+    return parent::render($request, $exception); } */
+
+    public function render($request, Throwable $exception)
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $exception->getMessage()
             ], 500);
         }
 
-        if ($request->expectsJson()) {
-            // SECURITY: never return the raw exception message to clients.
-            // Centralized API exception handling lives in bootstrap/app.php;
-            // this is a safe fallback should this (currently unregistered)
-            // handler ever be wired up.
+        if ($exception instanceof CacheException && str_contains($exception->getMessage(), 'Please provide a valid cache path')) {
             return response()->json([
-                'message' => 'An unexpected error occurred. Please try again later.'
+                'message' => 'Cache directory is missing or not writable. Please ensure bootstrap/cache exists and is writable.'
             ], 500);
         }
 
