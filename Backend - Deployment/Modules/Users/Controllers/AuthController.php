@@ -25,8 +25,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to show registration form: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Failed to load registration form.',
-                'error' => $e->getMessage()
+                'message' => 'Failed to load registration form.'
             ], 500);
         }
     }
@@ -43,8 +42,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to show login form: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Failed to load login form.',
-                'error' => $e->getMessage()
+                'message' => 'Failed to load login form.'
             ], 500);
         }
     }
@@ -225,8 +223,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             Log::error('Registration failed: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An error occurred during registration.',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred during registration.'
             ], 500);
         }
     }
@@ -313,8 +310,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             Log::error('Login failed: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An error occurred during login.',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred during login.'
             ], 500);
         }
     }
@@ -338,8 +334,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             Log::error('Logout failed: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An error occurred during logout.',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred during logout.'
             ], 500);
         }
     }
@@ -402,8 +397,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             Log::error('Password change failed: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An error occurred while changing the password.',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred while changing the password.'
             ], 500);
         }
     }

@@ -17,6 +17,11 @@
 .env
 .env.backup
 .env.production
+
+# Local SQLite databases (never commit application data / password hashes)
+/caps_project
+*.sqlite
+*.sqlite3
 .phpactor.json
 .phpunit.result.cache
 Homestead.json

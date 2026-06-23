@@ -110,7 +110,6 @@ class PersonalQuizSettingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving quiz settings.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -216,7 +215,6 @@ class PersonalQuizSettingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while saving quiz settings.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -354,7 +352,6 @@ class PersonalQuizSettingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while updating quiz settings.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -414,7 +411,6 @@ class PersonalQuizSettingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while deleting quiz settings.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

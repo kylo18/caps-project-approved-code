@@ -356,6 +356,8 @@ const StudentDashboard = () => {
       localStorage.setItem(
         `${examKey}_exam_data`,
         JSON.stringify({
+          // Server-authoritative attempt id — bound to this issued question set.
+          attemptId: data.attemptId,
           questions: data.questions,
           totalPoints: data.totalPoints,
           enableTimer: data.enableTimer,
@@ -371,6 +373,7 @@ const StudentDashboard = () => {
         state: {
           subjectID: subject.subjectID,
           examData: {
+            attemptId: data.attemptId,
             questions: data.questions,
             totalPoints: data.totalPoints,
             enableTimer: data.enableTimer,

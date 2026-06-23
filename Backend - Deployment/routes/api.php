@@ -231,9 +231,9 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
     // Get subjects specific to student's program
     Route::get('/student/practice-subjects', [SubjectController::class, 'getProgramSubjects']);
 
-    // Practice Exam - take, submit, and view history
-    Route::get('/practice-exam/generate/{subjectID}', [PracticeExamController::class, 'generate']);
-    Route::post('/practice-exam/submit', [PracticeExamController::class, 'submit']);
+    // Practice Exam - take, submit, and view history (rate limited: 10 req/min)
+    Route::get('/practice-exam/generate/{subjectID}', [PracticeExamController::class, 'generate'])->middleware('throttle:10,1');
+    Route::post('/practice-exam/submit', [PracticeExamController::class, 'submit'])->middleware('throttle:10,1');
     Route::get('/practice-exam/history', [PracticeExamController::class, 'history']);
 
     // Enroll under a teacher
@@ -241,10 +241,10 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
     // Get all teachers a student is enrolled with
     Route::get('/my-teachers', [StudentTeacherEnrollmentController::class, 'myTeachers']);
 
-    // Generate personal exam for a subject and teacher
-    Route::post('/personal-exam/generate/{subjectID}/{teacherID}', [PracticeExamController::class, 'generatePersonalExam']);
+    // Generate personal exam for a subject and teacher (rate limited: 10 req/min)
+    Route::post('/personal-exam/generate/{subjectID}/{teacherID}', [PracticeExamController::class, 'generatePersonalExam'])->middleware('throttle:10,1');
     // Submit personal exam results
-    Route::post('/personal-exam/submit', [PracticeExamController::class, 'submitPersonalExam']);
+    Route::post('/personal-exam/submit', [PracticeExamController::class, 'submitPersonalExam'])->middleware('throttle:10,1');
 
     // Class Enrollments (Students)
     Route::get('/classes/my-classes', [ClassEnrollmentController::class, 'myClasses']);

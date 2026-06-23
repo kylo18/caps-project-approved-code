@@ -48,8 +48,7 @@ class PasswordResetController extends Controller
 
             // Return internal error response
             return response()->json([
-                'message' => 'An error occurred while sending the reset link.',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred while sending the reset link.'
             ], 500); // HTTP 500 Internal Server Error
         }
     }
@@ -96,8 +95,7 @@ class PasswordResetController extends Controller
         } catch (\Exception $e) {
             // Handle and return unexpected errors
             return response()->json([
-                'message' => 'An error occurred while resetting the password.',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred while resetting the password.'
             ], 500); // HTTP 500 Internal Server Error
         }
     }

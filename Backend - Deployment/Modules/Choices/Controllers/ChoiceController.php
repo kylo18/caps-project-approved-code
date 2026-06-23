@@ -97,8 +97,7 @@ class ChoiceController extends Controller
             DB::rollBack();
 
             return response()->json([
-                'message' => 'Failed to create choices.',
-                'error'   => $e->getMessage()
+                'message' => 'Failed to create choices.'
             ], 500);
         }
     }
@@ -189,8 +188,7 @@ class ChoiceController extends Controller
             Log::error("Choice update failed: " . $e->getMessage());
 
             return response()->json([
-                'message' => 'Failed to update choices.',
-                'error' => $e->getMessage(),
+                'message' => 'Failed to update choices.'
             ], 500);
         }
     }
@@ -214,7 +212,7 @@ class ChoiceController extends Controller
             try {
                 $choice->choiceText = Crypt::decryptString($choice->choiceText);
             } catch (\Exception $e) {
-                return response()->json(['message' => 'Decryption failed.', 'error' => $e->getMessage()], 500);
+                return response()->json(['message' => 'Decryption failed.'], 500);
             }
         }
 

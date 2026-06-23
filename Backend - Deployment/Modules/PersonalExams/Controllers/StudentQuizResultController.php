@@ -87,7 +87,6 @@ class StudentQuizResultController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving quiz results.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -144,7 +143,6 @@ class StudentQuizResultController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving the quiz result.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -246,7 +244,6 @@ class StudentQuizResultController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while saving the quiz result.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -337,7 +334,6 @@ class StudentQuizResultController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while updating the quiz result.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -472,7 +468,6 @@ class StudentQuizResultController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving class history.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -577,7 +572,6 @@ class StudentQuizResultController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving quiz history.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -729,7 +723,6 @@ class StudentQuizResultController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving class results.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -853,7 +846,6 @@ class StudentQuizResultController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving quiz results.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -997,7 +989,6 @@ class StudentQuizResultController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving non-takers.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -1051,7 +1042,6 @@ class StudentQuizResultController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while deleting the quiz result.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

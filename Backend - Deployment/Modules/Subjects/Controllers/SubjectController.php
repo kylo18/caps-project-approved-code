@@ -58,7 +58,7 @@ class SubjectController extends Controller
 
             return response()->json([
                 'error'   => 'Internal Server Error',
-                'message' => $e->getMessage()
+                'message' => 'An internal error occurred.'
             ], 500);
         }
     }
@@ -168,8 +168,7 @@ class SubjectController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while retrieving subjects',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred while retrieving subjects'
             ], 500);
         }
     }
@@ -273,7 +272,6 @@ class SubjectController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving all subjects',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -344,13 +342,7 @@ class SubjectController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update subject.',
-                'error' => $e->getMessage(),
-                'debug_info' => app()->environment('local') ? [
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'type' => get_class($e)
-                ] : null
+                'message' => 'Failed to update subject.'
             ], 500);
         }
     }
@@ -503,8 +495,7 @@ class SubjectController extends Controller
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to delete subject.',
-                'error'   => $e->getMessage()
+                'message' => 'Failed to delete subject.'
             ], 500);
         }
     }
@@ -647,8 +638,7 @@ class SubjectController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while retrieving exam questions status.',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred while retrieving exam questions status.'
             ], 500);
         }
     }
