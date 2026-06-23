@@ -12,6 +12,7 @@ use Modules\PracticeExams\Controllers\PracticeExamSettingController;
 use Modules\PracticeExams\Controllers\PracticeExamController;
 use Modules\PracticeExams\Controllers\PracticeExamLeaderboardController;
 use Modules\Users\Controllers\ProgramController;
+use Modules\Users\Controllers\CampusController;
 use Modules\Users\Controllers\RoleController;
 use Modules\Users\Controllers\PasswordResetController;
 use Modules\App\Controllers\AppController;
@@ -38,8 +39,11 @@ use Modules\PersonalExams\Controllers\QuizSessionController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/roles', [RoleController::class, 'indexAvailableRoles']);
+Route::get('/campuses', [CampusController::class, 'index']);
 Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail']);
 Route::post('/reset-password', [PasswordResetController::class, 'reset']);
+Route::post('/forgot-user-code', [UserController::class, 'sendUserCodeResetLinkEmail']);
+Route::post('/reset-user-code', [UserController::class, 'resetUserCode']);
 Route::get('/app-version', [AppController::class, 'getVersion']);
 
 /*
@@ -54,7 +58,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user/profile', [UserController::class, 'getProfile']);
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
 
-    // All subjects (no role restriction, but blocks userID 1)
+    // All subjects (no role restriction; any authenticated user)
     Route::get('/subjects/all', [SubjectController::class, 'allSubjects']);
 
     // Allow all authenticated users to access their exam results for a subject
@@ -231,9 +235,9 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
     // Get subjects specific to student's program
     Route::get('/student/practice-subjects', [SubjectController::class, 'getProgramSubjects']);
 
-    // Practice Exam - take, submit, and view history (rate limited: 10 req/min)
-    Route::get('/practice-exam/generate/{subjectID}', [PracticeExamController::class, 'generate'])->middleware('throttle:10,1');
-    Route::post('/practice-exam/submit', [PracticeExamController::class, 'submit'])->middleware('throttle:10,1');
+    // Practice Exam - take, submit, and view history
+    Route::get('/practice-exam/generate/{subjectID}', [PracticeExamController::class, 'generate']);
+    Route::post('/practice-exam/submit', [PracticeExamController::class, 'submit']);
     Route::get('/practice-exam/history', [PracticeExamController::class, 'history']);
 
     // Enroll under a teacher
@@ -241,10 +245,10 @@ Route::middleware(['api', 'auth:sanctum', 'role:1'])->group(function () {
     // Get all teachers a student is enrolled with
     Route::get('/my-teachers', [StudentTeacherEnrollmentController::class, 'myTeachers']);
 
-    // Generate personal exam for a subject and teacher (rate limited: 10 req/min)
-    Route::post('/personal-exam/generate/{subjectID}/{teacherID}', [PracticeExamController::class, 'generatePersonalExam'])->middleware('throttle:10,1');
+    // Generate personal exam for a subject and teacher
+    Route::post('/personal-exam/generate/{subjectID}/{teacherID}', [PracticeExamController::class, 'generatePersonalExam']);
     // Submit personal exam results
-    Route::post('/personal-exam/submit', [PracticeExamController::class, 'submitPersonalExam'])->middleware('throttle:10,1');
+    Route::post('/personal-exam/submit', [PracticeExamController::class, 'submitPersonalExam']);
 
     // Class Enrollments (Students)
     Route::get('/classes/my-classes', [ClassEnrollmentController::class, 'myClasses']);
@@ -290,16 +294,25 @@ Route::middleware(['auth:sanctum', 'role:3'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:3,4,5'])->group(function () {
     // Question approval (approve/disapprove)
     Route::patch('/questions/{questionID}/status', [QuestionController::class, 'updateStatus']);
+    Route::post('/questions/approve-multiple', [QuestionController::class, 'approveMultipleQuestions']);
 
     // Practice Exam Settings
     Route::get('/practice-settings/{subjectID}', [PracticeExamSettingController::class, 'show']);
-    Route::post('/practice-settings', [PracticeExamSettingController::class, 'store']);
+    Route::post('/practice-settings', [PracticeExamSettingController::class, 'store']); 
 
-    // Multi-subject exam generation
+    // Multt-subject exam generation
     Route::post('/generate-multi-subject-exam', [PrintController::class, 'generateMultiSubjectExam']);
 
 
-    Route::patch('/users/{userID}/role', [UserController::class, 'changeUserRole']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Routes for Dean only (roleID: 4)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:4'])->group(function () {
+    Route::post('/campuses', [CampusController::class, 'store']);
 });
 
 /*
@@ -308,6 +321,7 @@ Route::middleware(['auth:sanctum', 'role:3,4,5'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:4,5'])->group(function () {
+    Route::patch('/users/{userID}/credentials', [UserController::class, 'updateUserCredentials']);
 
     // Subject management
     Route::post('/add-subjects', [SubjectController::class, 'store']);
