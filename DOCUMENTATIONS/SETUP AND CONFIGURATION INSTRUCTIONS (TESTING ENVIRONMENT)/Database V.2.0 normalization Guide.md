@@ -153,28 +153,6 @@ student_quiz_results:
     -isRecorded
     -isPassed
 
-#V2.1 changes
-user_code_reset_tokens:
-    -email
-    -token
-    -created_at
-
-exam_attempts:
-    -id
-    -userId
-    -subjectId
-    -teacher_Id
-    -type
-    -question_ids
-    -answers
-    -total_points
-    -started_at
-    -expires_at
-    -submitted_at
-    -created_at
-    -updated_at
-
-
 5. Check the mentioned table in the database.
 
 6. If all exist, then the migration and normalization is complete
