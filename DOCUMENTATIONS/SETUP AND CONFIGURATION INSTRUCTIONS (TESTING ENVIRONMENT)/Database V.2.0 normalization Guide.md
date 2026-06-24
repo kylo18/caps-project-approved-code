@@ -153,6 +153,7 @@ student_quiz_results:
     -isRecorded
     -isPassed
 
+#V2.1 changes
 user_code_reset_tokens:
     -email
     -token
@@ -172,7 +173,7 @@ exam_attempts:
     -submitted_at
     -created_at
     -updated_at
-        
+
 
 5. Check the mentioned table in the database.
 
