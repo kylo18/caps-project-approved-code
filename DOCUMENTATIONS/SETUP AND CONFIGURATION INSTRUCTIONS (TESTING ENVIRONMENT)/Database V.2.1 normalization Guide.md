@@ -35,7 +35,7 @@
     
     Note: If those two commands above won't run run this following:
 
-    - docker exec -it <name of the container> bash
+    - docker exec -it <name of the backend container> bash
     - php artisan migrate
     - php artisan db:seed
 
