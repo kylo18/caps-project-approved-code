@@ -29,10 +29,17 @@
     (NOTE: SKIP THIS PART IN PRODUCTION!!): php artisan choices:randomize-correct 
 
 4. Run the script for migrating and seeding the necessary data in the database:
-
+    
+    - chmod u+x db_update.sh
     - ./db_update.sh
+    
+    Note: If those two commands above won't run run this following:
 
-    NOTE: THIS IS THE CHANGES ADDED IN V1.6
+    - docker exec -it <name of the container> bash
+    - php artisan migrate
+    - php artisan db:seed
+
+    NOTE: THIS IS THE CHANGES ADDED IN V2.1
 
     user_code_reset_tokens:
         -email
