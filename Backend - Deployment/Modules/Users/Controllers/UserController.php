@@ -181,8 +181,7 @@ class UserController extends Controller
         } catch (\Exception $e) {
             Log::error('User approval error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An error occurred while approving the user.',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred while approving the user.'
             ], 500);
         }
     }
@@ -271,8 +270,7 @@ class UserController extends Controller
         } catch (\Exception $e) {
             Log::error('Profile update error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An unexpected error occurred while updating your profile.',
-                'error' => $e->getMessage()
+                'message' => 'An unexpected error occurred while updating your profile.'
             ], 500);
         }
     }
@@ -362,8 +360,7 @@ class UserController extends Controller
         } catch (\Exception $e) {
             Log::error('Role change error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An unexpected error occurred while changing the user role',
-                'error' => $e->getMessage()
+                'message' => 'An unexpected error occurred while changing the user role'
             ], 500);
         }
     }

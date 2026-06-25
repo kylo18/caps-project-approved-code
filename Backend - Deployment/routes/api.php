@@ -12,6 +12,7 @@ use Modules\PracticeExams\Controllers\PracticeExamSettingController;
 use Modules\PracticeExams\Controllers\PracticeExamController;
 use Modules\PracticeExams\Controllers\PracticeExamLeaderboardController;
 use Modules\Users\Controllers\ProgramController;
+use Modules\Users\Controllers\CampusController;
 use Modules\Users\Controllers\RoleController;
 use Modules\Users\Controllers\PasswordResetController;
 use Modules\App\Controllers\AppController;
@@ -38,8 +39,11 @@ use Modules\PersonalExams\Controllers\QuizSessionController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/roles', [RoleController::class, 'indexAvailableRoles']);
+Route::get('/campuses', [CampusController::class, 'index']);
 Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail']);
 Route::post('/reset-password', [PasswordResetController::class, 'reset']);
+Route::post('/forgot-user-code', [UserController::class, 'sendUserCodeResetLinkEmail']);
+Route::post('/reset-user-code', [UserController::class, 'resetUserCode']);
 Route::get('/app-version', [AppController::class, 'getVersion']);
 
 /*
@@ -290,16 +294,25 @@ Route::middleware(['auth:sanctum', 'role:3'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:3,4,5'])->group(function () {
     // Question approval (approve/disapprove)
     Route::patch('/questions/{questionID}/status', [QuestionController::class, 'updateStatus']);
+    Route::post('/questions/approve-multiple', [QuestionController::class, 'approveMultipleQuestions']);
 
     // Practice Exam Settings
     Route::get('/practice-settings/{subjectID}', [PracticeExamSettingController::class, 'show']);
-    Route::post('/practice-settings', [PracticeExamSettingController::class, 'store']);
+    Route::post('/practice-settings', [PracticeExamSettingController::class, 'store']); 
 
-    // Multi-subject exam generation
+    // Multt-subject exam generation
     Route::post('/generate-multi-subject-exam', [PrintController::class, 'generateMultiSubjectExam']);
 
 
-    Route::patch('/users/{userID}/role', [UserController::class, 'changeUserRole']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Routes for Dean only (roleID: 4)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:4'])->group(function () {
+    Route::post('/campuses', [CampusController::class, 'store']);
 });
 
 /*
@@ -308,6 +321,7 @@ Route::middleware(['auth:sanctum', 'role:3,4,5'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:4,5'])->group(function () {
+    Route::patch('/users/{userID}/credentials', [UserController::class, 'updateUserCredentials']);
 
     // Subject management
     Route::post('/add-subjects', [SubjectController::class, 'store']);

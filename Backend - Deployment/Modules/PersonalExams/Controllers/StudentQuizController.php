@@ -315,7 +315,6 @@ class StudentQuizController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving quiz information.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -651,7 +650,6 @@ class StudentQuizController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while starting the quiz.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -1064,7 +1062,6 @@ class StudentQuizController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Could not save your quiz submission. Please try again or contact support if this continues.',
-                    'error' => config('app.debug') ? $e->getMessage() : null,
                     'error_code' => 'QUIZ_SUBMIT_DATABASE',
                 ], 500);
             } catch (\Exception $e) {
@@ -1086,7 +1083,6 @@ class StudentQuizController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An unexpected error occurred while submitting the quiz.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
                 'error_code' => 'QUIZ_SUBMIT_FAILED',
             ], 500);
         }

@@ -246,7 +246,6 @@ class QuizSessionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving quiz sessions.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -433,7 +432,6 @@ class QuizSessionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving quiz sessions.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

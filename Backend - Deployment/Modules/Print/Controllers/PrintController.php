@@ -272,7 +272,6 @@ class PrintController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Percentage Distribution Error',
-                    'details' => $e->getMessage(),
                     'subject_total' => $totalSubjectPercentage,
                     'difficulty_total' => $totalDifficultyPercentage,
                     'code' => 'PERCENTAGE_ERROR',
@@ -447,7 +446,6 @@ class PrintController extends Controller
                     return response()->json([
                         'status' => 'error',
                         'message' => "Error processing subject: " . ($subject ? $subject->subjectName : 'Unknown'),
-                        'error' => $e->getMessage(),
                         'code' => 'SUBJECT_PROCESSING_ERROR'
                     ], 422);
                 }
@@ -862,7 +860,6 @@ class PrintController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving quiz questions.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -1146,7 +1143,6 @@ class PrintController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while generating the PDF data.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

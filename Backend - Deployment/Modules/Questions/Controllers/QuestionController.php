@@ -335,7 +335,6 @@ class QuestionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving your questions for this subject.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -627,8 +626,7 @@ class QuestionController extends Controller
             Log::error("Question duplication failed: " . $e->getMessage());
 
             return response()->json([
-                'message' => 'Failed to duplicate question.',
-                'error' => $e->getMessage()
+                'message' => 'Failed to duplicate question.'
             ], 500)->header('Content-Type', 'application/json');
         }
     }
@@ -702,8 +700,7 @@ class QuestionController extends Controller
         } catch (\Exception $e) {
             Log::error('Question Preview Error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Failed to retrieve questions preview.',
-                'error' => $e->getMessage()
+                'message' => 'Failed to retrieve questions preview.'
             ], 500);
         }
     }

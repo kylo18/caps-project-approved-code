@@ -27,8 +27,7 @@ class ProgramController extends Controller
         } catch (\Exception $e) {
             // Catch and return any error that occurs during the fetch operation
             return response()->json([
-                'message' => 'Failed to fetch programs.',
-                'error' => $e->getMessage()
+                'message' => 'Failed to fetch programs.'
             ], 500); // HTTP 500 Internal Server Error
         }
     }

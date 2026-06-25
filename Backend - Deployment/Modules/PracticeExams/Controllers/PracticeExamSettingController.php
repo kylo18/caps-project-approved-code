@@ -69,8 +69,7 @@ class PracticeExamSettingController extends Controller
             Log::error('Practice exam setting error: ' . $e->getMessage());
 
             return response()->json([
-                'message' => 'An internal error occurred.',
-                'error' => $e->getMessage()
+                'message' => 'An internal error occurred.'
             ], 500);
         }
     }
@@ -102,7 +101,7 @@ class PracticeExamSettingController extends Controller
 
             return response()->json([
                 'error' => 'Internal Server Error',
-                'message' => $e->getMessage()
+                'message' => 'An internal error occurred.'
             ], 500);
         }
     }

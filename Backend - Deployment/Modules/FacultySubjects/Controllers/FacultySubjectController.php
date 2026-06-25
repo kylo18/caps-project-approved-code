@@ -212,7 +212,7 @@ class FacultySubjectController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to assign subject. Please try again.',
-                'error' => config('app.debug') ? $e->getMessage() : 'An internal error occurred.'
+                'error' => 'An internal error occurred.'
             ], 500);
         }
     }
@@ -303,7 +303,7 @@ class FacultySubjectController extends Controller
                 'success' => false,
                 'message' => 'An error occurred while retrieving subjects',
                 'subjects' => [],
-                'error' => config('app.debug') ? $e->getMessage() : 'An internal error occurred.'
+                'error' => 'An internal error occurred.'
             ], 500);
         }
     }
@@ -377,8 +377,7 @@ class FacultySubjectController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to remove assigned subject.',
-                'error' => $e->getMessage()
+                'message' => 'Failed to remove assigned subject.'
             ], 500);
         }
     }
@@ -464,8 +463,7 @@ class FacultySubjectController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while retrieving available subjects',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred while retrieving available subjects'
             ], 500);
         }
     }

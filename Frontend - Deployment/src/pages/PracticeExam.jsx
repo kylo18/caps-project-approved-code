@@ -677,6 +677,14 @@ const PracticeExam = () => {
   const handleSubmitAnswers = async () => {
     setIsSubmitting(true);
     try {
+      // The server grades against the attempt's issued question set. Without a
+      // valid attempt id there is nothing to submit to (e.g. a stale session).
+      if (!examData?.attemptId) {
+        throw new Error(
+          "This exam session has expired or is no longer valid. Please start a new exam.",
+        );
+      }
+
       const allAnswers = examData.questions.map((question) => ({
         questionID: question.questionID,
         selectedChoiceID: answers[question.questionID]
@@ -689,7 +697,12 @@ const PracticeExam = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${sessionStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ subjectID, answers: allAnswers }),
+        // Send only the attempt id + raw selections; the server owns scoring,
+        // the question list, the timer, and one-shot submission.
+        body: JSON.stringify({
+          attemptId: examData.attemptId,
+          answers: allAnswers,
+        }),
       });
       const result = await response.json();
       if (!response.ok)
@@ -720,9 +733,10 @@ const PracticeExam = () => {
       setSecondsLeft(0);
 
       const enhancedResults = results.map((r) => {
-        const qData = examData.questions.find(
-          (q) => q.questionID === r.questionID,
-        );
+        // Fall back to an empty object so a server result whose questionID is not
+        // in the local set can't throw (the server is authoritative for grading).
+        const qData =
+          examData.questions.find((q) => q.questionID === r.questionID) || {};
         return {
           ...r,
           questionText: qData.questionText,
