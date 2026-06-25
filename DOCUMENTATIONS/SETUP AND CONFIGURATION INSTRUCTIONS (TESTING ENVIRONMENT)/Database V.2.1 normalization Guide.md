@@ -41,11 +41,6 @@
 
     NOTE: THIS IS THE CHANGES ADDED IN V2.1
 
-    user_code_reset_tokens:
-        -email
-        -token
-        -created_at
-
     exam_attempts:
         -id
         -userId
