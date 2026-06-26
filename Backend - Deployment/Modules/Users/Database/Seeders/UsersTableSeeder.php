@@ -34,9 +34,9 @@ class UsersTableSeeder extends Seeder
             $users = [
                 // Main Campus Accounts
                 [
-                    'userCode' => '10-A-12345',
+                    'userCode' => 'MC-A-12345',
                     'firstName' => 'Dean',
-                    'lastName' => 'Main',
+                    'lastName' => 'Main Dean',
                     'email' => '10-A-12345@caps.local',
                     'roleID' => 4,
                     'campusID' => 1,
@@ -44,9 +44,9 @@ class UsersTableSeeder extends Seeder
                     'programID' => 4,
                 ],
                 [
-                    'userCode' => '10-A-00000',
+                    'userCode' => 'MC-A-00000',
                     'firstName' => 'Associate',
-                    'lastName' => 'Dean',
+                    'lastName' => 'Associate Main',
                     'email' => '10-A-00000@caps.local',
                     'roleID' => 5,
                     'campusID' => 1,
@@ -54,9 +54,9 @@ class UsersTableSeeder extends Seeder
                     'programID' => 4,
                 ],
                 [
-                    'userCode' => '10-A-00001',
+                    'userCode' => 'MC-A-00001',
                     'firstName' => 'Program',
-                    'lastName' => 'Chair',
+                    'lastName' => 'Chair Main',
                     'email' => '10-A-00001@caps.local',
                     'roleID' => 3,
                     'campusID' => 1,
@@ -64,9 +64,9 @@ class UsersTableSeeder extends Seeder
                     'programID' => 4,
                 ],
                 [
-                    'userCode' => '10-A-00010',
-                    'firstName' => 'Faculty',
-                    'lastName' => 'Member',
+                    'userCode' => 'MC-A-00010',
+                    'firstName' => 'Faculty Main',
+                    'lastName' => 'Faculty Main',
                     'email' => '10-A-00010@caps.local',
                     'roleID' => 2,
                     'campusID' => 1,
@@ -76,9 +76,9 @@ class UsersTableSeeder extends Seeder
 
                 // Katipunan Campus Accounts
                 [
-                    'userCode' => '10-A-00011',
+                    'userCode' => 'KT-A-00000',
                     'firstName' => 'Associate',
-                    'lastName' => 'Dean',
+                    'lastName' => 'KT Asso Dean',
                     'email' => '10-A-00011@caps.local',
                     'roleID' => 5,
                     'campusID' => 2,
@@ -86,9 +86,9 @@ class UsersTableSeeder extends Seeder
                     'programID' => 5,
                 ],
                 [
-                    'userCode' => '10-A-00100',
+                    'userCode' => 'KT-A-00001',
                     'firstName' => 'Program',
-                    'lastName' => 'Chair',
+                    'lastName' => 'KT Chair',
                     'email' => '10-A-00100@caps.local',
                     'roleID' => 3,
                     'campusID' => 2,
@@ -96,9 +96,9 @@ class UsersTableSeeder extends Seeder
                     'programID' => 5,
                 ],
                 [
-                    'userCode' => '10-A-00101',
+                    'userCode' => 'KT-A-00010',
                     'firstName' => 'Faculty',
-                    'lastName' => 'Member',
+                    'lastName' => 'KT Faculty',
                     'email' => '10-A-00101@caps.local',
                     'roleID' => 2,
                     'campusID' => 2,
@@ -106,9 +106,9 @@ class UsersTableSeeder extends Seeder
                     'programID' => 5,
                 ],
                 [
-                    'userCode' => '10-A-00110',
+                    'userCode' => 'KT-A-00011',
                     'firstName' => 'Student',
-                    'lastName' => 'Member',
+                    'lastName' => 'KT Student',
                     'email' => '10-A-00110@caps.local',
                     'roleID' => 1,
                     'campusID' => 2,
@@ -118,9 +118,9 @@ class UsersTableSeeder extends Seeder
 
                 // Tampilisan Campus Accounts
                 [
-                    'userCode' => '10-A-00111',
+                    'userCode' => 'TC-A-00000',
                     'firstName' => 'Associate',
-                    'lastName' => 'Dean',
+                    'lastName' => 'TC Asso Dean',
                     'email' => '10-A-00111@caps.local',
                     'roleID' => 5,
                     'campusID' => 3,
@@ -128,9 +128,9 @@ class UsersTableSeeder extends Seeder
                     'programID' => 5,
                 ],
                 [
-                    'userCode' => '10-A-01000',
+                    'userCode' => 'TC-A-00001',
                     'firstName' => 'Program',
-                    'lastName' => 'Chair',
+                    'lastName' => 'TC Chair',
                     'email' => '10-A-01000@caps.local',
                     'roleID' => 3,
                     'campusID' => 3,
@@ -138,9 +138,9 @@ class UsersTableSeeder extends Seeder
                     'programID' => 5,
                 ],
                 [
-                    'userCode' => '10-A-01001',
+                    'userCode' => 'TC-A-00010',
                     'firstName' => 'Faculty',
-                    'lastName' => 'Member',
+                    'lastName' => 'TC Faculty',
                     'email' => '10-A-01001@caps.local',
                     'roleID' => 2,
                     'campusID' => 3,
@@ -148,9 +148,9 @@ class UsersTableSeeder extends Seeder
                     'programID' => 5,
                 ],
                 [
-                    'userCode' => '10-A-01010',
+                    'userCode' => 'TC-A-00011',
                     'firstName' => 'Student',
-                    'lastName' => 'Member',
+                    'lastName' => 'TC Student',
                     'email' => '10-A-01010@caps.local',
                     'roleID' => 1,
                     'campusID' => 3,
