@@ -39,7 +39,7 @@
     - php artisan migrate
     - php artisan db:seed
 
-    NOTE: THIS IS THE CHANGES ADDED IN V2.1
+    [V.2.1] 06-26-2026  Note: This is the table added in the db
 
     exam_attempts:
         -id
