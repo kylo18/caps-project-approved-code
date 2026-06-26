@@ -313,9 +313,6 @@ class PersonalQuizQuestionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while adding the question.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
-                'file' => app()->environment('local') ? $e->getFile() : null,
-                'line' => app()->environment('local') ? $e->getLine() : null,
             ], 500);
         }
     }
@@ -464,7 +461,6 @@ class PersonalQuizQuestionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while importing questions.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -671,7 +667,6 @@ class PersonalQuizQuestionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while updating the question.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -1132,7 +1127,6 @@ class PersonalQuizQuestionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while duplicating the question.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

@@ -121,7 +121,6 @@ class PracticeExamLeaderboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving the leaderboard.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -262,7 +261,6 @@ class PracticeExamLeaderboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving recent takers.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -360,7 +358,6 @@ class PracticeExamLeaderboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving the overall leaderboard.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -501,7 +498,6 @@ class PracticeExamLeaderboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving overall recent takers.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

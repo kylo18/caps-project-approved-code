@@ -54,7 +54,6 @@ class ClassController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving classes.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -128,7 +127,6 @@ class ClassController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while creating the class.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -270,7 +268,6 @@ class ClassController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving the class.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -338,7 +335,6 @@ class ClassController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while updating the class.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -398,7 +394,6 @@ class ClassController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while archiving the class.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -456,7 +451,6 @@ class ClassController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while deleting the class.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -529,7 +523,6 @@ class ClassController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while unarchiving the class.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -573,7 +566,6 @@ class ClassController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving archived classes.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

@@ -229,7 +229,6 @@ class PersonalQuizChoiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while creating choices.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -497,7 +496,6 @@ class PersonalQuizChoiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while updating choices.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -563,7 +561,6 @@ class PersonalQuizChoiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving choices.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -634,7 +631,6 @@ class PersonalQuizChoiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while deleting the choice.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

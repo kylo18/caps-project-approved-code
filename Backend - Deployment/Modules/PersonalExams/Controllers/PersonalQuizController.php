@@ -52,7 +52,6 @@ class PersonalQuizController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving personal quizzes.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -123,7 +122,6 @@ class PersonalQuizController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while creating the personal quiz.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -204,7 +202,6 @@ class PersonalQuizController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while updating the personal quiz.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -265,7 +262,6 @@ class PersonalQuizController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while archiving the personal quiz.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -310,7 +306,6 @@ class PersonalQuizController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving archived personal quizzes.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -371,7 +366,6 @@ class PersonalQuizController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while unarchiving the personal quiz.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -429,7 +423,6 @@ class PersonalQuizController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while deleting the personal quiz.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

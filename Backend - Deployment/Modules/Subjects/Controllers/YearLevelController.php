@@ -60,8 +60,7 @@ class YearLevelController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while retrieving year levels',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred while retrieving year levels'
             ], 500);
         }
     }

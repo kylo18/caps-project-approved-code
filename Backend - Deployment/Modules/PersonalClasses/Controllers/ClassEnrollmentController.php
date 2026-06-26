@@ -102,7 +102,6 @@ class ClassEnrollmentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while joining the class.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -185,7 +184,6 @@ class ClassEnrollmentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while joining the class.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -288,7 +286,6 @@ class ClassEnrollmentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while retrieving enrolled students.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -372,7 +369,6 @@ class ClassEnrollmentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while retrieving enrolled classes.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -441,7 +437,6 @@ class ClassEnrollmentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while unenrolling from the class.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -516,7 +511,6 @@ class ClassEnrollmentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An internal error occurred while removing the student.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

@@ -299,9 +299,9 @@ Route::middleware(['auth:sanctum', 'role:3,4,5'])->group(function () {
 
     // Practice Exam Settings
     Route::get('/practice-settings/{subjectID}', [PracticeExamSettingController::class, 'show']);
-    Route::post('/practice-settings', [PracticeExamSettingController::class, 'store']);
+    Route::post('/practice-settings', [PracticeExamSettingController::class, 'store']); 
 
-    // Multi-subject exam generation
+    // Multt-subject exam generation
     Route::post('/generate-multi-subject-exam', [PrintController::class, 'generateMultiSubjectExam']);
 
 

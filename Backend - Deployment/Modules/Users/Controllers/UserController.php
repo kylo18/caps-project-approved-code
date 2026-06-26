@@ -329,8 +329,7 @@ class UserController extends Controller
         } catch (\Exception $e) {
             Log::error('User approval error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'An error occurred while approving the user.',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred while approving the user.'
             ], 500);
         }
     }
@@ -494,9 +493,7 @@ class UserController extends Controller
             ]);
 
             return response()->json([
-                'success' => false,
-                'message' => 'An unexpected error occurred while updating your profile. Please try again later.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
+                'message' => 'An unexpected error occurred while updating your profile.'
             ], 500);
         }
     }
@@ -627,9 +624,23 @@ class UserController extends Controller
             ]);
 
             return response()->json([
-                'success' => false,
-                'message' => 'An unexpected error occurred while updating user credentials. Please try again later.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
+                'message' => 'User role updated successfully',
+                'user' => $user
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'User not found'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Role change error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An unexpected error occurred while changing the user role'
             ], 500);
         }
     }

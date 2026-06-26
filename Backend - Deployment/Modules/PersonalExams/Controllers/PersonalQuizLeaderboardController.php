@@ -178,7 +178,6 @@ class PersonalQuizLeaderboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving the leaderboard.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -387,7 +386,6 @@ class PersonalQuizLeaderboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving recent takers.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }
