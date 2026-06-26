@@ -11,17 +11,37 @@ class UsersTableSeeder extends Seeder
     public function run()
     {
         try {
-            // Retrieve the status ID for registered users; fallback to 4 if not found
             $status = DB::table('statuses')->where('name', 'registered')->first();
             $registeredStatusId = $status ? $status->id : 4;
+            $defaultPassword = Hash::make('password123');
 
             $users = [
-                // Chairs
+                // Main Campus Accounts
+                [
+                    'userCode' => '10-A-12345',
+                    'firstName' => 'Dean',
+                    'lastName' => 'Main',
+                    'email' => '10-A-12345@caps.local',
+                    'roleID' => 4,
+                    'campusID' => 1,
+                    'isActive' => 1,
+                    'programID' => 4,
+                ],
+                [
+                    'userCode' => '10-A-02087',
+                    'firstName' => 'Associate',
+                    'lastName' => 'Dean',
+                    'email' => '10-A-02087@caps.local',
+                    'roleID' => 5,
+                    'campusID' => 1,
+                    'isActive' => 1,
+                    'programID' => 4,
+                ],
                 [
                     'userCode' => '10-A-00000',
                     'firstName' => 'CE',
                     'lastName' => 'Chair',
-                    'email' => 'ce.chair@university.edu',
+                    'email' => '10-A-00000@caps.local',
                     'roleID' => 3,
                     'campusID' => 1,
                     'isActive' => 1,
@@ -31,39 +51,37 @@ class UsersTableSeeder extends Seeder
                     'userCode' => '10-A-00001',
                     'firstName' => 'CPE',
                     'lastName' => 'Chair',
-                    'email' => 'cpe.chair@university.edu',
+                    'email' => '10-A-00001@caps.local',
                     'roleID' => 3,
                     'campusID' => 1,
-                    'isActive' => 0,
+                    'isActive' => 1,
                     'programID' => 1,
                 ],
                 [
                     'userCode' => '10-A-00010',
                     'firstName' => 'EE',
                     'lastName' => 'Chair',
-                    'email' => 'ee.chair@university.edu',
+                    'email' => '10-A-00010@caps.local',
                     'roleID' => 3,
                     'campusID' => 1,
-                    'isActive' => 0,
+                    'isActive' => 1,
                     'programID' => 2,
                 ],
                 [
                     'userCode' => '10-A-00011',
                     'firstName' => 'ECE',
                     'lastName' => 'Chair',
-                    'email' => 'ece.chair@university.edu',
+                    'email' => '10-A-00011@caps.local',
                     'roleID' => 3,
                     'campusID' => 1,
                     'isActive' => 1,
                     'programID' => 4,
                 ],
-
-                // Faculty
                 [
                     'userCode' => '10-A-00100',
                     'firstName' => 'CE',
                     'lastName' => 'Faculty',
-                    'email' => 'ce.faculty@university.edu',
+                    'email' => '10-A-00100@caps.local',
                     'roleID' => 2,
                     'campusID' => 1,
                     'isActive' => 1,
@@ -73,135 +91,103 @@ class UsersTableSeeder extends Seeder
                     'userCode' => '10-A-00101',
                     'firstName' => 'CPE',
                     'lastName' => 'Faculty',
-                    'email' => 'cpe.faculty@university.edu',
+                    'email' => '10-A-00101@caps.local',
                     'roleID' => 2,
                     'campusID' => 1,
-                    'isActive' => 0,
+                    'isActive' => 1,
                     'programID' => 1,
                 ],
                 [
                     'userCode' => '10-A-00110',
                     'firstName' => 'EE',
                     'lastName' => 'Faculty',
-                    'email' => 'ee.faculty@university.edu',
+                    'email' => '10-A-00110@caps.local',
                     'roleID' => 2,
                     'campusID' => 1,
-                    'isActive' => 0,
+                    'isActive' => 1,
                     'programID' => 2,
                 ],
                 [
                     'userCode' => '10-A-00111',
                     'firstName' => 'ECE',
                     'lastName' => 'Faculty',
-                    'email' => 'ece.faculty@university.edu',
+                    'email' => '10-A-00111@caps.local',
                     'roleID' => 2,
                     'campusID' => 1,
                     'isActive' => 1,
                     'programID' => 4,
                 ],
 
-                // Students
+                // Katipunan Campus Accounts
                 [
-                    'userCode' => '10-A-01000',
-                    'firstName' => 'CE',
-                    'lastName' => 'Student',
-                    'email' => 'ce.student@university.edu',
-                    'roleID' => 1,
-                    'campusID' => 1,
-                    'isActive' => 1,
-                    'programID' => 3,
-                ],
-                [
-                    'userCode' => '10-A-01001',
-                    'firstName' => 'CPE',
-                    'lastName' => 'Student',
-                    'email' => 'cpe.student@university.edu',
-                    'roleID' => 1,
-                    'campusID' => 1,
-                    'isActive' => 1,
-                    'programID' => 1,
-                ],
-                [
-                    'userCode' => '10-A-01010',
-                    'firstName' => 'EE',
-                    'lastName' => 'Student',
-                    'email' => 'ee.student@university.edu',
-                    'roleID' => 1,
-                    'campusID' => 1,
-                    'isActive' => 1,
-                    'programID' => 2,
-                ],
-                [
-                    'userCode' => '10-A-01011',
-                    'firstName' => 'ECE',
-                    'lastName' => 'Student',
-                    'email' => 'ece.student@university.edu',
-                    'roleID' => 1,
-                    'campusID' => 1,
-                    'isActive' => 1,
-                    'programID' => 4,
-                ],
-
-                // Test Accounts
-                [
-                    'userCode' => '10-A-01110',
-                    'firstName' => 'Testoooo',
-                    'lastName' => 'Teroonn',
-                    'email' => 'testtTer@gmail.com',
-                    'roleID' => 1,
-                    'campusID' => 1,
-                    'isActive' => 1,
-                    'programID' => 1,
-                ],
-                [
-                    'userCode' => '10-A-01120',
-                    'firstName' => 'Testtt',
-                    'lastName' => 'Teeerr',
-                    'email' => 'TeessttTeerr@gmail.com',
-                    'roleID' => 1,
-                    'campusID' => 1,
-                    'isActive' => 1,
-                    'programID' => 1,
-                ],
-                [
-                    'userCode' => '10-A-01230',
-                    'firstName' => 'Test',
-                    'lastName' => 'Ter',
-                    'email' => 'testTer@gmail.com',
-                    'roleID' => 1,
-                    'campusID' => 1,
-                    'isActive' => 1,
-                    'programID' => 1,
-                ],
-
-                // Admin/Deans
-                [
-                    'userCode' => '10-A-02087',
+                    'userCode' => 'KT-A-00000',
                     'firstName' => 'Associate',
                     'lastName' => 'Dean',
-                    'email' => 'associate.dean@university.edu',
+                    'email' => 'KT-A-00000@caps.local',
                     'roleID' => 5,
-                    'campusID' => 1,
+                    'campusID' => 2,
                     'isActive' => 1,
-                    'programID' => 4,
+                    'programID' => 5,
                 ],
                 [
-                    'userCode' => '10-A-12345',
-                    'firstName' => 'Dean',
-                    'lastName' => 'Account',
-                    'email' => 'dean.account@university.edu',
-                    'roleID' => 4,
-                    'campusID' => 1,
+                    'userCode' => 'KT-A-00001',
+                    'firstName' => 'Program',
+                    'lastName' => 'Chair',
+                    'email' => 'KT-A-00001@caps.local',
+                    'roleID' => 3,
+                    'campusID' => 2,
                     'isActive' => 1,
-                    'programID' => 4,
+                    'programID' => 5,
+                ],
+                [
+                    'userCode' => 'KT-A-00010',
+                    'firstName' => 'Faculty',
+                    'lastName' => 'Member',
+                    'email' => 'KT-A-00010@caps.local',
+                    'roleID' => 2,
+                    'campusID' => 2,
+                    'isActive' => 1,
+                    'programID' => 5,
+                ],
+
+                // Tampilisan Campus Accounts
+                [
+                    'userCode' => 'TC-A-00000',
+                    'firstName' => 'Associate',
+                    'lastName' => 'Dean',
+                    'email' => 'TC-A-00000@caps.local',
+                    'roleID' => 5,
+                    'campusID' => 3,
+                    'isActive' => 1,
+                    'programID' => 5,
+                ],
+                [
+                    'userCode' => 'TC-A-00001',
+                    'firstName' => 'Program',
+                    'lastName' => 'Chair',
+                    'email' => 'TC-A-00001@caps.local',
+                    'roleID' => 3,
+                    'campusID' => 3,
+                    'isActive' => 1,
+                    'programID' => 5,
+                ],
+                [
+                    'userCode' => 'TC-A-00010',
+                    'firstName' => 'Faculty',
+                    'lastName' => 'Member',
+                    'email' => 'TC-A-00010@caps.local',
+                    'roleID' => 2,
+                    'campusID' => 3,
+                    'isActive' => 1,
+                    'programID' => 5,
                 ],
             ];
 
             foreach ($users as $userData) {
                 DB::table('users')->updateOrInsert(
-                    ['userCode' => $userData['userCode']], // Unique identifier
+                    ['userCode' => $userData['userCode']],
                     array_merge($userData, [
-                        'password' => Hash::make('password123'), // Default password
+                        'password' => $defaultPassword,
                         'status_id' => $registeredStatusId,
                         'created_at' => now(),
                         'updated_at' => now(),
@@ -210,7 +196,6 @@ class UsersTableSeeder extends Seeder
             }
 
             $this->command->info('Users table seeded successfully.');
-
         } catch (\Exception $e) {
             $this->command->error('Failed to seed users: ' . $e->getMessage());
         }
