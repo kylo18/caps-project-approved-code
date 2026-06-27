@@ -466,8 +466,11 @@ function Libraries() {
           throw new Error("You are not authenticated. Please log in again.");
         }
 
+        // Subject-based personal quiz: faculty/chair get only their own program's
+        // subjects + General Education (GE); dean/associate-dean get all. (Using
+        // /subjects/all here previously let faculty/chair see every program.)
         const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/subjects/all`,
+          `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes/subject-options`,
           {
             method: "GET",
             headers: {

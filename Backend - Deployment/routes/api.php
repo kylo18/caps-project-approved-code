@@ -144,6 +144,9 @@ Route::middleware(['auth:sanctum', TokenExpirationMiddleware::class, 'role:2,3,4
     Route::post('/personal-quizzes', [PersonalQuizController::class, 'store']);
     Route::get('/personal-quizzes', [PersonalQuizController::class, 'index']);
     Route::get('/personal-quizzes/archived', [PersonalQuizController::class, 'archived']);
+    // Subjects selectable for a SUBJECT-BASED personal quiz
+    // (faculty/chair: own program + General Education (GE); dean/asso-dean: all)
+    Route::get('/personal-quizzes/subject-options', [SubjectController::class, 'quizSubjects']);
     Route::put('/update-personal-quizzes/{personalQuizID}', [PersonalQuizController::class, 'update']);
     Route::patch('/personal-quizzes/{personalQuizID}/archive', [PersonalQuizController::class, 'archive']);
     Route::patch('/personal-quizzes/{personalQuizID}/unarchive', [PersonalQuizController::class, 'unarchive']);

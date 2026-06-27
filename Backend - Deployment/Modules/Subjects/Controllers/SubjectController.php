@@ -604,6 +604,85 @@ class SubjectController extends Controller
     }
 
     /**
+     * Subjects selectable when creating a SUBJECT-BASED personal quiz.
+     *
+     * Faculty (2) and Program Chair (3) only see subjects in their OWN program
+     * plus General Education (GE) subjects. Dean (4) and Associate Dean (5) see
+     * all subjects. This is intentionally different from /faculty/my-subjects
+     * (which returns only the subjects assigned to that faculty member).
+     */
+    public function quizSubjects(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user || !in_array((int) $user->roleID, [2, 3, 4, 5], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden.',
+                    'subjects' => [],
+                ], 403);
+            }
+
+            $query = DB::table('subjects as s')
+                ->join('programs as p', 's.programID', '=', 'p.programID')
+                ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
+                ->select(
+                    's.subjectID',
+                    's.subjectCode',
+                    's.subjectName',
+                    's.programID',
+                    'p.programName',
+                    's.yearLevelID',
+                    'yl.name as yearLevel'
+                );
+
+            // Faculty (2) and Program Chair (3): only their own program's subjects
+            // + General Education (GE) subjects. Dean (4) / Associate Dean (5): all.
+            if (in_array((int) $user->roleID, [2, 3], true)) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('s.programID', $user->programID)
+                      ->orWhere('s.programID', 6) // General (GE) subjects
+                      ->orWhere('p.programName', 'LIKE', '%General Education%');
+                });
+            }
+
+            $subjects = $query->orderBy('s.subjectID')->get();
+
+            $formattedSubjects = $subjects->map(function ($subject) {
+                $programName = $subject->programName ?? '';
+                if ($programName !== '' && strpos($programName, 'BS-') === 0) {
+                    $programName = substr($programName, 3);
+                }
+
+                return [
+                    'subjectID' => $subject->subjectID,
+                    'subjectCode' => $subject->subjectCode,
+                    'subjectName' => $subject->subjectName,
+                    'programID' => $subject->programID,
+                    'programName' => $programName,
+                    'yearLevelID' => $subject->yearLevelID,
+                    'yearLevel' => $subject->yearLevel,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Subjects retrieved successfully.',
+                'subjects' => $formattedSubjects,
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Error retrieving quiz subjects', [
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving subjects.',
+                'subjects' => [],
+            ], 500);
+        }
+    }
+
+    /**
      * Enable exam questions (purpose_id 3) for a subject. Only accessible by the Dean (roleID 4).
      */
     public function enableExamQuestions($subjectID)

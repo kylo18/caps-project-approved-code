@@ -400,8 +400,12 @@ class PersonalQuizChoiceController extends Controller
                             $hasCorrectChoice = true;
                         }
 
-                        // Handle choice image
-                        if (isset($choiceData['image'])) {
+                        // Handle choice image. Use array_key_exists (NOT isset): the
+                        // empty string sent when an image is removed is converted to null
+                        // above, and isset() is false for null — which previously skipped
+                        // this whole block and left the old picture in place. array_key_exists
+                        // is true for a present-but-null key, so the "removed" branch runs.
+                        if (array_key_exists('image', $choiceData) || $request->hasFile("choices.$index.image")) {
                             if (filter_var($choiceData['image'], FILTER_VALIDATE_URL)) {
                                 // It's a URL, use it directly
                                 $choice->image = $choiceData['image'];

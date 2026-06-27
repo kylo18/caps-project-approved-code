@@ -139,6 +139,9 @@ class StudentQuizController extends Controller
             $now = now();
             $isAvailable = true;
             $availabilityMessage = null;
+            // Machine-readable reason the quiz can't be taken, so the frontend can
+            // branch reliably: not_yet_available | deadline_passed | attempts_exhausted
+            $availabilityReason = null;
             $availabilityDetails = [];
             $effectiveStartDate = $classQuizAssignment->startDate ?: ($settings ? $settings->startTime : null);
             $effectiveEndDate = $classQuizAssignment->deadlineDate ?: ($settings ? $settings->endTime : null);
@@ -146,7 +149,8 @@ class StudentQuizController extends Controller
             // Check effective start date
             if ($effectiveStartDate && $now < $effectiveStartDate) {
                 $isAvailable = false;
-                $availabilityMessage = 'Quiz is not yet available.';
+                $availabilityReason = 'not_yet_available';
+                $availabilityMessage = 'This quiz is not open yet. It will be available on ' . $effectiveStartDate->format('M d, Y H:i') . '.';
                 $availabilityDetails[] = [
                     'type' => 'start_date',
                     'message' => 'Available from: ' . $effectiveStartDate->format('M d, Y H:i'),
@@ -164,7 +168,8 @@ class StudentQuizController extends Controller
                 if ($now > $effectiveEndDate) {
                     if (!$settings || !$settings->allowLateSubmission) {
                         $isAvailable = false;
-                        $availabilityMessage = 'Quiz deadline has passed.';
+                        $availabilityReason = 'deadline_passed';
+                        $availabilityMessage = 'The deadline for this quiz has passed, so it can no longer be taken.';
                     } else {
                         $availabilityDetails[] = [
                             'type' => 'late_submission',
@@ -178,7 +183,8 @@ class StudentQuizController extends Controller
             if ($settings) {
                 if (!$classQuizAssignment->startDate && $settings->startTime && $now < $settings->startTime) {
                     $isAvailable = false;
-                    $availabilityMessage = 'Quiz is not yet available.';
+                    $availabilityReason = 'not_yet_available';
+                    $availabilityMessage = 'This quiz is not open yet. It will be available on ' . $settings->startTime->format('M d, Y H:i') . '.';
                     $availabilityDetails[] = [
                         'type' => 'quiz_start_time',
                         'message' => 'Quiz starts at: ' . $settings->startTime->format('M d, Y H:i'),
@@ -196,7 +202,8 @@ class StudentQuizController extends Controller
                     if ($now > $settings->endTime) {
                         if (!$settings->allowLateSubmission) {
                             $isAvailable = false;
-                            $availabilityMessage = 'Quiz deadline has passed.';
+                            $availabilityReason = 'deadline_passed';
+                            $availabilityMessage = 'The deadline for this quiz has passed, so it can no longer be taken.';
                         } else {
                             $availabilityDetails[] = [
                                 'type' => 'late_submission',
@@ -215,8 +222,10 @@ class StudentQuizController extends Controller
                     ];
 
                     if ($attemptCount >= $settings->quizAttempts) {
+                        $maxAttempts = (int) $settings->quizAttempts;
                         $isAvailable = false;
-                        $availabilityMessage = 'You have reached the maximum number of attempts for this quiz.';
+                        $availabilityReason = 'attempts_exhausted';
+                        $availabilityMessage = "No attempts left for this quiz. You've already taken it the maximum of {$maxAttempts} time" . ($maxAttempts === 1 ? '' : 's') . ", so it can no longer be taken.";
                     } else {
                         $availabilityDetails[] = [
                             'type' => 'remaining_attempts',
@@ -291,6 +300,7 @@ class StudentQuizController extends Controller
                 ],
                 'availability' => [
                     'isAvailable' => $isAvailable,
+                    'reason' => $availabilityReason,
                     'message' => $availabilityMessage,
                     'details' => $availabilityDetails,
                 ],
@@ -479,14 +489,18 @@ class StudentQuizController extends Controller
 
                 // Check attempt limit
                 if ($settings->quizAttempts) {
-                    $existingResults = StudentQuizResult::where('class_quiz_assignment_id', $classPersonalQuizID)
+                    $attemptsUsed = StudentQuizResult::where('class_quiz_assignment_id', $classPersonalQuizID)
                         ->where('studentID', $user->userID)
-                        ->get();
+                        ->count();
 
-                    if ($existingResults->count() >= $settings->quizAttempts) {
+                    if ($attemptsUsed >= $settings->quizAttempts) {
+                        $max = (int) $settings->quizAttempts;
                         return response()->json([
                             'success' => false,
-                            'message' => 'You have reached the maximum number of attempts for this quiz.',
+                            'reason'  => 'attempts_exhausted',
+                            'message' => "No attempts left for this quiz. You've already taken it the maximum of {$max} time" . ($max === 1 ? '' : 's') . ", so it can no longer be taken.",
+                            'attemptsUsed' => $attemptsUsed,
+                            'maxAttempts'  => $max,
                         ], 403);
                     }
                 }

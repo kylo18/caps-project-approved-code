@@ -88,7 +88,9 @@ const CreateQuestionnaireForm = ({
   const fetchSubjects = async () => {
     try {
       const token = sessionStorage.getItem("token");
-      const response = await fetch(`${apiUrl}/faculty/my-subjects`, {
+      // Subject-based personal quiz: only the user's program subjects + GE
+      // (faculty/chair). Distinct from /faculty/my-subjects (assigned only).
+      const response = await fetch(`${apiUrl}/personal-quizzes/subject-options`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
