@@ -135,7 +135,8 @@ docker-data
 
 # docker compose
 docker-compose.yml
-# Ignore TestEnvironmentResults folder
+# Ignore test environment result folders
 TestEnvironmentResults/BugRootCauseAnalysis/
+TestEnvironmentReults/BugRootCauseAnalyis/
 
 
