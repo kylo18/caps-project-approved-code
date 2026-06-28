@@ -936,13 +936,9 @@ class UserController extends Controller
                 'email',
                 Rule::unique('users', 'email')->ignore($user->userID, 'userID')
             ],
-            'userCode' => [
-                'sometimes',
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('users', 'userCode')->ignore($user->userID, 'userID')
-            ],
+            // userCode is intentionally NOT updatable via the self-service profile
+            // update. It is omitted from the rules so any submitted value is ignored
+            // (never validated, never applied) and the user's code stays fixed.
         ];
 
         if ($user->roleID === 4) {

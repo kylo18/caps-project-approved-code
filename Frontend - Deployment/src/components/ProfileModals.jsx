@@ -549,13 +549,16 @@ const ProfileModals = ({
 
                     <div>
                       <label className={fieldLabelClass}>User Code</label>
+                      {/* User Code is not editable by any role — shown read-only. */}
                       <input
                         type="text"
                         name="userCode"
                         value={profileFormData.userCode}
-                        onChange={handleProfileChange}
-                        required
-                        className={fieldInputClass}
+                        readOnly
+                        disabled
+                        aria-disabled="true"
+                        title="Your User Code cannot be changed."
+                        className={readOnlyInputClass}
                       />
                     </div>
 
