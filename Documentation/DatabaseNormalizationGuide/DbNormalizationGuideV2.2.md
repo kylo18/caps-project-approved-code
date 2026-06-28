@@ -8,25 +8,25 @@
 
     - Ensure you are currently in this branch:
 
-    * VulnerabilityPatch
+    * Environments/Test
 
     - If you are inside that branch, proceed to step 3. If not proceed to the next step below
 
     - If you are not inside that branch, type this command:
 
-    - git switch VulnerabilityPatch
+    - git switch Environments/Test
 
     - Recheck by typing, <git branch>
 
-    - You should be inside, <* VulnerabilityPatch>
+    - You should be inside, <* Environments/Test>
 
     - Proceed to step 3
 
 3. (SKIP THIS PART IN PRODUCTION!!) Navigate to the backend container and randomize first the answer
 
-    docker exec -it caps_backend bash
-
     (NOTE: SKIP THIS PART IN PRODUCTION!!): php artisan choices:randomize-correct 
+    
+    docker exec -it caps_backend bash
 
 4. Run the script for migrating and seeding the necessary data in the database:
     
