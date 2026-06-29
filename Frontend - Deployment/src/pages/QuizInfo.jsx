@@ -1,4 +1,5 @@
 import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { clearAuth } from '../utils/authStorage';
 import { useEffect, useState } from "react";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
@@ -76,7 +77,7 @@ const QuizInfo = () => {
 
         if (!response.ok) {
           if (response.status === 401) {
-            sessionStorage.removeItem("token");
+            clearAuth();
             throw new Error("Your session has expired. Please log in again.");
           }
           let msg = "Failed to load quiz information.";
@@ -187,7 +188,7 @@ const QuizInfo = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           throw new Error("Your session has expired. Please log in again.");
         }
         let msg = "Failed to start quiz.";
@@ -216,7 +217,11 @@ const QuizInfo = () => {
 
   const handleStartQuiz = async () => {
     if (!quizInfo?.availability?.isAvailable) {
-      showToast("This quiz is not available at this time.", "error");
+      showToast(
+        quizInfo?.availability?.message ||
+          "This quiz is not available at this time.",
+        "error",
+      );
       return;
     }
     if (activeAttempt && isQuizModified) {
@@ -259,7 +264,11 @@ const QuizInfo = () => {
   /* open retake modal (for when there IS an active attempt) */
   const handleRetakeClick = () => {
     if (!quizInfo?.availability?.isAvailable) {
-      showToast("This quiz is not available at this time.", "error");
+      showToast(
+        quizInfo?.availability?.message ||
+          "This quiz is not available at this time.",
+        "error",
+      );
       return;
     }
     setShowRetakeModal(true);
@@ -667,7 +676,7 @@ const QuizInfo = () => {
               {!activeAttempt && (
                 <button
                   onClick={handleStartQuiz}
-                  disabled={loadingAction === "start"}
+                  disabled={loadingAction === "start" || !availability?.isAvailable}
                   className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-[14px] font-semibold text-white transition hover:bg-orange-600 active:scale-95 disabled:pointer-events-none disabled:opacity-70"
                 >
                   {loadingAction === "start" ? (

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { clearAuth } from '../utils/authStorage';
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 
@@ -85,7 +86,7 @@ const ArchivedQuiz = () => {
 
         if (!response.ok) {
           if (response.status === 401) {
-            sessionStorage.removeItem("token");
+            clearAuth();
             throw new Error("Your session has expired. Please log in again.");
           }
 

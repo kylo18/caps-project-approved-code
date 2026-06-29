@@ -170,4 +170,27 @@
         - Optimized the Quiz and Practice exam modules
         - Quiz Settings are now independent to each class
         - Optimized Student Home page
+
+   [V2.1] 06-14-26 
+
+    Dean Functionalities:
+        - Change other accounts name, email, usercode, program, and campus
+
+    Associate Dean Functionalities:
+        - Change question difficulty
+        - Multi select questions for approval
+
+    Program Chair Functionalities:
+        - Change question difficulty
+        - Multi select questions for approval
+
+    Instructor Functionalities:
+        - Change question difficulty
+        - Multi select questions for approval
+
+   Bug Fixes & Improvements:
+        - Added the ability to edit credentials (email, name, password, and User Code) for all user accounts.
+        - Remember me option in logging in
+        
+       
         

@@ -142,3 +142,6 @@ Questions for Testing/CE SAMPLE QUESITONS.txt
 Questions for Testing/TEST ACCOUNTS.txt
 
 TESTING ENVIRONMENT RESULTS/BugRootCauseAnalyis/ProgramChair/ProgramChairBugRootCauseAnalysis.docx
+
+# Ignore test environment result folders
+TestEnvironmentResults/BugRootCauseAnalysis

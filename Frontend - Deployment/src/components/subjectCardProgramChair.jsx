@@ -26,6 +26,7 @@ const SubjectCard = ({
   setSearchQuery,
   practiceExamSettings,
   setPracticeExamSettings,
+  pendingCount = 0,
 }) => {
   // Move all useState declarations to the top
   const [isResizing, setIsResizing] = useState(false);
@@ -612,6 +613,11 @@ const SubjectCard = ({
                   onClick={() => setActiveIndex(tab.index)}
                 >
                   {tab.label}
+                  {tab.index === 4 && pendingCount > 0 && (
+                    <span className="ml-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 py-[1px] text-[10px] font-bold text-white">
+                      {pendingCount}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -745,6 +751,11 @@ const SubjectCard = ({
                       }}
                     >
                       {tab.label}
+                      {tab.index === 4 && pendingCount > 0 && (
+                        <span className="ml-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 py-[1px] text-[10px] font-bold text-white">
+                          {pendingCount}
+                        </span>
+                      )}
                     </button>
                   );
                 })}

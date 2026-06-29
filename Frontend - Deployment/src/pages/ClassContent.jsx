@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { clearAuth } from '../utils/authStorage';
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/confirmModal";
 import EditClassModal from "../components/EditClassModal";
@@ -140,7 +141,7 @@ const ClassContent = () => {
 
         if (!response.ok) {
           if (response.status === 401) {
-            sessionStorage.removeItem("token");
+            clearAuth();
             throw new Error("Your session has expired. Please log in again.");
           }
 
@@ -476,7 +477,7 @@ const ClassContent = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           throw new Error("Your session has expired. Please log in again.");
         }
 
@@ -539,7 +540,7 @@ const ClassContent = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           throw new Error("Your session has expired. Please log in again.");
         }
 
@@ -841,7 +842,7 @@ const ClassContent = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           throw new Error("Your session has expired. Please log in again.");
         }
 

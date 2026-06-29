@@ -87,6 +87,7 @@ const FacultyContent = () => {
 
   const [isExamQuestionsEnabled, setIsExamQuestionsEnabled] = useState({});
   const [practiceExamSettings, setPracticeExamSettings] = useState({});
+  const [isBannerClosed, setIsBannerClosed] = useState(false);
 
   // Fetch QE enabled status and practice exam settings when subject changes
   useEffect(() => {
@@ -139,6 +140,7 @@ const FacultyContent = () => {
   // Effect to fetch questions when subject changes
   useEffect(() => {
     if (selectedSubject && selectedSubject.subjectID) {
+      setIsBannerClosed(false);
       fetchQuestions();
       setSubmittedQuestion(null);
       setShowPracticeChoiceForm(false);
@@ -402,39 +404,6 @@ const FacultyContent = () => {
     };
   }, []);
 
-  const approveQuestion = async (questionID) => {
-    try {
-      const token = sessionStorage.getItem("token");
-      setIsApproving(true);
-
-      const response = await fetch(`${apiUrl}/questions/${questionID}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to approve the question");
-      }
-
-      fetchQuestions();
-      showToast("Question approved successfully!", "success");
-    } catch (error) {
-      console.error("Error approving question:", error);
-      showToast(
-        error.message || "An error occurred while approving the question.",
-        "error",
-      );
-    } finally {
-      setIsApproving(false);
-      setShowApproveModal(false);
-    }
-  };
-
   // Function to handle question duplication
   const handleDuplicateClick = (question) => {
     setDuplicatingQuestion(question);
@@ -490,7 +459,7 @@ const FacultyContent = () => {
   }, [showDifficultyCounter]);
 
   return (
-    <div className="relative mt-2 flex min-h-screen w-full flex-1 flex-col justify-center py-2 pb-24 md:pb-2">
+ <div className="relative mt-10 flex min-h-screen w-full flex-1 flex-col justify-center py-2 pb-24 md:pb-2 lg:mt-2">
       <div className="flex-1">
         {selectedSubject ? (
           <div className="w-full py-3">
@@ -526,45 +495,31 @@ const FacultyContent = () => {
                   // Dispatch the event to refresh assigned subjects in subjectsFaculty.jsx
                   window.dispatchEvent(new Event("refreshSubjectsList"));
                 }}
+                pendingCount={questions.filter((q) => q.status_id === 1).length}
               />
-              {/* Desktop Sort controls (tabs are rendered inside SubjectCardFaculty now) */}
-              {!isLoading && (
-                <div className="outfit-400 mx-auto max-w-3xl md:mt-4">
-                  <div className="flex w-full items-center justify-end">
-                    {activeTab === 4 && (
-                      <SortType
-                        name="pendingSort"
-                        value={pendingSort}
-                        onChange={(e) => setPendingSort(e.target.value)}
-                        placeholder="Type"
-                        options={[
-                          { value: "", label: "All types" },
-                          {
-                            value: "practiceQuestions",
-                            label: "Practice Exam",
-                          },
-                          {
-                            value: "examQuestions",
-                            label: "Qualifying Exam",
-                          },
-                        ]}
-                        className="sm:w-35"
-                      />
-                    )}
-                    {activeTab === 4 && (
-                      <div className="mx-2 h-5 w-px bg-gray-300"></div>
-                    )}
-                    <div className="w-auto">
-                      <Sort
-                        sortOption={sortOption}
-                        setSortOption={setSortOption}
-                        subSortOption={subSortOption}
-                        setSubSortOption={setSubSortOption}
-                      />
-                    </div>
+
+              {/* Practice Exam Disabled Banner */}
+              {!isLoading &&
+                !isBannerClosed &&
+                !practiceExamSettings[selectedSubject?.subjectID]
+                  ?.isEnabled && (
+                  <div className="outfit-400 mx-0 mt-3 flex w-full items-center gap-2 border border-amber-200 bg-amber-50 px-4 py-2 sm:mx-auto sm:max-w-[1200px] sm:rounded-xl">
+                    <i className="bx bx-info-circle text-lg text-amber-600"></i>
+                    <p className="flex-1 text-[13px] text-amber-800">
+                      <span className="font-semibold">
+                        Practice Exam is not enabled.
+                      </span>{" "}
+                      The Dean hasn't enabled practice exams for this subject.
+                    </p>
+                    <button
+                      onClick={() => setIsBannerClosed(true)}
+                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-amber-600 transition-colors hover:bg-amber-100 hover:text-amber-800 focus:outline-none"
+                      title="Close"
+                    >
+                      <i className="bx bx-x text-xl"></i>
+                    </button>
                   </div>
-                </div>
-              )}
+                )}
             </div>
 
             {/* Add Question Section */}
@@ -594,7 +549,7 @@ const FacultyContent = () => {
                     >
                       <div className="flex items-center justify-center gap-2">
                         <i className="bx bx-plus text-[24px] lg:text-[16px]"></i>
-                        <span className="outfit-400-400 hidden lg:block">
+                        <span className="outfit-400 hidden lg:block">
                           Add Question
                         </span>
                       </div>
@@ -631,103 +586,129 @@ const FacultyContent = () => {
                     </div>
                   ) : filteredQuestions.length > 0 ? (
                     <>
-                      <div className="outfit-400 relative mx-0 mt-3 flex w-full max-w-3xl flex-row items-center rounded-t-3xl border border-b-0 border-gray-200 bg-white sm:mx-auto sm:mt-[2px] sm:rounded-t-xl md:rounded-t-xl">
-                        <div className="flex h-full items-center gap-2 px-4 py-2">
-                          {/* Question Count */}
-                          <div className="outfit-400-400 flex items-center justify-center gap-2 text-[14px] text-nowrap text-gray-600">
-                            <span>
-                              {
-                                filteredQuestions.filter(
-                                  (question) =>
-                                    (activeTab === 4 &&
-                                      question.status_id === 1) || // 1 is pending
-                                    (activeTab === 0 &&
-                                      question.purpose_id === 2 && // 1 for practice questions
-                                      question.status_id === 2) || // 2 is approved
-                                    (activeTab === 1 &&
-                                      question.purpose_id === 1 && // 2 for exam questions
-                                      question.status_id === 2), // 2 is approved
-                                ).length
-                              }{" "}
-                              {filteredQuestions.filter(
-                                (question) =>
-                                  (activeTab === 4 &&
-                                    question.status_id === 1) || // 1 is pending
-                                  (activeTab === 0 &&
-                                    question.purpose_id === 2 && // 1 for practice questions
-                                    question.status_id === 2) || // 2 is approved
-                                  (activeTab === 1 &&
-                                    question.purpose_id === 1 && // 2 for exam questions
-                                    question.status_id === 2), // 2 is approved
-                              ).length === 1
-                                ? "QUESTION"
-                                : "QUESTIONS"}
-                            </span>
-                            <span
-                              ref={difficultyIconRef}
-                              className="outfit-400 relative flex items-center"
-                            >
-                              <i
-                                className="bx bx-chevron-right cursor-pointer text-2xl text-gray-400 hover:text-gray-500"
-                                title="Show difficulty counter"
-                                onClick={() =>
-                                  setShowDifficultyCounter((v) => !v)
-                                }
-                              ></i>
-                              {showDifficultyCounter && (
-                                <div className="fade-in outfit-400-400 absolute left-33 z-50 mt-2 w-48 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-4 py-[14px] shadow-md">
-                                  <div className="mb-3 text-center text-xs font-semibold text-gray-700">
-                                    Difficulty Count
-                                  </div>
-                                  {(() => {
-                                    const counts = getDifficultyCounts(
-                                      filteredQuestions.filter(
-                                        (question) =>
-                                          (activeTab === 4 &&
-                                            question.status_id === 1) ||
-                                          (activeTab === 0 &&
-                                            question.purpose_id === 2 &&
-                                            question.status_id === 2) ||
-                                          (activeTab === 1 &&
-                                            question.purpose_id === 1 &&
-                                            question.status_id === 2),
-                                      ),
-                                    );
-                                    return (
-                                      <div className="flex flex-col gap-2 text-xs text-gray-700">
-                                        <span className="rounded bg-white py-1 font-semibold">
-                                          Easy: {counts.easy || 0}
-                                        </span>
-                                        <span className="rounded bg-white py-1 font-semibold">
-                                          Moderate: {counts.moderate || 0}
-                                        </span>
-                                        <span className="rounded bg-white py-1 font-semibold">
-                                          Hard: {counts.hard || 0}
-                                        </span>
-                                      </div>
-                                    );
-                                  })()}
+                      {(() => {
+                        const activeQuestions = filteredQuestions.filter(
+                          (question) =>
+                            (activeTab === 4 && question.status_id === 1) || // 1 is pending
+                            (activeTab === 0 &&
+                              question.purpose_id === 2 &&
+                              question.status_id === 2) || // 2 is approved
+                            (activeTab === 1 &&
+                              question.purpose_id === 1 &&
+                              question.status_id === 2), // 2 is approved
+                        );
+                        const total = activeQuestions.length;
+                        const counts = getDifficultyCounts(activeQuestions);
+                        const easyCount = counts.easy || 0;
+                        const modCount = counts.moderate || 0;
+                        const hardCount = counts.hard || 0;
+                        const easyPct =
+                          total > 0 ? (easyCount / total) * 100 : 0;
+                        const modPct = total > 0 ? (modCount / total) * 100 : 0;
+                        const hardPct =
+                          total > 0 ? (hardCount / total) * 100 : 0;
+
+                        return (
+                          <div className="outfit-400 border-color relative mx-0 mt-4 mb-2 flex w-full max-w-3xl flex-col border bg-white p-4 sm:mx-auto sm:mt-4 sm:rounded-xl md:mb-4 md:rounded-xl">
+                            {/* Top row */}
+                            <div className="flex w-full items-center justify-between">
+                              <div className="flex items-center gap-1 text-[14px] font-semibold text-gray-700">
+                                <span>{total}</span>
+                                <span>
+                                  {total === 1 ? "QUESTION" : "QUESTIONS"}
+                                </span>
+                              </div>
+                              <div className="flex items-center">
+                                <span className="outfit-400 mr-3 text-[14px] font-medium text-gray-600">
+                                  Show Details
+                                </span>
+                                <label className="relative inline-flex cursor-pointer items-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={!listViewOnly}
+                                    onChange={() => {
+                                      setListViewOnly((prev) => !prev);
+                                      setExpandedQuestionId(null);
+                                    }}
+                                    className="peer sr-only"
+                                  />
+                                  <div className="peer h-6 w-11 rounded-full bg-gray-300 peer-checked:bg-orange-500 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
+                                </label>
+                              </div>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="mt-4 flex h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                              <div
+                                style={{ width: `${easyPct}%` }}
+                                className="bg-[#65A338] transition-all duration-500"
+                              ></div>
+                              <div
+                                style={{ width: `${modPct}%` }}
+                                className="bg-[#E68A19] transition-all duration-500"
+                              ></div>
+                              <div
+                                style={{ width: `${hardPct}%` }}
+                                className="bg-[#E14343] transition-all duration-500"
+                              ></div>
+                            </div>
+
+                            {/* Bottom row */}
+                            <div className="mt-3 flex items-center justify-start sm:justify-between">
+                              <div className="hidden text-[12px] font-medium tracking-wide text-gray-500 uppercase sm:block">
+                                Difficulty Distribution
+                              </div>
+                              <div className="flex items-center gap-3 text-[10px] text-gray-600 sm:gap-5 sm:text-[12px]">
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <span className="h-2.5 w-2.5 rounded-full bg-[#65A338] sm:h-3 sm:w-3"></span>
+                                  <span>Easy · {easyCount}</span>
                                 </div>
-                              )}
-                            </span>
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <span className="h-2.5 w-2.5 rounded-full bg-[#E68A19] sm:h-3 sm:w-3"></span>
+                                  <span>Moderate · {modCount}</span>
+                                </div>
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <span className="h-2.5 w-2.5 rounded-full bg-[#E14343] sm:h-3 sm:w-3"></span>
+                                  <span>Hard · {hardCount}</span>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="ml-auto flex items-center px-4 py-3">
-                          <span className="outfit-400-400 mr-4 ml-2 items-center text-sm text-nowrap text-gray-500">
-                            Show Details
-                          </span>
-                          <label className="relative inline-flex cursor-pointer items-center">
-                            <input
-                              type="checkbox"
-                              checked={!listViewOnly}
-                              onChange={() => {
-                                setListViewOnly((prev) => !prev);
-                                setExpandedQuestionId(null); // Reset expanded state when switching view
-                              }}
-                              className="peer sr-only"
-                            />
-                            <div className="peer h-6 w-11 rounded-full bg-gray-300 peer-checked:bg-orange-500 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
-                          </label>
+                        );
+                      })()}
+
+                      {/* Sort controls - below the difficulty box */}
+                      <div className="outfit-400 mx-0 mb-2 flex w-full max-w-3xl items-center justify-end sm:mx-auto">
+                        {activeTab === 4 && (
+                          <SortType
+                            name="pendingSort"
+                            value={pendingSort}
+                            onChange={(e) => setPendingSort(e.target.value)}
+                            placeholder="Type"
+                            options={[
+                              { value: "", label: "All types" },
+                              {
+                                value: "practiceQuestions",
+                                label: "Practice Exam",
+                              },
+                              {
+                                value: "examQuestions",
+                                label: "Qualifying Exam",
+                              },
+                            ]}
+                            className="sm:w-35"
+                          />
+                        )}
+                        {activeTab === 4 && (
+                          <div className="mx-2 h-5 w-px bg-gray-300"></div>
+                        )}
+                        <div className="w-auto">
+                          <Sort
+                            sortOption={sortOption}
+                            setSortOption={setSortOption}
+                            subSortOption={subSortOption}
+                            setSubSortOption={setSubSortOption}
+                          />
                         </div>
                       </div>
 
@@ -765,39 +746,36 @@ const FacultyContent = () => {
                               } ${
                                 listViewOnly
                                   ? expandedQuestionId === question.questionID
-                                    ? `${index === 0 ? "rounded-b-xl" : "mt-2 mb-2 rounded-xl"}`
+                                    ? `mt-2 mb-2 rounded-xl`
                                     : index > 0 &&
                                         filteredQuestions[index - 1]
                                           ?.questionID === expandedQuestionId
                                       ? `${
                                           index === filteredQuestions.length - 1
-                                            ? "mt-2 rounded-t-xl rounded-b-xl"
-                                            : index === 1 &&
-                                                filteredQuestions[0]
-                                                  ?.questionID ===
-                                                  expandedQuestionId
-                                              ? "mt-2 rounded-t-xl"
-                                              : "rounded-t-xl"
+                                            ? "mt-2 rounded-xl"
+                                            : "mt-2 rounded-t-xl"
                                         }`
                                       : index !==
                                             filteredQuestions.length - 1 &&
                                           filteredQuestions[index + 1]
                                             ?.questionID === expandedQuestionId
-                                        ? "rounded-b-xl"
+                                        ? `${index === 0 ? "rounded-xl" : "rounded-b-xl"}`
                                         : index === filteredQuestions.length - 1
-                                          ? "rounded-b-xl"
-                                          : ""
-                                  : `${index === 0 ? "rounded-t-none" : "rounded-t-xl"} mb-2 rounded-xl`
+                                          ? `${index === 0 ? "rounded-xl" : "rounded-b-xl"}`
+                                          : `${index === 0 ? "rounded-t-xl" : ""}`
+                                  : `mb-3 rounded-xl`
                               } `}
                             >
                               <div className="w-full max-w-full overflow-hidden break-words">
                                 <div className="outfit-400 flex items-center justify-between text-[14px] text-gray-500">
                                   {/* Always show points, coverage, and difficulty in list view */}
-                                  <span>{index + 1}. MULTIPLE CHOICE</span>
+                                  <span className="outfit-700 text-[12px]">
+                                    {index + 1}. MULTIPLE CHOICE
+                                  </span>
                                   <div className="relative flex min-h-[32px] items-center">
                                     {/* Badges */}
                                     <div
-                                      className={`flex items-center transition-opacity duration-150 ${
+                                      className={`outfit-400 flex items-center transition-opacity duration-150 ${
                                         listViewOnly &&
                                         expandedQuestionId !==
                                           question.questionID &&
@@ -833,7 +811,7 @@ const FacultyContent = () => {
                                         }`}
                                       >
                                         <button
-                                          className="outfit-400 border-color mx-1 flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-[6px] text-gray-900 transition-colors hover:bg-gray-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Remove"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -855,7 +833,7 @@ const FacultyContent = () => {
                                         </button>
 
                                         <button
-                                          className="outfit-400 border-color mx-1 flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-[6px] text-gray-900 transition-colors hover:bg-gray-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Edit"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -881,7 +859,7 @@ const FacultyContent = () => {
                                         }`}
                                       >
                                         <button
-                                          className="outfit-400 border-color mx-1 flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-[6px] text-gray-900 transition-colors hover:bg-gray-100"
+                                          className="outfit-400 mx-1 flex cursor-pointer items-center gap-1 rounded-xl border border-gray-200 px-3 py-[6px] text-gray-700 transition-colors hover:bg-gray-100"
                                           title="Remove"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -940,7 +918,7 @@ const FacultyContent = () => {
                                       }}
                                       className="relative mt-4 cursor-pointer rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:bg-gray-200"
                                     >
-                                      <div className="word-break outfit-400-400 break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
+                                      <div className="word-break outfit-400 break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
                                         <span
                                           dangerouslySetInnerHTML={{
                                             __html: question.questionText,
@@ -949,7 +927,7 @@ const FacultyContent = () => {
                                       </div>
                                     </div>
                                   ) : (
-                                    <div className="outfit-400-400 word-break break-word mt-4 flex w-full max-w-full cursor-pointer items-center overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
+                                    <div className="outfit-400 word-break break-word mt-4 flex w-full max-w-full cursor-pointer items-center overflow-hidden bg-inherit text-[14px] break-words whitespace-pre-wrap">
                                       <span
                                         className="ml-2 font-semibold"
                                         dangerouslySetInnerHTML={{
@@ -966,7 +944,7 @@ const FacultyContent = () => {
                                     </div>
                                   )
                                 ) : (
-                                  <div className="outfit-400-400 relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-pointer">
+                                  <div className="outfit-400 relative mt-4 rounded-sm bg-gray-100 p-1 transition-all duration-150 hover:cursor-pointer">
                                     <div className="word-break break-word mt-1 min-h-[40px] w-full max-w-full resize-none overflow-hidden border-gray-200 bg-inherit py-2 pl-3 text-[14px] break-words whitespace-pre-wrap">
                                       <span
                                         dangerouslySetInnerHTML={{
@@ -1040,7 +1018,7 @@ const FacultyContent = () => {
 
                                         {choice.choiceText !== null && (
                                           <span
-                                            className={`outfit-400-400 w-[90%] rounded-md p-2 text-[14px] ${
+                                            className={`outfit-400 w-[90%] rounded-md p-2 text-[14px] ${
                                               choice.isCorrect
                                                 ? "font-semibold text-orange-500"
                                                 : "text-gray-700"
@@ -1075,7 +1053,7 @@ const FacultyContent = () => {
                                     ))}
                                   </div>
                                 ) : (
-                                  <p className="outfit-400-400 mt-1 text-gray-500">
+                                  <p className="outfit-400 mt-1 text-gray-500">
                                     No choices added yet.
                                   </p>
                                 ))}
@@ -1086,7 +1064,7 @@ const FacultyContent = () => {
                                 <>
                                   <div className="my-3 h-px bg-gray-200"></div>
 
-                                  <div className="outfit-400-400 ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
+                                  <div className="outfit-400 ml-4 grid grid-cols-1 gap-1 text-[12px] text-gray-500 sm:grid-cols-2">
                                     <div className="flex flex-col gap-1">
                                       <div className="flex">
                                         <span className="w-[100px]">
@@ -1196,18 +1174,6 @@ const FacultyContent = () => {
                                             handleEditClick(question)
                                           }
                                         />
-                                        <AltButton
-                                          text="Approve"
-                                          textres="Approve"
-                                          icon="bx bx-checks"
-                                          className="hover:text-orange-500"
-                                          onClick={() => {
-                                            setSelectedQuestionID(
-                                              question.questionID,
-                                            );
-                                            setShowApproveModal(true);
-                                          }}
-                                        />
                                       </>
                                     ) : (
                                       <>
@@ -1248,7 +1214,7 @@ const FacultyContent = () => {
                     </>
                   ) : !isLoading ? (
                     activeTab === 4 ? (
-                      <div className="outfit-400-400 -mt-4 flex flex-col items-center justify-center py-10 text-center">
+                      <div className="outfit-400 -mt-4 flex flex-col items-center justify-center py-10 text-center">
                         <img
                           src={EmptyImage}
                           alt="No pending questions"
@@ -1262,7 +1228,7 @@ const FacultyContent = () => {
                         </span>
                       </div>
                     ) : (
-                      <div className="outfit-400-400 -mt-4 flex flex-col items-center justify-center py-10 text-center">
+                      <div className="outfit-400 -mt-4 flex flex-col items-center justify-center py-10 text-center">
                         <img
                           src={EmptyImage}
                           alt="No questions"
@@ -1299,7 +1265,7 @@ const FacultyContent = () => {
                       </div>
                     )
                   ) : (
-                    <div className="outfit-400-400 flex items-center justify-center">
+                    <div className="outfit-400 flex items-center justify-center">
                       <p className="text-center text-[16px] text-gray-500">
                         Loading questions...
                       </p>

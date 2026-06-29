@@ -598,9 +598,12 @@ class PersonalQuizQuestionController extends Controller
                     $quizQuestion->personalQuizCoverageId = $isSubjectBased ? $validated['coverage_id'] : null;
                 }
 
-                // Handle question image update
+                // Handle question image update. Use array_key_exists (NOT isset): the
+                // empty string sent when an image is removed becomes null above, and
+                // isset() is false for null — which previously skipped this block and
+                // kept the old picture. array_key_exists is true for a present-but-null key.
                 $hasNewImage = false;
-                if (isset($validated['image'])) {
+                if (array_key_exists('image', $validated) || $request->hasFile('image')) {
                     if (filter_var($validated['image'], FILTER_VALIDATE_URL)) {
                         // If it's a URL, use it directly
                         $quizQuestion->personalQuizImage = $validated['image'];

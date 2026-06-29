@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import QuestionListModal from "../components/QuestionListModal";
 import TimerCompletionModal from "../components/TimerCompletionModal";
 import WarningModal from "../components/WarningModal";
+import { normalizeUserProfile } from "../utils/userProfileUtils";
 
 const collegeLogo = new URL("../assets/college-logo.png", import.meta.url).href;
 
@@ -390,7 +391,8 @@ const PracticeExam = () => {
           },
         });
         if (!res.ok) throw new Error("Failed to fetch user info");
-        setUserInfo(await res.json());
+        const body = await res.json();
+        setUserInfo(normalizeUserProfile(body));
       } catch {
         /* silent */
       }

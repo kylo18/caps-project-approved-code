@@ -2,8 +2,8 @@ import React, { useEffect, useState, useRef } from "react";
 import SortCustomDropdown from "/src/components/sortCustomDropdown";
 import ConfirmModal from "/src/components/confirmModal";
 import LoadingOverlay from "/src/components/loadingOverlay";
-import RegisterDropDownSmall from "/src/components/registerDropDownSmall";
 import Toast from "/src/components/Toast";
+import { normalizeUserProfile } from "/src/utils/userProfileUtils";
 import useToast from "/src/hooks/useToast";
 import SearchBar, { SearchBarTrigger } from "/src/components/SearchBar";
 import WarningModal from "/src/components/WarningModal";
@@ -28,6 +28,15 @@ import DeanPfp from "/src/assets/symbols/dean.png";
 const getSearchTerms = (query) =>
   (query || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
 
+const getStoredUser = () => {
+  try {
+    const raw = sessionStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 const userMatchesSearch = (user, query) => {
   const terms = getSearchTerms(query);
   if (terms.length === 0) return true;
@@ -38,15 +47,73 @@ const userMatchesSearch = (user, query) => {
     `${user.firstName || ""} ${user.lastName || ""}`,
     user.email,
     user.userCode,
-    user.role,
-    user.program,
-    user.campus,
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
 
   return terms.every((term) => haystack.includes(term));
+};
+
+const CustomSelect = ({
+  value,
+  options,
+  onChange,
+  placeholder,
+  required,
+  placement = "bottom",
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(
+    (opt) => String(opt.value) === String(value),
+  );
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition outline-none hover:border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-200"
+      >
+        <span className={selectedOption ? "" : "text-gray-500"}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <i
+          className={`bx bx-chevron-down text-xl text-gray-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
+        ></i>
+      </button>
+      {isOpen && (
+        <div
+          className={`absolute right-0 left-0 z-50 ${placement === "top" ? "bottom-full mb-1" : "top-full mt-1"} outfit-500 max-h-60 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 shadow-lg`}
+        >
+          {options.map((option) => (
+            <div
+              key={option.value}
+              onClick={() => {
+                onChange({ target: { name: required, value: option.value } });
+                setIsOpen(false);
+              }}
+              className={`flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 ${String(value) === String(option.value) ? "bg-orange-50 font-medium text-orange-700" : "text-gray-700"}`}
+            >
+              {option.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 const UserList = () => {
@@ -73,11 +140,54 @@ const UserList = () => {
   const [isApproving, setIsApproving] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
-  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState(null);
-  const [otherDeansCount, setOtherDeansCount] = useState(0);
-  const [roleError, setRoleError] = useState("");
-  const canManageUsers = currentUserRole === 4 || currentUserRole === 5;
+  const canManageUsers =
+    currentUserRole === 3 || currentUserRole === 4 || currentUserRole === 5;
+  const canEditCredentials = currentUserRole === 4 || currentUserRole === 5;
+  const canEditRoleAndLocation = currentUserRole === 4;
+  const canApproveUsers =
+    currentUserRole === 3 || currentUserRole === 4 || currentUserRole === 5;
+  const canActivateDeactivateUsers =
+    currentUserRole === 4 || currentUserRole === 5;
+  const canRemoveUsers = currentUserRole === 4 || currentUserRole === 5;
+
+  const [credentialForm, setCredentialForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    userCode: "",
+    campusID: "",
+    programID: "",
+    roleID: "",
+  });
+  const [modalPrograms, setModalPrograms] = useState([]);
+  const [modalCampuses, setModalCampuses] = useState([]);
+  const [isLoadingModalOptions, setIsLoadingModalOptions] = useState(false);
+  const [isSavingCredentials, setIsSavingCredentials] = useState(false);
+  const [credentialError, setCredentialError] = useState("");
+
+  // Hide mobile sidebar when banner is displayed (only on mobile)
+  useEffect(() => {
+    const mobileNav = document.getElementById("mobile-bottom-nav");
+    if (!mobileNav) return;
+
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 1025;
+      if (canManageUsers && selectedUsers.length > 0 && isMobile) {
+        mobileNav.style.display = "none";
+      } else {
+        mobileNav.style.display = "";
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      mobileNav.style.display = "";
+    };
+  }, [canManageUsers, selectedUsers.length]);
 
   // State for bulk action loading states
   const [isApprovingMultiple, setIsApprovingMultiple] = useState(false);
@@ -87,6 +197,12 @@ const UserList = () => {
   // State for user details modal
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
+
+  const isEditingSelf =
+    selectedUser != null && getStoredUser()?.userID === selectedUser.userID;
+  const isDeanTarget = Number(selectedUser?.roleID) === 4;
+  const canEditUserCode =
+    canEditCredentials && (!isDeanTarget || isEditingSelf);
 
   // State for filters
   const [statusFilter, setStatusFilter] = useState("all");
@@ -131,6 +247,7 @@ const UserList = () => {
     confirmIcon: null,
     onConfirm: null,
     isLoading: false,
+    headerIcon: "bx-alert-circle",
   });
 
   const openWarning = (config) =>
@@ -272,8 +389,8 @@ const UserList = () => {
       });
     }
 
-    // Multi-word search (e.g. "john doe"): backend matches one field at a time
-    if (getSearchTerms(debouncedSearchQuery).length > 1) {
+    // Smart search: client-side search across all fields
+    if (debouncedSearchQuery.trim().length > 0) {
       filteredUsers = filteredUsers.filter((user) =>
         userMatchesSearch(user, debouncedSearchQuery),
       );
@@ -291,11 +408,10 @@ const UserList = () => {
     );
   };
 
-  const isMultiWordSearch = () =>
-    getSearchTerms(debouncedSearchQuery).length > 1;
+  const hasSearchQuery = () => debouncedSearchQuery.trim().length > 0;
 
   const usesClientSidePagination = () =>
-    hasArrayFiltersActive() || isMultiWordSearch();
+    hasArrayFiltersActive() || hasSearchQuery();
 
   const getDisplayedUsers = () => {
     const filteredUsers = getFilteredUsers();
@@ -348,14 +464,6 @@ const UserList = () => {
     }
   }, []);
 
-  // Count other deans when users are fetched
-  useEffect(() => {
-    if (users.length > 0) {
-      const deansCount = users.filter((user) => user.roleID === 4).length;
-      setOtherDeansCount(deansCount);
-    }
-  }, [users]);
-
   // Add debounce effect for search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -398,10 +506,9 @@ const UserList = () => {
         (Array.isArray(programFilter) && programFilter.length > 0) ||
         (Array.isArray(stateFilter) && stateFilter.length > 0);
 
-      const searchTerms = getSearchTerms(debouncedSearchQuery);
-      const multiWordSearch = searchTerms.length > 1;
-      const clientSideFetch = hasArrayFilters || multiWordSearch;
-      const apiSearch = multiWordSearch ? searchTerms[0] : debouncedSearchQuery;
+      const hasSearch = debouncedSearchQuery.trim().length > 0;
+      const clientSideFetch = hasArrayFilters || hasSearch;
+      const apiSearch = "";
 
       const queryParams = new URLSearchParams({
         page: clientSideFetch ? 1 : page,
@@ -842,79 +949,295 @@ const UserList = () => {
     fetchUsers(newPage);
   };
 
-  // Function to handle role update
-  const handleRoleUpdate = async (userID, newRoleID) => {
-    if (!canManageUsers) {
-      showToast("Only Dean and Associate Dean can edit a user.", "error");
-      return;
+  const getRoleLabel = (roleID) => {
+    switch (Number(roleID)) {
+      case 1:
+        return "Student";
+      case 2:
+        return "Faculty";
+      case 3:
+        return "Program Chair";
+      case 4:
+        return "Dean";
+      case 5:
+        return "Associate Dean";
+      default:
+        return "—";
     }
-    const token = sessionStorage.getItem("token");
-    setIsUpdatingRole(true);
-    setRoleError(""); // Clear any previous errors
+  };
+
+  const getAssignableRoleOptions = () => {
+    const options = [
+      { value: "1", label: "Student" },
+      { value: "2", label: "Faculty" },
+      { value: "3", label: "Program Chair" },
+      { value: "5", label: "Associate Dean" },
+    ];
+    if (currentUserRole === 4) {
+      options.push({ value: "4", label: "Dean" });
+    }
+    return options;
+  };
+
+  const mapProfileToListUser = (profile, existingUser = {}) => {
+    const normalized = normalizeUserProfile(profile);
+    if (!normalized) return existingUser;
+
+    const statusValue =
+      typeof normalized.status === "string"
+        ? normalized.status
+        : normalized.status?.statusName ||
+          normalized.approvalStatus ||
+          existingUser.status;
+
+    return {
+      ...existingUser,
+      ...normalized,
+      firstName: normalized.firstName || existingUser.firstName,
+      lastName: normalized.lastName || existingUser.lastName,
+      email: normalized.email || existingUser.email,
+      userCode: normalized.userCode || existingUser.userCode,
+      roleID: normalized.roleID ?? existingUser.roleID,
+      role: normalized.roleName || existingUser.role,
+      campus: normalized.campusName || normalized.campus || existingUser.campus,
+      program:
+        normalized.programName || normalized.program || existingUser.program,
+      campusID: normalized.campusID ?? existingUser.campusID,
+      programID: normalized.programID ?? existingUser.programID,
+      status: statusValue,
+      isActive: normalized.isActive ?? existingUser.isActive,
+    };
+  };
+
+  const syncCredentialIdsFromNames = (campuses, programs) => {
+    if (!selectedUser) return;
+
+    setCredentialForm((prev) => {
+      let campusID = prev.campusID;
+      let programID = prev.programID;
+
+      if (!campusID && selectedUser.campus) {
+        const campusMatch = campuses.find(
+          (campus) => campus.campusName === selectedUser.campus,
+        );
+        if (campusMatch) campusID = String(campusMatch.campusID);
+      }
+
+      if (!programID && selectedUser.program) {
+        const programMatch = programs.find(
+          (program) => program.programName === selectedUser.program,
+        );
+        if (programMatch) programID = String(programMatch.programID);
+      }
+
+      return { ...prev, campusID, programID };
+    });
+  };
+
+  const resetCredentialForm = (user) => {
+    setCredentialForm({
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      email: user?.email || "",
+      userCode: user?.userCode || "",
+      campusID: user?.campusID != null ? String(user.campusID) : "",
+      programID: user?.programID != null ? String(user.programID) : "",
+      roleID: user?.roleID != null ? String(user.roleID) : "",
+    });
+  };
+
+  const handleCredentialChange = (e) => {
+    const { name, value } = e.target;
+    setCredentialForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCloseUserModal = () => {
+    setShowModal(false);
+    setCredentialError("");
+  };
+
+  const buildCredentialPayload = () => {
+    const payload = {
+      firstName: credentialForm.firstName.trim(),
+      lastName: credentialForm.lastName.trim(),
+      email: credentialForm.email.trim(),
+      userCode: credentialForm.userCode.trim(),
+    };
+
+    if (credentialForm.campusID) {
+      payload.campusID = Number(credentialForm.campusID);
+    }
+    if (credentialForm.programID) {
+      payload.programID = Number(credentialForm.programID);
+    }
+    if (credentialForm.roleID) {
+      payload.roleID = Number(credentialForm.roleID);
+    }
+
+    return payload;
+  };
+
+  const buildSelfProfilePayload = () => {
+    const payload = {
+      firstName: credentialForm.firstName.trim(),
+      lastName: credentialForm.lastName.trim(),
+      email: credentialForm.email.trim(),
+      userCode: credentialForm.userCode.trim(),
+    };
+
+    if (credentialForm.campusID) {
+      payload.campusID = Number(credentialForm.campusID);
+    }
+    if (credentialForm.programID) {
+      payload.programID = Number(credentialForm.programID);
+    }
+
+    return payload;
+  };
+
+  const saveUserCredentials = async () => {
+    if (!selectedUser || !canEditCredentials) return;
+
+    const isDeanEditingSelf = isEditingSelf && currentUserRole === 4;
+
+    setIsSavingCredentials(true);
+    setCredentialError("");
+    setWarningLoading(true);
+
     try {
-      // Check if current user is trying to demote themselves from Dean
-      const currentUser = JSON.parse(sessionStorage.getItem("user"));
-      if (
-        currentUser.roleID === 4 &&
-        userID === currentUser.userID &&
-        newRoleID !== 4
-      ) {
-        if (otherDeansCount <= 1) {
-          throw new Error(
-            "Cannot demote yourself. There must be at least one other Dean in the system.",
+      const token = sessionStorage.getItem("token");
+      const response = await fetch(
+        isDeanEditingSelf
+          ? `${apiUrl}/user/update-profile`
+          : `${apiUrl}/users/${selectedUser.userID}/credentials`,
+        {
+          method: isDeanEditingSelf ? "POST" : "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(
+            isDeanEditingSelf
+              ? buildSelfProfilePayload()
+              : buildCredentialPayload(),
+          ),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Extract specific field errors if available (e.g. "The user code is already taken.")
+        let errorMessage = data.message;
+        if (data.errors) {
+          const fieldErrors = Object.values(data.errors).flat();
+          if (fieldErrors.length > 0) {
+            errorMessage = fieldErrors.join(" ");
+          }
+        }
+        throw new Error(
+          errorMessage ||
+            (isDeanEditingSelf
+              ? "Failed to update profile"
+              : "Failed to update user credentials"),
+        );
+      }
+
+      const updatedUser = mapProfileToListUser(data.data, selectedUser);
+
+      if (isDeanEditingSelf) {
+        const storedUser = getStoredUser();
+        if (storedUser) {
+          sessionStorage.setItem(
+            "user",
+            JSON.stringify(mapProfileToListUser(data.data, storedUser)),
           );
         }
       }
 
-      const response = await fetch(`${apiUrl}/users/${userID}/role`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ roleID: newRoleID }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update user role");
-      }
-
-      const data = await response.json();
-      showToast(data.message || "User role updated successfully!", "success");
-
-      // Update the user in the local state
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
-          user.userID === userID
-            ? { ...user, roleID: newRoleID, role: data.user.role }
+          user.userID === updatedUser.userID
+            ? { ...user, ...updatedUser }
             : user,
         ),
       );
-
-      // Update the selected user in the modal
-      setSelectedUser((prev) => ({
-        ...prev,
-        roleID: newRoleID,
-        role: data.user.role,
-      }));
-
-      // Refresh the user list
-      fetchUsers(currentPage);
-
-      // Close the modal after successful update
-      setShowModal(false);
-      setRoleError("");
-    } catch (error) {
-      console.error("Error updating user role:", error);
-      setRoleError(
-        error.message || "Failed to update user role. Please try again.",
+      setSelectedUser(updatedUser);
+      resetCredentialForm(updatedUser);
+      closeWarning();
+      showToast(
+        data.message ||
+          (isDeanEditingSelf
+            ? "Profile updated successfully!"
+            : "User credentials updated successfully!"),
+        "success",
       );
+      fetchUsers(currentPage);
+    } catch (error) {
+      console.error("Error updating user credentials:", error);
+      setCredentialError(
+        error.message || "Failed to update user credentials. Please try again.",
+      );
+      closeWarning();
     } finally {
-      setIsUpdatingRole(false);
+      setIsSavingCredentials(false);
+      setWarningLoading(false);
     }
   };
+
+  const handleCredentialSubmit = (e) => {
+    e.preventDefault();
+    if (!canEditCredentials) return;
+    openWarning({
+      title: "Save credential changes?",
+      description:
+        "Are you sure you want to save these changes? The user's name, email, role, campus, program, and user code will be updated.",
+      confirmLabel: "Save changes",
+      confirmIcon: <i className="bx bx-check" />,
+      headerIcon: "bx-save",
+      onConfirm: saveUserCredentials,
+    });
+  };
+
+  useEffect(() => {
+    if (!showModal || !selectedUser) return;
+    resetCredentialForm(selectedUser);
+    setCredentialError("");
+
+    if (!canEditCredentials) return;
+
+    const fetchModalOptions = async () => {
+      setIsLoadingModalOptions(true);
+      const token = sessionStorage.getItem("token");
+
+      try {
+        const [programsRes, campusesRes] = await Promise.all([
+          fetch(`${apiUrl}/programs`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${apiUrl}/campuses`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        const programsData = await programsRes.json();
+        const campusesData = await campusesRes.json();
+        const programs = programsRes.ok ? programsData.data || [] : [];
+        const campuses = campusesRes.ok ? campusesData.data || [] : [];
+
+        setModalPrograms(programs);
+        setModalCampuses(campuses);
+        syncCredentialIdsFromNames(campuses, programs);
+      } catch (error) {
+        console.error("Error fetching modal options:", error);
+      } finally {
+        setIsLoadingModalOptions(false);
+      }
+    };
+
+    fetchModalOptions();
+  }, [showModal, selectedUser?.userID, canEditCredentials]);
 
   // Add delete user function
   const handleDeleteUser = async (userID) => {
@@ -1843,435 +2166,466 @@ const UserList = () => {
             </div>
           )}
 
-          {/* User Info Mobile */}
-          {showModal && selectedUser && (
-            <>
-              <div className="outfit-400 bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-center justify-center">
-                <div className="custom-scrollbar relative mx-2 w-full max-w-[480px] rounded-md bg-white shadow-2xl">
-                  {/* Header */}
-                  <div className="border-color relative flex items-center justify-between border-b py-2 pl-4">
-                    <h2 className="text-[14px] font-medium text-gray-700">
-                      User Information
-                    </h2>
+          {showModal &&
+            selectedUser &&
+            (() => {
+              const fieldLabelClass = "mb-1.5 block text-xs text-gray-500";
+              const fieldInputClass =
+                "w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition hover:border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-200";
+              const readOnlyInputClass = `${fieldInputClass} cursor-default bg-gray-50 text-gray-600`;
+              const readOnlyFieldClass =
+                "flex w-full items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700";
+              const isModalLoading =
+                canEditCredentials && isLoadingModalOptions;
+              const showApproveAction =
+                canApproveUsers &&
+                selectedUser.status === "pending" &&
+                !selectedUser.isActive;
+              const showDeactivateAction =
+                canActivateDeactivateUsers &&
+                selectedUser.status === "registered" &&
+                selectedUser.isActive;
+              const showActivateAction =
+                canActivateDeactivateUsers &&
+                selectedUser.status === "registered" &&
+                !selectedUser.isActive;
+              const showRemoveAction = canRemoveUsers;
+              const hasModalFooter =
+                showApproveAction ||
+                showDeactivateAction ||
+                showActivateAction ||
+                showRemoveAction ||
+                canEditCredentials;
 
-                    <button
-                      onClick={() => {
-                        setShowModal(false);
-                        setRoleError(""); // Clear the error when modal is closed
-                      }}
-                      className="absolute top-1 right-1 cursor-pointer rounded-full px-[9px] py-[5px] text-gray-700 hover:text-gray-900"
-                      title="Close"
+              return (
+                <div className="outfit-400 bg-opacity-40 lightbox-bg fixed inset-0 z-100 flex items-end justify-center p-4 min-[640px]:items-center">
+                  <div className="animate-fade-in-up edit-profile-modal-scrollbar relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+                    <LoadingOverlay
+                      show={isModalLoading}
+                      message="Loading user details..."
+                      contained
+                    />
+
+                    <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        {canEditCredentials
+                          ? "Edit user credentials"
+                          : canApproveUsers || canActivateDeactivateUsers
+                            ? "User Information"
+                            : "User Information"}
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={handleCloseUserModal}
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                        aria-label="Close"
+                      >
+                        <i className="bx bx-x text-2xl"></i>
+                      </button>
+                    </div>
+
+                    <form
+                      onSubmit={handleCredentialSubmit}
+                      className="flex min-h-0 flex-1 flex-col"
                     >
-                      <i className="bx bx-x text-[20px]"></i>
-                    </button>
-                  </div>
-                  {/* Content */}
-                  <form className="edit-profile-modal-scrollbar max-h-[calc(90vh-60px)] overflow-y-auto px-5 py-4">
-                    {/* Fields */}
-                    <div className="mb-4 grid grid-cols-2 gap-x-4 text-start">
-                      <div>
-                        <span className="block text-[14px] text-gray-700">
-                          First name
-                        </span>
-                        <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                          {selectedUser.firstName}
+                      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className={fieldLabelClass}>Name</label>
+                            {canEditCredentials ? (
+                              <input
+                                type="text"
+                                name="firstName"
+                                value={credentialForm.firstName}
+                                onChange={handleCredentialChange}
+                                required
+                                className={fieldInputClass}
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                value={selectedUser.firstName || ""}
+                                readOnly
+                                className={readOnlyInputClass}
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <label className={fieldLabelClass}>Last Name</label>
+                            {canEditCredentials ? (
+                              <input
+                                type="text"
+                                name="lastName"
+                                value={credentialForm.lastName}
+                                onChange={handleCredentialChange}
+                                required
+                                className={fieldInputClass}
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                value={selectedUser.lastName || ""}
+                                readOnly
+                                className={readOnlyInputClass}
+                              />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <span className="block text-[14px] text-gray-700">
-                          Last name
-                        </span>
-                        <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                          {selectedUser.lastName}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="mt-2 block text-[14px] text-gray-700">
-                          Campus
-                        </span>
-                        <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                          {selectedUser.campus}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="mt-2 block text-[14px] text-gray-700">
-                          User Code
-                        </span>
-                        <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                          {selectedUser.userCode}
-                        </div>
-                      </div>
-                    </div>
 
-                    <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-                    {/* Credentials */}
-                    <div className="mb-4">
-                      <span className="block text-start text-[14px] text-gray-700">
-                        Program
-                      </span>
-                      <div className="peer mt-1 w-full rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                        {selectedUser.program}
-                      </div>
-                      <div className="mt-1 text-start text-[11px] text-gray-400">
-                        The program the user is assigned to. Used to filter
-                        subjects and academic content specific to your
-                        curriculum.
-                      </div>
-                    </div>
-
-                    {/* Account details */}
-                    <div className="mb-4">
-                      <div className="grid grid-cols-2 gap-x-4">
                         <div>
-                          <span className="mb-1 block text-start text-[14px] text-gray-700">
-                            Position
-                          </span>
-                          <RegisterDropDownSmall
-                            name="role"
-                            value={selectedUser.roleID}
-                            onChange={(e) =>
-                              handleRoleUpdate(
-                                selectedUser.userID,
-                                parseInt(e.target.value),
-                              )
-                            }
-                            placeholder={(() => {
-                              if (isUpdatingRole) {
-                                return (
-                                  <div className="ml-18 flex items-center justify-center p-[3px]">
-                                    <span className="loader"></span>
-                                  </div>
-                                );
-                              }
-                              switch (selectedUser.roleID) {
-                                case 1:
-                                  return "Student";
-                                case 2:
-                                  return "Faculty";
-                                case 3:
-                                  return "Program Chair";
-                                case 4:
-                                  return "Dean";
-                                case 5:
-                                  return "Associate Dean";
-                                default:
-                                  return "Select Position";
-                              }
-                            })()}
-                            options={(() => {
-                              if (isUpdatingRole) {
-                                return [];
-                              }
-                              // If current user is Program Chair, only show Student and Faculty
-                              if (currentUserRole === 3) {
-                                // Don't show any options if the selected user is a Program Chair
-                                if (selectedUser.roleID === 3) {
-                                  return [];
-                                }
-                                return [
-                                  ...(selectedUser.roleID !== 1
-                                    ? [{ value: "1", label: "Student" }]
-                                    : []),
-                                  ...(selectedUser.roleID !== 2
-                                    ? [{ value: "2", label: "Faculty" }]
-                                    : []),
-                                ];
-                              }
-                              // If current user is Dean, show all roles except current user's role
-                              const currentUser = JSON.parse(
-                                sessionStorage.getItem("user"),
-                              );
-                              const isCurrentUser =
-                                selectedUser.userID === currentUser.userID;
-                              const isDean = selectedUser.roleID === 4;
+                          <label className={fieldLabelClass}>Gmail</label>
+                          {canEditCredentials ? (
+                            <input
+                              type="email"
+                              name="email"
+                              value={credentialForm.email}
+                              onChange={handleCredentialChange}
+                              required
+                              className={fieldInputClass}
+                            />
+                          ) : (
+                            <input
+                              type="email"
+                              value={selectedUser.email || ""}
+                              readOnly
+                              className={readOnlyInputClass}
+                            />
+                          )}
+                        </div>
 
-                              return [
-                                ...(selectedUser.roleID !== 1
-                                  ? [{ value: "1", label: "Student" }]
-                                  : []),
-                                ...(selectedUser.roleID !== 2
-                                  ? [{ value: "2", label: "Faculty" }]
-                                  : []),
-                                ...(selectedUser.roleID !== 3
-                                  ? [{ value: "3", label: "Program Chair" }]
-                                  : []),
-                                ...(currentUserRole === 4 &&
-                                selectedUser.roleID !== 4
-                                  ? [{ value: "4", label: "Dean" }]
-                                  : []),
-                                ...(selectedUser.roleID !== 5
-                                  ? [{ value: "5", label: "Associate Dean" }]
-                                  : []),
-                              ].filter((option) => {
-                                // If this is the current user and they're a Dean, only allow demotion if there are other Deans
-                                if (
-                                  isCurrentUser &&
-                                  isDean &&
-                                  option.value !== "4"
-                                ) {
-                                  return otherDeansCount > 1;
-                                }
-                                return true;
-                              });
-                            })()}
-                            disabled={!canManageUsers || isUpdatingRole}
-                            isLoading={isUpdatingRole}
+                        <div>
+                          <label className={fieldLabelClass}>User Code</label>
+                          <input
+                            type="text"
+                            value={selectedUser?.userCode || ""}
+                            readOnly
+                            className={readOnlyInputClass}
                           />
+                          <p className="mt-1 text-xs text-gray-500">
+                            User code is non-editable.
+                          </p>
                         </div>
-                        <div>
-                          <span className="block text-start text-[14px] text-gray-700">
-                            Email Address
-                          </span>
-                          <div className="peer mt-1 w-full truncate rounded-xl border border-gray-300 px-4 py-[7px] text-[14px] text-gray-900 placeholder-transparent transition-all duration-200 hover:border-gray-500 focus:border-[#FE6902] focus:outline-none">
-                            {selectedUser.email}
-                          </div>
-                        </div>
-                      </div>
-                      {roleError && (
-                        <div className="mt-2 mb-2 rounded-md bg-red-50 p-2 text-center text-[13px] text-red-500">
-                          {roleError}
-                        </div>
-                      )}
-                    </div>
 
-                    <div className="mt-2 mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-                    <div className="mb-3 flex flex-col gap-2">
-                      <div className="flex justify-between">
-                        <span className="block text-start text-[14px] text-gray-700">
-                          Approval Status:
-                        </span>
-                        <span
-                          className={`text-[14px] font-semibold capitalize ${
-                            selectedUser.status === "registered"
-                              ? "text-green-700"
-                              : selectedUser.status === "pending"
-                                ? "text-yellow-600"
-                                : "text-red-600"
-                          }`}
-                        >
-                          {selectedUser.status}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="block text-start text-[14px] text-gray-700">
-                          Account Status:
-                        </span>
-                        <span
-                          className={`text-[14px] font-semibold ${
-                            selectedUser.isActive
-                              ? "text-green-700"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {selectedUser.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mb-3 h-[0.5px] bg-[rgb(200,200,200)]" />
-
-                    {/* Action Buttons Row */}
-                    {/* Single Description Above Buttons */}
-                    {selectedUser.status === "pending" &&
-                      !selectedUser.isActive && (
-                        <>
-                          <span className="block text-start text-[14px] font-semibold text-gray-700">
-                            Approve this Account?
-                          </span>
-                          <div className="mt-1 text-start text-[11px] text-gray-400">
-                            Approving this account will grant the user access to
-                            the system based on their assigned position.
-                          </div>
-                        </>
-                      )}
-                    {selectedUser.status === "registered" &&
-                      selectedUser.isActive && (
-                        <>
-                          <span className="block text-start text-[14px] font-semibold text-gray-700">
-                            Deactivate this Account?
-                          </span>
-                          <div className="mt-1 text-start text-[11px] text-gray-400">
-                            Deactivating this account will disable access
-                            without deleting the user's data. You can reactivate
-                            it at any time.
-                          </div>
-                        </>
-                      )}
-                    {selectedUser.status === "registered" &&
-                      !selectedUser.isActive && (
-                        <>
-                          <span className="block text-start text-[14px] font-semibold text-gray-700">
-                            Activate this Account?
-                          </span>
-                          <div className="mt-1 text-start text-[11px] text-gray-400">
-                            Approving this account will grant the user access to
-                            the system based on their assigned position. You can
-                            deactivate it at any time.
-                          </div>
-                        </>
-                      )}
-                    {(currentUserRole === 4 || currentUserRole === 5) &&
-                      users.length > 0 &&
-                      selectedUser &&
-                      (selectedUser.status !== "pending" &&
-                      selectedUser.status !== "registered" ? (
-                        <>
-                          <span className="block text-start text-[14px] font-semibold text-gray-700">
-                            Remove this Account?
-                          </span>
-                          <div className="mt-1 text-start text-[11px] text-gray-400">
-                            This will permanently remove the user and all their
-                            data from the system.
-                          </div>
-                        </>
-                      ) : null)}
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {selectedUser.status === "pending" &&
-                        !selectedUser.isActive && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              openWarning({
-                                title: "Approve Account",
-                                subtitle:
-                                  "This will grant the user access to the system.",
-                                description: (
-                                  <>
-                                    Approve{" "}
-                                    <span className="font-semibold text-gray-900">
-                                      {selectedUser.firstName}{" "}
-                                      {selectedUser.lastName}
-                                    </span>
-                                    ? They will be granted access based on their
-                                    assigned position.
-                                  </>
-                                ),
-                                confirmLabel: "Approve",
-                                confirmIcon: <i className="bx bx-check" />,
-                                onConfirm: () =>
-                                  handleApproveUser(selectedUser.userID),
-                              });
-                            }}
-                            className="min-w-[120px] flex-1 cursor-pointer rounded-xl border border-green-200 bg-green-50 py-2 text-[14px] font-semibold text-green-700 transition hover:bg-green-100"
-                          >
-                            Approve
-                          </button>
-                        )}
-                      {selectedUser.status === "registered" &&
-                        selectedUser.isActive && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              openWarning({
-                                title: "Deactivate Account",
-                                subtitle:
-                                  "The user will lose access to the system.",
-                                description: (
-                                  <>
-                                    Deactivate{" "}
-                                    <span className="font-semibold text-gray-900">
-                                      {selectedUser.firstName}{" "}
-                                      {selectedUser.lastName}
-                                    </span>
-                                    ? Their access will be disabled. You can
-                                    reactivate at any time.
-                                  </>
-                                ),
-                                confirmLabel: "Deactivate",
-                                confirmIcon: <i className="bx bx-block" />,
-                                onConfirm: () =>
-                                  handleDeactivateUser(selectedUser.userID),
-                              });
-                            }}
-                            className="min-w-[120px] flex-1 cursor-pointer rounded-xl border border-red-200 bg-red-50 py-2 text-[14px] font-semibold text-red-700 transition hover:bg-red-100"
-                          >
-                            Deactivate
-                          </button>
-                        )}
-                      {selectedUser.status === "registered" &&
-                        !selectedUser.isActive && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              openWarning({
-                                title: "Activate Account",
-                                subtitle:
-                                  "The user will regain access to the system.",
-                                description: (
-                                  <>
-                                    Activate{" "}
-                                    <span className="font-semibold text-gray-900">
-                                      {selectedUser.firstName}{" "}
-                                      {selectedUser.lastName}
-                                    </span>
-                                    ? Their access will be restored.
-                                  </>
-                                ),
-                                confirmLabel: "Activate",
-                                confirmIcon: (
-                                  <i className="bx bx-check-circle" />
-                                ),
-                                onConfirm: () =>
-                                  handleActivateUser(selectedUser.userID),
-                              });
-                            }}
-                            className="min-w-[120px] flex-1 cursor-pointer rounded-xl border border-green-200 bg-green-50 py-2 text-[14px] font-semibold text-green-700 transition hover:bg-green-100"
-                          >
-                            Activate
-                          </button>
-                        )}
-                      {(currentUserRole === 4 || currentUserRole === 5) && (
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            const currentUser = JSON.parse(
-                              sessionStorage.getItem("user"),
-                            );
-                            if (
-                              currentUser &&
-                              selectedUser.userID === currentUser.userID
-                            ) {
-                              showToast(
-                                "You can't delete your own account.",
-                                "error",
-                              );
-                              return;
-                            }
-                            openWarning({
-                              title: "Remove User",
-                              subtitle:
-                                "This action is permanent and cannot be undone.",
-                              description: (
-                                <>
-                                  Permanently remove{" "}
-                                  <span className="font-semibold text-gray-900">
-                                    {selectedUser.firstName}{" "}
-                                    {selectedUser.lastName}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className={fieldLabelClass}>Campus</label>
+                            {canEditRoleAndLocation ? (
+                              isLoadingModalOptions ? (
+                                <div className={readOnlyFieldClass}>
+                                  <span className="text-gray-500">
+                                    Loading campuses...
                                   </span>
-                                  ? All their data will be deleted from the
-                                  system.
-                                </>
-                              ),
-                              confirmLabel: "Remove",
-                              confirmIcon: <i className="bx bx-trash" />,
-                              onConfirm: () =>
-                                handleDeleteUser(selectedUser.userID),
-                            });
-                          }}
-                          className="min-w-[120px] flex-1 cursor-pointer rounded-xl border border-red-200 bg-red-50 py-2 text-[14px] font-semibold text-red-700 transition hover:bg-red-100"
-                        >
-                          Remove User
-                        </button>
+                                  <i className="bx bx-loader-alt animate-spin text-lg text-gray-400"></i>
+                                </div>
+                              ) : (
+                                <CustomSelect
+                                  required="campusID"
+                                  value={credentialForm.campusID}
+                                  onChange={handleCredentialChange}
+                                  placeholder="Select campus"
+                                  placement="top"
+                                  options={modalCampuses.map((campus) => ({
+                                    value: campus.campusID,
+                                    label: campus.campusName,
+                                  }))}
+                                />
+                              )
+                            ) : (
+                              <div className={readOnlyFieldClass}>
+                                <span className="truncate">
+                                  {selectedUser.campus || "—"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className={fieldLabelClass}>Program</label>
+                            {canEditRoleAndLocation ? (
+                              isLoadingModalOptions ? (
+                                <div className={readOnlyFieldClass}>
+                                  <span className="text-gray-500">
+                                    Loading programs...
+                                  </span>
+                                  <i className="bx bx-loader-alt animate-spin text-lg text-gray-400"></i>
+                                </div>
+                              ) : (
+                                <CustomSelect
+                                  required="programID"
+                                  value={credentialForm.programID}
+                                  onChange={handleCredentialChange}
+                                  placeholder="Select program"
+                                  placement="top"
+                                  options={modalPrograms.map((program) => ({
+                                    value: program.programID,
+                                    label: program.programName,
+                                  }))}
+                                />
+                              )
+                            ) : (
+                              <div className={readOnlyFieldClass}>
+                                <span className="truncate">
+                                  {selectedUser.program || "—"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className={fieldLabelClass}>Position</label>
+                          {canEditRoleAndLocation ? (
+                            <CustomSelect
+                              required="roleID"
+                              value={credentialForm.roleID}
+                              onChange={handleCredentialChange}
+                              placeholder="Select position"
+                              placement="top"
+                              options={getAssignableRoleOptions()}
+                            />
+                          ) : (
+                            <div className={readOnlyFieldClass}>
+                              <span className="truncate">
+                                {selectedUser.role ||
+                                  getRoleLabel(selectedUser.roleID)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className={fieldLabelClass}>
+                              Approval Status
+                            </label>
+                            <div className={readOnlyFieldClass}>
+                              <span
+                                className={`font-medium capitalize ${
+                                  selectedUser.status === "registered"
+                                    ? "text-green-700"
+                                    : selectedUser.status === "pending"
+                                      ? "text-yellow-600"
+                                      : "text-red-600"
+                                }`}
+                              >
+                                {selectedUser.status || "—"}
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <label className={fieldLabelClass}>
+                              Account Status
+                            </label>
+                            <div className={readOnlyFieldClass}>
+                              <span
+                                className={`font-medium ${
+                                  selectedUser.isActive
+                                    ? "text-green-700"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {selectedUser.isActive ? "Active" : "Inactive"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {credentialError && (
+                          <div className="rounded-lg bg-red-50 p-2 text-center text-xs text-red-500">
+                            {credentialError}
+                          </div>
+                        )}
+                      </div>
+
+                      {hasModalFooter && (
+                        <div className="flex flex-row flex-wrap items-center justify-between gap-4 border-t border-gray-100 px-6 py-4">
+                          <div
+                            className={`flex flex-wrap gap-2 ${!canEditCredentials ? "w-full justify-end" : ""}`}
+                          >
+                            {showApproveAction && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (selectedUser.status === "registered") {
+                                    showToast(
+                                      "User is already approved.",
+                                      "error",
+                                    );
+                                    return;
+                                  }
+                                  openWarning({
+                                    title: "Approve Account",
+                                    subtitle:
+                                      "This will grant the user access to the system.",
+                                    description: (
+                                      <>
+                                        Approve{" "}
+                                        <span className="font-semibold text-gray-900">
+                                          {selectedUser.firstName}{" "}
+                                          {selectedUser.lastName}
+                                        </span>
+                                        ? They will be granted access based on
+                                        their assigned position.
+                                      </>
+                                    ),
+                                    confirmLabel: "Approve",
+                                    confirmIcon: <i className="bx bx-check" />,
+                                    onConfirm: () =>
+                                      handleApproveUser(selectedUser.userID),
+                                  });
+                                }}
+                                className="min-w-[120px] cursor-pointer rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100"
+                              >
+                                Approve
+                              </button>
+                            )}
+                            {showDeactivateAction && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (
+                                    !selectedUser.isActive &&
+                                    selectedUser.status === "unregistered"
+                                  ) {
+                                    showToast(
+                                      "User is already deactivated.",
+                                      "error",
+                                    );
+                                    return;
+                                  }
+                                  if (!selectedUser.isActive) {
+                                    showToast(
+                                      "User is already deactivated.",
+                                      "error",
+                                    );
+                                    return;
+                                  }
+                                  openWarning({
+                                    title: "Deactivate Account",
+                                    subtitle:
+                                      "The user will lose access to the system.",
+                                    description: (
+                                      <>
+                                        Deactivate{" "}
+                                        <span className="font-semibold text-gray-900">
+                                          {selectedUser.firstName}{" "}
+                                          {selectedUser.lastName}
+                                        </span>
+                                        ? Their access will be disabled.
+                                      </>
+                                    ),
+                                    confirmLabel: "Deactivate",
+                                    confirmIcon: <i className="bx bx-block" />,
+                                    onConfirm: () =>
+                                      handleDeactivateUser(selectedUser.userID),
+                                  });
+                                }}
+                                className="min-w-[120px] cursor-pointer rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                              >
+                                Deactivate
+                              </button>
+                            )}
+                            {showActivateAction && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (selectedUser.isActive) {
+                                    showToast(
+                                      "User is already active.",
+                                      "error",
+                                    );
+                                    return;
+                                  }
+                                  openWarning({
+                                    title: "Activate Account",
+                                    subtitle:
+                                      "The user will regain access to the system.",
+                                    description: (
+                                      <>
+                                        Activate{" "}
+                                        <span className="font-semibold text-gray-900">
+                                          {selectedUser.firstName}{" "}
+                                          {selectedUser.lastName}
+                                        </span>
+                                        ? Their access will be restored.
+                                      </>
+                                    ),
+                                    confirmLabel: "Activate",
+                                    confirmIcon: (
+                                      <i className="bx bx-check-circle" />
+                                    ),
+                                    onConfirm: () =>
+                                      handleActivateUser(selectedUser.userID),
+                                  });
+                                }}
+                                className="min-w-[120px] cursor-pointer rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100"
+                              >
+                                Activate
+                              </button>
+                            )}
+                            {showRemoveAction && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentUser = JSON.parse(
+                                    sessionStorage.getItem("user"),
+                                  );
+                                  if (
+                                    currentUser &&
+                                    selectedUser.userID === currentUser.userID
+                                  ) {
+                                    showToast(
+                                      "You can't delete your own account.",
+                                      "error",
+                                    );
+                                    return;
+                                  }
+                                  openWarning({
+                                    title: "Remove User",
+                                    subtitle:
+                                      "This action is permanent and cannot be undone.",
+                                    description: (
+                                      <>
+                                        Permanently remove{" "}
+                                        <span className="font-semibold text-gray-900">
+                                          {selectedUser.firstName}{" "}
+                                          {selectedUser.lastName}
+                                        </span>
+                                        ? All their data will be deleted.
+                                      </>
+                                    ),
+                                    confirmLabel: "Remove",
+                                    confirmIcon: <i className="bx bx-trash" />,
+                                    onConfirm: () =>
+                                      handleDeleteUser(selectedUser.userID),
+                                  });
+                                }}
+                                className="min-w-[120px] cursor-pointer rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                              >
+                                Remove User
+                              </button>
+                            )}
+                          </div>
+
+                          {canEditCredentials && (
+                            <button
+                              type="submit"
+                              disabled={isSavingCredentials || isModalLoading}
+                              className="cursor-pointer self-end rounded-full bg-gray-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 md:self-auto"
+                            >
+                              {isSavingCredentials ? (
+                                <span className="loader-white inline-block"></span>
+                              ) : (
+                                "Save changes"
+                              )}
+                            </button>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  </form>
+                    </form>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              );
+            })()}
 
           {loading || searchLoading || tabLoading ? (
             <div className="outfit-400 flex h-64 items-center justify-center">
@@ -2604,9 +2958,9 @@ const UserList = () => {
 
       {/* Selection Overlay Banner */}
       {canManageUsers && selectedUsers.length > 0 && (
-        <div className="outfit-400 fixed right-0 bottom-5 left-0 z-50 md:left-[276px] lg:left-[220px]">
-          <div className="px-6">
-            <div className="rounded-xl bg-gray-800 px-5 py-4 shadow-lg">
+        <div className="outfit-400 fixed right-0 bottom-0 left-0 z-[60] lg:bottom-5 lg:left-[220px] lg:z-50">
+          <div className="px-0 lg:px-6">
+            <div className="rounded-none bg-gray-800 px-5 py-4 pb-8 shadow-lg lg:rounded-xl lg:pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <span className="text-[14px] font-medium text-white">
@@ -2616,7 +2970,18 @@ const UserList = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() =>
+                    onClick={() => {
+                      const allApproved = selectedUsers.every((id) => {
+                        const u = users.find((user) => user.userID === id);
+                        return u && u.status === "registered";
+                      });
+                      if (allApproved) {
+                        showToast(
+                          "All selected users are already approved.",
+                          "error",
+                        );
+                        return;
+                      }
                       openWarning({
                         title: "Approve Selected Users",
                         subtitle: `Approve ${selectedUsers.length} selected user(s).`,
@@ -2625,8 +2990,8 @@ const UserList = () => {
                         confirmLabel: "Approve All",
                         confirmIcon: <i className="bx bx-check" />,
                         onConfirm: handleApproveSelectedUsers,
-                      })
-                    }
+                      });
+                    }}
                     disabled={isApprovingMultiple || isDeleting}
                     className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
                     aria-label="Approve selected users"
@@ -2634,46 +2999,74 @@ const UserList = () => {
                     <i className="bx bx-check text-lg"></i>
                     <span className="hidden md:inline">Approve</span>
                   </button>
-                  <button
-                    onClick={() =>
-                      openWarning({
-                        title: "Activate Selected Users",
-                        subtitle: `Activate ${selectedUsers.length} selected user(s).`,
-                        description:
-                          "Their accounts will be re-enabled and they will regain access to the system.",
-                        confirmLabel: "Activate All",
-                        confirmIcon: <i className="bx bx-arrow-big-up-line" />,
-                        onConfirm: handleActivateSelectedUsers,
-                      })
-                    }
-                    disabled={isActivatingMultiple || isDeleting}
-                    className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
-                    aria-label="Activate selected users"
-                  >
-                    <i className="bx bx-arrow-big-up-line text-lg"></i>
-                    <span className="hidden md:inline">Activate</span>
-                  </button>
-                  <button
-                    onClick={() =>
-                      openWarning({
-                        title: "Deactivate Selected Users",
-                        subtitle: `Deactivate ${selectedUsers.length} selected user(s).`,
-                        description:
-                          "Their access will be disabled. You can reactivate them at any time.",
-                        confirmLabel: "Deactivate All",
-                        confirmIcon: (
-                          <i className="bx bx-arrow-big-down-line" />
-                        ),
-                        onConfirm: handleDeactivateSelectedUsers,
-                      })
-                    }
-                    disabled={isDeactivatingMultiple || isDeleting}
-                    className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
-                    aria-label="Deactivate selected users"
-                  >
-                    <i className="bx bx-arrow-big-down-line text-lg"></i>
-                    <span className="hidden md:inline">Deactivate</span>
-                  </button>
+                  {canActivateDeactivateUsers && (
+                    <>
+                      <button
+                        onClick={() => {
+                          const allActive = selectedUsers.every((id) => {
+                            const u = users.find((user) => user.userID === id);
+                            return u && u.isActive === true;
+                          });
+                          if (allActive) {
+                            showToast(
+                              "All selected users are already active.",
+                              "error",
+                            );
+                            return;
+                          }
+                          openWarning({
+                            title: "Activate Selected Users",
+                            subtitle: `Activate ${selectedUsers.length} selected user(s).`,
+                            description:
+                              "Their accounts will be re-enabled and they will regain access to the system.",
+                            confirmLabel: "Activate All",
+                            confirmIcon: (
+                              <i className="bx bx-arrow-big-up-line" />
+                            ),
+                            onConfirm: handleActivateSelectedUsers,
+                          });
+                        }}
+                        disabled={isActivatingMultiple || isDeleting}
+                        className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
+                        aria-label="Activate selected users"
+                      >
+                        <i className="bx bx-arrow-big-up-line text-lg"></i>
+                        <span className="hidden md:inline">Activate</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          const allDeactivated = selectedUsers.every((id) => {
+                            const u = users.find((user) => user.userID === id);
+                            return u && !u.isActive;
+                          });
+                          if (allDeactivated) {
+                            showToast(
+                              "All selected users are already deactivated.",
+                              "error",
+                            );
+                            return;
+                          }
+                          openWarning({
+                            title: "Deactivate Selected Users",
+                            subtitle: `Deactivate ${selectedUsers.length} selected user(s).`,
+                            description:
+                              "Their access will be disabled. You can reactivate them at any time.",
+                            confirmLabel: "Deactivate All",
+                            confirmIcon: (
+                              <i className="bx bx-arrow-big-down-line" />
+                            ),
+                            onConfirm: handleDeactivateSelectedUsers,
+                          });
+                        }}
+                        disabled={isDeactivatingMultiple || isDeleting}
+                        className="flex cursor-pointer items-center gap-2 rounded-xl bg-white p-2 text-[14px] font-medium text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50 md:px-4 md:py-2"
+                        aria-label="Deactivate selected users"
+                      >
+                        <i className="bx bx-arrow-big-down-line text-lg"></i>
+                        <span className="hidden md:inline">Deactivate</span>
+                      </button>
+                    </>
+                  )}
                   {(currentUserRole === 4 || currentUserRole === 5) && (
                     <button
                       onClick={() => {
@@ -2733,6 +3126,7 @@ const UserList = () => {
         onConfirm={warningModal.onConfirm}
         cancelLabel="Cancel"
         isConfirmLoading={warningModal.isLoading}
+        headerIcon={warningModal.headerIcon}
       />
 
       <Toast message={toast.message} type={toast.type} show={toast.show} />

@@ -59,15 +59,30 @@ const expandProgram = (name) => {
   return name;
 };
 
+const getExamItemCount = (subject) =>
+  Number(
+    subject?.total_items ?? subject?.totalItems ?? subject?.totalQuestions ?? 0,
+  );
+
+const getAvailableQuestionCount = (subject) =>
+  Number(
+    subject?.availableQuestionCount ??
+      subject?.approvedQuestionCount ??
+      subject?.bankQuestionCount ??
+      subject?.questionCount ??
+      0,
+  );
+
+const isAvailablePracticeSubject = (subject) =>
+  Boolean(subject?.isPracticeExamEnabled) &&
+  getExamItemCount(subject) > 0 &&
+  getAvailableQuestionCount(subject) > 0;
+
 /* ── Subject card ───────────────────────────────────────────── */
 const SubjectCard = ({ subject, onExplore }) => {
+  const examItemCount = getExamItemCount(subject);
+
   const rows = [
-    {
-      label: "TOTAL QUESTIONS",
-      value: subject.questionCount
-        ? `${subject.questionCount} Practice Questions`
-        : "—",
-    },
     {
       label: "DURATION",
       value: subject.durationMinutes
@@ -216,7 +231,9 @@ const StudentDashboard = () => {
           },
         });
         const data = await res.json();
-        if (data.data) setSubjects(data.data);
+        if (data.data) {
+          setSubjects(data.data.filter(isAvailablePracticeSubject));
+        }
       } catch (err) {
         console.error("Error fetching subjects:", err);
       } finally {
@@ -426,12 +443,15 @@ const StudentDashboard = () => {
   };
 
   /* ── Filtered subjects ──────────────────────────────── */
-  const filtered = subjects.filter((s) =>
-    searchQuery.trim()
-      ? s.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.subjectCode.toLowerCase().includes(searchQuery.toLowerCase())
-      : true,
-  );
+  const filtered = subjects.filter((s) => {
+    if (!isAvailablePracticeSubject(s)) return false;
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      s.subjectName.toLowerCase().includes(query) ||
+      s.subjectCode.toLowerCase().includes(query)
+    );
+  });
 
   /* ── Render ─────────────────────────────────────────── */
   return (

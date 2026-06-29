@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { clearAuth } from '../utils/authStorage';
 import { useNavigate } from "react-router-dom";
 
 const SelectQuestionsModal = ({
@@ -102,7 +103,7 @@ const SelectQuestionsModal = ({
       );
 
       if (response.status === 401) {
-        sessionStorage.removeItem("token");
+        clearAuth();
         throw new Error("You are not authenticated. Please log in again.");
       }
 
@@ -202,7 +203,7 @@ const SelectQuestionsModal = ({
       });
 
       if (response.status === 401) {
-        sessionStorage.removeItem("token");
+        clearAuth();
         throw new Error("You are not authenticated. Please log in again.");
       }
 

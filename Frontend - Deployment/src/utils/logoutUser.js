@@ -1,6 +1,7 @@
+import { clearAuth } from "./authStorage";
+
 export function logoutUser(showToast, navigate, message) {
-  sessionStorage.removeItem("token");
-  sessionStorage.removeItem("user");
+  clearAuth();
   // Remove any other user data if needed
   if (showToast && message) showToast(message, "error");
   setTimeout(() => {

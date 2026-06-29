@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { clearAuth } from "../utils/authStorage";
 import { Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 
@@ -346,7 +347,7 @@ function Libraries() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           throw new Error("Your session has expired. Please log in again.");
         }
 
@@ -465,8 +466,11 @@ function Libraries() {
           throw new Error("You are not authenticated. Please log in again.");
         }
 
+        // Subject-based personal quiz: faculty/chair get only their own program's
+        // subjects + General Education (GE); dean/associate-dean get all. (Using
+        // /subjects/all here previously let faculty/chair see every program.)
         const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/subjects/all`,
+          `${import.meta.env.VITE_API_BASE_URL}/personal-quizzes/subject-options`,
           {
             method: "GET",
             headers: {
@@ -481,7 +485,7 @@ function Libraries() {
           // If 401, token might be expired or invalid
           if (response.status === 401) {
             // Clear token and show error
-            sessionStorage.removeItem("token");
+            clearAuth();
             throw new Error("Your session has expired. Please log in again.");
           }
 

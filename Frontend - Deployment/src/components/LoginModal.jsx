@@ -3,17 +3,26 @@ import { useNavigate } from "react-router-dom";
 import collegeLogo from "/src/assets/college-logo.png";
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
+import {
+  getDashboardPathForRole,
+  getRememberedUserCode,
+  isRememberMeEnabled,
+  setAuth,
+  setRememberedUserCode,
+} from "../utils/authStorage";
 
 export default function LoginModal({
   isOpen,
   onClose,
   onSwitchToRegister,
   onSwitchToForgotPassword,
+  onSwitchToForgotUserCode,
 }) {
   const [idCode, setIdCode] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLogIn, setIsLogIn] = useState(false);
   const navigate = useNavigate();
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
@@ -37,11 +46,16 @@ export default function LoginModal({
     };
   }, [isOpen]);
 
-  // Reset all inputs when modal closes
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      setIdCode(getRememberedUserCode());
+      setRememberMe(isRememberMeEnabled());
+      setPassword("");
+      setError("");
+    } else {
       setIdCode("");
       setPassword("");
+      setRememberMe(false);
       setError("");
       setPasswordVisible(false);
       setIsLogIn(false);
@@ -86,29 +100,18 @@ export default function LoginModal({
         return;
       }
 
-      sessionStorage.setItem("token", data.token);
-      sessionStorage.setItem("user", JSON.stringify(data.user));
+      setRememberedUserCode(rememberMe ? idCode.trim() : "");
+      setAuth({
+        token: data.token,
+        user: data.user,
+        rememberMe,
+      });
 
-      const roleId = Number(data.user.roleID);
-      switch (roleId) {
-        case 1:
-          navigate("/student-dashboard");
-          break;
-        case 2:
-          navigate("/faculty-dashboard");
-          break;
-        case 3:
-          navigate("/program-chair-dashboard");
-          break;
-        case 4:
-          navigate("/dean-dashboard");
-          break;
-        case 5:
-          navigate("/asso-dean-dashboard");
-          break;
-        default:
-          setError("Invalid user role.");
-          break;
+      const dashboardPath = getDashboardPathForRole(data.user.roleID);
+      if (dashboardPath) {
+        navigate(dashboardPath);
+      } else {
+        setError("Invalid user role.");
       }
     } catch {
       showToast("Something went wrong. Please try again later.", "error");
@@ -177,9 +180,21 @@ export default function LoginModal({
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             {/* ID Code field */}
             <div>
-              <label className="outfit-500 mb-1.5 block text-sm text-gray-700">
-                ID Code
-              </label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="outfit-500 text-sm text-gray-700">
+                  ID Code
+                </label>
+                {/* <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onSwitchToForgotUserCode?.();
+                  }}
+                  className="outfit-400 text-sm text-orange-500 hover:underline"
+                >
+                  Forgot ID code?
+                </button> */}
+              </div>
               <input
                 type="text"
                 id="modal-userCode"
@@ -229,14 +244,15 @@ export default function LoginModal({
               </div>
             </div>
 
-            {/* Remember me 
             <label className="outfit-400 flex cursor-pointer items-center gap-2 text-sm text-gray-600">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 accent-blue-500"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 cursor-pointer rounded border-gray-300"
               />
               Remember me
-            </label>*/}
+            </label>
 
             {error && (
               <p className="text-center text-xs text-red-500">{error}</p>
@@ -257,9 +273,6 @@ export default function LoginModal({
               )}
             </button>
 
-       
-
-            
             {/* Register link */}
             <p className="outfit-400 text-center text-sm text-gray-500">
               Don't have an account?{" "}

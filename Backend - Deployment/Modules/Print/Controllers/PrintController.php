@@ -5,6 +5,7 @@ namespace Modules\Print\Controllers;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
 use Modules\Questions\Models\Question;
+use Modules\Questions\Models\Purpose;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Modules\Subjects\Models\Subject;
@@ -1143,6 +1144,159 @@ class PrintController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while generating the PDF data.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Return the number of easy, moderate, and hard approved exam questions for every subject.
+     */
+    public function getSubjectQuestionDifficultyCounts(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Authentication Required',
+                    'details' => 'You must be logged in to view question difficulty counts.',
+                    'code' => 'AUTH_ERROR',
+                    'action' => 'Please log in and try again.',
+                ], 401);
+            }
+
+            if (!in_array($user->roleID, [2, 3, 4, 5])) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Access Denied',
+                    'details' => 'Only Faculty, Program Chair, Dean, and Associate Dean can view question difficulty counts.',
+                    'code' => 'FORBIDDEN',
+                    'action' => 'Contact your administrator if you need access to this information.',
+                ], 403);
+            }
+
+            $purpose = Purpose::where('name', 'examQuestions')->first();
+            if (!$purpose) {
+                Log::error('ExamQuestions purpose not found while fetching difficulty counts');
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'System Configuration Error',
+                    'details' => 'Unable to retrieve question counts because exam question settings are not configured.',
+                    'code' => 'CONFIG_ERROR',
+                    'action' => 'Please contact the system administrator.',
+                ], 500);
+            }
+
+            $subjectQuery = Subject::query()->with(['program', 'yearLevel']);
+
+            if ($user->roleID === 2) {
+                $subjectQuery->whereHas('faculty', function ($query) use ($user) {
+                    $query->where('faculty_subjects.facultyID', $user->userID);
+                });
+            } elseif ($user->roleID === 3) {
+                $subjectQuery->where(function ($query) use ($user) {
+                    $query->where('programID', $user->programID)
+                        ->orWhere('programID', 6);
+                });
+            }
+
+            $subjects = $subjectQuery->orderBy('subjectID')->get();
+
+            if ($subjects->isEmpty()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'No subjects were found for your account.',
+                    'details' => 'There are no subjects assigned or available to you at this time.',
+                    'data' => [],
+                    'summary' => [
+                        'total_subjects' => 0,
+                        'total_questions' => 0,
+                        'easy' => 0,
+                        'moderate' => 0,
+                        'hard' => 0,
+                    ],
+                ], 200);
+            }
+
+            $subjectIDs = $subjects->pluck('subjectID');
+
+            $questionQuery = Question::query()
+                ->selectRaw('subjectID, difficulties.name as difficulty, COUNT(*) as count')
+                ->join('difficulties', 'questions.difficulty_id', '=', 'difficulties.id')
+                ->join('statuses', 'questions.status_id', '=', 'statuses.id')
+                ->where('questions.purpose_id', $purpose->id)
+                ->where('statuses.name', 'approved')
+                ->whereIn('questions.subjectID', $subjectIDs);
+
+            if ($user->roleID === 2) {
+                $questionQuery->where('questions.userID', $user->userID);
+            } elseif ($user->roleID === 3) {
+                $validUserIDs = User::where('programID', $user->programID)->pluck('userID');
+                $questionQuery->whereIn('questions.userID', $validUserIDs);
+            } elseif ($user->roleID === 5) {
+                $validUserIDs = User::where('campusID', $user->campusID)->pluck('userID');
+                $questionQuery->whereIn('questions.userID', $validUserIDs);
+            }
+
+            $countsBySubject = $questionQuery
+                ->groupBy('questions.subjectID', 'difficulties.name')
+                ->get()
+                ->groupBy('subjectID');
+
+            $data = $subjects->map(function ($subject) use ($countsBySubject) {
+                $subjectCounts = $countsBySubject->get($subject->subjectID, collect());
+
+                $easy = (int) optional($subjectCounts->firstWhere('difficulty', 'easy'))->count ?? 0;
+                $moderate = (int) optional($subjectCounts->firstWhere('difficulty', 'moderate'))->count ?? 0;
+                $hard = (int) optional($subjectCounts->firstWhere('difficulty', 'hard'))->count ?? 0;
+
+                return [
+                    'subjectID' => $subject->subjectID,
+                    'subjectCode' => $subject->subjectCode,
+                    'subjectName' => $subject->subjectName,
+                    'programID' => $subject->programID,
+                    'programName' => $subject->program ? $subject->program->programName : null,
+                    'yearLevelID' => $subject->yearLevelID,
+                    'yearLevel' => $subject->yearLevel ? $subject->yearLevel->name : null,
+                    'difficulty_counts' => [
+                        'easy' => $easy,
+                        'moderate' => $moderate,
+                        'hard' => $hard,
+                        'total' => $easy + $moderate + $hard,
+                    ],
+                ];
+            })->values();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Question difficulty counts retrieved successfully.',
+                'details' => 'Counts include approved exam questions only, filtered by your role and access level.',
+                'data' => $data,
+                'summary' => [
+                    'total_subjects' => $data->count(),
+                    'total_questions' => $data->sum(fn ($subject) => $subject['difficulty_counts']['total']),
+                    'easy' => $data->sum(fn ($subject) => $subject['difficulty_counts']['easy']),
+                    'moderate' => $data->sum(fn ($subject) => $subject['difficulty_counts']['moderate']),
+                    'hard' => $data->sum(fn ($subject) => $subject['difficulty_counts']['hard']),
+                ],
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Error retrieving subject question difficulty counts', [
+                'user_id' => optional(Auth::user())->userID,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unable to Retrieve Question Counts',
+                'details' => 'An unexpected error occurred while loading question difficulty counts. Please try again later.',
+                'code' => 'SERVER_ERROR',
+                'action' => 'If the problem continues, contact the system administrator.',
+                'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
     }

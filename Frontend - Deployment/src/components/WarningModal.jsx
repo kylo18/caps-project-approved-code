@@ -13,6 +13,7 @@
  *  cancelLabel   {string}    – label for the secondary button           [default: "Cancel"]
  *  cancelIcon    {ReactNode} – optional icon before the cancelLabel
  *  onCancel      {function}  – called when the secondary button is clicked (falls back to onClose)
+ *  headerIcon    {string}    – boxicons class suffix for the header icon     [default: "bx-alert-circle"]
  */
 const WarningModal = ({
   isOpen,
@@ -28,6 +29,7 @@ const WarningModal = ({
   onCancel,
   isConfirmLoading = false,
   isCancelLoading = false,
+  headerIcon = "bx-alert-circle",
 }) => {
   if (!isOpen) return null;
 
@@ -35,7 +37,7 @@ const WarningModal = ({
 
   return (
     <div
-      className="lightbox-bg fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="lightbox-bg fixed inset-0 z-[200] flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
@@ -49,7 +51,7 @@ const WarningModal = ({
         >
           <div className="flex items-start gap-4">
             <div className="mt-1.5 flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-white shadow">
-              <i className="bx bx-alert-circle text-xl" />
+              <i className={`bx ${headerIcon} text-xl`} />
             </div>
             <div>
               <h3 className="outfit-700 text-[17px] font-bold text-gray-900">

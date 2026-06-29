@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { clearAuth } from '../utils/authStorage';
 import Toast from "./Toast";
 import useToast from "../hooks/useToast";
 
@@ -81,7 +82,7 @@ const EditClassModal = ({ isOpen, onClose, onSuccess, classData }) => {
 
       if (response.status === 401) {
         showToast("You are not authenticated. Please log in again.", "error");
-        sessionStorage.removeItem("token");
+        clearAuth();
         setLoading(false);
         return;
       }

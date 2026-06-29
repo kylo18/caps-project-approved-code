@@ -494,66 +494,192 @@ class SubjectController extends Controller
 
     /**
      * Get subjects for the student's program (including GE subjects) that have practice exam settings.
+     * Returns whether each subject is enabled for practice exams and the configured question count.
      */
     public function getProgramSubjects()
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        // Only students can access this
-        if ($user->roleID !== 1) {
-            return response()->json(['message' => 'Unauthorized.'], 403);
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You are not authenticated. Please log in to view practice exam subjects.',
+                ], 401);
+            }
+
+            if ($user->roleID !== 1) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Only students can view practice exam subjects.',
+                ], 403);
+            }
+
+            if (!$user->programID) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account does not have a program assigned. Please contact an administrator.',
+                ], 403);
+            }
+
+            $subjects = Subject::with(['program', 'yearLevel', 'practiceExamSetting'])
+                ->where(function ($query) use ($user) {
+                    $query->where('programID', $user->programID)
+                        ->orWhere('programID', 6)
+                        ->orWhereHas('program', function ($subQuery) {
+                            $subQuery->where('programName', 'LIKE', '%General Education%');
+                        });
+                })
+                ->whereHas('practiceExamSetting')
+                ->select('subjectID', 'subjectName', 'subjectCode', 'programID', 'yearLevelID')
+                ->orderBy('subjectCode')
+                ->get();
+
+            if ($subjects->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No practice exam subjects are available for your program yet.',
+                    'data' => [],
+                ], 200);
+            }
+
+            $subjectIDs = $subjects->pluck('subjectID')->toArray();
+            $lastQuestionDates = DB::table('questions as q')
+                ->join('users as u', 'q.userID', '=', 'u.userID')
+                ->whereIn('q.subjectID', $subjectIDs)
+                ->where('u.roleID', 2)
+                ->select('q.subjectID', DB::raw('MAX(q.created_at) as lastQuestionAdded'))
+                ->groupBy('q.subjectID')
+                ->pluck('lastQuestionAdded', 'subjectID');
+
+            $formattedSubjects = $subjects->map(function ($subject) use ($lastQuestionDates) {
+                $setting = $subject->practiceExamSetting;
+                $isPracticeExamEnabled = $setting ? (bool) $setting->isEnabled : false;
+                $totalQuestions = $setting ? (int) $setting->total_items : 0;
+                $durationMinutes = ($setting && $setting->enableTimer && $setting->duration_minutes !== null)
+                    ? (int) $setting->duration_minutes
+                    : null;
+
+                return [
+                    'subjectID' => $subject->subjectID,
+                    'subjectName' => $subject->subjectName,
+                    'subjectCode' => $subject->subjectCode,
+                    'programID' => $subject->programID,
+                    'programName' => $subject->program ? $subject->program->programName : null,
+                    'yearLevelID' => $subject->yearLevelID,
+                    'yearLevel' => $subject->yearLevel ? $subject->yearLevel->name : null,
+                    'lastQuestionAdded' => isset($lastQuestionDates[$subject->subjectID]) && $lastQuestionDates[$subject->subjectID]
+                        ? \Carbon\Carbon::parse($lastQuestionDates[$subject->subjectID])->toDateTimeString()
+                        : null,
+                    'isPracticeExamEnabled' => $isPracticeExamEnabled,
+                    'totalQuestions' => $totalQuestions,
+                    'questionCount' => $totalQuestions,
+                    'enableTimer' => $setting ? (bool) $setting->enableTimer : false,
+                    'durationMinutes' => $durationMinutes,
+                    'practiceExamStatus' => $isPracticeExamEnabled
+                        ? 'Available'
+                        : 'Disabled by administrator',
+                ];
+            })->values();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Practice exam subjects retrieved successfully.',
+                'data' => $formattedSubjects,
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Error retrieving student practice exam subjects', [
+                'user_id' => optional(Auth::user())->userID,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving practice exam subjects. Please try again later.',
+                'error' => app()->environment('local') ? $e->getMessage() : null,
+            ], 500);
         }
+    }
 
-        // Fetch program-specific and general education subjects with practice exam settings
-        $subjects = Subject::with(['program', 'yearLevel', 'practiceExamSetting'])
-            ->where(function ($query) use ($user) {
-                $query->where('programID', $user->programID)
-                    ->orwhere('programID', 6) // General subjects
-                    ->orWhereHas('program', function ($subQuery) {
-                        $subQuery->where('programName', 'LIKE', '%General Education%');
-                    });
-            })
-            ->whereHas('practiceExamSetting') // Only if practice exam settings exist
-            ->select('subjectID', 'subjectName', 'subjectCode', 'programID', 'yearLevelID')
-            ->get();
+    /**
+     * Subjects selectable when creating a SUBJECT-BASED personal quiz.
+     *
+     * Faculty (2) and Program Chair (3) only see subjects in their OWN program
+     * plus General Education (GE) subjects. Dean (4) and Associate Dean (5) see
+     * all subjects. This is intentionally different from /faculty/my-subjects
+     * (which returns only the subjects assigned to that faculty member).
+     */
+    public function quizSubjects(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user || !in_array((int) $user->roleID, [2, 3, 4, 5], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden.',
+                    'subjects' => [],
+                ], 403);
+            }
 
-        // Get last question added dates for all subjects
-        $subjectIDs = $subjects->pluck('subjectID')->toArray();
-        $lastQuestionDates = DB::table('questions as q')
-            ->join('users as u', 'q.userID', '=', 'u.userID')
-            ->whereIn('q.subjectID', $subjectIDs)
-            ->where('u.roleID', 2) // Only faculty questions
-            ->select('q.subjectID', DB::raw('MAX(q.created_at) as lastQuestionAdded'))
-            ->groupBy('q.subjectID')
-            ->pluck('lastQuestionAdded', 'subjectID');
+            $query = DB::table('subjects as s')
+                ->join('programs as p', 's.programID', '=', 'p.programID')
+                ->join('year_levels as yl', 'yl.yearLevelID', '=', 's.yearLevelID')
+                ->select(
+                    's.subjectID',
+                    's.subjectCode',
+                    's.subjectName',
+                    's.programID',
+                    'p.programName',
+                    's.yearLevelID',
+                    'yl.name as yearLevel'
+                );
 
-        $formattedSubjects = $subjects->map(function ($subject) use ($lastQuestionDates) {
-            $setting = $subject->practiceExamSetting;
-            $questionCount = $setting ? (int) $setting->total_items : null;
-            $durationMinutes = ($setting && $setting->enableTimer && $setting->duration_minutes !== null)
-                ? (int) $setting->duration_minutes
-                : null;
+            // Faculty (2) and Program Chair (3): only their own program's subjects
+            // + General Education (GE) subjects. Dean (4) / Associate Dean (5): all.
+            if (in_array((int) $user->roleID, [2, 3], true)) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('s.programID', $user->programID)
+                      ->orWhere('s.programID', 6) // General (GE) subjects
+                      ->orWhere('p.programName', 'LIKE', '%General Education%');
+                });
+            }
 
-            return [
-                'subjectID' => $subject->subjectID,
-                'subjectName' => $subject->subjectName,
-                'subjectCode' => $subject->subjectCode,
-                'programID' => $subject->programID,
-                'programName' => $subject->program ? $subject->program->programName : null,
-                'yearLevelID' => $subject->yearLevelID,
-                'yearLevel' => $subject->yearLevel ? $subject->yearLevel->name : null,
-                'lastQuestionAdded' => isset($lastQuestionDates[$subject->subjectID]) && $lastQuestionDates[$subject->subjectID]
-                    ? \Carbon\Carbon::parse($lastQuestionDates[$subject->subjectID])->toDateTimeString()
-                    : null,
-                'questionCount' => $questionCount,
-                'durationMinutes' => $durationMinutes,
-            ];
-        });
+            $subjects = $query->orderBy('s.subjectID')->get();
 
-        return response()->json([
-            'message' => 'Subjects available for practice exam.',
-            'data' => $formattedSubjects
-        ], 200);
+            $formattedSubjects = $subjects->map(function ($subject) {
+                $programName = $subject->programName ?? '';
+                if ($programName !== '' && strpos($programName, 'BS-') === 0) {
+                    $programName = substr($programName, 3);
+                }
+
+                return [
+                    'subjectID' => $subject->subjectID,
+                    'subjectCode' => $subject->subjectCode,
+                    'subjectName' => $subject->subjectName,
+                    'programID' => $subject->programID,
+                    'programName' => $programName,
+                    'yearLevelID' => $subject->yearLevelID,
+                    'yearLevel' => $subject->yearLevel,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Subjects retrieved successfully.',
+                'subjects' => $formattedSubjects,
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Error retrieving quiz subjects', [
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving subjects.',
+                'subjects' => [],
+            ], 500);
+        }
     }
 
     /**

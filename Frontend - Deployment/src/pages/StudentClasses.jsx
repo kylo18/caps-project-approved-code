@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { clearAuth } from '../utils/authStorage';
 import WarningModal from "../components/WarningModal";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import useToast from "../hooks/useToast";
@@ -179,7 +180,7 @@ const StudentClasses = () => {
           "There was a problem unenrolling from the class. Please try again.";
 
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           message = "Your session has expired. Please log in again.";
         } else if (response.status === 403) {
           message = "Only students can unenroll from classes.";
@@ -241,7 +242,7 @@ const StudentClasses = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           throw new Error("Your session has expired. Please log in again.");
         }
 
@@ -406,7 +407,7 @@ const StudentClasses = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem("token");
+          clearAuth();
           throw new Error("Your session has expired. Please log in again.");
         }
 

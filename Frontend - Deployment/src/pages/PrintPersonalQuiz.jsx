@@ -14,11 +14,18 @@ function shuffleArray(array) {
   return arr;
 }
 
+function stripHtml(html) {
+  if (!html) return "";
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return (tmp.textContent || tmp.innerText || "").replace(/\s+/g, " ").trim();
+}
+
 function shuffleChoicesKeepNoneAtEnd(choices) {
   if (!choices || choices.length < 2) return choices;
   const idx = choices.findIndex(
     (c) =>
-      (typeof c === "string" ? c : c.choiceText)?.toLowerCase() ===
+      stripHtml(typeof c === "string" ? c : c.choiceText)?.toLowerCase() ===
       "none of the above",
   );
   if (idx === -1) return shuffleArray(choices);
@@ -1282,12 +1289,9 @@ export default function PrintPersonalQuiz() {
                       <div key={index} className="question-container">
                         <div className="pdf-text flex items-start">
                           <span className="mr-2 min-w-[2ch]">{index + 1}.</span>
-                          <span
-                            className="break-words"
-                            dangerouslySetInnerHTML={{
-                              __html: question.questionText,
-                            }}
-                          />
+                          <span className="break-words">
+                            {stripHtml(question.questionText)}
+                          </span>
                         </div>
                         {question.questionImage && (
                           <div className="mt-2">
@@ -1315,7 +1319,7 @@ export default function PrintPersonalQuiz() {
                           (() => {
                             const allShort = question.choices.every(
                               (choice) =>
-                                (choice.choiceText?.length || 0) < 20 &&
+                                (stripHtml(choice.choiceText)?.length || 0) < 20 &&
                                 !choice.choiceImage,
                             );
                             if (allShort) {
@@ -1336,7 +1340,7 @@ export default function PrintPersonalQuiz() {
                                       >
                                         <p className="pdf-choice ml-5">
                                           {String.fromCharCode(65 + idx)}.{" "}
-                                          {question.choices[idx].choiceText}
+                                          {stripHtml(question.choices[idx].choiceText)}
                                         </p>
                                       </div>,
                                     );
@@ -1410,7 +1414,7 @@ export default function PrintPersonalQuiz() {
                                             {String.fromCharCode(
                                               65 + choiceIndex,
                                             )}
-                                            . {choice.choiceText}
+                                            . {stripHtml(choice.choiceText)}
                                           </p>
                                         </div>
                                       ),
@@ -1432,7 +1436,7 @@ export default function PrintPersonalQuiz() {
                                           .
                                         </span>
                                         <span className="pdf-choice">
-                                          {choice.choiceText}
+                                          {stripHtml(choice.choiceText)}
                                         </span>
                                       </div>
                                       {choice.choiceImage && (
@@ -1700,12 +1704,9 @@ export default function PrintPersonalQuiz() {
                   <div key={index} className="question-container">
                     <div className="pdf-text flex items-start">
                       <span className="mr-2 min-w-[2ch]">{index + 1}.</span>
-                      <span
-                        className="break-words"
-                        dangerouslySetInnerHTML={{
-                          __html: question.questionText,
-                        }}
-                      />
+                      <span className="break-words">
+                        {stripHtml(question.questionText)}
+                      </span>
                     </div>
                     {question.questionImage && (
                       <div className="mt-2">
@@ -1733,7 +1734,7 @@ export default function PrintPersonalQuiz() {
                       (() => {
                         const allShort = question.choices.every(
                           (choice) =>
-                            (choice.choiceText?.length || 0) < 20 &&
+                            (stripHtml(choice.choiceText)?.length || 0) < 20 &&
                             !choice.choiceImage,
                         );
                         if (allShort) {
@@ -1751,7 +1752,7 @@ export default function PrintPersonalQuiz() {
                                   <div key={col} className="flex items-center">
                                     <p className="pdf-choice ml-5">
                                       {String.fromCharCode(65 + idx)}.{" "}
-                                      {question.choices[idx].choiceText}
+                                      {stripHtml(question.choices[idx].choiceText)}
                                     </p>
                                   </div>,
                                 );
@@ -1821,7 +1822,7 @@ export default function PrintPersonalQuiz() {
                                       style={{ marginTop: 4 }}
                                     >
                                       {String.fromCharCode(65 + choiceIndex)}.{" "}
-                                      {choice.choiceText}
+                                      {stripHtml(choice.choiceText)}
                                     </p>
                                   </div>
                                 ))}
@@ -1839,7 +1840,7 @@ export default function PrintPersonalQuiz() {
                                       {String.fromCharCode(65 + choiceIndex)}.
                                     </span>
                                     <span className="pdf-choice">
-                                      {choice.choiceText}
+                                      {stripHtml(choice.choiceText)}
                                     </span>
                                   </div>
                                   {choice.choiceImage && (
