@@ -145,3 +145,9 @@ TESTING ENVIRONMENT RESULTS/BugRootCauseAnalyis/ProgramChair/ProgramChairBugRoot
 
 # Ignore test environment result folders
 TestEnvironmentResults/BugRootCauseAnalysis
+
+# Local Claude Code config
+.claude/
+
+# Packaged dependency archive (build artifact)
+node_modules.tar.gz
